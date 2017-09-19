@@ -193,7 +193,7 @@ class JobAccess(object):
             return False
         try:
             return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
-                .exclude(archive='').count() > 0
+                .exclude(verifier_input='').count() > 0
         except ObjectDoesNotExist:
             return False
 

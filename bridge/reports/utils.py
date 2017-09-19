@@ -88,7 +88,7 @@ def get_parents(report):
             'title': parent.component.name,
             'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
             'attrs': parent_attrs,
-            'coverage': parent.coverage
+            'has_coverage': bool(parent.coverage)
         })
         try:
             parent = ReportComponent.objects.get(id=parent.parent_id)
@@ -759,7 +759,7 @@ class ReportChildrenTable:
         return values
 
 
-class AttrData(object):
+class AttrData:
     def __init__(self):
         self._data = []
         self._name = {}
@@ -804,7 +804,7 @@ class AttrData(object):
                 self._attrs[(a.name.name, a.value)] = a.id
 
 
-class FilesForCompetitionArchive(object):
+class FilesForCompetitionArchive:
     def __init__(self, job, filters):
         self.name = 'svcomp.zip'
         self.benchmark_fname = 'benchmark.xml'
@@ -840,9 +840,10 @@ class FilesForCompetitionArchive(object):
 
     def __get_archives(self):
         archives = {}
-        for c in ReportComponent.objects.filter(root=self.root).only('id', 'archive'):
-            if c.archive:
-                archives[c.id] = c.archive
+        for c in ReportComponent.objects.filter(root=self.root, verification=True).exclude(verifier_input='')\
+                .only('id', 'archive'):
+            if c.verifier_input:
+                archives[c.id] = c.verifier_input
         return archives
 
     def __reports_data(self, f_type, problems=None):
@@ -943,7 +944,7 @@ def report_attributes_with_parents(report):
 def remove_verification_files(job):
     root = job.reportroot
     for report in ReportComponent.objects.filter(root=root, verification=True):
-        report.archive.delete()
+        report.verifier_input.delete()
 
     core_report = ReportComponent.objects.get(root=root, parent=None)
     if job.weight == JOB_WEIGHT[1][0]:
@@ -951,5 +952,3 @@ def remove_verification_files(job):
         ReportUnsafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
         ReportUnknown.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=True).delete()
-    else:
-        ReportComponent.objects.filter(root=root, verification=True).update(log=None)

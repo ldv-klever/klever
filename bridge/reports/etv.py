@@ -17,9 +17,13 @@
 
 import re
 import json
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import ERROR_TRACE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException
+
 from reports.models import ReportUnsafe
 
 
@@ -550,7 +554,7 @@ class GetSource:
         if file_name.startswith('/'):
             file_name = file_name[1:]
         try:
-            source_content = ArchiveFileContent(self.report, file_name).content.decode('utf8')
+            source_content = ArchiveFileContent(self.report, 'error_trace', file_name).content.decode('utf8')
         except Exception as e:
             raise BridgeException(_("Error while extracting source from archive: %(error)s") % {'error': str(e)})
         cnt = 1
@@ -918,7 +922,7 @@ def etv_callstack(unsafe_id=None, file_name='test.txt'):
         unsafe = ReportUnsafe.objects.get(id=unsafe_id)
     else:
         unsafe = ReportUnsafe.objects.all().first()
-    content = ArchiveFileContent(unsafe, unsafe.error_trace).content.decode('utf8')
+    content = ArchiveFileContent(unsafe, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8')
     data = json.loads(content)
     trace = ''
     double_returns = set()

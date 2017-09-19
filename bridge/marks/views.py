@@ -33,7 +33,7 @@ from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
-    VIEW_TYPES
+    VIEW_TYPES, PROBLEM_DESC_FILE
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
 
 from users.models import User
@@ -58,7 +58,7 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
-    problem_description = None
+    problem_desc = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -69,7 +69,8 @@ def create_mark(request, mark_type, report_id):
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
             try:
-                problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+                problem_desc = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE)\
+                    .content.decode('utf8')
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
                 return BridgeErrorResponse(500)
@@ -91,7 +92,7 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'problem_description': problem_description
+        'problem_description': problem_desc
     })
 
 
