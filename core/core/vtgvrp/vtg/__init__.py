@@ -598,7 +598,7 @@ class VTGW(core.components.Component):
         # Prepare pilot workdirs if it will be possible to reuse data
         rule_class = resolve_rule_class(rule_spec_desc['id'])
         pilot_rule = _rule_spec_classes[rule_class][0]['id']
-        pilot_plugins_work_dir = os.path.join(verification_obj_desc['id'], pilot_rule)
+        pilot_plugins_work_dir = os.path.join(os.path.pardir, pilot_rule)
 
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
