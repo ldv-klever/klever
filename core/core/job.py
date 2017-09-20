@@ -171,6 +171,13 @@ class Job(core.utils.CallbacksCaller):
                     # calculate validation and testing results.
                     self.mqs['verification statuses'] = multiprocessing.Queue()
 
+                    def after_plugin_fail_processing(context):
+                        context.mqs['verification statuses'].put({
+                            'verification object': context.verification_object,
+                            'rule specification': context.rule_specification,
+                            'verdict': 'unknown'
+                        })
+
                     def after_send_unknown_report(context):
                         context.mqs['verification statuses'].put({
                             'verification object': context.verification_object,
@@ -191,6 +198,7 @@ class Job(core.utils.CallbacksCaller):
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
+                                                           after_plugin_fail_processing,
                                                            after_process_single_verdict,
                                                            after_send_unknown_report,
                                                            after_finish_tasks_results_processing

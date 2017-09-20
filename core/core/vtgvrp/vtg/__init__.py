@@ -311,7 +311,7 @@ class VTG(core.components.Component):
         # Start plugins
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs)]
         for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-            subcomponents.append(('WTGWL', self.__loop_worker))
+            subcomponents.append(VTGWL)
         self.launch_subcomponents(*subcomponents)
 
         self.mqs['VTGVRP pending tasks'].put(None)
@@ -516,7 +516,18 @@ class VTG(core.components.Component):
 
         self.logger.info("Stop generating verification tasks")
 
-    def __loop_worker(self):
+
+class VTGWL(core.components.Component):
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False, include_child_resources=False):
+        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+                                    separate_from_parent, include_child_resources)
+        # Required for a callback
+        self.verification_object = None
+        self.rule_specification = None
+
+    def task_generating_loop(self):
         self.logger.info("Start VTGL worker")
         while True:
             pair = self.mqs['prepare verification objects'].get()
@@ -527,20 +538,28 @@ class VTG(core.components.Component):
             rs = pair[1]
             self.logger.debug("VTGL is about to start VTGW for {!r}, {!r}".format(vo['id'], rs['id']))
             try:
-                obj = VTGW(self.conf, self.logger, self.id, self.callbacks, self.mqs,
+                obj = VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
                            self.locks, "{}/{}/VTGW".format(vo['id'], rs['id']), os.path.join(vo['id'], rs['id']),
                            attrs=[{"Rule specification": rs['id']}, {"Verification object": vo['id']}],
                            separate_from_parent=True, verification_object=vo, rule_spec=rs)
                 obj.start()
                 obj.join()
             except core.components.ComponentError:
-                self.logger.debug("VTGW that processed {!r}, {!r} failed".format(vo['id'], rs['id']))
-                self.mqs['VTGVRP processed tasks'].put((vo['id'], rs['id']))
+                self.plugin_fail_processing(vo, rs)
             finally:
                 if rs['id'] in [c[0]['id'] for c in _rule_spec_classes.values()]:
                     self.mqs['prepared verification tasks'].put((vo['id'], rs['id']))
 
         self.logger.info("Terminate VTGL worker")
+
+    main = task_generating_loop
+
+    def plugin_fail_processing(self, vo, rs):
+        """The function has a callback in sub-job processing!"""
+        self.verification_object = vo['id']
+        self.rule_specification = rs['id']
+        self.logger.debug("VTGW that processed {!r}, {!r} failed".format(vo['id'], rs['id']))
+        self.mqs['VTGVRP processed tasks'].put((vo['id'], rs['id']))
 
 
 class VTGW(core.components.Component):
