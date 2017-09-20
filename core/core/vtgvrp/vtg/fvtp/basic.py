@@ -54,10 +54,9 @@ class Basic:
         files = self._prepare_benchmark_description(resource_limits)
         common.prepare_verification_task_files_archive(files)
         task_description = self._prepare_task_description(resource_limits)
-        if self.conf['keep intermediate files']:
-            self.logger.debug('Create verification task description file "task.json"')
-            with open('task.json', 'w', encoding='utf8') as fp:
-                json.dump(task_description, fp, ensure_ascii=False, sort_keys=True, indent=4)
+        self.logger.debug('Create verification task description file "task.json"')
+        with open('task.json', 'w', encoding='utf8') as fp:
+            json.dump(task_description, fp, ensure_ascii=False, sort_keys=True, indent=4)
         self._cleanup()
 
     def _prepare_benchmark_description(self, resource_limits):

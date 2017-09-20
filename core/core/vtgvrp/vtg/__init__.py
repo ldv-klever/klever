@@ -671,9 +671,7 @@ class VTGW(core.components.Component):
                     json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                          self.locks,
-                                          '{0}/{1}/{2}'.format(self.verification_obj, self.rule_spec,
-                                                               plugin_desc['name']),
+                                          self.locks, plugin_desc['name'],
                                           plugin_work_dir, separate_from_parent=True,
                                           include_child_resources=True)
                 p.start()

@@ -211,7 +211,7 @@ class RP(core.components.Component):
                           'unknown',
                           {
                               'id': "{}/unknown".format(self.id, task_id),
-                              'parent id': self.parent_id,
+                              'parent id': self.id,
                               'attrs': [],
                               'problem desc': problem,
                               'files': [problem]
