@@ -376,7 +376,7 @@ def run(selflogger, args, conf, logger=None):
                             job_exit = job_exit >> 8
                         break
         if not os.path.isfile('runexec stdout.log') or job_exit is None:
-            selflogger.warning("Runexec exited successfully but it is not possible to read job exit code, aborting")
+            selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1
         else:
             ec = job_exit
