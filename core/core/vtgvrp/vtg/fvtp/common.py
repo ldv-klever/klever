@@ -163,10 +163,9 @@ def get_list_of_verifiers_options(logger, resource_limits, conf):
         profile = conf['verifier profile']
         profile_opts = profiles['profiles'][profile][verifier_name][verifier_version]
     except KeyError as err:
-        raise KeyError("To run verification you need to provide: 1) both a verifer's name and version at "
-                       "VTG configuration; 2) a verifier profile name at FVTP plugin configuration; 3) Create such"
-                       "profile at verifiers profiles DB file and a description for the given verifier"
-                       "version. The following key is actually not found: {!r}".format(err))
+        raise KeyError("To run verification you need to: 1) Provide name, version and profile name of verifer at FVTP"
+                       " plugin configuration. 2) Create such verifier profile at verifier profiles base file. The"
+                       " following key is actually not found: {!r}".format(err))
 
     logger.debug("Determine inheritance of profiles and templates")
     sets = [user_opts, profile_opts]
