@@ -154,18 +154,19 @@ class Basic:
         :param benchmark_definition: ElementTree.Element.
         :return: List of property file names with necessary paths to add to the final archive.
         """
-        # todo: Do we need this actually?
         self._prepare_bug_kind_functions_file()
 
         tasks = ElementTree.SubElement(benchmark_definition, "tasks")
-        if "merge source files" in self.conf:
+        if "merge source files" in self.conf and self.conf["merge source files"]:
             file = common.merge_files(self.logger, self.conf, self.abstract_task_desc)
             ElementTree.SubElement(tasks, "include").text = file
+            return [file]
         else:
-            raise NotImplementedError('BenchExec does not support verification tasks consisting from several files, '
-                                      'set option "merge source files" of plugin FVTP to merge files using CIL')
-
-        return [file]
+            c_files = common.trimmed_files(self.logger, self.conf, self.abstract_task_desc)
+            ElementTree.SubElement(tasks, "include").text = c_files[0]
+            for file in c_files[1:]:
+                ElementTree.SubElement(tasks, "append").text = file
+            return c_files
 
     def _prepare_resource_limits(self):
         """

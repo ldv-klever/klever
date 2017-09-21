@@ -9,6 +9,7 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
+
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
@@ -21,26 +22,20 @@ import json
 import core.utils
 
 
-def merge_files(logger, conf, abstract_task_desc):
-    """
-    Merge several given C files into single one using CIL.
-
-    :param logger: Logger object.
-    :param conf: Configration dictionary.
-    :param abstract_task_desc: Abstract verification task description dictionary.
-    :return: A file name of the newly created file.
-    """
+def trimmed_files(logger, conf, abstract_task_desc):
     regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
-    logger.info('Merge source files by means of CIL')
+    c_files = []
 
     # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
     logger.debug('Ignore asm goto expressions')
-
-    c_files = ()
     for extra_c_file in abstract_task_desc['extra C files']:
         if 'C file' not in extra_c_file:
             continue
-        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
+        basename = os.path.basename(extra_c_file['C file'])
+        if basename[0] == '.':
+            # Do not use hidden files
+            basename = basename[1:]
+        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(basename)[0])
         with open(os.path.join(conf['main working directory'], extra_c_file['C file']),
                   encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
             trigger = False
@@ -63,9 +58,24 @@ def merge_files(logger, conf, abstract_task_desc):
                 fp_out.write(l)
 
         extra_c_file['new C file'] = trimmed_c_file
-        c_files += (trimmed_c_file, )
+        c_files.append(trimmed_c_file)
 
-    args = (
+    return c_files
+
+
+def merge_files(logger, conf, abstract_task_desc):
+    """
+    Merge several given C files into single one using CIL.
+
+    :param logger: Logger object.
+    :param conf: Configration dictionary.
+    :param abstract_task_desc: Abstract verification task description dictionary.
+    :return: A file name of the newly created file.
+    """
+    logger.info('Merge source files by means of CIL')
+    c_files = trimmed_files(logger, conf, abstract_task_desc)
+
+    args = [
                'cilly.asm.exe',
                '--printCilAsIs',
                '--domakeCFG',
@@ -82,7 +92,7 @@ def merge_files(logger, conf, abstract_task_desc):
                '--no-split-structs',
                '--rmUnusedInlines',
                '--out', 'cil.i',
-           ) + c_files
+           ] + c_files
     core.utils.execute_external_tool(logger, args=args)
     logger.debug('Merged source files was outputted to "cil.i"')
 
