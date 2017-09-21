@@ -1,4 +1,0 @@
-{
-  "function": "Stop since some other component\\(s\\) likely failed",
-  "pattern": "Stopped"
-}
