@@ -165,7 +165,8 @@ class Job(core.utils.CallbacksCaller):
                                           'attrs': [{'name': self.name}],
                                       },
                                       self.mqs['report files'],
-                                      self.components_common_conf['main working directory'])
+                                      self.components_common_conf['main working directory'],
+                                      'job start report')
 
                 if 'ideal verdicts' in self.components_common_conf:
                     # Create queue and specify callbacks to collect verification statuses from VTG. They will be used to
@@ -233,7 +234,8 @@ class Job(core.utils.CallbacksCaller):
                                               'files': ['problem desc.txt']
                                           },
                                           self.mqs['report files'],
-                                          self.components_common_conf['main working directory'])
+                                          self.components_common_conf['main working directory'],
+                                          'job unknown report')
                     except Exception:
                         self.logger.exception('Catch exception')
                     finally:
@@ -253,7 +255,8 @@ class Job(core.utils.CallbacksCaller):
                                               'log': None
                                           },
                                           self.mqs['report files'],
-                                          self.components_common_conf['main working directory'])
+                                          self.components_common_conf['main working directory'],
+                                          'job finish report')
                 except Exception:
                     self.logger.exception('Catch exception')
 
@@ -451,7 +454,8 @@ class Job(core.utils.CallbacksCaller):
                                           'data': {name: verification_result}
                                       },
                                       self.mqs['report files'],
-                                      self.components_common_conf['main working directory'])
+                                      self.components_common_conf['main working directory'],
+                                      'job data report')
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
             os._exit(1)

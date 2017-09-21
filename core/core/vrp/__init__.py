@@ -74,7 +74,8 @@ class VRP(core.components.Component):
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'vrp attrs report')
 
         subcomponents = [('RPL', self.__result_processing)]
         for i in range(self.__workers):
@@ -245,7 +246,8 @@ class RP(core.components.Component):
                               'files': [problem]
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'verification unknown report')
 
     def process_single_verdict(self, task_id, decision_results, opts, shadow_src_dir, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
@@ -285,7 +287,8 @@ class RP(core.components.Component):
                                   'proof': None
                               },
                               self.mqs['report files'],
-                              self.conf['main working directory'])
+                              self.conf['main working directory'],
+                              'safe report')
             self.verdict = 'safe'
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
@@ -320,7 +323,8 @@ class RP(core.components.Component):
                                               'arcname': arcnames
                                           },
                                           self.mqs['report files'],
-                                          self.conf['main working directory'])
+                                          self.conf['main working directory'],
+                                          'unsafe {} report'.format(trace_id))
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         if self.__exception:
@@ -358,7 +362,8 @@ class RP(core.components.Component):
                                           'arcname': arcnames
                                       },
                                       self.mqs['report files'],
-                                      self.conf['main working directory'])
+                                      self.conf['main working directory'],
+                                      'unsafe report')
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.__exception = e
@@ -446,7 +451,8 @@ class RP(core.components.Component):
                           'verification',
                           report,
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'verification start report')
 
         # Submit a verdict
         self.process_single_verdict(task_id, decision_results, opts, shadow_src_dir, log_file)
@@ -455,7 +461,8 @@ class RP(core.components.Component):
                           'verification finish',
                           {'id': "{}/{}/verification".format(self.id, task_id)},
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'verification finish report')
         if self.__exception:
             self.logger.warning("Raising the saved exception")
             raise self.__exception

@@ -81,7 +81,8 @@ class LKVOG(core.components.Component):
                               'attrs': self.linux_kernel_verification_objs_gen['attrs']
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'lkvog attrs report')
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
@@ -93,7 +94,8 @@ class LKVOG(core.components.Component):
                               'data': self.loc
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'lkvog data report')
 
     main = generate_linux_kernel_verification_objects
 

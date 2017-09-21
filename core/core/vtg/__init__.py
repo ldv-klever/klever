@@ -326,7 +326,8 @@ class VTG(core.components.Component):
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          'vtg attrs report')
 
         # Start plugins
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs)]

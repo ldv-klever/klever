@@ -565,7 +565,7 @@ def merge_confs(a, b):
 
 
 # TODO: replace report file with report everywhere.
-def report(logger, kind, report_data, mq, directory):
+def report(logger, kind, report_data, mq, directory, label='report'):
     logger.debug('Create {0} report'.format(kind))
     if not os.path.isdir(os.path.join(directory, 'reports')):
         os.mkdir(os.path.join(directory, 'reports'))
@@ -604,7 +604,8 @@ def report(logger, kind, report_data, mq, directory):
         if isinstance(report_data['files'], list) or isinstance(report_data['files'], tuple):
             report_data['files'] = {'report': report_data['files']}
         for archive_name, files in report_data['files'].items():
-            report_files_archive = '{} {} {} report files.zip'.format(identifier, kind, archive_name)
+            report_files_archive = '{} {} {} {} files.zip'.format(identifier, kind, archive_name, label)
+            simple_archive_name = '{} {} {} files.zip'.format(kind, archive_name, label)
             rel_report_files_archive = os.path.join(directory, 'reports', report_files_archive)
             if os.path.isfile(rel_report_files_archive):
                 unique_file_name(rel_report_files_archive)
@@ -618,7 +619,7 @@ def report(logger, kind, report_data, mq, directory):
                         zfp.write(file, arcname=arcname)
                     os.fsync(zfp.fp)
             # Create Symlink
-            os.symlink(os.path.relpath(rel_report_files_archive), report_files_archive)
+            os.symlink(os.path.relpath(rel_report_files_archive), unique_file_name(simple_archive_name))
 
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
@@ -626,14 +627,15 @@ def report(logger, kind, report_data, mq, directory):
         del (report_data['files'])
 
     # Create report file in current working directory.
-    report_file = '{0} report.json'.format(identifier)
+    report_file = '{} {}.json'.format(identifier, label)
+    simple_report_file_name = '{}.json'.format(label)
     rel_report_file = os.path.join(directory, 'reports', report_file)
     if os.path.isfile(rel_report_file):
         unique_file_name(rel_report_file)
     with open(rel_report_file, 'w', encoding='utf8') as fp:
         fp.write(report_text)
     # Create symlink
-    os.symlink(os.path.relpath(rel_report_file), report_file)
+    os.symlink(os.path.relpath(rel_report_file), unique_file_name(simple_report_file_name))
 
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), rel_report_file))
 

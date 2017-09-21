@@ -127,7 +127,8 @@ class EMG(core.vtg.plugins.Plugin):
                               'data': instance_maps
                           },
                           self.mqs['report files'],
-                          get_necessary_conf_property(self.conf, "main working directory"))
+                          get_necessary_conf_property(self.conf, "main working directory"),
+                          'emg data report')
 
     main = generate_environment
 
