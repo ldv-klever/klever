@@ -200,18 +200,18 @@ class RP(core.components.Component):
 
     main = fetcher
 
-    def send_unknown_report(self, report_id, problem):
+    def send_unknown_report(self, report_id, parent_id, problem):
         """The function has a callback at Job module."""
-        self.__send_unknown_report(report_id, problem)
+        self.__send_unknown_report(report_id, parent_id, problem)
 
-    def __send_unknown_report(self, report_id, problem):
+    def __send_unknown_report(self, report_id, parent_id, problem):
         self.verdict = 'unknown'
 
         core.utils.report(self.logger,
                           'unknown',
                           {
                               'id': "{}/unknown".format(report_id),
-                              'parent id': self.id,
+                              'parent id': parent_id,
                               'attrs': [],
                               'problem desc': problem,
                               'files': [problem]
@@ -352,7 +352,8 @@ class RP(core.components.Component):
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.__send_unknown_report("{}/{}/verification".format(self.id, task_id), log_file)
+                self.__send_unknown_report("{}/{}/verification".format(self.id, task_id),
+                                           "{}/{}/verification".format(self.id, task_id), log_file)
 
     def __process_failed_task(self, task_id):
         task_error = self.session.get_task_error(task_id)
@@ -362,7 +363,7 @@ class RP(core.components.Component):
         with open(task_err_file, 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report("{}/{}".format(self.id, task_id), task_err_file)
+        self.send_unknown_report("{}/{}".format(self.id, task_id), self.id, task_err_file)
 
     def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir, work_dir):
         self.logger.debug("Prcess results of the task {}".format(task_id))
