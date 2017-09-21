@@ -208,7 +208,7 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir, work_dir = data
+        task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
@@ -218,7 +218,7 @@ class RP(core.components.Component):
 
         try:
             if status == 'finished':
-                self.__process_finished_task(task_id, opts, verifier, shadow_src_dir, work_dir)
+                self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
             elif status == 'error':
                 self.__process_failed_task(task_id)
             else:
@@ -393,80 +393,72 @@ class RP(core.components.Component):
 
         self.send_unknown_report("{}/{}".format(self.id, task_id), self.id, task_err_file)
 
-    def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir, work_dir):
+    def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         self.logger.debug("Prcess results of the task {}".format(task_id))
-        core_path, vrp_dir = os.path.abspath(os.path.curdir).split('/vrp/', 1)
-        work_dir = os.path.join(core_path, 'vtg', work_dir)
-        mydir = os.path.abspath(os.curdir)
-        os.chdir(work_dir)
 
-        try:
-            self.session.download_decision(task_id)
+        self.session.download_decision(task_id)
 
-            with zipfile.ZipFile('decision result files.zip') as zfp:
-                zfp.extractall()
+        with zipfile.ZipFile('decision result files.zip') as zfp:
+            zfp.extractall()
 
-            with open('decision results.json', encoding='utf8') as fp:
-                decision_results = json.load(fp)
+        with open('decision results.json', encoding='utf8') as fp:
+            decision_results = json.load(fp)
 
-            # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-            log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
 
-            if len(log_files) != 1:
-                raise RuntimeError(
-                    'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.
-                    format(log_files))
+        if len(log_files) != 1:
+            raise RuntimeError(
+                'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.
+                format(log_files))
 
-            log_file = log_files[0]
+        log_file = log_files[0]
 
-            # Send an initial report
-            report = {
-                'id': "{}/{}/verification".format(self.id, task_id),
-                'parent id': self.id,
-                # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                'attrs': [],
-                'name': verifier,
-                'resources': decision_results['resources'],
-                'log': None if self.logger.disabled or not log_file else log_file,
-                'coverage':
-                    'coverage.json' if 'coverage' in opts and opts['coverage'] else None,
-                'files': {
-                    'report': [] if self.logger.disabled or not log_file else [log_file]
-                }
+        # Send an initial report
+        report = {
+            'id': "{}/{}/verification".format(self.id, task_id),
+            'parent id': self.id,
+            # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+            'attrs': [],
+            'name': verifier,
+            'resources': decision_results['resources'],
+            'log': None if self.logger.disabled or not log_file else log_file,
+            'coverage':
+                'coverage.json' if 'coverage' in opts and opts['coverage'] else None,
+            'files': {
+                'report': [] if self.logger.disabled or not log_file else [log_file]
             }
-            if self.conf['upload input files of static verifiers']:
-                report['task identifier'] = task_id
-            if 'coverage' in opts and opts['coverage'] and\
-                    os.path.isfile(os.path.join('output', 'coverage.info')):
-                cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                           shadow_src_dir, self.conf['main working directory'],
-                           opts['coverage'])
-                with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+        }
+        if self.conf['upload input files of static verifiers']:
+            report['task identifier'] = task_id
+        if 'coverage' in opts and opts['coverage'] and\
+                os.path.isfile(os.path.join('output', 'coverage.info')):
+            cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                       shadow_src_dir, self.conf['main working directory'],
+                       opts['coverage'])
+            with open('coverage.json', 'w', encoding='utf-8') as fp:
+                json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-                arcnames = cov.arcnames
-                report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
-                report['arcname'] = arcnames
-            core.utils.report(self.logger,
-                              'verification',
-                              report,
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
+            arcnames = cov.arcnames
+            report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
+            report['arcname'] = arcnames
+        core.utils.report(self.logger,
+                          'verification',
+                          report,
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
-            # Submit a verdict
-            self.process_single_verdict(task_id, decision_results, opts, shadow_src_dir, log_file)
-            # Submit a closing report
-            core.utils.report(self.logger,
-                              'verification finish',
-                              {'id': "{}/{}/verification".format(self.id, task_id)},
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
-            if self.__exception:
-                self.logger.warning("Raising the saved exception")
-                raise self.__exception
-        finally:
-            # Return back anyway
-            os.chdir(mydir)
+        # Submit a verdict
+        self.process_single_verdict(task_id, decision_results, opts, shadow_src_dir, log_file)
+        # Submit a closing report
+        core.utils.report(self.logger,
+                          'verification finish',
+                          {'id': "{}/{}/verification".format(self.id, task_id)},
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+        if self.__exception:
+            self.logger.warning("Raising the saved exception")
+            raise self.__exception
 
     def __trim_file_names(self, file_names, shadow_src_dir):
         arcnames = {}

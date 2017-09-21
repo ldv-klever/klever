@@ -728,6 +728,5 @@ class VTGW(core.components.Component):
                                               self.verification_obj,
                                               self.rule_spec,
                                               final_task_data['verifier'],
-                                              shadow_src_dir,
-                                              os.path.join(self.verification_obj, self.rule_spec, plugin_work_dir)])
+                                              shadow_src_dir])
 
