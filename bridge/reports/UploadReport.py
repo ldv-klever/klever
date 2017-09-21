@@ -35,6 +35,7 @@ import marks.UnknownUtils as UnknownUtils
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, LightResource, TasksNumbers, ReportComponentLeaf,\
     Computer, ComponentInstances
+from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
@@ -161,7 +162,12 @@ class UploadReport:
                 self.data['coverage'] = data['coverage']
                 if self.data['coverage'] not in self.archives:
                     raise CheckArchiveError("Coverage archive wasn't found in the archives list")
-            if 'input files of static verifiers' in data:
+            if 'task identifier' in data:
+                try:
+                    self.data['task'] = Task.objects.get(id=data['task identifier'])
+                except ObjectDoesNotExist:
+                    raise ValueError('The task with id "%s" was not found' % data['task identifier'])
+            elif 'input files of static verifiers' in data:
                 self.data['verifier input'] = data['input files of static verifiers']
                 if self.data['verifier input'] not in self.archives:
                     raise CheckArchiveError("Input files of static verifiers archive wasn't found in the archives list")
@@ -308,7 +314,10 @@ class UploadReport:
         if 'log' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
-        if 'verifier input' in self.data:
+        if 'task' in self.data:
+            with self.data['task'].archive.file as fp:
+                report.add_verifier_input(REPORT_ARCHIVE['verifier input'], fp)
+        elif 'verifier input' in self.data:
             report.add_verifier_input(REPORT_ARCHIVE['verifier input'], self.archives[self.data['verifier input']])
         if 'coverage' in self.data:
             report.add_verifier_input(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
