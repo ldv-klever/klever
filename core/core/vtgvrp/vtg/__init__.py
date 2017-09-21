@@ -546,9 +546,6 @@ class VTGWL(core.components.Component):
                 obj.join()
             except core.components.ComponentError:
                 self.plugin_fail_processing(vo, rs)
-            finally:
-                if rs['id'] in [c[0]['id'] for c in _rule_spec_classes.values()]:
-                    self.mqs['prepared verification tasks'].put((vo['id'], rs['id']))
 
         self.logger.info("Terminate VTGL worker")
 
@@ -633,18 +630,13 @@ class VTGW(core.components.Component):
                     plugin_desc['name'] in ['SA', 'EMG']:
                 # Expect that there is a work directory which has all prepared
                 # Make symlinks to the pilot rule work dir
-                pilot_abstract_task_desc_file =  os.path.join(
-                    pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
+                self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
+                                 "results for the {!r} rule".format(plugin_desc['name'], self.rule_spec, pilot_rule))
                 pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
-                shutil.copyfile(pilot_abstract_task_desc_file, out_abstract_task_desc_file)
+                pilot_abstract_task_desc_file = os.path.join(
+                    pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
+                os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir), out_abstract_task_desc_file)
                 os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
-
-                # Update attributes.
-                with open(out_abstract_task_desc_file, 'r', encoding='utf8') as fp:
-                    at = json.load(fp)
-                at['attrs'] = ()
-                with open(out_abstract_task_desc_file, 'w', encoding='utf8') as fp:
-                    json.dump(at, fp)
             else:
                 self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
@@ -676,6 +668,12 @@ class VTGW(core.components.Component):
                                           include_child_resources=True)
                 p.start()
                 p.join()
+
+                if self.rule_spec in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                        plugin_desc['name']  == 'EMG':
+                    self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
+                                      "further use".format(pilot_rule))
+                    self.mqs['prepared verification tasks'].put((self.verification_obj, self.rule_spec))
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file
 
