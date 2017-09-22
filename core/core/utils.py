@@ -630,11 +630,10 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
             report_files = {'report': report_files}
 
         for archive_name, files in report_files.items():
-            report_files_archive = os.path.join(directory, 'reports', '{0}.zip'.format(cur_report_id))
-
-            # TODO: races!
-            if os.path.isfile(report_files_archive):
-                unique_file_name(report_files_archive)
+            # Report identifier together with archive name is a unique combination for a given report.
+            report_files_archive = os.path.join(directory, 'reports', '{0}{1}.zip'
+                                                                      .format(cur_report_id, ' ' + archive_name
+                                                                              if len(report_files) > 1 else ''))
 
             report_file_archives[archive_name] = report_files_archive
 
