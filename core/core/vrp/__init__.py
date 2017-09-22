@@ -94,8 +94,8 @@ class VRP(core.components.Component):
     def __result_processing(self):
         pending = dict()
         # todo: implement them in GUI
-        solution_timeout = 30
-        generation_timeout = 30
+        solution_timeout = 10
+        generation_timeout = 5
 
         def submit_processing_task(status, t):
             self.mqs['processing tasks'].put([status, pending[t]])
