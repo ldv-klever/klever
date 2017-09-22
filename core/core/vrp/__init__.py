@@ -243,7 +243,7 @@ class RP(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-    def process_single_verdict(self, task_id, decision_results, opts, shadow_src_dir, log_file):
+    def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
@@ -274,8 +274,8 @@ class RP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': "{}/{}/verification/safe".format(self.id, task_id),
-                                  'parent id': "{}/{}/verification".format(self.id, task_id),
+                                  'id': "{}/verification/safe".format(self.id),
+                                  'parent id': "{}/verification".format(self.id),
                                   'attrs': [],
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   'proof': None
@@ -308,8 +308,8 @@ class RP(core.components.Component):
                         core.utils.report(self.logger,
                                           'unsafe',
                                           {
-                                              'id': "{}/{}/verification/unsafe_{}".format(self.id, task_id, trace_id),
-                                              'parent id': "{}/{}/verification".format(self.id, task_id),
+                                              'id': "{}/verification/unsafe_{}".format(self.id, trace_id),
+                                              'parent id': "{}/verification".format(self.id),
                                               'attrs': [{"Error trace identifier": trace_id}],
                                               'error trace': error_trace_name,
                                               'files': [error_trace_name] + list(arcnames.keys()),
@@ -347,8 +347,8 @@ class RP(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': "{}/{}/verification/unsafe".format(self.id, task_id),
-                                          'parent id': "{}/{}/verification".format(self.id, task_id),
+                                          'id': "{}/verification/unsafe".format(self.id),
+                                          'parent id': "{}/verification".format(self.id),
                                           'attrs': [],
                                           'error trace': 'error trace.json',
                                           'files': ['error trace.json'] + list(arcnames.keys()),
@@ -377,8 +377,8 @@ class RP(core.components.Component):
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.__send_unknown_report("{}/{}/verification".format(self.id, task_id),
-                                           "{}/{}/verification".format(self.id, task_id), log_file)
+                self.__send_unknown_report("{}/verification".format(self.id),
+                                           "{}/verification".format(self.id), log_file)
 
     def __process_failed_task(self, task_id):
         task_error = self.session.get_task_error(task_id)
@@ -388,7 +388,7 @@ class RP(core.components.Component):
         with open(task_err_file, 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report("{}/{}".format(self.id, task_id), self.id, task_err_file)
+        self.send_unknown_report(self.id, self.id, task_err_file)
 
     def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         self.logger.debug("Prcess results of the task {}".format(task_id))
@@ -413,7 +413,7 @@ class RP(core.components.Component):
 
         # Send an initial report
         report = {
-            'id': "{}/{}/verification".format(self.id, task_id),
+            'id': "{}/verification".format(self.id),
             'parent id': self.id,
             # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
             'attrs': [],
@@ -446,7 +446,7 @@ class RP(core.components.Component):
                           self.conf['main working directory'])
 
         # Submit a verdict
-        self.process_single_verdict(task_id, decision_results, opts, shadow_src_dir, log_file)
+        self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
 
         # Submit a closing report
         core.utils.report(self.logger,
