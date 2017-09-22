@@ -565,10 +565,8 @@ def merge_confs(a, b):
 
 
 # TODO: replace report file with report everywhere.
-def report(logger, kind, report_data, mq, directory, label='report'):
+def report(logger, kind, report_data, mq, directory, label=''):
     logger.debug('Create {0} report'.format(kind))
-    if not os.path.isdir(os.path.join(directory, 'reports')):
-        os.mkdir(os.path.join(directory, 'reports'))
 
     # Specify report type.
     report_data.update({'type': kind})
@@ -594,56 +592,76 @@ def report(logger, kind, report_data, mq, directory, label='report'):
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
+    if 'files' in report_data:
+        report_files = report_data['files']
+        # Do not send report files as report field to Bridge.
+        del (report_data['files'])
+    else:
+        report_files = []
+
+    # Ditto for arcnames.
+    if 'arcname' in report_data:
+        report_file_arcnames = report_data['arcname']
+        del (report_data['arcname'])
+    else:
+        report_file_arcnames = []
+
+    # TODO: races!
     # Get text
     report_text = json.dumps(report_data, ensure_ascii=False, sort_keys=True, indent=4)
     identifier = hashlib.sha224(report_text.encode('UTF8')).hexdigest()
 
-    # Add all report files to archives. It is assumed that all files are placed in current working directory.
-    rel_report_file_archives = {}
-    if 'files' in report_data and report_data['files']:
-        if isinstance(report_data['files'], list) or isinstance(report_data['files'], tuple):
-            report_data['files'] = {'report': report_data['files']}
-        for archive_name, files in report_data['files'].items():
-            report_files_archive = '{} {} {} {} files.zip'.format(identifier, kind, archive_name, label)
-            simple_archive_name = '{} {} {} files.zip'.format(kind, archive_name, label)
-            rel_report_files_archive = os.path.join(directory, 'reports', report_files_archive)
-            if os.path.isfile(rel_report_files_archive):
-                unique_file_name(rel_report_files_archive)
-            rel_report_file_archives[archive_name] = rel_report_files_archive
-            with open(rel_report_files_archive, mode='w+b', buffering=0) as fp:
+    # TODO: races!
+    # Create report file in reports directory.
+    report_file = os.path.join(directory, 'reports', identifier + '.json')
+    if os.path.isfile(report_file):
+        unique_file_name(report_file)
+    with open(report_file, 'w', encoding='utf8') as fp:
+        fp.write(report_text)
+
+    # Create symlink to report file in current working directory.
+    cwd_report_file = unique_file_name('{0}{1} report.json'.format(kind, ' ' + label if label else ''))
+    os.symlink(os.path.relpath(report_file), cwd_report_file)
+    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_report_file))
+
+    # Add all report files to archives in reports directory. It is assumed that all files are placed in current working
+    # directory.
+    report_file_archives = {}
+    if report_files:
+        if isinstance(report_files, list) or isinstance(report_files, tuple):
+            report_files = {'report': report_files}
+
+        for archive_name, files in report_files.items():
+            report_files_archive = os.path.join(directory, 'reports', identifier + '.zip')
+
+            # TODO: races!
+            if os.path.isfile(report_files_archive):
+                unique_file_name(report_files_archive)
+
+            report_file_archives[archive_name] = report_files_archive
+
+            with open(report_files_archive, mode='w+b', buffering=0) as fp:
                 with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
                     for file in files:
                         arcname = None
-                        if 'arcname' in report_data and file in report_data['arcname']:
-                            arcname = report_data['arcname'][file]
+                        if report_file_arcnames and file in report_file_arcnames:
+                            arcname = report_file_arcnames[file]
                         zfp.write(file, arcname=arcname)
                     os.fsync(zfp.fp)
-            # Create Symlink
-            os.symlink(os.path.relpath(rel_report_files_archive), unique_file_name(simple_archive_name))
 
+            # Create symlink to report files archive in current working directory.
+            cwd_report_files_archive = unique_file_name('{0}{1} {2} files.zip'
+                                                        .format(kind, ' ' + label if label else '', archive_name))
+            os.symlink(os.path.relpath(report_files_archive), unique_file_name(cwd_report_files_archive))
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
-                                                                       rel_report_file_archives[archive_name]))
-        del (report_data['files'])
+                                                                       cwd_report_files_archive))
 
-    # Create report file in current working directory.
-    report_file = '{} {}.json'.format(identifier, label)
-    simple_report_file_name = '{}.json'.format(label)
-    rel_report_file = os.path.join(directory, 'reports', report_file)
-    if os.path.isfile(rel_report_file):
-        unique_file_name(rel_report_file)
-    with open(rel_report_file, 'w', encoding='utf8') as fp:
-        fp.write(report_text)
-    # Create symlink
-    os.symlink(os.path.relpath(rel_report_file), unique_file_name(simple_report_file_name))
-
-    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), rel_report_file))
-
-    # Put report to message queue if it is specified.
+    # Put report file and report file archives to message queue if it is specified.
     if mq:
-        mq.put({'report file': rel_report_file, 'report file archives': rel_report_file_archives})
+        mq.put({'report file': report_file, 'report file archives': report_file_archives})
 
-    return rel_report_file
+    return report_file
 
 
 def unique_file_name(file_name, suffix=''):

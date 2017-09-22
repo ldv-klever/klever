@@ -111,8 +111,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                   'start',
                                   report,
                                   self.mqs['report files'],
-                                  self.conf['main working directory'],
-                                  'start report')
+                                  self.conf['main working directory'])
 
             self.main()
         except Exception:
@@ -143,8 +142,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'],
-                                      self.conf['main working directory'],
-                                      'unknown report')
+                                      self.conf['main working directory'])
 
                 all_child_resources = {}
                 for child_resources_file in glob.glob(os.path.join('child resources', '*')):
@@ -167,8 +165,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                                (['log.txt'] if os.path.isfile('log.txt') else [])
                                   },
                                   self.mqs['report files'],
-                                  self.conf['main working directory'],
-                                  'finish report')
+                                  self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
                     json.dump(core.utils.count_consumed_resources(self.logger, self.start_time,

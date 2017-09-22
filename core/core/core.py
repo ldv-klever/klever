@@ -68,8 +68,7 @@ class Core(core.utils.CallbacksCaller):
                                                       'comp': self.comp
                                                   },
                                                   None,
-                                                  self.conf['main working directory'],
-                                                  'core start report')
+                                                  self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
@@ -94,8 +93,7 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'],
-                                      self.conf['main working directory'],
-                                      'core unknown report')
+                                      self.conf['main working directory'])
                 except Exception:
                     self.process_exception()
         finally:
@@ -121,8 +119,7 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'],
-                                      self.conf['main working directory'],
-                                      'core finish report')
+                                      self.conf['main working directory'])
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 
@@ -197,6 +194,9 @@ class Core(core.utils.CallbacksCaller):
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
         self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
+
+        # Create directory where all reports and report files archives will be actually written to.
+        os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
 
     def change_work_dir(self):
         # Change working directory forever.
