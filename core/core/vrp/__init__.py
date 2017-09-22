@@ -213,10 +213,6 @@ class RP(core.components.Component):
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
-        if len(verifier) > 20:
-            self.logger.warning("Verifier name {!r} is longer than 20 symbols, shrinking it")
-            verifier = verifier[0:20]
-
         try:
             if status == 'finished':
                 self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
