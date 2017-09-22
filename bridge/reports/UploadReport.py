@@ -596,6 +596,8 @@ class UploadReport:
             update_total_resources(p)
 
     def __update_light_resources(self, report):
+        ComponentResource.objects.create(report=report, component=report.component,
+                                         cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory)
         comp_res = LightResource.objects.get_or_create(report=self.root, component=report.component)[0]
         comp_res.cpu_time += report.cpu_time
         comp_res.wall_time += report.wall_time
