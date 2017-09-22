@@ -616,7 +616,9 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
         json.dump(report_data, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
-    cwd_report_file = unique_file_name('{0}{1} report.json'.format(kind, ' ' + label if label else ''))
+    cwd_report_file = '{0}{1} report.json'.format(kind, ' ' + label if label else '')
+    if os.path.isfile(cwd_report_file):
+        raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
     os.symlink(os.path.relpath(report_file), cwd_report_file)
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_report_file))
 
@@ -646,8 +648,9 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
                     os.fsync(zfp.fp)
 
             # Create symlink to report files archive in current working directory.
-            cwd_report_files_archive = unique_file_name('{0}{1} {2} files.zip'
-                                                        .format(kind, ' ' + label if label else '', archive_name))
+            cwd_report_files_archive = '{0}{1} {2} files.zip'.format(kind, ' ' + label if label else '', archive_name)
+            if os.path.isfile(cwd_report_files_archive):
+                raise FileExistsError('Report files archive "{0}" already exists'.format(cwd_report_files_archive))
             os.symlink(os.path.relpath(report_files_archive), unique_file_name(cwd_report_files_archive))
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
