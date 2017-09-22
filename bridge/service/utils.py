@@ -235,7 +235,7 @@ class FinishJobDecision:
                 if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0 \
                         or ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
                                                         root=self.progress.job.reportroot).count() == 0:
-                    status = JOB_STATUS[7][0]
+                    status = JOB_STATUS[5][0]
             if self.error is None:
                 self.error = "The scheduler hasn't given an error description"
         return status
