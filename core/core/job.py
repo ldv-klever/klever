@@ -458,7 +458,8 @@ class Job(core.utils.CallbacksCaller):
                                       },
                                       self.mqs['report files'],
                                       self.vals['report id'],
-                                      self.components_common_conf['main working directory'])
+                                      self.components_common_conf['main working directory'],
+                                      re.sub(r'/', '-', name_suffix))
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
             os._exit(1)
