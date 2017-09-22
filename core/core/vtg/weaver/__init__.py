@@ -26,9 +26,9 @@ import core.vtg.plugins
 
 class Weaver(core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                      separate_from_parent, include_child_resources)
 
     def weave(self):

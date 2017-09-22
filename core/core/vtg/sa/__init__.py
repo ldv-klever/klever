@@ -35,12 +35,12 @@ def nested_dict():
 class SA(core.vtg.plugins.Plugin):
     depend_on_rule = False
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.rule_spec_descs = None
 
-        super(SA, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(SA, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
 
         # TODO: Use template processor instead of predefined aspect file and target output files

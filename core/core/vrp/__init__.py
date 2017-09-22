@@ -47,7 +47,7 @@ def __set_common_prj_attrs(context):
 
 class VRP(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.__downloaded = dict()
@@ -59,7 +59,7 @@ class VRP(core.components.Component):
         self.verification_object = None
 
         # Common initialization
-        super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
 
     def process_results(self):
@@ -74,6 +74,7 @@ class VRP(core.components.Component):
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
+                          self.vals['report id'],
                           self.conf['main working directory'])
 
         subcomponents = [('RPL', self.__result_processing)]
@@ -167,8 +168,8 @@ class VRP(core.components.Component):
             new_id = "{}/{}/RP".format(vo, rule)
             workdir = os.path.join(vo, rule)
             try:
-                rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, new_id, workdir,
-                        [{"Rule specification": rule}, {"Verification object": vo}], separate_from_parent=True,
+                rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
+                        workdir, [{"Rule specification": rule}, {"Verification object": vo}], separate_from_parent=True,
                         element=element)
                 rp.start()
                 rp.join()
@@ -190,7 +191,7 @@ class VRP(core.components.Component):
 
 class RP(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, element=None):
         # Read this in a callback
         self.element = element
@@ -200,7 +201,7 @@ class RP(core.components.Component):
         self.__exception = None
 
         # Common initialization
-        super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
@@ -241,6 +242,7 @@ class RP(core.components.Component):
                               'files': [problem]
                           },
                           self.mqs['report files'],
+                          self.vals['report id'],
                           self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
@@ -281,6 +283,7 @@ class RP(core.components.Component):
                                   'proof': None
                               },
                               self.mqs['report files'],
+                              self.vals['report id'],
                               self.conf['main working directory'])
             self.verdict = 'safe'
         else:
@@ -316,6 +319,7 @@ class RP(core.components.Component):
                                               'arcname': arcnames
                                           },
                                           self.mqs['report files'],
+                                          self.vals['report id'],
                                           self.conf['main working directory'],
                                           trace_id)
                     except Exception as e:
@@ -355,6 +359,7 @@ class RP(core.components.Component):
                                           'arcname': arcnames
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.conf['main working directory'])
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
@@ -443,6 +448,7 @@ class RP(core.components.Component):
                           'verification',
                           report,
                           self.mqs['report files'],
+                          self.vals['report id'],
                           self.conf['main working directory'])
 
         # Submit a verdict
@@ -453,6 +459,7 @@ class RP(core.components.Component):
                           'verification finish',
                           {'id': report['id']},
                           self.mqs['report files'],
+                          self.vals['report id'],
                           self.conf['main working directory'])
 
         if self.__exception:

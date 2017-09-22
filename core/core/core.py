@@ -60,6 +60,7 @@ class Core(core.utils.CallbacksCaller):
             job = core.job.Job(self.logger, self.ID)
             self.logger.info('Support jobs of format "{0}"'.format(job.FORMAT))
             self.get_comp_desc()
+            report_id = multiprocessing.Value('i', 1)
             start_report_file = core.utils.report(self.logger,
                                                   'start',
                                                   {
@@ -68,6 +69,7 @@ class Core(core.utils.CallbacksCaller):
                                                       'comp': self.comp
                                                   },
                                                   None,
+                                                  report_id,
                                                   self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
@@ -75,6 +77,7 @@ class Core(core.utils.CallbacksCaller):
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
             job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
+                       {'report id': report_id},
                        self.uploading_reports_process_exitcode)
         except Exception:
             self.process_exception()
@@ -93,6 +96,7 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.conf['main working directory'])
                 except Exception:
                     self.process_exception()
@@ -119,6 +123,7 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.conf['main working directory'])
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)

@@ -33,7 +33,7 @@ class ComponentError(ChildProcessError):
 
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -46,6 +46,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.callbacks = callbacks
         self.mqs = mqs
         self.locks = locks
+        self.vals = vals
         self.attrs = attrs
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
@@ -111,6 +112,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                   'start',
                                   report,
                                   self.mqs['report files'],
+                                  self.vals['report id'],
                                   self.conf['main working directory'])
 
             self.main()
@@ -142,6 +144,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.conf['main working directory'])
 
                 all_child_resources = {}
@@ -165,6 +168,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                                (['log.txt'] if os.path.isfile('log.txt') else [])
                                   },
                                   self.mqs['report files'],
+                                  self.vals['report id'],
                                   self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
@@ -246,7 +250,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                 else:
                     subcomponent_class = types.new_class('KleverSubcomponent' + str(subcomponent.__name__) + str(index),
                                                          (subcomponent,))
-                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
                                        include_child_resources=True)
                 p.start()
                 subcomponent_processes.append(p)

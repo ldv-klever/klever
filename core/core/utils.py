@@ -565,7 +565,7 @@ def merge_confs(a, b):
 
 
 # TODO: replace report file with report everywhere.
-def report(logger, kind, report_data, mq, directory, label=''):
+def report(logger, kind, report_data, mq, report_id, directory, label=''):
     logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
@@ -606,18 +606,14 @@ def report(logger, kind, report_data, mq, directory, label=''):
     else:
         report_file_arcnames = []
 
-    # TODO: races!
-    # Get text
-    report_text = json.dumps(report_data, ensure_ascii=False, sort_keys=True, indent=4)
-    identifier = hashlib.sha224(report_text.encode('UTF8')).hexdigest()
+    with report_id.get_lock():
+        cur_report_id = report_id.value
+        report_id.value += 1
 
-    # TODO: races!
     # Create report file in reports directory.
-    report_file = os.path.join(directory, 'reports', identifier + '.json')
-    if os.path.isfile(report_file):
-        unique_file_name(report_file)
+    report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
     with open(report_file, 'w', encoding='utf8') as fp:
-        fp.write(report_text)
+        json.dump(report_data, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
     cwd_report_file = unique_file_name('{0}{1} report.json'.format(kind, ' ' + label if label else ''))
@@ -632,7 +628,7 @@ def report(logger, kind, report_data, mq, directory, label=''):
             report_files = {'report': report_files}
 
         for archive_name, files in report_files.items():
-            report_files_archive = os.path.join(directory, 'reports', identifier + '.zip')
+            report_files_archive = os.path.join(directory, 'reports', '{0}.zip'.format(cur_report_id))
 
             # TODO: races!
             if os.path.isfile(report_files_archive):

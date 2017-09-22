@@ -306,9 +306,9 @@ def resolve_rule_class(name):
 
 class VTG(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.rule_spec_descs = None
@@ -326,6 +326,7 @@ class VTG(core.components.Component):
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
+                          self.vals['report id'],
                           self.conf['main working directory'])
 
         # Start plugins
@@ -545,9 +546,9 @@ class VTG(core.components.Component):
 
 class VTGWL(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                     separate_from_parent, include_child_resources)
         # Required for a callback
         self.verification_object = None
@@ -565,7 +566,7 @@ class VTGWL(core.components.Component):
             self.logger.debug("VTGL is about to start VTGW for {!r}, {!r}".format(vo['id'], rs['id']))
             try:
                 obj = VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                           self.locks, "{}/{}/VTGW".format(vo['id'], rs['id']), os.path.join(vo['id'], rs['id']),
+                           self.locks, self.vals,"{}/{}/VTGW".format(vo['id'], rs['id']), os.path.join(vo['id'], rs['id']),
                            attrs=[{"Rule specification": rs['id']}, {"Verification object": vo['id']}],
                            separate_from_parent=True, verification_object=vo, rule_spec=rs)
                 obj.start()
@@ -587,9 +588,9 @@ class VTGWL(core.components.Component):
 
 class VTGW(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None):
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.verification_obj = verification_object
         self.rule_spec = rule_spec
@@ -689,7 +690,7 @@ class VTGW(core.components.Component):
                     json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                          self.locks, plugin_desc['name'],
+                                          self.locks, self.vals, plugin_desc['name'],
                                           plugin_work_dir, separate_from_parent=True,
                                           include_child_resources=True)
                 p.start()
