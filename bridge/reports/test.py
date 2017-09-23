@@ -182,6 +182,108 @@ CHUNKS3 = [
     }
 ]
 
+CHUNKS4 = [
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb1.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe1.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb2.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe2.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb3.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe3.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb4.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe4.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb5.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe5.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb6.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe6.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb7.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe7.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb8.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe8.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb9.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe9.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb10.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe10.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb11.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe_check.zip']
+    }
+]
+
 ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 
 
