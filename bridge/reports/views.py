@@ -873,7 +873,7 @@ def get_coverage_src(request):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], request.POST['weight'])
+        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], bool(int(request.POST['weight'])))
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
