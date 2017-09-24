@@ -182,6 +182,18 @@ CHUNKS3 = [
     }
 ]
 
+CHUNKS4 = [
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'BLAST 2.7.2',
+        'safe': 'safe.zip'
+    }
+]
+
 ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 
 
@@ -722,14 +734,17 @@ class DecideJobs(object):
         self.service.post('/reports/upload/', {'report': json.dumps(report)})
         return r_id
 
-    def __upload_finish_report(self, r_id):
+    def __upload_finish_report(self, r_id, coverage=None):
+        report = {
+            'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'It does not matter', 'log': 'log.zip'
+        }
         with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as fp:
-            self.service.post('/reports/upload/', {
-                'report': json.dumps({
-                    'id': r_id, 'type': 'finish', 'resources': resources(),
-                    'desc': 'It does not matter', 'log': os.path.basename(fp.name)
-                }), 'file': fp
-            })
+            if coverage is not None:
+                report['coverage'] = coverage
+                with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
+                    self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp, cfp]})
+            else:
+                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
 
     def __upload_attrs_report(self, r_id, attrs):
         self.service.post('/reports/upload/', {
@@ -743,7 +758,7 @@ class DecideJobs(object):
             'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
 
-    def __upload_verification_report(self, name, parent, attrs, coverage='full_coverage.zip'):
+    def __upload_verification_report(self, name, parent, attrs, coverage=None):
         r_id = self.__get_report_id(name)
         report = {
             'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name,
@@ -752,22 +767,22 @@ class DecideJobs(object):
         if isinstance(attrs, list):
             report['attrs'] = attrs
 
-        with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
-            report['log'] = os.path.basename(cfp.name)
-            if random.randint(1, 10) > 4:
-                if random.randint(1, 10) > 5:
-                    with open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb') as fp:
-                        report['input files of static verifiers'] = os.path.basename(fp.name)
-                        with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as lfp:
-                            report['log'] = os.path.basename(lfp.name)
-                            self.service.post('/reports/upload/', {
-                                'report': json.dumps(report), 'file': [cfp, fp, lfp]
-                            })
-                else:
-                    with open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb') as fp:
-                        self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp, cfp]})
-            else:
-                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': cfp})
+        files = []
+        if coverage is not None:
+            files.append(open(os.path.join(ARCHIVE_PATH, coverage), mode='rb'))
+            report['coverage'] = coverage
+        if random.randint(1, 10) > 4:
+            files.append(open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb'))
+            report['input files of static verifiers'] = 'verifier_input.zip'
+        if random.randint(1, 10) > 5:
+            files.append(open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb'))
+            report['log'] = 'log.zip'
+        try:
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
+        except Exception:
+            for f in files:
+                f.close()
+            raise
         return r_id
 
     def __upload_finish_verification_report(self, r_id):
@@ -891,14 +906,16 @@ class DecideJobs(object):
                 continue
             cnt = 1
             if 'safe' in chunk:
-                tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
+                tool = self.__upload_verification_report(
+                    chunk['tool'], abkm, chunk['tool_attrs']  # , coverage='big_full_coverage.zip'
+                )
                 self.__upload_safe_report(tool, [], chunk['safe'])
                 self.__upload_finish_verification_report(tool)
                 # self.__upload_empty_safe_report(tool, [])
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(
-                        chunk['tool'], abkm, chunk['tool_attrs'], coverage='big_full_coverage.zip'
+                        chunk['tool'], abkm, chunk['tool_attrs'], coverage='full_coverage.zip'
                     )
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
                     self.__upload_finish_verification_report(tool)
@@ -913,4 +930,5 @@ class DecideJobs(object):
 
         self.__upload_finish_report(avtg)
         self.__upload_finish_report(vtg)
+        # self.__upload_finish_report('/', coverage='Core_coverage.zip')
         self.__upload_finish_report('/')

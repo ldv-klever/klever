@@ -40,6 +40,8 @@ from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
+from reports.coverage import FillCoverageCache
+
 
 AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
 AVTG_FAIL_NAME = 'faulty generated abstract verification task descriptions'
@@ -135,6 +137,10 @@ class UploadReport:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
                     raise CheckArchiveError("Log archive wasn't found in the archives list")
+            if 'coverage' in data:
+                self.data['coverage'] = data['coverage']
+                if self.data['coverage'] not in self.archives:
+                    raise CheckArchiveError("Coverage archive wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -320,7 +326,7 @@ class UploadReport:
         elif 'verifier input' in self.data:
             report.add_verifier_input(REPORT_ARCHIVE['verifier input'], self.archives[self.data['verifier input']])
         if 'coverage' in self.data:
-            report.add_verifier_input(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
+            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.save()
 
@@ -348,6 +354,8 @@ class UploadReport:
             comp_inst.total += 1
             comp_inst.save()
         ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+        if 'coverage' in self.data:
+            FillCoverageCache(report)
 
     def __update_attrs(self, identifier):
         try:
@@ -413,6 +421,8 @@ class UploadReport:
 
         if 'log' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
+        if 'coverage' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
+            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.finish_date = now()
 
@@ -437,6 +447,9 @@ class UploadReport:
         report_ids.add(report.pk)
         ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
             .update(in_progress=(F('in_progress') - 1))
+
+        if 'coverage' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
+            FillCoverageCache(report)
 
         if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
                 and ReportComponent.objects.filter(parent=report).count() == 0:

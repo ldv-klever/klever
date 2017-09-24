@@ -762,16 +762,25 @@ class UploadReportsWithoutDecision:
         self.__upload_children(data['id'])
 
         finish_report = data.copy()
-        self.__clear_report(['id', 'data', 'resources', 'log'], finish_report)
+        self.__clear_report(['id', 'data', 'resources', 'log', 'coverage'], finish_report)
         finish_report['type'] = 'finish'
         if 'resources' not in finish_report:
             finish_report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
 
-        if 'log' in data:
-            with open(self._files[data['log']], mode='rb') as fp:
-                res = UploadReport(self._job, finish_report, archives={data['log']: fp})
-        else:
-            res = UploadReport(self._job, finish_report)
+        archives = {}
+        for arch_type in ['log', 'coverage']:
+            if arch_type in data:
+                try:
+                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
+                except Exception:
+                    for fp in archives.values():
+                        fp.close()
+                    raise
+
+        res = UploadReport(self._job, start_report, archives=archives)
+        for fp in archives.values():
+            fp.close()
+
         if res.error is not None:
             raise ValueError(res.error)
 
@@ -787,7 +796,7 @@ class UploadReportsWithoutDecision:
         for arch_type in ['log', 'coverage', 'input files of static verifiers']:
             if arch_type in data:
                 try:
-                    archives[data[arch_type]] = open(self._files[data['log']], mode='rb')
+                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
                 except Exception:
                     for fp in archives.values():
                         fp.close()

@@ -943,7 +943,7 @@ def report_attributes_with_parents(report):
 
 def remove_verification_files(job):
     root = job.reportroot
-    for report in ReportComponent.objects.filter(root=root, verification=True):
+    for report in ReportComponent.objects.filter(root=root, verification=True).exclude(verifier_input=''):
         report.verifier_input.delete()
 
     core_report = ReportComponent.objects.get(root=root, parent=None)
@@ -951,4 +951,4 @@ def remove_verification_files(job):
         ReportSafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
         ReportUnsafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
         ReportUnknown.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=True).delete()
+        ReportComponent.objects.filter(root=root, verification=True).exclude(coverage='').delete()

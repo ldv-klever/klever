@@ -32,7 +32,9 @@ from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR, ConvertedTraces
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ComponentUnknown, Verdict, ComponentResource, ComponentInstances
+    ComponentUnknown, Verdict, ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
+
+from reports.coverage import FillCoverageCache
 
 
 def objects_without_relations(table):
@@ -146,6 +148,18 @@ class RecalculateComponentInstances:
         ComponentInstances.objects.bulk_create(list(inst_cache.values()))
 
 
+class RecalculateCoverageCache:
+    def __init__(self, roots):
+        self.roots = roots
+        self.__recalc()
+
+    def __recalc(self):
+        CoverageFile.objects.filter(report__root__in=self.roots).delete()
+        CoverageDataStatistics.objects.filter(report__root__in=self.roots).delete()
+        for report in ReportComponent.objects.filter(root__in=self.roots).exclude(coverage=''):
+            FillCoverageCache(report)
+
+
 class Recalculation:
     def __init__(self, rec_type, jobs=None):
         self.type = rec_type
@@ -179,6 +193,8 @@ class Recalculation:
             RecalculateResources(self._roots)
         elif self.type == 'compinst':
             RecalculateComponentInstances(self._roots)
+        elif self.type == 'coverage':
+            RecalculateCoverageCache(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
             UnsafeUtils.RecalculateConnections(self._roots)
@@ -187,6 +203,7 @@ class Recalculation:
             RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
             RecalculateComponentInstances(self._roots)
+            RecalculateCoverageCache(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()

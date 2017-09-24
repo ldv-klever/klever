@@ -33,7 +33,7 @@ $(document).ready(function () {
     cov_stat_table.find('.tree-file-link').click(function (event) {
         event.preventDefault();
         show_src_code($(this).data('path'));
-        $('body').animate({ scrollTop: 0 }, "slow");
+        $('html, body').stop().animate({ scrollTop: 0 }, "slow");
     });
     cov_stat_table.show();
 
