@@ -1,7 +1,7 @@
 $(document).ready(function () {
     var src_code_content = $("#CoverageSRCContent"),
         src_data_content = $('#CoverageDataContent'),
-        weight = $('#cov_weight').val();
+        with_data = $('#with_data').val();
 
     function show_src_code(filename) {
         $.ajax({
@@ -11,7 +11,7 @@ $(document).ready(function () {
             data: {
                 report_id: $('#report_id').val(),
                 filename: filename,
-                weight: weight
+                with_data: with_data
             },
             success: function(data) {
                 if (data.error) {
@@ -20,7 +20,7 @@ $(document).ready(function () {
                 else {
                     $('#selected_file_name').text(filename);
                     src_code_content.html(data['content']).scrollTop(0);
-                    if ($(weight === '1')) {
+                    if ($(with_data === '1')) {
                         src_data_content.html(data['data']).find('.item').tab();
                     }
                     $('#div_for_legend').html(data['legend']);
@@ -47,7 +47,7 @@ $(document).ready(function () {
         var line_container = $(this).closest('.COVLine');
 
         // If full-weight then show data
-        if (weight === '1') {
+        if (with_data === '1') {
             var visible_data = src_data_content.find('div[id^="COVDataLine_"]:visible');
             if (visible_data.length) {
                 visible_data.hide();
@@ -107,7 +107,7 @@ $(document).ready(function () {
         }
     });
 
-    if (weight === '1') {
+    if (with_data === '1') {
         data_stat_table.find('.item').tab();
         $('#get_data_statistic').click(function () {
             cov_attr_table.hide();
