@@ -256,12 +256,14 @@ class TestService(KleverTestCase):
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
 
         # Get task status
-        response = self.core.post('/service/get_task_status/', {'task id': task_ids[3]})
+        response = self.core.post('/service/get_tasks_statuses/', {'tasks': json.dumps([task_ids[3]])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertEqual(res['task status'], TASK_STATUS[0][0])
+        self.assertEqual(res['tasks statuses'], {
+            'pending': [task_ids[3]], 'processing': [], 'finished': [], 'error': []
+        })
 
         # Trying to delete unfinished task
         response = self.core.post('/service/remove_task/', {'task id': task_ids[3]})

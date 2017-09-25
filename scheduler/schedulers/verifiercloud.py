@@ -17,6 +17,7 @@
 
 import json
 import logging
+import traceback
 import os
 import re
 import shutil
@@ -266,13 +267,16 @@ class Scheduler(schedulers.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
         logging.debug("Save solution to the disk as {}".format(solution_file))
-        if future.result():
-            with open(solution_file, 'wb') as sa:
-                sa.write(future.result())
-        else:
+        try:
+            result = future.result()
+        except Exception as err:
             error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
             logging.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
+
+        # Save result
+        with open(solution_file, 'wb') as sa:
+            sa.write(result)
 
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
@@ -370,7 +374,11 @@ class Scheduler(schedulers.SchedulerExchange):
         Abort solution of all running tasks and any other actions before termination.
         """
         logging.info("Terminate all runs")
-        self.wi.shutdown()
+        # This is not reliable library as it is developed separaetly of Schedulers
+        try:
+            self.wi.shutdown()
+        except Exception:
+            logging.warning("Web interface wrapper raised an exception: \n{}".format(traceback.format_exc().rstrip()))
 
     def update_nodes(self, wait_controller=False):
         """
@@ -526,7 +534,7 @@ class Scheduler(schedulers.SchedulerExchange):
         })
         ET.SubElement(run, "column", {
             'title': 'exitcode',
-            'value': str(description['return value'])
+            'value': str(description['return value']) if 'return value' in description['return value'] else None
         })
 
         with open(path, "w", encoding="utf8") as fp:

@@ -29,7 +29,7 @@ urlpatterns = [
     url(r'^get_jobs_and_tasks/$', views.get_jobs_and_tasks),
     url(r'^schedule_task/$', views.schedule_task),
     url(r'^update_tools/$', views.update_tools),
-    url(r'^get_task_status/$', views.get_task_status),
+    url(r'^get_tasks_statuses/$', views.get_tasks_statuses),
     url(r'^remove_task/$', views.remove_task),
     url(r'^cancel_task/$', views.cancel_task),
     url(r'^upload_solution/$', views.upload_solution),

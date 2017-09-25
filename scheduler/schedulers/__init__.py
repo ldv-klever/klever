@@ -26,7 +26,7 @@ import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
-from utils import sort_priority
+from utils import sort_priority, time_units_converter, memory_units_converter
 
 
 def get_gateway(conf, work_dir):
@@ -66,7 +66,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :param work_dir: PAth to the working directory.
         """
         self.conf = conf
-        self.work_dir = os.path.abspath(work_dir)
+        self.work_dir = work_dir
         self.__tasks = {}
         self.__jobs = {}
         self.__nodes = None
@@ -105,13 +105,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             self.production = True
         else:
             self.production = False
-
-        # Clean working directory
-        if os.path.isdir(self.work_dir) and ("keep working directory" not in self.conf["scheduler"]
-                                             or not self.conf["scheduler"]["keep working directory"]):
-            logging.info("Clean scheduler working directory {}".format(self.work_dir))
-            shutil.rmtree(self.work_dir)
-        os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
         if "iteration timeout" in self.conf["scheduler"]:
             for tag in (t for t in self.__iteration_period.keys() if t in self.conf["scheduler"]["iteration timeout"]):
@@ -417,7 +410,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
                         try:
                             self.__jobs[job_id]["future"]\
-                                = self.__attempts(self.solve_job, 3, 'start job {}'.format(job_id),
+                                = self.__attempts(self.solve_job, 1, 'start job {}'.format(job_id),
                                                   (job_id,
                                                    self.__jobs[job_id]))
                         except SchedulerException as err:
@@ -432,7 +425,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             raise ValueError("Attempt to scheduler running or processed task {}".format(task_id))
                         try:
                             self.__tasks[task_id]["future"]\
-                                = self.__attempts(self.solve_task, 3, 'start task {}'.format(task_id),
+                                = self.__attempts(self.solve_task, 1, 'start task {}'.format(task_id),
                                                   (task_id,
                                                    self.__tasks[task_id]["description"],
                                                    self.__tasks[task_id]["user"],
@@ -774,5 +767,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 collection[tag] = 0
         if 'CPU model' not in collection:
             collection['CPU model'] = None
+
+        # Make unit translation
+        for mem in (m for m in ("memory size", "disk memory size") if m in collection and collection[m] is not None):
+            collection[mem] = memory_units_converter(collection[mem])[0]
+        for t in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
+            collection[t] = time_units_converter(collection[t])[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

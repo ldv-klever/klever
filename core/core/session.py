@@ -100,17 +100,21 @@ class Session:
                                 },
                                 job.ARCHIVE)
 
-    def schedule_task(self, task_desc):
+    def schedule_task(self, task_file, archive):
+        with open(task_file, 'r', encoding='utf8') as fp:
+            data = fp.read()
+
         resp = self.__upload_archive(
             'service/schedule_task/',
-            {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-            {'file': 'task files.zip'}
+            {'description': data},
+            {'file': archive}
         )
         return resp.json()['task id']
 
-    def get_task_status(self, task_id):
-        resp = self.__request('service/get_task_status/', {'task id': task_id})
-        return resp.json()['task status']
+    def get_tasks_statuses(self, task_ids):
+        resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps(task_ids)})
+        statuses = resp.json()['tasks statuses']
+        return json.loads(statuses)
 
     def get_task_error(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
