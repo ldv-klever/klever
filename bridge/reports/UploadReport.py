@@ -272,7 +272,7 @@ class UploadReport:
             'start': self.__create_report_component,
             'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
-            'verification': self.__create_report_component,
+            'verification': self.__create_verification_report,
             'verification finish': self.__finish_verification_report,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
@@ -295,8 +295,7 @@ class UploadReport:
                 raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root,
-                start_date=now(), verification=(self.data['type'] == 'verification'),
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=False,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
         if 'data' in self.data:
@@ -312,12 +311,47 @@ class UploadReport:
         else:
             report.computer = self.parent.computer
 
-        if 'resources' in self.data:
-            report.cpu_time = int(self.data['resources']['CPU time'])
-            report.memory = int(self.data['resources']['memory size'])
-            report.wall_time = int(self.data['resources']['wall time'])
+        report.save()
 
-        if 'log' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
+        if 'attrs' in self.data:
+            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
+
+        for parent in self._parents_branch:
+            try:
+                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report=parent, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+        ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+
+    def __create_verification_report(self, identifier):
+        try:
+            ReportComponent.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
+        except ObjectDoesNotExist:
+            report = ReportComponent(
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=True,
+                component=Component.objects.get_or_create(name=self.data['name'])[0]
+            )
+        if 'data' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
+            report.new_data('report-data.json', BytesIO(json.dumps(
+                self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
+            ).encode('utf8')))
+
+        if 'comp' in self.data:
+            report.computer = Computer.objects.get_or_create(
+                description=json.dumps(self.data['comp'], ensure_ascii=False, sort_keys=True, indent=4)
+            )[0]
+        else:
+            report.computer = self.parent.computer
+
+        report.cpu_time = int(self.data['resources']['CPU time'])
+        report.memory = int(self.data['resources']['memory size'])
+        report.wall_time = int(self.data['resources']['wall time'])
+
+        if 'log' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
         if 'task' in self.data:
@@ -337,14 +371,13 @@ class UploadReport:
                 report.delete()
                 raise CheckArchiveError('Report archive "%s" was not saved' % field_name)
 
-        if 'attrs' in self.data:
-            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
+        self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
 
-        if 'resources' in self.data:
-            if self.job.weight == JOB_WEIGHT[0][0]:
-                self.__update_parent_resources(report)
-            else:
-                self.__update_light_resources(report)
+        if self.job.weight == JOB_WEIGHT[0][0]:
+            self.__update_parent_resources(report)
+        else:
+            self.__update_light_resources(report)
+
         for parent in self._parents_branch:
             try:
                 comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
@@ -354,6 +387,7 @@ class UploadReport:
             comp_inst.total += 1
             comp_inst.save()
         ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+
         if 'coverage' in self.data:
             FillCoverageCache(report)
 
