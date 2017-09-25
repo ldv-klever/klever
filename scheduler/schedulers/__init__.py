@@ -66,7 +66,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :param work_dir: PAth to the working directory.
         """
         self.conf = conf
-        self.work_dir = os.path.abspath(work_dir)
+        self.work_dir = work_dir
         self.__tasks = {}
         self.__jobs = {}
         self.__nodes = None
@@ -105,13 +105,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             self.production = True
         else:
             self.production = False
-
-        # Clean working directory
-        if os.path.isdir(self.work_dir) and ("keep working directory" not in self.conf["scheduler"]
-                                             or not self.conf["scheduler"]["keep working directory"]):
-            logging.info("Clean scheduler working directory {}".format(self.work_dir))
-            shutil.rmtree(self.work_dir)
-        os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
         if "iteration timeout" in self.conf["scheduler"]:
             for tag in (t for t in self.__iteration_period.keys() if t in self.conf["scheduler"]["iteration timeout"]):

@@ -107,6 +107,9 @@ def common_initialization(tool, conf=None):
     # Prepare working directory
     if "working directory" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''working directory'")
+    else:
+        conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
+
     if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
         logging.info("Keep working directory from the previous run")
     else:
