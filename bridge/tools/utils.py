@@ -21,7 +21,7 @@ import json
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, JOB_WEIGHT
 from bridge.utils import BridgeException, logger
 
 import marks.SafeUtils as SafeUtils
@@ -214,7 +214,7 @@ class Recalculation:
 
 class RecalculateResources:
     def __init__(self, roots):
-        self._roots = roots
+        self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
         self.__recalc()
 
     def __recalc(self):

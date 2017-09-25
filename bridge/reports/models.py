@@ -245,17 +245,6 @@ class ComponentResource(models.Model):
         db_table = 'cache_report_component_resource'
 
 
-class LightResource(models.Model):
-    report = models.ForeignKey(ReportRoot)
-    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField(default=0)
-    wall_time = models.BigIntegerField(default=0)
-    memory = models.BigIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_light_resource'
-
-
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
