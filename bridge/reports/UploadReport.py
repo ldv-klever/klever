@@ -104,8 +104,8 @@ class UploadReport:
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
             self.__check_comp(data['comp'])
-        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
-            raise ValueError('component name is too long (max 15 symbols expected)')
+        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 20:
+            raise ValueError('component name {!r} is too long (max 20 symbols expected)'.format(data['name']))
         if 'data' in data and not isinstance(data['data'], dict):
             raise ValueError('report data must be a dictionary object')
 

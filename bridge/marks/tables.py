@@ -977,7 +977,7 @@ class AssociationChangesTable:
                     val = self._data['values'][report_id]['format']
                 elif col == 'tags':
                     val = loader.get_template('marks/tagsChanges.html')\
-                        .render({'tags': self._data['values'][report_id]['tags'], 'type': mark_type})
+                        .render({'tags': self._data['values'][report_id].get('tags'), 'type': mark_type})
                 elif col in self._data['values'][report_id]:
                     val = self._data['values'][report_id][col]
                 values_str.append({'value': str(val), 'color': color, 'href': href})
