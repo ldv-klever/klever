@@ -31,11 +31,9 @@ def trimmed_files(logger, conf, abstract_task_desc):
     for extra_c_file in abstract_task_desc['extra C files']:
         if 'C file' not in extra_c_file:
             continue
-        basename = os.path.basename(extra_c_file['C file'])
-        if basename[0] == '.':
-            # Do not use hidden files
-            basename = basename[1:]
-        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(basename)[0])
+
+        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
+
         with open(os.path.join(conf['main working directory'], extra_c_file['C file']),
                   encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
             trigger = False
