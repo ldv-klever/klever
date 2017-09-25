@@ -34,7 +34,7 @@
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     },
-    "CPAlockator": {
+    "CPALockator": {
       "description": "CPAchecker for checking races",
       "inherit": "CPAchecker common",
       "add options": [
@@ -46,7 +46,7 @@
   "profiles": {
     "reachability common Linux64": {
       "CPAchecker": {
-        "ldv-bam:25523": {
+        "ldv-bam:25793": {
           "inherit": "CPAchecker BAM reachability"
         }
       },
@@ -58,8 +58,8 @@
     },
     "CPALockator race checking": {
       "CPAchecker": {
-        "CPALockator:25248": {
-          "inherit": "CPAlockator"
+        "CPALockator:25964": {
+          "inherit": "CPALockator"
         }
       }
     },

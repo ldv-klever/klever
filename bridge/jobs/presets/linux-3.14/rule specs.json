@@ -144,7 +144,7 @@
             "verifier profile": "reachability common Linux64",
             "verifier": {
               "name": "CPAchecker",
-              "version": "ldv-bam:25523"
+              "version": "ldv-bam:25793"
             },
             "result processing": {
               "coverage": "lightweight"
@@ -587,6 +587,8 @@
            "direct control functions calls": false,
            "nested automata": true,
            "no actions composition": ["Condition"],
+           "self parallelism": true,
+           "pure pthread interface": false,
            "pointer initialization": {
              "structures": true,
              "arrays": true,
@@ -612,7 +614,7 @@
         "verifier profile": "CPALockator race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:25248"
+          "version": "CPALockator:25964"
         },
         "result processing": {
           "expect several witnesses": true

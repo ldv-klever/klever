@@ -82,6 +82,7 @@ class LKBCE(core.components.Component):
                                   'attrs': self.linux_kernel['attrs']
                               },
                               self.mqs['report files'],
+                              self.vals['report id'],
                               self.conf['main working directory'])
             # This file should be specified to collect build commands during configuring and building of the Linux
             # kernel.
