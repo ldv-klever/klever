@@ -7,9 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('reports', '0013_clear_comparison_cache.py'),
-    ]
+    dependencies = [('reports', '0013_clear_comparison_cache')]
 
     operations = [
         migrations.AlterField(
