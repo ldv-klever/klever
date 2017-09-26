@@ -572,7 +572,7 @@ class ReportFiles:
         self.archive_name = None
 
     def make_archive(self):
-        fp, self.archive_name = tempfile.mkstemp(prefix='.zip', dir='.')
+        fp, self.archive_name = tempfile.mkstemp(suffix='.zip', dir='.')
         #fp = tempfile.NamedTemporaryFile(buffering=0, suffix='.zip', dir='.', delete=False)
 
         with open(self.archive_name, mode='w+b', buffering=0) as f:
@@ -587,7 +587,7 @@ class ReportFiles:
 class ExtendedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, ReportFiles):
-            return obj.archive_name
+            return os.path.basename(obj.archive_name)
 
         return json.JSONEncoder.default(self, obj)
 
