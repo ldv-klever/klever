@@ -67,21 +67,22 @@ def schedule_task(request):
     return JsonResponse({'task id': res.task_id})
 
 
-# @unparallel_group([])
-def get_task_status(request):
+@unparallel_group([])
+def get_tasks_statuses(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
-    if 'task id' not in request.POST:
-        return JsonResponse({'error': 'Task identifier is not specified'})
+    if 'tasks' not in request.POST:
+        return JsonResponse({'error': 'Tasks identifiers are not specified'})
     try:
-        res = service.utils.GetTaskStatus(request.POST['task id'])
+        res = service.utils.GetTasksStatuses(request.POST['tasks'])
     except Exception as e:
+        logger.exception(e)
         return JsonResponse({'error': str(e)})
-    return JsonResponse({'task status': res.status})
+    return JsonResponse({'tasks statuses': res.statuses})
 
 
 @unparallel_group([])
