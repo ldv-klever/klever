@@ -9,16 +9,8 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 2.6.33",
-    "rule specifications": ["linux:emg:test"],
-    "VTG strategy": {
-      "name": "rule specification bugs",
-      "verifier": {
-        "name": "CPAchecker",
-        "version": "ldv-bam:25523"
-      },
-      "merge source files": true,
-      "collect coverage": "none"
-    }
+    "verifier profiles DB": "verifier profiles.json",
+    "rule specifications": ["linux:emg:test"]
   },
   "Sub-jobs": [
     {

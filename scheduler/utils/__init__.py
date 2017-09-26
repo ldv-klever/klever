@@ -107,6 +107,9 @@ def common_initialization(tool, conf=None):
     # Prepare working directory
     if "working directory" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''working directory'")
+    else:
+        conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
+
     if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
         logging.info("Keep working directory from the previous run")
     else:
@@ -478,5 +481,90 @@ def extract_cpu_cores_info():
                     data[pc] = [current_vc]
 
     return data
+
+
+def __converter(value, table, kind, outunit):
+    """
+    Converts units to uits.
+
+    :param value: Given value as an integer, float or a string with units or without them.
+    :param table: Table to translate units.
+    :param kind: Time of units to print errors.
+    :param outunit: Desired output unit, '' - means base.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    if isinstance(value, str):
+        regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
+        if not regex.search(value):
+            raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
+        else:
+            value, inunit = regex.search(value).groups()
+    else:
+        inunit = ''
+    # Check values
+    for v in (inunit, outunit):
+        if v not in table:
+            raise ValueError("Get unknown {} unit {!r}".format(kind, v))
+
+    # Get number and get bytes
+    value_in_base = float(value) * table[inunit]
+
+    # Than convert bytes into desired value
+    value_in_out = value_in_base / table[outunit]
+
+    # Align if necessary
+    if outunit != '':
+        fvalue = round(float(value_in_out), 2)
+        ivalue = int(round(float(value_in_out), 0))
+        if abs(fvalue - ivalue) < 0.1:
+            value_in_out = ivalue
+        else:
+            value_in_out = fvalue
+    else:
+        value_in_out = int(value_in_out)
+
+    return value_in_out, "{}{}".format(value_in_out, outunit)
+
+
+def memory_units_converter(num, outunit=''):
+    """
+    Translate memory units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means Bytes.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_bytes = {
+        '': 1,
+        "B": 1,
+        "KB": 10 ** 3,
+        "MB": 10 ** 6,
+        "GB": 10 ** 9,
+        "TB": 10 ** 12,
+        "KiB": 2 ** 10,
+        "MiB": 2 ** 20,
+        "GiB": 2 ** 30,
+        "TiB": 2 ** 40,
+    }
+
+    return __converter(num, units_in_bytes, 'memory', outunit)
+
+
+def time_units_converter(num, outunit=''):
+    """
+    Translate time units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means seconds.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_seconds = {
+        '': 1,
+        "s": 1,
+        "min": 60,
+        "h": 60 ** 2
+    }
+
+    return __converter(num, units_in_seconds, 'time', outunit)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

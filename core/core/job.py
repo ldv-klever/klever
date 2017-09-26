@@ -39,8 +39,8 @@ class Job(core.utils.CallbacksCaller):
         'Verification of Linux kernel modules': [
             'LKBCE',
             'LKVOG',
-            'AVTG',
             'VTG',
+            'VRP'
         ],
     }
 
@@ -54,6 +54,7 @@ class Job(core.utils.CallbacksCaller):
         self.work_dir = None
         self.mqs = {}
         self.locks = {}
+        self.vals = {}
         self.uploading_reports_process_exitcode = None
         self.data = None
         self.data_lock = None
@@ -65,11 +66,12 @@ class Job(core.utils.CallbacksCaller):
         self.component_processes = []
         self.reporting_results_process = None
 
-    def decide(self, conf, mqs, locks, uploading_reports_process_exitcode):
+    def decide(self, conf, mqs, locks, vals, uploading_reports_process_exitcode):
         self.logger.info('Decide job')
 
         self.mqs = mqs
         self.locks = locks
+        self.vals = vals
         self.uploading_reports_process_exitcode = uploading_reports_process_exitcode
         self.data = multiprocessing.Manager().dict()
         self.data_lock = multiprocessing.Lock()
@@ -165,6 +167,7 @@ class Job(core.utils.CallbacksCaller):
                                           'attrs': [{'name': self.name}],
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.components_common_conf['main working directory'])
 
                 if 'ideal verdicts' in self.components_common_conf:
@@ -172,30 +175,37 @@ class Job(core.utils.CallbacksCaller):
                     # calculate validation and testing results.
                     self.mqs['verification statuses'] = multiprocessing.Queue()
 
-                    def after_generate_abstact_verification_task_desc(context):
-                        if not context.abstract_task_desc_file:
-                            context.mqs['verification statuses'].put({
-                                'verification object': context.verification_obj,
-                                'rule specification': context.rule_spec,
-                                'verdict': 'unknown'
-                            })
-
-                    def after_process_single_verdict(context):
+                    def after_plugin_fail_processing(context):
                         context.mqs['verification statuses'].put({
-                            'verification object': context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            'verification object': context.verification_object,
+                            'rule specification': context.rule_specification,
+                            'verdict': 'unknown'
+                        })
+
+                    def after_send_unknown_report(context):
+                        context.mqs['verification statuses'].put({
+                            'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
                             'verdict': context.verdict
                         })
 
-                    def after_generate_all_verification_tasks(context):
+                    def after_process_single_verdict(context):
+                        context.mqs['verification statuses'].put({
+                            'verification object': context.verification_object,
+                            'rule specification': context.rule_specification,
+                            'verdict': context.verdict
+                        })
+
+                    def after_finish_tasks_results_processing(context):
                         context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
-                                                           after_generate_abstact_verification_task_desc,
+                                                           after_plugin_fail_processing,
                                                            after_process_single_verdict,
-                                                           after_generate_all_verification_tasks
+                                                           after_send_unknown_report,
+                                                           after_finish_tasks_results_processing
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
@@ -226,6 +236,7 @@ class Job(core.utils.CallbacksCaller):
                                               'files': ['problem desc.txt']
                                           },
                                           self.mqs['report files'],
+                                          self.vals['report id'],
                                           self.components_common_conf['main working directory'])
                     except Exception:
                         self.logger.exception('Catch exception')
@@ -246,6 +257,7 @@ class Job(core.utils.CallbacksCaller):
                                               'log': None
                                           },
                                           self.mqs['report files'],
+                                          self.vals['report id'],
                                           self.components_common_conf['main working directory'])
                 except Exception:
                     self.logger.exception('Catch exception')
@@ -340,6 +352,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
                 sub_job.locks = self.locks
+                sub_job.vals = self.vals
                 sub_job.uploading_reports_process_exitcode = self.uploading_reports_process_exitcode
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
@@ -368,7 +381,7 @@ class Job(core.utils.CallbacksCaller):
         try:
             for component in self.components:
                 p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
-                              self.locks, separate_from_parent=True)
+                              self.locks, self.vals, separate_from_parent=True)
                 p.start()
                 self.component_processes.append(p)
 
@@ -444,6 +457,7 @@ class Job(core.utils.CallbacksCaller):
                                           'data': {name: verification_result}
                                       },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.components_common_conf['main working directory'],
                                       re.sub(r'/', '-', name_suffix))
         except Exception as e:
@@ -533,7 +547,7 @@ class Job(core.utils.CallbacksCaller):
                 if prev_verification_result['ideal verdict'] != 'safe':
                     raise ValueError(
                         'Ideal verdict for bug "{0}" after fix is "{1}" ("safe" is expected)'
-                            .format(bug_name, prev_verification_result['ideal verdict']))
+                        .format(bug_name, prev_verification_result['ideal verdict']))
 
                 bug_fix_verification_result = prev_verification_result
         elif verification_result['ideal verdict'] == 'safe':
@@ -545,7 +559,7 @@ class Job(core.utils.CallbacksCaller):
                 if prev_verification_result['ideal verdict'] != 'unsafe':
                     raise ValueError(
                         'Ideal verdict for bug "{0}" before fix is "{1}" ("unsafe" is expected)'
-                            .format(bug_name, prev_verification_result['ideal verdict']))
+                        .format(bug_name, prev_verification_result['ideal verdict']))
 
                 bug_verification_result = prev_verification_result
             else:

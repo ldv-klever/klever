@@ -907,21 +907,21 @@ class DecideJobs(object):
             core_data = {
                 'module1': {
                     'ideal verdict': 'safe',
-                    'verification status': 'unsafe',
+                    'verdict': 'unsafe',
                     'comment': 'This is comment for module1'
                 },
                 'module2': {
                     'ideal verdict': 'safe',
-                    'verification status': 'safe'
+                    'verdict': 'safe'
                 },
                 'module3': {
                     'ideal verdict': 'unsafe',
-                    'verification status': 'unsafe',
+                    'verdict': 'unsafe',
                     'comment': 'This is comment for module3'
                 },
                 'module4': {
                     'ideal verdict': 'unsafe',
-                    'verification status': 'unknown'
+                    'verdict': 'unknown'
                 }
             }
         elif job.type == JOB_CLASSES[1][0]:

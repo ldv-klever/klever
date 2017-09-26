@@ -105,7 +105,7 @@ class NewMark:
             mark.delete()
             raise
         self.changes = ConnectMarks([mark], prime_id=report.id).changes.get(mark.id, {})
-        RecalculateTags(list(self.changes))
+        self.__get_tags_changes(RecalculateTags(list(self.changes)).changes)
         update_confirmed_cache([report])
         return mark
 
@@ -165,7 +165,7 @@ class NewMark:
                 if recalc_verdicts:
                     changes = UpdateVerdicts(changes).changes
             self.changes = changes.get(mark.id, {})
-            RecalculateTags(list(self.changes))
+            self.__get_tags_changes(RecalculateTags(list(self.changes)).changes)
             update_confirmed_cache(list(self.changes))
         return mark
 
@@ -268,6 +268,11 @@ class NewMark:
                 new_attrs.append(MarkUnsafeAttr(mark_id=markversion_id, attr=attr, is_compare=a['is_compare']))
         MarkUnsafeAttr.objects.bulk_create(new_attrs)
         return need_recalc
+
+    def __get_tags_changes(self, data):
+        for report in self.changes:
+            if report.id in data and len(data[report.id]) > 0:
+                self.changes[report]['tags'] = list(sorted(data[report.id]))
 
     def __is_not_used(self):
         pass
@@ -520,10 +525,16 @@ class ConnectReport:
 class RecalculateTags:
     def __init__(self, reports):
         self.reports = reports
+        self.changes = {}
         self.__fill_leaves_cache()
         self.__fill_reports_cache()
 
     def __fill_leaves_cache(self):
+        old_numbers = {}
+        tags_names = {}
+        for urt in UnsafeReportTag.objects.filter(report__in=self.reports).select_related('tag'):
+            old_numbers[(urt.tag_id, urt.report_id)] = urt.number
+            tags_names[urt.tag_id] = urt.tag.tag
         UnsafeReportTag.objects.filter(report__in=self.reports).delete()
         marks = {}
         for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None, result__gt=0) \
@@ -532,13 +543,20 @@ class RecalculateTags:
                 marks[m_id] = set()
             marks[m_id].add(r_id)
         tags = {}
-        for t_id, m_id in MarkUnsafeTag.objects.filter(
+        for t_id, m_id, t_name in MarkUnsafeTag.objects.filter(
             mark_version__mark_id__in=marks, mark_version__version=F('mark_version__mark__version')
-        ).values_list('tag_id', 'mark_version__mark_id'):
+        ).values_list('tag_id', 'mark_version__mark_id', 'tag__tag'):
+            tags_names[t_id] = t_name
             for r_id in marks[m_id]:
                 if (t_id, r_id) not in tags:
                     tags[(t_id, r_id)] = 0
                 tags[(t_id, r_id)] += 1
+        for tr_id in set(tags) | set(old_numbers):
+            old_n = old_numbers.get(tr_id, 0)
+            new_n = tags.get(tr_id, 0)
+            if tr_id[1] not in self.changes:
+                self.changes[tr_id[1]] = []
+            self.changes[tr_id[1]].append((tags_names[tr_id[0]], old_n, new_n))
         UnsafeReportTag.objects.bulk_create(list(
             UnsafeReportTag(report_id=r_id, tag_id=t_id, number=tags[(t_id, r_id)]) for t_id, r_id in tags)
         )

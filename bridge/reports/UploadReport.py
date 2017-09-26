@@ -15,10 +15,12 @@
 # limitations under the License.
 #
 
+import os
 import json
 import zipfile
 from io import BytesIO
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.timezone import now
@@ -42,6 +44,10 @@ AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be
 AVTG_FAIL_NAME = 'faulty generated abstract verification task descriptions'
 VTG_FAIL_NAME = 'faulty processed abstract verification task descriptions'
 BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verification task'
+
+
+class CheckArchiveError(Exception):
+    pass
 
 
 class UploadReport:
@@ -68,6 +74,9 @@ class UploadReport:
             self._parents_branch = self.__get_parents_branch()
             self.root = self.__get_root_report()
             self.__upload()
+        except CheckArchiveError as e:
+            logger.exception(e)
+            self.error = 'ZIP error'
         except Exception as e:
             logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
             self.__job_failed(str(e))
@@ -95,8 +104,8 @@ class UploadReport:
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
             self.__check_comp(data['comp'])
-        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
-            raise ValueError('component name is too long (max 15 symbols expected)')
+        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 20:
+            raise ValueError('component name {!r} is too long (max 20 symbols expected)'.format(data['name']))
         if 'data' in data and not isinstance(data['data'], dict):
             raise ValueError('report data must be a dictionary object')
 
@@ -161,11 +170,12 @@ class UploadReport:
             try:
                 self.data.update({
                     'parent id': data['parent id'],
-                    'proof': data['proof'],
-                    'attrs': data['attrs'],
+                    'attrs': data['attrs']
                 })
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+            if 'proof' in data:
+                self.data['proof'] = data['proof']
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
@@ -296,6 +306,13 @@ class UploadReport:
             report.new_coverage(COVERAGE_FILES_ARCHIVE, self.coverage)
             report.coverage = self.data.get('coverage')
         report.save()
+        if report.archive.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
+        if report.coverage_arch.name \
+                and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.coverage_arch.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -387,6 +404,9 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
+        if report.archive.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -395,14 +415,14 @@ class UploadReport:
         else:
             self.__update_light_resources(report)
 
-        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
-                and ReportComponent.objects.filter(parent=report).count() == 0:
-            report.delete()
-
         report_ids = set(r.pk for r in self._parents_branch)
         report_ids.add(report.pk)
         ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
             .update(in_progress=(F('in_progress') - 1))
+
+        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
+                and ReportComponent.objects.filter(parent=report).count() == 0:
+            report.delete()
 
     def __finish_verification_report(self, identifier):
         try:
@@ -436,6 +456,9 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -448,10 +471,14 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
-        if self.archive is not None:
-            report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+        if self.archive is not None and 'proof' in self.data:
             report.proof = self.data['proof']
-        report.save()
+            report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+            if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+                report.delete()
+                raise CheckArchiveError('Archive was not saved')
+        else:
+            report.save()
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -468,6 +495,9 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
@@ -566,6 +596,8 @@ class UploadReport:
             update_total_resources(p)
 
     def __update_light_resources(self, report):
+        ComponentResource.objects.create(report=report, component=report.component,
+                                         cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory)
         comp_res = LightResource.objects.get_or_create(report=self.root, component=report.component)[0]
         comp_res.cpu_time += report.cpu_time
         comp_res.wall_time += report.wall_time
@@ -647,13 +679,13 @@ class CollapseReports:
             core_report = ReportComponent.objects.get(parent=None, root=root)
         except ObjectDoesNotExist:
             return
-        ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
-        ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+
         ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
-        ReportUnknown.objects.filter(
-            root=root, parent__reportcomponent__archive='', parent__reportcomponent__verification=True
+        Report.objects.filter(
+            parent__reportcomponent__verification=True,
+            parent__reportcomponent__archive='', parent__reportcomponent__coverage_arch=''
         ).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
+        ReportComponent.objects.filter(root=root, verification=True, archive='', coverage_arch='').delete()
         ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
 

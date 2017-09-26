@@ -7,16 +7,8 @@
     },
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
-    "specifications set": "Linux 3.14 (base)",
-    "VTG strategy": {
-      "name": "rule specification bugs",
-      "verifier": {
-        "name": "CPAchecker",
-        "version": "ldv-bam:25523"
-      },
-      "merge source files": true,
-      "collect coverage": "none"
-    }
+    "verifier profiles DB": "verifier profiles.json",
+    "specifications set": "Linux 3.14 (base)"
   },
   "Sub-jobs": [
     {
