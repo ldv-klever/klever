@@ -92,7 +92,7 @@ class Core(core.utils.CallbacksCaller):
                                       {
                                           'id': self.ID + '/unknown',
                                           'parent id': self.ID,
-                                          'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
+                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.report_id,

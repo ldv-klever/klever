@@ -107,7 +107,7 @@ class Session:
         resp = self.__upload_archive(
             'service/schedule_task/',
             {'description': data},
-            {'file': archive}
+            [archive]
         )
         return resp.json()['task id']
 

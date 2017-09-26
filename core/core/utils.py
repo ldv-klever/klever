@@ -640,7 +640,7 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
     # Create report file in reports directory.
     report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
     with open(report_file, 'w', encoding='utf8') as fp:
-        json.dump(report_data, fp, ensure_ascii=False, sort_keys=True, indent=4)
+        json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
     cwd_report_file = '{0}{1} report.json'.format(kind, ' ' + label if label else '')

@@ -277,9 +277,9 @@ class RP(core.components.Component):
                               {
                                   'id': "{}/verification/safe".format(self.id),
                                   'parent id': "{}/verification".format(self.id),
-                                  'attrs': [],
+                                  'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  'proof': None
+                                  #'proof': None
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
@@ -426,7 +426,11 @@ class RP(core.components.Component):
             'log': None if self.logger.disabled or not log_file else core.utils.ReportFiles([log_file]),
         }
         if self.conf['upload input files of static verifiers']:
-            report['task identifier'] = task_id
+            # TODO: There is possible to remove task before this report will be uploaded.
+            # So, don't assign identifier now
+            pass
+            #report['task identifier'] = task_id
+
         if 'coverage' in opts and opts['coverage'] and\
                 os.path.isfile(os.path.join('output', 'coverage.info')):
             cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
