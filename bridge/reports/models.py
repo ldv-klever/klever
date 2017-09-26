@@ -33,6 +33,10 @@ def get_component_path(instance, filename):
     return os.path.join('Reports', instance.component.name, str(curr_date.year), str(curr_date.month), filename)
 
 
+def get_coverage_dir(instance, filename):
+    return os.path.join('Reports', 'CoverageCache', 'Report-%s' % instance.report_id, filename)
+
+
 class AttrName(models.Model):
     name = models.CharField(max_length=63, unique=True, db_index=True)
 
@@ -241,17 +245,6 @@ class ComponentResource(models.Model):
         db_table = 'cache_report_component_resource'
 
 
-class LightResource(models.Model):
-    report = models.ForeignKey(ReportRoot)
-    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField(default=0)
-    wall_time = models.BigIntegerField(default=0)
-    memory = models.BigIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_light_resource'
-
-
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
@@ -309,3 +302,59 @@ class ComponentInstances(models.Model):
     component = models.ForeignKey(Component)
     in_progress = models.PositiveIntegerField(default=0)
     total = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_report_component_instances'
+
+
+class CoverageFile(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    name = models.CharField(max_length=1024)
+    file = models.FileField(upload_to=get_coverage_dir, null=True)
+    covered_lines = models.PositiveIntegerField(default=0)
+    covered_funcs = models.PositiveIntegerField(default=0)
+    total_lines = models.PositiveIntegerField(default=0)
+    total_funcs = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_report_coverage_file'
+
+
+@receiver(pre_delete, sender=CoverageFile)
+def coverage_file_delete_signal(**kwargs):
+    covfile = kwargs['instance']
+    if covfile.file:
+        covfile.file.storage.delete(covfile.file.path)
+
+
+class CoverageDataValue(models.Model):
+    hashsum = models.CharField(max_length=255)
+    name = models.CharField(max_length=128)
+    value = models.TextField()
+
+    class Meta:
+        db_table = 'cache_report_coverage_data_values'
+
+
+class CoverageData(models.Model):
+    covfile = models.ForeignKey(CoverageFile)
+    line = models.PositiveIntegerField()
+    data = models.ForeignKey(CoverageDataValue)
+
+    class Meta:
+        db_table = 'cache_report_coverage_data'
+
+
+class CoverageDataStatistics(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    name = models.CharField(max_length=128)
+    data = models.FileField(upload_to='CoverageData')
+
+    class Meta:
+        db_table = 'cache_report_coverage_data_stat'
+
+
+@receiver(pre_delete, sender=CoverageDataStatistics)
+def coverage_data_stat_delete_signal(**kwargs):
+    covdatastat = kwargs['instance']
+    covdatastat.data.storage.delete(covdatastat.data.path)

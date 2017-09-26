@@ -869,11 +869,13 @@ def coverage_light_page(request, report_id):
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
     activate(request.user.extended.language)
-    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'weight']):
+    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'with_data']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], request.POST['weight'])
+        res = GetCoverageSrcHTML(
+            request.POST['report_id'], request.POST['filename'], bool(int(request.POST['with_data']))
+        )
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

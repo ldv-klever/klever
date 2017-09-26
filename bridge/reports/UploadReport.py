@@ -33,11 +33,14 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
-    Component, ComponentUnknown, ComponentResource, ReportAttr, LightResource, TasksNumbers, ReportComponentLeaf,\
+    Component, ComponentUnknown, ComponentResource, ReportAttr, TasksNumbers, ReportComponentLeaf,\
     Computer, ComponentInstances
+from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
-from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
+from tools.utils import RecalculateLeaves, RecalculateVerdicts
+
+from reports.coverage import FillCoverageCache
 
 
 AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
@@ -134,6 +137,10 @@ class UploadReport:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
                     raise CheckArchiveError("Log archive wasn't found in the archives list")
+            if 'coverage' in data:
+                self.data['coverage'] = data['coverage']
+                if self.data['coverage'] not in self.archives:
+                    raise CheckArchiveError("Coverage archive wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -161,7 +168,12 @@ class UploadReport:
                 self.data['coverage'] = data['coverage']
                 if self.data['coverage'] not in self.archives:
                     raise CheckArchiveError("Coverage archive wasn't found in the archives list")
-            if 'input files of static verifiers' in data:
+            if 'task identifier' in data:
+                try:
+                    self.data['task'] = Task.objects.get(id=data['task identifier'])
+                except ObjectDoesNotExist:
+                    raise ValueError('The task with id "%s" was not found' % data['task identifier'])
+            elif 'input files of static verifiers' in data:
                 self.data['verifier input'] = data['input files of static verifiers']
                 if self.data['verifier input'] not in self.archives:
                     raise CheckArchiveError("Input files of static verifiers archive wasn't found in the archives list")
@@ -260,7 +272,7 @@ class UploadReport:
             'start': self.__create_report_component,
             'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
-            'verification': self.__create_report_component,
+            'verification': self.__create_verification_report,
             'verification finish': self.__finish_verification_report,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
@@ -283,15 +295,16 @@ class UploadReport:
                 raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root,
-                start_date=now(), verification=(self.data['type'] == 'verification'),
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=False,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
-        if 'data' in self.data:
-            if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
-                report.new_data('report-data.json', BytesIO(json.dumps(
-                    self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
-                ).encode('utf8')))
+
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+
+        if save_add_data and 'data' in self.data:
+            report.new_data('report-data.json', BytesIO(
+                json.dumps(self.data['data'], ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+            ))
 
         if 'comp' in self.data:
             report.computer = Computer.objects.get_or_create(
@@ -300,18 +313,62 @@ class UploadReport:
         else:
             report.computer = self.parent.computer
 
-        if 'resources' in self.data:
-            report.cpu_time = int(self.data['resources']['CPU time'])
-            report.memory = int(self.data['resources']['memory size'])
-            report.wall_time = int(self.data['resources']['wall time'])
+        report.save()
 
-        if 'log' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
+        if 'attrs' in self.data:
+            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
+
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+
+        for parent in self._parents_branch:
+            try:
+                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report=parent, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+
+        # Reports for other components will be deleted for lightweight job
+        if save_add_data:
+            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+
+    def __create_verification_report(self, identifier):
+        try:
+            ReportComponent.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
+        except ObjectDoesNotExist:
+            report = ReportComponent(
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=True,
+                component=Component.objects.get_or_create(name=self.data['name'])[0]
+            )
+        if 'data' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
+            report.new_data('report-data.json', BytesIO(json.dumps(
+                self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
+            ).encode('utf8')))
+
+        if 'comp' in self.data:
+            report.computer = Computer.objects.get_or_create(
+                description=json.dumps(self.data['comp'], ensure_ascii=False, sort_keys=True, indent=4)
+            )[0]
+        else:
+            report.computer = self.parent.computer
+
+        report.cpu_time = int(self.data['resources']['CPU time'])
+        report.memory = int(self.data['resources']['memory size'])
+        report.wall_time = int(self.data['resources']['wall time'])
+
+        if 'log' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
-        if 'verifier input' in self.data:
+        if 'task' in self.data:
+            with self.data['task'].archive.file as fp:
+                report.add_verifier_input(REPORT_ARCHIVE['verifier input'], fp)
+        elif 'verifier input' in self.data:
             report.add_verifier_input(REPORT_ARCHIVE['verifier input'], self.archives[self.data['verifier input']])
         if 'coverage' in self.data:
-            report.add_verifier_input(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
+            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.save()
 
@@ -322,14 +379,12 @@ class UploadReport:
                 report.delete()
                 raise CheckArchiveError('Report archive "%s" was not saved' % field_name)
 
-        if 'attrs' in self.data:
-            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
+        self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
 
-        if 'resources' in self.data:
-            if self.job.weight == JOB_WEIGHT[0][0]:
-                self.__update_parent_resources(report)
-            else:
-                self.__update_light_resources(report)
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+        self.__update_parent_resources(report)
+
         for parent in self._parents_branch:
             try:
                 comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
@@ -338,7 +393,12 @@ class UploadReport:
             comp_inst.in_progress += 1
             comp_inst.total += 1
             comp_inst.save()
-        ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+
+        # Other verification reports will be deleted
+        if self.job.weight == JOB_WEIGHT[0][0] or report.coverage or report.verifier_input:
+            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+        if report.coverage:
+            FillCoverageCache(report)
 
     def __update_attrs(self, identifier):
         try:
@@ -402,12 +462,15 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        if 'log' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None):
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+        if save_add_data and 'log' in self.data:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
+        if 'coverage' in self.data and report.component.name == 'Sub-job':
+            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.finish_date = now()
 
-        if 'data' in self.data:
+        if save_add_data and 'data' in self.data:
             # Report is saved after the data is updated
             self.__update_dict_data(report, self.data['data'])
         else:
@@ -419,19 +482,22 @@ class UploadReport:
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-        if self.job.weight == JOB_WEIGHT[0][0]:
-            self.__update_parent_resources(report)
-        else:
-            self.__update_light_resources(report)
 
-        report_ids = set(r.pk for r in self._parents_branch)
-        report_ids.add(report.pk)
-        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
-            .update(in_progress=(F('in_progress') - 1))
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+        self.__update_parent_resources(report)
 
-        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
-                and ReportComponent.objects.filter(parent=report).count() == 0:
+        report_ids = set(r.id for r in self._parents_branch)
+        component_id = report.component_id
+
+        if not save_add_data and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
+        else:
+            report_ids.add(report.id)
+            if report.coverage:
+                FillCoverageCache(report)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
+            .update(in_progress=(F('in_progress') - 1))
 
     def __finish_verification_report(self, identifier):
         try:
@@ -439,18 +505,21 @@ class UploadReport:
         except ObjectDoesNotExist:
             raise ValueError('verification report does not exist')
 
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+            report.parent = self._parents_branch[-1]
+
+        report_ids = set(r.id for r in self._parents_branch)
+        component_id = report.component_id
+
         # I hope that verification reports can't have component reports as its children
         if self.job.weight == JOB_WEIGHT[1][0] and Report.objects.filter(parent=report).count() == 0:
             report.delete()
         else:
-            if self.job.weight == JOB_WEIGHT[1][0]:
-                report.parent = self._parents_branch[0]
             report.finish_date = now()
             report.save()
-
-        report_ids = set(r.pk for r in self._parents_branch)
-        report_ids.add(report.pk)
-        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            report_ids.add(report.id)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
             .update(in_progress=(F('in_progress') - 1))
 
     def __create_report_unknown(self, identifier):
@@ -517,7 +586,7 @@ class UploadReport:
         if 'attrs' in self.data:
             self.ordered_attrs += self.__save_attrs(leaf.id, self.data['attrs'])
         if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_reports_branch(leaf)
+            self.__cut_leaf_parents_branch(leaf)
 
         if self.data['type'] == 'unknown':
             self.__fill_unknown_cache(leaf)
@@ -532,14 +601,21 @@ class UploadReport:
                 SafeUtils.ConnectReport(leaf)
                 SafeUtils.RecalculateTags([leaf])
 
-    def __cut_reports_branch(self, leaf):
-        # Just Core report
-        self._parents_branch = self._parents_branch[:1]
+    def __cut_parents_branch(self):
+        if len(self._parents_branch) > 1 and self._parents_branch[1].component.name == 'Sub-job':
+            # Just Core and Sub-job report
+            self._parents_branch = self._parents_branch[:2]
+        elif len(self._parents_branch) > 0:
+            # Just Core report
+            self._parents_branch = self._parents_branch[:1]
+
+    def __cut_leaf_parents_branch(self, leaf):
+        self.__cut_parents_branch()
         if self.parent.verifier_input or self.parent.coverage:
-            # After verification finish report self.parent.parent will be Core report
+            # After verification finish report self.parent.parent will be Core/Sub-job report
             self._parents_branch.append(self.parent)
         else:
-            leaf.parent = self._parents_branch[0]
+            leaf.parent = self._parents_branch[-1]
             leaf.save()
 
     def __fill_unknown_cache(self, unknown):
@@ -600,19 +676,6 @@ class UploadReport:
             compres.memory = max(report.memory, compres.memory)
             compres.save()
             update_total_resources(p)
-
-    def __update_light_resources(self, report):
-        comp_res = LightResource.objects.get_or_create(report=self.root, component=report.component)[0]
-        comp_res.cpu_time += report.cpu_time
-        comp_res.wall_time += report.wall_time
-        comp_res.memory = max(report.memory, comp_res.memory)
-        comp_res.save()
-
-        total_res = LightResource.objects.get_or_create(report=self.root, component=None)[0]
-        total_res.cpu_time += report.cpu_time
-        total_res.wall_time += report.wall_time
-        total_res.memory = max(report.memory, total_res.memory)
-        total_res.save()
 
     def __save_total_tasks_number(self, tnums):
         if tnums.bt_num == 0:
@@ -681,23 +744,40 @@ class CollapseReports:
 
     def __collapse(self):
         root = self.job.reportroot
-        try:
-            core_report = ReportComponent.objects.get(parent=None, root=root)
-        except ObjectDoesNotExist:
-            return
+        sub_jobs = {}
+        sj_reports = set()
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__component__name='Sub-job'):
+            if leaf.report_id not in sub_jobs:
+                sub_jobs[leaf.report_id] = set()
+            for fname in ['safe', 'unsafe', 'unknown']:
+                report = getattr(leaf, fname)
+                if report:
+                    sj_reports.add(report.id)
+                    if report.parent.reportcomponent.coverage or report.parent.reportcomponent.verifier_input:
+                        sub_jobs[leaf.report_id].add(report.parent_id)
+                    else:
+                        sub_jobs[leaf.report_id].add(report.id)
+                    break
+        for sj_id in sub_jobs:
+            Report.objects.filter(id__in=sub_jobs[sj_id]).update(parent_id=sj_id)
 
-        ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
-        Report.objects.filter(
-            parent__reportcomponent__verification=True,
-            parent__reportcomponent__verifier_input='', parent__reportcomponent__coverage=''
-        ).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=True, verifier_input='', coverage='').delete()
-        ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
+        core_id = ReportComponent.objects.get(root=root, parent=None).id
+        core_reports = set()
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id):
+            for fname in ['safe', 'unsafe', 'unknown']:
+                report = getattr(leaf, fname)
+                if report:
+                    if report.id in sj_reports:
+                        break
+                    if report.parent.reportcomponent.coverage or report.parent.reportcomponent.verifier_input:
+                        core_reports.add(report.parent_id)
+                    else:
+                        core_reports.add(report.id)
+                    break
+        Report.objects.filter(id__in=core_reports).update(parent_id=core_id)
 
-        LightResource.objects.bulk_create(list(LightResource(
-            report=root, component=cres.component, cpu_time=cres.cpu_time, wall_time=cres.wall_time, memory=cres.memory
-        ) for cres in ComponentResource.objects.filter(report=core_report)))
+        ReportComponent.objects.filter(root=root, verifier_input='', coverage='')\
+            .exclude(component__name__in={'Core', 'Sub-job'}).delete()
+
         RecalculateLeaves([root])
         RecalculateVerdicts([root])
-        RecalculateResources([root])

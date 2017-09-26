@@ -32,7 +32,7 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, ReportAttr, LightResource
+    Component, Computer, ReportAttr, ComponentResource
 from jobs.utils import create_job, update_job, change_job_status, GetConfiguration
 from reports.utils import AttrData
 from service.utils import StartJobDecision
@@ -40,7 +40,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 2
+ARCHIVE_FORMAT = 3
 
 
 class KleverCoreArchiveGen:
@@ -111,8 +111,8 @@ class JobArchiveGenerator:
         for data in self.stream.compress_string('computers.json', json.dumps(
                 reportsdata.computers, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
             yield data
-        for data in self.stream.compress_string('LightWeightCache.json', json.dumps(
-                LightWeightCache(self.job).data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
+        for data in self.stream.compress_string('Resources.json', json.dumps(
+                ResourcesCache(self.job).data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
             yield data
         self.__add_reports_files()
         for file_path, arcname in self.files_to_add:
@@ -173,7 +173,7 @@ class JobArchiveGenerator:
             if report.problem_description:
                 self.files_to_add.append((
                     os.path.join(settings.MEDIA_ROOT, report.problem_description.name),
-                    os.path.join('ReportUnsafe', 'problem_%s.zip' % report.pk)
+                    os.path.join('ReportUnknown', 'problem_%s.zip' % report.pk)
                 ))
         for report in ReportComponent.objects.filter(root__job=self.job):
             if report.log:
@@ -212,21 +212,20 @@ class JobsArchivesGen:
         yield self.stream.close_stream()
 
 
-class LightWeightCache:
+class ResourcesCache:
     def __init__(self, job):
         self.data = {}
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
             return
-        if job.weight == JOB_WEIGHT[1][0]:
-            self.data['resources'] = self.__get_light_resources()
+        self.data = self.__get_resources()
 
-    def __get_light_resources(self):
+    def __get_resources(self):
         res_data = []
-        for r in LightResource.objects.filter(report=self.root):
+        for r in ComponentResource.objects.filter(report__root=self.root):
             res_data.append({
-                'component': r.component.name if r.component is not None else None,
+                'id': r.report_id, 'component': r.component.name if r.component is not None else None,
                 'wall_time': r.wall_time, 'cpu_time': r.cpu_time, 'memory': r.memory
             })
         return res_data
@@ -334,16 +333,16 @@ class UploadJob(object):
         versions_data = {}
         report_files = {}
         run_history_files = {}
-        light_cache = {}
+        resources = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
                 rel_path = os.path.relpath(os.path.join(dir_path, file_name), self.job_dir)
                 if rel_path == 'job.json':
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         jobdata = json.load(fp)
-                elif rel_path == 'LightWeightCache.json':
+                elif rel_path == 'Resources.json':
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
-                        light_cache = json.load(fp)
+                        resources = json.load(fp)
                 elif rel_path == 'reports.json':
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         reports_data = json.load(fp)
@@ -488,7 +487,7 @@ class UploadJob(object):
         change_job_status(job, jobdata['status'])
         ReportRoot.objects.create(user=self.user, job=job)
         try:
-            UploadReports(job, computers, reports_data, report_files)
+            UploadReports(job, computers, reports_data, report_files, resources)
         except BridgeException:
             job.delete()
             raise
@@ -497,26 +496,14 @@ class UploadJob(object):
             job.delete()
             raise BridgeException(_("Unknown error while uploading reports"))
         self.job = job
-        self.__fill_lightweight_cache(light_cache)
-
-    def __fill_lightweight_cache(self, light_cache):
-        try:
-            root = ReportRoot.objects.get(job=self.job)
-        except ObjectDoesNotExist:
-            return
-        if 'resources' in light_cache:
-            LightResource.objects.bulk_create(list(LightResource(
-                report=root, wall_time=int(d['wall_time']), cpu_time=int(d['cpu_time']), memory=int(d['memory']),
-                component=Component.objects.get_or_create(name=d['component'])[0]
-                if d['component'] is not None else None
-            ) for d in light_cache['resources']))
 
 
 class UploadReports:
-    def __init__(self, job, computers, data, files):
+    def __init__(self, job, computers, data, files, resources):
         self.job = job
         self.data = data
         self.files = files
+        self._resources = resources
         self._parents = {None: None}
         self._indexes = {}
         self._tree = []
@@ -527,7 +514,9 @@ class UploadReports:
         self.__upload_computers()
         self._components = {}
         self._attrs = AttrData()
+        self._rc_id_map = {}
         self.__upload_all()
+        self.__upload_resources_cache()
 
     def __fix_identifer(self, i):
         m = re.match('.*?(/.*)', self.data[i]['identifier'])
@@ -611,6 +600,7 @@ class UploadReports:
                 report.new_data('report-data.json', BytesIO(self.data[i]['data'].encode('utf8')))
 
             report.save()
+            self._rc_id_map[self.data[i]['pk']] = report.id
 
     @transaction.atomic
     def __upload_safe_reports(self):
@@ -674,6 +664,24 @@ class UploadReports:
             self._tree.append(set())
         self._tree[lvl].add(self.data[i]['identifier'])
         self._indexes[self.data[i]['identifier']] = i
+
+    def __upload_resources_cache(self):
+        components = {}
+        res_cache = []
+        for res_data in self._resources:
+            old_id = res_data['id']
+            if old_id not in self._rc_id_map:
+                continue
+            component = res_data['component']
+            if component is not None:
+                if component not in components:
+                    components[component] = Component.objects.get_or_create(name=component)[0].id
+                component = components[component]
+            res_cache.append(ComponentResource(
+                report_id=self._rc_id_map[old_id], component_id=component,
+                cpu_time=res_data['cpu_time'], wall_time=res_data['wall_time'], memory=res_data['memory']
+            ))
+        ComponentResource.objects.bulk_create(res_cache)
 
 
 def update_identifier(job_id):
@@ -762,16 +770,25 @@ class UploadReportsWithoutDecision:
         self.__upload_children(data['id'])
 
         finish_report = data.copy()
-        self.__clear_report(['id', 'data', 'resources', 'log'], finish_report)
+        self.__clear_report(['id', 'data', 'resources', 'log', 'coverage'], finish_report)
         finish_report['type'] = 'finish'
         if 'resources' not in finish_report:
             finish_report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
 
-        if 'log' in data:
-            with open(self._files[data['log']], mode='rb') as fp:
-                res = UploadReport(self._job, finish_report, archives={data['log']: fp})
-        else:
-            res = UploadReport(self._job, finish_report)
+        archives = {}
+        for arch_type in ['log', 'coverage']:
+            if arch_type in data:
+                try:
+                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
+                except Exception:
+                    for fp in archives.values():
+                        fp.close()
+                    raise
+
+        res = UploadReport(self._job, start_report, archives=archives)
+        for fp in archives.values():
+            fp.close()
+
         if res.error is not None:
             raise ValueError(res.error)
 
@@ -787,7 +804,7 @@ class UploadReportsWithoutDecision:
         for arch_type in ['log', 'coverage', 'input files of static verifiers']:
             if arch_type in data:
                 try:
-                    archives[data[arch_type]] = open(self._files[data['log']], mode='rb')
+                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
                 except Exception:
                     for fp in archives.values():
                         fp.close()
