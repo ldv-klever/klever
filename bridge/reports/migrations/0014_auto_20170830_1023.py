@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0012_reportcomponent_coverage_arch'),
+        ('reports', '0013_clear_comparison_cache.py'),
     ]
 
     operations = [
