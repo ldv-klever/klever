@@ -419,16 +419,14 @@ window.update_colors = function (table) {
         return false;
     }
     var is_dark = false;
-    table.find('tbody').first().find('tr').each(function () {
-        if (!$(this).is(':hidden')) {
-            if (is_dark) {
-                $(this).css('background', '#f0fcfe');
-                is_dark = false;
-            }
-            else {
-                $(this).css('background', 'white');
-                is_dark = true;
-            }
+    table.find('tbody').first().find('tr:visible').each(function () {
+        if (is_dark) {
+            $(this).css('background', '#f0fcfe');
+            is_dark = false;
+        }
+        else {
+            $(this).css('background', 'white');
+            is_dark = true;
         }
     });
 };
