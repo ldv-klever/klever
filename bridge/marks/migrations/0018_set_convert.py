@@ -12,6 +12,8 @@ def set_convert(apps, schema_editor):
         if comp_f.name in conversions:
             comp_f.convert = conversions[comp_f.name]
             comp_f.save()
+        else:
+            comp_f.delete()
 
 
 class Migration(migrations.Migration):
