@@ -407,14 +407,14 @@ class RP(core.components.Component):
             decision_results = json.load(fp)
 
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-        log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+        log_files_dir = glob.glob(os.path.join('output', 'benchmark*logfiles'))[0]
+        log_files = os.listdir(log_files_dir)
 
         if len(log_files) != 1:
-            raise RuntimeError(
-                'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.
-                format(log_files))
+            raise NotImplementedError('Exactly one log file should be outputted (but "{0}" are given)'
+                                      .format(len(log_files)))
 
-        log_file = log_files[0]
+        log_file = os.path.join(log_files_dir, log_files[0])
 
         # Send an initial report
         report = {
