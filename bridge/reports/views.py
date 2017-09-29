@@ -37,8 +37,7 @@ from jobs.utils import JobAccess
 from jobs.models import Job
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
 from marks.utils import MarkAccess
-from marks.tables import ReportMarkTable, MarkData
-from marks.tags import TagsInfo
+from marks.tables import ReportMarkTable
 from service.models import Task
 
 import reports.utils
@@ -412,11 +411,6 @@ def report_unsafe(request, report_id):
     except Exception as e:
         logger.exception(e, stack_info=True)
         etv = None
-    try:
-        tags = TagsInfo('unsafe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -430,8 +424,6 @@ def report_unsafe(request, report_id):
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
-                'markdata': MarkData('unsafe', report=report),
-                'tags': tags,
                 'include_jquery_ui': True,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
@@ -466,11 +458,6 @@ def report_safe(request, report_id):
         except Exception as e:
             logger.exception("Couldn't extract proof from archive: %s" % e)
             return BridgeErrorResponse(500)
-    try:
-        tags = TagsInfo('safe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -482,8 +469,6 @@ def report_safe(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': proof_content,
-                'markdata': MarkData('safe', report=report),
-                'tags': tags,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
@@ -525,7 +510,6 @@ def report_unknown(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report),
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )

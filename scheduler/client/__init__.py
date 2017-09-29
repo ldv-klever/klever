@@ -24,7 +24,7 @@ import zipfile
 import shutil
 import re
 
-from utils import execute, process_task_results, submit_task_results
+from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
 from server.bridge import Server
 
 
@@ -249,12 +249,12 @@ def prepare_task_arguments(conf):
 
     if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
             conf['client']["benchexec measure disk"]:
-        args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
+        args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], 'MB')[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memorylimit', str(conf["resource limits"]['memory size']) + 'B'])
+        args.extend(['--memorylimit', memory_units_converter(conf["resource limits"]['memory size'], 'MB')[1]])
     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', str(round(conf["resource limits"]["CPU time"] / 1000))])
+        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
@@ -285,12 +285,12 @@ def prepare_job_arguments(conf):
 
     if conf["resource limits"]["disk memory size"] and "runexec measure disk" in conf['client'] and \
             conf['client']["runexec measure disk"]:
-        args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
+        args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], "MB")[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memlimit', str(conf["resource limits"]['memory size']) + 'B'])
+        args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
+        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], "s")[1]])
 
     # Check container mode
     if "runexec container mode" in conf['client'] and conf['client']["runexec container mode"]:
@@ -376,7 +376,7 @@ def run(selflogger, args, conf, logger=None):
                             job_exit = job_exit >> 8
                         break
         if not os.path.isfile('runexec stdout.log') or job_exit is None:
-            selflogger.warning("Runexec exited successfully but it is not possible to read job exit code, aborting")
+            selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1
         else:
             ec = job_exit

@@ -73,7 +73,6 @@ window.collect_new_markdata = function() {
     }
 
     if (mark_type === 'unsafe') {
-        mark_data['convert_id'] = $("#convert_function").val();
         mark_data['compare_id'] = $("#compare_function").val();
     }
 
@@ -151,14 +150,16 @@ window.collect_markdata = function() {
 window.set_action_on_func_change = function() {
     $.ajax({
         url: marks_ajax_url + 'get_func_description/',
-        data: {func_id: $(this).children('option:selected').val(), func_type: 'compare'},
+        data: {func_id: $(this).children('option:selected').val()},
         type: 'POST',
         success: function (data) {
             if (data.error) {
                 err_notify(data.error);
             }
-            else if (data.description) {
-                $('#compare_function_description').text(data.description);
+            else {
+                $('#compare_function_description').text(data['compare_desc']);
+                $('#convert_function_description').text(data['convert_desc']);
+                $('#convert_function_name').text(data['convert_name']);
             }
 
         }

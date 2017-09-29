@@ -1,0 +1,87 @@
+{
+  "templates": {
+    "CPAchecker common": {
+      "description": "Common options for the CPAchecker tool",
+      "add options": [
+        {"-setprop": "parser.readLineDirectives=true"},
+        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
+        {"-setprop": "counterexample.export.compressWitness=false"},
+        {"-setprop": "limits.time.cpu=%ldv:CPU time:0.9:s%s"},
+        {"-heap": "%ldv:memory size:0.8:MB%m"}
+      ]
+    },
+    "Ultimate common": {
+      "description": "Common options for the UltimateAutimizer tool",
+      "add options": [
+        {"--witness-name": "witness.1.graphml"},
+        {"--witness-dir": "./output/"},
+        {"--architecture": "64bit"}
+      ]
+    },
+    "CPAchecker BAM reachability": {
+      "description": "CPAchecker with BAM fore reachability checking",
+      "inherit": "CPAchecker common",
+      "add options": [
+        {"-ldv-bam-optimized-coverage": ""},
+        {"-setprop": "coverage.file=coverage.info"}
+      ]
+    },
+    "CPAchecker SMG memory checking": {
+      "description": "CPAchecker with BAM fore reachability checking",
+      "inherit": "CPAchecker common",
+      "add options": [
+        {"-smg-ldv": ""},
+        {"-setprop": "analysis.machineModel=LINUX64"}
+      ]
+    },
+    "CPALockator": {
+      "description": "CPAchecker for checking races",
+      "inherit": "CPAchecker common",
+      "add options": [
+        {"-lockator-linux": ""},
+        {"-setprop": "analysis.machineModel=LINUX64"}
+      ]
+    }
+  },
+  "profiles": {
+    "reachability common Linux64": {
+      "CPAchecker": {
+        "ldv-bam:25793": {
+          "inherit": "CPAchecker BAM reachability"
+        }
+      },
+      "UltimateAutomizer": {
+        "v0.1.20": {
+          "inherit": "Ultimate common"
+        }
+      }
+    },
+    "CPALockator race checking": {
+      "CPAchecker": {
+        "CPALockator:25964": {
+          "inherit": "CPALockator"
+        }
+      }
+    },
+    "memory checking Linux64": {
+      "CPAchecker": {
+        "smg_witness_for_ldv:25566": {
+          "inherit": "CPAchecker common"
+        }
+      }
+    },
+    "memory checking ARM": {
+      "CPAchecker": {
+        "smg_witness_for_ldv:25566": {
+          "inherit": "CPAchecker SMG memory checking",
+          "add options": [
+            {"-setprop": "analysis.machineModel=ARM"}
+          ],
+          "exclude options": [
+            {"-setprop": "analysis.machineModel=LINUX64"}
+          ]
+        }
+      }
+    }
+  }
+}

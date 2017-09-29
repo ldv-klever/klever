@@ -39,7 +39,7 @@ from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeExce
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
+    MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 import marks.utils as mutils
@@ -254,24 +254,15 @@ def get_func_description(request):
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     func_id = int(request.POST.get('func_id', '0'))
-    func_type = request.POST.get('func_type', 'compare')
-    if func_type == 'compare':
-        try:
-            func = MarkUnsafeCompare.objects.get(pk=func_id)
-        except ObjectDoesNotExist:
-            return JsonResponse({
-                'error': _('The error traces comparison function was not found')
-            })
-    elif func_type == 'convert':
-        try:
-            func = MarkUnsafeConvert.objects.get(pk=func_id)
-        except ObjectDoesNotExist:
-            return JsonResponse({
-                'error': _('The error traces conversion function was not found')
-            })
-    else:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'description': func.description})
+    try:
+        func = MarkUnsafeCompare.objects.get(pk=func_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The error traces comparison function was not found')})
+    return JsonResponse({
+        'compare_desc': func.description,
+        'convert_desc': func.convert.description,
+        'convert_name': func.convert.name
+    })
 
 
 @login_required

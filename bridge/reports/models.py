@@ -95,7 +95,7 @@ class Computer(models.Model):
 
 
 class Component(models.Model):
-    name = models.CharField(max_length=15, unique=True, db_index=True)
+    name = models.CharField(max_length=20, unique=True, db_index=True)
 
     def __str__(self):
         return self.name
