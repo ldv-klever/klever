@@ -22,5 +22,5 @@ def fill_resources(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0016_create_coverage_cache')]
+    dependencies = [('reports', '0018_create_coverage_cache')]
     operations = [migrations.RunPython(fill_resources)]
