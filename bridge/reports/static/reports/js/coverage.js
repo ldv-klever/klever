@@ -1,7 +1,10 @@
 $(document).ready(function () {
     var src_code_content = $("#CoverageSRCContent"),
         src_data_content = $('#CoverageDataContent'),
-        with_data = $('#with_data').val();
+        with_data = $('#with_data').val(),
+        cov_stat_table = $('#CoverageTable'),
+        data_stat_table = $('#DataStatisticTable'),
+        cov_attr_table = $('#CoverageAttrTable');
 
     function show_src_code(filename) {
         $.ajax({
@@ -28,14 +31,43 @@ $(document).ready(function () {
             }
         });
     }
-    var cov_stat_table = $('#CoverageTable'), data_stat_table = $('#DataStatisticTable'), cov_attr_table = $('#CoverageAttrTable');
-    inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
-    cov_stat_table.find('.tree-file-link').click(function (event) {
-        event.preventDefault();
-        show_src_code($(this).data('path'));
-        $('html, body').stop().animate({ scrollTop: 0 }, "slow");
-    });
-    cov_stat_table.show();
+    function init_stat_tree(table) {
+        var elems = table.find('.tg-expanded');
+        elems.each(function () {
+            var curr_id = $(this).data('tg-id');
+            table.find('tr[data-tg-parent="' + curr_id + '"]').show();
+        });
+
+        table.on('click', '.tg-expander', function (event, with_shift, rec) {
+            var tr = $(this).closest('tr'), tr_id = tr.data('tg-id');
+            if (tr.hasClass('tg-expanded')) {
+                table.find('tr.tg-expanded[data-tg-parent="' + tr_id + '"]').find('i.tg-expander').trigger("click", [false, true]);
+                table.find('tr[data-tg-parent="' + tr_id + '"]').hide();
+                $(this).removeClass('open');
+                tr.removeClass('tg-expanded');
+            }
+            else {
+                table.find('tr[data-tg-parent="' + tr_id + '"]').show();
+                $(this).addClass('open');
+                tr.addClass('tg-expanded');
+                if (event.shiftKey || with_shift) {
+                    table.find('tr[data-tg-parent="' + tr_id + '"]').find('i.tg-expander').trigger("click", [event.shiftKey || with_shift, true]);
+                }
+            }
+            if (!rec) {
+                update_colors(table);
+            }
+        });
+        table.on('click', '.tree-file-link', function (event) {
+            event.preventDefault();
+            show_src_code($(this).data('path'));
+            $('html, body').stop().animate({ scrollTop: 0 }, "slow");
+        });
+        cov_stat_table.show();
+        update_colors(table);
+    }
+
+    init_stat_tree(cov_stat_table.find('table'));
 
     src_code_content.on('scroll', function () {
         $(this).find('.COVStatic').css('left', $(this).scrollLeft());

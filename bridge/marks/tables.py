@@ -38,7 +38,6 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChan
 from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
-from marks.ConvertTrace import DEFAULT_CONVERT
 
 
 MARK_TITLES = {
@@ -621,8 +620,7 @@ class MarkData:
         self.verdicts = self.__verdict_info()
         self.statuses = self.__status_info()
         if isinstance(self.mark_version, MarkUnsafeHistory) or isinstance(report, ReportUnsafe):
-            self.comparison, self.compare_desc = self.__functions('compare')
-            self.convertion, self.convert_desc = self.__functions('convert')
+            self.comparison, self.selected_func = self.__functions()
         self.unknown_data = self.__unknown_info()
         self.attributes = self.__get_attributes(report)
         self.description = ''
@@ -697,46 +695,21 @@ class MarkData:
             statuses.append(status_data)
         return statuses
 
-    def __functions(self, func_type='compare'):
-        if self.type != 'unsafe':
-            return [], None
+    def __functions(self):
         functions = []
-        if func_type == 'compare':
-            selected_description = None
-
+        selected_func = None
+        if self.type == 'unsafe':
             for f in MarkUnsafeCompare.objects.order_by('name'):
-                func_data = {
-                    'name': f.name,
-                    'selected': False,
-                    'value': f.pk,
-                }
+                func_data = {'id': f.id, 'name': f.name}
                 if isinstance(self.mark_version, MarkUnsafeHistory):
                     if self.mark_version.function == f:
                         func_data['selected'] = True
-                        selected_description = f.description
+                        selected_func = f
                 elif f.name == DEFAULT_COMPARE:
                     func_data['selected'] = True
-                    selected_description = f.description
+                    selected_func = f
                 functions.append(func_data)
-        elif func_type == 'convert':
-            if self.mark_version is not None:
-                return [], None
-
-            selected_description = None
-
-            for f in MarkUnsafeConvert.objects.order_by('name'):
-                func_data = {
-                    'name': f.name,
-                    'selected': False,
-                    'value': f.pk,
-                }
-                if f.name == DEFAULT_CONVERT:
-                    func_data['selected'] = True
-                    selected_description = f.description
-                functions.append(func_data)
-        else:
-            return [], None
-        return functions, selected_description
+        return functions, selected_func
 
 
 # Table data for showing links between the specified mark and reports

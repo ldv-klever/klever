@@ -10,7 +10,7 @@ import reports.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0015_move_verifiers_files'),
+        ('reports', '0017_move_verifiers_files'),
     ]
 
     operations = [

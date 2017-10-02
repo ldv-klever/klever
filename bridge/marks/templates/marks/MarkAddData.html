@@ -3,20 +3,18 @@
 {% if markdata.type == 'unsafe' %}
     <div class="ui teal segment">
         <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
-        <div class="ui grid">
-            <div class="six wide column">
-                <label for="compare_function" class="purple-title"></label>
-                <select id="compare_function" class="ui dropdown fluid top attached">
-                    {% for f in markdata.comparison %}
-                        <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="ten wide column">
-                <div class="ui teal segment filecontent" id="compare_function_description">{{ markdata.compare_desc }}</div>
-                <br>
-            </div>
+        <label for="compare_function" class="purple-title"></label>
+        <select id="compare_function" class="ui dropdown fluid top attached">
+            {% for f in markdata.comparison %}
+                <option value="{{ f.id }}"{% if f.id == markdata.selected_func.id %} selected{% endif %}>{{ f.name }}</option>
+            {% endfor %}
+        </select>
+        <div class="ui teal segment">
+            <p id="compare_function_description" class="func-description">{{ markdata.selected_func.description }}</p>
+            <h5 id="convert_function_name">{{ markdata.selected_func.convert.name }}</h5>
+            <p id="convert_function_description" class="func-description">{{ markdata.selected_func.convert.description }}</p>
         </div>
+        <br>
     </div>
     <div class="ui blue segment">
         <h4 class="header ui blue">{% trans 'Converted error trace' %}</h4>

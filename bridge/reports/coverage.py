@@ -456,14 +456,15 @@ class CoverageStatistics:
 
         other_data = list(sorted(parents.values(), key=lambda x: (not x['is_dir'], x['title'])))
 
-        def __get_all_children(file_info):
+        def __get_all_children(file_info, depth):
             children = []
             if not file_info['is_dir']:
                 return children
             for fi in other_data:
                 if fi['parent_id'] == file_info['id']:
+                    fi['indent'] = '    ' * depth
                     children.append(fi)
-                    children.extend(__get_all_children(fi))
+                    children.extend(__get_all_children(fi, depth + 1))
             return children
 
         first_lvl = []
@@ -473,8 +474,9 @@ class CoverageStatistics:
 
         ordered_data = []
         for fd in first_lvl:
+            fd['display'] = True
             ordered_data.append(fd)
-            ordered_data.extend(__get_all_children(fd))
+            ordered_data.extend(__get_all_children(fd, 1))
         for fd in ordered_data:
             if hide_all:
                 fd['display'] = True

@@ -7,7 +7,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [('reports', '0012_reportcomponent_coverage_arch')]
+    dependencies = [('reports', '0014_auto_20170830_1023')]
 
     operations = [
         migrations.RemoveField(model_name='reportcomponent', name='coverage'),

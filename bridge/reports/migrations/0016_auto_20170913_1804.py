@@ -8,7 +8,7 @@ import reports.models
 
 class Migration(migrations.Migration):
 
-    dependencies = [('reports', '0013_auto_20170913_1801')]
+    dependencies = [('reports', '0015_auto_20170913_1801')]
 
     operations = [
         migrations.RenameField(model_name='reportcomponent', old_name='coverage_arch', new_name='coverage'),

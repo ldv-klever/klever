@@ -34,5 +34,5 @@ def move_files(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0014_auto_20170913_1804')]
+    dependencies = [('reports', '0016_auto_20170913_1804')]
     operations = [migrations.RunPython(move_files)]
