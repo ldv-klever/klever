@@ -165,7 +165,7 @@ class Session:
             resp = None
             try:
                 resp = self.__request(path_url, data, files=[('file', open(archive_name, 'rb', buffering=0))
-                    for archive_name in archives], stream=True)
+                                                             for archive_name in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':

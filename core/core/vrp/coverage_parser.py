@@ -39,7 +39,7 @@ class LCOV:
             }
         }
 
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness='lightweight'):
+    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness):
         # Public
         self.shadow_src_dir = shadow_src_dir
         self.coverage_file = coverage_file
@@ -47,6 +47,7 @@ class LCOV:
         self.completeness = completeness
         self.logger = logger
         self.arcnames = {}
+        self.success = False
 
         # Private
         self._functions_statistics = {}
@@ -54,13 +55,18 @@ class LCOV:
         self._lines_coverage = {}
 
         # Sanity checks
-        if self.completeness not in ('full', 'partial', 'lightweight'):
+        if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
             raise NotImplementedError("Coverage type {!r} is not supported".format(self.completeness))
 
         # Import coverage
         try:
-            self.__parse()
+            if self.completeness in ('full', 'partial', 'lightweight'):
+                self.__parse()
+                self.success = True
         except Exception as e:
+            self._lines_coverage.clear()
+            self._functions_statistics.clear()
+            self._functions_coverage.clear()
             self.logger.debug(e)
 
     def __parse(self):
@@ -73,8 +79,7 @@ class LCOV:
         excluded_dirs = set()
 
         if not os.path.isfile(self.coverage_file):
-            self.logger.debug('There is no coverage file')
-            return
+            raise Exception('There is no coverage file')
 
         if self.completeness in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:

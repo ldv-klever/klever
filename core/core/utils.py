@@ -573,7 +573,6 @@ class ReportFiles:
 
     def make_archive(self):
         fp, self.archive_name = tempfile.mkstemp(suffix='.zip', dir='.')
-        #fp = tempfile.NamedTemporaryFile(buffering=0, suffix='.zip', dir='.', delete=False)
 
         with open(self.archive_name, mode='w+b', buffering=0) as f:
             with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
@@ -628,10 +627,8 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
         elif isinstance(elem, ReportFiles):
-            logger.debug('Archive files - {0}'.format(elem.files))
             elem.make_archive()
             archives.append(elem.archive_name)
-    logger.debug('Archives -{0}'.format(archives))
 
     with report_id.get_lock():
         cur_report_id = report_id.value

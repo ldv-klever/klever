@@ -431,16 +431,16 @@ class RP(core.components.Component):
             pass
             #report['task identifier'] = task_id
 
-        if 'coverage' in opts and opts['coverage'] and\
-                os.path.isfile(os.path.join('output', 'coverage.info')):
-            cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                       shadow_src_dir, self.conf['main working directory'],
-                       opts['coverage'])
+        cov = LCOV(self.logger, os.path.join('output', 'coverages.info'),
+                   shadow_src_dir, self.conf['main working directory'],
+                   opts.get('coverage', None))
+        if cov.success:
             with open('coverage.json', 'w', encoding='utf-8') as fp:
                 json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
             arcnames = cov.arcnames
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(arcnames.keys()), arcnames=arcnames)
+
         core.utils.report(self.logger,
                           'verification',
                           report,
