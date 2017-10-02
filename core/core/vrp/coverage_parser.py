@@ -58,7 +58,10 @@ class LCOV:
             raise NotImplementedError("Coverage type {!r} is not supported".format(self.completeness))
 
         # Import coverage
-        self.__parse()
+        try:
+            self.__parse()
+        except Exception as e:
+            self.logger.debug(e)
 
     def __parse(self):
         dir_map = (('source files', self.shadow_src_dir),
@@ -68,6 +71,11 @@ class LCOV:
         ignore_file = False
 
         excluded_dirs = set()
+
+        if not os.path.isfile(self.coverage_file):
+            self.logger.debug('There is no coverage file')
+            return
+
         if self.completeness in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 all_files = {}
