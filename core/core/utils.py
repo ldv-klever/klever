@@ -591,10 +591,10 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-# TODO: replace report file with report everywhere.
 def report(logger, kind, report_data, mq, report_id, directory, label=''):
     logger.debug('Create {0} report'.format(kind))
 
+    # Specify report type.
     report_data.update({'type': kind})
 
     if 'attrs' in report_data:
