@@ -49,7 +49,6 @@ class LCOV:
         self.arcnames = {}
 
         # Private
-        self._len_files = {}
         self._functions_statistics = {}
         self._functions_coverage = {}
         self._lines_coverage = {}
@@ -109,13 +108,11 @@ class LCOV:
                     function_to_line = {}
                     covered_functions = {}
                     count_covered_functions = 0
-                    len_file = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
                     file_name = line[len(self.FILENAME_PREFIX):]
                     if os.path.isfile(file_name) \
                         and not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
-                        len_file = self.__get_file_len(file_name)
                         for dest, src in dir_map:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
@@ -139,8 +136,6 @@ class LCOV:
                         ignore_file = True
                 elif line.startswith(self.LINE_PREFIX):
                     splts = line[len(self.LINE_PREFIX):].split(',')
-                    if splts[1] == "0":
-                        continue
                     covered_lines.setdefault(int(splts[1]), [])
                     covered_lines[int(splts[1])].append(int(splts[0]))
                 elif line.startswith(self.FUNCTION_NAME_PREFIX):
@@ -155,8 +150,6 @@ class LCOV:
                     covered_functions[int(splts[0])].append(function_to_line[splts[1]])
                     count_covered_functions += 1
                 elif line.startswith(self.EOR_PREFIX):
-                    self._len_files.setdefault(len_file, [])
-                    self._len_files[len_file].append(file_name)
                     self._functions_statistics[file_name] = [count_covered_functions, len(function_to_line)]
                     for count, values in covered_lines.items():
                         ranges = self.__build_ranges(values)
@@ -165,12 +158,6 @@ class LCOV:
                     for count, values in covered_functions.items():
                         self._functions_coverage.setdefault(count, {})
                         self._functions_coverage[count][file_name] = list(values)
-
-    @staticmethod
-    def __get_file_len(file_name):
-        with open(file_name, encoding='utf-8') as fp:
-            res = sum(1 for _ in fp)
-        return res
 
     @staticmethod
     def __build_ranges(lines):

@@ -65,12 +65,14 @@ def exec_time(func):
 
 
 def coverage_color(curr_cov, max_cov, delta=0):
+    if curr_cov == 0:
+        return 'rgb(200, 190, 255)'
     green = 140 + int(100 * (1 - curr_cov / max_cov))
     blue = 140 + int(100 * (1 - curr_cov / max_cov)) - delta
     return 'rgb(255, %s, %s)' % (green, blue)
 
 
-def get_legend(max_cov, leg_type, number=5):
+def get_legend(max_cov, leg_type, number=5, with_zero=False):
     if max_cov == 0:
         return []
     elif max_cov > 100:
@@ -90,6 +92,8 @@ def get_legend(max_cov, leg_type, number=5):
             curr_cov = 1
         colors.append((curr_cov, coverage_color(curr_cov, max_cov, delta)))
     colors.insert(0, (rounded_max, coverage_color(rounded_max, max_cov, delta)))
+    if with_zero:
+        colors.append((0, coverage_color(0, max_cov, delta)))
     new_colors = []
     for i in reversed(range(len(colors))):
         if colors[i] not in new_colors:
@@ -186,8 +190,8 @@ class GetCoverageSrcHTML:
             self.data_html = self.__get_data()
         self.src_html = self.__get_source_html()
         self.legend = loader.get_template('reports/coverage/cov_legend.html').render({'legend': {
-            'lines': get_legend(self._max_cov_line, 'lines', 5),
-            'funcs': get_legend(self._max_cov_func, 'funcs', 5)
+            'lines': get_legend(self._max_cov_line, 'lines', 5, True),
+            'funcs': get_legend(self._max_cov_func, 'funcs', 5, False)
         }})
 
     def __get_arch_content(self):
@@ -263,7 +267,7 @@ class GetCoverageSrcHTML:
             'content': (' ' * (self._total_lines - len(str(line))) + str(line))
         }
         code = {'class': 'COVCode', 'content': code}
-        if line in self._line_coverage and self._line_coverage[line] > 0:
+        if line in self._line_coverage:
             line_num['data'].append(('number', self._line_coverage[line]))
             code['color'] = coverage_color(self._line_coverage[line], self._max_cov_line)
             code['data'] = [('number', self._line_coverage[line])]
