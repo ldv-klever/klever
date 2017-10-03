@@ -1,7 +1,7 @@
 {% load i18n %}
 
 {% if TableData|length %}
-    <table class="ui celled striped compact selectable teal table tree alternate-color">
+    <table class="ui celled compact selectable teal table alternate-color user-unselectable">
         <thead>
             <tr>
                 <th>{% trans 'Files' %}</th>
@@ -11,11 +11,13 @@
         </thead>
         <tbody>
             {% for row_data in TableData %}
-                <tr class="{% if row_data.display %}tr-show{% endif %} treegrid-{{ row_data.id }}{% if row_data.parent_id %} treegrid-parent-{{ row_data.parent_id }}{% endif %}">
+                <tr class="{% if row_data.display and row_data.is_dir %}tg-expanded{% endif %}" data-tg-id="{{ row_data.id }}"{% if row_data.parent_id %} data-tg-parent="{{ row_data.parent_id }}"{% endif %} data-tg-leaf="{% if row_data.is_dir %}0{% else %}1{% endif %}"{% if row_data.parent_id %} style="display: none;"{% endif %}>
                     <td>
+                        <span class="pre-space">{{ row_data.indent }}</span>
                         {% if not row_data.is_dir %}
-                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#">{{ row_data.title }}</a>
+                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#"><i class="file text outline icon"></i>{{ row_data.title }}</a>
                         {% else %}
+                            <i class="{% if row_data.display %}open {% endif %}folder violet icon tg-expander"></i>
                             <span>{{ row_data.title }}</span>
                         {% endif %}
                     </td>

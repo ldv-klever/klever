@@ -100,17 +100,21 @@ class Session:
                                 },
                                 job.ARCHIVE)
 
-    def schedule_task(self, task_desc):
+    def schedule_task(self, task_file, archive):
+        with open(task_file, 'r', encoding='utf8') as fp:
+            data = fp.read()
+
         resp = self.__upload_archive(
             'service/schedule_task/',
-            {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-            {'file': 'task files.zip'}
+            {'description': data},
+            [archive]
         )
         return resp.json()['task id']
 
-    def get_task_status(self, task_id):
-        resp = self.__request('service/get_task_status/', {'task id': task_id})
-        return resp.json()['task status']
+    def get_tasks_statuses(self, task_ids):
+        resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps(task_ids)})
+        statuses = resp.json()['tasks statuses']
+        return json.loads(statuses)
 
     def get_task_error(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
@@ -132,8 +136,7 @@ class Session:
             report = fp.read()
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'report': report},
-                              {arhive_name + ' files archive': archive for arhive_name, archive in archives.items()})
+        self.__upload_archive('reports/upload/', {'report': report}, archives)
 
     def __download_archive(self, kind, path_url, data, archive):
         while True:
@@ -161,8 +164,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files={arhive_name: open(archive, 'rb', buffering=0)
-                                                             for arhive_name, archive in archives.items()}, stream=True)
+                resp = self.__request(path_url, data, files=[('file', open(archive_name, 'rb', buffering=0))
+                                                             for archive_name in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':

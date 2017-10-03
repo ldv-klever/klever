@@ -18,12 +18,19 @@
 import os
 import re
 import json
-import zipfile
 import time
+import hashlib
+import zipfile
+from io import StringIO
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File as NewFile
+from django.db import transaction
 from django.template import loader
 
-from reports.models import ReportComponent
+from bridge.vars import COVERAGE_FILE
+
+from reports.models import ReportComponent, CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics
 
 from reports.utils import get_parents
 from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
@@ -58,12 +65,14 @@ def exec_time(func):
 
 
 def coverage_color(curr_cov, max_cov, delta=0):
+    if curr_cov == 0:
+        return 'rgb(200, 190, 255)'
     green = 140 + int(100 * (1 - curr_cov / max_cov))
     blue = 140 + int(100 * (1 - curr_cov / max_cov)) - delta
     return 'rgb(255, %s, %s)' % (green, blue)
 
 
-def get_legend(max_cov, leg_type, number=5):
+def get_legend(max_cov, leg_type, number=5, with_zero=False):
     if max_cov == 0:
         return []
     elif max_cov > 100:
@@ -83,6 +92,8 @@ def get_legend(max_cov, leg_type, number=5):
             curr_cov = 1
         colors.append((curr_cov, coverage_color(curr_cov, max_cov, delta)))
     colors.insert(0, (rounded_max, coverage_color(rounded_max, max_cov, delta)))
+    if with_zero:
+        colors.append((0, coverage_color(0, max_cov, delta)))
     new_colors = []
     for i in reversed(range(len(colors))):
         if colors[i] not in new_colors:
@@ -160,87 +171,83 @@ class GetCoverageSrcHTML:
     def __init__(self, report_id, filename, with_data):
         self._report = ReportComponent.objects.get(id=report_id)
         self.filename = os.path.normpath(filename).replace('\\', '/')
+        try:
+            self._covfile = CoverageFile.objects.get(report=self._report, name=self.filename)
+        except ObjectDoesNotExist:
+            self._covfile = None
         self._with_data = with_data
 
-        self._content, self._coverage = self.__get_arch_content()
-        self._max_cov_line, self._line_coverage = self.__get_coverage(self._coverage['line coverage'])
-        del self._coverage['line coverage']
-        self._max_cov_func, self._func_coverage = self.__get_coverage(self._coverage['function coverage']['coverage'])
-        del self._coverage['function coverage']
+        self._content = self.__get_arch_content()
+        self._max_cov_line, self._max_cov_func, self._line_coverage, self._func_coverage = self.__get_coverage()
 
         self._is_comment = False
         self._is_text = False
         self._text_quote = None
         self._total_lines = 1
-        self._data_map = {}
+        self._lines_with_data = set()
         self.data_html = ''
         if self._with_data:
             self.data_html = self.__get_data()
         self.src_html = self.__get_source_html()
         self.legend = loader.get_template('reports/coverage/cov_legend.html').render({'legend': {
-            'lines': get_legend(self._max_cov_line, 'lines', 5),
-            'funcs': get_legend(self._max_cov_func, 'funcs', 5)
+            'lines': get_legend(self._max_cov_line, 'lines', 5, True),
+            'funcs': get_legend(self._max_cov_func, 'funcs', 5, False)
         }})
 
     def __get_arch_content(self):
-        with self._report.coverage_arch as fp:
+        with self._report.coverage as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
-                return zfp.read(self.filename).decode('utf8'),\
-                       json.loads(zfp.read(self._report.coverage).decode('utf8'))
+                return zfp.read(self.filename).decode('utf8')
 
-    def __get_coverage(self, coverage):
-        data = {}
-        max_cov = 0
-        for cov in coverage:
-            if self.filename in cov[1]:
-                max_cov = max(max_cov, cov[0])
-                for line_num in cov[1][self.filename]:
-                    if isinstance(line_num, int):
-                        data[line_num] = cov[0]
-                    elif isinstance(line_num, list) and len(line_num) == 2:
-                        for i in range(*line_num):
-                            data[i] = cov[0]
-                        data[line_num[1]] = cov[0]
-        return max_cov, data
+    def __get_coverage(self):
+        if self._covfile is None:
+            return 0, 0, {}, {}
+        max_line_cov = 0
+        max_func_cov = 0
+        line_data = {}
+        func_data = {}
+        with self._covfile.file.file as fp:
+            coverage = json.loads(fp.read().decode('utf8'))
+        for linecov in coverage[0]:
+            max_line_cov = max(max_line_cov, linecov[0])
+            for line in linecov[1]:
+                if isinstance(line, int):
+                    line_data[line] = linecov[0]
+                elif isinstance(line, list) and len(line) == 2:
+                    for i in range(*line):
+                        line_data[i] = linecov[0]
+                    line_data[line[1]] = linecov[0]
+        for linecov in coverage[1]:
+            max_func_cov = max(max_func_cov, linecov[0])
+            for line in linecov[1]:
+                if isinstance(line, int):
+                    func_data[line] = linecov[0]
+                elif isinstance(line, list) and len(line) == 2:
+                    for i in range(*line):
+                        func_data[i] = linecov[0]
+                    func_data[line[1]] = linecov[0]
+        return max_line_cov, max_func_cov, line_data, func_data
 
     def __get_data(self):
-        data_values = {}
-        data_names = set()
-        for data_name in self._coverage:
-            cnt = 0
-            for data_val in self._coverage[data_name]['values']:
-                if self.filename in data_val[1]:
-                    cnt += 1
-                    data_id = ("%s_%s" % (data_name, cnt)).replace(' ', '_')
-                    data_names.add(data_name)
-                    data_values[data_id] = json_to_html(data_val[0])
-                    for line_num in data_val[1][self.filename]:
-                        if isinstance(line_num, int):
-                            if line_num not in self._data_map:
-                                self._data_map[line_num] = {}
-                            self._data_map[line_num][data_name] = data_id
-                        elif isinstance(line_num, list) and len(line_num) == 2:
-                            for i in range(*line_num):
-                                if i not in self._data_map:
-                                    self._data_map[i] = {}
-                                self._data_map[i][data_name] = data_id
-                            if line_num[1] not in self._data_map:
-                                self._data_map[line_num[1]] = {}
-                            self._data_map[line_num[1]][data_name] = data_id
-        data = []
-        data_names = list(sorted(data_names))
-        for i in self._data_map:
-            content = []
-            for name in data_names:
-                if name in self._data_map[i]:
-                    content.append([name, self._data_map[i][name], False])
-            content[0][2] = True
-            data.append({'line': i, 'content': content})
+        data_map = []
+        data_ids = set()
+        last_i = -1
+        if self._covfile is not None:
+            for data_id, dataname, line in CoverageData.objects.filter(covfile=self._covfile)\
+                    .values_list('data_id', 'data__name', 'line').order_by('line', 'data__name'):
+                self._lines_with_data.add(line)
+                if last_i >= 0 and data_map[last_i]['line'] == line:
+                    data_map[last_i]['content'].append([dataname, data_id, False])
+                else:
+                    data_map.append({'line': line, 'content': [[dataname, data_id, True]]})
+                    last_i += 1
+                data_ids.add(data_id)
+
         return loader.get_template('reports/coverage/coverageData.html').render({
-            'data_map': data,
-            'data_values': list([d_id, data_values[d_id]] for d_id in data_values)
+            'data_map': data_map,
+            'data_values': CoverageDataValue.objects.filter(id__in=data_ids).values_list('id', 'value')
         })
 
     def __get_source_html(self):
@@ -260,12 +267,12 @@ class GetCoverageSrcHTML:
             'content': (' ' * (self._total_lines - len(str(line))) + str(line))
         }
         code = {'class': 'COVCode', 'content': code}
-        if line in self._line_coverage and self._line_coverage[line] > 0:
+        if line in self._line_coverage:
             line_num['data'].append(('number', self._line_coverage[line]))
             code['color'] = coverage_color(self._line_coverage[line], self._max_cov_line)
             code['data'] = [('number', self._line_coverage[line])]
 
-        if line in self._data_map:
+        if line in self._lines_with_data:
             line_num['data'].append(('line', line))
 
         func_cov = {'class': 'COVIsFC', 'static': True, 'content': '<i class="ui mini icon"></i>'}
@@ -278,7 +285,7 @@ class GetCoverageSrcHTML:
                 func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
 
         linedata = [line_num]
-        if self._with_data and line in self._data_map:
+        if self._with_data and line in self._lines_with_data:
             line_num['content'] = '<a class="COVLineLink">%s</a>' % line_num['content']
             line_num['class'] += ' COVWithData'
         linedata.append(func_cov)
@@ -377,74 +384,29 @@ class GetCoverageSrcHTML:
 class CoverageStatistics:
     def __init__(self, report):
         self.report = report
-        self._files = []
-        self._total_lines = {}
-        self._covered_lines = {}
-        self._covered_funcs = {}
-        self.__get_files_and_data()
-        self.shown_ids = set()
         self.first_file = None
         self.table_data = self.__get_table_data()
 
-    def __get_files_and_data(self):
-        if not self.report.verification:
-            raise ValueError("The parent is not verification report")
-        with self.report.coverage_arch as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                for filename in zfp.namelist():
-                    if filename.endswith('/'):
-                        continue
-                    if filename == self.report.coverage:
-                        coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
-                        self.__get_covered(coverage['line coverage'])
-                        self._covered_funcs = self.__get_covered_funcs(coverage['function coverage']['statistics'])
-                    elif filename != self.report.log:
-                        self._files.append(os.path.normpath(filename))
-                        with zfp.open(filename) as inzip_fp:
-                            lines = 0
-                            while inzip_fp.readline():
-                                lines += 1
-                            self._total_lines[os.path.normpath(filename)] = lines
-
-    def __get_covered(self, line_coverage):
-        covered_lines = {}
-        for data in line_coverage:
-            if data[0] > 0:
-                for f in data[1]:
-                    path = os.path.normpath(f)
-                    if path not in covered_lines:
-                        covered_lines[path] = set()
-                    for linenum in data[1][f]:
-                        if isinstance(linenum, int):
-                            covered_lines[path].add(linenum)
-                        elif isinstance(linenum, list):
-                            for ln in range(*linenum):
-                                covered_lines[path].add(ln)
-                            covered_lines[path].add(linenum[1])
-        for filename in covered_lines:
-            self._covered_lines[filename] = len(covered_lines[filename])
-
-    def __get_covered_funcs(self, coverage):
-        self.__is_not_used()
-        func_coverage = {}
-        for fname in coverage:
-            func_coverage[os.path.normpath(fname)] = coverage[fname]
-        return func_coverage
-
     def __get_table_data(self):
+        coverage = {}
+        for c in CoverageFile.objects.filter(report=self.report):
+            coverage[c.name] = c
+
+        hide_all = False
+        if len(coverage) > 30:
+            hide_all = True
+
         cnt = 0
         parents = {}
-        for fname in self._files:
-            path = fname.split(os.path.sep)
+        for fname in coverage:
+            path = fname.split('/')
             for i in range(len(path)):
                 cnt += 1
-                curr_path = os.path.join(*path[:(i + 1)])
+                curr_path = '/'.join(path[:(i + 1)])
                 if curr_path not in parents:
                     parent_id = parent = None
                     if i > 0:
-                        parent = os.path.join(*path[:i])
+                        parent = '/'.join(path[:i])
                         parent_id = parents[parent]['id']
                     parents[curr_path] = {
                         'id': cnt,
@@ -458,23 +420,21 @@ class CoverageStatistics:
                         'funcs': {'covered': 0, 'total': 0, 'percent': '-'}
                     }
 
-        for fname in self._files:
+        for fname in coverage:
             display = False
-            if any(fname.endswith(x) for x in ['.i', '.c', '.c.aux']):
+            if not hide_all and any(fname.endswith(x) for x in ['.i', '.c', '.c.aux']):
                 display = True
-            covered_lines = self._covered_lines.get(fname, 0)
-            total_lines = self._total_lines.get(fname, 0)
-            covered_funcs = total_funcs = 0
-            if fname in self._covered_funcs:
-                covered_funcs = self._covered_funcs[fname][0]
-                total_funcs = self._covered_funcs[fname][1]
+            covered_lines = coverage[fname].covered_lines
+            total_lines = coverage[fname].total_lines
+            covered_funcs = coverage[fname].covered_funcs
+            total_funcs = coverage[fname].total_funcs
             parent = fname
             while parent is not None:
                 parents[parent]['lines']['covered'] += covered_lines
                 parents[parent]['lines']['total'] += total_lines
                 parents[parent]['funcs']['covered'] += covered_funcs
                 parents[parent]['funcs']['total'] += total_funcs
-                if parents[parent]['is_dir'] and display or parents[parent]['parent'] is None:
+                if parents[parent]['is_dir'] and display or parents[parent]['parent'] is None and not hide_all:
                     parents[parent]['display'] = True
                 parent = parents[parent]['parent']
 
@@ -500,14 +460,15 @@ class CoverageStatistics:
 
         other_data = list(sorted(parents.values(), key=lambda x: (not x['is_dir'], x['title'])))
 
-        def __get_all_children(file_info):
+        def __get_all_children(file_info, depth):
             children = []
             if not file_info['is_dir']:
                 return children
             for fi in other_data:
                 if fi['parent_id'] == file_info['id']:
+                    fi['indent'] = '    ' * depth
                     children.append(fi)
-                    children.extend(__get_all_children(fi))
+                    children.extend(__get_all_children(fi, depth + 1))
             return children
 
         first_lvl = []
@@ -517,9 +478,12 @@ class CoverageStatistics:
 
         ordered_data = []
         for fd in first_lvl:
+            fd['display'] = True
             ordered_data.append(fd)
-            ordered_data.extend(__get_all_children(fd))
+            ordered_data.extend(__get_all_children(fd, 1))
         for fd in ordered_data:
+            if hide_all:
+                fd['display'] = True
             if not fd['is_dir'] and parents[fd['parent']]['display']:
                 self.first_file = fd['path']
                 break
@@ -536,19 +500,121 @@ class DataStatistic:
             .render({'DataStatistics': self.__get_data_stat()})
 
     def __get_data_stat(self):
-        if not self.report.verification:
-            raise ValueError("The parent is not verification report")
         data = []
-        with self.report.coverage_arch as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
-                for val in sorted(coverage):
-                    if val not in {'line coverage', 'function coverage'} and 'statistics' in coverage[val]:
-                        data.append({
-                            'tab': val, 'active': False, 'content': json_to_html(coverage[val]['statistics'])
-                        })
-        if len(data) > 0:
-            data[0]['active'] = True
+        active = True
+        for stat in CoverageDataStatistics.objects.filter(report=self.report).order_by('name'):
+            with stat.data.file as fp:
+                data.append({'tab': stat.name, 'active': active, 'content': fp.read().decode('utf8')})
+            active = False
         return data
+
+
+class CreateCoverageFiles:
+    def __init__(self, report, coverage):
+        self._report = report
+        self._coverage = coverage
+        self._line_coverage = {}
+        self._func_coverage = {}
+        self._coverage_stat = {}
+        self.__get_coverage_data()
+        self.__create_files()
+        self.files = self.__get_saved_files()
+
+    def __get_coverage_data(self):
+        for data in self._coverage['line coverage']:
+            for fname in data[1]:
+                if fname not in self._line_coverage:
+                    self._line_coverage[fname] = []
+                    self._coverage_stat[fname] = [0, 0, 0, 0]
+                self._line_coverage[fname].append([data[0], data[1][fname]])
+                if data[0] > 0:
+                    self._coverage_stat[fname][0] += self.__num_of_lines(data[1][fname])
+                self._coverage_stat[fname][1] += self.__num_of_lines(data[1][fname])
+        for data in self._coverage['function coverage']['coverage']:
+            for fname in data[1]:
+                if fname not in self._func_coverage:
+                    self._func_coverage[fname] = []
+                if fname not in self._coverage_stat:
+                    self._coverage_stat[fname] = [0, 0, 0, 0]
+                self._func_coverage[fname].append([data[0], data[1][fname]])
+                if data[0] > 0:
+                    self._coverage_stat[fname][2] += self.__num_of_lines(data[1][fname])
+                self._coverage_stat[fname][3] += self.__num_of_lines(data[1][fname])
+
+    @transaction.atomic
+    def __create_files(self):
+        for fname in set(self._line_coverage) | set(self._func_coverage):
+            file_coverage = StringIO(json.dumps(
+                [self._line_coverage.get(fname, []), self._func_coverage.get(fname, [])]
+            ))
+            covfile = CoverageFile(
+                report=self._report, name=fname,
+                covered_lines=self._coverage_stat[fname][0], total_lines=self._coverage_stat[fname][1],
+                covered_funcs=self._coverage_stat[fname][2], total_funcs=self._coverage_stat[fname][3]
+            )
+            covfile.file.save('coverage.json', NewFile(file_coverage))
+
+    def __num_of_lines(self, lines):
+        self.__is_not_used()
+        num = 0
+        for l in lines:
+            if isinstance(l, int):
+                num += 1
+            elif isinstance(l, list) and len(l) == 2 and isinstance(l[0], int) \
+                    and isinstance(l[1], int) and l[0] <= l[1]:
+                num += l[1] - l[0] + 1
+        return num
+
+    def __get_saved_files(self):
+        files = {}
+        for f_id, fname in CoverageFile.objects.filter(report=self._report).values_list('id', 'name'):
+            files[fname] = f_id
+        return files
+
+    def __is_not_used(self):
+        pass
+
+
+class FillCoverageCache:
+    def __init__(self, report):
+        self._report = report
+        self._data = self.__get_coverage_data()
+        self._files = CreateCoverageFiles(self._report, self._data).files
+        del self._data['line coverage'], self._data['function coverage']
+        self.__fill_data()
+
+    def __get_coverage_data(self):
+        with self._report.coverage as fp:
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                return json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
+
+    def __fill_data(self):
+        covdata = []
+        data_values = {}
+        for vid, dataname, hashsum in CoverageDataValue.objects.values_list('id', 'name', 'hashsum'):
+            data_values[(dataname, hashsum)] = vid
+
+        for dataname in self._data:
+            covdatastat = CoverageDataStatistics(report=self._report, name=dataname)
+            covdatastat.data.save('CoverageData.html', NewFile(StringIO(
+                json_to_html(self._data[dataname]['statistics'])
+            )))
+            for data in self._data[dataname]['values']:
+                dataval = json_to_html(data[0])
+                hashsum = hashlib.md5(dataval.encode('utf8')).hexdigest()
+                if (dataname, hashsum) not in data_values:
+                    data_values[(dataname, hashsum)] = CoverageDataValue.objects\
+                        .create(hashsum=hashsum, name=dataname, value=dataval).id
+                data_id = data_values[(dataname, hashsum)]
+                for fname in data[1]:
+                    if fname not in self._files:
+                        self._files[fname] = CoverageFile.objects.create(report=self._report, name=fname).id
+                    for line in data[1][fname]:
+                        if isinstance(line, int):
+                            covdata.append(CoverageData(covfile_id=self._files[fname], line=line, data_id=data_id))
+                        elif isinstance(line, list) and len(line) == 2:
+                            for i in range(*line):
+                                covdata.append(CoverageData(covfile_id=self._files[fname], line=i, data_id=data_id))
+                            covdata.append(CoverageData(covfile_id=self._files[fname], line=line[1], data_id=data_id))
+
+        CoverageData.objects.bulk_create(covdata)

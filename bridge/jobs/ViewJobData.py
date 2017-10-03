@@ -20,7 +20,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
 from reports.models import ReportComponentLeaf, ReportAttr, ComponentInstances
@@ -140,15 +140,13 @@ class ViewJobData:
 
         res_data = {}
         resource_filters = {}
-        resource_table = self.report.resources_cache
-        if self.report.parent is None and self.report.root.job.weight == JOB_WEIGHT[1][0]:
-            resource_table = self.report.root.lightresource_set
 
         if 'resource_component' in self.view:
             resource_filters['component__name__%s' % self.view['resource_component'][0]] = \
                 self.view['resource_component'][1]
 
-        for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)).select_related('component'):
+        for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters))\
+                .select_related('component'):
             if cr.component.name not in res_data:
                 res_data[cr.component.name] = {}
             rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, cr)
@@ -162,10 +160,7 @@ class ViewJobData:
         ))
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
-            if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
-                res_total = resource_table.filter(component=None, report=self.report.root).first()
-            else:
-                res_total = resource_table.filter(component=None).first()
+            res_total = self.report.resources_cache.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, res_total)
                 resource_data.append({

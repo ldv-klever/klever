@@ -27,9 +27,49 @@ import zipfile
 import threading
 import time
 import queue
+import hashlib
+import tempfile
 from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
+CALLBACK_PROPOGATOR = 'get_subcomponent_callbacks'
+
+# Generate decorators to use them across the project
+for tp in CALLBACK_KINDS:
+    # Access namespace of the decorated function and insert there a new one with the name like 'before_' + function_name
+    def new_decorator(decorated_function, tp=tp):
+        if decorated_function.__name__[0:2] != '__':
+            raise ValueError("Callbacks should be private, call function {!r} with '__' prefix".
+                             format(decorated_function.__name__))
+        callback_function_name = "{}_{}".format(str(tp), decorated_function.__name__[2:])
+        if hasattr(sys.modules[decorated_function.__module__], callback_function_name):
+            raise KeyError("Cannot create callback {!r} in {!r}".
+                           format(callback_function_name, decorated_function.__module__))
+        else:
+            setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
+
+        return decorated_function
+
+    # Add new decorator to this module to use it
+    globals()[tp + '_callback'] = new_decorator
+    new_decorator = None
+
+
+def propogate_callbacks(decorated_function):
+    """
+    Decorates function that propogates subcomponent callbacks. Inserts a specific function that has necessary name
+    to be called at callbacks propogating.
+
+    :param decorated_function: Function object.
+    :return: The same function.
+    """
+    if hasattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR):
+        raise ValueError('Module {!r} already has callback propogating function {!r}'.
+                         format(decorated_function.__module__, CALLBACK_PROPOGATOR))
+
+    setattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR, decorated_function)
+
+    return decorated_function
 
 
 class CallbacksCaller:
@@ -334,7 +374,7 @@ def get_component_callbacks(logger, components, components_conf):
 
             # This special function implies that component has subcomponents for which callbacks should be get as well
             # using this function.
-            if attr == 'get_subcomponent_callbacks':
+            if attr == CALLBACK_PROPOGATOR:
                 subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
 
                 # Merge subcomponent callbacks into component ones.
@@ -525,14 +565,39 @@ def merge_confs(a, b):
     return a
 
 
-# TODO: replace report file with report everywhere.
-def report(logger, type, report, mq=None, dir=None, suffix=None):
-    logger.debug('Create {0} report'.format(type))
+class ReportFiles:
+    def __init__(self, files, arcnames={}):
+        self.files = files
+        self.arcnames = arcnames
+        self.archive_name = None
+
+    def make_archive(self):
+        fp, self.archive_name = tempfile.mkstemp(suffix='.zip', dir='.')
+
+        with open(self.archive_name, mode='w+b', buffering=0) as f:
+            with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                for file in self.files:
+                    arcname = self.arcnames.get(file, None)
+                    zfp.write(file, arcname=arcname)
+                os.fsync(zfp.fp)
+        os.close(fp)
+
+
+class ExtendedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ReportFiles):
+            return os.path.basename(obj.archive_name)
+
+        return json.JSONEncoder.default(self, obj)
+
+
+def report(logger, kind, report_data, mq, report_id, directory, label=''):
+    logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
-    report.update({'type': type})
+    report_data.update({'type': kind})
 
-    if 'attrs' in report:
+    if 'attrs' in report_data:
         # Capitalize first letters of attribute names.
         def capitalize_attr_names(attrs):
             capitalized_name_attrs = []
@@ -551,51 +616,39 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
             return capitalized_name_attrs
 
-        report['attrs'] = capitalize_attr_names(report['attrs'])
+        report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
-    # Add all report files to archives. It is assumed that all files are placed in current working directory.
-    rel_report_file_archives = {}
-    if 'files' in report and report['files']:
-        if isinstance(report['files'], list) or isinstance(report['files'], tuple):
-            report['files'] = {'report': report['files']}
-        for archive_name, files in report['files'].items():
-            report_files_archive = '{0} {1}{2} report files.zip'.format(type, archive_name, suffix or '')
-            rel_report_file_archives[archive_name] = os.path.relpath(report_files_archive, dir) \
-                if dir else report_files_archive
+    archives = []
+    process_queue = [report_data]
+    while process_queue:
+        elem = process_queue.pop(0)
+        if isinstance(elem, dict):
+            process_queue.extend(elem.values())
+        elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
+            process_queue.extend(elem)
+        elif isinstance(elem, ReportFiles):
+            elem.make_archive()
+            archives.append(elem.archive_name)
 
-            if os.path.isfile(report_files_archive):
-                raise FileExistsError(
-                    'Report files archive "{0}" already exists'.format(rel_report_file_archives[archive_name]))
+    with report_id.get_lock():
+        cur_report_id = report_id.value
+        report_id.value += 1
 
-            with open(report_files_archive, mode='w+b', buffering=0) as fp:
-                with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                    for file in files:
-                        arcname = None
-                        if 'arcname' in report and file in report['arcname']:
-                            arcname = report['arcname'][file]
-                        zfp.write(file, arcname=arcname)
-                    os.fsync(zfp.fp)
-
-            logger.debug(
-                '{0} report files were packed to archive "{1}"'.format(type.capitalize(),
-                                                                       rel_report_file_archives[archive_name]))
-        del (report['files'])
-
-    # Create report file in current working directory.
-    report_file = '{0}{1} report.json'.format(type, suffix or '')
-    rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
-
-    if os.path.isfile(report_file):
-        raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-
+    # Create report file in reports directory.
+    report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
     with open(report_file, 'w', encoding='utf8') as fp:
-        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
+        json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
-    logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
+    # Create symlink to report file in current working directory.
+    cwd_report_file = '{0}{1} report.json'.format(kind, ' ' + label if label else '')
+    if os.path.isfile(cwd_report_file):
+        raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
+    os.symlink(os.path.relpath(report_file), cwd_report_file)
+    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_report_file))
 
-    # Put report to message queue if it is specified.
+    # Put report file and report file archives to message queue if it is specified.
     if mq:
-        mq.put({'report file': rel_report_file, 'report file archives': rel_report_file_archives})
+        mq.put({'report file': report_file, 'report file archives': archives})
 
     return report_file
 
@@ -609,3 +662,88 @@ def unique_file_name(file_name, suffix=''):
         if not os.path.isfile("{0}({1}){2}".format(file_name, str(i), suffix)):
             return "{0}({1})".format(file_name, str(i))
         i += 1
+
+
+def __converter(value, table, kind, outunit):
+    """
+    Converts units to uits.
+
+    :param value: Given value as an integer, float or a string with units or without them.
+    :param table: Table to translate units.
+    :param kind: Time of units to print errors.
+    :param outunit: Desired output unit, '' - means base.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    if isinstance(value, str):
+        regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
+        if not regex.search(value):
+            raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
+        else:
+            value, inunit = regex.search(value).groups()
+    else:
+        inunit = ''
+    # Check values
+    for v in (inunit, outunit):
+        if v not in table:
+            raise ValueError("Get unknown {} unit {!r}".format(kind, v))
+
+    # Get number and get bytes
+    value_in_base = float(value) * table[inunit]
+
+    # Than convert bytes into desired value
+    value_in_out = value_in_base / table[outunit]
+
+    # Align if necessary
+    if outunit != '':
+        fvalue = round(float(value_in_out), 2)
+        ivalue = int(round(float(value_in_out), 0))
+        if abs(fvalue - ivalue) < 0.1:
+            value_in_out = ivalue
+        else:
+            value_in_out = fvalue
+    else:
+        value_in_out = int(value_in_out)
+
+    return value_in_out, "{}{}".format(value_in_out, outunit)
+
+
+def memory_units_converter(num, outunit=''):
+    """
+    Translate memory units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means Bytes.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_bytes = {
+        '': 1,
+        "B": 1,
+        "KB": 10 ** 3,
+        "MB": 10 ** 6,
+        "GB": 10 ** 9,
+        "TB": 10 ** 12,
+        "KiB": 2 ** 10,
+        "MiB": 2 ** 20,
+        "GiB": 2 ** 30,
+        "TiB": 2 ** 40,
+    }
+
+    return __converter(num, units_in_bytes, 'memory', outunit)
+
+
+def time_units_converter(num, outunit=''):
+    """
+    Translate time units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means seconds.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_seconds = {
+        '': 1,
+        "s": 1,
+        "min": 60,
+        "h": 60 ** 2
+    }
+
+    return __converter(num, units_in_seconds, 'time', outunit)

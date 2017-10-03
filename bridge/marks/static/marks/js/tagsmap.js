@@ -42,7 +42,6 @@ $(document).ready(function () {
         $('#edit_tag_user_access_selection').empty();
     }
     function create_access_selections(access, user_access_field) {
-        console.log(access);
         if (user_access_field.length && access['all'].length > 0) {
             var new_dropdown1 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_edit_sel'}),
                 new_dropdown2 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_child_sel'});

@@ -33,13 +33,13 @@ from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
-    VIEW_TYPES
+    VIEW_TYPES, PROBLEM_DESC_FILE
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
+    MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 import marks.utils as mutils
@@ -58,7 +58,7 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
-    problem_description = None
+    problem_desc = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -69,7 +69,8 @@ def create_mark(request, mark_type, report_id):
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
             try:
-                problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+                problem_desc = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE)\
+                    .content.decode('utf8')
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
                 return BridgeErrorResponse(500)
@@ -91,7 +92,7 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'problem_description': problem_description
+        'problem_description': problem_desc
     })
 
 
@@ -253,24 +254,15 @@ def get_func_description(request):
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     func_id = int(request.POST.get('func_id', '0'))
-    func_type = request.POST.get('func_type', 'compare')
-    if func_type == 'compare':
-        try:
-            func = MarkUnsafeCompare.objects.get(pk=func_id)
-        except ObjectDoesNotExist:
-            return JsonResponse({
-                'error': _('The error traces comparison function was not found')
-            })
-    elif func_type == 'convert':
-        try:
-            func = MarkUnsafeConvert.objects.get(pk=func_id)
-        except ObjectDoesNotExist:
-            return JsonResponse({
-                'error': _('The error traces conversion function was not found')
-            })
-    else:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'description': func.description})
+    try:
+        func = MarkUnsafeCompare.objects.get(pk=func_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The error traces comparison function was not found')})
+    return JsonResponse({
+        'compare_desc': func.description,
+        'convert_desc': func.convert.description,
+        'convert_name': func.convert.name
+    })
 
 
 @login_required

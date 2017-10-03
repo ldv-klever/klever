@@ -29,15 +29,15 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES,\
+    LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
 from marks.utils import MarkAccess
-from marks.tables import ReportMarkTable, MarkData
-from marks.tags import TagsInfo
+from marks.tables import ReportMarkTable
 from service.models import Task
 
 import reports.utils
@@ -407,15 +407,10 @@ def report_unsafe(request, report_id):
 
     main_file_content = None
     try:
-        etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
+        etv = GetETV(ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'), request.user)
     except Exception as e:
         logger.exception(e, stack_info=True)
         etv = None
-    try:
-        tags = TagsInfo('unsafe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -429,8 +424,6 @@ def report_unsafe(request, report_id):
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
-                'markdata': MarkData('unsafe', report=report),
-                'tags': tags,
                 'include_jquery_ui': True,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
@@ -458,18 +451,13 @@ def report_safe(request, report_id):
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
 
-    main_file_content = None
-    if report.archive and report.proof:
+    proof_content = None
+    if report.proof:
         try:
-            main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
+            proof_content = ArchiveFileContent(report, 'proof', PROOF_FILE).content.decode('utf8')
         except Exception as e:
             logger.exception("Couldn't extract proof from archive: %s" % e)
             return BridgeErrorResponse(500)
-    try:
-        tags = TagsInfo('safe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -480,9 +468,7 @@ def report_safe(request, report_id):
                 'SelfAttrsData': reports.utils.report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
-                'main_content': main_file_content,
-                'markdata': MarkData('safe', report=report),
-                'tags': tags,
+                'main_content': proof_content,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
@@ -509,7 +495,7 @@ def report_unknown(request, report_id):
         additional_parameters['view'] = request.GET.get('view')
 
     try:
-        main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+        main_file_content = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
     except Exception as e:
         logger.exception("Couldn't extract problem description from archive: %s" % e)
         return BridgeErrorResponse(500)
@@ -524,7 +510,6 @@ def report_unknown(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report),
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
@@ -548,7 +533,9 @@ def report_etv_full(request, report_id):
     try:
         return render(request, 'reports/etv_fullscreen.html', {
             'report': report,
-            'etv': GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user),
+            'etv': GetETV(
+                ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'), request.user
+            ),
             'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:
@@ -582,13 +569,11 @@ def upload_report(request):
     except Exception as e:
         logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Can not parse json data'})
-    archive = None
-    coverage_arch = None
-    if 'report files archive' in request.FILES:
-        archive = request.FILES['report files archive']
-    if 'coverage files archive' in request.FILES:
-        coverage_arch = request.FILES['coverage files archive']
-    err = UploadReport(job, data, archive, coverage_arch).error
+
+    archives = {}
+    for f in request.FILES.getlist('file'):
+        archives[f.name] = f
+    err = UploadReport(job, data, archives).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})
@@ -606,12 +591,12 @@ def get_component_log(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
-    if report.log is None:
+    if not report.log:
         return BridgeErrorResponse(_("The component doesn't have log"))
     logname = '%s-log.txt' % report.component.name
 
     try:
-        content = ArchiveFileContent(report, report.log).content
+        content = ArchiveFileContent(report, 'log', LOG_FILE).content
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
@@ -634,11 +619,11 @@ def get_log_content(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
-    if report.log is None:
+    if not report.log:
         return BridgeErrorResponse(_("The component doesn't have log"))
 
     try:
-        content = ArchiveFileContent(report, report.log).content
+        content = ArchiveFileContent(report, 'log', LOG_FILE).content
     except Exception as e:
         logger.exception(str(e))
         return HttpResponse(str(_('Extraction of the component log from archive failed')))
@@ -768,16 +753,16 @@ def get_compare_jobs_data(request):
 
 @login_required
 @unparallel_group([])
-def download_report_files(request, report_id):
+def download_verifier_input_files(request, report_id):
     try:
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
-    if not report.archive:
-        return BridgeErrorResponse(_("The report doesn't have files"))
+    if not report.verifier_input:
+        return BridgeErrorResponse(_("The report doesn't have input files of static verifiers"))
 
-    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/zip')
-    response['Content-Length'] = len(report.archive.file)
+    response = StreamingHttpResponse(FileWrapper(report.verifier_input.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.verifier_input.file)
     response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
     return response
 
@@ -789,11 +774,11 @@ def download_coverage(request, report_id):
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
-    if not report.coverage_arch:
+    if not report.coverage:
         return BridgeErrorResponse(_("The report doesn't have coverage"))
 
-    response = StreamingHttpResponse(FileWrapper(report.coverage_arch.file, 8192), content_type='application/zip')
-    response['Content-Length'] = len(report.coverage_arch.file)
+    response = StreamingHttpResponse(FileWrapper(report.coverage.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.coverage.file)
     response['Content-Disposition'] = 'attachment; filename="%s coverage.zip"' % report.component.name
     return response
 
@@ -807,7 +792,7 @@ def download_error_trace(request, report_id):
         report = reports.models.ReportUnsafe.objects.get(id=report_id)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
-    content = ArchiveFileContent(report, report.error_trace).content
+    content = ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content
     response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/json')
     response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
@@ -868,11 +853,13 @@ def coverage_light_page(request, report_id):
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
     activate(request.user.extended.language)
-    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'weight']):
+    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'with_data']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], request.POST['weight'])
+        res = GetCoverageSrcHTML(
+            request.POST['report_id'], request.POST['filename'], bool(int(request.POST['with_data']))
+        )
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

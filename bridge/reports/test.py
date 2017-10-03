@@ -37,8 +37,8 @@ from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportCompon
 
 # TODO: test 'jobs:download_file_for_compet', 'upload_job' after decision
 
-LINUX_ATTR = {'Linux kernel': [{'version': '3.5.0'}, {'architecture': 'x86_64'}, {'configuration': 'allmodconfig'}]}
-LKVOG_ATTR = {'LKVOG strategy': [{'name': 'separate modules'}]}
+LINUX_ATTR = {'Linux kernel': [{'Version': '3.5.0'}, {'Architecture': 'x86_64'}, {'Configuration': 'allmodconfig'}]}
+LKVOG_ATTR = {'LKVOG strategy': [{'Name': 'separate modules'}]}
 COMPUTER = [
     {"node name": "hellwig.intra.ispras.ru"},
     {"CPU model": "Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz"},
@@ -47,25 +47,151 @@ COMPUTER = [
     {"Linux kernel version": "3.16.7-29-default"},
     {"architecture": "x86_64"}
 ]
-CHUNKS1 = [
+
+# Only components ['VTGW', 'ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver', 'RP'] can be "failed"
+SJC_1 = [
+    {
+        'rule': 'linux:mutex',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2',
+                'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
+                'unknown': 'unknown2.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker',
+                'unsafes': ['unsafe3.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker',
+                'unknown': 'unknown0.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb5.ko',
+                'fail': 'RP'
+            }
+        ]
+    },
+    {
+        'rule': 'linux:rule1',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb1.ko',
+                'tool': 'BLAST 2.7.2',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker',
+                'unsafes': ['unsafe4.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb3.ko',
+                'tool': 'CPAchecker',
+                'unsafes': ['unsafe5.zip']
+            },
+            {
+                'module': 'drivers/usb/core/usb4.ko',
+                'tool': 'CPAchecker',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb5.ko',
+                'tool': 'CPAchecker',
+                'unsafes': ['unsafe6.zip']
+            }
+        ]
+    },
+    {
+        'rule': 'linux:rule2',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb6.ko',
+                'tool': 'CPAchecker',
+                'safe': 'safe.zip'
+            },
+            {
+                'module': 'drivers/usb/core/usb7.ko',
+                'tool': 'CPAchecker',
+                'unsafes': ['unsafe7.zip']
+            }
+        ]
+    }
+]
+
+SJC_2 = [
+    {
+        'rule': 'linux:mutex',
+        'chunks': [
+            {
+                'module': 'drivers/usb/core/usb2.ko',
+                'tool': 'CPAchecker',
+                'safe': 'safe.zip'
+            }
+        ]
+    }
+]
+
+NSJC_1 = [
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb1.ko',
+        'tool': 'BLAST 2.7.2',
+        'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
+        'unknown': 'unknown2.zip'
+    },
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb2.ko',
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe3.zip']
+    },
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb3.ko',
+        'tool': 'CPAchecker',
+        'safe': 'safe.zip'
+    },
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb4.ko',
+        'tool': 'CPAchecker',
+        'unknown': 'unknown0.zip'
+    },
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb5.ko',
+        'fail': 'ASE',
+        'unknown': 'unknown3.zip'
+    }
+]
+
+NSJC_2 = [
+    {
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb2.ko',
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe_check.zip']
+    }
+]
+
+CHUNKS4 = [
     {
         'attrs': [
             {'Verification object': 'drivers/usb/core/usb1.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
-        'unknown': 'unknown2.zip'
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb1.ko'},
-            {'Rule specification': 'linux:rule1'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe3.zip']
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe1.zip']
     },
     {
         'attrs': [
@@ -73,12 +199,21 @@ CHUNKS1 = [
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'safe': 'safe.zip'
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe2.zip']
     },
     {
         'attrs': [
             {'Verification object': 'drivers/usb/core/usb3.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe3.zip']
+    },
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb4.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
@@ -87,53 +222,25 @@ CHUNKS1 = [
     },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb4.ko'},
-            {'Rule specification': 'linux:rule1'}
-        ],
-        'fail': 'EMG',
-        'unknown': 'unknown0.zip'
-    },
-    {
-        'attrs': [
             {'Verification object': 'drivers/usb/core/usb5.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe5.zip', 'unsafe6.zip'],
-        'unknown': 'unknown1.zip'
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe5.zip']
     },
     {
         'attrs': [
             {'Verification object': 'drivers/usb/core/usb6.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
-        'fail': 'SA',
-        'unknown': 'unknown3.zip'
-    }
-]
-CHUNKS2 = [
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb1.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'unknown': 'unknown1.zip'
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe6.zip']
     },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb2.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'safe': 'safe.zip'
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb3.ko'},
+            {'Verification object': 'drivers/usb/core/usb7.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
@@ -142,8 +249,8 @@ CHUNKS2 = [
     },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb4.ko'},
-            {'Rule specification': 'linux:rule1'}
+            {'Verification object': 'drivers/usb/core/usb8.ko'},
+            {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
@@ -151,33 +258,29 @@ CHUNKS2 = [
     },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb5.ko'},
+            {'Verification object': 'drivers/usb/core/usb9.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe9.zip', 'unsafe10.zip'],
-        'unknown': 'unknown1.zip'
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe9.zip']
     },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb6.ko'},
+            {'Verification object': 'drivers/usb/core/usb10.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
-        'safe': 'safe.zip'
-    }
-]
-
-CHUNKS3 = [
+        'tool': 'CPAchecker',
+        'unsafes': ['unsafe10.zip']
+    },
     {
         'attrs': [
-            {'Verification object': 'drivers/usb/core/usb.ko'},
+            {'Verification object': 'drivers/usb/core/usb11.ko'},
             {'Rule specification': 'linux:mutex'}
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'BLAST 2.7.2',
+        'tool': 'CPAchecker',
         'unsafes': ['unsafe_check.zip']
     }
 ]
@@ -191,6 +294,10 @@ def resources():
         'memory size': random.randint(10**7, 10**9),
         'wall time': random.randint(100, 10000)
     }
+
+
+class DecisionError(Exception):
+    pass
 
 
 class TestReports(KleverTestCase):
@@ -301,7 +408,7 @@ class TestReports(KleverTestCase):
         for report in ReportSafe.objects.all():
             response = self.client.get(reverse('reports:safe', args=[report.pk]))
             self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('reports:download_files', args=[main_report.pk]))
+        response = self.client.get(reverse('reports:download_verifier_input_files', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/zip')
 
@@ -344,7 +451,7 @@ class TestReports(KleverTestCase):
             [False, True, True, False, True, False, '1']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
-        DecideJobs('service', 'service', CHUNKS1)
+        DecideJobs('service', 'service', SJC_1)
         self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 1)
         self.assertEqual(
             len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
@@ -367,9 +474,9 @@ class TestReports(KleverTestCase):
         })
         job2 = Job.objects.get(pk=int(json.loads(str(response.content, encoding='utf8'))['job_id']))
         self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': job1.pk})
-        DecideJobs('service', 'service', CHUNKS1)
+        DecideJobs('service', 'service', SJC_1)
         self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': job2.pk})
-        DecideJobs('service', 'service', CHUNKS2)
+        DecideJobs('service', 'service', SJC_2)
         response = self.client.post('/reports/ajax/fill_compare_cache/', {'job1': job1.pk, 'job2': job2.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -522,7 +629,7 @@ class TestReports(KleverTestCase):
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
                 'error trace': 'error trace.json', 'attrs': attrs
-            }), 'report files archive': fp})
+            }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -621,7 +728,7 @@ class TestReports(KleverTestCase):
         avtg = self.__upload_start_report('AVTG', '/', [LINUX_ATTR])
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
 
-        for chunk in CHUNKS1:
+        for chunk in SJC_1:
             sa = self.__upload_start_report('SA', avtg, chunk['attrs'])
             self.__upload_data_report(sa)
             self.__upload_finish_report(sa)
@@ -681,6 +788,7 @@ class DecideJobs(object):
         self.password = password
         self.reports_data = reports_data
         self.ids_in_use = []
+        self._cmp_stack = []
         self.__upload_reports()
 
     def __upload_reports(self):
@@ -714,22 +822,33 @@ class DecideJobs(object):
         self.ids_in_use.append(r_id)
         return r_id
 
-    def __upload_start_report(self, name, parent, attrs=None):
+    def __upload_start_report(self, name, parent, attrs=None, failed=False):
         r_id = self.__get_report_id(name)
         report = {'id': r_id, 'type': 'start', 'parent id': parent, 'name': name}
         if attrs is not None:
             report['attrs'] = attrs
         self.service.post('/reports/upload/', {'report': json.dumps(report)})
+        self._cmp_stack.append(r_id)
+        if failed:
+            self.__upload_unknown_report(r_id, 'unknown0.zip')
+            while len(self._cmp_stack) > 0:
+                self.__upload_finish_report(self._cmp_stack[-1])
+            raise DecisionError('Component %s failed!' % name)
         return r_id
 
-    def __upload_finish_report(self, r_id):
-        with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
-            self.service.post('/reports/upload/', {
-                'report': json.dumps({
-                    'id': r_id, 'type': 'finish', 'resources': resources(),
-                    'log': 'log.txt', 'desc': 'It does not matter'
-                }), 'report files archive': fp
-            })
+    def __upload_finish_report(self, r_id, coverage=None):
+        report = {
+            'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'It does not matter', 'log': 'log.zip'
+        }
+        with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as fp:
+            if coverage is not None:
+                report['coverage'] = coverage
+                with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
+                    self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp, cfp]})
+            else:
+                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        if len(self._cmp_stack) > 0:
+            self._cmp_stack.pop()
 
     def __upload_attrs_report(self, r_id, attrs):
         self.service.post('/reports/upload/', {
@@ -743,43 +862,49 @@ class DecideJobs(object):
             'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
 
-    def __upload_verification_report(self, name, parent, attrs, report_arch='report.zip', coverage='full_coverage.zip'):
+    def __upload_verification_report(self, name, parent, attrs=None, coverage=None):
         r_id = self.__get_report_id(name)
+        if not isinstance(attrs, list):
+            attrs = []
         report = {
-            'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name, 'resources': resources(),
-            'data': {'description': str(r_id)}, 'coverage': 'coverage.json'
+            'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name, 'attrs': attrs,
+            'resources': resources(), 'data': {'description': str(r_id)}
         }
-        if isinstance(attrs, list):
-            report['attrs'] = attrs
 
-        with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
-            if random.randint(1, 10) > 4:
-                report['log'] = 'log.txt'
-                with open(os.path.join(ARCHIVE_PATH, report_arch), mode='rb') as fp:
-                    self.service.post('/reports/upload/', {
-                        'report': json.dumps(report), 'report files archive': fp, 'coverage files archive': cfp
-                    })
-            else:
-                self.service.post('/reports/upload/', {'report': json.dumps(report), 'coverage files archive': cfp})
+        files = []
+        if coverage is not None:
+            files.append(open(os.path.join(ARCHIVE_PATH, coverage), mode='rb'))
+            report['coverage'] = coverage
+        if random.randint(1, 10) > 4:
+            files.append(open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb'))
+            report['input files of static verifiers'] = 'verifier_input.zip'
+        if random.randint(1, 10) > 5:
+            files.append(open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb'))
+            report['log'] = 'log.zip'
+        try:
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
+        except Exception:
+            for f in files:
+                f.close()
+            raise
         return r_id
 
     def __upload_finish_verification_report(self, r_id):
         self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'verification finish'})})
 
-    def __upload_unknown_report(self, parent, archive, finish_parent=True):
+    def __upload_unknown_report(self, parent, archive):
         r_id = self.__get_report_id('unknown')
-        report = {'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': 'problem description.txt'}
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'report files archive': fp})
-        if finish_parent:
-            self.__upload_finish_report(parent)
+            self.service.post('/reports/upload/', {'report': json.dumps({
+                'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': os.path.basename(fp.name)
+            }), 'file': fp})
 
     def __upload_safe_report(self, parent, attrs, archive):
         r_id = self.__get_report_id('safe')
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': 'proof.txt', 'attrs': attrs
-            }), 'report files archive': fp})
+                'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': os.path.basename(fp.name), 'attrs': attrs
+            }), 'file': fp})
 
     def __upload_empty_safe_report(self, parent, attrs):
         self.service.post('/reports/upload/', {'report': json.dumps({
@@ -790,13 +915,13 @@ class DecideJobs(object):
         r_id = self.__get_report_id('unsafe')
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'unsafe', 'parent id': parent,
-                'error trace': 'error trace.json', 'attrs': attrs
-            }), 'report files archive': fp})
+                'id': r_id, 'type': 'unsafe', 'parent id': parent, 'attrs': attrs,
+                'error trace': os.path.basename(fp.name)
+            }), 'file': fp})
 
     def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'version-1'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
 
         core_data = None
@@ -844,6 +969,52 @@ class DecideJobs(object):
 
         self.__upload_data_report('/', core_data)
 
+        if any('chunks' in chunk for chunk in self.reports_data):
+            for subjob in self.reports_data:
+                if 'chunks' in subjob:
+                    try:
+                        self.__upload_subjob(subjob)
+                    except DecisionError:
+                        pass
+        else:
+            self.__upload_chunks()
+
+        self.__upload_finish_report('/')
+
+    def __upload_subjob(self, subjob):
+        sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
+        lkbce = self.__upload_start_report('LKBCE', sj)
+        self.__upload_attrs_report(lkbce, [LINUX_ATTR])
+        self.__upload_finish_report(lkbce)
+
+        lkvog = self.__upload_start_report('LKVOG', sj, [LKVOG_ATTR])
+        self.__upload_finish_report(lkvog)
+
+        vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
+        for chunk in subjob['chunks']:
+            vtgw = self.__upload_start_report('VTGW', vtg, [
+                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+            ], failed=(chunk.get('fail') == 'VTGW'))
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+                cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
+                self.__upload_finish_report(cmp_id)
+            self.__upload_finish_report(vtgw)
+        self.__upload_finish_report(vtg)
+
+        vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
+        for chunk in subjob['chunks']:
+            rp = self.__upload_start_report('RP', vrp, [
+                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+            ], failed=(chunk.get('fail') == 'RP'))
+            self.__upload_verdicts(rp, chunk)
+            self.__upload_finish_report(rp)
+        self.__upload_finish_report(vrp)
+
+        full_coverage = 'big_full_coverage.zip'
+        # full_coverage = 'Core_coverage.zip'
+        self.__upload_finish_report(sj, coverage=full_coverage)
+
+    def __upload_chunks(self):
         lkbce = self.__upload_start_report('LKBCE', '/')
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
@@ -851,58 +1022,42 @@ class DecideJobs(object):
         lkvog = self.__upload_start_report('LKVOG', '/', [LKVOG_ATTR])
         self.__upload_finish_report(lkvog)
 
-        avtg = self.__upload_start_report('AVTG', '/', [LINUX_ATTR])
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
-
         for chunk in self.reports_data:
-            if job.type == JOB_CLASSES[1][0]:
-                chunk['attrs'].append({'Commit': 'HEAD'})
-
-            sa = self.__upload_start_report('SA', avtg, chunk['attrs'])
-            self.__upload_data_report(sa)
-            if 'fail' in chunk and chunk['fail'] == 'SA':
-                self.__upload_unknown_report(sa, chunk['unknown'])
-                continue
-            self.__upload_finish_report(sa)
-
-            emg = self.__upload_start_report('EMG', avtg, chunk['attrs'])
-            if 'fail' in chunk and chunk['fail'] == 'EMG':
-                self.__upload_unknown_report(emg, chunk['unknown'])
-                continue
-            self.__upload_finish_report(emg)
-
-            rsg = self.__upload_start_report('RSG', avtg, chunk['attrs'])
-            if 'fail' in chunk and chunk['fail'] == 'RSG':
-                self.__upload_unknown_report(rsg, chunk['unknown'])
-                continue
-            self.__upload_finish_report(rsg)
-
-            abkm = self.__upload_start_report('ABKM', avtg, chunk['attrs'])
-            if 'fail' in chunk and chunk['fail'] == 'ABKM':
-                self.__upload_unknown_report(abkm, chunk['unknown'])
-                continue
-            cnt = 1
-            if 'safe' in chunk:
-                tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
-                self.__upload_safe_report(tool, [], chunk['safe'])
-                self.__upload_finish_verification_report(tool)
-                # self.__upload_empty_safe_report(tool, [])
-            elif 'unsafes' in chunk:
-                for u_arch in chunk['unsafes']:
-                    tool = self.__upload_verification_report(
-                        chunk['tool'], abkm, chunk['tool_attrs'], coverage='big_full_coverage.zip'
-                    )
-                    self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
-                    self.__upload_finish_verification_report(tool)
-                    cnt += 1
-            if 'unknown' in chunk and 'safe' not in chunk:
-                tool = self.__upload_verification_report(
-                    chunk['tool'], abkm, chunk['tool_attrs'], coverage='partially_coverage.zip'
-                )
-                self.__upload_unknown_report(tool, chunk['unknown'], False)
-                self.__upload_finish_verification_report(tool)
-            self.__upload_finish_report(abkm)
-
-        self.__upload_finish_report(avtg)
+            vtgw = self.__upload_start_report('VTGW', vtg, [
+                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+            ], failed=(chunk.get('fail') == 'VTGW'))
+            for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
+                cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
+                self.__upload_finish_report(cmp_id)
+            self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
-        self.__upload_finish_report('/')
+
+        vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
+        for chunk in self.reports_data:
+            rp = self.__upload_start_report('RP', vrp, [
+                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+            ], failed=(chunk.get('fail') == 'RP'))
+            self.__upload_verdicts(rp, chunk)
+            self.__upload_finish_report(rp)
+        self.__upload_finish_report(vrp)
+
+    def __upload_verdicts(self, parent, chunk):
+        if 'unsafes' in chunk:
+            coverage = 'partially_coverage.zip'
+        # elif 'safe' in chunk:
+        #     coverage = 'big_full_coverage.zip'
+        else:
+            # coverage = 'partially_coverage.zip'
+            coverage = None
+        tool = self.__upload_verification_report(chunk['tool'], parent, coverage=coverage)
+        if 'safe' in chunk:
+            self.__upload_safe_report(tool, [], chunk['safe'])
+        elif 'unsafes' in chunk:
+            cnt = 1
+            for u in chunk['unsafes']:
+                self.__upload_unsafe_report(tool, [{'entry point': 'func_%s' % cnt}], u)
+                cnt += 1
+        if 'unknown' in chunk and 'safe' not in chunk:
+            self.__upload_unknown_report(tool, chunk['unknown'])
+        self.__upload_finish_verification_report(tool)

@@ -44,6 +44,7 @@ class Core(core.utils.CallbacksCaller):
         self.comp = []
         self.session = None
         self.mqs = {}
+        self.report_id = multiprocessing.Value('i', 1)
         self.uploading_reports_process = None
         self.uploading_reports_process_exitcode = multiprocessing.Value('i', 0)
         self.callbacks = {}
@@ -66,13 +67,17 @@ class Core(core.utils.CallbacksCaller):
                                                       'id': self.ID,
                                                       'attrs': [{'Klever Core version': version}],
                                                       'comp': self.comp
-                                                  })
+                                                  },
+                                                  None,
+                                                  self.report_id,
+                                                  self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
             job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
+                       {'report id': self.report_id},
                        self.uploading_reports_process_exitcode)
         except Exception:
             self.process_exception()
@@ -87,10 +92,11 @@ class Core(core.utils.CallbacksCaller):
                                       {
                                           'id': self.ID + '/unknown',
                                           'parent id': self.ID,
-                                          'problem desc': 'problem desc.txt',
-                                          'files': ['problem desc.txt']
+                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
-                                      self.mqs['report files'])
+                                      self.mqs['report files'],
+                                      self.report_id,
+                                      self.conf['main working directory'])
                 except Exception:
                     self.process_exception()
         finally:
@@ -112,10 +118,11 @@ class Core(core.utils.CallbacksCaller):
                                           'resources': core.utils.count_consumed_resources(
                                               self.logger,
                                               self.start_time),
-                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
-                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
+                                          'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None,
                                       },
-                                      self.mqs['report files'])
+                                      self.mqs['report files'],
+                                      self.report_id,
+                                      self.conf['main working directory'])
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 
@@ -191,6 +198,9 @@ class Core(core.utils.CallbacksCaller):
         # Yes there may be race condition, but it won't be.
         self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
 
+        # Create directory where all reports and report files archives will be actually written to.
+        os.mkdir(os.path.join(self.conf['working directory'], 'reports'))
+
     def change_work_dir(self):
         # Change working directory forever.
         # We can use path for "is solving" file relative to future working directory since exceptions aren't raised when
@@ -251,8 +261,8 @@ class Core(core.utils.CallbacksCaller):
                 self.logger.debug('Upload report file "{0}"{1}'.format(
                     report_file,
                     ' with report file archives:\n{0}'.format(
-                        '\n'.join(['  {0} - {1}'.format(archive_name, archive)
-                                   for archive_name, archive in report_file_archives.items()]))
+                        '\n'.join(['  {0}'.format(archive_name)
+                                   for archive_name in report_file_archives]))
                     if report_file_archives else ''))
 
                 self.session.upload_report(report_file, report_file_archives)
