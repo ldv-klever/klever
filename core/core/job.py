@@ -232,7 +232,7 @@ class Job(core.utils.CallbacksCaller):
                                           {
                                               'id': self.id + '/unknown',
                                               'parent id': self.id,
-                                              'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
+                                              'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                           },
                                           self.mqs['report files'],
                                           self.vals['report id'],
