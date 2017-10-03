@@ -23,7 +23,7 @@
             {% endif %}
             <span class="{{ l.scope }}{% if l.commented %} commented{% endif %}{% if l.collapsed %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %} data-thread="{{ l.thread_id }}" data-type="{{ l.type }}"{% if l.type == 'hidden-return' %} hidden{% endif %}>
                 <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
-                <span class="ETV_LC">{{ l.offset }}{% include 'reports/ETV_HideLink.html' %}{% if l.func %}<span class="ETV_FuncName ETV_Fname">{{ l.func }}</span><span class="ETV_FuncCode" style="display: none">{{ l.code|safe }}</span>{% else %}{{ l.code|safe }}{% endif %}</span>
+                <span class="ETV_LC">{{ l.offset }}{% include 'reports/ETV_HideLink.html' %}{% if l.comment %}<span class="ETV_FuncName {{ l.comment_class }}">{{ l.comment }}</span><span class="ETV_FuncCode" style="display: none">{{ l.code|safe }}</span>{% else %}{{ l.code|safe }}{% endif %}</span>
                 {% if l.assumptions %}
                     <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
                 {% endif %}

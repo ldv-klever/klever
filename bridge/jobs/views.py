@@ -50,7 +50,8 @@ import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
-from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
+from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen,\
+    UploadReportsWithoutDecision
 
 
 @login_required
@@ -281,6 +282,7 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
+            'can_upload_reports': job_access.can_upload_reports(),
             'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop(),
             'can_collapse': job_access.can_collapse(),
@@ -724,15 +726,17 @@ def decide_job(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
+    attempt = int(request.POST.get('attempt', 0))
     if not jobs.utils.JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
             'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(request.user, job.identifier)
         })
-    if job.status != JOB_STATUS[1][0]:
-        return JsonResponse({'error': 'Only pending jobs can be decided'})
+    if attempt == 0:
+        if job.status != JOB_STATUS[1][0]:
+            return JsonResponse({'error': 'Only pending jobs can be decided'})
+        jobs.utils.change_job_status(job, JOB_STATUS[2][0])
 
-    jobs.utils.change_job_status(job, JOB_STATUS[2][0])
-    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}')), attempt=attempt).error
     if err is not None:
         return JsonResponse({'error': err})
 
@@ -1084,4 +1088,30 @@ def enable_safe_marks(request):
             SafeUtils.RecalculateConnections([root])
         else:
             SafeUtils.disable_safe_marks_for_job(root)
+    return JsonResponse({})
+
+
+@unparallel_group([Job])
+def upload_reports(request):
+    if request.method != 'POST' or 'job_id' not in request.POST or 'archive' not in request.FILES:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        reports_dir = extract_archive(request.FILES['archive'])
+    except Exception as e:
+        logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+        return JsonResponse({'error': _('Extraction of the archive has failed')})
+    try:
+        job = Job.objects.get(id=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+
+    if not jobs.utils.JobAccess(request.user, job).can_decide():
+        return JsonResponse({'error': _("You don't have an access to upload reports for this job")})
+    try:
+        UploadReportsWithoutDecision(job, request.user, reports_dir.name)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})

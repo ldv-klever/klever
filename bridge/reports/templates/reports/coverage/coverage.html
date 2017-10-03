@@ -46,7 +46,7 @@
         </div>
         <div class="two wide column right aligned">
             <div class="ui buttons">
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_files' coverage.report.id %}"><i class="download icon"></i></a>
+                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_coverage' coverage.report.id %}"><i class="download icon"></i></a>
                 <a class="ui icon mini basic button note-popup" data-content="{% trans 'Show coverage without data' %}" href="{% url 'reports:coverage_light' coverage.report.id %}"><i class="ui maximize icon"></i></a>
             </div>
         </div>

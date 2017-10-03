@@ -63,6 +63,11 @@ class ScheduleTask:
             raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
             raise ServiceError('Priority of the task is too big')
+        try:
+            self.__check_archive(archive)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceError('ZIP error')
         self.task_id = self.__create_task(archive)
 
     def __create_task(self, archive):
@@ -70,24 +75,42 @@ class ScheduleTask:
             progress=self.progress, archname=archive.name,
             archive=archive, description=self.description.encode('utf8')
         )
-
-        if not zipfile.is_zipfile(task.archive.file.name):
-            raise ServiceError("The report's archive is not a ZIP file")
-
         SolvingProgress.objects.filter(id=self.progress.id)\
             .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
         return task.id
 
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+            raise ValueError('The task archive "%s" is not a ZIP file' % arch)
 
-class GetTaskStatus:
-    def __init__(self, task_id):
-        try:
-            self.task = Task.objects.get(id=task_id)
-        except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
-        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
-            raise ServiceError('The job is not processing')
-        self.status = self.task.status
+    def __is_not_used(self):
+        pass
+
+
+class GetTasksStatuses:
+    def __init__(self, tasks_ids):
+        self._task_ids = list(int(x) for x in json.loads(tasks_ids))
+        self._tasks = self.__get_tasks()
+        self.__check_jobs()
+        self.statuses = self.__get_statuses()
+
+    def __get_tasks(self):
+        tasks = Task.objects.filter(id__in=self._task_ids)
+        if tasks.count() != len(set(self._task_ids)):
+            raise ServiceError('One of the tasks was not found')
+        return tasks
+
+    def __check_jobs(self):
+        if SolvingProgress.objects.filter(id__in=list(t.progress_id for t in self._tasks))\
+                .exclude(job__status=JOB_STATUS[2][0]).count() > 0:
+            raise ServiceError('One of the jobs is not processing')
+
+    def __get_statuses(self):
+        res = {'pending': [], 'processing': [], 'finished': [], 'error': []}
+        for t in self._tasks:
+            res[t.status.lower()].append(str(t.id))
+        return json.dumps(res, ensure_ascii=False)
 
 
 class GetSolution:
@@ -226,7 +249,7 @@ class FinishJobDecision:
                 if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0 \
                         or ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
                                                         root=self.progress.job.reportroot).count() == 0:
-                    status = JOB_STATUS[7][0]
+                    status = JOB_STATUS[5][0]
             if self.error is None:
                 self.error = "The scheduler hasn't given an error description"
         return status
@@ -315,7 +338,8 @@ class GetTasks:
 
         # Finish job decisions and add pending/processing/cancelled jobs
         if self._scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0], fake=False)\
+                    .select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     FinishJobDecision(progress, JOB_STATUS[5][0], "The job can't be finished as it is still pending")
                 elif progress.job.identifier in data['jobs']['error']:
@@ -501,6 +525,11 @@ class SaveSolution:
             raise ServiceError('The task %s was not found' % task_id)
         if not Job.objects.filter(solvingprogress=self.task.progress_id, status=JOB_STATUS[2][0]).exists():
             raise ServiceError('The job is not processing')
+        try:
+            self.__check_archive(archive)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceError('ZIP error')
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):
@@ -509,11 +538,8 @@ class SaveSolution:
             raise ServiceError('The task already has solution')
         except ObjectDoesNotExist:
             pass
-        solution = Solution.objects.create(task=self.task, description=description.encode('utf8'),
-                                           archive=archive, archname=archive.name)
-
-        if not zipfile.is_zipfile(solution.archive.file.name):
-            raise ServiceError("The report's archive is not a ZIP file")
+        Solution.objects.create(task=self.task, description=description.encode('utf8'),
+                                archive=archive, archname=archive.name)
 
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
         progress.solutions += 1
@@ -529,6 +555,14 @@ class SaveSolution:
         )
         ReportRoot.objects.filter(job__solvingprogress=self.task.progress_id) \
             .update(average_time=(F('average_time') * solved_tasks + wall_time) / (solved_tasks + 1))
+
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+            raise ValueError('The task archive "%s" is not a ZIP file' % arch)
+
+    def __is_not_used(self):
+        pass
 
 
 class SetNodes:
@@ -738,9 +772,10 @@ class NodesData(object):
 
 
 class StartJobDecision:
-    def __init__(self, user, job_id, data):
+    def __init__(self, user, job_id, data, fake=False):
         self.operator = user
         self.data = data
+        self._fake = fake
         self.job = self.__get_job(job_id)
         self.job_scheduler = self.__get_scheduler()
         self.klever_core_data = self.__get_klever_core_data()
@@ -839,8 +874,7 @@ class StartJobDecision:
             pass
         self.__save_configuration()
         return SolvingProgress.objects.create(
-            job=self.job, priority=self.data[0][0],
-            scheduler=self.job_scheduler,
+            job=self.job, priority=self.data[0][0], scheduler=self.job_scheduler, fake=self._fake,
             configuration=json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         )
 

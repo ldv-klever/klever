@@ -3,7 +3,7 @@
     "kernel model": {},
     "environment processes": {
       "pci_scenario": {
-        "comment": "PCI driver callback invocation scenario.",
+        "comment": "Invoke PCI driver callbacks.",
         "labels": {
           "container": {
             "container": true

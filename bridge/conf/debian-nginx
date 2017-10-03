@@ -1,5 +1,5 @@
 upstream bridge_server {
-  server unix:/var/www/bridge/bridge.sock fail_timeout=0;
+  server unix:/var/www/klever-bridge/media/gunicorn.sock fail_timeout=0;
 }
 
 server {
@@ -10,7 +10,7 @@ server {
 
   keepalive_timeout 5;
 
-  root /var/www/bridge;
+  root /var/www/klever-bridge;
 
   location / {
     try_files $uri @proxy_to_app;

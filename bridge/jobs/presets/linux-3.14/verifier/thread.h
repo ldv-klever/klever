@@ -18,28 +18,31 @@
 #ifndef __VERIFIER_THREAD_H
 #define __VERIFIER_THREAD_H
 
-struct ldv_thread {
-    int identifier;
-    void (*function)(void *);
-};
+typedef unsigned long int pthread_t;
 
-/* Set of threads */
-struct ldv_thread_set
+union pthread_attr_t
 {
-    int number;
-    struct ldv_thread **threads;
+   char __size[56];
+   long int __align;
 };
 
-/* Create thread */
-extern int ldv_thread_create(struct ldv_thread *ldv_thread, void (*function)(void *), void *data);
+typedef union pthread_attr_t pthread_attr_t;
 
-/* Create N threads */
-extern int ldv_thread_create_N(struct ldv_thread_set *ldv_thread_set, void (*function)(void *), void *data);
+/* Create a thread according to the pthread library interface.
+ */
+int pthread_create(pthread_t *thread, pthread_attr_t const *attr, void *(*start_routine)(void *), void *arg);
 
-/* Join thread */
-extern int ldv_thread_join(struct ldv_thread *ldv_thread, void (*function)(void *));
+/* Join a thread according to the pthread library interface.
+ */
+int pthread_join(pthread_t thread, void **value_ptr );
 
-/* Join N threads */
-extern int ldv_thread_join_N(struct ldv_thread_set *ldv_thread_set, void (*function)(void *));
+/* Create N threads. This is an artificial function accepted by specific verifiers.
+ */
+int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*function)(void *), void *data);
+
+/* Join N threads. This is an artificial function accepted by specific verifiers.
+ */
+int pthread_join_N(pthread_t **thread, void (*function)(void *));
+
 
 #endif /* __VERIFIER_THREAD_H */

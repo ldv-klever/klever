@@ -21,7 +21,7 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F, Count, Case, When
-from django.template import Template, Context
+from django.template import Template, Context, loader
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 from django.utils.timezone import now, timedelta
 
@@ -38,7 +38,6 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChan
 from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
-from marks.ConvertTrace import DEFAULT_CONVERT
 
 
 MARK_TITLES = {
@@ -156,6 +155,8 @@ class MarkChangesTable:
                 if self.mark_type != 'unknown':
                     values[report.id]['old_verdict'] = self.changes[report].get('verdict1', report.verdict)
                     values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
+                    if 'tags' in self.changes[report]:
+                        values[report.id]['tags'] = self.changes[report]['tags']
             if self.mark_type != 'unknown':
                 for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
                     if a_name not in self.attrs:
@@ -619,8 +620,7 @@ class MarkData:
         self.verdicts = self.__verdict_info()
         self.statuses = self.__status_info()
         if isinstance(self.mark_version, MarkUnsafeHistory) or isinstance(report, ReportUnsafe):
-            self.comparison, self.compare_desc = self.__functions('compare')
-            self.convertion, self.convert_desc = self.__functions('convert')
+            self.comparison, self.selected_func = self.__functions()
         self.unknown_data = self.__unknown_info()
         self.attributes = self.__get_attributes(report)
         self.description = ''
@@ -695,46 +695,21 @@ class MarkData:
             statuses.append(status_data)
         return statuses
 
-    def __functions(self, func_type='compare'):
-        if self.type != 'unsafe':
-            return [], None
+    def __functions(self):
         functions = []
-        if func_type == 'compare':
-            selected_description = None
-
+        selected_func = None
+        if self.type == 'unsafe':
             for f in MarkUnsafeCompare.objects.order_by('name'):
-                func_data = {
-                    'name': f.name,
-                    'selected': False,
-                    'value': f.pk,
-                }
+                func_data = {'id': f.id, 'name': f.name}
                 if isinstance(self.mark_version, MarkUnsafeHistory):
                     if self.mark_version.function == f:
                         func_data['selected'] = True
-                        selected_description = f.description
+                        selected_func = f
                 elif f.name == DEFAULT_COMPARE:
                     func_data['selected'] = True
-                    selected_description = f.description
+                    selected_func = f
                 functions.append(func_data)
-        elif func_type == 'convert':
-            if self.mark_version is not None:
-                return [], None
-
-            selected_description = None
-
-            for f in MarkUnsafeConvert.objects.order_by('name'):
-                func_data = {
-                    'name': f.name,
-                    'selected': False,
-                    'value': f.pk,
-                }
-                if f.name == DEFAULT_CONVERT:
-                    func_data['selected'] = True
-                    selected_description = f.description
-                functions.append(func_data)
-        else:
-            return [], None
-        return functions, selected_description
+        return functions, selected_func
 
 
 # Table data for showing links between the specified mark and reports
@@ -905,6 +880,7 @@ class AssociationChangesTable:
         supported_columns = ['change_kind', 'job', 'format']
         if self._data['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
             supported_columns.append('sum_verdict')
+            supported_columns.append('tags')
         return supported_columns
 
     def __verdict_change(self, report_id, mark_type):
@@ -956,6 +932,7 @@ class AssociationChangesTable:
                 color = None
                 href = None
                 if not self.__filter_row(report_id):
+                    cnt -= 1
                     break
                 if col == 'report':
                     val = cnt
@@ -971,6 +948,9 @@ class AssociationChangesTable:
                     href = reverse('jobs:job', args=[self._data['values'][report_id]['job'][0]])
                 elif col == 'format':
                     val = self._data['values'][report_id]['format']
+                elif col == 'tags':
+                    val = loader.get_template('marks/tagsChanges.html')\
+                        .render({'tags': self._data['values'][report_id].get('tags'), 'type': mark_type})
                 elif col in self._data['values'][report_id]:
                     val = self._data['values'][report_id][col]
                 values_str.append({'value': str(val), 'color': color, 'href': href})
@@ -1011,6 +991,10 @@ class AssociationChangesTable:
                         return False
                     elif ftype == 'icontains' and fvalue.lower() not in value.lower():
                         return False
+        if 'hidden' in self.view and 'unchanged' in self.view['hidden']:
+            if self._data['values'][r_id]['old_verdict'] == self._data['values'][r_id]['new_verdict'] \
+                    and self._data['values'][r_id].get('tags') is None:
+                return False
         return True
 
     def __is_not_used(self):

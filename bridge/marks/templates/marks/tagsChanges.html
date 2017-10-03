@@ -1,0 +1,22 @@
+{% load i18n %}
+
+{% if tags %}
+    {% for tag in tags %}
+        <p>
+            {% if tag.1 == 0 and tag.2 > 0 %}
+                <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <i class="ui green plus icon"></i>
+            {% elif tag.1 > 0 and tag.2 == 0 %}
+                <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <i class="ui red minus icon"></i>
+            {% elif tag.1 == tag.2 %}
+                <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <span class="ui mini label">{{ tag.1 }}</span>
+            {% else %}
+                <span class="mark-tag {{ type }}">{{ tag.0 }}</span>:
+                <span class="ui mini label">{{ tag.1 }}</span>
+                <i class="ui long arrow right {% if tag.1 < tag.2 %}green{% else %}red{% endif %} icon"></i>
+                <span class="ui mini label">{{ tag.2 }}</span>
+            {% endif %}
+        </p>
+    {% endfor %}
+{% else %}
+    -
+{% endif %}

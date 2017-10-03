@@ -51,7 +51,6 @@
               "implicit callback calls": true,
               "direct control functions calls": true,
               "nested automata": true,
-              "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,
                 "arrays": true,
@@ -134,12 +133,24 @@
               },
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/memory.c": {},
-              "verifier/thread.c": {}
+              "verifier/memory.c": {}
             }
           }
         },
-        "Weaver"
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "reachability common Linux64",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "ldv-bam:25793"
+            },
+            "result processing": {
+              "coverage": "lightweight"
+            }
+          }
+        }
       ]
     },
     "Argument signatures for Linux kernel modules": {
@@ -153,7 +164,8 @@
         },
         "TR",
         "RSG",
-        "Weaver"
+        "Weaver",
+        "FVTP"
       ]
     }
   },
@@ -171,7 +183,6 @@
           "direct control functions calls": true,
           "nested automata": true,
           "no actions composition": ["Condition"],
-          "instance modifier": 1,
           "pointer initialization": {
             "structures": true,
             "arrays": true,
@@ -192,14 +203,19 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
-        "verifier version": "smg_witness_for_ldv:24577",
-        "verifier configuration": "-smg-ldv",
-        "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
           "LTL(G valid-free)",
           "LTL(G valid-deref)",
           "LTL(G valid-memtrack)"
-      ]}
+      ]},
+      "FVTP": {
+        "verifier profile": "memory checking Linux64",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "smg_witness_for_ldv:25566"
+        },
+        "result processing": {}
+      }
     },
     "linux:empty": {
       "description": "...",
@@ -571,7 +587,8 @@
            "direct control functions calls": false,
            "nested automata": true,
            "no actions composition": ["Condition"],
-           "instance modifier": 1,
+           "self parallelism": true,
+           "pure pthread interface": false,
            "pointer initialization": {
              "structures": true,
              "arrays": true,
@@ -591,9 +608,17 @@
          }
       },
       "RSG": {
-        "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "CPALockator:24629",
-        "verifier configuration": "-local-lock-combination-linux"
+        "models": {"sync/races.c": {"bug kinds": []}}
+      },
+      "FVTP": {
+        "verifier profile": "CPALockator race checking",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "CPALockator:25964"
+        },
+        "result processing": {
+          "expect several witnesses": true
+        }
       }
     }
   }

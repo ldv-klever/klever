@@ -3,7 +3,7 @@
     "kernel model": {},
     "environment processes": {
       "factory_scenario": {
-        "comment": "Begin pattern scenario to model the events interleaving.",
+        "comment": "Register callbacks heuristically.",
         "labels": {
           "container": {
             "container": true
@@ -41,7 +41,7 @@
         }
       },
       "bus_pattern_scenario": {
-        "comment": "Begin pattern partially ordered scenario for callbacks invocation.",
+        "comment": "Ivoke callbacks with a partial order.",
         "labels": {
           "container": {
             "container": true
@@ -158,7 +158,7 @@
         }
       },
       "random_containerless_scenario": {
-        "comment": "Scenario with random invocation of callbacks.",
+        "comment": "Invoke callbacks randomly.",
         "labels": {
           "container": {
             "container": true,
@@ -195,7 +195,7 @@
         }
       },
       "random_allocationless_scenario": {
-        "comment": "Scenario with random invocation of callbacks.",
+        "comment": "Invoke callbacks randomly without parameters allocation.",
         "labels": {
           "container": {
             "container": true,
@@ -234,7 +234,7 @@
         }
       },
       "random_scenario": {
-        "comment": "Scenario with random invocation of callbacks.",
+        "comment": "Call callbacks randomly.",
         "labels": {
           "container": {
             "container": true

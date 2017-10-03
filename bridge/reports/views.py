@@ -36,8 +36,7 @@ from jobs.utils import JobAccess
 from jobs.models import Job
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
 from marks.utils import MarkAccess
-from marks.tables import ReportMarkTable, MarkData
-from marks.tags import TagsInfo
+from marks.tables import ReportMarkTable
 from service.models import Task
 
 import reports.utils
@@ -418,11 +417,6 @@ def report_unsafe(request, report_id):
     except Exception as e:
         logger.exception(e, stack_info=True)
         etv = None
-    try:
-        tags = TagsInfo('unsafe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -436,8 +430,6 @@ def report_unsafe(request, report_id):
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
-                'markdata': MarkData('unsafe', report=report),
-                'tags': tags,
                 'include_jquery_ui': True,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
@@ -472,11 +464,6 @@ def report_safe(request, report_id):
         except Exception as e:
             logger.exception("Couldn't extract proof from archive: %s" % e)
             return BridgeErrorResponse(500)
-    try:
-        tags = TagsInfo('safe', [])
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
 
     try:
         return render(
@@ -488,8 +475,6 @@ def report_safe(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('safe', report=report),
-                'tags': tags,
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
@@ -531,7 +516,6 @@ def report_unknown(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report),
                 'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
@@ -786,6 +770,22 @@ def download_report_files(request, report_id):
     response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/zip')
     response['Content-Length'] = len(report.archive.file)
     response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
+    return response
+
+
+@login_required
+@unparallel_group([])
+def download_coverage(request, report_id):
+    try:
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+    if not report.coverage_arch:
+        return BridgeErrorResponse(_("The report doesn't have coverage"))
+
+    response = StreamingHttpResponse(FileWrapper(report.coverage_arch.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.coverage_arch.file)
+    response['Content-Disposition'] = 'attachment; filename="%s coverage.zip"' % report.component.name
     return response
 
 

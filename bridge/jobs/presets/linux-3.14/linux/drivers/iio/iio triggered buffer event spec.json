@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "iio_triggered_buffer_setup": {
-        "comment": "Industrial I/O triggered buffer setup.",
+        "comment": "Setup industrial I/O triggered buffer.",
         "labels": {
           "thread": {
             "callback": true,
@@ -59,7 +59,7 @@
         }
       },
       "iio_triggered_buffer_cleanup": {
-        "comment": "Industrial I/O triggered buffer cleanup.",
+        "comment": "Cleanup industrial I/O triggered buffer.",
         "labels": {
           "dev": {
             "resource": true,
@@ -89,7 +89,7 @@
     "environment processes": {
       "iio_triggered_buffer_scenario": {
         "headers": ["linux/interrupt.h"],
-        "comment": "Industrial I/O triggered buffer poll function scenario.",
+        "comment": "Invoke Industrial I/O triggered buffer poll function callbacks.",
         "labels": {
           "thread": {
             "callback": true,

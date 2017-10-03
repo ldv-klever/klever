@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "mod_timer, mod_timer_pinned, mod_timer_pending": {
-        "comment": "Modify a timer's timeout",
+        "comment": "Modify a timer's timeout.",
         "labels": {
           "timer_list": {
             "container": true,
@@ -40,7 +40,7 @@
         }
       },
       "setup_timer, setup_timer_on_stack": {
-        "comment": "Setup new timer.",
+        "comment": "Setup a new timer.",
         "labels": {
           "timer_list": {
             "container": true,
@@ -112,7 +112,7 @@
     },
     "environment processes": {
       "timer_scenario": {
-        "comment": "Invoke timer callback.",
+        "comment": "Invoke a timer callback.",
         "labels": {
           "container": {
             "container": true,

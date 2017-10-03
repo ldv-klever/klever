@@ -18,6 +18,7 @@
 import os
 import json
 import logging.config
+import signal
 import subprocess
 
 import utils as utils
@@ -54,12 +55,16 @@ def prepare_node_info(node_info):
         result["available CPU number"] = result["CPU number"]
     if isinstance(result["available RAM memory"], float):
         result["available RAM memory"] = int(result["RAM memory"] * result["available RAM memory"])
+    elif isinstance(result["available RAM memory"], str):
+        result["available RAM memory"] = utils.memory_units_converter(result["available RAM memory"], '')[0]
     if result["available RAM memory"] < 1000 ** 3:
         result["available RAM memory"] = 1000 ** 3
     elif result["available RAM memory"] > result["RAM memory"] - 1000 ** 3:
         result["available RAM memory"] = result["RAM memory"] - 1000 ** 3
     if isinstance(result["available disk memory"], float):
         result["available disk memory"] = int(result["disk memory"] * result["available disk memory"])
+    elif isinstance(result["available disk memory"], str):
+        result["available disk memory"] = utils.memory_units_converter(result["available disk memory"], '')[0]
     if result["available disk memory"] < 1000 ** 3:
         result["available disk memory"] = 1000 ** 3
     elif result["available disk memory"] > result["disk memory"] - 1000 ** 3:
@@ -184,7 +189,18 @@ def run_consul(conf, work_dir, config_file):
 
     command = " ".join(args)
     logging.info("Run: '{}'".format(command))
-    subprocess.call(args)
+
+    process = None
+
+    def handler(signum, frame):
+        if process:
+            process.send_signal(signum)
+
+    signal.signal(signal.SIGTERM, handler)
+
+    process = subprocess.Popen(args)
+
+    process.wait()
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

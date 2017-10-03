@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "__tty_alloc_driver": {
-        "comment": "Allocate tty driver",
+        "comment": "Allocate tty driver.",
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -145,6 +145,7 @@
     },
     "environment processes": {
       "tty_scenario": {
+        "comment": "Invoke tty callbacks",
         "labels": {
           "tty_port_operations": {
             "container": true,

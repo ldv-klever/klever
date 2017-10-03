@@ -1107,6 +1107,51 @@ $(document).ready(function () {
         });
     }
 
+    $('#upload_reports_popup').modal({transition: 'vertical flip'}).modal('attach events', '#upload_reports_modal_show', 'show');
+    $('#upload_reports_file_input').on('fileselect', function () {
+        $('#upload_reports_filename').html($('<span>', {text: $(this)[0].files[0].name}));
+    });
+    $('#upload_reports_cancel').click(function () {
+        var file_input = $('#upload_reports_file_input');
+        file_input.replaceWith(file_input.clone( true ));
+        $('#upload_reports_filename').empty();
+        $('#upload_reports_popup').modal('hide');
+    });
+    $('#upload_reports_start').click(function () {
+        var files = $('#upload_reports_file_input')[0].files,
+            data = new FormData();
+        if (files.length <= 0) {
+            err_notify($('#error__no_file_chosen').text());
+            return false;
+        }
+        data.append('archive', files[0]);
+        data.append('job_id', $('#job_pk').val());
+        $('#upload_reports_popup').modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        $.ajax({
+            url: job_ajax_url + 'upload_reports/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            mimeType: 'multipart/form-data',
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
+            success: function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                if ('error' in data) {
+                    err_notify(data['error']);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        });
+        return false;
+    });
+
     if ($('#job_data_div').length) {
         var num_of_updates = 0, is_filters_open = false, just_status = false, message_is_shown = false;
         $('#job_filters_accordion').accordion({

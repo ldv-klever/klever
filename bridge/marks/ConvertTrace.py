@@ -21,7 +21,7 @@ from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create, BridgeException
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, ErrorTraceForests
+from reports.etv import ErrorTraceForests
 from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
@@ -31,7 +31,6 @@ from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'call_forests'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
@@ -57,39 +56,28 @@ class ConvertTrace:
             raise BridgeException(_('Error trace convert function does not exist'))
         self.pattern_error_trace = func()
 
-    def call_stack(self):
+    def callback_call_forests(self):
         """
-This function is extracting the error trace call stack to first warning.
-Return list of lists of function names in json format.
-        """
-        return error_trace_callstack(self.error_trace)
-
-    def call_stack_tree(self):
-        """
-This function is extracting the error trace call stack tree.
-All its leaves are model functions.
-Return list of lists of levels of function names in json format.
-        """
-
-        return ErrorTraceCallstackTree(self.error_trace).trace
-
-    def call_forests(self):
-        """
-This function is extracting the error trace call stack "forests".
+This function is extracting the error trace call stack forests.
 The forest is a couple of call trees under callback action.
-Return list of forests.
+Call tree is tree of function names in their execution order.
+All its leaves are names of functions which calls or statements
+are marked with the "note" or "warn" attribute. Returns list of forests.
         """
 
-        return ErrorTraceForests(self.error_trace, False).trace
+        return ErrorTraceForests(self.error_trace).trace
 
-    def forests_callbacks(self):
+    def thread_call_forests(self):
         """
-This function is extracting the error trace call stack "forests".
-The forest is a couple of call trees under callback action.
-Return list of forests. These forests includes callback actions as leaves.
+This function extracts error trace call forests. Each call forest is one or more call trees in the same thread.
+A call tree is a tree of names of functions in their execution order. Each call tree root is either a callback action
+if it exists in a corresponding call stack or a thread function. All call tree leaves are names of functions
+which calls or statements are marked with the “note” or “warn” attribute. If there are several such functions in
+a call stack then the latests functions are chosen. The function returns a list of forests. A forests order corresponds
+to an execution order of first statements of forest threads.
         """
 
-        return ErrorTraceForests(self.error_trace, True).trace
+        return ErrorTraceForests(self.error_trace, all_threads=True).trace
 
 
 class GetConvertedErrorTrace:

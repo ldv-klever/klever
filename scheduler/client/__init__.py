@@ -24,7 +24,7 @@ import zipfile
 import shutil
 import re
 
-from utils import execute, process_task_results, submit_task_results
+from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
 from server.bridge import Server
 
 
@@ -102,16 +102,16 @@ def run_benchexec(mode, file=None, configuration=None):
             NotImplementedError("Provided mode {} is not supported by the client".format(mode))
 
         exit_code = solve(logger, conf, mode, server)
-        logger.info("Exiting with exit code {}".format(str(exit_code)))
     except:
         logger.warning(traceback.format_exc().rstrip())
-        exit_code = -1
+        exit_code = 1
     finally:
         if server:
             server.stop()
         if not isinstance(exit_code, int):
-            exit_code = -1
-        os._exit(int(exit_code))
+            exit_code = 1
+        logger.info("Exiting with exit code {}".format(str(exit_code)))
+        os._exit(exit_code)
 
 
 def solve(logger, conf, mode='job', server=None):
@@ -170,7 +170,7 @@ def solve_task(logger, conf, server):
         if not isinstance(exit_code, int):
             exit_code = 1
         server.stop()
-        os._exit(int(exit_code))
+        os._exit(exit_code)
 
     # Move tasks collected in container mode to expected place
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
@@ -249,12 +249,12 @@ def prepare_task_arguments(conf):
 
     if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
             conf['client']["benchexec measure disk"]:
-        args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
+        args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], 'MB')[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memorylimit', str(conf["resource limits"]['memory size']) + 'B'])
+        args.extend(['--memorylimit', memory_units_converter(conf["resource limits"]['memory size'], 'MB')[1]])
     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
+        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
@@ -285,12 +285,12 @@ def prepare_job_arguments(conf):
 
     if conf["resource limits"]["disk memory size"] and "runexec measure disk" in conf['client'] and \
             conf['client']["runexec measure disk"]:
-        args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
+        args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], "MB")[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memlimit', str(conf["resource limits"]['memory size']) + 'B'])
+        args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
+        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], "s")[1]])
 
     # Check container mode
     if "runexec container mode" in conf['client'] and conf['client']["runexec container mode"]:
@@ -343,20 +343,43 @@ def run(selflogger, args, conf, logger=None):
 
     selflogger.info("Start task execution with the following options: {}".format(str(args)))
     if logger:
-        return execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
+        ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
+        if ec != 0:
+            selflogger.info("BenchExec exited with non-zero exit code {}".format(ec))
+        return ec
     else:
-        with open('client-log.log', 'a', encoding="utf8") as fdo:
-            ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=fdo, stdout=fdo)
+        with open('client-log.log', 'a', encoding="utf8") as ste,\
+                open('runexec stdout.log', 'w', encoding="utf8") as sto:
+            ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=ste, stdout=sto)
 
         # Runexec prints its warnings and ordinary log to STDERR, thus lets try to find warnings there and move them
         # to critical log file
-        with open('client-log.log', encoding="utf8") as log:
-            for line in log.readlines():
-                # Warnings can be added to the file only from RunExec
-                if re.search(r'WARNING', line):
-                    selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
-                elif re.search(r'runexec: error: .*', line):
-                    selflogger.error(re.search(r'runexec: error: .*', line).group(0))
+        if os.path.isfile('client-log.log'):
+            with open('client-log.log', encoding="utf8") as log:
+                for line in log.readlines():
+                    # Warnings can be added to the file only from RunExec
+                    if re.search(r'WARNING', line):
+                        selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
+                    elif re.search(r'runexec: error: .*', line):
+                        selflogger.error(re.search(r'runexec: error: .*', line).group(0))
+
+        job_exit = None
+        if ec == 0 and os.path.isfile('runexec stdout.log'):
+            selflogger.info("Get return code of the job since runexec successfully exited")
+            with open('runexec stdout.log', 'r', encoding="utf8") as fp:
+                for line in fp.readlines():
+                    key, value = line.split('=')
+                    if key and value and key == 'exitcode':
+                        job_exit = int(value)
+                        if job_exit > 255:
+                            # Be cool as Unix is
+                            job_exit = job_exit >> 8
+                        break
+        if not os.path.isfile('runexec stdout.log') or job_exit is None:
+            selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
+            ec = 1
+        else:
+            ec = job_exit
 
         return ec
 

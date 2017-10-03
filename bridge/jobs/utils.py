@@ -140,6 +140,11 @@ class JobAccess(object):
             return False
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
+    def can_upload_reports(self):
+        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            return False
+        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+
     def can_view(self):
         if self.job is None:
             return False

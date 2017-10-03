@@ -30,23 +30,25 @@
     ],
     "service checks": [
       {
-        "id": "Klever Bridge",
+        "id": "klever",
         "name": "Klever Bridge on port 8998",
-        "http": "http://localhost:8998/",
+        "tcp": "localhost:8998",
         "interval": "10s",
         "timeout": "1s"
       }
     ],
     "setup GUI": true,
     "consul additional opts": [
+      "-advertise=127.0.0.1",
       "-bootstrap-expect=1",
-      "-log-level=debug",
+      "-log-level=info",
       "-server",
       "-retry-interval=30s"
     ],
     "consul additional configuration": {
       "disable_anonymous_signature": true,
-      "disable_update_check": true
+      "disable_update_check": true,
+      "enable_script_checks": true
     }
   },
   "node configuration": {

@@ -31,11 +31,13 @@ import core.utils
 import core.lkbce.utils
 
 
-def before_launch_sub_job_components(context):
+@core.utils.before_callback
+def __launch_sub_job_components(context):
     context.mqs['model headers'] = multiprocessing.Queue()
 
 
-def after_set_model_headers(context):
+@core.utils.after_callback
+def __set_model_headers(context):
     context.mqs['model headers'].put(context.model_headers)
 
 
@@ -80,6 +82,7 @@ class LKBCE(core.components.Component):
                                   'attrs': self.linux_kernel['attrs']
                               },
                               self.mqs['report files'],
+                              self.vals['report id'],
                               self.conf['main working directory'])
             # This file should be specified to collect build commands during configuring and building of the Linux
             # kernel.

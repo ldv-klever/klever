@@ -1,0 +1,64 @@
+{
+  "Klever": {
+    "version": "openstack-deployment",
+    "path": "."
+  },
+  "Klever Addons": {
+    "BenchExec": {
+      "version": "master",
+      "path": "../benchexec"
+    },
+    "CIF": {
+      "version": "58ca670",
+      "path": "addons/cif-58ca670"
+    },
+    "CIL": {
+      "version": "1.5.1-ldv",
+      "path": "addons/cil-1.5.1",
+      "executable path": "obj/x86_LINUX"
+    },
+    "Consul": {
+      "version": "0.8.3",
+      "path": "addons/consul"
+    },
+    "VerifierCloud Client": {
+      "version": "ldv-bam:25523",
+      "path": "addons/CPAchecker-1.6.1-svn c7ea2c1da3-unix/scripts/",
+      "executable path": "benchmark"
+    },
+    "Verification Backends": {
+      "CPAchecker LDV BAM": {
+        "name": "CPAchecker",
+        "version": "ldv-bam:25523",
+        "path": "addons/CPAchecker-1.6.1-svn c7ea2c1da3-unix",
+        "executable path": "scripts"
+      },
+      "CPAchecker LDV SMG": {
+        "name": "CPAchecker",
+        "version": "smg_witness_for_ldv:25566",
+        "path": "addons/CPAchecker-1.6.1-svn 3aa1881d05-unix",
+        "executable path": "scripts"
+      },
+      "CPAlocator": {
+        "name": "CPAchecker",
+        "version": "CPALockator:24629",
+        "path": "addons/CPAchecker-1.6.1-svn b9e3664606-unix",
+        "executable path": "scripts"
+      }
+    }
+  },
+  "Programs": {
+    "linux-3.14": {
+      "version": "3.14",
+      "path": "programs/linux-3.14.tar.xz"
+    },
+    "linux-4.2.6": {
+      "version": "4.2.6",
+      "path": "programs/linux-4.2.6"
+    },
+    "linux-stable": {
+      "version": "master",
+      "path": "programs/linux-stable"
+    }
+  }
+}

@@ -11,29 +11,24 @@
             <div class="ten wide column">
                 <div class="ui horizontal segments">
                     <div class="ui segment" style="max-width: 50%;">
-                        <div class="ui top attached teal label">{% trans 'Error traces conversion function' %}</div>
-                        <div>
-                            <label for="convert_function"></label>
-                            <select id="convert_function" class="ui dropdown">
-                                {% for f in markdata.convertion %}
-                                    <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="ui divider"></div>
-                            <p id="convert_function_description" class="filecontent" style="margin: 0">{{ markdata.convert_desc }}</p>
-                        </div>
-                    </div>
-                    <div class="ui segment" style="max-width: 50%;">
                         <div class="ui top attached teal label">{% trans 'Error traces comparison function' %}</div>
                         <div>
                             <label for="compare_function"></label>
                             <select id="compare_function" class="ui dropdown">
                                 {% for f in markdata.comparison %}
-                                    <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
+                                    <option value="{{ f.id }}"{% if f.id == markdata.selected_func.id %} selected{% endif %}>{{ f.name }}</option>
                                 {% endfor %}
                             </select>
                             <div class="ui divider"></div>
-                            <p id="compare_function_description" class="filecontent" style="margin: 0">{{ markdata.compare_desc }}</p>
+                            <p id="compare_function_description" class="func-description" style="margin: 0">{{ markdata.selected_func.description }}</p>
+                        </div>
+                    </div>
+                    <div class="ui segment" style="max-width: 50%;">
+                        <div class="ui top attached teal label">{% trans 'Error traces conversion function' %}</div>
+                        <div>
+                            <p id="convert_function_name" class="bold-text">{{ markdata.selected_func.convert.name }}</p>
+                            <div class="ui divider"></div>
+                            <p id="convert_function_description" class="func-description" style="margin: 0">{{ markdata.selected_func.convert.description }}</p>
                         </div>
                     </div>
                 </div>

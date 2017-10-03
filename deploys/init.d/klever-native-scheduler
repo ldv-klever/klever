@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+### BEGIN INIT INFO
+# Provides:          klever-native-scheduler
+# Required-Start:    klever-controller klever-bridge
+# Required-Stop:     klever-controller klever-bridge
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Klever host scheduler
+# Description:       Klever Native Scheduler executes both verification jobs and verification tasks on a given host
+### END INIT INFO
+
+DESC="Klever Native Scheduler"
+NAME=klever-native-scheduler
+DAEMON=/home/debian/klever/scheduler/bin/native-scheduler
+PIDFILE=/var/run/"$NAME".pid
+SCRIPTNAME=/etc/init.d/"$NAME"
+WORKDIR=/home/debian/klever-programs
+CONFFILE=/home/debian/klever-conf/native-scheduler.json
+USER=klever
+GROUP=klever
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting $DESC"
+        if [ -s ${PIDFILE} ] && kill -0 $(cat ${PIDFILE}) >/dev/null 2>&1; then
+            log_progress_msg "apparently already running"
+            log_end_msg 0
+            exit 0
+        fi
+
+        # Enable control groups access each time when (re)starting Native Scheduler.
+        chmod o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
+
+        export KLEVER_WORK_DIR=${WORKDIR}
+        if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
+            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+        then
+            rc=0
+            sleep 1
+            if ! kill -0 $(cat ${PIDFILE}) >/dev/null 2>&1; then
+                log_failure_msg "$DESC failed to start"
+                rc=1
+            fi
+        else
+            rc=1
+        fi
+        if [ ${rc} -eq 0 ]; then
+            log_end_msg 0
+        else
+            log_end_msg 1
+            rm -f ${PIDFILE}
+        fi
+        ;;
+    stop)
+        log_daemon_msg "Stopping $DESC"
+        start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
+        log_end_msg $?
+        rm -f ${PIDFILE}
+        ;;
+    *)
+        log_action_msg "Usage: $SCRIPTNAME {start|stop}"
+        exit 2
+        ;;
+esac
+
+exit 0

@@ -107,6 +107,9 @@ def common_initialization(tool, conf=None):
     # Prepare working directory
     if "working directory" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''working directory'")
+    else:
+        conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
+
     if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
         logging.info("Keep working directory from the previous run")
     else:
@@ -123,6 +126,11 @@ def common_initialization(tool, conf=None):
     if "logging" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
     logging.config.dictConfig(conf["common"]['logging'])
+
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_exception
 
     return conf
 
@@ -227,7 +235,7 @@ def dir_size(dir):
     except ValueError as e:
         # One of the files inside the dir has been removed. We should delete the warning message.
         splts = output.split('\n')
-        if len(splts < 2):
+        if len(splts) < 2:
             # Can not delete the warning message
             raise e
         else:
@@ -267,28 +275,37 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
             return True
 
     def handler(arg1, arg2):
+        def terminate():
+            print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
+            os._exit(-1)
+
         # Repeate until it dies
         if p and p.pid:
             pid = p.pid
             print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
             # Sent initial signals
-            os.kill(pid, signal.SIGINT)
+            try:
+                os.kill(pid, signal.SIGINT)
+            except ProcessLookupError:
+                terminate()
             restore_handlers()
 
             try:
                 # Try to wait - it helps if a process is waiting for something, we need to check its status
-                p.wait(timeout=5)
+                p.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 print('{}: Process {} is still alive ...'.format(os.getpid(), pid), file=sys.stderr)
                 # Lets try it again
-                os.killpg(os.getpgid(pid), signal.SIGTERM)
-                os.killpg(os.getpgid(pid), signal.SIGINT)
-                os.kill(pid, signal.SIGKILL)
+                try:
+                    os.killpg(os.getpgid(pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(pid), signal.SIGINT)
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    terminate()
                 # It should not survive after kill, lets wait a couple of seconds
                 time.sleep(10)
 
-        print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
-        os._exit(-1)
+        terminate()
 
     def set_handlers():
         signal.signal(signal.SIGTERM, handler)
@@ -296,18 +313,21 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
 
     def disk_controller(pid, limitation, period):
         while process_alive(pid):
-            size = dir_size("./")
-            if size > limitation:
+            s = dir_size("./")
+            if s > limitation:
                 # Kill the process
                 print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
-                os.kill(p.pid, signal.SIGINT)
+                os.kill(pid, signal.SIGINT)
             time.sleep(period)
         os._exit(0)
 
     def activate_disk_limitation(pid, limitation):
         if limitation:
-            p = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
-            p.start()
+            checker = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
+            checker.start()
+            return checker
+        else:
+            return None
 
     set_handlers()
     cmd = args[0]
@@ -321,7 +341,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                                                   ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
         p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
-        activate_disk_limitation(p.pid, disk_limitation)
+        disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
         err_q = StreamQueue(p.stderr, 'STDERR', True)
         err_q.start()
@@ -346,18 +366,17 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                 m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
                 logger.warning(m)
 
-        p.poll()
         err_q.join()
     else:
         p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout)
-        activate_disk_limitation(p.pid, disk_limitation)
-        try:
-            p.wait()
-        except OSError:
-            p.kill()
+        disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
+    p.wait()
+    if disk_checker:
+        disk_checker.join()
     restore_handlers()
 
+    # Check dir size after a stop
     if disk_limitation:
         size = dir_size("./")
         if size >= disk_limitation:
@@ -427,12 +446,14 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
 
     results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
-    with zipfile.ZipFile(results_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-        zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
-        for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
-            for filename in filenames:
-                zfp.write(os.path.join(dirpath, filename),
-                          os.path.join(os.path.relpath(dirpath, solution_path), filename))
+    with open(results_archive, mode='w+b', buffering=0) as fp:
+        with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+            zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
+            for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
+                for filename in filenames:
+                    zfp.write(os.path.join(dirpath, filename),
+                              os.path.join(os.path.relpath(dirpath, solution_path), filename))
+            os.fsync(zfp.fp)
 
     server.submit_solution(identifier, decision_results, results_archive)
 
@@ -460,5 +481,90 @@ def extract_cpu_cores_info():
                     data[pc] = [current_vc]
 
     return data
+
+
+def __converter(value, table, kind, outunit):
+    """
+    Converts units to uits.
+
+    :param value: Given value as an integer, float or a string with units or without them.
+    :param table: Table to translate units.
+    :param kind: Time of units to print errors.
+    :param outunit: Desired output unit, '' - means base.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    if isinstance(value, str):
+        regex = re.compile("([0-9.]+)([a-zA-Z]*)$")
+        if not regex.search(value):
+            raise ValueError("Cannot parse string to extract the value and units: {!r}".format(value))
+        else:
+            value, inunit = regex.search(value).groups()
+    else:
+        inunit = ''
+    # Check values
+    for v in (inunit, outunit):
+        if v not in table:
+            raise ValueError("Get unknown {} unit {!r}".format(kind, v))
+
+    # Get number and get bytes
+    value_in_base = float(value) * table[inunit]
+
+    # Than convert bytes into desired value
+    value_in_out = value_in_base / table[outunit]
+
+    # Align if necessary
+    if outunit != '':
+        fvalue = round(float(value_in_out), 2)
+        ivalue = int(round(float(value_in_out), 0))
+        if abs(fvalue - ivalue) < 0.1:
+            value_in_out = ivalue
+        else:
+            value_in_out = fvalue
+    else:
+        value_in_out = int(value_in_out)
+
+    return value_in_out, "{}{}".format(value_in_out, outunit)
+
+
+def memory_units_converter(num, outunit=''):
+    """
+    Translate memory units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means Bytes.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_bytes = {
+        '': 1,
+        "B": 1,
+        "KB": 10 ** 3,
+        "MB": 10 ** 6,
+        "GB": 10 ** 9,
+        "TB": 10 ** 12,
+        "KiB": 2 ** 10,
+        "MiB": 2 ** 20,
+        "GiB": 2 ** 30,
+        "TiB": 2 ** 40,
+    }
+
+    return __converter(num, units_in_bytes, 'memory', outunit)
+
+
+def time_units_converter(num, outunit=''):
+    """
+    Translate time units.
+
+    :param num: Given value as an integer, float or a string with units or without them.
+    :param outunit: Desired output unit, '' - means seconds.
+    :return: Return the obtained value and the string of the value with units.
+    """
+    units_in_seconds = {
+        '': 1,
+        "s": 1,
+        "min": 60,
+        "h": 60 ** 2
+    }
+
+    return __converter(num, units_in_seconds, 'time', outunit)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

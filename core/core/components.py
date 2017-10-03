@@ -20,6 +20,7 @@ import json
 import multiprocessing
 import os
 import signal
+import sys
 import time
 import traceback
 import types
@@ -32,8 +33,8 @@ class ComponentError(ChildProcessError):
 
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -45,8 +46,8 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.callbacks = callbacks
         self.mqs = mqs
         self.locks = locks
+        self.vals = vals
         self.attrs = attrs
-        self.unknown_attrs = unknown_attrs
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
 
@@ -70,7 +71,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
 
     def main(self):
         self.logger.error('I forgot to define main function!')
-        exit(1)
+        sys.exit(1)
 
     def run(self):
         # Remember approximate time of start to count wall time.
@@ -111,6 +112,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                   'start',
                                   report,
                                   self.mqs['report files'],
+                                  self.vals['report id'],
                                   self.conf['main working directory'])
 
             self.main()
@@ -133,18 +135,16 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
-                    report = {
-                        'id': self.id + '/unknown',
-                        'parent id': self.id,
-                        'problem desc': 'problem desc.txt',
-                        'files': ['problem desc.txt']
-                    }
-                    if self.unknown_attrs:
-                        report.update({'attrs': self.unknown_attrs})
                     core.utils.report(self.logger,
                                       'unknown',
-                                      report,
+                                      {
+                                          'id': self.id + '/unknown',
+                                          'parent id': self.id,
+                                          'problem desc': 'problem desc.txt',
+                                          'files': ['problem desc.txt']
+                                      },
                                       self.mqs['report files'],
+                                      self.vals['report id'],
                                       self.conf['main working directory'])
 
                 all_child_resources = {}
@@ -168,6 +168,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                                (['log.txt'] if os.path.isfile('log.txt') else [])
                                   },
                                   self.mqs['report files'],
+                                  self.vals['report id'],
                                   self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
@@ -238,13 +239,18 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:
-            for subcomponent in subcomponents:
-                subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
-                setattr(subcomponent_class, 'main', subcomponent[1])
-                # Do not try to separate these subcomponents from their parents - it is a true headache.
-                # We always include child resources into resources of these components since otherwise they will
-                # disappear from resources statistics.
-                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+            for index, subcomponent in enumerate(subcomponents):
+                if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
+                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0] + str(index),
+                                                         (type(self),))
+                    setattr(subcomponent_class, 'main', subcomponent[1])
+                    # Do not try to separate these subcomponents from their parents - it is a true headache.
+                    # We always include child resources into resources of these components since otherwise they will
+                    # disappear from resources statistics.
+                else:
+                    subcomponent_class = types.new_class('KleverSubcomponent' + str(subcomponent.__name__) + str(index),
+                                                         (subcomponent,))
+                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
                                        include_child_resources=True)
                 p.start()
                 subcomponent_processes.append(p)

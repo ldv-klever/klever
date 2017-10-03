@@ -231,7 +231,9 @@ class ParseErrorTrace:
         line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
         if 'enter' in edge:
-            line_data.update(self.__enter_function(edge['enter'], line_data['code']))
+            line_data.update(self.__enter_function(
+                edge['enter'], code=line_data['code'], comment=edge.get('entry_point')
+            ))
             if any(x in edge for x in ['note', 'warn']):
                 self.scope.hide_current_scope()
             if 'return' in edge:
@@ -274,11 +276,16 @@ class ParseErrorTrace:
         self.lines.append(enter_action_data)
         return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_function(self, func_id, code=None):
+    def __enter_function(self, func_id, code=None, comment=None):
         self.scope.add(func_id, self.thread_id, (code is None))
         enter_data = {'type': 'enter', 'hide_id': self.scope.current()}
         if code is not None:
-            enter_data['func'] = self.functions[func_id]
+            if comment is None:
+                enter_data['comment'] = self.functions[func_id]
+                enter_data['comment_class'] = 'ETV_Fname'
+            else:
+                enter_data['comment'] = comment
+                enter_data['comment_class'] = 'ETV_Fcomment'
             enter_data['code'] = re.sub(
                 '(^|\W)' + self.functions[func_id] + '(\W|$)',
                 '\g<1><span class="ETV_Fname">' + self.functions[func_id] + '</span>\g<2>',
@@ -296,13 +303,18 @@ class ParseErrorTrace:
             data['code'] = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
         return data
 
-    def __return(self, func_id=None):
+    def __return(self, func_id=None, if_possible=False):
         if self.scope.current_action():
             # Return from action first
             self.lines.append(self.__triangle_line(self.scope.remove()))
         if not self.scope.is_return_correct(func_id):
+            if if_possible:
+                return
+            func_name = 'NONE'
+            if func_id is not None:
+                func_name = self.functions[func_id]
             raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                self.functions[func_id], self.scope.current()
+                func_name, self.scope.current()
             ))
         return_scope = self.scope.remove()
         self.lines.append(self.__triangle_line(return_scope))
@@ -312,7 +324,7 @@ class ParseErrorTrace:
 
     def __return_all(self):
         while self.scope.can_return():
-            self.__return()
+            self.__return(if_possible=True)
 
     def __get_comment(self, note, warn):
         new_data = {}
@@ -387,8 +399,10 @@ class ParseErrorTrace:
                     self.lines[i]['type'] = 'eye-control'
                 elif self.lines[i]['type'] == 'enter' and not self.scope.is_shown(self.lines[i]['hide_id']):
                     self.lines[i]['type'] = 'eye-control'
-                    if 'func' in self.lines[i]:
-                        del self.lines[i]['func']
+                    if 'comment' in self.lines[i]:
+                        del self.lines[i]['comment']
+                    if 'comment_class' in self.lines[i]:
+                        del self.lines[i]['comment_class']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = not self.scope.is_shown(self.lines[i]['scope'])
@@ -639,86 +653,12 @@ class GetSource:
         pass
 
 
-def is_tag(tag, name):
-    return bool(re.match('^({.*})*' + name + '$', tag))
-
-
-# Returns json serializable data in case of success or Exception
-def error_trace_callstack(error_trace):
-    data = json.loads(error_trace)
-    call_stack = []
-    for edge_id in get_error_trace_nodes(data):
-        edge_data = data['edges'][edge_id]
-        if 'enter' in edge_data:
-            call_stack.append(data['funcs'][edge_data['enter']])
-        if 'return' in edge_data:
-            call_stack.pop()
-        if 'warn' in edge_data:
-            break
-    return call_stack
-
-
-class ErrorTraceCallstackTree:
-    def __init__(self, error_trace):
-        self.data = json.loads(error_trace)
-        self.trace = self.__get_tree(get_error_trace_nodes(self.data))
-
-    def __get_tree(self, edge_trace):
-        tree = []
-        call_level = 0
-        call_stack = []
-        model_functions = []
-        for edge_id in edge_trace:
-            edge_data = self.data['edges'][edge_id]
-            if 'enter' in edge_data:
-                call_stack.append(self.data['funcs'][edge_data['enter']])
-                call_level += 1
-                while len(tree) <= call_level:
-                    tree.append([])
-                if 'note' in edge_data:
-                    model_functions.append(self.data['funcs'][edge_data['enter']])
-                tree[call_level].append({
-                    'name': self.data['funcs'][edge_data['enter']],
-                    'parent': call_stack[-2] if len(call_stack) > 1 else None
-                })
-            if 'return' in edge_data:
-                call_stack.pop()
-                call_level -= 1
-
-        def not_model_leaf(ii, jj):
-            if tree[ii][jj]['name'] in model_functions:
-                return False
-            elif len(tree) > ii + 1:
-                for ch_j in range(0, len(tree[ii + 1])):
-                    if tree[ii + 1][ch_j]['parent'] == tree[ii][jj]['name']:
-                        return False
-            return True
-
-        for i in reversed(range(0, len(tree))):
-            new_level = []
-            for j in range(0, len(tree[i])):
-                if not not_model_leaf(i, j):
-                    new_level.append(tree[i][j])
-            if len(new_level) == 0:
-                del tree[i]
-            else:
-                tree[i] = new_level
-        just_names = []
-        for level in tree:
-            new_level = []
-            for f_data in level:
-                new_level.append(f_data['name'])
-            just_names.append(' '.join(sorted(str(x) for x in new_level)))
-        return just_names
-
-
 class Forest:
     def __init__(self):
         self._cnt = 1
         self._level = 0
         self.call_stack = []
         self._forest = []
-        self._model_functions = set()
 
     def scope(self):
         return self.call_stack[-1] if len(self.call_stack) > 0 else None
@@ -729,17 +669,20 @@ class Forest:
         new_scope = '%s__%s' % (self._cnt, func_name)
         self._forest[self._level].append({
             'name': new_scope,
-            'parent': self.scope()
+            'parent': self.scope(),
+            'model': is_model
         })
-        if is_model:
-            self._model_functions.add(new_scope)
         self.call_stack.append(new_scope)
         self._level += 1
         self._cnt += 1
 
     def mark_current_scope(self):
-        if len(self.call_stack) > 0:
-            self._model_functions.add(self.call_stack[-1])
+        if self._level < 1:
+            return
+        for i in range(len(self._forest[self._level - 1])):
+            if self._forest[self._level - 1][i]['name'] == self.call_stack[-1]:
+                self._forest[self._level - 1][i]['model'] = True
+                break
 
     def return_from_func(self):
         self._level -= 1
@@ -749,15 +692,24 @@ class Forest:
         self.__exclude_functions()
         if len(self._forest) == 0:
             return None
-        final_forest = self.__convert_forest_3()
+        final_forest = self.__convert_forest()
         self.__init__()
         return final_forest
 
+    def add_note(self, note):
+        while len(self._forest) <= self._level:
+            self._forest.append([])
+        self._forest[self._level].append({
+            'name': note,
+            'parent': self.scope(),
+            'model': True
+        })
+
     def __not_model_leaf(self, i, j):
-        if self._forest[i][j]['name'] in self._model_functions:
+        if self._forest[i][j]['model']:
             return False
         elif len(self._forest) > i + 1:
-            for ch_j in range(0, len(self._forest[i + 1])):
+            for ch_j in range(len(self._forest[i + 1])):
                 if self._forest[i + 1][ch_j]['parent'] == self._forest[i][j]['name']:
                     return False
         return True
@@ -773,69 +725,29 @@ class Forest:
             else:
                 self._forest[i] = new_level
 
-    def __get_children_1(self, lvl, j):
-        children = []
-        if len(self._forest) > lvl + 1:
-            for ch_j in range(0, len(self._forest[lvl + 1])):
-                if self._forest[lvl + 1][ch_j]['parent'] == self._forest[lvl][j]['name']:
-                    children.append([
-                        re.sub('^\d+__', '', self._forest[lvl + 1][ch_j]['name']),
-                        self.__get_children_1(lvl + 1, ch_j)
-                    ])
-        return children
-
-    def __get_children_2(self, lvl, j):
-        children = ''
-        if len(self._forest) > lvl + 1:
-            for ch_j in range(0, len(self._forest[lvl + 1])):
-                if self._forest[lvl + 1][ch_j]['parent'] == self._forest[lvl][j]['name']:
-                    children += '%s{%s}' % (
-                        re.sub('^\d+__', '', self._forest[lvl + 1][ch_j]['name']),
-                        self.__get_children_2(lvl + 1, ch_j)
-                    )
-        return children
-
-    def __get_children_3(self, lvl, j):
+    def __get_children(self, lvl, j):
         children = []
         if len(self._forest) > lvl + 1:
             for ch_j in range(0, len(self._forest[lvl + 1])):
                 if self._forest[lvl + 1][ch_j]['parent'] == self._forest[lvl][j]['name']:
                     children.append({
-                        re.sub('^\d+__', '', self._forest[lvl + 1][ch_j]['name']): self.__get_children_3(lvl + 1, ch_j)
+                        re.sub('^\d+__', '', self._forest[lvl + 1][ch_j]['name']): self.__get_children(lvl + 1, ch_j)
                     })
         return children
 
-    def __convert_forest_1(self):
-        final_forest = []
-        for j in range(len(self._forest[0])):
-            final_forest.append([
-                re.sub('^\d+__', '', self._forest[0][j]['name']),
-                self.__get_children_1(0, j)
-            ])
-        return final_forest
-
-    def __convert_forest_2(self):
-        final_forest = ''
-        for j in range(len(self._forest[0])):
-            final_forest += '%s{%s}' % (
-                re.sub('^\d+__', '', self._forest[0][j]['name']),
-                self.__get_children_2(0, j)
-            )
-        return final_forest
-
-    def __convert_forest_3(self):
+    def __convert_forest(self):
         final_forest = []
         for j in range(len(self._forest[0])):
             final_forest.append({
-                re.sub('^\d+__', '', self._forest[0][j]['name']): self.__get_children_3(0, j)
+                re.sub('^\d+__', '', self._forest[0][j]['name']): self.__get_children(0, j)
             })
         return final_forest
 
 
 class ErrorTraceForests:
-    def __init__(self, error_trace, with_callbacks=False):
+    def __init__(self, error_trace, all_threads=False):
         self.data = json.loads(error_trace)
-        self.with_callbcaks = with_callbacks
+        self.all_threads = all_threads
         self.trace = self.__get_forests(get_error_trace_nodes(self.data))
 
     def __get_forests(self, edge_trace):
@@ -849,11 +761,15 @@ class ErrorTraceForests:
                 threads[self.data['edges'][edge_id]['thread']] = []
             threads[self.data['edges'][edge_id]['thread']].append(edge_id)
         forests = []
-        for t in thread_order:
-            forests.extend(self.__get_thread_forests(threads[t]))
+        if self.all_threads:
+            for t in thread_order:
+                forests.extend(self.__collect_forests(threads[t]))
+        else:
+            for t in thread_order:
+                forests.extend(self.__get_callback_forests(threads[t]))
         return forests
 
-    def __get_thread_forests(self, edge_trace):
+    def __get_callback_forests(self, edge_trace):
         forests = []
         forest = Forest()
         collect_names = False
@@ -873,9 +789,6 @@ class ErrorTraceForests:
             if collect_names:
                 is_model = 'note' in edge_data or 'warn' in edge_data
                 if 'enter' in edge_data:
-                    if self.with_callbcaks and 'action' in edge_data \
-                            and edge_data['action'] in self.data['callback actions']:
-                        is_model = True
                     forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
                     if 'return' in edge_data:
                         if edge_data['enter'] == edge_data['return']:
@@ -898,6 +811,80 @@ class ErrorTraceForests:
                 forests.append(curr_forest)
         return forests
 
+    def __collect_forests(self, edge_trace):
+        forests = []
+        forest = {'full': Forest(), 'callback': Forest()}
+        fname = 'full'
+        curr_action = -1
+        double_return = set()
+        for edge_id in edge_trace:
+            edge_data = self.data['edges'][edge_id]
+            if fname == 'callback' and len(forest['callback'].call_stack) == 0 \
+                    and edge_data.get('action', -1) != curr_action:
+                curr_action = -1
+                curr_forest = forest['callback'].get_forest()
+                if curr_forest is not None:
+                    forests.append(curr_forest)
+                fname = 'full'
+            if curr_action == -1 and 'action' in edge_data and edge_data['action'] in self.data['callback actions']:
+                fname = 'callback'
+                curr_action = edge_data['action']
+
+            is_model = 'note' in edge_data or 'warn' in edge_data
+            if 'enter' in edge_data:
+                forest[fname].enter_func(self.data['funcs'][edge_data['enter']], is_model)
+                if 'return' in edge_data:
+                    if edge_data['enter'] == edge_data['return']:
+                        forest[fname].return_from_func()
+                    else:
+                        double_return.add(forest[fname].scope())
+            elif 'return' in edge_data:
+                old_scope = forest[fname].scope()
+                forest[fname].return_from_func()
+                while old_scope in double_return:
+                    double_return.remove(old_scope)
+                    old_scope = forest[fname].scope()
+                    forest[fname].return_from_func()
+            elif is_model:
+                forest[fname].mark_current_scope()
+
+        if fname == 'callback':
+            curr_forest = forest['callback'].get_forest()
+            if curr_forest is not None:
+                forests.append(curr_forest)
+        curr_forest = forest['full'].get_forest()
+        if curr_forest is not None:
+            forests.append(curr_forest)
+        return forests
+
+    def __get_thread_forest(self, edge_trace):
+        forest = Forest()
+        double_return = set()
+        for edge_id in edge_trace:
+            edge_data = self.data['edges'][edge_id]
+            is_model = 'note' in edge_data or 'warn' in edge_data
+            if 'enter' in edge_data:
+                forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
+                if 'return' in edge_data:
+                    if edge_data['enter'] == edge_data['return']:
+                        forest.return_from_func()
+                    else:
+                        double_return.add(forest.scope())
+            elif 'return' in edge_data:
+                old_scope = forest.scope()
+                forest.return_from_func()
+                while old_scope in double_return:
+                    double_return.remove(old_scope)
+                    old_scope = forest.scope()
+                    forest.return_from_func()
+            elif is_model:
+                forest.mark_current_scope()
+
+        curr_forest = forest.get_forest()
+        if curr_forest is not None and len(curr_forest) > 0:
+            return curr_forest
+        return []
+
 
 def etv_callstack(unsafe_id=None, file_name='test.txt'):
     if unsafe_id:
@@ -911,16 +898,24 @@ def etv_callstack(unsafe_id=None, file_name='test.txt'):
     ind = 0
     for x in data['edges']:
         if 'enter' in x:
-            trace += '%s%s {\n' % (' ' * ind, data['funcs'][x['enter']])
+            if 'action' in x:
+                trace += '%s%s(%s)[action_%s] {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'], x['action'])
+            else:
+                trace += '%s%s(%s) {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'])
             ind += 2
             if 'return' in x:
                 double_returns.add(x['enter'])
         elif 'return' in x:
             ind -= 2
-            trace += '%s}\n' % (' ' * ind)
+            if 'action' in x:
+                trace += '%s}(%s)[action_%s]\n' % (' ' * ind, x['return'], x['action'])
+            else:
+                trace += '%s}(%s)\n' % (' ' * ind, x['return'])
             if x['return'] in double_returns:
                 ind -= 2
-                trace += '%s}\n' % (' ' * ind)
+                trace += '%s}(DOUBLE)\n' % (' ' * ind)
                 double_returns.remove(x['return'])
+        elif 'action' in x:
+            trace += '%sACTION(%s)\n' % (' ' * ind, x['action'])
     with open(file_name, mode='w', encoding='utf8') as fp:
         fp.write(trace)

@@ -52,7 +52,7 @@ def executor(timeout, args):
 
     # Be sure that process will exit
     if not isinstance(ec, int):
-        ec = -1
+        ec = 1
     os._exit(int(ec))
 
 

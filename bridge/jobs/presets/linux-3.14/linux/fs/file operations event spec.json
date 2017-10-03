@@ -174,7 +174,7 @@
     },
     "environment processes": {
       "character_driver_scenario": {
-        "comment": "Character driver scenario.",
+        "comment": "Invoke file_operations callbacks.",
         "headers": [
           "linux/fs.h",
           "linux/pagemap.h",

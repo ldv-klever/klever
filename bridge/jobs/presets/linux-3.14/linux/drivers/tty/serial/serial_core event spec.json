@@ -80,7 +80,7 @@
     },
     "environment processes": {
       "uart_instance": {
-        "comment": "",
+        "comment": "Invoke uart operations callbacks.",
         "labels": {
           "uart_port": {
             "container": true,
@@ -394,7 +394,7 @@
     },
     "environment processes": {
       "uart_instance": {
-        "comment": "",
+        "comment": "Invoke uart callbacks.",
         "labels": {
           "uart_port": {
             "container": true,

@@ -18,6 +18,15 @@
 import logging
 import requests
 import time
+import zipfile
+
+
+class UnexpectedStatusCode(IOError):
+    pass
+
+
+class BridgeError(IOError):
+    pass
 
 
 class Session:
@@ -44,7 +53,6 @@ class Session:
         parameters["password"] = password
 
         # Sign in.
-        # TODO: Replace with proper signin
         self.__request('users/service_signin/', 'POST', parameters)
         logging.debug('Session was created')
 
@@ -75,12 +83,16 @@ class Session:
                 if resp.status_code != 200:
                     with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
-                    raise IOError(
-                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
+                    status_code = resp.status_code
+                    resp.close()
+                    raise UnexpectedStatusCode(
+                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
                                                                                                    method, url))
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    raise IOError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+                    self.error = resp.json()['error']
+                    resp.close()
+                    raise BridgeError(
+                        'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
 
                 return resp
             except requests.ConnectionError as err:
@@ -88,15 +100,41 @@ class Session:
                 time.sleep(1)
 
     def get_archive(self, endpoint, data, archive):
-        resp = self.__request(endpoint, 'POST', data, stream=True)
+        while True:
+            resp = None
+            try:
+                resp = self.__request(endpoint, 'POST', data, stream=True)
 
-        logging.debug('Write an archive to {}'.format(archive))
-        with open(archive, 'wb') as fp:
-            for chunk in resp.iter_content(1024):
-                fp.write(chunk)
+                logging.debug('Write archive to {}'.format(archive))
+                with open(archive, 'wb') as fp:
+                    for chunk in resp.iter_content(1024):
+                        fp.write(chunk)
+
+                if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
+                    logging.debug('Could not download ZIP archive')
+                else:
+                    break
+            finally:
+                if resp:
+                    resp.close()
 
     def push_archive(self, endpoint, data, archive):
-        self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb')})
+        while True:
+            resp = None
+            try:
+                resp = self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb', buffering=0)},
+                                      stream=True)
+                break
+            except BridgeError:
+                if self.error == 'ZIP error':
+                    logging.debug('Could not upload ZIP archive')
+                    self.error = None
+                    time.sleep(1)
+                else:
+                    raise
+            finally:
+                if resp:
+                    resp.close()
 
     def json_exchange(self, endpoint, json_data):
         response = self.__request(endpoint, 'POST', json_data)

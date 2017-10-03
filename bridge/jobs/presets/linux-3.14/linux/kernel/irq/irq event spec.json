@@ -320,6 +320,7 @@
     },
     "environment processes": {
       "interrupt_scenario": {
+        "comment": "Handle an interrupt.",
         "headers": ["linux/interrupt.h"],
         "labels": {
           "thread": {

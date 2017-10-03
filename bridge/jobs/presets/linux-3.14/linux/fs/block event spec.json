@@ -68,7 +68,7 @@
     },
     "environment processes": {
       "block_scenario": {
-        "comment": "Block device operations scenario.",
+        "comment": "Invoke Block device operations callbacks.",
         "labels": {
           "disk": {
             "container": true,
