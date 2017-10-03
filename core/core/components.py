@@ -162,8 +162,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                           self.start_time,
                                           self.include_child_resources,
                                           all_child_resources),
-                                      'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None,
-                                      'desc': core.utils.ReportFiles(['desc.txt']) if os.path.isfile('desct.xt') else None
+                                      'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
