@@ -260,9 +260,8 @@ class Core(core.utils.CallbacksCaller):
 
                 self.logger.debug('Upload report file "{0}"{1}'.format(
                     report_file,
-                    ' with report file archives:\n{0}'.format(
-                        '\n'.join(['  {0}'.format(archive_name)
-                                   for archive_name in report_file_archives]))
+                    ' with report file archives:\n{0}'
+                    .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
                     if report_file_archives else ''))
 
                 self.session.upload_report(report_file, report_file_archives)

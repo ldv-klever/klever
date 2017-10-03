@@ -569,12 +569,12 @@ class ReportFiles:
     def __init__(self, files, arcnames={}):
         self.files = files
         self.arcnames = arcnames
-        self.archive_name = None
+        self.archive = None
 
     def make_archive(self):
-        fp, self.archive_name = tempfile.mkstemp(suffix='.zip', dir='.')
+        fp, self.archive = tempfile.mkstemp(suffix='.zip', dir='.')
 
-        with open(self.archive_name, mode='w+b', buffering=0) as f:
+        with open(self.archive, mode='w+b', buffering=0) as f:
             with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
                 for file in self.files:
                     arcname = self.arcnames.get(file, None)
@@ -586,7 +586,7 @@ class ReportFiles:
 class ExtendedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, ReportFiles):
-            return os.path.basename(obj.archive_name)
+            return os.path.basename(obj.archive)
 
         return json.JSONEncoder.default(self, obj)
 
