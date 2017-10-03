@@ -571,8 +571,8 @@ class ReportFiles:
         self.arcnames = arcnames
         self.archive = None
 
-    def make_archive(self):
-        fp, self.archive = tempfile.mkstemp(suffix='.zip', dir='.')
+    def make_archive(self, directory, prefix):
+        fp, self.archive = tempfile.mkstemp(prefix=prefix, suffix='.zip', dir=directory)
 
         with open(self.archive, mode='w+b', buffering=0) as f:
             with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
@@ -618,6 +618,10 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
+    with report_id.get_lock():
+        cur_report_id = report_id.value
+        report_id.value += 1
+
     archives = []
     process_queue = [report_data]
     while process_queue:
@@ -627,12 +631,15 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
         elif isinstance(elem, ReportFiles):
-            elem.make_archive()
-            archives.append(elem.archive_name)
+            elem.make_archive(directory=os.path.join(directory, 'reports'), prefix='{0}-'.format(cur_report_id))
 
-    with report_id.get_lock():
-        cur_report_id = report_id.value
-        report_id.value += 1
+            # Create symlink to report files archive in current working directory.
+            tmp_name = os.path.splitext('-'.join(os.path.relpath(elem.archive).split('-')[1:]))[0]
+            cwd_report_files_archive = '{0}{1} files {2}.zip'.format(kind, ' ' + label if label else '', tmp_name)
+            if os.path.isfile(cwd_report_files_archive):
+                raise FileExistsError('Report files archive "{0}" already exists'.format(cwd_report_files_archive))
+            os.symlink(os.path.relpath(os.path.join(directory, 'reports', elem.archive)), cwd_report_files_archive)
+            archives.append(elem.archive)
 
     # Create report file in reports directory.
     report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
