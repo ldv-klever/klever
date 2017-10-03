@@ -431,7 +431,7 @@ class RP(core.components.Component):
             pass
             #report['task identifier'] = task_id
 
-        cov = LCOV(self.logger, os.path.join('output', 'coverages.info'),
+        cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
                    shadow_src_dir, self.conf['main working directory'],
                    opts.get('coverage', None))
         if cov.success:
