@@ -135,13 +135,6 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
-                    report = {
-                        'id': self.id + '/unknown',
-                        'parent id': self.id,
-                        'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
-                    }
-                    if self.unknown_attrs:
-                        report.update({'attrs': self.unknown_attrs})
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
