@@ -111,18 +111,17 @@ class Core(core.utils.CallbacksCaller):
 
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.ID,
-                                          'resources': core.utils.count_consumed_resources(
-                                              self.logger,
-                                              self.start_time),
-                                          'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None,
-                                      },
-                                      self.mqs['report files'],
-                                      self.report_id,
+                    report = {
+                        'id': self.ID,
+                        'resources': core.utils.count_consumed_resources(self.logger, self.start_time)
+                    }
+
+                    if os.path.isfile('log.txt'):
+                        report['log'] = core.utils.ReportFiles(['log.txt'])
+
+                    core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
                                       self.conf['main working directory'])
+
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 

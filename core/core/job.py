@@ -253,7 +253,6 @@ class Job(core.utils.CallbacksCaller):
                                           {
                                               'id': self.id,
                                               'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'log': None
                                           },
                                           self.mqs['report files'],
                                           self.vals['report id'],

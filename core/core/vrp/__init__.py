@@ -423,8 +423,11 @@ class RP(core.components.Component):
             'attrs': [],
             'name': verifier,
             'resources': decision_results['resources'],
-            'log': None if self.logger.disabled or not log_file else core.utils.ReportFiles([log_file]),
         }
+
+        if not self.logger.disabled and log_file:
+            report['log'] = core.utils.ReportFiles([log_file])
+
         if self.conf['upload input files of static verifiers']:
             # TODO: There is possible to remove task before this report will be uploaded.
             # So, don't assign identifier now

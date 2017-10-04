@@ -153,19 +153,16 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                     all_child_resources[
                         os.path.splitext(os.path.basename(child_resources_file))[0]] = child_resources
 
-                core.utils.report(self.logger,
-                                  'finish',
-                                  {
-                                      'id': self.id,
-                                      'resources': core.utils.count_consumed_resources(
-                                          self.logger,
-                                          self.start_time,
-                                          self.include_child_resources,
-                                          all_child_resources),
-                                      'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None
-                                  },
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
+                report = {
+                    'id': self.id,
+                    'resources': core.utils.count_consumed_resources(self.logger, self.start_time,
+                                                                     self.include_child_resources, all_child_resources)
+                }
+
+                if os.path.isfile('log.txt'):
+                    report['log'] = core.utils.ReportFiles(['log.txt'])
+
+                core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.vals['report id'],
                                   self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
