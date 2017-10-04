@@ -197,16 +197,11 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    def after_finish_tasks_results_processing(context):
-                        context.logger.info('Terminate verification statuses message queue')
-                        context.mqs['verification statuses'].put(None)
-
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            after_plugin_fail_processing,
                                                            after_process_single_verdict,
                                                            after_send_unknown_report
-                                                           #after_finish_tasks_results_processing
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
@@ -214,7 +209,6 @@ class Job(core.utils.CallbacksCaller):
                     self.reporting_results_process = multiprocessing.Process(target=self.report_results)
                     self.reporting_results_process.start()
 
-                #def after_generate_all_verification_tasks(context):
                 def after_finish_tasks_results_processing(context):
                     context.logger.info('Terminate verification statuses message queue')
                     if 'ideal verdicts' in self.components_common_conf:
