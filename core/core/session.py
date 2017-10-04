@@ -138,6 +138,11 @@ class Session:
         # TODO: report is likely should be compressed.
         self.__upload_archive('reports/upload/', {'report': report}, archives)
 
+        # We can safely remove task and its files after uploading report referencing task files.
+        report = json.loads(report)
+        if 'task identifier' in report:
+            self.remove_task(report['task identifier'])
+
     def __download_archive(self, kind, path_url, data, archive):
         while True:
             resp = None

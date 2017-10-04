@@ -213,15 +213,12 @@ class RP(core.components.Component):
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
-        try:
-            if status == 'finished':
-                self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
-            elif status == 'error':
-                self.__process_failed_task(task_id)
-            else:
-                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
-        finally:
-            self.session.remove_task(task_id)
+        if status == 'finished':
+            self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
+        elif status == 'error':
+            self.__process_failed_task(task_id)
+        else:
+            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
     main = fetcher
 
@@ -395,13 +392,16 @@ class RP(core.components.Component):
 
     def __process_failed_task(self, task_id):
         task_error = self.session.get_task_error(task_id)
+        # We do not need task and its files anymore.
+        self.session.remove_task(task_id)
+
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-        task_err_file = 'task error.txt'
-        with open(task_err_file, 'w', encoding='utf8') as fp:
+        task_error_file = 'task error.txt'
+        with open(task_error_file, 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report(self.id, self.id, task_err_file)
+        self.send_unknown_report(self.id, self.id, task_error_file)
 
     def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         self.logger.debug("Prcess results of the task {}".format(task_id))
@@ -438,10 +438,7 @@ class RP(core.components.Component):
             report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload input files of static verifiers']:
-            # TODO: There is possible to remove task before this report will be uploaded.
-            # So, don't assign identifier now
-            pass
-            #report['task identifier'] = task_id
+            report['task identifier'] = task_id
 
         cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
                    shadow_src_dir, self.conf['main working directory'],
