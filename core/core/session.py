@@ -138,6 +138,11 @@ class Session:
         # TODO: report is likely should be compressed.
         self.__upload_archive('reports/upload/', {'report': report}, archives)
 
+        # We can safely remove task and its files after uploading report referencing task files.
+        report = json.loads(report)
+        if 'task identifier' in report:
+            self.remove_task(report['task identifier'])
+
     def __download_archive(self, kind, path_url, data, archive):
         while True:
             resp = None
@@ -164,8 +169,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files=[('file', open(archive_name, 'rb', buffering=0))
-                                                             for archive_name in archives], stream=True)
+                resp = self.__request(path_url, data, files=[('file', open(archive, 'rb', buffering=0))
+                                                             for archive in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':
