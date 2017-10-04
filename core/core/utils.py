@@ -633,13 +633,17 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
         elif isinstance(elem, ReportFiles):
             elem.make_archive(directory=os.path.join(directory, 'reports'), prefix='{0}-'.format(cur_report_id))
 
+            archives.append(elem.archive)
+
             # Create symlink to report files archive in current working directory.
             tmp_name = os.path.splitext('-'.join(os.path.relpath(elem.archive).split('-')[1:]))[0]
-            cwd_report_files_archive = '{0}{1} files {2}.zip'.format(kind, ' ' + label if label else '', tmp_name)
+            cwd_report_files_archive = '{0}{1} report files {2}.zip'.format(kind, ' ' + label if label else '',
+                                                                            tmp_name)
             if os.path.isfile(cwd_report_files_archive):
                 raise FileExistsError('Report files archive "{0}" already exists'.format(cwd_report_files_archive))
             os.symlink(os.path.relpath(os.path.join(directory, 'reports', elem.archive)), cwd_report_files_archive)
-            archives.append(elem.archive)
+            logger.debug('{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
+                                                                                cwd_report_files_archive))
 
     # Create report file in reports directory.
     report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
