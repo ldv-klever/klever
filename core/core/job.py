@@ -421,6 +421,8 @@ class Job(core.utils.CallbacksCaller):
                     raise RuntimeError('Reporting results failed')
 
     def report_results(self):
+        os.mkdir('results')
+
         # Process exceptions like for uploading reports.
         try:
             while True:
@@ -448,6 +450,9 @@ class Job(core.utils.CallbacksCaller):
                     else:
                         raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
+                    results_dir = os.path.join('results', re.sub(r'/', '-', name_suffix))
+                    os.mkdir(results_dir)
+
                     core.utils.report(self.logger,
                                       'data',
                                       {
@@ -457,7 +462,7 @@ class Job(core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.vals['report id'],
                                       self.components_common_conf['main working directory'],
-                                      re.sub(r'/', '-', name_suffix))
+                                      results_dir)
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
             os._exit(1)

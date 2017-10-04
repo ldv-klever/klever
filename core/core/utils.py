@@ -579,7 +579,9 @@ class ReportFiles:
                 for file in self.files:
                     arcname = self.arcnames.get(file, None)
                     zfp.write(file, arcname=arcname)
+
                 os.fsync(zfp.fp)
+
         os.close(fp)
 
 
@@ -591,7 +593,7 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def report(logger, kind, report_data, mq, report_id, directory, label=''):
+def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir=''):
     logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
@@ -631,30 +633,30 @@ def report(logger, kind, report_data, mq, report_id, directory, label=''):
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
         elif isinstance(elem, ReportFiles):
-            elem.make_archive(directory=os.path.join(directory, 'reports'), prefix='{0}-'.format(cur_report_id))
+            elem.make_archive(directory=os.path.join(main_work_dir, 'reports'), prefix='{0}-'.format(cur_report_id))
 
             archives.append(elem.archive)
 
             # Create symlink to report files archive in current working directory.
             tmp_name = os.path.splitext('-'.join(os.path.relpath(elem.archive).split('-')[1:]))[0]
-            cwd_report_files_archive = '{0}{1} report files {2}.zip'.format(kind, ' ' + label if label else '',
-                                                                            tmp_name)
+            cwd_report_files_archive = os.path.join(report_dir, '{0} report files {1}.zip'.format(kind, tmp_name))
             if os.path.isfile(cwd_report_files_archive):
                 raise FileExistsError('Report files archive "{0}" already exists'.format(cwd_report_files_archive))
-            os.symlink(os.path.relpath(os.path.join(directory, 'reports', elem.archive)), cwd_report_files_archive)
+            os.symlink(os.path.relpath(os.path.join(main_work_dir, 'reports', elem.archive), report_dir),
+                       cwd_report_files_archive)
             logger.debug('{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
                                                                                 cwd_report_files_archive))
 
     # Create report file in reports directory.
-    report_file = os.path.join(directory, 'reports', '{0}.json'.format(cur_report_id))
+    report_file = os.path.join(main_work_dir, 'reports', '{0}.json'.format(cur_report_id))
     with open(report_file, 'w', encoding='utf8') as fp:
         json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
-    cwd_report_file = '{0}{1} report.json'.format(kind, ' ' + label if label else '')
+    cwd_report_file = os.path.join(report_dir, '{0} report.json'.format(kind))
     if os.path.isfile(cwd_report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
-    os.symlink(os.path.relpath(report_file), cwd_report_file)
+    os.symlink(os.path.relpath(report_file, report_dir), cwd_report_file)
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_report_file))
 
     # Put report file and report file archives to message queue if it is specified.

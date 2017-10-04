@@ -292,35 +292,44 @@ class RP(core.components.Component):
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
+                os.mkdir('error traces')
+
                 for witness in witnesses:
                     self.verdict = 'unsafe'
                     try:
-                        etrace = import_error_trace(self.logger, witness)
+                        error_trace = import_error_trace(self.logger, witness)
+                        arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                        error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
-                        result = re.search(r'witness\.(.*)\.graphml', witness)
-                        trace_id = result.groups()[0]
-                        error_trace_name = 'error trace_' + trace_id + '.json'
+                        match = re.search(r'witness\.(.+)\.graphml', witness)
+                        if not match:
+                            raise ValueError('Witness "{0}" does not encode error trace identifier'.format(witness))
+                        error_trace_id = match.group(1)
 
-                        self.logger.info('Write processed witness to "' + error_trace_name + '"')
-                        arcnames = self.__trim_file_names(etrace['files'], shadow_src_dir)
-                        etrace['files'] = [arcnames[file] for file in etrace['files']]
-                        with open(error_trace_name, 'w', encoding='utf8') as fp:
-                            json.dump(etrace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                        error_trace_dir = os.path.join('error traces', error_trace_id)
+                        os.mkdir(error_trace_dir)
+
+                        error_trace_file = os.path.join(error_trace_dir, 'error trace.json')
+                        arcnames[error_trace_file] = 'error trace.json'
+
+                        self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
+                        with open(error_trace_file, 'w', encoding='utf8') as fp:
+                            json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                         core.utils.report(self.logger,
                                           'unsafe',
                                           {
-                                              'id': "{}/verification/unsafe_{}".format(self.id, trace_id),
+                                              'id': "{}/verification/unsafe {}".format(self.id, error_trace_id),
                                               'parent id': "{}/verification".format(self.id),
-                                              'attrs': [{"Error trace identifier": trace_id}],
-                                              'error trace': core.utils.ReportFiles([error_trace_name]
+                                              'attrs': [{"Error trace identifier": error_trace_id}],
+                                              'error trace': core.utils.ReportFiles([error_trace_file]
                                                                                     + list(arcnames.keys()),
                                                                                     arcnames=arcnames)
                                           },
                                           self.mqs['report files'],
                                           self.vals['report id'],
                                           self.conf['main working directory'],
-                                          trace_id)
+                                          error_trace_dir)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         if self.__exception:
@@ -339,13 +348,13 @@ class RP(core.components.Component):
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
                                             format(len(witnesses)))
 
-                    etrace = et.import_error_trace(self.logger, witnesses[0])
-                    self.logger.info('Write processed witness to "error trace.json"')
+                    error_trace = et.import_error_trace(self.logger, witnesses[0])
+                    arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                    error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
-                    arcnames = self.__trim_file_names(etrace['files'], shadow_src_dir)
-                    etrace['files'] = [arcnames[file] for file in etrace['files']]
+                    self.logger.info('Write processed witness to "error trace.json"')
                     with open('error trace.json', 'w', encoding='utf8') as fp:
-                        json.dump(etrace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                        json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                     core.utils.report(self.logger,
                                       'unsafe',
