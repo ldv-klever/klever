@@ -435,7 +435,7 @@ class RP(core.components.Component):
         }
 
         if not self.logger.disabled and log_file:
-            report['log'] = core.utils.ReportFiles([log_file])
+            report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
 
         if self.conf['upload input files of static verifiers']:
             # TODO: There is possible to remove task before this report will be uploaded.
