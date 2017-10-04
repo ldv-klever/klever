@@ -209,42 +209,31 @@ class Job(core.utils.CallbacksCaller):
                     self.reporting_results_process = multiprocessing.Process(target=self.report_results)
                     self.reporting_results_process.start()
 
-                def after_finish_tasks_results_processing(context):
-                    context.logger.info('Terminate verification statuses message queue')
+                def after_finish_task_results_processing(context):
                     if 'ideal verdicts' in self.components_common_conf:
+                        context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
-                    #if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
+                    # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
                     if True:
-                        context.mqs['coverages'].put(None)
+                        context.logger.info('Terminate rule specification coverage infos message queue')
+                        context.mqs['rule specification coverage infos'].put(None)
 
-                core.utils.set_component_callbacks(self.logger, type(self),
-                                                   (
-                                                       after_finish_tasks_results_processing,
-                                                   ))
+                core.utils.set_component_callbacks(self.logger, type(self), (after_finish_task_results_processing,))
 
-                #if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
+                # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
                 if True:
-                    self.mqs['coverages'] = multiprocessing.Queue()
+                    self.mqs['rule specification coverage infos'] = multiprocessing.Queue()
 
                     def after_process_finished_task(context):
-                        context.mqs['coverages'].put({
+                        context.mqs['rule specification coverage infos'].put({
                             'rule specification': context.rule_specification,
-                            'coverage info': context.coverage_info
+                            'coverage info': context.coverage.coverage_info
                         })
 
                     core.utils.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
 
                     self.collect_coverage_process = multiprocessing.Process(target=self.collect_coverage)
                     self.collect_coverage_process.start()
-
-                def after_generate_all_verification_tasks(context):
-                    context.logger.info('Terminate verification statuses message queue')
-                    if 'ideal verdicts' in self.components_common_conf:
-                        context.mqs['verification statuses'].put(None)
-                    if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
-                        context.mqs['coverages'].put(None)
-
-                core.utils.set_component_callbacks(self.logger, type(self), (after_generate_all_verification_tasks,))
 
                 self.get_sub_job_components()
 
@@ -445,6 +434,10 @@ class Job(core.utils.CallbacksCaller):
                 self.logger.info('Forcibly terminate verification statuses message queue')
                 self.mqs['verification statuses'].put(None)
 
+            if 'rule specification coverage infos' in self.mqs:
+                self.logger.info('Forcibly terminate rule specification coverage infos message queue')
+                self.mqs['rule specification coverage infos'].put(None)
+
             raise
         finally:
             if self.reporting_results_process:
@@ -457,25 +450,28 @@ class Job(core.utils.CallbacksCaller):
         total_coverage = {}
 
         while True:
-            coverages_info = self.mqs['coverages'].get()
+            rule_spec_and_coverage_infos = self.mqs['rule specification coverage infos'].get()
 
-            if coverages_info is None:
-                self.mqs['coverages'].close()
+            if rule_spec_and_coverage_infos is None:
+                self.logger.debug('Rule specification coverage infos message queue was terminated')
+                self.mqs['rule specification coverage infos'].close()
                 break
 
-            for file_name, infos in coverages_info['coverage info'].items():
-                total_coverage.setdefault(coverages_info['rule specification'], {})
-                total_coverage[coverages_info['rule specification']].setdefault(file_name, [])
-                total_coverage[coverages_info['rule specification']][file_name] += infos
+            rule_spec = rule_spec_and_coverage_infos['rule specification']
 
-        for rule, coverages in total_coverage.items():
-            coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverages,
-                                                                  self.components_common_conf
-                                                                  ['VTG strategy']['collect total coverage'])
+            for file_name, coverage_info in rule_spec_and_coverage_infos['coverage info'].items():
+                total_coverage.setdefault(rule_spec, {})
+                total_coverage[rule_spec].setdefault(file_name, [])
+                total_coverage[rule_spec][file_name] += coverage_info
+
+        for rule, coverage_info in total_coverage.items():
+            # TODO: self.components_common_conf['VTG strategy']['collect total coverage'])
+            coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info, 'full')
+
             with open('coverage.json', 'w', encoding='utf-8') as fp:
                 json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
-            self.logger.debug(os.path.abspath('coverage.json'))
-            arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverages.values()}
+
+            arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()}
             # TODO: report
 
     def report_results(self):

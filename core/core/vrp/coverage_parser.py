@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
 import os
+
 import core.utils
 
 
@@ -27,34 +29,15 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    @property
-    def coverage(self):
-        return {
-            'line coverage':
-                [[key, value] for key, value in self._lines_coverage.items()]
-            ,
-            'function coverage': {
-                'statistics': self._functions_statistics,
-                'coverage': [[key, value] for key, value in self._functions_coverage.items()]
-            }
-        }
-
     def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness):
         # Public
-        self.shadow_src_dir = shadow_src_dir
+        self.logger = logger
         self.coverage_file = coverage_file
+        self.shadow_src_dir = shadow_src_dir
         self.main_work_dir = main_work_dir
         self.completeness = completeness
-        self.logger = logger
+
         self.arcnames = {}
-        self.success = False
-
-        self.logger.debug('Coverage file {0} - {1}'.format(coverage_file, os.path.abspath(coverage_file)))
-
-        # Private
-        self._functions_statistics = {}
-        self._functions_coverage = {}
-        self._lines_coverage = {}
 
         # Sanity checks
         if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
@@ -63,13 +46,13 @@ class LCOV:
         # Import coverage
         try:
             if self.completeness in ('full', 'partial', 'lightweight'):
-                #self.parse()
-                self.success = True
+                self.coverage_info = self.parse()
+
+                with open('coverage.json', 'w', encoding='utf-8') as fp:
+                    json.dump(LCOV.get_coverage(self.coverage_info, self.completeness), fp, ensure_ascii=True,
+                              sort_keys=True, indent=4)
         except Exception as e:
-            self._lines_coverage.clear()
-            self._functions_statistics.clear()
-            self._functions_coverage.clear()
-            self.logger.debug(e)
+            self.logger.exception('Could not parse coverage')
 
     def parse(self):
         dir_map = (('source files', self.shadow_src_dir),
@@ -105,8 +88,6 @@ class LCOV:
                             break
                     else:
                         excluded_dirs.add(dir)
-
-        self.logger.debug(str(excluded_dirs))
 
         coverage_info = {}
 
@@ -174,12 +155,14 @@ class LCOV:
                         'covered functions': covered_functions,
                         'in shadow dir': old_file_name.startswith(self.shadow_src_dir)
                     })
+
         return coverage_info
 
     @staticmethod
     def get_coverage(coverage_info, coverage_type):
         excluded_dirs = set()
         dirs_with_c = set()
+
         if coverage_type in ('partial', 'lightweight'):
             for file in coverage_info:
                     if coverage_type == 'lightweight' \
@@ -194,7 +177,8 @@ class LCOV:
                             dirs_with_c.add(os.path.dirname(file))
         excluded_dirs = excluded_dirs - dirs_with_c
 
-        coverage_info = {file_name: info for file_name, info in coverage_info.items() if not os.path.dirname(file_name) in excluded_dirs}
+        coverage_info = {file_name: info for file_name, info in coverage_info.items()
+                         if not os.path.dirname(file_name) in excluded_dirs}
 
         merged_coverage_info = {}
         for file_name, coverages in coverage_info.items():
@@ -212,6 +196,7 @@ class LCOV:
         line_coverage = {}
         function_coverage = {}
         function_statistics = {}
+
         for file_name, coverage in merged_coverage_info.items():
             for line, value in coverage['covered lines'].items():
                 line_coverage.setdefault(value, {})
@@ -222,9 +207,11 @@ class LCOV:
                 function_coverage[value].setdefault(file_name, [])
                 function_coverage[value][file_name].append(line)
             function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
+
         for key, value in line_coverage.items():
             for file_name, lines in value.items():
                 line_coverage[key][file_name] = LCOV.__build_ranges(lines)
+
         return {
             'line coverage':
                 [[key, value] for key, value in line_coverage.items()]

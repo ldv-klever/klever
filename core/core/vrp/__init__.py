@@ -83,9 +83,9 @@ class VRP(core.components.Component):
         self.launch_subcomponents(*subcomponents)
 
         # Finalize
-        self.finish_tasks_results_processing()
+        self.finish_task_results_processing()
 
-    def finish_tasks_results_processing(self):
+    def finish_task_results_processing(self):
         """Function has a callback at Job.py."""
         self.logger.info('Task results processing has finished')
 
@@ -198,6 +198,7 @@ class RP(core.components.Component):
         self.verdict = None
         self.rule_specification = None
         self.verification_object = None
+        self.coverage = None
         self.__exception = None
 
         # Common initialization
@@ -214,7 +215,7 @@ class RP(core.components.Component):
         self.rule_specification = rule_specification
 
         if status == 'finished':
-            self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
+            self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
         elif status == 'error':
             self.__process_failed_task(task_id)
         else:
@@ -403,7 +404,8 @@ class RP(core.components.Component):
 
         self.send_unknown_report(self.id, self.id, task_error_file)
 
-    def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
+    def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
+        """Function has a callback at Job.py."""
         self.logger.debug("Prcess results of the task {}".format(task_id))
 
         self.session.download_decision(task_id)
@@ -440,15 +442,12 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
 
-        cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                   shadow_src_dir, self.conf['main working directory'],
-                   opts.get('coverage', None))
-        if cov.success:
-            with open('coverage.json', 'w', encoding='utf-8') as fp:
-                json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+        self.coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
+                             self.conf['main working directory'], opts.get('coverage', None))
 
-            arcnames = cov.arcnames
-            report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(arcnames.keys()), arcnames=arcnames)
+        if os.path.isfile('coverage.json'):
+            report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(self.coverage.arcnames.keys()),
+                                                        arcnames=self.coverage.arcnames)
 
         core.utils.report(self.logger,
                           'verification',
