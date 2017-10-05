@@ -80,6 +80,7 @@ class LCOV:
                             dir, file = os.path.split(file_name)
                             all_files.setdefault(dir, [])
                             all_files[dir].append(file)
+
                 for dir, files in all_files.items():
                     if self.completeness == 'lightweight' \
                             and not dir.startswith(self.shadow_src_dir):
@@ -112,8 +113,8 @@ class LCOV:
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
                     file_name = line[len(self.FILENAME_PREFIX):]
-                    if os.path.isfile(file_name) \
-                        and not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
+                    if os.path.isfile(file_name) and not \
+                            any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
                         for dest, src in dir_map:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
@@ -122,6 +123,7 @@ class LCOV:
                                     new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
                                 ignore_file = False
                                 break
+                        # TODO: does this "else" really correspond "for" or it is incorrectly idented?
                         else:
                             new_file_name = core.utils.make_relative_path(self.logger, self.main_work_dir, file_name)
                             if new_file_name == file_name:
@@ -161,6 +163,7 @@ class LCOV:
 
         return coverage_info
 
+    # TODO: second parameter of this function isn't used because of at the moment coverage info already obtained according to coverage types specified for particular rule specifications.
     @staticmethod
     def get_coverage(coverage_info, coverage_type):
         excluded_dirs = set()
@@ -172,12 +175,14 @@ class LCOV:
                             and not coverage_info[file][0]['in shadow dir']:
                         excluded_dirs.add(os.path.dirname(file))
                         continue
+
                     if not file.endswith('.c') and not file.endswith('.c.aux'):
                         excluded_dirs.add(os.path.dirname(file))
                     else:
                         if not (coverage_type == 'lightweight'
                                 and not coverage_info[file][0]['in shadow dir']):
                             dirs_with_c.add(os.path.dirname(file))
+
         excluded_dirs = excluded_dirs - dirs_with_c
 
         coverage_info = {file_name: info for file_name, info in coverage_info.items()
@@ -190,6 +195,7 @@ class LCOV:
                 'covered lines': {},
                 'covered functions': {}
             }
+
             for coverage in coverages:
                 for type in ('covered lines', 'covered functions'):
                     for line, value in coverage[type].items():
@@ -205,10 +211,12 @@ class LCOV:
                 line_coverage.setdefault(value, {})
                 line_coverage[value].setdefault(file_name, [])
                 line_coverage[value][file_name].append(int(line))
+
             for line, value in coverage['covered functions'].items():
                 function_coverage.setdefault(value, {})
                 function_coverage[value].setdefault(file_name, [])
                 function_coverage[value][file_name].append(int(line))
+
             function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
 
         for key, value in line_coverage.items():
@@ -216,9 +224,7 @@ class LCOV:
                 line_coverage[key][file_name] = LCOV.__build_ranges(lines)
 
         return {
-            'line coverage':
-                [[key, value] for key, value in line_coverage.items()]
-            ,
+            'line coverage': [[key, value] for key, value in line_coverage.items()],
             'function coverage': {
                 'statistics': function_statistics,
                 'coverage': [[key, value] for key, value in function_coverage.items()]
