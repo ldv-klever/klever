@@ -201,11 +201,11 @@ class LCOV:
             for line, value in coverage['covered lines'].items():
                 line_coverage.setdefault(value, {})
                 line_coverage[value].setdefault(file_name, [])
-                line_coverage[value][file_name].append(line)
+                line_coverage[value][file_name].append(int(line))
             for line, value in coverage['covered functions'].items():
                 function_coverage.setdefault(value, {})
                 function_coverage[value].setdefault(file_name, [])
-                function_coverage[value][file_name].append(line)
+                function_coverage[value][file_name].append(int(line))
             function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
 
         for key, value in line_coverage.items():
