@@ -59,7 +59,8 @@ class Job(core.utils.CallbacksCaller):
         self.uploading_reports_process_exitcode = None
         self.data = None
         self.data_lock = None
-        self.rule_spec_total_coverage_files_and_arcnames = None
+        # This attribute will be used if there are not sub-jobs.
+        self.rule_spec_total_coverages = multiprocessing.Manager().dict()
         self.type = type
         self.components_common_conf = None
         self.sub_jobs = []
@@ -280,15 +281,8 @@ class Job(core.utils.CallbacksCaller):
                             'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
                         }
 
-                        if len(self.rule_spec_total_coverage_files_and_arcnames):
-                            report['coverage'] = {}
-
-                            for rule_spec, total_coverage_files_and_arcnames in \
-                                    self.rule_spec_total_coverage_files_and_arcnames.items():
-                                total_coverage_file = total_coverage_files_and_arcnames['total coverage file']
-                                arcnames = total_coverage_files_and_arcnames['arcnames']
-                                report['coverage'][rule_spec] = core.utils.ReportFiles(
-                                    [total_coverage_file] + list(arcnames.keys()), arcnames=arcnames)
+                        if len(self.rule_spec_total_coverages):
+                            report['coverage'] = self.rule_spec_total_coverages.copy()
 
                         core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
                                           self.vals['report id'], self.components_common_conf['main working directory'])
@@ -389,7 +383,8 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.uploading_reports_process_exitcode = self.uploading_reports_process_exitcode
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
-                sub_job.rule_spec_total_coverage_files_and_arcnames = multiprocessing.Manager().dict()
+                # Each particular sub-job has its own rule specification total coverages.
+                sub_job.rule_spec_total_coverages = multiprocessing.Manager().dict()
                 sub_job.components_common_conf = sub_job_concrete_conf
 
     def get_sub_job_components(self):
@@ -496,7 +491,7 @@ class Job(core.utils.CallbacksCaller):
 
             os.mkdir('total coverages')
 
-            rule_spec_total_coverage_files_and_arcnames = {}
+            rule_spec_total_coverages = {}
 
             for rule_spec, coverage_info in total_coverage_infos.items():
                 total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', rule_spec))
@@ -513,14 +508,14 @@ class Job(core.utils.CallbacksCaller):
                 with open(total_coverage_file, 'w', encoding='utf8') as fp:
                     json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-                rule_spec_total_coverage_files_and_arcnames[rule_spec] = {
-                    'total coverage file': total_coverage_file,
-                    'arcnames': {info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()}
-                }
+                arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()}
+
+                rule_spec_total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
+                                                                              list(arcnames.keys()), arcnames=arcnames)
 
             # Share collected rule specification total coverages and arcnames to report them within Sub-job finish
             # report.
-            self.rule_spec_total_coverage_files_and_arcnames.update(rule_spec_total_coverage_files_and_arcnames)
+            self.rule_spec_total_coverages.update(rule_spec_total_coverages)
         except Exception:
             self.logger.exception('Catch exception when collecting rule specification total coverages')
             os._exit(1)

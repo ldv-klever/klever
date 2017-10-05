@@ -41,6 +41,7 @@ class Core(core.utils.CallbacksCaller):
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
+        self.job = None
         self.comp = []
         self.session = None
         self.mqs = {}
@@ -58,8 +59,8 @@ class Core(core.utils.CallbacksCaller):
             self.change_work_dir()
             self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
             version = self.get_version()
-            job = core.job.Job(self.logger, self.ID)
-            self.logger.info('Support jobs of format "{0}"'.format(job.FORMAT))
+            self.job = core.job.Job(self.logger, self.ID)
+            self.logger.info('Support jobs of format "{0}"'.format(self.job.FORMAT))
             self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,
                                                   'start',
@@ -72,13 +73,12 @@ class Core(core.utils.CallbacksCaller):
                                                   self.report_id,
                                                   self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-            self.session.start_job_decision(job, start_report_file)
+            self.session.start_job_decision(self.job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
-                       {'report id': self.report_id},
-                       self.uploading_reports_process_exitcode)
+            self.job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
+                            {'report id': self.report_id}, self.uploading_reports_process_exitcode)
         except Exception:
             self.process_exception()
 
@@ -118,6 +118,9 @@ class Core(core.utils.CallbacksCaller):
 
                     if os.path.isfile('log.txt'):
                         report['log'] = core.utils.ReportFiles(['log.txt'])
+
+                    if self.job.rule_spec_total_coverages:
+                        report['coverage'] = self.job.rule_spec_total_coverages.copy()
 
                     core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
                                       self.conf['main working directory'])
