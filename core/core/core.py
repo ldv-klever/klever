@@ -119,8 +119,8 @@ class Core(core.utils.CallbacksCaller):
                     if os.path.isfile('log.txt'):
                         report['log'] = core.utils.ReportFiles(['log.txt'])
 
-                    if self.job.rule_spec_total_coverages:
-                        report['coverage'] = self.job.rule_spec_total_coverages.copy()
+                    if self.job.total_coverages:
+                        report['coverage'] = self.job.total_coverages.copy()
 
                     core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
                                       self.conf['main working directory'])

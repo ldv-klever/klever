@@ -60,7 +60,7 @@ class Job(core.utils.CallbacksCaller):
         self.data = None
         self.data_lock = None
         # This attribute will be used if there are not sub-jobs.
-        self.rule_spec_total_coverages = multiprocessing.Manager().dict()
+        self.total_coverages = multiprocessing.Manager().dict()
         self.type = type
         self.components_common_conf = None
         self.sub_jobs = []
@@ -68,7 +68,7 @@ class Job(core.utils.CallbacksCaller):
         self.callbacks = {}
         self.component_processes = []
         self.reporting_results_process = None
-        self.collecting_rule_spec_total_coverages_process = None
+        self.collecting_total_coverages_process = None
 
     def decide(self, conf, mqs, locks, vals, uploading_reports_process_exitcode):
         self.logger.info('Decide job')
@@ -218,18 +218,18 @@ class Job(core.utils.CallbacksCaller):
                         context.mqs['verification statuses'].put(None)
                     # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
                     if True:
-                        context.logger.info('Terminate rule specification coverage infos message queue')
-                        context.mqs['rule specification coverage info files'].put(None)
+                        context.logger.info('Terminate rule specifications and coverage infos message queue')
+                        context.mqs['rule specifications and coverage info files'].put(None)
 
                 core.utils.set_component_callbacks(self.logger, type(self), (after_finish_task_results_processing,))
 
                 # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
                 if True:
-                    self.mqs['rule specification coverage info files'] = multiprocessing.Queue()
+                    self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
 
                     def after_process_finished_task(context):
                         if os.path.isfile('coverage info.json'):
-                            context.mqs['rule specification coverage info files'].put({
+                            context.mqs['rule specifications and coverage info files'].put({
                                 'rule specification': context.rule_specification,
                                 'coverage info file': os.path.relpath('coverage info.json',
                                                                       context.conf['main working directory'])
@@ -237,9 +237,9 @@ class Job(core.utils.CallbacksCaller):
 
                     core.utils.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
 
-                    self.collecting_rule_spec_total_coverages_process = \
-                        multiprocessing.Process(target=self.collect_rule_spec_total_coverage)
-                    self.collecting_rule_spec_total_coverages_process.start()
+                    self.collecting_total_coverages_process = \
+                        multiprocessing.Process(target=self.collect_total_coverage)
+                    self.collecting_total_coverages_process.start()
 
                 self.get_sub_job_components()
 
@@ -281,8 +281,8 @@ class Job(core.utils.CallbacksCaller):
                             'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
                         }
 
-                        if len(self.rule_spec_total_coverages):
-                            report['coverage'] = self.rule_spec_total_coverages.copy()
+                        if len(self.total_coverages):
+                            report['coverage'] = self.total_coverages.copy()
 
                         core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
                                           self.vals['report id'], self.components_common_conf['main working directory'])
@@ -383,8 +383,8 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.uploading_reports_process_exitcode = self.uploading_reports_process_exitcode
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
-                # Each particular sub-job has its own rule specification total coverages.
-                sub_job.rule_spec_total_coverages = multiprocessing.Manager().dict()
+                # Each particular sub-job has its own total coverages.
+                sub_job.total_coverages = multiprocessing.Manager().dict()
                 sub_job.components_common_conf = sub_job_concrete_conf
 
     def get_sub_job_components(self):
@@ -434,9 +434,9 @@ class Job(core.utils.CallbacksCaller):
                 if self.reporting_results_process and self.reporting_results_process.exitcode:
                     raise RuntimeError('Reporting results failed')
 
-                if self.collecting_rule_spec_total_coverages_process and \
-                        self.collecting_rule_spec_total_coverages_process.exitcode:
-                    raise RuntimeError('Collecting rule specification total coverages failed')
+                if self.collecting_total_coverages_process and \
+                        self.collecting_total_coverages_process.exitcode:
+                    raise RuntimeError('Collecting total coverages failed')
         except Exception:
             for p in self.component_processes:
                 # Do not terminate components that already exitted.
@@ -447,9 +447,9 @@ class Job(core.utils.CallbacksCaller):
                 self.logger.info('Forcibly terminate verification statuses message queue')
                 self.mqs['verification statuses'].put(None)
 
-            if 'rule specification coverage info files' in self.mqs:
-                self.logger.info('Forcibly terminate rule specification coverage info files message queue')
-                self.mqs['rule specification coverage info files'].put(None)
+            if 'rule specifications and coverage info files' in self.mqs:
+                self.logger.info('Forcibly terminate rule specification and coverage info files message queue')
+                self.mqs['rule specifications and coverage info files'].put(None)
 
             raise
         finally:
@@ -459,23 +459,23 @@ class Job(core.utils.CallbacksCaller):
                 if self.reporting_results_process.exitcode:
                     raise RuntimeError('Reporting results failed')
 
-            if self.collecting_rule_spec_total_coverages_process:
-                self.logger.info('Wait for collecting all rule specification total coverages')
-                self.collecting_rule_spec_total_coverages_process.join()
-                if self.collecting_rule_spec_total_coverages_process.exitcode:
-                    raise RuntimeError('Collecting rule specification total coverages failed')
+            if self.collecting_total_coverages_process:
+                self.logger.info('Wait for collecting all total coverages')
+                self.collecting_total_coverages_process.join()
+                if self.collecting_total_coverages_process.exitcode:
+                    raise RuntimeError('Collecting total coverages failed')
 
-    def collect_rule_spec_total_coverage(self):
+    def collect_total_coverage(self):
         # Process exceptions like for uploading reports.
         try:
             total_coverage_infos = {}
 
             while True:
-                rule_spec_and_coverage_info_files = self.mqs['rule specification coverage info files'].get()
+                rule_spec_and_coverage_info_files = self.mqs['rule specifications and coverage info files'].get()
 
                 if rule_spec_and_coverage_info_files is None:
                     self.logger.debug('Rule specification coverage info files message queue was terminated')
-                    self.mqs['rule specification coverage info files'].close()
+                    self.mqs['rule specifications and coverage info files'].close()
                     break
 
                 rule_spec = rule_spec_and_coverage_info_files['rule specification']
@@ -491,7 +491,7 @@ class Job(core.utils.CallbacksCaller):
 
             os.mkdir('total coverages')
 
-            rule_spec_total_coverages = {}
+            total_coverages = {}
 
             for rule_spec, coverage_info in total_coverage_infos.items():
                 total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', rule_spec))
@@ -499,8 +499,7 @@ class Job(core.utils.CallbacksCaller):
 
                 total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
                 if os.path.isfile(total_coverage_file):
-                    raise FileExistsError('Rule specification total coverage file "{0}" already exists'
-                                          .format(total_coverage_file))
+                    raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
 
                 # TODO: self.components_common_conf['VTG strategy']['collect total coverage'])
                 coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info, 'full')
@@ -510,14 +509,13 @@ class Job(core.utils.CallbacksCaller):
 
                 arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()}
 
-                rule_spec_total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
-                                                                              list(arcnames.keys()), arcnames=arcnames)
+                total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
+                                                                    arcnames)
 
-            # Share collected rule specification total coverages and arcnames to report them within Sub-job finish
-            # report.
-            self.rule_spec_total_coverages.update(rule_spec_total_coverages)
+            # Share collected total coverages and arcnames to report them within Sub-job/Core finish report.
+            self.total_coverages.update(total_coverages)
         except Exception:
-            self.logger.exception('Catch exception when collecting rule specification total coverages')
+            self.logger.exception('Catch exception when collecting total coverages')
             os._exit(1)
 
     def report_results(self):
