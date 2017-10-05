@@ -214,33 +214,18 @@ class RP(core.components.Component):
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
+        self.logger.debug("Prcess results of task {}".format(task_id))
+
         if status == 'finished':
             self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
         elif status == 'error':
-            self.__process_failed_task(task_id)
+            task_error = self.process_failed_task(task_id)
+            # Raise exception just here sinse the method above has callbacks.
+            raise RuntimeError('Failed to decide verification task: {0}'.format(task_error))
         else:
             raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
     main = fetcher
-
-    def send_unknown_report(self, parent_id):
-        """The function has a callback at Job module."""
-        self.__send_unknown_report(parent_id)
-
-    def __send_unknown_report(self, parent_id):
-        self.verdict = 'unknown'
-
-        core.utils.report(self.logger,
-                          'unknown',
-                          {
-                              'id': "{}/unknown".format(parent_id),
-                              'parent id': parent_id,
-                              'attrs': [],
-                              'problem desc': core.utils.ReportFiles(['problem desc.txt'])
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
@@ -370,43 +355,55 @@ class RP(core.components.Component):
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.__exception = e
-
             elif not re.match('false', decision_results['status']):
+                self.verdict = 'unknown'
+
                 # Prepare file to send it with unknown report.
+                verification_problem_desc = os.path.join('verification', 'problem desc.txt')
+
                 # Check resource limitiations
                 if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
                     if decision_results['status'] == 'OUT OF MEMORY':
                         msg = "memory exhausted"
                     else:
                         msg = "CPU time exhausted"
-                    with open('problem desc.txt', 'w', encoding='utf8') as fp:
+
+                    with open(verification_problem_desc, 'w', encoding='utf8') as fp:
                         fp.write(msg)
                 else:
-                    os.symlink(log_file, 'problem desc.txt')
+                    os.symlink(log_file, verification_problem_desc)
 
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.__send_unknown_report("{}/verification".format(self.id))
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': "{}/verification/unknown".format(self.id),
+                                      'parent id': "{}/verification".format(self.id),
+                                      'attrs': [],
+                                      'problem desc': core.utils.ReportFiles([verification_problem_desc],
+                                                                             {verification_problem_desc:
+                                                                                  'problem desc.txt'})
+                                  },
+                                  self.mqs['report files'],
+                                  self.vals['report id'],
+                                  self.conf['main working directory'])
 
-    def __process_failed_task(self, task_id):
+    def process_failed_task(self, task_id):
+        """The function has a callback at Job module."""
         task_error = self.session.get_task_error(task_id)
         # We do not need task and its files anymore.
         self.session.remove_task(task_id)
 
-        self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+        self.verdict = 'non-verifier unknown'
 
-        with open('problem desc.txt', 'w', encoding='utf8') as fp:
-            fp.write(task_error)
-
-        self.send_unknown_report(self.id)
+        return task_error
 
     def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         """Function has a callback at Job.py."""
-        self.logger.debug("Prcess results of the task {}".format(task_id))
-
         self.session.download_decision(task_id)
 
         with zipfile.ZipFile('decision result files.zip') as zfp:

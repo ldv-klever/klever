@@ -183,10 +183,10 @@ class Job(core.utils.CallbacksCaller):
                         context.mqs['verification statuses'].put({
                             'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
-                            'verdict': 'unknown'
+                            'verdict': 'non-verifier unknown'
                         })
 
-                    def after_send_unknown_report(context):
+                    def after_process_failed_task(context):
                         context.mqs['verification statuses'].put({
                             'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
@@ -204,7 +204,7 @@ class Job(core.utils.CallbacksCaller):
                                                        (
                                                            after_plugin_fail_processing,
                                                            after_process_single_verdict,
-                                                           after_send_unknown_report
+                                                           after_process_failed_task
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
