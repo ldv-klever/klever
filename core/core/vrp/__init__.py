@@ -223,20 +223,20 @@ class RP(core.components.Component):
 
     main = fetcher
 
-    def send_unknown_report(self, report_id, parent_id, problem):
+    def send_unknown_report(self, parent_id):
         """The function has a callback at Job module."""
-        self.__send_unknown_report(report_id, parent_id, problem)
+        self.__send_unknown_report(parent_id)
 
-    def __send_unknown_report(self, report_id, parent_id, problem):
+    def __send_unknown_report(self, parent_id):
         self.verdict = 'unknown'
 
         core.utils.report(self.logger,
                           'unknown',
                           {
-                              'id': "{}/unknown".format(report_id),
+                              'id': "{}/unknown".format(parent_id),
                               'parent id': parent_id,
                               'attrs': [],
-                              'problem desc': core.utils.ReportFiles([problem])
+                              'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -277,7 +277,7 @@ class RP(core.components.Component):
                                   'parent id': "{}/verification".format(self.id),
                                   'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  #'proof': None
+                                  # 'proof': None
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
@@ -379,17 +379,17 @@ class RP(core.components.Component):
                         msg = "memory exhausted"
                     else:
                         msg = "CPU time exhausted"
-                    log_file = 'error.txt'
-                    with open(log_file, 'w', encoding='utf8') as fp:
+                    with open('problem desc.txt', 'w', encoding='utf8') as fp:
                         fp.write(msg)
+                else:
+                    os.symlink(log_file, 'problem desc.txt')
 
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                    log_file = 'error.txt'
+                    log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.__send_unknown_report("{}/verification".format(self.id),
-                                           "{}/verification".format(self.id), log_file)
+                self.__send_unknown_report("{}/verification".format(self.id))
 
     def __process_failed_task(self, task_id):
         task_error = self.session.get_task_error(task_id)
@@ -398,11 +398,10 @@ class RP(core.components.Component):
 
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-        task_error_file = 'task error.txt'
-        with open(task_error_file, 'w', encoding='utf8') as fp:
+        with open('problem desc.txt', 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report(self.id, self.id, task_error_file)
+        self.send_unknown_report(self.id)
 
     def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         """Function has a callback at Job.py."""
