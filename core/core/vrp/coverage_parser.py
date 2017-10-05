@@ -48,6 +48,9 @@ class LCOV:
             if self.completeness in ('full', 'partial', 'lightweight'):
                 self.coverage_info = self.parse()
 
+                with open('coverage info.json', 'w', encoding='utf-8') as fp:
+                    json.dump(self.coverage_info, fp, ensure_ascii=True, sort_keys=True, indent=4)
+
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
                     json.dump(LCOV.get_coverage(self.coverage_info, self.completeness), fp, ensure_ascii=True,
                               sort_keys=True, indent=4)
