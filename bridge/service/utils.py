@@ -787,7 +787,7 @@ class StartJobDecision:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.weight = self.data[4][6]
+        self.job.weight = self.data[4][7]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -815,7 +815,8 @@ class StartJobDecision:
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
-            'weight': self.data[4][6],
+            'collect total code coverage': self.data[4][6],
+            'weight': self.data[4][7],
             'logging': {
                 'formatters': [
                     {

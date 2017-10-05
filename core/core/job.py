@@ -216,15 +216,14 @@ class Job(core.utils.CallbacksCaller):
                     if 'ideal verdicts' in self.components_common_conf:
                         context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
-                    # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
-                    if True:
+
+                    if self.components_common_conf['collect total code coverage']:
                         context.logger.info('Terminate rule specifications and coverage infos message queue')
                         context.mqs['rule specifications and coverage info files'].put(None)
 
                 core.utils.set_component_callbacks(self.logger, type(self), (after_finish_task_results_processing,))
 
-                # TODO: if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
-                if True:
+                if self.components_common_conf['collect total code coverage']:
                     self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
 
                     def after_process_finished_task(context):
@@ -501,7 +500,6 @@ class Job(core.utils.CallbacksCaller):
                 if os.path.isfile(total_coverage_file):
                     raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
 
-                # TODO: self.components_common_conf['VTG strategy']['collect total coverage'])
                 coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info, 'full')
 
                 with open(total_coverage_file, 'w', encoding='utf8') as fp:

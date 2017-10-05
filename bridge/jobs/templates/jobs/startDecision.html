@@ -244,9 +244,14 @@
                 <label for="ignore_failed_sub_jobs_checkbox">{% trans 'Ignore failed sub-jobs' %}</label>
             </div>
             <br><br>
+            <div class="ui toggle checkbox">
+                <input id="collect_total_code_coverage_checkbox" type="checkbox"{% if data.default.4.6 %} checked{% endif %}>
+                <label for="collect_total_code_coverage_checkbox">{% trans 'Collect total code coverage' %}</label>
+            </div>
+            <br><br>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
                 {% for w in data.job_weight %}
-                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.default.4.6 == w.0 %} checked="checked"{% endif %}>
+                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.default.4.7 == w.0 %} checked="checked"{% endif %}>
                     <label for="weight_{{ w.0 }}">{{ w.1 }}</label>
                 {% endfor %}
                 <a></a>
