@@ -500,7 +500,7 @@ class Job(core.utils.CallbacksCaller):
                 if os.path.isfile(total_coverage_file):
                     raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
 
-                coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info, 'full')
+                coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
 
                 with open(total_coverage_file, 'w', encoding='utf8') as fp:
                     json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)

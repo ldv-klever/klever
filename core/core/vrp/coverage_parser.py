@@ -52,7 +52,7 @@ class LCOV:
                     json.dump(self.coverage_info, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(LCOV.get_coverage(self.coverage_info, self.completeness), fp, ensure_ascii=True,
+                    json.dump(LCOV.get_coverage(self.coverage_info), fp, ensure_ascii=True,
                               sort_keys=True, indent=4)
         except Exception as e:
             self.logger.exception('Could not parse coverage')
@@ -64,13 +64,14 @@ class LCOV:
 
         ignore_file = False
 
-        excluded_dirs = set()
-
         if not os.path.isfile(self.coverage_file):
             raise Exception('There is no coverage file {0}'.format(self.coverage_file))
 
+        # Gettings dirs, that should be excluded.
+        excluded_dirs = set()
         if self.completeness in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
+                # Build map, that contains dir as key and list of files in the dir as value
                 all_files = {}
                 for line in fp:
                     line = line.rstrip('\n')
@@ -82,19 +83,21 @@ class LCOV:
                             all_files[dir].append(file)
 
                 for dir, files in all_files.items():
+                    # Lightweight coverage keeps only source code dirs.
                     if self.completeness == 'lightweight' \
                             and not dir.startswith(self.shadow_src_dir):
                         self.logger.debug('Excluded {0}'.format(dir))
                         excluded_dirs.add(dir)
                         continue
+                    # Partial coverage keeps only dirs, that contains source files.
                     for file in files:
                         if file.endswith('.c') or file.endswith('.c.aux'):
                             break
                     else:
                         excluded_dirs.add(dir)
 
+        # Parsing coverage file
         coverage_info = {}
-
         with open(self.coverage_file, encoding='utf-8') as fp:
             count_covered_functions = None
             for line in fp:
@@ -123,7 +126,7 @@ class LCOV:
                                     new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
                                 ignore_file = False
                                 break
-                        # TODO: does this "else" really correspond "for" or it is incorrectly idented?
+                        # This "else" corresponds "for"
                         else:
                             new_file_name = core.utils.make_relative_path(self.logger, self.main_work_dir, file_name)
                             if new_file_name == file_name:
@@ -138,56 +141,38 @@ class LCOV:
                     else:
                         ignore_file = True
                 elif line.startswith(self.LINE_PREFIX):
+                    # Coverage of the specified line
                     splts = line[len(self.LINE_PREFIX):].split(',')
                     covered_lines[int(splts[0])] = int(splts[1])
                 elif line.startswith(self.FUNCTION_NAME_PREFIX):
+                    # Mapping of the function name to the line number
                     splts = line[len(self.FUNCTION_NAME_PREFIX):].split(',')
                     function_to_line.setdefault(splts[1], [])
                     function_to_line[splts[1]] = int(splts[0])
                 elif line.startswith(self.FUNCTION_PREFIX):
+                    # Coverage of the specified function
                     splts = line[len(self.FUNCTION_PREFIX):].split(',')
                     if splts[0] == "0":
                         continue
                     covered_functions[function_to_line[splts[1]]] = int(splts[0])
                     count_covered_functions += 1
                 elif line.startswith(self.EOR_PREFIX):
+                    # End coverage for the specific file
                     coverage_info.setdefault(file_name, [])
                     coverage_info[file_name].append({
                         'file name': old_file_name,
                         'arcname': file_name,
                         'total functions': len(function_to_line),
                         'covered lines': covered_lines,
-                        'covered functions': covered_functions,
-                        'in shadow dir': old_file_name.startswith(self.shadow_src_dir)
+                        'covered functions': covered_functions
                     })
 
         return coverage_info
 
-    # TODO: second parameter of this function isn't used because of at the moment coverage info already obtained according to coverage types specified for particular rule specifications.
     @staticmethod
-    def get_coverage(coverage_info, coverage_type):
-        excluded_dirs = set()
-        dirs_with_c = set()
+    def get_coverage(coverage_info):
 
-        if coverage_type in ('partial', 'lightweight'):
-            for file in coverage_info:
-                    if coverage_type == 'lightweight' \
-                            and not coverage_info[file][0]['in shadow dir']:
-                        excluded_dirs.add(os.path.dirname(file))
-                        continue
-
-                    if not file.endswith('.c') and not file.endswith('.c.aux'):
-                        excluded_dirs.add(os.path.dirname(file))
-                    else:
-                        if not (coverage_type == 'lightweight'
-                                and not coverage_info[file][0]['in shadow dir']):
-                            dirs_with_c.add(os.path.dirname(file))
-
-        excluded_dirs = excluded_dirs - dirs_with_c
-
-        coverage_info = {file_name: info for file_name, info in coverage_info.items()
-                         if not os.path.dirname(file_name) in excluded_dirs}
-
+        # Combine line and function coverages of a file to a single one
         merged_coverage_info = {}
         for file_name, coverages in coverage_info.items():
             merged_coverage_info[file_name] = {
@@ -202,6 +187,7 @@ class LCOV:
                         merged_coverage_info[file_name][type].setdefault(line, 0)
                         merged_coverage_info[file_name][type][line] += value
 
+        # Map combined coverage to the required format
         line_coverage = {}
         function_coverage = {}
         function_statistics = {}
@@ -219,6 +205,7 @@ class LCOV:
 
             function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
 
+        # Merge contiguous covered lines into a range
         for key, value in line_coverage.items():
             for file_name, lines in value.items():
                 line_coverage[key][file_name] = LCOV.__build_ranges(lines)
@@ -240,16 +227,22 @@ class LCOV:
         lines = sorted(lines)
         for i in range(1, len(lines)):
             if lines[i] != lines[i-1] + 1:
+                # The sequence is broken.
                 if i - 1 != prev:
+                    # There is more than one line in the sequence. .
                     if i - 2 == prev:
+                        # There is more than two lines in the sequence. Add the range.
                         res.append(lines[prev])
                         res.append(lines[i - 1])
                     else:
+                        # Otherwise, add these lines separately.
                         res.append([lines[prev], lines[i-1]])
                 else:
+                    # Just add a single non-sequence line.
                     res.append(lines[prev])
                 prev = i
 
+        # This step is the same as in the loop body.
         if prev != len(lines) - 1:
             if prev == len(lines) - 2:
                 res.append(lines[prev])
@@ -258,4 +251,5 @@ class LCOV:
                 res.append([lines[prev], lines[-1]])
         else:
             res.append(lines[prev])
+
         return res
