@@ -117,9 +117,9 @@ KLEVER_CORE_LOG_FORMATTERS = {
 # WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
     'sequential': (1, 1, 1),
-    'slow': (1, 2, 2),
-    'quick': (1, 1.0, 1.0),
-    'very quick': (1, 2.0, 2.0),
+    'slow': (1, 2, 1),
+    'quick': (1, 1.0, 2),
+    'very quick': (1, 2.0, 1.0),
 }
 
 LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
