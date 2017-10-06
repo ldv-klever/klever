@@ -452,16 +452,17 @@ class RP(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-        # Submit a verdict
-        self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
-
-        # Submit a closing report
-        core.utils.report(self.logger,
-                          'verification finish',
-                          {'id': report['id']},
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+        try:
+            # Submit a verdict
+            self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
+        finally:
+            # Submit a closing report
+            core.utils.report(self.logger,
+                              'verification finish',
+                              {'id': report['id']},
+                              self.mqs['report files'],
+                              self.vals['report id'],
+                              self.conf['main working directory'])
 
         if self.__exception:
             self.logger.warning("Raising the saved exception")
