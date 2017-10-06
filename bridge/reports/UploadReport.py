@@ -136,11 +136,11 @@ class UploadReport:
             if 'log' in data:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
-                    raise CheckArchiveError("Log archive wasn't found in the archives list")
+                    raise ValueError("Log archive wasn't found in the archives list")
             if 'coverage' in data:
                 self.data['coverage'] = data['coverage']
                 if self.data['coverage'] not in self.archives:
-                    raise CheckArchiveError("Coverage archive wasn't found in the archives list")
+                    raise ValueError("Coverage archive wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -163,11 +163,11 @@ class UploadReport:
             if 'log' in data:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
-                    raise CheckArchiveError("Log archive wasn't found in the archives list")
+                    raise ValueError("Log archive wasn't found in the archives list")
             if 'coverage' in data:
                 self.data['coverage'] = data['coverage']
                 if self.data['coverage'] not in self.archives:
-                    raise CheckArchiveError("Coverage archive wasn't found in the archives list")
+                    raise ValueError("Coverage archive wasn't found in the archives list")
             if 'task identifier' in data:
                 try:
                     self.data['task'] = Task.objects.get(id=data['task identifier'])
@@ -176,7 +176,7 @@ class UploadReport:
             elif 'input files of static verifiers' in data:
                 self.data['verifier input'] = data['input files of static verifiers']
                 if self.data['verifier input'] not in self.archives:
-                    raise CheckArchiveError("Input files of static verifiers archive wasn't found in the archives list")
+                    raise ValueError("Archive with input files of static verifiers wasn't found in the archives list")
         elif data['type'] == 'verification finish':
             pass
         elif data['type'] == 'safe':
@@ -190,7 +190,7 @@ class UploadReport:
             if 'proof' in data:
                 self.data['proof'] = data['proof']
                 if self.data['proof'] not in self.archives:
-                    raise CheckArchiveError("Proof archive wasn't found in the archives list")
+                    raise ValueError("Proof archive wasn't found in the archives list")
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
@@ -200,7 +200,7 @@ class UploadReport:
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
             if self.data['problem desc'] not in self.archives:
-                raise CheckArchiveError("Problem description archive wasn't found in the archives list")
+                raise ValueError("Problem description archive wasn't found in the archives list")
             if 'attrs' in data:
                 self.data['attrs'] = data['attrs']
         elif data['type'] == 'unsafe':
@@ -213,7 +213,7 @@ class UploadReport:
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
             if self.data['error trace'] not in self.archives:
-                raise CheckArchiveError("Error trace description archive wasn't found in the archives list")
+                raise ValueError("Error trace archive wasn't found in the archives list")
         elif data['type'] == 'data':
             try:
                 self.data.update({'data': data['data']})
