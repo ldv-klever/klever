@@ -43,7 +43,7 @@ To run Klever Bridge you need:
 
 To run a production server you additionally need `apache2 <http://httpd.apache.org/>`_ and its module
 `mod_wsgi <https://code.google.com/p/modwsgi/>`_ or `NGINX <https://www.nginx.com/>`_ and Python package
-`Gunicorn <https://pypi.python.org/pypi/gunicorn>`.
+`Gunicorn <https://pypi.python.org/pypi/gunicorn>`_.
 
 To translate Klever Bridge (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
