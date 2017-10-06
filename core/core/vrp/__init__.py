@@ -359,6 +359,7 @@ class RP(core.components.Component):
                 self.verdict = 'unknown'
 
                 # Prepare file to send it with unknown report.
+                os.mkdir('verification')
                 verification_problem_desc = os.path.join('verification', 'problem desc.txt')
 
                 # Check resource limitiations
@@ -371,7 +372,7 @@ class RP(core.components.Component):
                     with open(verification_problem_desc, 'w', encoding='utf8') as fp:
                         fp.write(msg)
                 else:
-                    os.symlink(log_file, verification_problem_desc)
+                    os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     log_file = 'problem desc.txt'
@@ -384,13 +385,13 @@ class RP(core.components.Component):
                                       'id': "{}/verification/unknown".format(self.id),
                                       'parent id': "{}/verification".format(self.id),
                                       'attrs': [],
-                                      'problem desc': core.utils.ReportFiles([verification_problem_desc],
-                                                                             {verification_problem_desc:
-                                                                                  'problem desc.txt'})
+                                      'problem desc': core.utils.ReportFiles(
+                                          [verification_problem_desc], {verification_problem_desc: 'problem desc.txt'})
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
-                                  self.conf['main working directory'])
+                                  self.conf['main working directory'],
+                                  'verification')
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""
