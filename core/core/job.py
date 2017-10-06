@@ -499,13 +499,14 @@ class Job(core.utils.CallbacksCaller):
                 total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
                 if os.path.isfile(total_coverage_file):
                     raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
+                arcnames = {total_coverage_file: 'coverage.json'}
 
                 coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
 
                 with open(total_coverage_file, 'w', encoding='utf8') as fp:
                     json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-                arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()}
+                arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
 
                 total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
                                                                     arcnames)
