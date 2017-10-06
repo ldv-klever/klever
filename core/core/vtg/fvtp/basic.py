@@ -73,15 +73,17 @@ class Basic:
         if "CPU time" in resource_limits and isinstance(resource_limits["CPU time"], int):
             benchmark.set('timelimit', str(int(int(resource_limits["CPU time"]) * 0.9)))
 
+        opts, safe_prps = common.get_verifier_opts_and_safe_prps(self.logger, resource_limits, self.conf)
+
         # Then add options
-        self._prepare_run_definition(benchmark, resource_limits)
+        self._prepare_run_definition(benchmark, opts)
 
         # Files
         files = self._prepare_task_files(benchmark)
 
-        # Properties
-        property_file = self._prepare_property_file(benchmark)
-        files.append(property_file)
+        # Safety properties specification
+        self._prepare_safe_prps_spec(benchmark, safe_prps)
+        files.append("safe-prps.prp")
 
         # Save the benchmark definition
         with open("benchmark.xml", "w", encoding="utf8") as fp:
@@ -129,17 +131,16 @@ class Basic:
 
         return task_desc
 
-    def _prepare_run_definition(self, benchmark_definition, resource_limits):
+    def _prepare_run_definition(self, benchmark_definition, options):
         """
         The function should add a new subelement with name 'rundefinition' to the XML description of the given
         benchmark. The new element should contains a list of options for the given verifier.
 
         :param benchmark_definition: ElementTree.Element.
-        :param resource_limits: Dictionary with resource limitations of the task.
+        :param options: Dictionary with options.
         :return: None.
         """
         rundefinition = ElementTree.SubElement(benchmark_definition, "rundefinition")
-        options = common.get_list_of_verifiers_options(self.logger, resource_limits, self.conf)
 
         # Add options to the XML description
         for opt in options:
@@ -215,38 +216,26 @@ class Basic:
         # absolute path references in error traces.
         self.abstract_task_desc['extra C files'].append({'C file': os.path.abspath('bug kind funcs.c')})
 
-    def _prepare_property_file(self, benchmark_description):
+    def _prepare_safe_prps_spec(self, benchmark_description, safe_prps):
         """
-        Prepare a property specification file and add the corresponding element to the benchmark definition.
+        Prepare a safety properties specification and add the corresponding element to the benchmark definition.
 
         :param benchmark_description: ElementTree.Element.
-        :return: Path to the property file.
+        :return: None.
         """
-        self.logger.info('Prepare verifier property file')
+        self.logger.info('Prepare safety properties specification "safe-prps.prp"')
 
-        if 'entry points' in self.abstract_task_desc:
-            if len(self.abstract_task_desc['entry points']) > 1:
-                raise NotImplementedError('Several entry points are not supported')
+        if 'entry points' not in self.abstract_task_desc:
+            raise ValueError('Safety properties specification was not prepared since entry points were not specified')
 
-            if 'verifier specifications' in self.abstract_task_desc:
-                with open('spec.prp', 'w', encoding='utf8') as fp:
-                    for spec in self.abstract_task_desc['verifier specifications']:
-                        fp.write('CHECK( init({0}()), {1} )\n'.format(
-                            self.abstract_task_desc['entry points'][0], spec))
-                property_file = 'spec.prp'
+        if len(self.abstract_task_desc['entry points']) > 1:
+            raise NotImplementedError('Several entry points are not supported')
 
-                self.logger.debug('Verifier property file was outputted to "spec.prp"')
-            else:
-                with open('unreach-call.prp', 'w', encoding='utf8') as fp:
-                    fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
-                        self.abstract_task_desc['entry points'][0]))
+        if not len(safe_prps):
+            raise ValueError('Safety properties specification was not prepared since there is no safety properties')
 
-                property_file = 'unreach-call.prp'
+        with open('safe-prps.prp', 'w', encoding='utf8') as fp:
+            for safe_prp in safe_prps:
+                fp.write(safe_prp.format(entry_point=self.abstract_task_desc['entry points'][0]) + '\n')
 
-                self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
-        else:
-            raise ValueError('Verifier property file was not prepared since entry points were not specified')
-
-        ElementTree.SubElement(benchmark_description, "propertyfile").text = property_file
-        return property_file
-
+        ElementTree.SubElement(benchmark_description, "propertyfile").text = "safe-prps.prp"
