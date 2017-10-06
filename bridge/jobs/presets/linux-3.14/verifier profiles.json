@@ -66,7 +66,7 @@
     "memory checking Linux64": {
       "CPAchecker": {
         "smg_witness_for_ldv:25566": {
-          "inherit": "CPAchecker common"
+          "inherit": "CPAchecker SMG memory checking"
         }
       }
     },
