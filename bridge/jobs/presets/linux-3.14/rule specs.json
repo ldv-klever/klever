@@ -201,13 +201,7 @@
           "allocate external": true
         }
       },
-      "RSG": {
-        "models": {"generic/memory.c": {}},
-        "verifier specifications": [
-          "LTL(G valid-free)",
-          "LTL(G valid-deref)",
-          "LTL(G valid-memtrack)"
-      ]},
+      "RSG": {"models": {"generic/memory.c": {}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {
