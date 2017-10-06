@@ -27,7 +27,6 @@ import zipfile
 import threading
 import time
 import queue
-import hashlib
 import tempfile
 from benchexec.runexecutor import RunExecutor
 

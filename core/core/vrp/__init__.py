@@ -315,6 +315,8 @@ class RP(core.components.Component):
                                           error_trace_dir)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                        self.verdict = 'non-verifier unknown'
+
                         if self.__exception:
                             try:
                                 raise e from self.__exception
@@ -354,6 +356,7 @@ class RP(core.components.Component):
                                       self.conf['main working directory'])
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                    self.verdict = 'non-verifier unknown'
                     self.__exception = e
             elif not re.match('false', decision_results['status']):
                 self.verdict = 'unknown'
