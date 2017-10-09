@@ -1,1 +1,8 @@
-TODO: write me!
+To build and to view Klever documentation you need:
+* Install Python 3.4 or higher (https://www.python.org/) and Sphinx
+  (http://sphinx-doc.org).
+* Execute the following command from the source tree root directory (it should
+  be executed each time when documentation might be changed):
+    make -C docs html
+* Open generated documenation index "docs/_build/index.html" in a web browser.
+

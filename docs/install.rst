@@ -15,15 +15,6 @@
 Installation
 ============
 
-Documentation installation
---------------------------
-
-#. Execute the following command (it should be executed each time when documentation might be changed)::
-
-    $ make -C docs html
-
-#. Open generated documenation index :file:`docs/_build/index.html`.
-
 .. _klever-bridge-install:
 
 Klever Bridge installation

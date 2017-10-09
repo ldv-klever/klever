@@ -13,14 +13,6 @@
 Requirements
 ============
 
-Documentation
--------------
-
-To build this documentation you need:
-
-* `Python 3.4 or higher <https://www.python.org/>`_.
-* `Sphinx <http://sphinx-doc.org>`__.
-
 Klever Bridge
 -------------
 
