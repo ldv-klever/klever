@@ -23,7 +23,7 @@ int ldv_dma_calls = 0;
 /* MODEL_FUNC Map page */
 void ldv_dma_map_page(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::double map", ldv_dma_calls == 0);
+	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 }
@@ -38,7 +38,7 @@ void ldv_dma_mapping_error(void) {
 /* MODEL_FUNC Map page */
 void ldv_dma_map_single(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::double map", ldv_dma_calls == 0);
+	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 }
@@ -46,7 +46,7 @@ void ldv_dma_map_single(void) {
 /* MODEL_FUNC Map page */
 void ldv_dma_map_single_attrs(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
-	ldv_assert("linux:drivers:base:dma-mapping::double map", ldv_dma_calls == 0);
+	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
 }
@@ -54,5 +54,5 @@ void ldv_dma_map_single_attrs(void) {
 /* MODEL_FUNC Check that all dma_mapping calls are checked at the end */
 void ldv_check_final_state(void) {
 	/* ASSERT All dma_mapping calls should be checked before module unloading */
-	ldv_assert("linux:drivers:base:dma-mapping::more initial at exit", ldv_dma_calls == 0);
+	ldv_assert("linux:drivers:base:dma-mapping::unchecked at exit", ldv_dma_calls == 0);
 }
