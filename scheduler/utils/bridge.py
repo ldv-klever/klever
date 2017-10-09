@@ -56,7 +56,7 @@ class Session:
         self.__request('users/service_signin/', 'POST', parameters)
         logging.debug('Session was created')
 
-    def __request(self, path_url, method='GET', data=None, **kwargs):
+    def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
         """
         Make request in terms of the active session.
 
@@ -97,9 +97,21 @@ class Session:
                 return resp
             except requests.ConnectionError as err:
                 logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
-                time.sleep(1)
+                if looping:
+                    time.sleep(1)
+                else:
+                    logging.warning('Aborting request to Bridge')
+                    return None
 
     def get_archive(self, endpoint, data, archive):
+        """
+        Download ZIP archive from server.
+
+        :param endpoint: URL endpoint.
+        :param data: Data to push in case of POST request.
+        :param archive: Path to save the archive.
+        :return: None
+        """
         while True:
             resp = None
             try:
@@ -119,6 +131,14 @@ class Session:
                     resp.close()
 
     def push_archive(self, endpoint, data, archive):
+        """
+        Apload an arcive to server.
+
+        :param endpoint: URL endpoint.
+        :param data: Data to push in case of POST request.
+        :param archive: Path to save the archive.
+        :return: None.
+        """
         while True:
             resp = None
             try:
@@ -136,10 +156,21 @@ class Session:
                 if resp:
                     resp.close()
 
-    def json_exchange(self, endpoint, json_data):
-        response = self.__request(endpoint, 'POST', json_data)
+    def json_exchange(self, endpoint, json_data, looping=True):
+        """
+        Exchange with JSON the
 
-        return response.json()
+        :param endpoint: URL endpoint.
+        :param json_data: Data with json string.
+        :param looping: Do the request until it finishes successfully.
+        :return: JSON string response from the server.
+        """
+        response = self.__request(endpoint, 'POST', json_data, looping=looping)
+
+        if response:
+            return response.json()
+        else:
+            return None
 
     def sign_out(self):
         """
@@ -148,6 +179,6 @@ class Session:
         :return: Nothing
         """
         logging.info('Finish session at {}'.format(self.name))
-        self.__request('users/service_signout/')
+        self.__request('users/service_signout/', looping=False)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
