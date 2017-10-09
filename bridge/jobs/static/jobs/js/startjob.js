@@ -117,12 +117,12 @@ $(document).ready(function () {
                     $('#tasks_gen_parallelism__value').val()
                 ],
                 [
-                    parseFloat($('#max_ram').val()),
+                    parseFloat($('#max_ram').val().replace(/,/, '.')),
                     parseInt($('#max_cpus').val()),
-                    parseFloat($('#max_disk').val()),
+                    parseFloat($('#max_disk').val().replace(/,/, '.')),
                     $('#cpu_model').val(),
-                    parseFloat($('#max_cpu_time').val()),
-                    parseFloat($('#max_wall_time').val())
+                    parseFloat($('#max_cpu_time').val().replace(/,/, '.')),
+                    parseFloat($('#max_wall_time').val().replace(/,/, '.'))
                 ],
                 [
                     $('#console_logging_level').val(),
