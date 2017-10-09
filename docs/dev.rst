@@ -16,17 +16,17 @@ Developer documentation
 How to write this documentation
 -------------------------------
 
-This documentation is created using `Sphinx <http://sphinx-doc.org>`_ from
-`reStructuredText <http://docutils.sourceforge.net/rst.html>`_ source files.
+This documentation is created using `Sphinx <http://sphinx-doc.org>`__ from
+`reStructuredText <http://docutils.sourceforge.net/rst.html>`__ source files.
 To improve existing documentation or to develop the new one you need to read at least the following chapters of the
-`Sphinx documentation <http://sphinx-doc.org/contents.html>`_:
+`Sphinx documentation <http://sphinx-doc.org/contents.html>`__:
 
-#. `Defining document structure <http://sphinx-doc.org/tutorial.html#defining-document-structure>`_.
-#. `Adding content <http://sphinx-doc.org/tutorial.html#adding-content>`_.
-#. `Running the build <http://sphinx-doc.org/tutorial.html#running-the-build>`_.
-#. `reStructuredText Primer <http://sphinx-doc.org/rest.html>`_.
-#. `Sphinx Markup Constructs <http://sphinx-doc.org/markup/index.html>`_.
-#. `Sphinx Domains <http://sphinx-doc.org/domains.html>`_ (you can omit language specific domains).
+#. `Defining document structure <http://sphinx-doc.org/tutorial.html#defining-document-structure>`__.
+#. `Adding content <http://sphinx-doc.org/tutorial.html#adding-content>`__.
+#. `Running the build <http://sphinx-doc.org/tutorial.html#running-the-build>`__.
+#. `reStructuredText Primer <http://sphinx-doc.org/rest.html>`__.
+#. `Sphinx Markup Constructs <http://sphinx-doc.org/markup/index.html>`__.
+#. `Sphinx Domains <http://sphinx-doc.org/domains.html>`__ (you can omit language specific domains).
 
 Please, follow these advises:
 
@@ -47,7 +47,7 @@ To develop documentation it is recommended to use some visual editor.
 Using Git repository
 --------------------
 
-Klever source code resides in the `Git <https://git-scm.com/>`_ repository.
+Klever source code resides in the `Git <https://git-scm.com/>`__ repository.
 There is plenty of very good documentation about Git usage.
 This section describes just rules specific for the given project.
 
@@ -223,7 +223,7 @@ Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
-available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
+available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
 
 ..
     TODO
@@ -305,4 +305,4 @@ available at the official `PyCharm documentation site <https://www.jetbrains.com
        *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
 
     #. Check out at client-controller consul web-UI that all checks are passing now. The address by defauilt is
-       `localhost:8500 <http://localhost:8500/ui>`_.
+       `localhost:8500 <http://localhost:8500/ui>`__.
