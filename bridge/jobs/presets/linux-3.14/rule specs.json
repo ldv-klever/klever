@@ -315,7 +315,7 @@
       "RSG": {"models": {"linux/drivers/base/dma-mapping.c": { "bug kinds": [
         "linux:drivers:base:dma-mapping::more initial at exit",
         "linux:drivers:base:dma-mapping::double map",
-        "linux:drivers:base:dma-mapping::unmap before map"
+        "linux:drivers:base:dma-mapping::check before map"
       ]}}}
     },
     "linux:drivers:clk1": {
