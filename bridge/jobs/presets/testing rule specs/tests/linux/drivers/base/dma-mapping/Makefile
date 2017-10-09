@@ -1,0 +1,1 @@
+obj-m += check-before-map.o unchecked.o unchecked-at-exit.o safe.o
