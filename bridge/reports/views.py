@@ -822,8 +822,12 @@ def clear_verification_files(request):
 def coverage_page(request, report_id):
     activate(request.user.extended.language)
 
+    cov_arch_id = None
+    if request.method == 'GET':
+        cov_arch_id = request.GET.get('archive')
+
     try:
-        coverage = GetCoverage(report_id, True)
+        coverage = GetCoverage(report_id, cov_arch_id, True)
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
@@ -838,8 +842,12 @@ def coverage_page(request, report_id):
 def coverage_light_page(request, report_id):
     activate(request.user.extended.language)
 
+    cov_arch_id = None
+    if request.method == 'GET':
+        cov_arch_id = request.GET.get('archive')
+
     try:
-        coverage = GetCoverage(report_id, False)
+        coverage = GetCoverage(report_id, cov_arch_id, False)
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
@@ -853,12 +861,12 @@ def coverage_light_page(request, report_id):
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
     activate(request.user.extended.language)
-    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'with_data']):
+    if request.method != 'POST' or any(x not in request.POST for x in ['cov_arch_id', 'filename', 'with_data']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
         res = GetCoverageSrcHTML(
-            request.POST['report_id'], request.POST['filename'], bool(int(request.POST['with_data']))
+            request.POST['cov_arch_id'], request.POST['filename'], bool(int(request.POST['with_data']))
         )
     except BridgeException as e:
         return JsonResponse({'error': str(e)})

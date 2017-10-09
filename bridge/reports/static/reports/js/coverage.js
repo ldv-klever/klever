@@ -11,11 +11,7 @@ $(document).ready(function () {
             method: 'post',
             url: '/reports/ajax/get-coverage-src/',
             dataType: 'json',
-            data: {
-                report_id: $('#report_id').val(),
-                filename: filename,
-                with_data: with_data
-            },
+            data: {cov_arch_id: $('#cov_arch_id').val(), filename: filename, with_data: with_data},
             success: function(data) {
                 if (data.error) {
                     err_notify(data.error)
@@ -147,4 +143,13 @@ $(document).ready(function () {
             data_stat_table.show();
         });
     }
+    $('.ui.dropdown').dropdown();
+    $('#identifier_selector').change(function () {
+        if (with_data === '1') {
+            window.location.href = '/reports/coverage/' + $('#report_id').val() + '?archive=' + $(this).val();
+        }
+        else {
+            window.location.href = '/reports/coverage-light/' + $('#report_id').val() + '?archive=' + $(this).val();
+        }
+    });
 });

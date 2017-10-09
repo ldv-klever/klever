@@ -30,7 +30,8 @@ from django.template import loader
 
 from bridge.vars import COVERAGE_FILE
 
-from reports.models import ReportComponent, CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics
+from reports.models import ReportComponent, CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics,\
+    CoverageArchive
 
 from reports.utils import get_parents
 from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
@@ -152,27 +153,34 @@ def json_to_html(data):
 
 
 class GetCoverage:
-    def __init__(self, report_id, with_data):
-        self.report = ReportComponent.objects.get(id=report_id)
+    def __init__(self, report_id, cov_arch_id, with_data):
+        if cov_arch_id is None:
+            self.report = ReportComponent.objects.get(id=report_id)
+            self.cov_arch = self.report.coverages.order_by('identifier').first()
+        else:
+            self.cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
+            self.report = self.cov_arch.report
+        self.coverage_archives = self.report.coverages.order_by('identifier').values_list('id', 'identifier')
         self.job = self.report.root.job
+
         self.parents = get_parents(self.report)
-        self._statistic = CoverageStatistics(self.report)
+        self._statistic = CoverageStatistics(self.cov_arch)
         self.statistic_table = self._statistic.table_data
         if self._statistic.first_file:
-            self.first_file = GetCoverageSrcHTML(report_id, self._statistic.first_file, with_data)
+            self.first_file = GetCoverageSrcHTML(self.cov_arch.id, self._statistic.first_file, with_data)
         if with_data:
-            self.data_statistic = DataStatistic(report_id).table_html
+            self.data_statistic = DataStatistic(self.cov_arch.id).table_html
 
     def __is_not_used(self):
         pass
 
 
 class GetCoverageSrcHTML:
-    def __init__(self, report_id, filename, with_data):
-        self._report = ReportComponent.objects.get(id=report_id)
+    def __init__(self, cov_arch_id, filename, with_data):
+        self._cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
         self.filename = os.path.normpath(filename).replace('\\', '/')
         try:
-            self._covfile = CoverageFile.objects.get(report=self._report, name=self.filename)
+            self._covfile = CoverageFile.objects.get(archive=self._cov_arch, name=self.filename)
         except ObjectDoesNotExist:
             self._covfile = None
         self._with_data = with_data
@@ -195,7 +203,7 @@ class GetCoverageSrcHTML:
         }})
 
     def __get_arch_content(self):
-        with self._report.coverage as fp:
+        with self._cov_arch.archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -382,14 +390,14 @@ class GetCoverageSrcHTML:
 
 
 class CoverageStatistics:
-    def __init__(self, report):
-        self.report = report
+    def __init__(self, cov_arch):
+        self.cov_arch = cov_arch
         self.first_file = None
         self.table_data = self.__get_table_data()
 
     def __get_table_data(self):
         coverage = {}
-        for c in CoverageFile.objects.filter(report=self.report):
+        for c in CoverageFile.objects.filter(archive=self.cov_arch):
             coverage[c.name] = c
 
         hide_all = False
@@ -494,24 +502,27 @@ class CoverageStatistics:
 
 
 class DataStatistic:
-    def __init__(self, report_id):
-        self.report = ReportComponent.objects.get(id=report_id)
+    def __init__(self, cov_arch_id):
         self.table_html = loader.get_template('reports/coverage/coverageDataStatistics.html')\
-            .render({'DataStatistics': self.__get_data_stat()})
+            .render({'DataStatistics': self.__get_data_stat(cov_arch_id)})
 
-    def __get_data_stat(self):
+    def __get_data_stat(self, cov_arch_id):
+        self.__is_not_used()
         data = []
         active = True
-        for stat in CoverageDataStatistics.objects.filter(report=self.report).order_by('name'):
+        for stat in CoverageDataStatistics.objects.filter(archive_id=cov_arch_id).order_by('name'):
             with stat.data.file as fp:
                 data.append({'tab': stat.name, 'active': active, 'content': fp.read().decode('utf8')})
             active = False
         return data
 
+    def __is_not_used(self):
+        pass
+
 
 class CreateCoverageFiles:
-    def __init__(self, report, coverage):
-        self._report = report
+    def __init__(self, cov_arch, coverage):
+        self._cov_arch = cov_arch
         self._coverage = coverage
         self._line_coverage = {}
         self._func_coverage = {}
@@ -548,7 +559,7 @@ class CreateCoverageFiles:
                 [self._line_coverage.get(fname, []), self._func_coverage.get(fname, [])]
             ))
             covfile = CoverageFile(
-                report=self._report, name=fname,
+                archive=self._cov_arch, name=fname,
                 covered_lines=self._coverage_stat[fname][0], total_lines=self._coverage_stat[fname][1],
                 covered_funcs=self._coverage_stat[fname][2], total_funcs=self._coverage_stat[fname][3]
             )
@@ -567,7 +578,7 @@ class CreateCoverageFiles:
 
     def __get_saved_files(self):
         files = {}
-        for f_id, fname in CoverageFile.objects.filter(report=self._report).values_list('id', 'name'):
+        for f_id, fname in CoverageFile.objects.filter(archive=self._cov_arch).values_list('id', 'name'):
             files[fname] = f_id
         return files
 
@@ -576,17 +587,21 @@ class CreateCoverageFiles:
 
 
 class FillCoverageCache:
+    @exec_time
     def __init__(self, report):
-        self._report = report
-        self._data = self.__get_coverage_data()
-        self._files = CreateCoverageFiles(self._report, self._data).files
-        del self._data['line coverage'], self._data['function coverage']
-        self.__fill_data()
+        for cov_arch, data in self.__get_coverage_data(report):
+            self._data = data
+            self._cov_arch = cov_arch
+            self._files = CreateCoverageFiles(self._cov_arch, self._data).files
+            del self._data['line coverage'], self._data['function coverage']
+            self.__fill_data()
 
-    def __get_coverage_data(self):
-        with self._report.coverage as fp:
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                return json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
+    def __get_coverage_data(self, report):
+        self.__is_not_used()
+        for cov_arch in report.coverages.all():
+            with cov_arch.archive as fp:
+                with zipfile.ZipFile(fp, 'r') as zfp:
+                    yield cov_arch, json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
 
     def __fill_data(self):
         covdata = []
@@ -595,7 +610,7 @@ class FillCoverageCache:
             data_values[(dataname, hashsum)] = vid
 
         for dataname in self._data:
-            covdatastat = CoverageDataStatistics(report=self._report, name=dataname)
+            covdatastat = CoverageDataStatistics(archive=self._cov_arch, name=dataname)
             covdatastat.data.save('CoverageData.html', NewFile(StringIO(
                 json_to_html(self._data[dataname]['statistics'])
             )))
@@ -608,7 +623,7 @@ class FillCoverageCache:
                 data_id = data_values[(dataname, hashsum)]
                 for fname in data[1]:
                     if fname not in self._files:
-                        self._files[fname] = CoverageFile.objects.create(report=self._report, name=fname).id
+                        self._files[fname] = CoverageFile.objects.create(archive=self._cov_arch, name=fname).id
                     for line in data[1][fname]:
                         if isinstance(line, int):
                             covdata.append(CoverageData(covfile_id=self._files[fname], line=line, data_id=data_id))
@@ -618,3 +633,6 @@ class FillCoverageCache:
                             covdata.append(CoverageData(covfile_id=self._files[fname], line=line[1], data_id=data_id))
 
         CoverageData.objects.bulk_create(covdata)
+
+    def __is_not_used(self):
+        pass

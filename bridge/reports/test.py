@@ -782,11 +782,12 @@ class TestReports(KleverTestCase):
 
 
 class DecideJobs(object):
-    def __init__(self, username, password, reports_data):
+    def __init__(self, username, password, reports_data, with_full_coverage=False):
         self.service = Client()
         self.username = username
         self.password = password
         self.reports_data = reports_data
+        self.full_coverage = with_full_coverage
         self.ids_in_use = []
         self._cmp_stack = []
         self.__upload_reports()
@@ -840,13 +841,21 @@ class DecideJobs(object):
         report = {
             'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'It does not matter', 'log': 'log.zip'
         }
-        with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as fp:
-            if coverage is not None:
-                report['coverage'] = coverage
-                with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
-                    self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp, cfp]})
-            else:
-                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        files = [open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb')]
+        if coverage is not None:
+            report['coverage'] = coverage
+            for carch in coverage.values():
+                files.append(open(os.path.join(ARCHIVE_PATH, carch), mode='rb'))
+        try:
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
+        except Exception:
+            for fp in files:
+                fp.close()
+            raise
+        else:
+            for fp in files:
+                fp.close()
+
         if len(self._cmp_stack) > 0:
             self._cmp_stack.pop()
 
@@ -969,17 +978,21 @@ class DecideJobs(object):
 
         self.__upload_data_report('/', core_data)
 
+        core_coverage = {}
         if any('chunks' in chunk for chunk in self.reports_data):
             for subjob in self.reports_data:
                 if 'chunks' in subjob:
                     try:
-                        self.__upload_subjob(subjob)
+                        core_coverage.update(self.__upload_subjob(subjob))
                     except DecisionError:
                         pass
         else:
             self.__upload_chunks()
 
-        self.__upload_finish_report('/')
+        if self.full_coverage and len(core_coverage) > 0:
+            self.__upload_finish_report('/', coverage=core_coverage)
+        else:
+            self.__upload_finish_report('/')
 
     def __upload_subjob(self, subjob):
         sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
@@ -1010,9 +1023,14 @@ class DecideJobs(object):
             self.__upload_finish_report(rp)
         self.__upload_finish_report(vrp)
 
-        full_coverage = 'big_full_coverage.zip'
-        # full_coverage = 'Core_coverage.zip'
-        self.__upload_finish_report(sj, coverage=full_coverage)
+        if self.full_coverage:
+            # full_coverage = 'big_full_coverage.zip'
+            full_coverage = 'Core_coverage.zip'
+            self.__upload_finish_report(sj, coverage={subjob['rule']: full_coverage})
+            return {subjob['rule']: full_coverage}
+        else:
+            self.__upload_finish_report(sj)
+        return {}
 
     def __upload_chunks(self):
         lkbce = self.__upload_start_report('LKBCE', '/')

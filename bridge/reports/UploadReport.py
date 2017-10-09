@@ -34,7 +34,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, TasksNumbers, ReportComponentLeaf,\
-    Computer, ComponentInstances
+    Computer, ComponentInstances, CoverageArchive
 from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
@@ -139,8 +139,10 @@ class UploadReport:
                     raise ValueError("Log archive wasn't found in the archives list")
             if 'coverage' in data:
                 self.data['coverage'] = data['coverage']
-                if self.data['coverage'] not in self.archives:
-                    raise ValueError("Coverage archive wasn't found in the archives list")
+                if not isinstance(self.data['coverage'], dict):
+                    raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
+                if any(x not in self.archives for x in self.data['coverage'].values()):
+                    raise ValueError("One of coverage archives wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -166,6 +168,8 @@ class UploadReport:
                     raise ValueError("Log archive wasn't found in the archives list")
             if 'coverage' in data:
                 self.data['coverage'] = data['coverage']
+                if not isinstance(self.data['coverage'], str):
+                    raise ValueError("Coverage for verification report must be a string")
                 if self.data['coverage'] not in self.archives:
                     raise ValueError("Coverage archive wasn't found in the archives list")
             if 'task identifier' in data:
@@ -341,7 +345,8 @@ class UploadReport:
         except ObjectDoesNotExist:
             report = ReportComponent(
                 identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=True,
-                component=Component.objects.get_or_create(name=self.data['name'])[0]
+                component=Component.objects.get_or_create(name=self.data['name'])[0],
+                covnum=int('coverage' in self.data)
             )
         if 'data' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
             report.new_data('report-data.json', BytesIO(json.dumps(
@@ -367,13 +372,15 @@ class UploadReport:
                 report.add_verifier_input(REPORT_ARCHIVE['verifier input'], fp)
         elif 'verifier input' in self.data:
             report.add_verifier_input(REPORT_ARCHIVE['verifier input'], self.archives[self.data['verifier input']])
-        if 'coverage' in self.data:
-            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.save()
 
+        if 'coverage' in self.data:
+            carch = CoverageArchive(report=report)
+            carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
+
         # Check that report archives were successfully saved on disk
-        for field_name in ['log', 'coverage', 'verifier_input']:
+        for field_name in ['log', 'verifier_input']:
             arch_name = report.__getattribute__(field_name).name
             if arch_name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, arch_name)):
                 report.delete()
@@ -395,9 +402,9 @@ class UploadReport:
             comp_inst.save()
 
         # Other verification reports will be deleted
-        if self.job.weight == JOB_WEIGHT[0][0] or report.coverage or report.verifier_input:
+        if self.job.weight == JOB_WEIGHT[0][0] or report.covnum > 0 or report.verifier_input:
             ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
-        if report.coverage:
+        if report.covnum > 0:
             FillCoverageCache(report)
 
     def __update_attrs(self, identifier):
@@ -465,10 +472,9 @@ class UploadReport:
         save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
         if save_add_data and 'log' in self.data:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
-        if 'coverage' in self.data and report.component.name == 'Sub-job':
-            report.add_coverage(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
 
         report.finish_date = now()
+        report.covnum = len(self.data['coverage']) if 'coverage' in self.data else 0
 
         if save_add_data and 'data' in self.data:
             # Report is saved after the data is updated
@@ -479,6 +485,11 @@ class UploadReport:
         if report.log.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.log.name)):
             report.delete()
             raise CheckArchiveError('Report archive "log" was not saved')
+
+        if 'coverage' in self.data and report.component.name in {'Core', 'Sub-job'}:
+            for cov_id in self.data['coverage']:
+                carch = CoverageArchive(report=report, identifier=cov_id)
+                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -494,7 +505,7 @@ class UploadReport:
             report.delete()
         else:
             report_ids.add(report.id)
-            if report.coverage:
+            if report.covnum > 0:
                 FillCoverageCache(report)
         ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
             .update(in_progress=(F('in_progress') - 1))
@@ -611,7 +622,7 @@ class UploadReport:
 
     def __cut_leaf_parents_branch(self, leaf):
         self.__cut_parents_branch()
-        if self.parent.verifier_input or self.parent.coverage:
+        if self.parent.verifier_input or self.parent.covnum > 0:
             # After verification finish report self.parent.parent will be Core/Sub-job report
             self._parents_branch.append(self.parent)
         else:
@@ -753,7 +764,7 @@ class CollapseReports:
                 report = getattr(leaf, fname)
                 if report:
                     sj_reports.add(report.id)
-                    if report.parent.reportcomponent.coverage or report.parent.reportcomponent.verifier_input:
+                    if report.parent.reportcomponent.covnum > 0 or report.parent.reportcomponent.verifier_input:
                         sub_jobs[leaf.report_id].add(report.parent_id)
                     else:
                         sub_jobs[leaf.report_id].add(report.id)
@@ -769,14 +780,14 @@ class CollapseReports:
                 if report:
                     if report.id in sj_reports:
                         break
-                    if report.parent.reportcomponent.coverage or report.parent.reportcomponent.verifier_input:
+                    if report.parent.reportcomponent.covnum > 0 or report.parent.reportcomponent.verifier_input:
                         core_reports.add(report.parent_id)
                     else:
                         core_reports.add(report.id)
                     break
         Report.objects.filter(id__in=core_reports).update(parent_id=core_id)
 
-        ReportComponent.objects.filter(root=root, verifier_input='', coverage='')\
+        ReportComponent.objects.filter(root=root, verifier_input='', covnum=0)\
             .exclude(component__name__in={'Core', 'Sub-job'}).delete()
 
         RecalculateLeaves([root])

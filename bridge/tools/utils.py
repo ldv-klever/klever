@@ -154,9 +154,9 @@ class RecalculateCoverageCache:
         self.__recalc()
 
     def __recalc(self):
-        CoverageFile.objects.filter(report__root__in=self.roots).delete()
-        CoverageDataStatistics.objects.filter(report__root__in=self.roots).delete()
-        for report in ReportComponent.objects.filter(root__in=self.roots).exclude(coverage=''):
+        CoverageFile.objects.filter(archive__report__root__in=self.roots).delete()
+        CoverageDataStatistics.objects.filter(archive__report__root__in=self.roots).delete()
+        for report in ReportComponent.objects.filter(root__in=self.roots, covnum__gt=0):
             FillCoverageCache(report)
 
 
@@ -202,6 +202,14 @@ class Recalculation:
             UnknownUtils.RecalculateConnections(self._roots)
             RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
+            RecalculateComponentInstances(self._roots)
+            RecalculateCoverageCache(self._roots)
+        elif self.type == 'for_uploaded':
+            RecalculateLeaves(self._roots)
+            UnsafeUtils.RecalculateConnections(self._roots)
+            SafeUtils.RecalculateConnections(self._roots)
+            UnknownUtils.RecalculateConnections(self._roots)
+            RecalculateVerdicts(self._roots)
             RecalculateComponentInstances(self._roots)
             RecalculateCoverageCache(self._roots)
         else:

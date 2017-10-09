@@ -185,15 +185,17 @@ class RemoveFilesBeforeDelete:
             self.__remove(files)
 
     def __remove_reports_files(self, root):
-        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive
         for files in ReportSafe.objects.filter(Q(root=root) & ~Q(proof=None)).values_list('proof'):
             self.__remove(files)
         for files in ReportUnsafe.objects.filter(root=root).values_list('error_trace'):
             self.__remove(files)
         for files in ReportUnknown.objects.filter(root=root).values_list('problem_description'):
             self.__remove(files)
-        for files in ReportComponent.objects.filter(root=root).exclude(log='', data='', coverage='', verifier_input='')\
-                .values_list('log', 'verifier_input', 'coverage', 'data'):
+        for files in ReportComponent.objects.filter(root=root).exclude(log='', data='', verifier_input='')\
+                .values_list('log', 'verifier_input', 'data'):
+            self.__remove(files)
+        for files in CoverageArchive.objects.filter(report__root=root).values_list('archive'):
             self.__remove(files)
 
     def __remove_task_files(self, task):

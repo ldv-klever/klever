@@ -33,8 +33,13 @@ def get_component_path(instance, filename):
     return os.path.join('Reports', instance.component.name, str(curr_date.year), str(curr_date.month), filename)
 
 
+def get_coverage_arch_dir(instance, filename):
+    curr_date = now()
+    return os.path.join('Reports', instance.report.component.name, str(curr_date.year), str(curr_date.month), filename)
+
+
 def get_coverage_dir(instance, filename):
-    return os.path.join('Reports', 'CoverageCache', 'Report-%s' % instance.report_id, filename)
+    return os.path.join('Reports', 'CoverageCache', 'CovArch-%s' % instance.archive_id, filename)
 
 
 class AttrName(models.Model):
@@ -114,7 +119,7 @@ class ReportComponent(Report):
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.FileField(upload_to=get_component_path, null=True)
-    coverage = models.FileField(upload_to=get_component_path, null=True)
+    covnum = models.PositiveSmallIntegerField(default=0)
     verifier_input = models.FileField(upload_to=get_component_path, null=True)
     data = models.FileField(upload_to=get_component_path, null=True)
 
@@ -123,9 +128,6 @@ class ReportComponent(Report):
 
     def add_log(self, fname, fp, save=False):
         self.log.save(fname, File(fp), save)
-
-    def add_coverage(self, fname, fp, save=False):
-        self.coverage.save(fname, File(fp), save)
 
     def add_verifier_input(self, fname, fp, save=False):
         self.verifier_input.save(fname, File(fp), save)
@@ -139,12 +141,28 @@ def report_component_delete_signal(**kwargs):
     report = kwargs['instance']
     if report.log:
         report.log.storage.delete(report.log.path)
-    if report.coverage:
-        report.coverage.storage.delete(report.coverage.path)
     if report.verifier_input:
         report.verifier_input.storage.delete(report.verifier_input.path)
     if report.data:
         report.data.storage.delete(report.data.path)
+
+
+class CoverageArchive(models.Model):
+    report = models.ForeignKey(ReportComponent, related_name='coverages')
+    identifier = models.CharField(max_length=128, default='')
+    archive = models.FileField(upload_to=get_coverage_arch_dir, null=True)
+
+    def save_archive(self, fname, fp):
+        self.archive.save(fname, File(fp), True)
+
+    class Meta:
+        db_table = 'report_coverage_archive'
+
+
+@receiver(pre_delete, sender=CoverageArchive)
+def coverage_archive_delete_signal(**kwargs):
+    arch = kwargs['instance']
+    arch.archive.storage.delete(arch.archive.path)
 
 
 class ReportUnsafe(Report):
@@ -308,7 +326,7 @@ class ComponentInstances(models.Model):
 
 
 class CoverageFile(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    archive = models.ForeignKey(CoverageArchive)
     name = models.CharField(max_length=1024)
     file = models.FileField(upload_to=get_coverage_dir, null=True)
     covered_lines = models.PositiveIntegerField(default=0)
@@ -346,7 +364,7 @@ class CoverageData(models.Model):
 
 
 class CoverageDataStatistics(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    archive = models.ForeignKey(CoverageArchive)
     name = models.CharField(max_length=128)
     data = models.FileField(upload_to='CoverageData')
 
