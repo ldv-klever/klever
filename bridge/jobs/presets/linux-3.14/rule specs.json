@@ -207,8 +207,7 @@
         "verifier": {
           "name": "CPAchecker",
           "version": "smg_witness_for_ldv:25566"
-        },
-        "result processing": {}
+        }
       }
     },
     "linux:empty": {
