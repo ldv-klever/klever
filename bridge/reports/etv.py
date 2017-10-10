@@ -494,6 +494,12 @@ class GetETV:
         pass
 
     def __html_trace(self):
+        if all('thread' not in self.data['edges'][n] for n in self.err_trace_nodes):
+            curr_thread = 0
+            for n in self.err_trace_nodes:
+                if curr_thread == 0 and 'enter' in self.data['edges'][n]:
+                    curr_thread += 1
+                self.data['edges'][n]['thread'] = curr_thread
         for n in self.err_trace_nodes:
             if 'thread' not in self.data['edges'][n]:
                 raise ValueError('All error trace edges should have thread')
