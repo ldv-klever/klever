@@ -158,6 +158,11 @@ class LCOV:
                     count_covered_functions += 1
                 elif line.startswith(self.EOR_PREFIX):
                     # End coverage for the specific file
+
+                    # Add not covered functions
+                    covered_functions.update({line: 0 for line in set(function_to_line.values())
+                                             .difference(set(covered_functions.keys()))})
+
                     coverage_info.setdefault(file_name, [])
                     coverage_info[file_name].append({
                         'file name': old_file_name,
