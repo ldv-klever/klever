@@ -27,7 +27,6 @@ import zipfile
 import threading
 import time
 import queue
-import hashlib
 from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
