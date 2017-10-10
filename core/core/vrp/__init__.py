@@ -218,6 +218,10 @@ class RP(core.components.Component):
 
         if status == 'finished':
             self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+            # Raise exception just here sinse the method above has callbacks.
+            if self.__exception:
+                self.logger.warning("Raising the saved exception")
+                raise self.__exception
         elif status == 'error':
             task_error = self.process_failed_task(task_id)
             # Raise exception just here sinse the method above has callbacks.
@@ -467,10 +471,6 @@ class RP(core.components.Component):
                               self.mqs['report files'],
                               self.vals['report id'],
                               self.conf['main working directory'])
-
-        if self.__exception:
-            self.logger.warning("Raising the saved exception")
-            raise self.__exception
 
     def __trim_file_names(self, file_names, shadow_src_dir):
         arcnames = {}
