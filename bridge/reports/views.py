@@ -769,17 +769,15 @@ def download_verifier_input_files(request, report_id):
 
 @login_required
 @unparallel_group([])
-def download_coverage(request, report_id):
+def download_coverage(request, archive_id):
     try:
-        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
+        carch = reports.models.CoverageArchive.objects.get(id=int(archive_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
-    if not report.coverage:
-        return BridgeErrorResponse(_("The report doesn't have coverage"))
 
-    response = StreamingHttpResponse(FileWrapper(report.coverage.file, 8192), content_type='application/zip')
-    response['Content-Length'] = len(report.coverage.file)
-    response['Content-Disposition'] = 'attachment; filename="%s coverage.zip"' % report.component.name
+    response = StreamingHttpResponse(FileWrapper(carch.archive.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(carch.archive.file)
+    response['Content-Disposition'] = 'attachment; filename="%s coverage.zip"' % carch.report.component.name
     return response
 
 

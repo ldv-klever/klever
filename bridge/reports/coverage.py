@@ -587,7 +587,6 @@ class CreateCoverageFiles:
 
 
 class FillCoverageCache:
-    @exec_time
     def __init__(self, report):
         for cov_arch, data in self.__get_coverage_data(report):
             self._data = data
