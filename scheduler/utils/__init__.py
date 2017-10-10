@@ -373,6 +373,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
 
     p.wait()
     if disk_checker:
+        disk_checker.terminate()
         disk_checker.join()
     restore_handlers()
 

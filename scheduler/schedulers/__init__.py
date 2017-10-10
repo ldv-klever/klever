@@ -121,6 +121,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         This is just an algorythm, and all particular logic and resource management should be implemented in classes
         that inherits this one.
         """
+        transition_done = False
         logging.info("Start scheduler loop")
         while True:
             try:
@@ -174,8 +175,10 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     scheduler_state["job errors"][job_id] = str(self.__jobs[job_id]["error"])
 
                 # Submit scheduler state and receive server state
-                if self.__need_exchange:
+                if transition_done or self.__need_exchange:
+                    transition_done = False
                     server_state = self.server.exchange(scheduler_state)
+                    self.__last_exchange = int(time.time())
 
                     try:
                         # Ignore tasks which have been finished or cancelled
@@ -289,6 +292,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             if not cancelled:
                                 self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
                         del self.__tasks[task_id]
+                        if not transition_done:
+                            transition_done = True
 
                     # Cancel jobs
                     for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"] in
@@ -306,12 +311,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 self.__cancel_job_tasks(job_id)
 
                         del self.__jobs[job_id]
+                        if not transition_done:
+                            transition_done = True
 
                     # Update jobs processing status
                     for job_id in server_state["jobs"]["processing"]:
                         if job_id in self.__jobs:
                             if "future" in self.__jobs[job_id] and self.__jobs[job_id]["status"] == "PENDING":
                                 self.__jobs[job_id]["status"] = "PROCESSING"
+                                if not transition_done:
+                                    transition_done = True
                             elif "future" not in self.__jobs[job_id] or self.__jobs[job_id]["status"] != "PROCESSING":
                                 raise ValueError("Scheduler has lost information about job {} with PROCESSING status.".
                                                  format(job_id))
@@ -324,6 +333,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 "error": "Job {} has status PROCESSING but it was not running actually".
                                          format(job_id)
                             }
+                            if not transition_done:
+                                transition_done = True
 
                     # Update tasks processing status
                     for task_id in server_state["tasks"]["processing"]:
@@ -340,6 +351,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 "error": "task {} has status PROCESSING but it was not running actually".
                                          format(task_id)
                             }
+                            if not transition_done:
+                                transition_done = True
 
                 # Update statuses and run new tasks
 
@@ -361,12 +374,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 if self.__tasks[task_id]["status"] == "PROCESSING" and
                                 "future" in self.__tasks[task_id] and self.__tasks[task_id]["future"].done()]:
                     self.__process_future(self.process_task_result, self.__tasks[task_id], task_id)
+                    if not transition_done:
+                        transition_done = True
 
                 # Update jobs
                 for job_id in [job_id for job_id in self.__jobs
                                if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"] and
                                "future" in self.__jobs[job_id] and self.__jobs[job_id]["future"].done()]:
                     self.__process_future(self.process_job_result, self.__jobs[job_id], job_id)
+                    if not transition_done:
+                        transition_done = True
 
                     if self.__jobs[job_id]["status"] == "ERROR":
                         # Then terminate all pending and processing tasks for the job
@@ -413,6 +430,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 = self.__attempts(self.solve_job, 1, 'start job {}'.format(job_id),
                                                   (job_id,
                                                    self.__jobs[job_id]))
+                            if not transition_done:
+                                transition_done = True
                         except SchedulerException as err:
                             msg = "Cannot start job {}: {}".format(job_id, err)
                             logging.warning(msg)
@@ -431,6 +450,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                                    self.__tasks[task_id]["user"],
                                                    self.__tasks[task_id]["password"]))
                             self.__tasks[task_id]["status"] = "PROCESSING"
+                            if not transition_done:
+                                transition_done = True
                         except SchedulerException as err:
                             msg = "Cannot start task {}: {}".format(task_id, err)
                             logging.warning(msg)
@@ -444,8 +465,12 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     logging.warning("Do not run any tasks until actual information about the nodes will be obtained")
 
                 logging.debug("Scheduler iteration has finished")
-                self.__update_iteration_period()
-                time.sleep(self.__iteration_period['short'])
+                if not transition_done:
+                    self.__update_iteration_period()
+                    time.sleep(self.__iteration_period['short'])
+                else:
+                    logging.info("Do not wait besause of statuses changing")
+                    time.sleep(1)
             except KeyboardInterrupt:
                 logging.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
@@ -614,10 +639,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :return: True if we should send data to Bridge now and False otherwise.
         """
         if not self.__last_exchange:
-            self.__last_exchange = int(time.time())
             return True
         elif int(time.time() - self.__last_exchange) > self.__current_period:
-            self.__last_exchange = int(time.time())
             return True
         else:
             logging.info("Skip the next data exchange iteration with Bridge")
@@ -649,7 +672,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 pair = [len(pending), len(processing)]
                 pairs.append(pair)
 
-            # Detect fast slving jobs
+            # Detect fast solving jobs
             for pair in pairs:
                 # No tasks available
                 if pair[0] == 0 and pair[1] == 0:
