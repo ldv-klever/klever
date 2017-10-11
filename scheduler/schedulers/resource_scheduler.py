@@ -79,7 +79,7 @@ class ResourceManager:
                 try:
                     nodes, session = request(url)
                     done = True
-                except (requests.exceptions.ConnectionError, KeyError):
+                except (requests.exceptions.ConnectionError, KeyError, ValueError):
                     time.sleep(10)
         else:
             nodes, session = request(url)

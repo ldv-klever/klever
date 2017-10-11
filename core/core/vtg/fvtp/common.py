@@ -97,7 +97,7 @@ def merge_files(logger, conf, abstract_task_desc):
     return 'cil.i'
 
 
-def get_list_of_verifiers_options(logger, resource_limits, conf):
+def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     """
     Collect verifier oiptions from a user provided description, template and profile and prepare a final list of
     options. Each option is represented as a small dictionary with an option name given as a key and value provided
@@ -112,6 +112,10 @@ def get_list_of_verifiers_options(logger, resource_limits, conf):
     def merge(desc1, desc2):
         if "add options" not in desc1:
             desc1["add options"] = []
+
+        if "safety properties" not in desc1:
+            desc1["safety properties"] = []
+
         if "exclude options" in desc2:
             remove = list()
             # For each excuded option
@@ -147,6 +151,9 @@ def get_list_of_verifiers_options(logger, resource_limits, conf):
 
             # Add new
             desc1["add options"].extend(append)
+
+        if "safety properties" in desc2:
+            desc1["safety properties"].extend(desc2["safety properties"])
 
         return desc1
 
@@ -226,7 +233,7 @@ def get_list_of_verifiers_options(logger, resource_limits, conf):
         value = list(last['add options'][index].values())[0]
         last['add options'][index] = {processor(option): processor(value)}
 
-    return last['add options']
+    return last['add options'], last['safety properties']
 
 
 def read_max_resource_limitations(logger, conf):

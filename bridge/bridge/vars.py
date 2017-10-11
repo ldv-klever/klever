@@ -222,8 +222,20 @@ START_JOB_DEFAULT_MODES = {
     'paranoid development': _('Paranoid development')
 }
 
-REPORT_FILES_ARCHIVE = 'data.zip'
-COVERAGE_FILES_ARCHIVE = 'coverage.zip'
+REPORT_ARCHIVE = {
+    'log': 'log.zip',
+    'coverage': 'coverage.zip',
+    'verifier input': 'VerifierInput.zip',
+    'error trace': 'ErrorTrace.zip',
+    'proof': 'proof.zip',
+    'problem desc': 'ProblemDesc.zip'
+}
+
+LOG_FILE = 'log.txt'
+COVERAGE_FILE = 'coverage.json'
+ERROR_TRACE_FILE = 'error trace.json'
+PROBLEM_DESC_FILE = 'problem desc.txt'
+PROOF_FILE = 'proof.txt'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'

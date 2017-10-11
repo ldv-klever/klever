@@ -11,8 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name='component',
-            name='name',
+            model_name='component', name='name',
             field=models.CharField(db_index=True, max_length=20, unique=True),
         ),
     ]

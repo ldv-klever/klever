@@ -21,12 +21,12 @@ from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
-from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
-    TaskStatistic, ReportComponentLeaf
+from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, TaskStatistic,\
+    ReportComponentLeaf
 
 from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
@@ -99,8 +99,6 @@ class TableTree:
         self._head_filters = self.__head_filters()
         self._jobdata = []
         self._job_ids = []
-        self._light_jobs = []
-        self._full_jobs = []
         self._values_data = {}
         self.__collect_jobdata()
         self.__table_columns()
@@ -266,10 +264,6 @@ class TableTree:
             filters &= ~Q(**{unf_v: unfilters[unf_v]})
         for job in Job.objects.filter(filters).order_by(jobs_order):
             if JobAccess(self._user, job).can_view():
-                if job.weight == JOB_WEIGHT[1][0]:
-                    self._light_jobs.append(job.id)
-                else:
-                    self._full_jobs.append(job.id)
                 self._job_ids.append(job.id)
                 rowdata.append({
                     'id': job.id,
@@ -431,15 +425,10 @@ class TableTree:
 
     def __resource_columns(self):
         components = {}
-        filters = {'report__job_id__in': self._light_jobs}
+        filters = {'report__root__job_id__in': self._job_ids}
         if 'resource_component' in self._head_filters:
             filters.update(self._head_filters['resource_component'])
-        for cr in LightResource.objects.filter(**filters).exclude(component=None)\
-                .values('component', 'component__name').distinct():
-            components['resource:component_' + str(cr['component'])] = cr['component__name']
 
-        del filters['report__job_id__in']
-        filters['report__root__job_id__in'] = self._full_jobs
         # 4 JOINs in query!!!
         for cr in ComponentResource.objects.filter(**filters).exclude(component=None)\
                 .values('component', 'component__name').distinct():
@@ -869,7 +858,7 @@ class TableTree:
     def __collect_resourses(self):
         data_format = self._user.extended.data_format
         accuracy = self._user.extended.accuracy
-        for cr in ComponentResource.objects.filter(report__root__job_id__in=self._full_jobs, report__parent=None)\
+        for cr in ComponentResource.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             rd = get_resource_data(data_format, accuracy, cr)
             resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
@@ -877,14 +866,6 @@ class TableTree:
                 self._values_data[cr.job_id]['resource:total'] = resourses_value
             else:
                 self._values_data[cr.job_id]['resource:component_' + str(cr.component_id)] = resourses_value
-        for lr in LightResource.objects.filter(report__job_id__in=self._light_jobs)\
-                .annotate(job_id=F('report__job_id')):
-            rd = get_resource_data(data_format, accuracy, lr)
-            resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
-            if lr.component_id is None:
-                self._values_data[lr.job_id]['resource:total'] = resourses_value
-            else:
-                self._values_data[lr.job_id]['resource:component_' + str(lr.component_id)] = resourses_value
 
     def __collect_unknowns(self):
         for cmup in ComponentMarkUnknownProblem.objects\

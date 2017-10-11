@@ -109,3 +109,13 @@ body {
     font-size: 0.9em;
     font-style: italic;
 }
+
+.pre-space {
+    white-space: pre;
+}
+
+.user-unselectable {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}

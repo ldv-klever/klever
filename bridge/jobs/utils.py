@@ -193,7 +193,7 @@ class JobAccess(object):
             return False
         try:
             return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
-                .exclude(archive='').count() > 0
+                .exclude(verifier_input='').count() > 0
         except ObjectDoesNotExist:
             return False
 
@@ -800,6 +800,7 @@ class GetConfiguration(object):
                     filedata['allow local source directories use'],
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
+                    filedata['collect total code coverage'],
                     filedata['weight']
                 ]
             ]
@@ -843,7 +844,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 7:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 8:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False
