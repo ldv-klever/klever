@@ -1012,6 +1012,13 @@ def get_def_start_job_val(request):
                 'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][2]
             }))
         })
+    if request.POST['name'] == 'results_processing_parallelism' \
+            and request.POST['value'] in settings.KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({
+            'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
+                'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][3]
+            }))
+        })
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 

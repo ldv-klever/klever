@@ -849,7 +849,8 @@ class StartJobDecision:
             'parallelism': {
                 'Sub-jobs processing': self.data[1][0],
                 'Build': self.data[1][1],
-                'Tasks generation': self.data[1][2]
+                'Tasks generation': self.data[1][2],
+                'Results processing': self.data[1][3]
             }
         }
 
