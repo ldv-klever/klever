@@ -426,8 +426,7 @@ class VTG(core.components.Component):
         processing_status = dict()
         initial = dict()
 
-        # todo: implement it as an option in GUI
-        max_tasks = 100
+        max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
         expect_objects = True
         while True:

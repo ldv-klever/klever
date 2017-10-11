@@ -799,7 +799,7 @@ class StartJobDecision:
         return {
             'identifier': self.job.identifier,
             'priority': self.data[0][0],
-            'abstract task generation priority': self.data[0][2],
+            'max solving tasks per sub-job': self.data[0][2],
             'task scheduler': scheduler,
             'resource limits': {
                 'memory size': int(self.data[2][0] * 10**9),

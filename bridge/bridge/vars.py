@@ -196,13 +196,6 @@ JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
 }
 
-# TODO: keys and values are almost the same and thus can be refactored.
-AVTG_PRIORITY = [
-    ('balance', _('Balance')),
-    ('rule specifications', _('Rule specifications')),
-    ('verification objects', _('Verification objects')),
-]
-
 KLEVER_CORE_PARALLELISM = (
     ('sequential', _('Sequentially')),
     ('slow', _('Slowly')),

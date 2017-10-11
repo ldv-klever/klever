@@ -128,7 +128,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   scheduling:
 #     job priority - see bridge.vars.PRIORITY for available values,
 #     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
-#     abstract task generation priority - see service.utils.AVTG_PRIORITY for available values,
+#     max solving tasks per sub-job - positive number,
 #   parallelism pack - one of packs from KLEVER_CORE_PARALLELISM_PACKS,
 #   limits:
 #     memory size - in GB,
@@ -154,7 +154,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 DEF_KLEVER_CORE_MODES = [
     {
         'production': [
-            ['LOW', '0', 'balance'],
+            ['LOW', '0', 100],
             'slow',
             [1.0, 0, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
@@ -163,7 +163,7 @@ DEF_KLEVER_CORE_MODES = [
     },
     {
         'development': [
-            ['IDLE', '0', 'balance'],
+            ['IDLE', '0', 100],
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
@@ -172,7 +172,7 @@ DEF_KLEVER_CORE_MODES = [
     },
     {
         'paranoid development': [
-            ['IDLE', '0', 'balance'],
+            ['IDLE', '0', 100],
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
