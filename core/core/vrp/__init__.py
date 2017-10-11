@@ -198,6 +198,7 @@ class RP(core.components.Component):
         self.verdict = None
         self.rule_specification = None
         self.verification_object = None
+        self.task_error = None
         self.coverage = None
         self.__exception = None
 
@@ -223,9 +224,9 @@ class RP(core.components.Component):
                 self.logger.warning("Raising the saved exception")
                 raise self.__exception
         elif status == 'error':
-            task_error = self.process_failed_task(task_id)
+            self.process_failed_task(task_id)
             # Raise exception just here sinse the method above has callbacks.
-            raise RuntimeError('Failed to decide verification task: {0}'.format(task_error))
+            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
         else:
             raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
@@ -402,13 +403,11 @@ class RP(core.components.Component):
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""
-        task_error = self.session.get_task_error(task_id)
+        self.task_error = self.session.get_task_error(task_id)
         # We do not need task and its files anymore.
         self.session.remove_task(task_id)
 
         self.verdict = 'non-verifier unknown'
-
-        return task_error
 
     def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
         """Function has a callback at Job.py."""
