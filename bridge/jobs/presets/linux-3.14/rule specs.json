@@ -206,7 +206,7 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "smg_witness_for_ldv:25566"
+          "version": "smg_witness_for_ldv:26089"
         }
       }
     },
