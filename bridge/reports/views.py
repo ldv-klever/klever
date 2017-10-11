@@ -793,7 +793,7 @@ def download_error_trace(request, report_id):
     content = ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content
     response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/json')
     response['Content-Length'] = len(content)
-    response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
+    response['Content-Disposition'] = 'attachment; filename="error trace.json"'
     return response
 
 

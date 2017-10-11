@@ -486,6 +486,7 @@ class GetETV:
         self.data = json.loads(error_trace)
         self.err_trace_nodes = get_error_trace_nodes(self.data)
         self.threads = []
+        self._has_global = True
         self.html_trace, self.assumes = self.__html_trace()
         self.attributes = []
 
@@ -499,11 +500,14 @@ class GetETV:
                 raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])
+            if self.threads[0] == self.data['edges'][n]['thread'] and 'enter' in self.data['edges'][n]:
+                self._has_global = False
+
         return self.__add_thread_lines(0, 0)[0:2]
 
     def __add_thread_lines(self, i, start_index):
         parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
-        if i > 0:
+        if i > 0 or not self._has_global:
             parsed_trace.scope.initialised = True
         trace_assumes = []
         j = start_index
