@@ -424,6 +424,7 @@ class VTG(core.components.Component):
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
         processing_status = dict()
+        initial = dict()
 
         # todo: implement it as an option in GUI
         max_tasks = 100
@@ -442,7 +443,7 @@ class VTG(core.components.Component):
                 rule_class = resolve_rule_class(rule_name)
 
                 if vobject in processing_status and rule_class in processing_status[vobject] and \
-                        rule_name in processing_status[vobject][rule_class]:
+                                rule_name in processing_status[vobject][rule_class]:
                     processing_status[vobject][rule_class][rule_name] = False
 
             # Fetch solutions
@@ -460,7 +461,7 @@ class VTG(core.components.Component):
                 active_tasks -= 1
 
             # Fetch object
-            if expect_objects and active_tasks < max_tasks:
+            if expect_objects:
                 verification_obj_desc_files = []
                 expect_objects = get_from_queue_no_wait(verification_obj_desc_files, 'verification obj desc files')
 
@@ -469,28 +470,33 @@ class VTG(core.components.Component):
                               encoding='utf8') as fp:
                         verification_obj_desc = json.load(fp)
                     vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
+                    initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
 
                     if not self.rule_spec_descs:
                         self.logger.warning('Verification object {0} will not be verified since rule specifications'
                                             ' are not specified'.format(verification_obj_desc['id']))
 
-                    # Submit initial objects
-                    for rule_class in _rule_spec_classes:
-                        if active_tasks < max_tasks:
-                            vobject = verification_obj_desc['id']
-                            rule_name = _rule_spec_classes[rule_class][0]['id']
-                            self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
-                                             format(vobject, rule_name))
-                            self.mqs['prepare verification objects'].put(
-                                (verification_obj_desc, _rule_spec_classes[rule_class][0]))
+            # Submit initial objects
+            for vo in list(initial.keys()):
+                while len(initial[vo]) > 0:
+                    if active_tasks < max_tasks:
+                        rule_class = initial[vo].pop()
+                        vobject = vo_descriptions[vo]
+                        rule_name = _rule_spec_classes[rule_class][0]['id']
+                        self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
+                                         format(vo, rule_name))
+                        self.mqs['prepare verification objects'].put((vobject, _rule_spec_classes[rule_class][0]))
 
-                            # Set status
-                            if vobject not in processing_status:
-                                processing_status[vobject] = {}
-                            processing_status[vobject][rule_class] = {rule_name: None}
-                            active_tasks += 1
-                        else:
-                            break
+                        # Set status
+                        if vo not in processing_status:
+                            processing_status[vo] = {}
+                        processing_status[vo][rule_class] = {rule_name: None}
+                        active_tasks += 1
+                    else:
+                        break
+                else:
+                    self.logger.info("Trggered all initial tasks for verification object {!r}".format(vo))
+                    del initial[vo]
 
             # Check statuses
             for vobject in list(processing_status.keys()):
@@ -529,11 +535,15 @@ class VTG(core.components.Component):
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
 
-            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0:
+            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 for _ in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
                     self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 break
+            else:
+                self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
+                                  "descriptions and expectation verification tasks flag is {}".
+                                  format(len(initial), active_tasks, len(vo_descriptions), expect_objects))
 
             time.sleep(3)
 
