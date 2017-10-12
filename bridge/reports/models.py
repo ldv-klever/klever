@@ -287,8 +287,8 @@ class CompareJobsCache(models.Model):
     attr_values = models.CharField(max_length=64, db_index=True)
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
-    reports1 = models.CharField(max_length=1000)
-    reports2 = models.CharField(max_length=1000)
+    reports1 = models.TextField()
+    reports2 = models.TextField()
 
     class Meta:
         db_table = 'cache_report_jobs_compare'
