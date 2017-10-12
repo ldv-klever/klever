@@ -249,10 +249,12 @@ class ViewJobData:
     def __safes_info(self):
         safes_numbers = {}
         total_safes = 0
+        total_confirmed = 0
         for verdict, confirmed, total in self.report.leaves.exclude(safe=None).values('safe__verdict').annotate(
                 total=Count('id'), confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
         ).values_list('safe__verdict', 'confirmed', 'total'):
             total_safes += total
+            total_confirmed += confirmed
 
             href = [None, None]
             if total > 0:
@@ -301,15 +303,21 @@ class ViewJobData:
                 safes_data.append(safes_numbers[safe_name])
         if total_safes > 0:
             self.safes_total = (total_safes, reverse('reports:safes', args=[self.report.pk]))
+            self.safes_total = {
+                'total': (total_safes, reverse('reports:safes', args=[self.report.pk])),
+                'confirmed': (total_confirmed, '%s?confirmed=1' % reverse('reports:safes', args=[self.report.pk]))
+            }
         return safes_data
 
     def __unsafes_info(self):
         unsafes_numbers = {}
         total_unsafes = 0
+        total_confirmed = 0
         for verdict, confirmed, total in self.report.leaves.exclude(unsafe=None).values('unsafe__verdict').annotate(
                 total=Count('id'), confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))
         ).values_list('unsafe__verdict', 'confirmed', 'total'):
             total_unsafes += total
+            total_confirmed += confirmed
 
             href = [None, None]
             if total > 0:
@@ -359,7 +367,10 @@ class ViewJobData:
             if unsafe_name in unsafes_numbers:
                 unsafes_data.append(unsafes_numbers[unsafe_name])
         if total_unsafes > 0:
-            self.unsafes_total = (total_unsafes, reverse('reports:unsafes', args=[self.report.pk]))
+            self.unsafes_total = {
+                'total': (total_unsafes, reverse('reports:unsafes', args=[self.report.pk])),
+                'confirmed': (total_confirmed, '%s?confirmed=1' % reverse('reports:unsafes', args=[self.report.pk]))
+            }
         return unsafes_data
 
     def __safes_attrs_statistic(self):
