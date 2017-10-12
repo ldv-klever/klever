@@ -100,8 +100,12 @@ def keyword_lookup(string):
 
 
 def t_NUMBER(t):
-    r'\d+[\w+]?'
-    t.value = int(re.compile('(\d+)').match(t.value).group(1))
+    r'[-]?\d+[\w+]?'
+    # todo: here should be constant-expression but it is quite complicated
+    try:
+        t.value = int(t.value)
+    except ValueError:
+        pass
     return t
 
 

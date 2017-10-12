@@ -100,12 +100,12 @@ __grammar_tests = [
     '%usb.driver%',
     '$ my_function($, %usb.driver%, int)',
     '%usb.driver% function(int, void *)',
-    '%usb.driver% function(int, $, %usb.driver%)'
+    '%usb.driver% function(int, $, %usb.driver%)',
+    "enum {   AP_VAL_ACTIVE = -2147483648,   AP_VAL_RD_CMD = 536870912,   AP_ADDR = 458752,   AP_VAL = 65535 } AP_VALUE_BITS"
 ]
 
 for test in __grammar_tests:
     print(test)
     object = import_declaration(test)
-    #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))
