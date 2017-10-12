@@ -823,7 +823,7 @@ class UploadReportsWithoutDecision:
                         fp.close()
                     raise
 
-        res = UploadReport(self._job, start_report, archives=archives)
+        res = UploadReport(self._job, finish_report, archives=archives)
         for fp in archives.values():
             fp.close()
 
