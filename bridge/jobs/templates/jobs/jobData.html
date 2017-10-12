@@ -5,8 +5,8 @@
         {% if reportdata.unsafes_total or reportdata.data.tags_unsafe|length %}
             <div class="eight wide column">
                 <h4 class="header ui violet">
-                    {% trans 'Unsafes' %}
-                    {% if reportdata.unsafes_total %}:
+                    {% trans 'Unsafes' %}:
+                    {% if reportdata.unsafes_total %}
                         {% if reportdata.unsafes_total.confirmed.0 > 0 %}
                             <a href="{{ reportdata.unsafes_total.confirmed.1 }}">{{ reportdata.unsafes_total.confirmed.0 }}</a>
                         {% else %}
@@ -58,8 +58,8 @@
         {% if reportdata.safes_total or reportdata.data.tags_safe|length %}
             <div class="eight wide column">
                 <h4 class="header ui violet">
-                    {% trans 'Safes' %}
-                    {% if reportdata.safes_total %}:
+                    {% trans 'Safes' %}:
+                    {% if reportdata.safes_total %}
                         {% if reportdata.safes_total.confirmed.0 > 0 %}
                             <a href="{{ reportdata.safes_total.confirmed.1 }}">{{ reportdata.safes_total.confirmed.0 }}</a>
                         {% else %}
