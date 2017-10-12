@@ -261,6 +261,11 @@ def p_struct_specifier(p):
             'class': 'structure',
             'name': p[2]
         }
+    elif len(p) == 4:
+        p[0] = {
+            'class': 'structure',
+            'name': None
+        }
     else:
         p[0] = {
             'class': 'structure',

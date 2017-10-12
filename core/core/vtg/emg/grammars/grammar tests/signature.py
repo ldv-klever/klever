@@ -18,6 +18,9 @@
 from core.vtg.emg.common.signature import import_declaration
 
 __grammar_tests = [
+    "struct {}",
+    "struct {   struct   {     union     {       uint8 blue;       uint8 u;       uint8 uv_video;       uint8 u_video;     };       }; } bit_offset",
+    "struct {   struct   {     union     {       uint8 blue;       uint8 u;       uint8 uv_video;       uint8 u_video;     };     union     {       uint8 green;       uint8 v;       uint8 stencil;       uint8 v_video;     };     union     {       uint8 red;       uint8 w;       uint8 luminance;       uint8 y;       uint8 depth;       uint8 data;     };     union     {       uint8 alpha;       uint8 q;       uint8 exp;     };   }; } bit_offset",
     "int ** a(int **(*(*arg))(void))",
     "struct {   struct file *file;   struct page *page;   struct dir_context *ctx;   long unsigned int page_index;   u64 *dir_cookie;   u64 last_cookie;   loff_t current_index;   decode_dirent_t decode;   long unsigned int timestamp;   long unsigned int gencount;   unsigned int cache_entry_index;   unsigned char plus : 1;   unsigned char eof : 1; } nfs_readdir_descriptor_t",
     'union {   void *arg;   struct kparam_string const *str;   struct kparam_array const *arr; }',

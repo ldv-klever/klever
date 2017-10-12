@@ -480,8 +480,9 @@ class Structure(Declaration):
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
-            for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
-                                      key=lambda decl: str(decl['declarator'][-1]['identifier'])):
+            for declaration in sorted([d for d in self._ast['specifiers']['type specifier']['fields']
+                                       if d['declarator'][-1]['identifier'] is not None],
+                                       key=lambda decl: str(decl['declarator'][-1]['identifier'])):
                 name = declaration['declarator'][-1]['identifier']
                 if name:
                     self.fields[name] = import_declaration(None, declaration)
@@ -513,9 +514,11 @@ class Structure(Declaration):
 
     def _to_string(self, replacement, typedef='none'):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef)
+            name = '{' + \
+                   ('; '.join([self.fields[field].to_string(field, typedef=typedef)
                                      for field in sorted(self.fields.keys())]) + \
-                   '; ' + ' }'
+                   '; ' if len(self.fields) > 0 else '') \
+                   + '}'
         else:
             name = self.name
 
