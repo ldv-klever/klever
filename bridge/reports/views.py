@@ -229,13 +229,18 @@ def safes_list(request, report_id):
         allow_redirect = False
 
     title = _("All safes")
+    if 'confirmed' in request.GET:
+        additional_parameters['confirmed'] = True
+        title = string_concat(_("Safes"), ': ', _('confirmed'))
     if 'verdict' in request.GET:
         for s in SAFE_VERDICTS:
             if s[0] == request.GET['verdict']:
                 title = string_concat(_("Safes"), ': ', s[1])
                 additional_parameters['verdict'] = request.GET['verdict']
                 if 'confirmed' in request.GET:
-                    additional_parameters['confirmed'] = True
+                    title = string_concat(_("Safes"), ': ', _('confirmed'), ' ', s[1])
+                else:
+                    title = string_concat(_("Safes"), ': ', s[1])
                 break
     elif 'tag' in request.GET:
         try:
@@ -288,12 +293,14 @@ def unsafes_list(request, report_id):
         additional_parameters['view'] = request.GET.get('view')
 
     title = _("All unsafes")
+    if 'confirmed' in request.GET:
+        additional_parameters['confirmed'] = True
+        title = string_concat(_("Unsafes"), ': ', _('confirmed'))
     if 'verdict' in request.GET:
         for u in UNSAFE_VERDICTS:
             if u[0] == request.GET['verdict']:
                 additional_parameters['verdict'] = request.GET['verdict']
                 if 'confirmed' in request.GET:
-                    additional_parameters['confirmed'] = True
                     title = string_concat(_("Unsafes"), ': ', _('confirmed'), ' ', u[1])
                 else:
                     title = string_concat(_("Unsafes"), ': ', u[1])

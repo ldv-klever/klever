@@ -29,7 +29,7 @@
                         {% if v.href %}
                             <a href="{{ v.href }}">{{ v.value }}</a>
                         {% else %}
-                            <span>{{ v.value }}</span>
+                            <span>{{ v.value|safe }}</span>
                         {% endif %}
                     </td>
                 {% endfor %}
