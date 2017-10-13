@@ -161,6 +161,18 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/linux/drivers/base/dma-mapping",
+        "modules": [
+          "check-before-map.ko",
+          "unchecked.ko",
+          "unchecked-at-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:drivers:base:dma-mapping"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/drivers/clk1",
         "modules": [
           "unsafe.ko",
