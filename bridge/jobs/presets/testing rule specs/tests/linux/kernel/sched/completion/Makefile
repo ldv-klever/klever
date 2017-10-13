@@ -1,1 +1,1 @@
-obj-m += safe.o safe-2.o wait-without-init.o
+obj-m += safe.o wait-without-init.o
