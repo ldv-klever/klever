@@ -172,8 +172,7 @@ sys.exit(Command(sys.argv).launch())
                                                                                    'external modules'])
             if os.path.isdir(self.linux_kernel['ext modules src']):
                 self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
-                shutil.copytree(self.linux_kernel['ext modules src'], self.linux_kernel['ext modules work src tree'],
-                                symlinks=True)
+                shutil.copytree(self.linux_kernel['ext modules src'], self.linux_kernel['ext modules work src tree'])
             elif os.path.isfile(self.linux_kernel['ext modules src']):
                 self.logger.debug('External Linux kernel modules source code is provided in form of archive')
                 with tarfile.open(self.linux_kernel['ext modules src'], encoding='utf8') as TarFile:
