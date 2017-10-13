@@ -3,7 +3,8 @@
     "Linux kernel": {
       "source": "linux-3.14",
       "configuration": "allmodconfig",
-      "architecture": "x86_64"
+      "architecture": "x86_64",
+      "modules": ["all"]
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
@@ -15,29 +16,16 @@
         "ideal verdict": "safe",
         "verification object": "ext-modules/safe.ko"
       },
-      {
-        "ideal verdict": "safe",
-        "verification object": "ext-modules/safe-2.ko"
-      },
       {"ideal verdict": "unsafe"}
     ]
   },
   "Sub-jobs": [
     {
-      "Linux kernel": {
-        "external modules": "tests/generic/memory",
-        "modules": [
-          "null-ptr-dereference.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/generic/memory"},
       "rule specifications": ["generic:memory"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/empty",
-        "modules": ["safe.ko"]
-      },
+      "Linux kernel": {"external modules": "tests/linux/empty"},
       "rule specifications": [
         "linux:alloc:irq",
         "linux:alloc:spinlock",
@@ -49,434 +37,150 @@
       ]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/alloc/irq",
-        "modules": [
-          "wrong-flags.ko",
-          "nonatomic.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/alloc/irq"},
       "rule specifications": ["linux:alloc:irq"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/alloc/spinlock",
-        "modules": [
-          "wrong-flags-lock.ko",
-          "wrong-flags-trylock.ko",
-          "nonatomic-lock.ko",
-          "nonatomic-trylock.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/alloc/spinlock"},
       "rule specifications": ["linux:alloc:spinlock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/alloc/usb-lock",
-        "modules": [
-          "wrong-flags-lock.ko",
-          "wrong-flags-lock-for-reset.ko",
-          "wrong-flags-trylock.ko",
-          "nonatomic-lock.ko",
-          "nonatomic-lock-for-reset.ko",
-          "nonatomic-trylock.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/alloc/usb-lock"},
       "rule specifications": ["linux:alloc:usb lock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/alloc/memory",
-        "modules": [
-          "alloc-without-free.ko",
-          "free-without-alloc.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/alloc/memory"},
       "rule specifications": ["linux:alloc"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/arch/io",
-        "modules": [
-          "safe.ko",
-          "less-initial.ko",
-          "more-initial.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/arch/io"},
       "rule specifications": ["linux:arch:io"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/block/genhd",
-        "modules": [
-          "safe.ko",
-          "double-alloc.ko",
-          "use-before-alloc.ko",
-          "delete-before-add.ko",
-          "free-before-alloc.ko",
-          "more-initial.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/block/genhd"},
       "rule specifications": ["linux:block:genhd"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/block/queue",
-        "modules": [
-          "safe.ko",
-          "double-alloc.ko",
-          "more-initial.ko",
-          "use-before-alloc.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/block/queue"},
       "rule specifications": ["linux:block:queue"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/block/request",
-        "modules": [
-          "double-get.ko",
-          "double-put.ko",
-          "get-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/block/request"},
       "rule specifications": ["linux:block:request"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/drivers/base/class",
-        "modules": [
-          "created-at-exit.ko",
-          "class-registered-at-exit.ko",
-          "unregister-class.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/drivers/base/class"},
       "rule specifications": ["linux:drivers:base:class"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/drivers/base/dma-mapping",
-        "modules": [
-          "check-before-map.ko",
-          "unchecked.ko",
-          "unchecked-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/drivers/base/dma-mapping"},
       "rule specifications": ["linux:drivers:base:dma-mapping"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/drivers/clk1",
-        "modules": [
-          "unsafe.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/drivers/clk1"},
       "rule specifications": ["linux:drivers:clk1"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/drivers/clk2",
-        "modules": [
-          "unsafe.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/drivers/clk2"},
       "rule specifications": ["linux:drivers:clk2"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/fs/char_dev",
-        "modules": [
-          "chrdev-at-exit.ko",
-          "chrdev-at-exit-2.ko",
-          "unregister-chrdev.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/fs/char_dev"},
       "rule specifications": ["linux:fs:char_dev"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/fs/sysfs",
-        "modules": [
-          "safe.ko",
-          "less-initial.ko",
-          "more-initial.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/fs/sysfs"},
       "rule specifications": ["linux:fs:sysfs"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/locking/mutex",
-        "modules": [
-          "double-lock.ko",
-          "double-unlock.ko",
-          "double-unlock-2.ko",
-          "locked-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/locking/mutex"},
       "rule specifications": ["linux:kernel:locking:mutex"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/locking/rwlock",
-        "modules": [
-          "rlock.ko",
-          "wlock.ko",
-          "runlock.ko",
-          "wunlock.ko",
-          "rlock-after-wlock.ko",
-          "tryrlock.ko",
-          "trywlock.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/locking/rwlock"},
       "rule specifications": ["linux:kernel:locking:rwlock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/locking/spinlock",
-        "modules": [
-          "atomic.ko",
-          "double-lock.ko",
-          "double-unlock.ko",
-          "double-unlock-2.ko",
-          "is-locked.ko",
-          "trylock.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/locking/spinlock"},
       "rule specifications": ["linux:kernel:locking:spinlock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/rcu/update/lock",
-        "modules": [
-          "safe.ko",
-          "rcu-more-unlocks.ko",
-          "rcu-lock-at-read.ko",
-          "rcu-lock-at-exit.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock"},
       "rule specifications": ["linux:kernel:rcu:update:lock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/rcu/update/lock-bh",
-        "modules": [
-          "safe.ko",
-          "rcu-bh-more-unlocks.ko",
-          "rcu-bh-lock-at-read.ko",
-          "rcu-bh-lock-at-exit.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock-bh"},
       "rule specifications": ["linux:kernel:rcu:update:lock bh"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/rcu/update/lock-sched",
-        "modules": [
-          "safe.ko",
-          "rcu-sched-more-unlocks.ko",
-          "rcu-sched-lock-at-read.ko",
-          "rcu-sched-lock-at-exit.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock-sched"},
       "rule specifications": ["linux:kernel:rcu:update:lock sched"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/rcu/srcu",
-        "modules": [
-          "safe.ko",
-          "srcu-more-unlocks.ko",
-          "srcu-lock-at-read.ko",
-          "srcu-lock-at-exit.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/srcu"},
       "rule specifications": ["linux:kernel:rcu:srcu"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/sched/completion",
-        "modules": [
-          "safe.ko",
-          "wait-without-init.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/sched/completion"},
       "rule specifications": ["linux:kernel:sched:completion"]
     },
     {
       "Linux kernel": {
         "config file": "configs/no-lockdep",
-        "external modules": "tests/linux/kernel/sched/completion",
-        "modules": ["safe-2.ko"]
+        "external modules": "tests/linux/kernel/sched/completion/no-lockdep"
       },
       "rule specifications": ["linux:kernel:sched:completion"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/kernel/module",
-        "modules": [
-          "double-put.ko",
-          "get-without-put.ko",
-          "put-and-exit.ko",
-          "refcount.ko",
-          "tryget.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/kernel/module"},
       "rule specifications": ["linux:kernel:module"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/lib/find_bit",
-        "modules": [
-          "wrong-offset.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/lib/find_bit"},
       "rule specifications": ["linux:lib:find_bit"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/lib/idr",
-        "modules": [
-          "safe.ko",
-          "destroy-before-usage.ko",
-          "double-init.ko",
-          "more-at-exit.ko",
-          "not-initialized.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/lib/idr"},
       "rule specifications": ["linux:lib:idr"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/mmc",
-        "modules": [
-          "claim.ko",
-          "memcpy.ko",
-          "release.ko",
-          "sdio.ko",
-          "sdio-2.ko",
-          "sdio-3.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/mmc"},
       "rule specifications": ["linux:mmc:sdio_func"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/net/register",
-        "modules": [
-          "netdev.ko",
-          "netdev2.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/net/register"},
       "rule specifications": ["linux:net:register"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/net/rtnetlink",
-        "modules": [
-          "double-lock.ko",
-          "double-unlock.ko",
-          "lock-on-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/net/rtnetlink"},
       "rule specifications": ["linux:net:rtnetlink"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/net/sock",
-        "modules": [
-          "double-release.ko",
-          "all-locked-sockets-must-be-released.ko",
-          "double-release-2.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/net/sock"},
       "rule specifications": ["linux:net:sock"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/usb/coherent",
-        "modules": [
-          "less-decrement.ko",
-          "more-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/usb/coherent"},
       "rule specifications": ["linux:usb:coherent"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/usb/dev",
-        "modules": [
-          "less-decrement.ko",
-          "more-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/usb/dev"},
       "rule specifications": ["linux:usb:dev"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/usb/gadget",
-        "modules": [
-          "chrdev-with-usb-gadget.ko",
-          "class-with-usb-gadget.ko",
-          "usb-gadget-at-exit.ko",
-          "unregister-usb-gadget.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/usb/gadget"},
       "rule specifications": ["linux:usb:gadget"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/usb/register",
-        "modules": [
-          "register.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/usb/register"},
       "rule specifications": ["linux:usb:register"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/linux/usb/urb",
-        "modules": [
-          "less-decrement.ko",
-          "more-at-exit.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/linux/usb/urb"},
       "rule specifications": ["linux:usb:urb"]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/sync/races",
-        "modules": [
-          "race.ko",
-          "race2.ko",
-          "race_10.ko",
-          "safe.ko"
-        ]
-      },
+      "Linux kernel": {"external modules": "tests/sync/races"},
       "rule specifications": ["sync:race"]
     }
   ]
