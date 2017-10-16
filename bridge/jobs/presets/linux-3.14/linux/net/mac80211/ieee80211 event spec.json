@@ -14,6 +14,7 @@
           "ieee80211_hw": {
             "resource": true,
             "pointer": true,
+            "retval": true,
             "interface": [
               "ieee80211.ieee80211_hw"
             ]
