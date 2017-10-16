@@ -1,1 +1,0 @@
-obj-m += safe.o srcu-more-unlocks.o srcu-lock-at-read.o srcu-lock-at-exit.o

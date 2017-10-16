@@ -1,1 +1,0 @@
-obj-m += safe.o wait-without-init.o
