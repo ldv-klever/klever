@@ -138,6 +138,7 @@ $(document).ready(function () {
                     $('#ignore_core_checkbox').is(':checked'),
                     $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
                     $('#collect_total_code_coverage_checkbox').is(':checked'),
+                    $('#generate_makefiles_checkbox').is(':checked'),
                     $('input[name=job_weight]:checked').val()
                 ]
             ]),

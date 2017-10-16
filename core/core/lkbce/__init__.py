@@ -592,9 +592,13 @@ sys.exit(Command(sys.argv).launch())
                 break
 
         if not work_src_tree_root:
-            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
-
-        if not os.path.samefile(work_src_tree_root, work_src_tree):
+            if self.conf['generate makefiles']:
+                # Create Makefile in root directory and rely upon source files are there.
+                with open(os.path.join(work_src_tree, 'Makefile'), 'w', encoding='utf-8') as fp:
+                    fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+            else:
+                raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+        elif not os.path.samefile(work_src_tree_root, work_src_tree):
             self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
             for path in os.listdir(work_src_tree_root):
                 shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
