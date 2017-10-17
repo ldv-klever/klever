@@ -18,6 +18,15 @@
         {"--architecture": "64bit"}
       ]
     },
+    "CPAchecker reachability": {
+      "description": "CPAchecker for reachability checking",
+      "inherit": "CPAchecker common",
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
+      "add options": [
+        {"-ldv": ""},
+        {"-setprop": "coverage.file=coverage.info"}
+      ]
+    },
     "CPAchecker BAM reachability": {
       "description": "CPAchecker with BAM for reachability checking",
       "inherit": "CPAchecker common",
@@ -53,6 +62,7 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
+        "trunk:26155": {"inherit": "CPAchecker reachability"},
         "ldv-bam:25793": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
