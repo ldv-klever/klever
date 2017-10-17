@@ -19,18 +19,16 @@
       ]
     },
     "CPAchecker BAM reachability": {
-      "description": "CPAchecker with BAM fore reachability checking",
+      "description": "CPAchecker with BAM for reachability checking",
       "inherit": "CPAchecker common",
-      "safety properties": [
-          "CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"
-      ],
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv-bam-optimized-coverage": ""},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },
     "CPAchecker SMG memory checking": {
-      "description": "CPAchecker with BAM fore reachability checking",
+      "description": "CPAchecker with BAM for reachability checking",
       "inherit": "CPAchecker common",
       "safety properties": [
           "CHECK( init({entry_point}()), LTL(G valid-free) )",
@@ -45,9 +43,7 @@
     "CPALockator": {
       "description": "CPAchecker for checking races",
       "inherit": "CPAchecker common",
-      "safety properties": [
-          "CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"
-      ],
+      "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-lockator-linux": ""},
         {"-setprop": "analysis.machineModel=LINUX64"}
@@ -55,44 +51,24 @@
     }
   },
   "profiles": {
-    "reachability common Linux64": {
+    "reachability": {
       "CPAchecker": {
-        "ldv-bam:25793": {
-          "inherit": "CPAchecker BAM reachability"
-        }
+        "ldv-bam:25793": {"inherit": "CPAchecker BAM reachability"}
       },
-      "UltimateAutomizer": {
-        "v0.1.20": {
-          "inherit": "Ultimate common"
-        }
-      }
+      "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
-    "CPALockator race checking": {
-      "CPAchecker": {
-        "CPALockator:25964": {
-          "inherit": "CPALockator"
-        }
-      }
+    "race checking": {
+      "CPAchecker": {"CPALockator:25964": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
-      "CPAchecker": {
-        "smg_witness_for_ldv:26089": {
-          "inherit": "CPAchecker SMG memory checking"
-        }
-      }
+      "CPAchecker": {"smg_witness_for_ldv:26089": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking ARM": {
-      "CPAchecker": {
-        "smg_witness_for_ldv:26089": {
+      "CPAchecker": {"smg_witness_for_ldv:26089": {
           "inherit": "CPAchecker SMG memory checking",
-          "add options": [
-            {"-setprop": "analysis.machineModel=ARM"}
-          ],
-          "exclude options": [
-            {"-setprop": "analysis.machineModel=LINUX64"}
-          ]
-        }
-      }
+          "add options": [{"-setprop": "analysis.machineModel=ARM"}],
+          "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]
+      }}
     }
   }
 }
