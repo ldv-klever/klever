@@ -15,67 +15,91 @@
  * limitations under the License.
  */
 
-int registered = 0;
-int non_deregistered = 0;
-int probed = 0;
+int registered;
+int probed;
 
-/* Check that callback can be called */
+/* MODEL_FUNC Initialize EMG test rule specification. */
+void ldv_initialize(void)
+{
+    /* NOTE Initializing EMG test states. */
+    int registered = 0;
+    int probed = 0;
+}
+
+/* MODEL_FUNC Callback reached. */
 void ldv_invoke_callback(void)
 {
-    /* Callback cannot be called outside registration and deregistration functions*/
-    ldv_assert("linux:emg:test", !non_deregistered && registered);
+    /* ASSERT Callback cannot be called without registration or after deregistration. */
+    ldv_assert("linux:emg:test", registered);
 
-    /* Check that resources are allocated and freed */
+    /* ASSERT Need probing before calling this callback. */
     ldv_assert("linux:emg:test", !probed);
 }
 
-/* Check that callback which requires allocated resources can be called */
+/* MODEL_FUNC Middle callback reached. */
 void ldv_invoke_middle_callback(void)
 {
-    /* Callback cannot be called outside registration and deregistration functions */
-    ldv_assert("linux:emg:test", !non_deregistered && registered);
+    /* ASSERT Callback cannot be called without registration or after deregistration. */
+    ldv_assert("linux:emg:test", registered);
 
-    /* Check that resources are allocated and freed */
+    /* ASSERT Need probing before calling this callback. */
     ldv_assert("linux:emg:test", probed);
 }
 
-/* If function can be reached then produce an unsafe verdict to guarantee that there is a trace to the callback */
+/* MODEL_FUNC Callback has been called successfully, the test should pass. */
 void ldv_invoke_reached(void) {
+    /* ASSERT Test successfully passes as the callback call is reached. */
     ldv_assert("linux:emg:test", 0);
 }
 
-/* Call if callbacks registration function has been successfully called */
+/* MODEL_FUNC Deregistration is done. */
 void ldv_deregister(void)
 {
-    non_deregistered = 1;
+    /* NOTE Deregistration has happend. */
+    registered = 0;
 }
 
-/* Call if callbacks deregistration function has been successfully called*/
+/* MODEL_FUNC Registration is done. */
 void ldv_register(void)
 {
+    /* NOTE Registration has happend. */
     registered = 1;
 }
 
-/* More resources are allocated */
+/* MODEL_FUNC Called probing callback. */
 void ldv_probe_up(void)
 {
+    /* NOTE Probing resources. */
     probed++;
 }
 
-/* More resources are freed */
+/* MODEL_FUNC Called releasing callback. */
 void ldv_release_down(void)
 {
     if (probed > 0)
+        /* NOTE Releasing lately probed resources. */
         probed--;
     else
+        /* ASSERT Cannot free unprobed or already released resources. */
         ldv_assert("linux:emg:test", 0);
 }
 
-/* Free all resources */
+/* MODEL_FUNC All resources are released. */
 void ldv_release_completely(void)
 {
     if (!probed)
+        /* ASSERT Cannot free unprobed or already released resources. */
         ldv_assert("linux:emg:test", 0);
     else
+        /* NOTE Release all resources. */
         probed = 0;
+}
+
+/* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
+void ldv_check_final_state( void )
+{
+	/* ASSERT At the end of the test all resources should be released. */
+	ldv_assert("linux:emg:test", probed == 0);
+    /* ASSERT At the end of the test all callbacks should be deregistered. */
+    ldv_assert("linux:emg:test", !registered);
 }
