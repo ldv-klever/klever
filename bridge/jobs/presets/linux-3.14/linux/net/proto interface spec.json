@@ -33,13 +33,15 @@
             "signature": "struct net_proto_family a",
             "header": "linux/net.h",
             "fields": {
-              "family": "%proto.family%"
+              "family": "%proto.family%",
+              "create": "%proto.family_create%"
             }
           },
           "pppox_proto": {
             "signature": "struct pppox_proto a",
             "header": "linux/if_pppox.h",
             "fields": {
+              "create": "%proto.proto_create%"
             }
           }
         },
@@ -58,6 +60,12 @@
           },
           "release": {
             "signature": "int (*release)(%proto.socket%)"
+          },
+          "family_create": {
+            "signature": "int (*family_create)(struct net *net, %proto.socket%, int protocol, int kern)"
+          },
+          "proto_create": {
+            "signature": "int (*proto_create)(struct net *net, %proto.socket%)"
           }
         }
       }
