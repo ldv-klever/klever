@@ -41,6 +41,8 @@ static int __init ldv_init(void)
 		if (!sock_register(& ldv_driver)) {
 			sock_unregister(5);
 			ldv_deregister();
+		} else {
+		    ldv_deregister();
 		}
 	}
 	return 0;

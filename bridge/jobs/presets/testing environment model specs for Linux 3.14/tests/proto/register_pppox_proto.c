@@ -34,12 +34,15 @@ const struct pppox_proto ldv_driver = {
 
 static int __init ldv_init(void)
 {
+    int ret = 0;
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		return register_pppox_proto(5, & ldv_driver);
+		ret = register_pppox_proto(5, & ldv_driver);
+		if (ret)
+		    ldv_deregister();
 	}
-	return 0;
+	return ret;
 }
 
 static void __exit ldv_exit(void)

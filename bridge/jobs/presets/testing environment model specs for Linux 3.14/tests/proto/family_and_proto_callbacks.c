@@ -35,6 +35,7 @@ int ldv_release(struct socket *sock)
 
 int ldv_bind(struct socket *sock, struct sockaddr *myaddr, int sockaddr_len)
 {
+    ldv_release_down();
     ldv_probe_up();
     return 0;
 }
@@ -51,18 +52,20 @@ struct proto_ops ldv_proto_ops = {
 
 static int __init ldv_init(void)
 {
+	int ret;
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		return sock_register(& ldv_driver);
+		ret = sock_register(& ldv_driver);
+		if (ret)
+		    ldv_deregister();
 	}
-	return 0;
+	return ret;
 }
 
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-	    ldv_release_completely();
 		sock_unregister(5);
 		ldv_deregister();
 	}

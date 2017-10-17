@@ -40,6 +40,8 @@ static int __init ldv_init(void)
 		if (!register_pppox_proto(5, & ldv_driver)) {
 			unregister_pppox_proto(5);
 			ldv_deregister();
+		} else {
+		    ldv_deregister();
 		}
 	}
 	return 0;

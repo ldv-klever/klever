@@ -35,12 +35,15 @@ static struct net_proto_family ldv_driver = {
 
 static int __init ldv_init(void)
 {
+    int ret = 0;
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		ldv_register();
-		return sock_register(& ldv_driver);
+		ret = sock_register(& ldv_driver);
+		if (ret)
+		    ldv_deregister();
 	}
-	return 0;
+	return ret;
 }
 
 static void __exit ldv_exit(void)
