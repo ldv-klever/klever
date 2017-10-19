@@ -179,7 +179,8 @@ sys.exit(Command(sys.argv).launch())
                     TarFile.extractall(self.linux_kernel['ext modules work src tree'])
 
             self.logger.info('Make canonical working source tree of external Linux kernel modules')
-            self.__make_canonical_work_src_tree(self.linux_kernel['ext modules work src tree'])
+            self.__make_canonical_work_src_tree(self.linux_kernel['ext modules work src tree'],
+                                                self.conf['generate makefiles'])
 
             if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
                 build_targets.append(('M=ext-modules', 'modules'))
@@ -583,21 +584,31 @@ sys.exit(Command(sys.argv).launch())
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
 
-    def __make_canonical_work_src_tree(self, work_src_tree):
+    def __make_canonical_work_src_tree(self, work_src_tree, generate_makefiles=False):
         work_src_tree_root = None
-
         for dirpath, dirnames, filenames in os.walk(work_src_tree):
-            if core.utils.is_src_tree_root(filenames):
+            ismakefile = False
+            for filename in filenames:
+                if filename == 'Makefile':
+                    ismakefile = True
+                    break
+
+            # Generate makefiles recursively starting from source tree root directory if they don't exist.
+            if generate_makefiles:
+                if not work_src_tree_root:
+                    work_src_tree_root = dirpath
+
+                if not ismakefile:
+                    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='utf-8') as fp:
+                        fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
+                                 .format('$(filter %/, $(wildcard $(src)/*/))'))
+                        fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+            elif ismakefile:
                 work_src_tree_root = dirpath
                 break
 
         if not work_src_tree_root:
-            if self.conf['generate makefiles']:
-                # Create Makefile in root directory and rely upon source files are there.
-                with open(os.path.join(work_src_tree, 'Makefile'), 'w', encoding='utf-8') as fp:
-                    fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-            else:
-                raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
         elif not os.path.samefile(work_src_tree_root, work_src_tree):
             self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
             for path in os.listdir(work_src_tree_root):
