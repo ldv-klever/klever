@@ -1,0 +1,4 @@
+{
+  "function": "Killing process \\d+ due to wall time timeout",
+  "pattern": "WallTimeout"
+}

@@ -1,4 +1,4 @@
 {
-  "function": "core.utils.CommandError: \"cilly\\.asm\\.exe\" failed",
+  "function": "Tool 'cilly\\.asm\\.exe' exited with non-zero exit code",
   "pattern": "CIL failure"
 }

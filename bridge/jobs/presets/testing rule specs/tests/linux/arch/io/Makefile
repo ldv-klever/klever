@@ -1,1 +1,0 @@
-obj-m += safe.o less-initial.o more-initial.o

@@ -1,1 +1,0 @@
-obj-m += safe.o more-at-exit.o less-decrement.o

@@ -801,6 +801,7 @@ class GetConfiguration(object):
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
                     filedata['collect total code coverage'],
+                    filedata['generate makefiles'],
                     filedata['weight']
                 ]
             ]
@@ -844,7 +845,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 8:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 9:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False

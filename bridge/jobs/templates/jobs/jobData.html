@@ -4,7 +4,17 @@
     <div class="ui grid">
         {% if reportdata.unsafes_total or reportdata.data.tags_unsafe|length %}
             <div class="eight wide column">
-                <h4 class="header ui violet">{% trans 'Unsafes' %}{% if reportdata.unsafes_total %} (<a href="{{ reportdata.unsafes_total.1 }}">{{ reportdata.unsafes_total.0 }}</a>){% endif %}</h4>
+                <h4 class="header ui violet">
+                    {% trans 'Unsafes' %}:
+                    {% if reportdata.unsafes_total %}
+                        {% if reportdata.unsafes_total.confirmed.0 > 0 %}
+                            <a href="{{ reportdata.unsafes_total.confirmed.1 }}">{{ reportdata.unsafes_total.confirmed.0 }}</a>
+                        {% else %}
+                            <span>{{ reportdata.unsafes_total.confirmed.0 }}</span>
+                        {% endif %}
+                        (<a href="{{ reportdata.unsafes_total.total.1 }}">{{ reportdata.unsafes_total.total.0 }}</a>)
+                    {% endif %}
+                </h4>
                 <div class="ui list">
                     {% for v in reportdata.data.unsafes %}
                         <div class="item">
@@ -47,7 +57,17 @@
         {% endif %}
         {% if reportdata.safes_total or reportdata.data.tags_safe|length %}
             <div class="eight wide column">
-                <h4 class="header ui violet">{% trans 'Safes' %}{% if reportdata.safes_total %} ({% if reportdata.safes_total|length == 2 %}<a href="{{ reportdata.safes_total.1 }}">{{ reportdata.safes_total.0 }}</a>{% else %}{{ reportdata.safes_total.0 }}{% endif %}){% endif %}</h4>
+                <h4 class="header ui violet">
+                    {% trans 'Safes' %}:
+                    {% if reportdata.safes_total %}
+                        {% if reportdata.safes_total.confirmed.0 > 0 %}
+                            <a href="{{ reportdata.safes_total.confirmed.1 }}">{{ reportdata.safes_total.confirmed.0 }}</a>
+                        {% else %}
+                            <span>{{ reportdata.safes_total.confirmed.0 }}</span>
+                        {% endif %}
+                        (<a href="{{ reportdata.safes_total.total.1 }}">{{ reportdata.safes_total.total.0 }}</a>)
+                    {% endif %}
+                </h4>
                 <div class="ui list">
                     {% for v in reportdata.data.safes %}
                         <div class="item">

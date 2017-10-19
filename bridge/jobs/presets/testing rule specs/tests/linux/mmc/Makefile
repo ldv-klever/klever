@@ -1,1 +1,0 @@
-obj-m += safe.o claim.o memcpy.o release.o sdio.o sdio-2.o sdio-3.o
