@@ -150,7 +150,7 @@ def report_component_delete_signal(**kwargs):
 class CoverageArchive(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='coverages')
     identifier = models.CharField(max_length=128, default='')
-    archive = models.FileField(upload_to=get_coverage_arch_dir, null=True)
+    archive = models.FileField(upload_to=get_coverage_arch_dir)
 
     def save_archive(self, fname, fp):
         self.archive.save(fname, File(fp), True)
