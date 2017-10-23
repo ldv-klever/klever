@@ -9,7 +9,7 @@ import reports.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0026_remove_empty_cov'),
+        ('reports', '0027_remove_empty_cov'),
     ]
 
     operations = [

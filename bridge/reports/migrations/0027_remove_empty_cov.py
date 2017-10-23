@@ -8,5 +8,5 @@ def clear_coverages(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0025_count_covnum')]
+    dependencies = [('reports', '0026_auto_20171012_1416')]
     operations = [migrations.RunPython(clear_coverages)]
