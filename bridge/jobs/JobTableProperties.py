@@ -16,17 +16,17 @@
 #
 
 from django.core.urlresolvers import reverse
-from django.db.models import Q, F
+from django.db.models import Q, F, Case, When, Count
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
-from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
-    TaskStatistic
+from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, TaskStatistic,\
+    ReportComponentLeaf
 
 from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
@@ -99,8 +99,6 @@ class TableTree:
         self._head_filters = self.__head_filters()
         self._jobdata = []
         self._job_ids = []
-        self._light_jobs = []
-        self._full_jobs = []
         self._values_data = {}
         self.__collect_jobdata()
         self.__table_columns()
@@ -266,10 +264,6 @@ class TableTree:
             filters &= ~Q(**{unf_v: unfilters[unf_v]})
         for job in Job.objects.filter(filters).order_by(jobs_order):
             if JobAccess(self._user, job).can_view():
-                if job.weight == JOB_WEIGHT[1][0]:
-                    self._light_jobs.append(job.id)
-                else:
-                    self._full_jobs.append(job.id)
                 self._job_ids.append(job.id)
                 rowdata.append({
                     'id': job.id,
@@ -431,15 +425,10 @@ class TableTree:
 
     def __resource_columns(self):
         components = {}
-        filters = {'report__job_id__in': self._light_jobs}
+        filters = {'report__root__job_id__in': self._job_ids}
         if 'resource_component' in self._head_filters:
             filters.update(self._head_filters['resource_component'])
-        for cr in LightResource.objects.filter(**filters).exclude(component=None)\
-                .values('component', 'component__name').distinct():
-            components['resource:component_' + str(cr['component'])] = cr['component__name']
 
-        del filters['report__job_id__in']
-        filters['report__root__job_id__in'] = self._full_jobs
         # 4 JOINs in query!!!
         for cr in ComponentResource.objects.filter(**filters).exclude(component=None)\
                 .values('component', 'component__name').distinct():
@@ -686,35 +675,142 @@ class TableTree:
             )
 
     def __collect_verdicts(self):
-        for verdict in Verdict.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            safes_url = reverse('reports:safes', args=[verdict.report_id])
-            unsafes_url = reverse('reports:unsafes', args=[verdict.report_id])
-            self._values_data[verdict.job_id].update({
-                'unsafe:total': (verdict.unsafe, unsafes_url),
-                'unsafe:unknown': (verdict.unsafe_unknown, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[0][0])),
-                'unsafe:bug': (verdict.unsafe_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[1][0])),
-                'unsafe:target_bug': (
-                    verdict.unsafe_target_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[2][0])
-                ),
-                'unsafe:false_positive': (
-                    verdict.unsafe_false_positive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[3][0])
-                ),
+        if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
+            self.__get_verdicts_without_confirmed()
+        else:
+            self.__get_verdicts_with_confirmed()
 
-                'unsafe:unassociated': (
-                    verdict.unsafe_unassociated, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[5][0])
-                ),
-                'unsafe:inconclusive': (
-                    verdict.unsafe_inconclusive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[4][0])
-                ),
-                'safe:total': (verdict.safe, safes_url),
-                'safe:unknown': (verdict.safe_unknown, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[0][0])),
-                'safe:incorrect': (verdict.safe_incorrect_proof, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[1][0])),
-                'safe:missed_bug': (verdict.safe_missed_bug, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[2][0])),
-                'safe:inconclusive': (verdict.safe_inconclusive, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[3][0])),
-                'safe:unassociated': (verdict.safe_unassociated, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[4][0])),
-                'problem:total': (verdict.unknown, reverse('reports:unknowns', args=[verdict.report_id]))
-            })
+        for job_id, r_id, total in ReportComponentLeaf.objects\
+                .filter(report__root__job_id__in=self._job_ids, report__parent=None)\
+                .exclude(unknown=None).values('report__root__job_id')\
+                .annotate(job_id=F('report__root__job_id'), total=Count('id'))\
+                .values_list('job_id', 'report_id', 'total'):
+            self._values_data[job_id]['problem:total'] = (total, reverse('reports:unknowns', args=[r_id]))
+
+    def __get_verdicts_with_confirmed(self):
+        unsafe_columns_map = {
+            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
+            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
+            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
+            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
+            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
+            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
+        }
+        safe_columns_map = {
+            SAFE_VERDICTS[0][0]: 'safe:unknown',
+            SAFE_VERDICTS[1][0]: 'safe:incorrect',
+            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
+            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
+            SAFE_VERDICTS[4][0]: 'safe:unassociated'
+        }
+        for job_id, r_id, verdict, confirmed, total in ReportComponentLeaf.objects \
+                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
+                .exclude(unsafe=None).values('unsafe__verdict') \
+                .annotate(job_id=F('report__root__job_id'), total=Count('id'),
+                          confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))) \
+                .values_list('job_id', 'report_id', 'unsafe__verdict', 'confirmed', 'total'):
+            unsafes_url = reverse('reports:unsafes', args=[r_id])
+            if verdict == UNSAFE_VERDICTS[5][0]:
+                self._values_data[job_id]['unsafe:unassociated'] = (total, '%s?verdict=%s' % (unsafes_url, verdict))
+            else:
+                if confirmed > 0:
+                    val1 = '<a href="%s">%s</a>' % ('%s?verdict=%s&confirmed=1' % (unsafes_url, verdict), confirmed)
+                else:
+                    val1 = confirmed
+                if total > 0:
+                    val2 = '<a href="%s">%s</a>' % ('%s?verdict=%s' % (unsafes_url, verdict), total)
+                else:
+                    val2 = total
+                self._values_data[job_id][unsafe_columns_map[verdict]] = '%s (%s)' % (val1, val2)
+            if 'unsafe:total' not in self._values_data[job_id]:
+                self._values_data[job_id]['unsafe:total'] = [0, 0, unsafes_url]
+            self._values_data[job_id]['unsafe:total'][0] += confirmed
+            self._values_data[job_id]['unsafe:total'][1] += total
+        for job_id, r_id, verdict, confirmed, total in ReportComponentLeaf.objects \
+                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
+                .exclude(safe=None).values('safe__verdict') \
+                .annotate(job_id=F('report__root__job_id'), total=Count('id'),
+                          confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))) \
+                .values_list('job_id', 'report_id', 'safe__verdict', 'confirmed', 'total'):
+            safes_url = reverse('reports:safes', args=[r_id])
+            if verdict == SAFE_VERDICTS[4][0]:
+                self._values_data[job_id]['safe:unassociated'] = (total, '%s?verdict=%s' % (safes_url, verdict))
+            else:
+                if confirmed > 0:
+                    val1 = '<a href="%s">%s</a>' % ('%s?verdict=%s&confirmed=1' % (safes_url, verdict), confirmed)
+                else:
+                    val1 = confirmed
+                if total > 0:
+                    val2 = '<a href="%s">%s</a>' % ('%s?verdict=%s' % (safes_url, verdict), total)
+                else:
+                    val2 = total
+                self._values_data[job_id][safe_columns_map[verdict]] = '%s (%s)' % (val1, val2)
+            if 'safe:total' not in self._values_data[job_id]:
+                self._values_data[job_id]['safe:total'] = [0, 0, safes_url]
+            self._values_data[job_id]['safe:total'][0] += confirmed
+            self._values_data[job_id]['safe:total'][1] += total
+
+        for j_id in self._values_data:
+            for col in ['unsafe:total', 'safe:total']:
+                if col in self._values_data[j_id]:
+                    if self._values_data[j_id][col][0] > 0:
+                        val1 = '<a href="%s">%s</a>' % ('%s?confirmed=1' % self._values_data[j_id][col][2],
+                                                        self._values_data[j_id][col][0])
+                    else:
+                        val1 = self._values_data[j_id][col][0]
+                    if self._values_data[j_id][col][1] > 0:
+                        val2 = '<a href="%s">%s</a>' % (
+                            self._values_data[j_id][col][2], self._values_data[j_id][col][1]
+                        )
+                    else:
+                        val2 = self._values_data[j_id][col][1]
+                    self._values_data[j_id][col] = '%s (%s)' % (val1, val2)
+
+    def __get_verdicts_without_confirmed(self):
+        unsafe_columns_map = {
+            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
+            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
+            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
+            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
+            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
+            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
+        }
+        safe_columns_map = {
+            SAFE_VERDICTS[0][0]: 'safe:unknown',
+            SAFE_VERDICTS[1][0]: 'safe:incorrect',
+            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
+            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
+            SAFE_VERDICTS[4][0]: 'safe:unassociated'
+        }
+        for job_id, r_id, verdict, total in ReportComponentLeaf.objects \
+                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
+                .exclude(unsafe=None).values('unsafe__verdict') \
+                .annotate(job_id=F('report__root__job_id'), total=Count('id')) \
+                .values_list('job_id', 'report_id', 'unsafe__verdict', 'total'):
+            unsafes_url = reverse('reports:unsafes', args=[r_id])
+            self._values_data[job_id][unsafe_columns_map[verdict]] = (total, '%s?verdict=%s' % (unsafes_url, verdict))
+            if 'unsafe:total' not in self._values_data[job_id]:
+                self._values_data[job_id]['unsafe:total'] = [0, unsafes_url]
+            self._values_data[job_id]['unsafe:total'][0] += total
+        for job_id, r_id, verdict, total in ReportComponentLeaf.objects \
+                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
+                .exclude(safe=None).values('safe__verdict') \
+                .annotate(job_id=F('report__root__job_id'), total=Count('id')) \
+                .values_list('job_id', 'report_id', 'safe__verdict', 'total'):
+            safes_url = reverse('reports:safes', args=[r_id])
+            self._values_data[job_id][safe_columns_map[verdict]] = total
+            if 'safe:total' not in self._values_data[job_id]:
+                self._values_data[job_id]['safe:total'] = [0, safes_url]
+            self._values_data[job_id]['safe:total'][0] += total
+        for j_id in self._values_data:
+            if 'unsafe:total' in self._values_data[j_id]:
+                self._values_data[j_id]['unsafe:total'] = (
+                    self._values_data[j_id]['unsafe:total'][0], self._values_data[j_id]['unsafe:total'][1]
+                )
+            if 'safe:total' in self._values_data[j_id]:
+                self._values_data[j_id]['safe:total'] = (
+                    self._values_data[j_id]['safe:total'][0], self._values_data[j_id]['safe:total'][1]
+                )
 
     def __collect_roles(self):
         user_role = self._user.extended.role
@@ -762,7 +858,7 @@ class TableTree:
     def __collect_resourses(self):
         data_format = self._user.extended.data_format
         accuracy = self._user.extended.accuracy
-        for cr in ComponentResource.objects.filter(report__root__job_id__in=self._full_jobs, report__parent=None)\
+        for cr in ComponentResource.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             rd = get_resource_data(data_format, accuracy, cr)
             resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
@@ -770,14 +866,6 @@ class TableTree:
                 self._values_data[cr.job_id]['resource:total'] = resourses_value
             else:
                 self._values_data[cr.job_id]['resource:component_' + str(cr.component_id)] = resourses_value
-        for lr in LightResource.objects.filter(report__job_id__in=self._light_jobs)\
-                .annotate(job_id=F('report__job_id')):
-            rd = get_resource_data(data_format, accuracy, lr)
-            resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
-            if lr.component_id is None:
-                self._values_data[lr.job_id]['resource:total'] = resourses_value
-            else:
-                self._values_data[lr.job_id]['resource:component_' + str(lr.component_id)] = resourses_value
 
     def __collect_unknowns(self):
         for cmup in ComponentMarkUnknownProblem.objects\

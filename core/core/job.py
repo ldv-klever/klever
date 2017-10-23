@@ -27,6 +27,7 @@ import zipfile
 import traceback
 
 import core.utils
+import core.vrp.coverage_parser
 
 
 class Job(core.utils.CallbacksCaller):
@@ -58,6 +59,8 @@ class Job(core.utils.CallbacksCaller):
         self.uploading_reports_process_exitcode = None
         self.data = None
         self.data_lock = None
+        # This attribute will be used if there are not sub-jobs.
+        self.total_coverages = multiprocessing.Manager().dict()
         self.type = type
         self.components_common_conf = None
         self.sub_jobs = []
@@ -65,6 +68,7 @@ class Job(core.utils.CallbacksCaller):
         self.callbacks = {}
         self.component_processes = []
         self.reporting_results_process = None
+        self.collecting_total_coverages_process = None
 
     def decide(self, conf, mqs, locks, vals, uploading_reports_process_exitcode):
         self.logger.info('Decide job')
@@ -179,10 +183,10 @@ class Job(core.utils.CallbacksCaller):
                         context.mqs['verification statuses'].put({
                             'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
-                            'verdict': 'unknown'
+                            'verdict': 'non-verifier unknown'
                         })
 
-                    def after_send_unknown_report(context):
+                    def after_process_failed_task(context):
                         context.mqs['verification statuses'].put({
                             'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
@@ -196,22 +200,45 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    def after_finish_tasks_results_processing(context):
-                        context.logger.info('Terminate verification statuses message queue')
-                        context.mqs['verification statuses'].put(None)
-
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            after_plugin_fail_processing,
                                                            after_process_single_verdict,
-                                                           after_send_unknown_report,
-                                                           after_finish_tasks_results_processing
+                                                           after_process_failed_task
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
                     # created and filled above can be overfilled that results in VTG processes will not terminate.
                     self.reporting_results_process = multiprocessing.Process(target=self.report_results)
                     self.reporting_results_process.start()
+
+                def after_finish_task_results_processing(context):
+                    if 'ideal verdicts' in self.components_common_conf:
+                        context.logger.info('Terminate verification statuses message queue')
+                        context.mqs['verification statuses'].put(None)
+
+                    if self.components_common_conf['collect total code coverage']:
+                        context.logger.info('Terminate rule specifications and coverage infos message queue')
+                        context.mqs['rule specifications and coverage info files'].put(None)
+
+                core.utils.set_component_callbacks(self.logger, type(self), (after_finish_task_results_processing,))
+
+                if self.components_common_conf['collect total code coverage']:
+                    self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
+
+                    def after_process_finished_task(context):
+                        if os.path.isfile('coverage info.json'):
+                            context.mqs['rule specifications and coverage info files'].put({
+                                'rule specification': context.rule_specification,
+                                'coverage info file': os.path.relpath('coverage info.json',
+                                                                      context.conf['main working directory'])
+                            })
+
+                    core.utils.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
+
+                    self.collecting_total_coverages_process = \
+                        multiprocessing.Process(target=self.collect_total_coverage)
+                    self.collecting_total_coverages_process.start()
 
                 self.get_sub_job_components()
 
@@ -232,8 +259,7 @@ class Job(core.utils.CallbacksCaller):
                                           {
                                               'id': self.id + '/unknown',
                                               'parent id': self.id,
-                                              'problem desc': 'problem desc.txt',
-                                              'files': ['problem desc.txt']
+                                              'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                           },
                                           self.mqs['report files'],
                                           self.vals['report id'],
@@ -249,16 +275,16 @@ class Job(core.utils.CallbacksCaller):
                     core.utils.remove_component_callbacks(self.logger, type(self))
 
                     if self.name:
-                        core.utils.report(self.logger,
-                                          'finish',
-                                          {
-                                              'id': self.id,
-                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'log': None
-                                          },
-                                          self.mqs['report files'],
-                                          self.vals['report id'],
-                                          self.components_common_conf['main working directory'])
+                        report = {
+                            'id': self.id,
+                            'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                        }
+
+                        if len(self.total_coverages):
+                            report['coverage'] = self.total_coverages.copy()
+
+                        core.utils.report(self.logger, 'finish', report, self.mqs['report files'],
+                                          self.vals['report id'], self.components_common_conf['main working directory'])
                 except Exception:
                     self.logger.exception('Catch exception')
 
@@ -356,6 +382,8 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.uploading_reports_process_exitcode = self.uploading_reports_process_exitcode
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
+                # Each particular sub-job has its own total coverages.
+                sub_job.total_coverages = multiprocessing.Manager().dict()
                 sub_job.components_common_conf = sub_job_concrete_conf
 
     def get_sub_job_components(self):
@@ -404,6 +432,10 @@ class Job(core.utils.CallbacksCaller):
 
                 if self.reporting_results_process and self.reporting_results_process.exitcode:
                     raise RuntimeError('Reporting results failed')
+
+                if self.collecting_total_coverages_process and \
+                        self.collecting_total_coverages_process.exitcode:
+                    raise RuntimeError('Collecting total coverages failed')
         except Exception:
             for p in self.component_processes:
                 # Do not terminate components that already exitted.
@@ -414,6 +446,10 @@ class Job(core.utils.CallbacksCaller):
                 self.logger.info('Forcibly terminate verification statuses message queue')
                 self.mqs['verification statuses'].put(None)
 
+            if 'rule specifications and coverage info files' in self.mqs:
+                self.logger.info('Forcibly terminate rule specification and coverage info files message queue')
+                self.mqs['rule specifications and coverage info files'].put(None)
+
             raise
         finally:
             if self.reporting_results_process:
@@ -422,9 +458,70 @@ class Job(core.utils.CallbacksCaller):
                 if self.reporting_results_process.exitcode:
                     raise RuntimeError('Reporting results failed')
 
+            if self.collecting_total_coverages_process:
+                self.logger.info('Wait for collecting all total coverages')
+                self.collecting_total_coverages_process.join()
+                if self.collecting_total_coverages_process.exitcode:
+                    raise RuntimeError('Collecting total coverages failed')
+
+    def collect_total_coverage(self):
+        # Process exceptions like for uploading reports.
+        try:
+            total_coverage_infos = {}
+
+            while True:
+                rule_spec_and_coverage_info_files = self.mqs['rule specifications and coverage info files'].get()
+
+                if rule_spec_and_coverage_info_files is None:
+                    self.logger.debug('Rule specification coverage info files message queue was terminated')
+                    self.mqs['rule specifications and coverage info files'].close()
+                    break
+
+                rule_spec = rule_spec_and_coverage_info_files['rule specification']
+                total_coverage_infos.setdefault(rule_spec, {})
+
+                with open(os.path.join(self.components_common_conf['main working directory'],
+                                       rule_spec_and_coverage_info_files['coverage info file']), encoding='utf8') as fp:
+                    coverage_info = json.load(fp)
+
+                for file_name, coverage_info in coverage_info.items():
+                    total_coverage_infos[rule_spec].setdefault(file_name, [])
+                    total_coverage_infos[rule_spec][file_name] += coverage_info
+
+            os.mkdir('total coverages')
+
+            total_coverages = {}
+
+            for rule_spec, coverage_info in total_coverage_infos.items():
+                total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', rule_spec))
+                os.mkdir(total_coverage_dir)
+
+                total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
+                if os.path.isfile(total_coverage_file):
+                    raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
+                arcnames = {total_coverage_file: 'coverage.json'}
+
+                coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
+
+                with open(total_coverage_file, 'w', encoding='utf8') as fp:
+                    json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+                arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
+
+                total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
+                                                                    arcnames)
+
+            # Share collected total coverages and arcnames to report them within Sub-job/Core finish report.
+            self.total_coverages.update(total_coverages)
+        except Exception:
+            self.logger.exception('Catch exception when collecting total coverages')
+            os._exit(1)
+
     def report_results(self):
         # Process exceptions like for uploading reports.
         try:
+            os.mkdir('results')
+
             while True:
                 verification_status = self.mqs['verification statuses'].get()
 
@@ -450,6 +547,9 @@ class Job(core.utils.CallbacksCaller):
                     else:
                         raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
+                    results_dir = os.path.join('results', re.sub(r'/', '-', name_suffix))
+                    os.mkdir(results_dir)
+
                     core.utils.report(self.logger,
                                       'data',
                                       {
@@ -459,8 +559,8 @@ class Job(core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.vals['report id'],
                                       self.components_common_conf['main working directory'],
-                                      re.sub(r'/', '-', name_suffix))
-        except Exception as e:
+                                      results_dir)
+        except Exception:
             self.logger.exception('Catch exception when reporting results')
             os._exit(1)
 
@@ -520,8 +620,7 @@ class Job(core.utils.CallbacksCaller):
 
     def __process_validation_results(self, name, verification_result):
         # Relate verificaiton results on commits before and after corresponding bug fixes if so.
-        # Without this we won't be able to reliably iterate over data since it is
-        # multiprocessing.Manager().dict().
+        # Without this we won't be able to reliably iterate over data since it is multiprocessing.Manager().dict().
         # Data is intended to keep verification results that weren't bound still. For such the results
         # we will need to update corresponding data sent before.
         data = self.data.copy()

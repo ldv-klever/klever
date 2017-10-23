@@ -27,7 +27,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, VIEW_TYPES
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
 from bridge.tableHead import Header
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
@@ -88,7 +88,7 @@ def get_parents(report):
             'title': parent.component.name,
             'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
             'attrs': parent_attrs,
-            'coverage': parent.coverage
+            'has_coverage': (parent.covnum > 0)
         })
         try:
             parent = ReportComponent.objects.get(id=parent.parent_id)
@@ -177,10 +177,10 @@ class SafesTable:
         columns.extend(self.view['columns'])
 
         safes_filters = {}
+        if isinstance(self.confirmed, bool) and self.confirmed:
+            safes_filters['safe__has_confirmed'] = True
         if self.verdict is not None:
             safes_filters['safe__verdict'] = self.verdict
-            if isinstance(self.confirmed, bool) and self.confirmed:
-                safes_filters['safe__has_confirmed'] = True
         else:
             if 'verdict' in self.view:
                 safes_filters['safe__verdict__in'] = self.view['verdict']
@@ -387,10 +387,10 @@ class UnsafesTable:
         columns.extend(self.view['columns'])
 
         unsafes_filters = {}
+        if isinstance(self.confirmed, bool) and self.confirmed:
+            unsafes_filters['unsafe__has_confirmed'] = True
         if self.verdict is not None:
             unsafes_filters['unsafe__verdict'] = self.verdict
-            if isinstance(self.confirmed, bool) and self.confirmed:
-                unsafes_filters['unsafe__has_confirmed'] = True
         else:
             if 'verdict' in self.view:
                 unsafes_filters['unsafe__verdict__in'] = self.view['verdict']
@@ -759,7 +759,7 @@ class ReportChildrenTable:
         return values
 
 
-class AttrData(object):
+class AttrData:
     def __init__(self):
         self._data = []
         self._name = {}
@@ -804,7 +804,7 @@ class AttrData(object):
                 self._attrs[(a.name.name, a.value)] = a.id
 
 
-class FilesForCompetitionArchive(object):
+class FilesForCompetitionArchive:
     def __init__(self, job, filters):
         self.name = 'svcomp.zip'
         self.benchmark_fname = 'benchmark.xml'
@@ -840,9 +840,10 @@ class FilesForCompetitionArchive(object):
 
     def __get_archives(self):
         archives = {}
-        for c in ReportComponent.objects.filter(root=self.root).only('id', 'archive'):
-            if c.archive:
-                archives[c.id] = c.archive
+        for c in ReportComponent.objects.filter(root=self.root, verification=True).exclude(verifier_input='')\
+                .only('id', 'verifier_input'):
+            if c.verifier_input:
+                archives[c.id] = c.verifier_input
         return archives
 
     def __reports_data(self, f_type, problems=None):
@@ -941,15 +942,5 @@ def report_attributes_with_parents(report):
 
 
 def remove_verification_files(job):
-    root = job.reportroot
-    for report in ReportComponent.objects.filter(root=root, verification=True):
-        report.archive.delete()
-
-    core_report = ReportComponent.objects.get(root=root, parent=None)
-    if job.weight == JOB_WEIGHT[1][0]:
-        ReportSafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
-        ReportUnsafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
-        ReportUnknown.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=True).delete()
-    else:
-        ReportComponent.objects.filter(root=root, verification=True).update(log=None)
+    for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_input=''):
+        report.verifier_input.delete()

@@ -46,8 +46,8 @@
         </div>
         <div class="two wide column right aligned">
             <div class="ui buttons">
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_coverage' coverage.report.id %}"><i class="download icon"></i></a>
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Show coverage without data' %}" href="{% url 'reports:coverage_light' coverage.report.id %}"><i class="ui maximize icon"></i></a>
+                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_coverage' coverage.cov_arch.id %}"><i class="download icon"></i></a>
+                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Show coverage without data' %}" href="{% url 'reports:coverage_light' coverage.report.id %}?archive={{ coverage.cov_arch.id }}"><i class="ui maximize icon"></i></a>
             </div>
         </div>
     </div>
@@ -68,10 +68,24 @@
     </div>
     <br>
 
-    <div class="ui tiny buttons">
-        <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
-        <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
-        <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
+    <div class="ui grid">
+        <div class="eight wide column">
+            <div class="ui tiny buttons">
+                <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
+                <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
+                <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
+            </div>
+        </div>
+        <div class="eight wide column right aligned">
+            {% if coverage.coverage_archives|length > 1 or coverage.cov_arch.identifier != '' %}
+                <label for="identifier_selector"></label>
+                <select id="identifier_selector" class="ui dropdown">
+                    {% for arch_id, identifier in coverage.coverage_archives %}
+                        <option value="{{ arch_id }}"{% if arch_id == coverage.cov_arch.id %} selected{% endif %}>{{ identifier }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
     </div>
 
     <br><br>
@@ -96,5 +110,6 @@
     <br><br>
 
     <input id="report_id" value="{{ coverage.report.id }}" type="hidden">
-    <input id="cov_weight" value="0" type="hidden">
+    <input id="cov_arch_id" value="{{ coverage.cov_arch.id }}" type="hidden">
+    <input id="with_data" value="1" type="hidden">
 {% endblock %}

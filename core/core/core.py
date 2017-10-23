@@ -41,6 +41,7 @@ class Core(core.utils.CallbacksCaller):
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
+        self.job = None
         self.comp = []
         self.session = None
         self.mqs = {}
@@ -58,8 +59,8 @@ class Core(core.utils.CallbacksCaller):
             self.change_work_dir()
             self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
             version = self.get_version()
-            job = core.job.Job(self.logger, self.ID)
-            self.logger.info('Support jobs of format "{0}"'.format(job.FORMAT))
+            self.job = core.job.Job(self.logger, self.ID)
+            self.logger.info('Support jobs of format "{0}"'.format(self.job.FORMAT))
             self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,
                                                   'start',
@@ -72,13 +73,12 @@ class Core(core.utils.CallbacksCaller):
                                                   self.report_id,
                                                   self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-            self.session.start_job_decision(job, start_report_file)
+            self.session.start_job_decision(self.job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
-                       {'report id': self.report_id},
-                       self.uploading_reports_process_exitcode)
+            self.job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
+                            {'report id': self.report_id}, self.uploading_reports_process_exitcode)
         except Exception:
             self.process_exception()
 
@@ -92,8 +92,7 @@ class Core(core.utils.CallbacksCaller):
                                       {
                                           'id': self.ID + '/unknown',
                                           'parent id': self.ID,
-                                          'problem desc': 'problem desc.txt',
-                                          'files': ['problem desc.txt']
+                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.report_id,
@@ -112,19 +111,20 @@ class Core(core.utils.CallbacksCaller):
 
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.ID,
-                                          'resources': core.utils.count_consumed_resources(
-                                              self.logger,
-                                              self.start_time),
-                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
-                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
-                                      },
-                                      self.mqs['report files'],
-                                      self.report_id,
+                    report = {
+                        'id': self.ID,
+                        'resources': core.utils.count_consumed_resources(self.logger, self.start_time)
+                    }
+
+                    if os.path.isfile('log.txt'):
+                        report['log'] = core.utils.ReportFiles(['log.txt'])
+
+                    if self.job.total_coverages:
+                        report['coverage'] = self.job.total_coverages.copy()
+
+                    core.utils.report(self.logger, 'finish', report, self.mqs['report files'], self.report_id,
                                       self.conf['main working directory'])
+
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 
@@ -262,9 +262,8 @@ class Core(core.utils.CallbacksCaller):
 
                 self.logger.debug('Upload report file "{0}"{1}'.format(
                     report_file,
-                    ' with report file archives:\n{0}'.format(
-                        '\n'.join(['  {0} - {1}'.format(archive_name, archive)
-                                   for archive_name, archive in report_file_archives.items()]))
+                    ' with report file archives:\n{0}'
+                    .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
                     if report_file_archives else ''))
 
                 self.session.upload_report(report_file, report_file_archives)

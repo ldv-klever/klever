@@ -295,11 +295,12 @@ class Server(server.AbstractServer):
         else:
             raise RuntimeError("Trying to push solution for {0} which has been already processed".format(identifier))
 
-    def submit_nodes(self, nodes):
+    def submit_nodes(self, nodes, looping=True):
         """
         Send string with JSON description of nodes available for verification
         in VerifierCloud.
         :param nodes: String with JSON nodes description.
+        :param looping: Flag that indicates that this request should be attempted until it is successful.
         """
         self.nodes = nodes
         node_desc = json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)

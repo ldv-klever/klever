@@ -117,12 +117,12 @@ $(document).ready(function () {
                     $('#tasks_gen_parallelism__value').val()
                 ],
                 [
-                    parseFloat($('#max_ram').val()),
+                    parseFloat($('#max_ram').val().replace(/,/, '.')),
                     parseInt($('#max_cpus').val()),
-                    parseFloat($('#max_disk').val()),
+                    parseFloat($('#max_disk').val().replace(/,/, '.')),
                     $('#cpu_model').val(),
-                    parseFloat($('#max_cpu_time').val()),
-                    parseFloat($('#max_wall_time').val())
+                    parseFloat($('#max_cpu_time').val().replace(/,/, '.')),
+                    parseFloat($('#max_wall_time').val().replace(/,/, '.'))
                 ],
                 [
                     $('#console_logging_level').val(),
@@ -137,6 +137,7 @@ $(document).ready(function () {
                     $('#allow_localdir_checkbox').is(':checked'),
                     $('#ignore_core_checkbox').is(':checked'),
                     $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
+                    $('#collect_total_code_coverage_checkbox').is(':checked'),
                     $('input[name=job_weight]:checked').val()
                 ]
             ]),

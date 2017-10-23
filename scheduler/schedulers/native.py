@@ -46,9 +46,12 @@ def executor(timeout, args):
 
     # Kill handler
     mypid = os.getpid()
-    print('Executor {!r}: establish signal handlers'.format(mypid))
+    with open('info.log', 'a') as lf:
+        print('Executor {!r}: establish signal handlers'.format(mypid), file=lf)
+        print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
     ec = utils.execute(args, timeout=timeout)
-    print('executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)))
+    with open('info.log', 'a') as lf:
+        print('Executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)), file=lf)
 
     # Be sure that process will exit
     if not isinstance(ec, int):
@@ -277,7 +280,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Submit an empty configuration
         logging.debug("Submit an empty configuration list before shutting down")
         configurations = []
-        self.server.submit_nodes(configurations)
+        self.server.submit_nodes(configurations, looping=False)
 
         # Terminate
         super(Scheduler, self).terminate()
@@ -536,7 +539,10 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Future task {!r}: get pid of the started process.".format(process.name))
         if process.pid:
             logging.debug("Future task {!r}: the pid is {!r}.".format(process.name, process.pid))
-            j = process.join()
+            while process.is_alive():
+                j = process.join(5)
+                if j is not None:
+                    break
             logging.debug("Future task {!r}: join method returned {!r}.".format(process.name, str(j)))
             logging.debug("Future task {!r}: process {!r} joined, going to check its exit code".
                           format(process.name, process.pid))

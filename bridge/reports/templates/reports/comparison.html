@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Job reports comparison' %}{% endblock %}
 
 {% block head_block %}
-    <link href="/static/reports/css/comparison.css" rel="stylesheet">
-    <script src="/static/reports/js/comparison.js"></script>
+    <link href="{% static 'reports/css/comparison.css' %}" rel="stylesheet">
+    <script src="{% static 'reports/js/comparison.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}
@@ -25,6 +26,7 @@
                     <th class="job-th-2">{% trans 'Found not all unsafes' %}</th>
                     <th class="job-th-2">{% trans 'Unknown' %}</th>
                     <th class="job-th-2">{% trans 'Unmatched' %}</th>
+                    <th class="job-th-2">{% trans 'Broken' %}</th>
                 </tr>
                 <tr>
                     <th class="job-th-1 right aligned">{% trans 'Total safe' %}</th>
@@ -80,6 +82,18 @@
                         <td>
                             {% if v != '-' %}
                                 <a id="compare_cell_4_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Broken' %}</th>
+                    {% for v in tabledata.5 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_5_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
                             {% else %}
                                 {{ v }}
                             {% endif %}
