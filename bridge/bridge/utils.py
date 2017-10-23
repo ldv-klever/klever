@@ -148,14 +148,15 @@ def has_references(obj):
     return False
 
 
-class ArchiveFileContent(object):
-    def __init__(self, report, file_name):
+class ArchiveFileContent:
+    def __init__(self, report, field_name, file_name):
         self._report = report
+        self._field = field_name
         self._name = file_name
         self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
-        with getattr(self._report, '_meta').model.objects.get(id=self._report.id).archive as fp:
+        with getattr(self._report, '_meta').model.objects.get(id=self._report.id).__getattribute__(self._field) as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -184,15 +185,17 @@ class RemoveFilesBeforeDelete:
             self.__remove(files)
 
     def __remove_reports_files(self, root):
-        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
-        for files in ReportSafe.objects.filter(Q(root=root) & ~Q(archive=None)).values_list('archive'):
+        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CoverageArchive
+        for files in ReportSafe.objects.filter(Q(root=root) & ~Q(proof=None)).values_list('proof'):
             self.__remove(files)
-        for files in ReportUnsafe.objects.filter(root=root).values_list('archive'):
+        for files in ReportUnsafe.objects.filter(root=root).values_list('error_trace'):
             self.__remove(files)
-        for files in ReportUnknown.objects.filter(root=root).values_list('archive'):
+        for files in ReportUnknown.objects.filter(root=root).values_list('problem_description'):
             self.__remove(files)
-        for files in ReportComponent.objects.filter(Q(root=root) & ~Q(archive=None, data=None))\
-                .values_list('archive', 'data'):
+        for files in ReportComponent.objects.filter(root=root).exclude(log='', data='', verifier_input='')\
+                .values_list('log', 'verifier_input', 'data'):
+            self.__remove(files)
+        for files in CoverageArchive.objects.filter(report__root=root).values_list('archive'):
             self.__remove(files)
 
     def __remove_task_files(self, task):

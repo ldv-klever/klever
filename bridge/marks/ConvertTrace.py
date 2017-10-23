@@ -18,9 +18,13 @@
 import json
 from io import BytesIO
 from types import MethodType
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import ERROR_TRACE_FILE
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create, BridgeException
+
 from reports.etv import ErrorTraceForests
 from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
@@ -90,7 +94,7 @@ class GetConvertedErrorTrace:
 
     def __get_error_trace(self):
         try:
-            return ArchiveFileContent(self.unsafe, self.unsafe.error_trace).content.decode('utf8')
+            return ArchiveFileContent(self.unsafe, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8')
         except Exception as e:
             logger.exception(e, stack_info=True)
             raise BridgeException("Can't exctract error trace for unsafe '%s' from archive" % self.unsafe.pk)

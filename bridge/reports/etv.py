@@ -17,9 +17,13 @@
 
 import re
 import json
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import ERROR_TRACE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException
+
 from reports.models import ReportUnsafe
 
 
@@ -482,6 +486,7 @@ class GetETV:
         self.data = json.loads(error_trace)
         self.err_trace_nodes = get_error_trace_nodes(self.data)
         self.threads = []
+        self._has_global = True
         self.html_trace, self.assumes = self.__html_trace()
         self.attributes = []
 
@@ -495,11 +500,14 @@ class GetETV:
                 raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])
+            if self.threads[0] == self.data['edges'][n]['thread'] and 'enter' in self.data['edges'][n]:
+                self._has_global = False
+
         return self.__add_thread_lines(0, 0)[0:2]
 
     def __add_thread_lines(self, i, start_index):
         parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
-        if i > 0:
+        if i > 0 or not self._has_global:
             parsed_trace.scope.initialised = True
         trace_assumes = []
         j = start_index
@@ -550,7 +558,7 @@ class GetSource:
         if file_name.startswith('/'):
             file_name = file_name[1:]
         try:
-            source_content = ArchiveFileContent(self.report, file_name).content.decode('utf8')
+            source_content = ArchiveFileContent(self.report, 'error_trace', file_name).content.decode('utf8')
         except Exception as e:
             raise BridgeException(_("Error while extracting source from archive: %(error)s") % {'error': str(e)})
         cnt = 1
@@ -891,7 +899,7 @@ def etv_callstack(unsafe_id=None, file_name='test.txt'):
         unsafe = ReportUnsafe.objects.get(id=unsafe_id)
     else:
         unsafe = ReportUnsafe.objects.all().first()
-    content = ArchiveFileContent(unsafe, unsafe.error_trace).content.decode('utf8')
+    content = ArchiveFileContent(unsafe, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8')
     data = json.loads(content)
     trace = ''
     double_returns = set()
