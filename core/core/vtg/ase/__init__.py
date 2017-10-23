@@ -19,6 +19,7 @@ import fileinput
 import json
 import os
 
+import core.vtg.utils
 import core.utils
 import core.vtg.plugins
 
@@ -118,7 +119,7 @@ class ASE(core.vtg.plugins.Plugin):
                     else:
                         aspect = request_aspect
 
-                    core.utils.execute(self.logger,
+                    core.vtg.utils.cif_execute(self.logger,
                                        tuple(['cif',
                                               '--in', cc_full_desc['in files'][0],
                                               '--aspect', os.path.relpath(aspect, os.path.join(

@@ -21,6 +21,7 @@ import os
 import re
 
 import core.utils
+import core.vtg.utils
 import core.vtg.plugins
 
 
@@ -83,7 +84,7 @@ class Weaver(core.vtg.plugins.Plugin):
                     stdout = core.utils.execute(self.logger,
                                                 ('aspectator', '-print-file-name=include'),
                                                 collect_all_stdout=True)
-                    core.utils.execute(
+                    core.vtg.utils.cif_execute(
                         self.logger,
                         tuple([
                                   'cif',

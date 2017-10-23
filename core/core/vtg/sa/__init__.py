@@ -21,6 +21,7 @@ import json
 import os
 import re
 
+import core.vtg.utils
 import core.vtg.plugins
 import jinja2
 from core.vtg.sa.initparser import parse_initializations
@@ -142,7 +143,7 @@ class SA(core.vtg.plugins.Plugin):
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
                                             collect_all_stdout=True)
                 self.logger.info("Analyze source file {}".format(command['in files'][0]))
-                core.utils.execute(self.logger,
+                core.vtg.utils.cif_execute(self.logger,
                                    tuple(['cif',
                                           '--in', command['in files'][0],
                                           '--aspect', self.aspect,
