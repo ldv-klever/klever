@@ -264,7 +264,7 @@ def _classify_rule_descriptions(logger, rule_descriptions):
             else:
                 rule_classes[opt_cache] = [rule_spec_desc]
         else:
-            rule_classes[rule_spec_desc['name']] = [rule_spec_desc]
+            rule_classes[rule_spec_desc['id']] = [rule_spec_desc]
     logger.info("Generated {} rule classes from given descriptions".format(len(rule_classes)))
     return rule_classes
 
