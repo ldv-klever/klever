@@ -18,7 +18,7 @@ Klever Bridge
 
 To run Klever Bridge you need:
 
-* `Python 3.4 or higher`_ and its packages:
+* `Python 3.4 or higher <https://www.python.org/>`_ and its packages:
 
   * `Django <https://www.djangoproject.com/>`__.
   * `pytz <http://pythonhosted.org/pytz/>`__.
