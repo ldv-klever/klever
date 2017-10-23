@@ -806,8 +806,8 @@ class StartJobDecision:
                 'number of CPU cores': self.data[2][1],
                 'disk memory size': int(self.data[2][2] * 10**9),
                 'CPU model': self.data[2][3] if isinstance(self.data[2][3], str) and len(self.data[2][3]) > 0 else None,
-                'CPU time': int(self.data[2][4] * 10**4 * 6) if self.data[2][4] is not None else None,
-                'wall time': int(self.data[2][5] * 10**4 * 6) if self.data[2][5] is not None else None
+                'CPU time': int(self.data[2][4] * 60) if self.data[2][4] is not None else None,
+                'wall time': int(self.data[2][5] * 60) if self.data[2][5] is not None else None
             },
             'keep intermediate files': self.data[4][0],
             'upload input files of static verifiers': self.data[4][1],
