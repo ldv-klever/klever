@@ -113,13 +113,14 @@ KLEVER_CORE_LOG_FORMATTERS = {
 # Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
 #   sub-jobs processing,
 #   build,
-#   tasks generation.
+#   tasks generation,
+#   results processing.
 # WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
-    'sequential': (1, 1, 1),
-    'slow': (1, 2, 1),
-    'quick': (1, 1.0, 2),
-    'very quick': (1, 2.0, 1.0),
+    'sequential': (1, 1, 1, 1),
+    'slow': (1, 2, 1, 1),
+    'quick': (1, 1.0, 2, 1),
+    'very quick': (1, 2.0, 1.0, 2),
 }
 
 LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']

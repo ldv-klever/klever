@@ -783,7 +783,8 @@ class GetConfiguration(object):
                 [
                     filedata['parallelism']['Sub-jobs processing'],
                     filedata['parallelism']['Build'],
-                    filedata['parallelism']['Tasks generation']
+                    filedata['parallelism']['Tasks generation'],
+                    filedata['parallelism']['Results processing']
                 ],
                 [
                     filedata['resource limits']['memory size'] / 10**9,
@@ -818,7 +819,7 @@ class GetConfiguration(object):
                 return float(val)
 
         try:
-            conf[1] = [int_or_float(conf[1][i]) for i in range(3)]
+            conf[1] = [int_or_float(conf[1][i]) for i in range(4)]
             if len(conf[2][3]) == 0:
                 conf[2][3] = None
             conf[2][0] = float(conf[2][0])
@@ -838,7 +839,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
             return False
-        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 3:
+        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 4:
             return False
         if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
             return False
@@ -852,7 +853,7 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
             return False
-        for i in range(3):
+        for i in range(4):
             if not isinstance(self.configuration[1][i], (float, int)):
                 return False
         if not isinstance(self.configuration[2][0], (float, int)):
