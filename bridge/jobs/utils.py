@@ -749,10 +749,10 @@ class GetConfiguration(object):
 
         cpu_time = filedata['resource limits']['CPU time']
         if isinstance(cpu_time, int):
-            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / (6 * 10**4)))
+            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / 60))
         wall_time = filedata['resource limits']['wall time']
         if isinstance(wall_time, int):
-            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / (6 * 10**4)))
+            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / 60))
 
         try:
             formatters = {}
