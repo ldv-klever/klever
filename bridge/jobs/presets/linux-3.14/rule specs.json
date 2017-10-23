@@ -141,7 +141,7 @@
         {
           "FVTP": {
             "merge source files": true,
-            "verifier profile": "reachability common Linux64",
+            "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
               "version": "ldv-bam:25793"
@@ -201,20 +201,13 @@
           "allocate external": true
         }
       },
-      "RSG": {
-        "models": {"generic/memory.c": {}},
-        "verifier specifications": [
-          "LTL(G valid-free)",
-          "LTL(G valid-deref)",
-          "LTL(G valid-memtrack)"
-      ]},
+      "RSG": {"models": {"generic/memory.c": {}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "smg_witness_for_ldv:25566"
-        },
-        "result processing": {}
+          "version": "smg_witness_for_ldv:26089"
+        }
       }
     },
     "linux:empty": {
@@ -611,7 +604,7 @@
         "models": {"sync/races.c": {"bug kinds": []}}
       },
       "FVTP": {
-        "verifier profile": "CPALockator race checking",
+        "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
           "version": "CPALockator:25964"

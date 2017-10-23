@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
-from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
+from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
@@ -193,7 +193,7 @@ class JobAccess(object):
             return False
         try:
             return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
-                .exclude(archive='').count() > 0
+                .exclude(verifier_input='').count() > 0
         except ObjectDoesNotExist:
             return False
 
@@ -783,7 +783,8 @@ class GetConfiguration(object):
                 [
                     filedata['parallelism']['Sub-jobs processing'],
                     filedata['parallelism']['Build'],
-                    filedata['parallelism']['Tasks generation']
+                    filedata['parallelism']['Tasks generation'],
+                    filedata['parallelism']['Results processing']
                 ],
                 [
                     filedata['resource limits']['memory size'] / 10**9,
@@ -800,6 +801,7 @@ class GetConfiguration(object):
                     filedata['allow local source directories use'],
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
+                    filedata['collect total code coverage'],
                     filedata['weight']
                 ]
             ]
@@ -817,7 +819,7 @@ class GetConfiguration(object):
                 return float(val)
 
         try:
-            conf[1] = [int_or_float(conf[1][i]) for i in range(3)]
+            conf[1] = [int_or_float(conf[1][i]) for i in range(4)]
             if len(conf[2][3]) == 0:
                 conf[2][3] = None
             conf[2][0] = float(conf[2][0])
@@ -837,21 +839,22 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
             return False
-        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 3:
+        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 4:
             return False
         if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 7:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 8:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False
         if self.configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
             return False
-        if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
+        if not isinstance(self.configuration[0][2], int) or \
+                (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
             return False
-        for i in range(3):
+        for i in range(4):
             if not isinstance(self.configuration[1][i], (float, int)):
                 return False
         if not isinstance(self.configuration[2][0], (float, int)):
@@ -888,7 +891,6 @@ class StartDecisionData:
         self.logging_levels = LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
         self.formatters = KLEVER_CORE_FORMATTERS
-        self.avtg_priorities = AVTG_PRIORITY
         self.job_weight = JOB_WEIGHT
 
         self.need_auth = False

@@ -41,8 +41,9 @@ urlpatterns = [
     url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
     url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
     url(r'^ajax/clear_verification_files/$', views.clear_verification_files),
-    url(r'^component/(?P<report_id>[0-9]+)/download_files/$', views.download_report_files, name='download_files'),
-    url(r'^component/(?P<report_id>[0-9]+)/download_coverage/$', views.download_coverage, name='download_coverage'),
+    url(r'^component/(?P<report_id>[0-9]+)/download_verifier_input_files/$',
+        views.download_verifier_input_files, name='download_verifier_input_files'),
+    url(r'^component/(?P<archive_id>[0-9]+)/download_coverage/$', views.download_coverage, name='download_coverage'),
 
     url(r'^coverage/(?P<report_id>[0-9]+)/$', views.coverage_page, name='coverage'),
     url(r'^coverage-light/(?P<report_id>[0-9]+)/$', views.coverage_light_page, name='coverage_light'),

@@ -15,15 +15,6 @@
 Installation
 ============
 
-Documentation installation
---------------------------
-
-#. Execute the following command (it should be executed each time when documentation might be changed)::
-
-    $ make -C docs html
-
-#. Open generated documenation index :file:`docs/_build/index.html`.
-
 .. _klever-bridge-install:
 
 Klever Bridge installation
@@ -142,7 +133,7 @@ Adapt them for your Linux distribution by yourself.
 Common installation
 ^^^^^^^^^^^^^^^^^^^
 
-#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**klever_bridge_admin**) and password
+#. Sign in at <http://127.0.0.1:8998/> with username (**klever_bridge_admin**) and password
    (**klever_bridge_admin_passwd**).
 #. Populate the database and create a new Klever Bridge Manager (**klever_bridge_manager**) and a new service user
    (**klever_bridge_service_user**).
@@ -194,7 +185,7 @@ Enjoy!
    * *working directory* it is a relative path in the current working directory to create directory for all
      generated files.
    * *keep working directory* implies not to delete existing working directory when running a tool again.
-   * *logging* contains configuration properties for `logging <http://docs.python.org/3.4/library/logging.html>`_
+   * *logging* contains configuration properties for `logging <http://docs.python.org/3.4/library/logging.html>`__
      python package.
 
    Controller configuration

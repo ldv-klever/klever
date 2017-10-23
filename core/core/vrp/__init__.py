@@ -63,7 +63,7 @@ class VRP(core.components.Component):
                                   separate_from_parent, include_child_resources)
 
     def process_results(self):
-        self.__workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        self.__workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
         self.logger.info("Going to start {} workers to process results".format(self.__workers))
 
         # Do result processing
@@ -83,9 +83,9 @@ class VRP(core.components.Component):
         self.launch_subcomponents(*subcomponents)
 
         # Finalize
-        self.finish_tasks_results_processing()
+        self.finish_task_results_processing()
 
-    def finish_tasks_results_processing(self):
+    def finish_task_results_processing(self):
         """Function has a callback at Job.py."""
         self.logger.info('Task results processing has finished')
 
@@ -198,6 +198,8 @@ class RP(core.components.Component):
         self.verdict = None
         self.rule_specification = None
         self.verification_object = None
+        self.task_error = None
+        self.coverage = None
         self.__exception = None
 
         # Common initialization
@@ -213,37 +215,22 @@ class RP(core.components.Component):
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
-        try:
-            if status == 'finished':
-                self.__process_finished_task(task_id, opts, verifier, shadow_src_dir)
-            elif status == 'error':
-                self.__process_failed_task(task_id)
-            else:
-                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
-        finally:
-            self.session.remove_task(task_id)
+        self.logger.debug("Prcess results of task {}".format(task_id))
+
+        if status == 'finished':
+            self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+            # Raise exception just here sinse the method above has callbacks.
+            if self.__exception:
+                self.logger.warning("Raising the saved exception")
+                raise self.__exception
+        elif status == 'error':
+            self.process_failed_task(task_id)
+            # Raise exception just here sinse the method above has callbacks.
+            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
+        else:
+            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
     main = fetcher
-
-    def send_unknown_report(self, report_id, parent_id, problem):
-        """The function has a callback at Job module."""
-        self.__send_unknown_report(report_id, parent_id, problem)
-
-    def __send_unknown_report(self, report_id, parent_id, problem):
-        self.verdict = 'unknown'
-
-        core.utils.report(self.logger,
-                          'unknown',
-                          {
-                              'id': "{}/unknown".format(report_id),
-                              'parent id': parent_id,
-                              'attrs': [],
-                              'problem desc': problem,
-                              'files': [problem]
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
@@ -278,9 +265,9 @@ class RP(core.components.Component):
                               {
                                   'id': "{}/verification/safe".format(self.id),
                                   'parent id': "{}/verification".format(self.id),
-                                  'attrs': [],
+                                  'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  'proof': None
+                                  # 'proof': None
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
@@ -293,37 +280,48 @@ class RP(core.components.Component):
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
+                os.mkdir('error traces')
+
                 for witness in witnesses:
                     self.verdict = 'unsafe'
                     try:
-                        etrace = import_error_trace(self.logger, witness)
+                        error_trace = import_error_trace(self.logger, witness)
+                        arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                        error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
-                        result = re.search(r'witness\.(.*)\.graphml', witness)
-                        trace_id = result.groups()[0]
-                        error_trace_name = 'error trace_' + trace_id + '.json'
+                        match = re.search(r'witness\.(.+)\.graphml', witness)
+                        if not match:
+                            raise ValueError('Witness "{0}" does not encode error trace identifier'.format(witness))
+                        error_trace_id = match.group(1)
 
-                        self.logger.info('Write processed witness to "' + error_trace_name + '"')
-                        arcnames = self.__trim_file_names(etrace['files'], shadow_src_dir)
-                        etrace['files'] = [arcnames[file] for file in etrace['files']]
-                        with open(error_trace_name, 'w', encoding='utf8') as fp:
-                            json.dump(etrace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                        error_trace_dir = os.path.join('error traces', error_trace_id)
+                        os.mkdir(error_trace_dir)
+
+                        error_trace_file = os.path.join(error_trace_dir, 'error trace.json')
+                        arcnames[error_trace_file] = 'error trace.json'
+
+                        self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
+                        with open(error_trace_file, 'w', encoding='utf8') as fp:
+                            json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                         core.utils.report(self.logger,
                                           'unsafe',
                                           {
-                                              'id': "{}/verification/unsafe_{}".format(self.id, trace_id),
+                                              'id': "{}/verification/unsafe {}".format(self.id, error_trace_id),
                                               'parent id': "{}/verification".format(self.id),
-                                              'attrs': [{"Error trace identifier": trace_id}],
-                                              'error trace': error_trace_name,
-                                              'files': [error_trace_name] + list(arcnames.keys()),
-                                              'arcname': arcnames
+                                              'attrs': [{"Error trace identifier": error_trace_id}],
+                                              'error trace': core.utils.ReportFiles([error_trace_file]
+                                                                                    + list(arcnames.keys()),
+                                                                                    arcnames=arcnames)
                                           },
                                           self.mqs['report files'],
                                           self.vals['report id'],
                                           self.conf['main working directory'],
-                                          trace_id)
+                                          error_trace_dir)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                        self.verdict = 'non-verifier unknown'
+
                         if self.__exception:
                             try:
                                 raise e from self.__exception
@@ -340,13 +338,13 @@ class RP(core.components.Component):
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
                                             format(len(witnesses)))
 
-                    etrace = et.import_error_trace(self.logger, witnesses[0])
-                    self.logger.info('Write processed witness to "error trace.json"')
+                    error_trace = et.import_error_trace(self.logger, witnesses[0])
+                    arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                    error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
-                    arcnames = self.__trim_file_names(etrace['files'], shadow_src_dir)
-                    etrace['files'] = [arcnames[file] for file in etrace['files']]
+                    self.logger.info('Write processed witness to "error trace.json"')
                     with open('error trace.json', 'w', encoding='utf8') as fp:
-                        json.dump(etrace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                        json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                     core.utils.report(self.logger,
                                       'unsafe',
@@ -354,50 +352,65 @@ class RP(core.components.Component):
                                           'id': "{}/verification/unsafe".format(self.id),
                                           'parent id': "{}/verification".format(self.id),
                                           'attrs': [],
-                                          'error trace': 'error trace.json',
-                                          'files': ['error trace.json'] + list(arcnames.keys()),
-                                          'arcname': arcnames
+                                          'error trace': core.utils.ReportFiles(['error trace.json']
+                                                                                + list(arcnames.keys()),
+                                                                                arcnames=arcnames)
                                       },
                                       self.mqs['report files'],
                                       self.vals['report id'],
                                       self.conf['main working directory'])
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                    self.verdict = 'non-verifier unknown'
                     self.__exception = e
-
             elif not re.match('false', decision_results['status']):
+                self.verdict = 'unknown'
+
                 # Prepare file to send it with unknown report.
+                os.mkdir('verification')
+                verification_problem_desc = os.path.join('verification', 'problem desc.txt')
+
                 # Check resource limitiations
                 if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
                     if decision_results['status'] == 'OUT OF MEMORY':
                         msg = "memory exhausted"
                     else:
                         msg = "CPU time exhausted"
-                    log_file = 'error.txt'
-                    with open(log_file, 'w', encoding='utf8') as fp:
+
+                    with open(verification_problem_desc, 'w', encoding='utf8') as fp:
                         fp.write(msg)
+                else:
+                    os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                    log_file = 'error.txt'
+                    log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.__send_unknown_report("{}/verification".format(self.id),
-                                           "{}/verification".format(self.id), log_file)
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': "{}/verification/unknown".format(self.id),
+                                      'parent id': "{}/verification".format(self.id),
+                                      'attrs': [],
+                                      'problem desc': core.utils.ReportFiles(
+                                          [verification_problem_desc], {verification_problem_desc: 'problem desc.txt'})
+                                  },
+                                  self.mqs['report files'],
+                                  self.vals['report id'],
+                                  self.conf['main working directory'],
+                                  'verification')
 
-    def __process_failed_task(self, task_id):
-        task_error = self.session.get_task_error(task_id)
-        self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+    def process_failed_task(self, task_id):
+        """The function has a callback at Job module."""
+        self.task_error = self.session.get_task_error(task_id)
+        # We do not need task and its files anymore.
+        self.session.remove_task(task_id)
 
-        task_err_file = 'task error.txt'
-        with open(task_err_file, 'w', encoding='utf8') as fp:
-            fp.write(task_error)
+        self.verdict = 'non-verifier unknown'
 
-        self.send_unknown_report(self.id, self.id, task_err_file)
-
-    def __process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
-        self.logger.debug("Prcess results of the task {}".format(task_id))
-
+    def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
+        """Function has a callback at Job.py."""
         self.session.download_decision(task_id)
 
         with zipfile.ZipFile('decision result files.zip') as zfp:
@@ -424,26 +437,21 @@ class RP(core.components.Component):
             'attrs': [],
             'name': verifier,
             'resources': decision_results['resources'],
-            'log': None if self.logger.disabled or not log_file else log_file,
-            'coverage':
-                'coverage.json' if 'coverage' in opts and opts['coverage'] else None,
-            'files': {
-                'report': [] if self.logger.disabled or not log_file else [log_file]
-            }
         }
+
+        if not self.logger.disabled and log_file:
+            report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
+
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
-        if 'coverage' in opts and opts['coverage'] and\
-                os.path.isfile(os.path.join('output', 'coverage.info')):
-            cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                       shadow_src_dir, self.conf['main working directory'],
-                       opts['coverage'])
-            with open('coverage.json', 'w', encoding='utf-8') as fp:
-                json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-            arcnames = cov.arcnames
-            report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
-            report['arcname'] = arcnames
+        self.coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
+                             self.conf['main working directory'], opts.get('coverage', None))
+
+        if os.path.isfile('coverage.json'):
+            report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(self.coverage.arcnames.keys()),
+                                                        arcnames=self.coverage.arcnames)
+
         core.utils.report(self.logger,
                           'verification',
                           report,
@@ -451,20 +459,17 @@ class RP(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-        # Submit a verdict
-        self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
-
-        # Submit a closing report
-        core.utils.report(self.logger,
-                          'verification finish',
-                          {'id': report['id']},
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
-
-        if self.__exception:
-            self.logger.warning("Raising the saved exception")
-            raise self.__exception
+        try:
+            # Submit a verdict
+            self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
+        finally:
+            # Submit a closing report
+            core.utils.report(self.logger,
+                              'verification finish',
+                              {'id': report['id']},
+                              self.mqs['report files'],
+                              self.vals['report id'],
+                              self.conf['main working directory'])
 
     def __trim_file_names(self, file_names, shadow_src_dir):
         arcnames = {}

@@ -55,12 +55,14 @@ JOB_CLASSES = (
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
 
+# If you change it change values also in comparison.html
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
     ('1', _('Found all unsafes')),
     ('2', _('Found not all unsafes')),
     ('3', _('Unknown')),
-    ('4', _('Unmatched'))
+    ('4', _('Unmatched')),
+    ('5', _('Broken'))
 )
 
 JOB_ROLES = (
@@ -191,17 +193,7 @@ MARKS_COMPARE_ATTRS = {
 }
 
 
-JOBS_COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
-}
-
-# TODO: keys and values are almost the same and thus can be refactored.
-AVTG_PRIORITY = [
-    ('balance', _('Balance')),
-    ('rule specifications', _('Rule specifications')),
-    ('verification objects', _('Verification objects')),
-]
+JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
 
 KLEVER_CORE_PARALLELISM = (
     ('sequential', _('Sequentially')),
@@ -222,8 +214,20 @@ START_JOB_DEFAULT_MODES = {
     'paranoid development': _('Paranoid development')
 }
 
-REPORT_FILES_ARCHIVE = 'data.zip'
-COVERAGE_FILES_ARCHIVE = 'coverage.zip'
+REPORT_ARCHIVE = {
+    'log': 'log.zip',
+    'coverage': 'coverage.zip',
+    'verifier input': 'VerifierInput.zip',
+    'error trace': 'ErrorTrace.zip',
+    'proof': 'proof.zip',
+    'problem desc': 'ProblemDesc.zip'
+}
+
+LOG_FILE = 'log.txt'
+COVERAGE_FILE = 'coverage.json'
+ERROR_TRACE_FILE = 'error trace.json'
+PROBLEM_DESC_FILE = 'problem desc.txt'
+PROOF_FILE = 'proof.txt'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'

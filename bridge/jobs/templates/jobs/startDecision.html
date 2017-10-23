@@ -65,15 +65,15 @@
                     <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
                 </div>
             {% endif %}
-            <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
-                <h5>{% trans 'Abstract tasks generation priority' %}</h5>
-                {% for p in data.avtg_priorities %}
-                    <div class="ui radio checkbox">
-                        <input id="avtg_priority__{{ p.0 }}" name="avtg_priority" type="radio" value="{{ p.0 }}"{% if data.default.0.2 == p.0 %} checked{% endif %}>
-                        <label for="avtg_priority__{{ p.0 }}">{{ p.1 }}</label>
-                    </div>
-                    <br>
-                {% endfor %}
+            <label for="max_tasks" style="margin-right: 20px;">{% trans 'Max solving tasks per a sub-job' %}</label>
+            <div>
+                <div class="ui input">
+                    <input id="max_tasks" type="number" value="{{ data.default.0.2 }}" pattern="[0-9]+">
+                </div>
+                <i class="ui blue icon help note-popup"></i>
+                <div class="ui popup">
+                    {% trans 'For instance,' %} 100.
+                </div>
             </div>
         </div>
         <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
@@ -97,6 +97,12 @@
                         <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.2 }}">
                     </div>
                 </div>
+                <div class="eight wide column">
+                    <label for="results_processing_parallelism__value">{% trans 'Results processing' %}</label>
+                    <div class="ui fluid input">
+                        <input id="results_processing_parallelism__value" type="text" value="{{ data.default.1.3 }}">
+                    </div>
+                </div>
             </div>
             <br>
             {% for p in data.parallelism %}
@@ -104,6 +110,7 @@
                     <input class="sub_jobs_proc_parallelism" name="sub_jobs_proc_parallelism" type="hidden" value="{{ p.0 }}">
                     <input class="build_parallelism" name="build_parallelism" type="hidden" value="{{ p.0 }}">
                     <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
+                    <input class="results_processing_parallelism" name="results_processing_parallelism" type="hidden" value="{{ p.0 }}">
                 </span>
             {% endfor %}
         </div>
@@ -244,9 +251,14 @@
                 <label for="ignore_failed_sub_jobs_checkbox">{% trans 'Ignore failed sub-jobs' %}</label>
             </div>
             <br><br>
+            <div class="ui toggle checkbox">
+                <input id="collect_total_code_coverage_checkbox" type="checkbox"{% if data.default.4.6 %} checked{% endif %}>
+                <label for="collect_total_code_coverage_checkbox">{% trans 'Collect total code coverage' %}</label>
+            </div>
+            <br><br>
             <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
                 {% for w in data.job_weight %}
-                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.default.4.6 == w.0 %} checked="checked"{% endif %}>
+                    <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.default.4.7 == w.0 %} checked="checked"{% endif %}>
                     <label for="weight_{{ w.0 }}">{{ w.1 }}</label>
                 {% endfor %}
                 <a></a>

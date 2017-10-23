@@ -113,13 +113,14 @@ KLEVER_CORE_LOG_FORMATTERS = {
 # Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
 #   sub-jobs processing,
 #   build,
-#   tasks generation.
+#   tasks generation,
+#   results processing.
 # WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
-    'sequential': (1, 1, 1),
-    'slow': (1, 2, 2),
-    'quick': (1, 1.0, 1.0),
-    'very quick': (1, 2.0, 2.0),
+    'sequential': (1, 1, 1, 1),
+    'slow': (1, 2, 1, 1),
+    'quick': (1, 1.0, 2, 1),
+    'very quick': (1, 2.0, 1.0, 2),
 }
 
 LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
@@ -128,7 +129,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   scheduling:
 #     job priority - see bridge.vars.PRIORITY for available values,
 #     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
-#     abstract task generation priority - see service.utils.AVTG_PRIORITY for available values,
+#     max solving tasks per sub-job - positive number,
 #   parallelism pack - one of packs from KLEVER_CORE_PARALLELISM_PACKS,
 #   limits:
 #     memory size - in GB,
@@ -148,34 +149,35 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   allow local source directories use - True or False,
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
+#   collect total code coverage - True of False.
 #   weight of decision - '0' for full-weight and '1' for lightweight jobs.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
         'production': [
-            ['LOW', '0', 'balance'],
+            ['LOW', '0', 100],
             'slow',
             [1.0, 0, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False, '1'
+            False, False, False, False, False, False, True, '1'
         ]
     },
     {
         'development': [
-            ['IDLE', '0', 'balance'],
+            ['IDLE', '0', 100],
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, '0'
+            True, True, False, True, True, True, True, '0'
         ]
     },
     {
         'paranoid development': [
-            ['IDLE', '0', 'balance'],
+            ['IDLE', '0', 100],
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True, '0'
+            True, True, True, True, True, True, True, '0'
         ]
     },
 ]

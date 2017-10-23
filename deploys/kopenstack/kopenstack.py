@@ -380,7 +380,7 @@ class OSKleverDeveloperInstance(OSEntity):
 
         if ssh.sftp_exist('klever.json'):
             with ssh.sftp.file('klever.json') as fp:
-                instance_klever_conf = json.load(fp)
+                instance_klever_conf = json.loads(fp.read().decode('utf8'))
         else:
             instance_klever_conf = {}
 

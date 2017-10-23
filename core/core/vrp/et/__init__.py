@@ -42,6 +42,7 @@ def import_error_trace(logger, witness):
 
     return trace.serialize()
 
+
 # This is intended for testing purposes, when one has a witness and would like to debug its transformations.
 if __name__ == '__main__':
     import json

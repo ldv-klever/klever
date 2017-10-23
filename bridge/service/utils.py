@@ -787,7 +787,7 @@ class StartJobDecision:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.weight = self.data[4][6]
+        self.job.weight = self.data[4][7]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -799,15 +799,15 @@ class StartJobDecision:
         return {
             'identifier': self.job.identifier,
             'priority': self.data[0][0],
-            'abstract task generation priority': self.data[0][2],
+            'max solving tasks per sub-job': self.data[0][2],
             'task scheduler': scheduler,
             'resource limits': {
                 'memory size': int(self.data[2][0] * 10**9),
                 'number of CPU cores': self.data[2][1],
                 'disk memory size': int(self.data[2][2] * 10**9),
                 'CPU model': self.data[2][3] if isinstance(self.data[2][3], str) and len(self.data[2][3]) > 0 else None,
-                'CPU time': int(self.data[2][4] * 10**4 * 6) if self.data[2][4] is not None else None,
-                'wall time': int(self.data[2][5] * 10**4 * 6) if self.data[2][5] is not None else None
+                'CPU time': int(self.data[2][4] * 60) if self.data[2][4] is not None else None,
+                'wall time': int(self.data[2][5] * 60) if self.data[2][5] is not None else None
             },
             'keep intermediate files': self.data[4][0],
             'upload input files of static verifiers': self.data[4][1],
@@ -815,7 +815,8 @@ class StartJobDecision:
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
-            'weight': self.data[4][6],
+            'collect total code coverage': self.data[4][6],
+            'weight': self.data[4][7],
             'logging': {
                 'formatters': [
                     {
@@ -848,7 +849,8 @@ class StartJobDecision:
             'parallelism': {
                 'Sub-jobs processing': self.data[1][0],
                 'Build': self.data[1][1],
-                'Tasks generation': self.data[1][2]
+                'Tasks generation': self.data[1][2],
+                'Results processing': self.data[1][3]
             }
         }
 
