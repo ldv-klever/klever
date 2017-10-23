@@ -779,7 +779,7 @@ class GetConfiguration(object):
 
         try:
             self.configuration = [
-                [filedata['priority'], scheduler, filedata['abstract task generation priority']],
+                [filedata['priority'], scheduler, filedata['max solving tasks per sub-job']],
                 [
                     filedata['parallelism']['Sub-jobs processing'],
                     filedata['parallelism']['Build'],
