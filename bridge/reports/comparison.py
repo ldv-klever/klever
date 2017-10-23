@@ -53,14 +53,16 @@ class ReportTree(object):
         self.job = job
         self._name_ids = self.__get_attr_names()
         self.attr_values = {}
-        self._leaves_data = {'u': {}, 's': {}, 'f': {}}
+        self._report_tree = {}
+        self._leaves = {'u': set(), 's': set(), 'f': set()}
         self.__get_tree()
 
     def __get_attr_names(self):
+        self.__is_not_used()
         attr_ids = {}
-        for aname in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]):
+        for aname in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS):
             attr_ids[aname.name] = aname.id
-        return list(attr_ids[name] for name in JOBS_COMPARE_ATTRS[self.job.type] if name in attr_ids)
+        return list(attr_ids[name] for name in JOBS_COMPARE_ATTRS if name in attr_ids)
 
     def __get_tree(self):
         leaves_fields = {
@@ -71,12 +73,13 @@ class ReportTree(object):
         only = list(leaves_fields.values())
         only.append('report__parent_id')
         for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job).select_related('report').only(*only):
-            for l_type in leaves_fields:
+            # There is often safes > unknowns > unsafes
+            for l_type in 'sfu':
                 l_id = leaf.__getattribute__(leaves_fields[l_type])
                 if l_id is not None:
-                    if l_id not in self._leaves_data[l_type]:
-                        self._leaves_data[l_type][l_id] = {}
-                    self._leaves_data[l_type][l_id][leaf.report_id] = leaf.report.parent_id
+                    self._report_tree[l_id] = leaf.report_id
+                    self._report_tree[leaf.report_id] = leaf.report.parent_id
+                    self._leaves[l_type].add(l_id)
                     break
 
         # The order is important
@@ -84,42 +87,37 @@ class ReportTree(object):
             self.__fill_leaves_vals(l_type)
 
     def __fill_leaves_vals(self, l_type):
-        leaves_tables = {
-            'u': ReportUnsafe,
-            's': ReportSafe,
-            'f': ReportUnknown
-        }
-
-        leaves = {}
-        for r in leaves_tables[l_type].objects.filter(root__job=self.job).only('id', 'parent_id'):
-            leaves[r.id] = r.parent_id
-
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self._name_ids)\
+        for ra in ReportAttr.objects.filter(report_id__in=self._leaves[l_type], attr__name_id__in=self._name_ids)\
                 .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
             leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr_id
 
-        for l_id in leaves:
-            if l_id not in leaves_attrs or any(name_id not in leaves_attrs[l_id] for name_id in self._name_ids):
-                continue
-            attrs_id = '|'.join(str(leaves_attrs[l_id][name_id]) for name_id in self._name_ids)
+        for l_id in self._leaves[l_type]:
+            if l_id in leaves_attrs:
+                attrs_id = '|'.join(
+                    str(leaves_attrs[l_id][n_id]) if n_id in leaves_attrs[l_id] else '-' for n_id in self._name_ids
+                )
+            else:
+                attrs_id = '|'.join(['-'] * len(self._name_ids))
 
             branch_ids = [(l_type, l_id)]
-            parent = leaves[l_id]
+            parent = self._report_tree[l_id]
             while parent is not None:
                 branch_ids.insert(0, ('c', parent))
-                parent = self._leaves_data[l_type][l_id][parent]
+                parent = self._report_tree[parent]
 
             if attrs_id in self.attr_values:
                 if l_type == 's':
-                    raise ValueError('Too many leaf reports for "%s"' % attrs_id)
+                    self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[5][0]
                 elif l_type == 'f':
                     for branch in self.attr_values[attrs_id]['branches']:
                         if branch[-1][0] != 'u':
-                            raise ValueError('Too many leaf reports for "%s"' % attrs_id)
-                    self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[2][0]
+                            self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[5][0]
+                            break
+                    else:
+                        self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[2][0]
                 self.attr_values[attrs_id]['branches'].append(branch_ids)
             else:
                 if l_type == 'u':
@@ -130,7 +128,8 @@ class ReportTree(object):
                     verdict = COMPARE_VERDICT[3][0]
                 self.attr_values[attrs_id] = {'branches': [branch_ids], 'verdict': verdict}
 
-        del self._leaves_data[l_type]
+    def __is_not_used(self):
+        pass
 
 
 class CompareTree:
@@ -193,8 +192,9 @@ class ComparisonTableData:
         self.info = info.pk
 
         numbers = {}
-        for c in CompareJobsCache.objects.filter(info=info).values('verdict1', 'verdict2').annotate(number=Count('id')):
-            numbers[(c['verdict1'], c['verdict2'])] = c['number']
+        for v1, v2, num in CompareJobsCache.objects.filter(info=info).values('verdict1', 'verdict2')\
+                .annotate(number=Count('id')).values_list('verdict1', 'verdict2', 'number'):
+            numbers[(v1, v2)] = num
 
         for v1 in COMPARE_VERDICT:
             row_data = []
@@ -204,18 +204,21 @@ class ComparisonTableData:
                     num = (numbers[(v1[0], v2[0])], v2[0])
                 row_data.append(num)
             self.data.append(row_data)
+
         all_attrs = {}
         for compare in info.comparejobscache_set.all():
             attr_values = compare.attr_values.split('|')
-            if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
+            if len(attr_values) != len(JOBS_COMPARE_ATTRS):
                 raise BridgeException(_('The comparison cache was corrupted'))
             for i in range(len(attr_values)):
-                if JOBS_COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
-                    all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]] = []
-                if attr_values[i] not in all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]]:
-                    all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]].append(attr_values[i])
+                if JOBS_COMPARE_ATTRS[i] not in all_attrs:
+                    all_attrs[JOBS_COMPARE_ATTRS[i]] = []
+                if attr_values[i] == '-':
+                    continue
+                if attr_values[i] not in all_attrs[JOBS_COMPARE_ATTRS[i]]:
+                    all_attrs[JOBS_COMPARE_ATTRS[i]].append(attr_values[i])
 
-        for a in JOBS_COMPARE_ATTRS[info.root1.job.type]:
+        for a in JOBS_COMPARE_ATTRS:
             values = list(Attr.objects.filter(id__in=all_attrs[a]).order_by('value').values_list('id', 'value'))
             if a in all_attrs:
                 self.attrs.append({'name': a, 'values': values})
@@ -399,54 +402,49 @@ class ComparisonData:
         return branch_data
 
     def __component_data(self, report_id, parent_id):
+        self.__is_not_used()
         report = ReportComponent.objects.get(pk=report_id)
         block = CompareBlock('c_%s' % report_id, 'c', report.component.name, 'comp_%s' % report.component_id)
         if parent_id is not None:
             block.parents.append('c_%s' % parent_id)
-        for a in report.attrs.select_related('attr', 'attr__name').order_by('attr__name__name'):
-            attr_data = {
-                'name': a.attr.name.name,
-                'value': a.attr.value
-            }
-            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
+        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
+            attr_data = {'name': a_name, 'value': a_val}
+            if attr_data['name'] in JOBS_COMPARE_ATTRS:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
         return block
 
     def __unsafe_data(self, report_id, parent_id):
+        self.__is_not_used()
         report = ReportUnsafe.objects.get(pk=report_id)
         block = CompareBlock('u_%s' % report_id, 'u', _('Unsafe'), 'unsafe')
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]}
-        for a in report.attrs.select_related('attr', 'attr__name').order_by('attr__name__name'):
-            attr_data = {
-                'name': a.attr.name.name,
-                'value': a.attr.value
-            }
-            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
+        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
+            attr_data = {'name': a_name, 'value': a_val}
+            if attr_data['name'] in JOBS_COMPARE_ATTRS:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:unsafe', args=[report.pk])
         return block
 
     def __safe_data(self, report_id, parent_id):
+        self.__is_not_used()
         report = ReportSafe.objects.get(pk=report_id)
         block = CompareBlock('s_%s' % report_id, 's', _('Safe'), 'safe')
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]}
-        for a in report.attrs.select_related('attr', 'attr__name').order_by('attr__name__name'):
-            attr_data = {
-                'name': a.attr.name.name,
-                'value': a.attr.value
-            }
-            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
+        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
+            attr_data = {'name': a_name, 'value': a_val}
+            if attr_data['name'] in JOBS_COMPARE_ATTRS:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:safe', args=[report.pk])
         return block
 
     def __unknown_data(self, report_id, parent_id):
+        self.__is_not_used()
         report = ReportUnknown.objects.get(pk=report_id)
         block = CompareBlock('f_%s' % report_id, 'f', _('Unknown'), 'unknown-%s' % report.component.name)
         block.parents.append('c_%s' % parent_id)
@@ -458,12 +456,9 @@ class ComparisonData:
             }
         else:
             block.add_info = {'value': _('Without marks')}
-        for a in report.attrs.select_related('attr', 'attr__name').order_by('attr__name__name'):
-            attr_data = {
-                'name': a.attr.name.name,
-                'value': a.attr.value
-            }
-            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
+        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
+            attr_data = {'name': a_name, 'value': a_val}
+            if attr_data['name'] in JOBS_COMPARE_ATTRS:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:unknown', args=[report.pk])
