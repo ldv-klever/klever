@@ -16,9 +16,10 @@
 # limitations under the License.
 #
 
-import sys
+import os
 
 import core
 
 if __name__ == '__main__':
-    sys.exit(core.main())
+    # Like in core.components.Component#__finalize.
+    os._exit(core.main())
