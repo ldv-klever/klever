@@ -75,3 +75,17 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
 * `BenchExec <http://github.com/dbeyer/benchexec>`__.
 * `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`__. Download binary file and UI-files
   directory and place them nearby in a an arbitrary directory. Building or installation are not required.
+
+Klever OpenStask Deployment
+---------------------------
+
+To deploy Klever within OpenStack clouds you need:
+
+* `Python 3.4 or higher`_ and its packages:
+
+  * `cinderclient <https://pypi.python.org/pypi/python-cinderclient>`__.
+  * `glanceclient <https://pypi.python.org/pypi/python-glanceclient>`__.
+  * `keystoneauth1 <https://pypi.python.org/pypi/keystoneauth1>`__.
+  * `neutronclient <https://pypi.python.org/pypi/python-neutronclient>`__.
+  * `novaclient <https://pypi.python.org/pypi/python-novaclient/>`__.
+  * `paramiko <http://www.paramiko.org/>`__.
