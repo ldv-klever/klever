@@ -55,12 +55,14 @@ JOB_CLASSES = (
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
 
+# If you change it change values also in comparison.html
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
     ('1', _('Found all unsafes')),
     ('2', _('Found not all unsafes')),
     ('3', _('Unknown')),
-    ('4', _('Unmatched'))
+    ('4', _('Unmatched')),
+    ('5', _('Broken'))
 )
 
 JOB_ROLES = (
@@ -191,10 +193,7 @@ MARKS_COMPARE_ATTRS = {
 }
 
 
-JOBS_COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
-}
+JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
 
 # TODO: keys and values are almost the same and thus can be refactored.
 AVTG_PRIORITY = [
