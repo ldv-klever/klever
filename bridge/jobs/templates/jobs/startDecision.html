@@ -65,15 +65,15 @@
                     <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
                 </div>
             {% endif %}
-            <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
-                <h5>{% trans 'Abstract tasks generation priority' %}</h5>
-                {% for p in data.avtg_priorities %}
-                    <div class="ui radio checkbox">
-                        <input id="avtg_priority__{{ p.0 }}" name="avtg_priority" type="radio" value="{{ p.0 }}"{% if data.default.0.2 == p.0 %} checked{% endif %}>
-                        <label for="avtg_priority__{{ p.0 }}">{{ p.1 }}</label>
-                    </div>
-                    <br>
-                {% endfor %}
+            <label for="max_tasks" style="margin-right: 20px;">{% trans 'Max solving tasks per a sub-job' %}</label>
+            <div>
+                <div class="ui input">
+                    <input id="max_tasks" type="number" value="{{ data.default.0.2 }}" pattern="[0-9]+">
+                </div>
+                <i class="ui blue icon help note-popup"></i>
+                <div class="ui popup">
+                    {% trans 'For instance,' %} 100.
+                </div>
             </div>
         </div>
         <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">

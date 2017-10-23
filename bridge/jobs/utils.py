@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
-from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
+from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
@@ -851,7 +851,8 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
             return False
-        if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
+        if not isinstance(self.configuration[0][2], int) or \
+                (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
             return False
         for i in range(4):
             if not isinstance(self.configuration[1][i], (float, int)):
@@ -890,7 +891,6 @@ class StartDecisionData:
         self.logging_levels = LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
         self.formatters = KLEVER_CORE_FORMATTERS
-        self.avtg_priorities = AVTG_PRIORITY
         self.job_weight = JOB_WEIGHT
 
         self.need_auth = False
