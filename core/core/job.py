@@ -565,6 +565,13 @@ class Job(core.utils.CallbacksCaller):
             os._exit(1)
 
     def __match_ideal_verdict(self, verification_status):
+        def match_verification_object(vo, iv):
+            if (isinstance(iv['verification object'], str) and iv['verification object'] == vo) or \
+               (isinstance(iv['verification object'], list) and vo in iv['verification object']):
+                return True
+            else:
+                return False
+
         verification_object = verification_status['verification object']
         rule_specification = verification_status['rule specification']
         ideal_verdicts = self.components_common_conf['ideal verdicts']
@@ -574,7 +581,7 @@ class Job(core.utils.CallbacksCaller):
         # Try to match exactly by both verification object and rule specification.
         for ideal_verdict in ideal_verdicts:
             if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
-                    and ideal_verdict['verification object'] == verification_object \
+                    and match_verification_object(verification_object, ideal_verdict) \
                     and ideal_verdict['rule specification'] == rule_specification:
                 is_matched = True
                 break
@@ -583,7 +590,7 @@ class Job(core.utils.CallbacksCaller):
         if not is_matched:
             for ideal_verdict in ideal_verdicts:
                 if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
-                        and ideal_verdict['verification object'] == verification_object:
+                        and match_verification_object(verification_object, ideal_verdict):
                     is_matched = True
                     break
 
