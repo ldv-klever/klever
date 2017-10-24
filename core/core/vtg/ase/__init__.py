@@ -119,7 +119,7 @@ class ASE(core.vtg.plugins.Plugin):
                     else:
                         aspect = request_aspect
 
-                    core.vtg.utils.cif_execute(self.logger,
+                    core.utils.execute(self.logger,
                                        tuple(['cif',
                                               '--in', cc_full_desc['in files'][0],
                                               '--aspect', os.path.relpath(aspect, os.path.join(
@@ -137,6 +137,7 @@ class ASE(core.vtg.plugins.Plugin):
                                              [gcc_search_dir]),
                                        env,
                                        os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                    cc_full_desc['cwd'])))
+                                                                    cc_full_desc['cwd'])),
+                                       filtering=core.vtg.utils.CifErrorFilter())
 
     main = extract_argument_signatures

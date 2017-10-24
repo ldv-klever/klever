@@ -84,7 +84,7 @@ class Weaver(core.vtg.plugins.Plugin):
                     stdout = core.utils.execute(self.logger,
                                                 ('aspectator', '-print-file-name=include'),
                                                 collect_all_stdout=True)
-                    core.vtg.utils.cif_execute(
+                    core.utils.execute(
                         self.logger,
                         tuple([
                                   'cif',
@@ -112,7 +112,8 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
                               ['-isystem{0}'.format(stdout[0])]),
-                        cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])))
+                        cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
+                        filtering=core.vtg.utils.CifErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
                     # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
