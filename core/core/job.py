@@ -247,6 +247,14 @@ class Job(core.utils.CallbacksCaller):
 
                 self.launch_sub_job_components()
             except Exception:
+                if 'verification statuses' in self.mqs:
+                    self.logger.info('Forcibly terminate verification statuses message queue')
+                    self.mqs['verification statuses'].put(None)
+
+                if 'rule specifications and coverage info files' in self.mqs:
+                    self.logger.info('Forcibly terminate rule specification and coverage info files message queue')
+                    self.mqs['rule specifications and coverage info files'].put(None)
+
                 if self.name:
                     self.logger.exception('Catch exception')
 
@@ -272,6 +280,18 @@ class Job(core.utils.CallbacksCaller):
                     raise
             finally:
                 try:
+                    if self.reporting_results_process:
+                        self.logger.info('Wait for reporting all results')
+                        self.reporting_results_process.join()
+                        if self.reporting_results_process.exitcode:
+                            raise RuntimeError('Reporting results failed')
+
+                    if self.collecting_total_coverages_process:
+                        self.logger.info('Wait for collecting all total coverages')
+                        self.collecting_total_coverages_process.join()
+                        if self.collecting_total_coverages_process.exitcode:
+                            raise RuntimeError('Collecting total coverages failed')
+
                     core.utils.remove_component_callbacks(self.logger, type(self))
 
                     if self.name:
@@ -443,27 +463,7 @@ class Job(core.utils.CallbacksCaller):
                 if p.is_alive():
                     p.stop()
 
-            if 'verification statuses' in self.mqs:
-                self.logger.info('Forcibly terminate verification statuses message queue')
-                self.mqs['verification statuses'].put(None)
-
-            if 'rule specifications and coverage info files' in self.mqs:
-                self.logger.info('Forcibly terminate rule specification and coverage info files message queue')
-                self.mqs['rule specifications and coverage info files'].put(None)
-
             raise
-        finally:
-            if self.reporting_results_process:
-                self.logger.info('Wait for reporting all results')
-                self.reporting_results_process.join()
-                if self.reporting_results_process.exitcode:
-                    raise RuntimeError('Reporting results failed')
-
-            if self.collecting_total_coverages_process:
-                self.logger.info('Wait for collecting all total coverages')
-                self.collecting_total_coverages_process.join()
-                if self.collecting_total_coverages_process.exitcode:
-                    raise RuntimeError('Collecting total coverages failed')
 
     def collect_total_coverage(self):
         # Process exceptions like for uploading reports.

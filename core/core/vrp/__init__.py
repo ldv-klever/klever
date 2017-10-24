@@ -63,7 +63,7 @@ class VRP(core.components.Component):
                                   separate_from_parent, include_child_resources)
 
     def process_results(self):
-        self.__workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        self.__workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Results processing')
         self.logger.info("Going to start {} workers to process results".format(self.__workers))
 
         # Do result processing

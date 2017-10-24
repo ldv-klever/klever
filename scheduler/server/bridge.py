@@ -59,7 +59,6 @@ class Server(server.AbstractServer):
         """
         self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
 
-
     def submit_solution(self, identifier, description, archive):
         """
         Send archive and description of an obtained from VerifierCloud solution to the verification gateway.
@@ -76,14 +75,15 @@ class Server(server.AbstractServer):
                                   },
                                   archive)
 
-    def submit_nodes(self, nodes):
+    def submit_nodes(self, nodes, looping=True):
         """
         Send string with JSON description of nodes available for verification in VerifierCloud.
 
         :param nodes: String with JSON nodes description.
+        :param looping: Flag that indicates that this request should be attempted until it is successful.
         """
         data = {"nodes data": json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)}
-        self.session.json_exchange("service/update_nodes/", data)
+        self.session.json_exchange("service/update_nodes/", data, looping=looping)
 
     def submit_tools(self, tools):
         """

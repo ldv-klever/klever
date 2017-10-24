@@ -167,7 +167,7 @@ class Command:
             symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
             for table_entry in symbol_table[HEADER_SIZE:]:
                 # Split row into columns
-                symbol_entities = re.split(r'\s*|\t', table_entry)
+                symbol_entities = re.split(r'\s+|\t', table_entry)
                 if len(symbol_entities) > 3 and symbol_entities[1] == '*UND*':
                     # Undefined symbol is an import function
                     required_functions.append(symbol_entities[3])
