@@ -323,7 +323,7 @@ class Job(core.utils.CallbacksCaller):
             del (self.components_common_conf['Common'])
 
         if 'Sub-jobs' in self.components_common_conf:
-            for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
+            for number, sub_job_concrete_conf in enumerate(self.components_common_conf['Sub-jobs']):
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
                 del (sub_job_components_common_conf['Sub-jobs'])
@@ -356,6 +356,7 @@ class Job(core.utils.CallbacksCaller):
                                                     re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
+                    external_modules = os.path.join(str(number), external_modules)
                     sub_job_name_prefix = os.path.join(external_modules)
                     sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
                     sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
@@ -581,7 +582,7 @@ class Job(core.utils.CallbacksCaller):
         # Try to match exactly by both verification object and rule specification.
         for ideal_verdict in ideal_verdicts:
             if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
-                    and match_verification_object(verification_object, ideal_verdict) \
+                    and ideal_verdict['verification object'] == verification_object \
                     and ideal_verdict['rule specification'] == rule_specification:
                 is_matched = True
                 break
