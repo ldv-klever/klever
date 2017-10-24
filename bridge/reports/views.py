@@ -235,7 +235,6 @@ def safes_list(request, report_id):
     if 'verdict' in request.GET:
         for s in SAFE_VERDICTS:
             if s[0] == request.GET['verdict']:
-                title = string_concat(_("Safes"), ': ', s[1])
                 additional_parameters['verdict'] = request.GET['verdict']
                 if 'confirmed' in request.GET:
                     title = string_concat(_("Safes"), ': ', _('confirmed'), ' ', s[1])
@@ -823,6 +822,7 @@ def clear_verification_files(request):
     return JsonResponse({})
 
 
+@login_required
 @unparallel_group([reports.models.Report])
 def coverage_page(request, report_id):
     activate(request.user.extended.language)
@@ -843,6 +843,7 @@ def coverage_page(request, report_id):
     })
 
 
+@login_required
 @unparallel_group([reports.models.Report])
 def coverage_light_page(request, report_id):
     activate(request.user.extended.language)
