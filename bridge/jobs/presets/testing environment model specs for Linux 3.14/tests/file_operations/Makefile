@@ -1,1 +1,0 @@
-obj-m += cdev_del.o cdev_init.o file_operations_callbacks.o file_operations_invoke.o misc_deregister.o misc_register.o register_chrdev.o unregister_chrdev.o
