@@ -101,5 +101,5 @@ void ldv_check_final_state( void )
 	/* ASSERT At the end of the test all resources should be released. */
 	ldv_assert("linux:emg:test", probed == 0);
     /* ASSERT At the end of the test all callbacks should be deregistered. */
-    ldv_assert("linux:emg:test", !registered);
+    ldv_assert("linux:emg:test", registered == 0);
 }
