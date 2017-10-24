@@ -188,12 +188,12 @@ class Command:
 
         os.makedirs(os.path.dirname(self.desc_file).encode('utf8'), exist_ok=True)
 
-        desc_file_suffix = 2
+        bn, ext = os.path.splitext(self.desc_file)
+        cnt = 0
         while True:
             if os.path.isfile(self.desc_file):
-                self.desc_file = '{0}.ldv{1}{2}'.format(os.path.splitext(self.desc_file)[0], desc_file_suffix,
-                                                        os.path.splitext(self.desc_file)[1])
-                desc_file_suffix += 1
+                self.desc_file = '{0}.ldv{1}'.format(bn, str(cnt))
+                cnt += 1
             else:
                 break
 
