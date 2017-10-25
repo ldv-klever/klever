@@ -316,7 +316,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
             s = dir_size("./")
             if s > limitation:
                 # Kill the process
-                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
+                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid))
                 os.kill(pid, signal.SIGINT)
             time.sleep(period)
         os._exit(0)
