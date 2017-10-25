@@ -138,6 +138,6 @@ class ASE(core.vtg.plugins.Plugin):
                                        env,
                                        os.path.relpath(os.path.join(self.conf['main working directory'],
                                                                     cc_full_desc['cwd'])),
-                                       filtering=core.vtg.utils.CifErrorFilter())
+                                       filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

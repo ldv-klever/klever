@@ -228,7 +228,7 @@ class StreamQueue:
             self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False, filtering=None):
+def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False, filter_func=None):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
@@ -272,7 +272,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
         with open('problem desc.txt', 'a', encoding='utf8') as fp:
-            out = filter(filtering, err_q.output) if filtering else err_q.output
+            out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
         raise CommandError('"{0}" failed'.format(cmd))
 

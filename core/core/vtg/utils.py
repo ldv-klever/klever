@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +16,15 @@
 #
 
 
-class CifErrorFilter:
+class CIFErrorFilter:
     def __init__(self):
         self.finished = False
 
     def __call__(self, line):
         if self.finished:
             return False
+
         if 'error:' in line:
             self.finished = True
+
         return True
