@@ -52,7 +52,9 @@ execute_cmd(
     # For CPAchecker 1.6+.
     'openjdk-8-jre-headless',
     # For building the Linux kernel.
-    'make', 'libc6-dev-i386'
+    'make', 'libc6-dev-i386',
+    # For building new kernels
+    'libssl-dev', 'libelf-dev'
 )
 
 
@@ -65,4 +67,9 @@ execute_cmd(
     'jinja2', 'graphviz', 'ply', 'requests', 'setuptools_scm',
     # For Klever Scheduler.
     'consulate'
+)
+
+print('Make soft links for libssl to build modern kernels')
+execute_cmd(
+    'ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/'
 )
