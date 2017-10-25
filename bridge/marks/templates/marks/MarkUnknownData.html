@@ -20,9 +20,14 @@
     </div>
 </div>
 <div class="ui purple segment">
+    <div class="ui checkbox">
+        <input type="checkbox" id="is_regexp"{% if markdata.unknown_data.3 %} checked{% endif %}>
+        <label for="is_regexp">{% trans 'Regular expression' %}</label>
+    </div>
+    <br><br>
     <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
-    <div class="ui input fluid">
-        <input id="unknown_function" type="text" value="{{ markdata.unknown_data.0 }}">
+    <div class="ui form">
+        <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}">{{ markdata.unknown_data.0 }}</textarea>
     </div>
     <br>
     <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>

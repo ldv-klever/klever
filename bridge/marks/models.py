@@ -294,6 +294,7 @@ class SafeReportTag(models.Model):
 class MarkUnknown(Mark):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
+    is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=15)
     link = models.URLField(null=True)
 
@@ -305,6 +306,7 @@ class MarkUnknown(Mark):
 class MarkUnknownHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnknown, related_name='versions')
     function = models.TextField()
+    is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=100)
     link = models.URLField(null=True)
 

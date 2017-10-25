@@ -182,4 +182,47 @@ $(document).ready(function () {
             }
         );
     });
+
+    $('#test_unknown_mark').click(function () {
+        var func = $('#unknown_function').val();
+        if (func.length <= 0) {
+            err_notify($('#error__function_required').text());
+        }
+        else {
+            $.post(
+                marks_ajax_url + 'check-unknown-mark/',
+                {
+                    report_id: $('#report_pk').val(),
+                    function: func,
+                    pattern: $('#unknown_problem_pattern').val(),
+                    is_regex: $('#is_regexp').is(':checked')
+                },
+                function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                        $('#test_mark_nomatch_div').hide();
+                        $('#test_mark_result_div').hide();
+                    }
+                    else {
+                        if (data['matched'] === 1) {
+                            $('#test_mark_nomatch_div').hide();
+                            $('#test_mark_problem').text(data['problem']);
+                            $('#test_mark_result').text(data['result']);
+                            $('#test_mark_result_div').show();
+                        }
+                        else {
+                            $('#test_mark_result_div').hide();
+                            $('#test_mark_nomatch_div').show();
+                            if (data['result'].length > 0) {
+                                $('#regexp_err_result').text(data['result']).show();
+                            }
+                            else {
+                                $('#regexp_err_result').text('').hide();
+                            }
+                        }
+                    }
+                }
+            );
+        }
+    });
 });

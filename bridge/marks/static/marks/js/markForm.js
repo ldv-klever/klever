@@ -55,6 +55,7 @@ window.collect_new_markdata = function() {
             is_modifiable: is_modifiable,
             problem: unknown_problem_pattern,
             function: unknown_function,
+            is_regexp: $('#is_regexp').is(':checked'),
             link: $('#unknown_link').val(),
             description: description
         };
@@ -116,6 +117,7 @@ window.collect_markdata = function() {
             is_modifiable: is_modifiable,
             problem: unknown_problem_pattern,
             function: unknown_function,
+            is_regexp: $('#is_regexp').is(':checked'),
             link: $('#unknown_link').val(),
             comment: $('#edit_mark_comment').val(),
             description: description

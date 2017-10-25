@@ -210,9 +210,14 @@
                             {% endfor %}
                         </div>
                         <div class="eleven wide column">
+                            <div class="ui checkbox">
+                                <input type="checkbox" id="is_regexp" checked>
+                                <label for="is_regexp">{% trans 'Regular expression' %}</label>
+                            </div>
+                            <br><br>
                             <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
-                            <div class="ui input fluid">
-                                <input id="unknown_function" type="text">
+                            <div class="ui form">
+                                <textarea id="unknown_function" rows="5" style="resize:none" placeholder="{% trans 'Pattern' %}"></textarea>
                             </div>
                             <br>
                             <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>
@@ -225,6 +230,18 @@
                                 <input id="unknown_link" type="url">
                             </div>
                         </div>
+                    </div>
+                    <div class="ui divider"></div>
+                    <button id="test_unknown_mark" class="ui mini teal button" style="float: right">{% trans 'Test pattern' %}</button>
+                    <br>
+                    <div id="test_mark_result_div" style="display: none">
+                        <h5>{% trans 'Problem' %}: <span id="test_mark_problem" style="color: #a2443f"></span></h5>
+                        <h5>{% trans 'Matched text' %}:</h5>
+                        <div id="test_mark_result" class="filecontent code-text"></div>
+                    </div>
+                    <div id="test_mark_nomatch_div" style="display: none">
+                        <h4 class="ui red header">{% trans 'No matches found' %}</h4>
+                        <div id="regexp_err_result" class="filecontent error-text" style="display: none"></div>
                     </div>
                 </div>
                 <div class="ui blue segment">
