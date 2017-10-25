@@ -45,9 +45,9 @@ class Command:
             'opts discarding out file': ('-help',)
         },
         'objcopy': {
-            'opts requiring vals': ('-set-section-flags', '-rename-section'),
-            'opts discarding in files': (),
-            'opts discarding out file': ()
+            'opts requiring vals': ('-set-section-flags', '-rename-section', 'O'),
+            'opts discarding in files': ('-version',),
+            'opts discarding out file': ('-version',)
         }
     }
 
@@ -222,6 +222,11 @@ class Command:
             if not self.out_file or self.out_file.endswith('.tmp'):
                 return True
 
+        # Filter out OBJCOPY commands if no input or output files
+        if self.type == 'OBJCOPY':
+            if not self.in_files or not self.out_file:
+                return True
+
         return False
 
     def launch(self):
@@ -325,7 +330,7 @@ class Command:
             if len(self.in_files) == 2:
                 self.out_file = self.in_files[-1]
                 self.in_files = self.in_files[:-1]
-            else:
+            elif len(self.in_files) > 2:
                 self.out_file = self.in_files[-1]
 
         if cmd_requires_in_files and not self.in_files:
