@@ -275,8 +275,8 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
             out = filter(filter_func, err_q.output) if filter_func else err_q.output
             fp.write('\n'.join(out))
         raise CommandError('"{0}" failed'.format(cmd))
-
-    return out_q.output
+    elif collect_all_stdout:
+        return out_q.output
 
 
 def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
