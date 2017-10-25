@@ -169,7 +169,7 @@ NSJC_1 = [
     {
         'rule': 'linux:mutex',
         'module': 'drivers/usb/core/usb5.ko',
-        'fail': 'ASE',
+        'fail': 'RP',
         'unknown': 'unknown3.zip'
     }
 ]
@@ -183,105 +183,24 @@ NSJC_2 = [
     }
 ]
 
-CHUNKS4 = [
+NSJC_3 = [
     {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb1.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb3.ko',
         'tool': 'CPAchecker',
-        'unsafes': ['unsafe1.zip']
+        'safe': 'safe.zip'
     },
     {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb2.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker',
-        'unsafes': ['unsafe2.zip']
+        'unknown': 'unknown0.zip'
     },
     {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb3.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe3.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb4.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe4.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb5.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe5.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb6.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe6.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb7.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe7.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb8.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe8.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb9.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe9.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb10.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe10.zip']
-    },
-    {
-        'attrs': [
-            {'Verification object': 'drivers/usb/core/usb11.ko'},
-            {'Rule specification': 'linux:mutex'}
-        ],
-        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
-        'tool': 'CPAchecker',
-        'unsafes': ['unsafe_check.zip']
+        'rule': 'linux:mutex',
+        'module': 'drivers/usb/core/usb5.ko',
+        'fail': 'ASE',  # No verdicts will be uploaded as component failed before it
+        'unknown': 'unknown3.zip'
     }
 ]
 
@@ -987,7 +906,10 @@ class DecideJobs(object):
                     except DecisionError:
                         pass
         else:
-            self.__upload_chunks()
+            try:
+                self.__upload_chunks()
+            except DecisionError:
+                pass
 
         if self.full_coverage and len(core_coverage) > 0:
             self.__upload_finish_report('/', coverage=core_coverage)

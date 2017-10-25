@@ -73,10 +73,11 @@ class AbstractServer(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def submit_nodes(self, nodes):
+    def submit_nodes(self, nodes, looping):
         """
         Send string with JSON description of nodes available for verification in VerifierCloud.
         :param nodes: String with JSON nodes description.
+        :param looping: Flag that indicates that this request should be attempted until it is successful.
         """
         return
 

@@ -19,6 +19,7 @@ import fileinput
 import json
 import os
 
+import core.vtg.utils
 import core.utils
 import core.vtg.plugins
 
@@ -136,6 +137,7 @@ class ASE(core.vtg.plugins.Plugin):
                                              [gcc_search_dir]),
                                        env,
                                        os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                    cc_full_desc['cwd'])))
+                                                                    cc_full_desc['cwd'])),
+                                       filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

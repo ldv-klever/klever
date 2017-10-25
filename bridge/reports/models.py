@@ -150,7 +150,7 @@ def report_component_delete_signal(**kwargs):
 class CoverageArchive(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='coverages')
     identifier = models.CharField(max_length=128, default='')
-    archive = models.FileField(upload_to=get_coverage_arch_dir, null=True)
+    archive = models.FileField(upload_to=get_coverage_arch_dir)
 
     def save_archive(self, fname, fp):
         self.archive.save(fname, File(fp), True)
@@ -287,8 +287,8 @@ class CompareJobsCache(models.Model):
     attr_values = models.CharField(max_length=64, db_index=True)
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
-    reports1 = models.CharField(max_length=1000)
-    reports2 = models.CharField(max_length=1000)
+    reports1 = models.TextField()
+    reports2 = models.TextField()
 
     class Meta:
         db_table = 'cache_report_jobs_compare'

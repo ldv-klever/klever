@@ -29,6 +29,7 @@ from bridge.utils import BridgeException, logger
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
+from service.models import Task
 from tools.models import LockTable
 
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
@@ -185,6 +186,14 @@ def clear_call_logs(request):
         return JsonResponse({'error': 'Unknown error'})
     clear_old_logs()
     return JsonResponse({'message': _('Logs were successfully cleared')})
+
+
+def clear_tasks(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': 'Unknown error'})
+    Task.objects.exclude(progress__job__status=JOB_STATUS[2][0]).delete()
+    return JsonResponse({'message': _('Tasks were successfully deleted')})
 
 
 def manual_unlock(request):

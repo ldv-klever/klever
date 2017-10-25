@@ -141,7 +141,7 @@
         {
           "FVTP": {
             "merge source files": true,
-            "verifier profile": "reachability common Linux64",
+            "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
               "version": "ldv-bam:25793"
@@ -604,7 +604,7 @@
         "models": {"sync/races.c": {"bug kinds": []}}
       },
       "FVTP": {
-        "verifier profile": "CPALockator race checking",
+        "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
           "version": "CPALockator:25964"
