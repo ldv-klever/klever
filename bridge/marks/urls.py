@@ -48,6 +48,7 @@ urlpatterns = [
     url(r'^ajax/unconfirm-association/$', views.unconfirm_association),
     url(r'^ajax/confirm-association/$', views.confirm_association),
     url(r'^ajax/like-association/$', views.like_association),
+    url(r'^ajax/check-unknown-mark/$', views.check_unknown_mark),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

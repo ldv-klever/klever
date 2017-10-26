@@ -21,6 +21,7 @@ import os
 import re
 
 import core.utils
+import core.vtg.utils
 import core.vtg.plugins
 
 
@@ -111,7 +112,8 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
                               ['-isystem{0}'.format(stdout[0])]),
-                        cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])))
+                        cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
+                        filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
                     # In addition preprocess output files since CIF outputs a bit unpreprocessed files.

@@ -70,7 +70,7 @@ class Run:
         # Set limits
         self.limits = {
             "memlimit": int(description["resource limits"]["memory size"]),  # In bytes.
-            "timelimit": int(description["resource limits"]["CPU time"] / 1000)
+            "timelimit": int(description["resource limits"]["CPU time"])
         }
 
         # Check optional limits
@@ -534,7 +534,7 @@ class Scheduler(schedulers.SchedulerExchange):
         })
         ET.SubElement(run, "column", {
             'title': 'exitcode',
-            'value': str(description['return value']) if 'return value' in description['return value'] else None
+            'value': str(description['return value']) if 'return value' in description else None
         })
 
         with open(path, "w", encoding="utf8") as fp:

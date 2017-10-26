@@ -1,4 +1,4 @@
 {
-  "function": "Error: Invalid configuration",
-  "pattern": "InvalidConf"
+  "pattern": "Error: Invalid configuration",
+  "problem": "InvalidConf"
 }

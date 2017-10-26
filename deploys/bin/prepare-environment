@@ -42,6 +42,8 @@ execute_cmd('mkdir', '/var/lib/klever/work')
 execute_cmd('ln', '-s', '/var/lib/klever/work', 'klever-work')
 execute_cmd('chown', '-LR', 'klever:klever', 'klever-work')
 
+print('Create soft links for libssl to build new versions of the Linux kernel')
+execute_cmd('ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/')
 
 print('Prepare CIF environment')
 execute_cmd('ln', '-s', *glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o'), '/usr/lib')

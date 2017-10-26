@@ -1,5 +1,5 @@
 {
-  "function": "fatal error: tree node type 'vector_type' isn't supported",
-  "pattern": "UnsupVectorType",
+  "pattern": "fatal error: tree node type 'vector_type' isn't supported",
+  "problem": "UnsupVectorType",
   "link": "http://forge.ispras.ru/issues/4398"
 }
