@@ -33,7 +33,6 @@ from bridge.vars import USER_ROLES, UNKNOWN_ERROR, TASK_STATUS, PRIORITY, JOB_ST
 from bridge.utils import logger
 
 from jobs.models import Job
-from reports.models import ReportRoot, TaskStatistic
 from service.models import Scheduler, SolvingProgress, Task, VerificationTool, NodesConfiguration, SchedulerUser,\
     Workload
 
@@ -193,7 +192,7 @@ def download_task(request):
     return response
 
 
-@unparallel_group([ReportRoot, TaskStatistic, SolvingProgress])
+@unparallel_group([SolvingProgress])
 def upload_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -343,4 +342,26 @@ def add_scheduler_user(request):
     SchedulerUser.objects.get_or_create(
         user=request.user, defaults={'login': request.POST['login'], 'password': request.POST['password']}
     )
+    return JsonResponse({})
+
+
+@unparallel_group([Job])
+def update_progresses(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    if 'jobs progresses' not in request.POST:
+        return JsonResponse({'error': 'Job progresses data is required'})
+
+    try:
+        service.utils.UpdateProgresses(request.POST['jobs progresses'])
+    except service.utils.ServiceError as e:
+        # TODO: email notification
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({})

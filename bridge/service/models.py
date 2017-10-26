@@ -108,6 +108,9 @@ class SolvingProgress(models.Model):
     error = models.CharField(max_length=1024, null=True)
     configuration = models.BinaryField()
     fake = models.BooleanField(default=False)
+    local_average_time = models.PositiveIntegerField(default=0)
+    global_average_time = models.PositiveIntegerField(default=0)
+    estimated_total_tasks = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'solving_progress'

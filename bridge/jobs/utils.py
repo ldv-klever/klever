@@ -32,7 +32,7 @@ from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATT
 from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
+from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -106,7 +106,7 @@ TITLES = {
     'tasks_total': _('Total tasks'),
     'progress': _('Progress of job decision'),
     'solutions': _('Number of task decisions'),
-    'average_time': _('Average time before finishing decision (all jobs)'),
+    'global_average_time': _('Average time before finishing decision (all jobs)'),
     'local_average_time': _('Average time before finishing decision (just this jobs)')
 }
 
@@ -929,21 +929,20 @@ class StartDecisionData:
 
 def get_job_progress(user, job):
     progress = '-'
-    average_time = '-'
+    global_average_time = '-'
     local_average_time = '-'
 
     if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        total_tasks = job.reportroot.tasks_total
+        total_tasks = job.solvingprogress.estimated_total_tasks
         solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
+        pending_tasks = total_tasks - solved_tasks
         if total_tasks > 0:
             curr_progress = int(solved_tasks / total_tasks * 100)
             if curr_progress < 100:
                 progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
         else:
             progress = '0%'
-        if progress != '-' and total_tasks > solved_tasks:
-            average_time = get_user_time(
-                user, (total_tasks - solved_tasks) * TaskStatistic.objects.get_or_create()[0].average_time
-            )
-            local_average_time = get_user_time(user, (total_tasks - solved_tasks) * job.reportroot.average_time)
-    return progress, average_time, local_average_time
+        if progress != '-' and pending_tasks > 0:
+            global_average_time = get_user_time(user, pending_tasks * job.solvingprogress.global_average_time)
+            local_average_time = get_user_time(user, pending_tasks * job.solvingprogress.local_average_time)
+    return progress, global_average_time, local_average_time

@@ -36,6 +36,7 @@ urlpatterns = [
     url(r'^download_solution/$', views.download_solution),
     url(r'^download_task/$', views.download_task),
     url(r'^update_nodes/$', views.update_nodes),
+    url(r'^update_progresses/$', views.update_progresses),
     url(r'^schedulers/$', views.schedulers_info, name='schedulers'),
     url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user)
 ]

@@ -23,6 +23,7 @@ from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
+from django.db import transaction
 from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
@@ -31,7 +32,7 @@ from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE, 
 from bridge.utils import file_checksum, logger, BridgeException
 
 from jobs.models import RunHistory, JobFile, FileSystem, Job
-from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent, ComponentInstances
+from reports.models import ReportRoot, ReportUnknown, ReportComponent, ComponentInstances
 from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
     SchedulerUser, Workload
 
@@ -544,17 +545,6 @@ class SaveSolution:
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
         progress.solutions += 1
         progress.save()
-        solved_tasks = progress.tasks_finished + progress.tasks_error
-        try:
-            wall_time = json.loads(description)['resources']['wall time']
-        except Exception as e:
-            raise ServiceError('Expected another format of solution description: %s' % e)
-        TaskStatistic.objects.all().update(
-            average_time=(F('average_time') * F('number_of_tasks') + wall_time)/(F('number_of_tasks') + 1),
-            number_of_tasks=F('number_of_tasks') + 1
-        )
-        ReportRoot.objects.filter(job__solvingprogress=self.task.progress_id) \
-            .update(average_time=(F('average_time') * solved_tasks + wall_time) / (solved_tasks + 1))
 
     def __check_archive(self, arch):
         self.__is_not_used()
@@ -906,3 +896,20 @@ class StartJobDecision:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
                 raise BridgeException(_("You didn't specify credentials for VerifierCloud"))
+
+
+class UpdateProgresses:
+    def __init__(self, data):
+        self.data = json.loads(data)
+        self.__update_progresses()
+
+    @transaction.atomic
+    def __update_progresses(self):
+        if not isinstance(self.data, list) or any(not isinstance(d, dict) for d in self.data):
+            raise ServiceError('Wrong format of data')
+        for data in self.data:
+            progress = SolvingProgress.objects.get(job_id=data['job id'])
+            progress.local_average_time = int(data['local average time'])
+            progress.global_average_time = int(data['global average time'])
+            progress.estimated_total_tasks = int(data['estimated total tasks'])
+            progress.save()
