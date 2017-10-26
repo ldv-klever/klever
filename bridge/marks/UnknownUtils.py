@@ -408,7 +408,7 @@ class PopulateMarks:
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
                 if 'is regexp' not in data:
-                    data['is regexp'] = True
+                    data['is regexp'] = False
 
                 if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
