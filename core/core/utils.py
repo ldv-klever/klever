@@ -20,7 +20,6 @@ import json
 import logging
 import os
 import re
-import resource
 import subprocess
 import sys
 import zipfile
@@ -29,77 +28,6 @@ import time
 import queue
 import tempfile
 from benchexec.runexecutor import RunExecutor
-
-CALLBACK_KINDS = ('before', 'instead', 'after')
-CALLBACK_PROPOGATOR = 'get_subcomponent_callbacks'
-
-# Generate decorators to use them across the project
-for tp in CALLBACK_KINDS:
-    # Access namespace of the decorated function and insert there a new one with the name like 'before_' + function_name
-    def new_decorator(decorated_function, tp=tp):
-        if decorated_function.__name__[0:2] != '__':
-            raise ValueError("Callbacks should be private, call function {!r} with '__' prefix".
-                             format(decorated_function.__name__))
-        callback_function_name = "{}_{}".format(str(tp), decorated_function.__name__[2:])
-        if hasattr(sys.modules[decorated_function.__module__], callback_function_name):
-            raise KeyError("Cannot create callback {!r} in {!r}".
-                           format(callback_function_name, decorated_function.__module__))
-        else:
-            setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
-
-        return decorated_function
-
-    # Add new decorator to this module to use it
-    globals()[tp + '_callback'] = new_decorator
-    new_decorator = None
-
-
-def propogate_callbacks(decorated_function):
-    """
-    Decorates function that propogates subcomponent callbacks. Inserts a specific function that has necessary name
-    to be called at callbacks propogating.
-
-    :param decorated_function: Function object.
-    :return: The same function.
-    """
-    if hasattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR):
-        raise ValueError('Module {!r} already has callback propogating function {!r}'.
-                         format(decorated_function.__module__, CALLBACK_PROPOGATOR))
-
-    setattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR, decorated_function)
-
-    return decorated_function
-
-
-class CallbacksCaller:
-    def __getattribute__(self, name):
-        attr = object.__getattribute__(self, name)
-        if callable(attr) and not attr.__name__.startswith('_'):
-            def callbacks_caller(*args, **kwargs):
-                ret = None
-
-                for kind in CALLBACK_KINDS:
-                    # Invoke callbacks if so.
-                    if kind in self.callbacks and name in self.callbacks[kind]:
-                        for component, callback in self.callbacks[kind][name]:
-                            self.logger.debug(
-                                'Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
-                            ret = callback(self)
-                    # Invoke event itself.
-                    elif kind == 'instead':
-                        # Do not pass auxiliary objects created for subcomponents to methods that implement them and
-                        # that are actually component object methods.
-                        if args and type(args[0]).__name__.startswith('KleverSubcomponent'):
-                            ret = attr(*args[1:], **kwargs)
-                        else:
-                            ret = attr(*args, **kwargs)
-
-                # Return what event or instead/after callbacks returned.
-                return ret
-
-            return callbacks_caller
-        else:
-            return attr
 
 
 class Cd:
@@ -146,42 +74,6 @@ class LockedOpen(object):
             os.remove(self.lock_file)
         except OSError:
             pass
-
-
-def count_consumed_resources(logger, start_time, include_child_resources=False, child_resources=None):
-    """
-    Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
-    Note that launching under PyCharm gives its maximum memory size rather than the process one.
-    :return: resources.
-    """
-    logger.debug('Count consumed resources')
-
-    assert not (include_child_resources and child_resources), \
-        'Do not calculate resources of process with children and simultaneosly provide resources of children'
-
-    utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
-
-    # Take into account children resources if necessary.
-    if include_child_resources:
-        utime_children, stime_children, maxrss_children = resource.getrusage(resource.RUSAGE_CHILDREN)[0:3]
-        utime += utime_children
-        stime += stime_children
-        maxrss = max(maxrss, maxrss_children)
-    elif child_resources:
-        for child in child_resources:
-            # CPU time is sum of utime and stime, so add it just one time.
-            utime += child_resources[child]['CPU time'] / 1000
-            maxrss = max(maxrss, child_resources[child]['memory size'] / 1000)
-            # Wall time of children is included in wall time of their parent.
-
-    resources = {'wall time': round(1000 * (time.time() - start_time)),
-                 'CPU time': round(1000 * (utime + stime)),
-                 'memory size': 1000 * maxrss}
-
-    logger.debug('Consumed the following resources:\n%s',
-                 '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
-
-    return resources
 
 
 class CommandError(ChildProcessError):
@@ -339,62 +231,7 @@ def is_src_tree_root(filenames):
     return False
 
 
-def set_component_callbacks(logger, component, callbacks):
-    logger.info('Set callbacks for component "{0}"'.format(component.__name__))
 
-    module = sys.modules[component.__module__]
-
-    for callback in callbacks:
-        logger.debug('Set callback "{0}" for component "{1}"'.format(callback.__name__, component.__name__))
-        if not any(callback.__name__.startswith(kind) for kind in CALLBACK_KINDS):
-            raise ValueError('Callback "{0}" does not start with one of {1}'.format(callback.__name__, ', '.join(
-                ('"{0}"'.format(kind) for kind in CALLBACK_KINDS))))
-        if callback.__name__ in dir(module):
-            raise ValueError(
-                'Callback "{0}" already exists for component "{1}"'.format(callback.__name__, component.__name__))
-        setattr(module, callback.__name__, callback)
-
-
-def get_component_callbacks(logger, components, components_conf):
-    logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
-
-    # At the beginning there is no callbacks of any kind.
-    callbacks = {kind: {} for kind in CALLBACK_KINDS}
-
-    for component in components:
-        module = sys.modules[component.__module__]
-        for attr in dir(module):
-            for kind in CALLBACK_KINDS:
-                match = re.search(r'^{0}_(.+)$'.format(kind), attr)
-                if match:
-                    event = match.groups()[0]
-                    if event not in callbacks[kind]:
-                        callbacks[kind][event] = []
-                    callbacks[kind][event].append((component.__name__, getattr(module, attr)))
-
-            # This special function implies that component has subcomponents for which callbacks should be get as well
-            # using this function.
-            if attr == CALLBACK_PROPOGATOR:
-                subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
-
-                # Merge subcomponent callbacks into component ones.
-                for kind in CALLBACK_KINDS:
-                    for event in subcomponents_callbacks[kind]:
-                        if event not in callbacks[kind]:
-                            callbacks[kind][event] = []
-                        callbacks[kind][event].extend(subcomponents_callbacks[kind][event])
-
-    return callbacks
-
-
-def remove_component_callbacks(logger, component):
-    logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
-
-    module = sys.modules[component.__module__]
-
-    for attr in dir(module):
-        if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
-            delattr(module, attr)
 
 
 def get_entity_val(logger, name, cmd):

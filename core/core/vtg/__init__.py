@@ -273,7 +273,7 @@ _rule_spec_descs = None
 _rule_spec_classes = None
 
 
-@core.utils.propogate_callbacks
+@core.components.propogate_callbacks
 def collect_plugin_callbacks(conf, logger):
     logger.info('Get VTG plugin callbacks')
 
@@ -295,7 +295,7 @@ def collect_plugin_callbacks(conf, logger):
             except ImportError:
                 raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
 
-    return core.utils.get_component_callbacks(logger, plugins, conf)
+    return core.components.get_component_callbacks(logger, plugins, conf)
 
 
 def resolve_rule_class(name):

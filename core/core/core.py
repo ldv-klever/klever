@@ -28,9 +28,10 @@ import traceback
 import core.job
 import core.session
 import core.utils
+import core.components
 
 
-class Core(core.utils.CallbacksCaller):
+class Core(core.components.CallbacksCaller):
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
 
@@ -75,7 +76,10 @@ class Core(core.utils.CallbacksCaller):
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(self.job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
-            self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
+            os.makedirs('child resources'.encode('utf8'))
+            self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
+                                                      {'build': multiprocessing.Manager().Lock()},
+                                                      {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
             self.job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
                             {'report id': self.report_id}, self.uploading_reports_process_exitcode)
@@ -111,9 +115,11 @@ class Core(core.utils.CallbacksCaller):
 
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
+                    child_resources = core.components.all_child_resources()
                     report = {
                         'id': self.ID,
-                        'resources': core.utils.count_consumed_resources(self.logger, self.start_time)
+                        'resources': core.components.count_consumed_resources(self.logger, self.start_time,
+                                                                              child_resources=child_resources)
                     }
 
                     if os.path.isfile('log.txt'):
@@ -130,7 +136,9 @@ class Core(core.utils.CallbacksCaller):
 
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
-                        self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
+                        self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
+                                                                  self.mqs, {'build': multiprocessing.Manager().Lock()},
+                                                                  {'report id': self.report_id}, session=self.session)
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')
                         self.uploading_reports_process.join()
@@ -247,32 +255,6 @@ class Core(core.utils.CallbacksCaller):
         for entity in self.comp:
             self.conf.update(entity)
 
-    def send_reports(self):
-        try:
-            while True:
-                # TODO: replace MQ with "reports and report file archives".
-                report_and_report_file_archives = self.mqs['report files'].get()
-
-                if report_and_report_file_archives is None:
-                    self.logger.debug('Report files message queue was terminated')
-                    break
-
-                report_file = report_and_report_file_archives['report file']
-                report_file_archives = report_and_report_file_archives.get('report file archives')
-
-                self.logger.debug('Upload report file "{0}"{1}'.format(
-                    report_file,
-                    ' with report file archives:\n{0}'
-                    .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
-                    if report_file_archives else ''))
-
-                self.session.upload_report(report_file, report_file_archives)
-        except Exception as e:
-            # If we can't send reports to Klever Bridge by some reason we can just silently die.
-            self.logger.exception('Catch exception when sending reports to Klever Bridge')
-            self.uploading_reports_process_exitcode.value = 1
-            os._exit(1)
-
     def process_exception(self):
         self.exit_code = 1
 
@@ -280,3 +262,34 @@ class Core(core.utils.CallbacksCaller):
             self.logger.exception('Catch exception')
         else:
             traceback.print_exc()
+
+
+class Reporter(core.components.Component):
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False, include_child_resources=False, session=None):
+        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+                                       separate_from_parent, include_child_resources)
+        self.session = session
+
+    def send_reports(self):
+        while True:
+            # TODO: replace MQ with "reports and report file archives".
+            report_and_report_file_archives = self.mqs['report files'].get()
+
+            if report_and_report_file_archives is None:
+                self.logger.debug('Report files message queue was terminated')
+                break
+
+            report_file = report_and_report_file_archives['report file']
+            report_file_archives = report_and_report_file_archives.get('report file archives')
+
+            self.logger.debug('Upload report file "{0}"{1}'.format(
+                report_file,
+                ' with report file archives:\n{0}'
+                .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
+                if report_file_archives else ''))
+
+            self.session.upload_report(report_file, report_file_archives)
+
+    main = send_reports
