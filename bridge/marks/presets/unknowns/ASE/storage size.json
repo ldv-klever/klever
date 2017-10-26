@@ -1,6 +1,6 @@
 {
-  "function": "storage size of '\\w+' isn't known",
-  "pattern": "Storage size",
+  "pattern": "storage size of '\\w+' isn't known",
+  "problem": "Storage size",
   "is regexp": true,
   "link": "http://forge.ispras.ru/issues/7244",
   "description": "EMG generates a variable of unknown size."

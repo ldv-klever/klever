@@ -1,4 +1,4 @@
 {
-  "function": "FileNotFoundError: [Errno 2] No such file or directory: 'cilly.asm.exe'",
-  "pattern": "Missed CIL"
+  "pattern": "FileNotFoundError: [Errno 2] No such file or directory: 'cilly.asm.exe'",
+  "problem": "Missed CIL"
 }

@@ -1,5 +1,5 @@
 {
-  "function": "core\\.components\\.ComponentError: Component \"(.+)\" failed",
-  "pattern": "{0} failure",
+  "pattern": "core\\.components\\.ComponentError: Component \"(.+)\" failed",
+  "problem": "{0} failure",
   "is regexp": true
 }

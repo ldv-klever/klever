@@ -1,5 +1,5 @@
 {
-  "function": "There is no module initialization function provided",
-  "pattern": "No init",
+  "pattern": "There is no module initialization function provided",
+  "problem": "No init",
   "link": "http://forge.ispras.ru/issues/6571"
 }

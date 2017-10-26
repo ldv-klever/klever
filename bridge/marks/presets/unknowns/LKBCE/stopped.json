@@ -1,4 +1,4 @@
 {
-  "function": "Stop since some other component(s) likely failed",
-  "pattern": "Stopped"
+  "pattern": "Stop since some other component(s) likely failed",
+  "problem": "Stopped"
 }
