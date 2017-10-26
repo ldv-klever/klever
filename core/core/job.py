@@ -368,21 +368,19 @@ class Job(core.utils.CallbacksCaller):
                     commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
                     if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
                         raise ValueError(
-                            'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
-                                commit))
+                            'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'
+                            .format(commit))
+
                     sub_job_name_prefix = os.path.join(commit, external_modules)
-                    sub_job_name = os.path.join(commit, external_modules, modules_hash, rule_specs_hash)
-                    sub_job_work_dir = os.path.join(commit, external_modules, modules_hash,
-                                                    re.sub(r'\W', '-', rule_specs_hash))
-                    sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
-                    external_modules = os.path.join(str(number), external_modules)
-                    sub_job_name_prefix = os.path.join(external_modules)
-                    sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
-                    sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
-                    sub_job_type = 'Verification of Linux kernel modules'
+                    sub_job_name_prefix = os.path.join(str(number), external_modules)
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
+
+                sub_job_type = 'Verification of Linux kernel modules'
+                sub_job_name = os.path.join(sub_job_name_prefix, modules_hash, rule_specs_hash)
+                sub_job_work_dir = os.path.join(sub_job_name_prefix, modules_hash,
+                                                re.sub(r'\W', '-', rule_specs_hash))
                 self.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, sub_job_type))
 
                 sub_job_id = self.id + sub_job_name
