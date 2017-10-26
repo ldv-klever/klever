@@ -58,6 +58,7 @@ class MarkArchiveGenerator:
             if self.type == 'unknown':
                 version_data['function'] = markversion.function
                 version_data['problem'] = markversion.problem_pattern
+                version_data['is_regexp'] = markversion.is_regexp
                 if markversion.link is not None:
                     version_data['link'] = markversion.link
             else:

@@ -1,4 +1,4 @@
 {
-  "function": "Warning: Analysis interrupted",
-  "pattern": "Interruption"
+  "pattern": "Warning: Analysis interrupted",
+  "problem": "Interruption"
 }

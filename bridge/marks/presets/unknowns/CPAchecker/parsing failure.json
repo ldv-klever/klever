@@ -1,4 +1,4 @@
 {
-  "function": "Error: Parsing failed",
-  "pattern": "Parsing failure"
+  "pattern": "Error: Parsing failed",
+  "problem": "Parsing failure"
 }

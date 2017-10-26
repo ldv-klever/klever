@@ -1,4 +1,4 @@
 {
-  "function": "Function entry_point not found",
-  "pattern": "No entry point"
+  "pattern": "Function entry_point not found",
+  "problem": "No entry point"
 }

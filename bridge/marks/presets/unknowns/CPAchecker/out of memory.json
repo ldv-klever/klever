@@ -1,4 +1,4 @@
 {
-  "function": "memory exhausted",
-  "pattern": "Out of memory"
+  "pattern": "memory exhausted",
+  "problem": "Out of memory"
 }

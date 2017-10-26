@@ -1,6 +1,6 @@
 {
-  "function": "flexible array member not at end of struct",
-  "pattern": "Flex member",
+  "pattern": "flexible array member not at end of struct",
+  "problem": "Flex member",
   "link": "http://forge.ispras.ru/issues/7144",
   "description": "EMG generates flexible array member not at the end of struct."
 }

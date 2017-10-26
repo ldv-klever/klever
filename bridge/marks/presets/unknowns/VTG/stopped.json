@@ -1,4 +1,1 @@
-{
-  "function": "Stop since some other component\\(s\\) likely failed",
-  "pattern": "Stopped"
-}
+../LKBCE/stopped.json
