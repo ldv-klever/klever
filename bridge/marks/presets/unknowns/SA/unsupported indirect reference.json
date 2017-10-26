@@ -1,5 +1,5 @@
 {
-  "function": "tree node 'indirect_ref' isn't supported",
-  "pattern": "UnsupIndirRef",
+  "pattern": "tree node 'indirect_ref' isn't supported",
+  "problem": "UnsupIndirRef",
   "link": "https://forge.ispras.ru/issues/4399"
 }

@@ -970,6 +970,7 @@ def get_file_by_checksum(request):
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
+@login_required
 @unparallel_group([])
 def download_configuration(request, runhistory_id):
     try:
@@ -985,6 +986,7 @@ def download_configuration(request, runhistory_id):
     return response
 
 
+@login_required
 def get_def_start_job_val(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'name' not in request.POST or 'value' not in request.POST:
@@ -1010,6 +1012,13 @@ def get_def_start_job_val(request):
         return JsonResponse({
             'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
                 'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][2]
+            }))
+        })
+    if request.POST['name'] == 'results_processing_parallelism' \
+            and request.POST['value'] in settings.KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({
+            'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
+                'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][3]
             }))
         })
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -1091,6 +1100,7 @@ def enable_safe_marks(request):
     return JsonResponse({})
 
 
+@login_required
 @unparallel_group([Job])
 def upload_reports(request):
     if request.method != 'POST' or 'job_id' not in request.POST or 'archive' not in request.FILES:

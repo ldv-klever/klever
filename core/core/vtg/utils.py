@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +15,16 @@
 # limitations under the License.
 #
 
-import os
 
-import core
+class CIFErrorFilter:
+    def __init__(self):
+        self.finished = False
 
-if __name__ == '__main__':
-    # Like in core.components.Component#__finalize.
-    os._exit(core.main())
+    def __call__(self, line):
+        if self.finished:
+            return False
+
+        if 'error:' in line:
+            self.finished = True
+
+        return True

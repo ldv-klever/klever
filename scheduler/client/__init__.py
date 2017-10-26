@@ -348,7 +348,7 @@ def run(selflogger, args, conf, logger=None):
             selflogger.info("BenchExec exited with non-zero exit code {}".format(ec))
         return ec
     else:
-        with open('client-log.log', 'a', encoding="utf8") as ste,\
+        with open('client-log.log', 'a', encoding="utf8") as ste, \
                 open('runexec stdout.log', 'w', encoding="utf8") as sto:
             ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=ste, stdout=sto)
 
@@ -365,6 +365,7 @@ def run(selflogger, args, conf, logger=None):
 
         job_exit = None
         if ec == 0 and os.path.isfile('runexec stdout.log'):
+            reason = None
             selflogger.info("Get return code of the job since runexec successfully exited")
             with open('runexec stdout.log', 'r', encoding="utf8") as fp:
                 for line in fp.readlines():
@@ -374,7 +375,10 @@ def run(selflogger, args, conf, logger=None):
                         if job_exit > 255:
                             # Be cool as Unix is
                             job_exit = job_exit >> 8
-                        break
+                    elif key and value and key == 'terminationreason':
+                        reason = str(value).rstrip()
+            if reason:
+                selflogger.warning("RunExec set termination reason {!r}".format(reason))
         if not os.path.isfile('runexec stdout.log') or job_exit is None:
             selflogger.info("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1

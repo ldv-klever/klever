@@ -52,7 +52,9 @@ execute_cmd(
     # For CPAchecker 1.6+.
     'openjdk-8-jre-headless',
     # For building the Linux kernel.
-    'make', 'libc6-dev-i386'
+    'make', 'libc6-dev-i386',
+    # For building new versions of the Linux kernel.
+    'libssl-dev', 'libelf-dev'
 )
 
 

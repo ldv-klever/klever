@@ -264,7 +264,7 @@ def _classify_rule_descriptions(logger, rule_descriptions):
             else:
                 rule_classes[opt_cache] = [rule_spec_desc]
         else:
-            rule_classes[rule_spec_desc['name']] = [rule_spec_desc]
+            rule_classes[rule_spec_desc['id']] = [rule_spec_desc]
     logger.info("Generated {} rule classes from given descriptions".format(len(rule_classes)))
     return rule_classes
 
@@ -299,8 +299,11 @@ def collect_plugin_callbacks(conf, logger):
 
 
 def resolve_rule_class(name):
-    rc = [identifier for identifier in _rule_spec_classes if name in
-          [r['id'] for r in _rule_spec_classes[identifier]]][0]
+    if len(_rule_spec_classes) > 0:
+        rc = [identifier for identifier in _rule_spec_classes if name in
+              [r['id'] for r in _rule_spec_classes[identifier]]][0]
+    else:
+        rc = None
     return rc
 
 
@@ -424,9 +427,9 @@ class VTG(core.components.Component):
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
         processing_status = dict()
+        initial = dict()
 
-        # todo: implement it as an option in GUI
-        max_tasks = 100
+        max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
         expect_objects = True
         while True:
@@ -440,10 +443,12 @@ class VTG(core.components.Component):
                 self.logger.info("Pilot verificatio task for {!r} and rule name {!r} is prepared".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
-
-                if vobject in processing_status and rule_class in processing_status[vobject] and \
-                        rule_name in processing_status[vobject][rule_class]:
-                    processing_status[vobject][rule_class][rule_name] = False
+                if rule_class:
+                    if vobject in processing_status and rule_class in processing_status[vobject] and \
+                       rule_name in processing_status[vobject][rule_class]:
+                        processing_status[vobject][rule_class][rule_name] = False
+                else:
+                    self.logger.warning("Do nothing with {} since no rules to check".format(vobject))
 
             # Fetch solutions
             solutions = []
@@ -456,39 +461,47 @@ class VTG(core.components.Component):
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
-                processing_status[vobject][rule_class][rule_name] = True
-                active_tasks -= 1
+                if rule_class:
+                    processing_status[vobject][rule_class][rule_name] = True
+                    active_tasks -= 1
 
             # Fetch object
-            if active_tasks < max_tasks:
-                if expect_objects:
-                    verification_obj_desc_files = []
-                    expect_objects = get_from_queue_no_wait(verification_obj_desc_files, 'verification obj desc files')
+            if expect_objects:
+                verification_obj_desc_files = []
+                expect_objects = get_from_queue_no_wait(verification_obj_desc_files, 'verification obj desc files')
 
-                    for verification_obj_desc_file in verification_obj_desc_files:
-                        with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
-                                  encoding='utf8') as fp:
-                            verification_obj_desc = json.load(fp)
+                for verification_obj_desc_file in verification_obj_desc_files:
+                    with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+                              encoding='utf8') as fp:
+                        verification_obj_desc = json.load(fp)
+                    if len(self.rule_spec_descs) == 0:
+                        self.logger.warning('Verification object {0} will not be verified since rule specifications'
+                                            ' are not specified'.format(verification_obj_desc['id']))
+                    else:
                         vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
+                        initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
 
-                        if not self.rule_spec_descs:
-                            self.logger.warning('Verification object {0} will not be verified since rule specifications'
-                                                ' are not specified'.format(verification_obj_desc['id']))
+            # Submit initial objects
+            for vo in list(initial.keys()):
+                while len(initial[vo]) > 0:
+                    if active_tasks < max_tasks:
+                        rule_class = initial[vo].pop()
+                        vobject = vo_descriptions[vo]
+                        rule_name = _rule_spec_classes[rule_class][0]['id']
+                        self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
+                                         format(vo, rule_name))
+                        self.mqs['prepare verification objects'].put((vobject, _rule_spec_classes[rule_class][0]))
 
-                        # Submit initial objects
-                        for rule_class in _rule_spec_classes:
-                            vobject = verification_obj_desc['id']
-                            rule_name = _rule_spec_classes[rule_class][0]['id']
-                            self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
-                                             format(vobject, rule_name))
-                            self.mqs['prepare verification objects'].put(
-                                (verification_obj_desc, _rule_spec_classes[rule_class][0]))
-
-                            # Set status
-                            if vobject not in processing_status:
-                                processing_status[vobject] = {}
-                            processing_status[vobject][rule_class] = {rule_name: None}
-                            active_tasks += 1
+                        # Set status
+                        if vo not in processing_status:
+                            processing_status[vo] = {}
+                        processing_status[vo][rule_class] = {rule_name: None}
+                        active_tasks += 1
+                    else:
+                        break
+                else:
+                    self.logger.info("Trggered all initial tasks for verification object {!r}".format(vo))
+                    del initial[vo]
 
             # Check statuses
             for vobject in list(processing_status.keys()):
@@ -498,12 +511,15 @@ class VTG(core.components.Component):
                     if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
                         for rule in [rule for rule in _rule_spec_classes[rule_class][1:] if
                                      rule['id'] not in processing_status[vobject][rule_class]]:
-                            self.logger.info("Submit next verification task after having cached plugin results for "
-                                             "verification object {!r} and rule {!r}".format(vobject, rule['id']))
-                            self.mqs['prepare verification objects'].put(
-                                (vo_descriptions[vobject], rule))
-                            processing_status[vobject][rule_class][rule['id']] = None
-                            active_tasks += 1
+                            if active_tasks < max_tasks:
+                                self.logger.info("Submit next verification task after having cached plugin results for "
+                                                 "verification object {!r} and rule {!r}".format(vobject, rule['id']))
+                                self.mqs['prepare verification objects'].put(
+                                    (vo_descriptions[vobject], rule))
+                                processing_status[vobject][rule_class][rule['id']] = None
+                                active_tasks += 1
+                            else:
+                                break
 
                     solved = 0
                     for rule in _rule_spec_classes[rule_class]:
@@ -524,11 +540,15 @@ class VTG(core.components.Component):
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
 
-            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0:
+            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 for _ in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
                     self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 break
+            else:
+                self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
+                                  "descriptions and expectation verification tasks flag is {}".
+                                  format(len(initial), active_tasks, len(vo_descriptions), expect_objects))
 
             time.sleep(3)
 
@@ -718,18 +738,26 @@ class VTGW(core.components.Component):
             shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
                                                           self.conf['shadow source tree']))
 
-            task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
-                                                 os.path.join(plugin_work_dir, 'task files.zip'))
-            with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
-                final_task_data = json.load(fp)
+            if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
+               os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
+                task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
+                                                     os.path.join(plugin_work_dir, 'task files.zip'))
+                with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
+                    final_task_data = json.load(fp)
 
-            # Plan for checking staus
-            self.mqs['pending tasks'].put([str(task_id),
-                                           final_task_data["result processing"],
-                                           self.verification_object,
-                                           self.rule_specification,
-                                           final_task_data['verifier'],
-                                           shadow_src_dir])
+                # Plan for checking staus
+                self.mqs['pending tasks'].put([str(task_id),
+                                               final_task_data["result processing"],
+                                               self.verification_object,
+                                               self.rule_specification,
+                                               final_task_data['verifier'],
+                                               shadow_src_dir])
+                self.logger.info("Submitted successfully verification task {} for solution".
+                                 format(os.path.join(plugin_work_dir, 'task.json')))
+            else:
+                self.logger.warning("There is no verification task generated by the last plugin, expect {}".
+                                    format(os.path.join(plugin_work_dir, 'task.json')))
+                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""

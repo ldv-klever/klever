@@ -1,5 +1,5 @@
 {
-  "function": "MachineModel.java:636",
-  "pattern": "#7125",
+  "pattern": "MachineModel.java:636",
+  "problem": "#7125",
   "link": "https://forge.ispras.ru/issues/7125"
 }

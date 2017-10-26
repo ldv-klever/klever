@@ -647,7 +647,10 @@ class MarkData:
     def __unknown_info(self):
         if not isinstance(self.mark_version, MarkUnknownHistory):
             return []
-        return [self.mark_version.function, self.mark_version.problem_pattern, self.mark_version.link]
+        return [
+            self.mark_version.function, self.mark_version.problem_pattern,
+            self.mark_version.link, self.mark_version.is_regexp
+        ]
 
     def __verdict_info(self):
         verdicts = []

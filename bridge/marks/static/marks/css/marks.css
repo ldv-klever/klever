@@ -18,3 +18,15 @@
 .func-description {
     font-family: monospace;
 }
+.code-text {
+    background-color: #e2ecdf;
+    border: 1px solid #787b7c;
+    border-radius: 2px;
+    padding: 2px;
+}
+.error-text {
+    background-color: #ffe9ee;
+    border: 1px solid #787b7c;
+    border-radius: 2px;
+    padding: 2px;
+}

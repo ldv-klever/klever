@@ -212,7 +212,7 @@
             {% elif markdata.type == 'unknown' %}
                 <div class="ui horizontal segments">
                     <div class="ui segment" style="max-width: 50%;">
-                        <div class="ui top left attached purple label">{% trans 'Pattern' %}</div>
+                        <div class="ui top left attached purple label">{% trans 'Pattern' %}{% if markdata.unknown_data.3 %} (regexp){% endif %}</div>
                         <div class="filecontent">{{ markdata.unknown_data.0 }}</div>
                     </div>
                     <div class="ui segment" style="max-width: 50%;">

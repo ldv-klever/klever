@@ -30,5 +30,6 @@ urlpatterns = [
     url(r'^ajax/call_list/$', views.call_list),
     url(r'^ajax/call_stat/$', views.call_statistic),
     url(r'^ajax/clear_call_logs/$', views.clear_call_logs),
+    url(r'^ajax/clear_tasks/$', views.clear_tasks),
     url(r'^manual_unlock/$', views.manual_unlock)
 ]

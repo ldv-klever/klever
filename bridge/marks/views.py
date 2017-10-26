@@ -777,9 +777,10 @@ def get_inline_mark_form(request):
         'unsafe': (MarkUnsafeHistory, ReportUnsafe)
     }
     if request.method != 'POST' or 'type' not in request.POST \
-            or ('mark_id' not in request.POST and 'report_id' not in request.POST) \
-            or request.POST['type'] not in obj_model:
+            or ('mark_id' not in request.POST and 'report_id' not in request.POST):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    if request.POST['type'] not in obj_model:
+        return JsonResponse({'error': _('The mark type is not supported for inline editing')})
 
     if 'mark_id' in request.POST:
         try:
@@ -891,3 +892,19 @@ def like_association(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
+
+
+@login_required
+def check_unknown_mark(request):
+    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'function', 'pattern', 'is_regex']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        res = mutils.UnknownUtils.CheckFunction(
+            int(request.POST['report_id']), request.POST['function'], request.POST['pattern'], request.POST['is_regex']
+        )
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'result': res.match, 'problem': res.problem, 'matched': int(res.problem is not None)})

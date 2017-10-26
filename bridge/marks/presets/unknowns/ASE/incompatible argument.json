@@ -1,6 +1,6 @@
 {
-  "function": "incompatible type for argument",
-  "pattern": "Incompat arg",
+  "pattern": "incompatible type for argument",
+  "problem": "Incompat arg",
   "link": "http://forge.ispras.ru/issues/7043",
   "description": "EMG generates a parameter of incompatible type for a callback."
 }

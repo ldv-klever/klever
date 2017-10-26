@@ -68,6 +68,8 @@ class NewMark:
             raise BridgeException(_('The problem is required'))
         elif len(self._args['problem']) > 15:
             raise BridgeException(_('The problem length must be less than 15 characters'))
+        if 'is_regexp' not in self._args or not isinstance(self._args['is_regexp'], bool):
+            raise BridgeException()
 
         if 'link' not in self._args or len(self._args['link']) == 0:
             self._args['link'] = None
@@ -80,7 +82,7 @@ class NewMark:
             identifier=unique_id(), author=self._user, format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')), status=self._args['status'],
             is_modifiable=self._args['is_modifiable'], component=report.component, function=self._args['function'],
-            problem_pattern=self._args['problem'], link=self._args['link']
+            problem_pattern=self._args['problem'], link=self._args['link'], is_regexp=self._args['is_regexp']
         )
         try:
             self.__create_version(mark)
@@ -107,6 +109,7 @@ class NewMark:
         mark.is_modifiable = self._args['is_modifiable']
         mark.link = self._args['link']
         mark.function = self._args['function']
+        mark.is_regexp = self._args['is_regexp']
         mark.problem_pattern = self._args['problem']
         self.__create_version(mark)
         mark.save()
@@ -139,7 +142,7 @@ class NewMark:
             identifier=self._args['identifier'], author=self._user, description=str(self._args.get('description', '')),
             status=self._args['status'], is_modifiable=self._args['is_modifiable'],
             problem_pattern=self._args['problem'], function=self._args['function'], link=self._args['link'],
-            component=component, format=self._args['format'], type=MARK_TYPE[2][0]
+            component=component, format=self._args['format'], type=MARK_TYPE[2][0], is_regexp=self._args['is_regexp']
         )
         try:
             self.__create_version(mark)
@@ -159,7 +162,7 @@ class NewMark:
         return MarkUnknownHistory.objects.create(
             mark=mark, version=mark.version, status=mark.status, description=mark.description,
             change_date=mark.change_date, comment=self._args['comment'], author=mark.author,
-            function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link
+            function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link, is_regexp=mark.is_regexp
         )
 
     def __is_not_used(self):
@@ -186,7 +189,9 @@ class ConnectMark:
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (unknown.id, e))
                 return
-            problem = MatchUnknown(problem_description, self.mark.function, self.mark.problem_pattern).problem
+            problem = MatchUnknown(
+                problem_description, self.mark.function, self.mark.problem_pattern, self.mark.is_regexp
+            ).problem
             if problem is None:
                 continue
             elif len(problem) > 15:
@@ -226,7 +231,7 @@ class ConnectReport:
         new_markreports = []
         problems = {}
         for mark in MarkUnknown.objects.filter(component=self.report.component):
-            problem = MatchUnknown(problem_desc, mark.function, mark.problem_pattern).problem
+            problem = MatchUnknown(problem_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
             if problem is None:
                 continue
             elif len(problem) > 15:
@@ -261,48 +266,104 @@ class RecalculateConnections:
         update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
 
 
+class CheckFunction:
+    def __init__(self, unknown_id, func, pattern, is_regexp):
+        self.description = self.__get_description(unknown_id)
+        self.function = func
+        self.pattern = pattern
+        self.is_regexp = json.loads(is_regexp)
+        if self.is_regexp:
+            self.problem, self.match = self.__match_desc_regexp()
+        else:
+            self.problem, self.match = self.__match_desc()
+
+        if isinstance(self.problem, str) and len(self.problem) == 0:
+            self.problem = '-'
+        if self.problem is not None and len(self.problem) > 15:
+            raise BridgeException(_('The problem length must be less than 15 characters'))
+
+    def __get_description(self, unknown_id):
+        self.__is_not_used()
+        try:
+            unknown = ReportUnknown.objects.get(id=unknown_id)
+        except ObjectDoesNotExist:
+            raise BridgeException(_('Unknown report was not found'))
+        try:
+            return ArchiveFileContent(unknown, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
+        except Exception as e:
+            logger.exception("Can't get problem description for unknown '%s': %s" % (unknown.id, e))
+            return
+
+    def __match_desc_regexp(self):
+        try:
+            m = re.search(self.function, self.description, re.MULTILINE)
+        except Exception as e:
+            logger.exception("Regexp error: %s" % e, stack_info=True)
+            return None, str(e)
+        if m is not None:
+            try:
+                return self.pattern.format(*m.groups()), self.__get_matched_text(*m.span())
+            except IndexError:
+                return self.pattern, self.__get_matched_text(*m.span())
+        return None, ''
+
+    def __match_desc(self):
+        start = self.description.find(self.function)
+        if start < 0:
+            return None, ''
+        end = start + len(self.function)
+        return self.pattern, self.__get_matched_text(start, end)
+
+    def __get_matched_text(self, start, end):
+        line_breaks = list(a.start() for a in re.finditer('\n', self.description))
+        prev = -1
+        f = 0
+        for i in line_breaks:
+            if i > start and f == 0:
+                start = prev + 1
+                f += 1
+            prev = i
+            if i >= end and f == 1:
+                end = prev
+                break
+        else:
+            end = len(self.description)
+        return self.description[start:end]
+
+    def __is_not_used(self):
+        pass
+
+
 class MatchUnknown:
-    def __init__(self, description, func, pattern):
-        self.description = str(description)
-        self.function = str(func)
-        self.pattern = str(pattern)
-        self.max_pn = None
-        self.numbers = []
-        self.__check_pattern()
-        self.problem = self.__match_description()
+    def __init__(self, description, func, pattern, is_regexp):
+        self.description = description
+        self.function = func
+        self.pattern = pattern
+        if is_regexp:
+            self.problem = self.__match_desc_regexp()
+        else:
+            self.problem = self.__match_desc()
+
         if isinstance(self.problem, str) and len(self.problem) == 0:
             self.problem = None
 
-    def __check_pattern(self):
-        self.numbers = re.findall('{(\d+)}', self.pattern)
-        self.numbers = [int(x) for x in self.numbers]
-        self.max_pn = -1
-        if len(self.numbers) > 0:
-            self.max_pn = max(self.numbers)
-        for n in range(self.max_pn + 1):
-            if n not in self.numbers:
-                self.max_pn = None
-                self.numbers = []
-                return
-
-    def __match_description(self):
-        for l in self.description.split('\n'):
+    def __match_desc_regexp(self):
+        try:
+            m = re.search(self.function, self.description, re.MULTILINE)
+        except Exception as e:
+            logger.exception("Regexp error: %s" % e, stack_info=True)
+            return None
+        if m is not None:
             try:
-                m = re.search(self.function, l)
-            except Exception as e:
-                logger.exception("Regexp error: %s" % e, stack_info=True)
-                return None
-            if m is not None:
-                if self.max_pn is not None and len(self.numbers) > 0:
-                    group_elements = []
-                    for n in range(1, self.max_pn + 2):
-                        try:
-                            group_elements.append(m.group(n))
-                        except IndexError:
-                            group_elements.append('')
-                    return self.pattern.format(*group_elements)
+                return self.pattern.format(*m.groups())
+            except IndexError:
                 return self.pattern
         return None
+
+    def __match_desc(self):
+        if self.description.find(self.function) < 0:
+            return None
+        return self.pattern
 
 
 class PopulateMarks:
@@ -332,12 +393,12 @@ class PopulateMarks:
                             raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
-                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
+                if not isinstance(data, dict) or any(x not in data for x in ['pattern', 'problem']):
                     raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
                 try:
-                    re.compile(data['function'])
+                    re.compile(data['pattern'])
                 except re.error:
-                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
+                    raise ValueError('Wrong regular expression: "%s"' % data['pattern'])
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
@@ -346,23 +407,28 @@ class PopulateMarks:
                     data['status'] = MARK_STATUS[0][0]
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
-                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                if 'is regexp' not in data:
+                    data['is regexp'] = False
+
+                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['pattern']) == 0 \
+                        or not 0 < len(data['problem']) <= 15 or not isinstance(data['is_modifiable'], bool):
                     raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 self.total += 1
                 try:
-                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
+                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['problem'])
                 except ObjectDoesNotExist:
                     mark = MarkUnknown.objects.create(
                         identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
                         author=manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
-                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                        function=data['pattern'], problem_pattern=data['problem'], description=data['description'],
+                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None,
+                        is_regexp=data['is regexp']
                     )
                     MarkUnknownHistory.objects.create(
                         mark=mark, version=mark.version, author=mark.author, status=mark.status,
                         function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                        change_date=mark.change_date, description=mark.description, comment=''
+                        change_date=mark.change_date, description=mark.description, comment='',
+                        is_regexp=data['is regexp']
                     )
                     ConnectMark(mark)
                     self.created += 1

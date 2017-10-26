@@ -109,12 +109,13 @@ $(document).ready(function () {
                 [
                     $('input[name="priority"]:checked').val(),
                     $('input[name="scheduler"]:checked').val(),
-                    $('input[name="avtg_priority"]:checked').val()
+                    parseInt($('#max_tasks').val())
                 ],
                 [
                     $('#sub_jobs_proc_parallelism__value').val(),
                     $('#build_parallelism__value').val(),
-                    $('#tasks_gen_parallelism__value').val()
+                    $('#tasks_gen_parallelism__value').val(),
+                    $('#results_processing_parallelism__value').val()
                 ],
                 [
                     parseFloat($('#max_ram').val().replace(/,/, '.')),
@@ -179,11 +180,11 @@ $(document).ready(function () {
     $('#start_job_decision').click(function () {
 
         var required_fields = [
-            'max_ram', 'max_cpus', 'max_disk',
+            'max_tasks', 'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
-            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value'
+            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value'
         ], err_found = false, numeric_fields = [
-            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value',
+            'max_tasks', 'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value',
             'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
         ];
         $.each(required_fields, function (i, v) {
