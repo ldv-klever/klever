@@ -1,5 +1,5 @@
 {
-  "function": "java\\.lang\\.StackOverflowError",
+  "function": "java.lang.StackOverflowError",
   "pattern": "Stack overflow",
   "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/StackOverflowError.html"
 }

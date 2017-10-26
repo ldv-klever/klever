@@ -1,4 +1,4 @@
 {
-  "function": "core\\.utils\\.CommandError: \"make\" failed",
+  "function": "core.utils.CommandError: \"make\" failed",
   "pattern": "Build failure"
 }

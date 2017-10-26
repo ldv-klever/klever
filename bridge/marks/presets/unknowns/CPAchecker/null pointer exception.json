@@ -1,5 +1,5 @@
 {
-  "function": "java\\.lang\\.NullPointerException",
+  "function": "java.lang.NullPointerException",
   "pattern": "NPE",
   "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/NullPointerException.html"
 }

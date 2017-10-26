@@ -1,4 +1,4 @@
 {
-  "function": "Tool 'cilly\\.asm\\.exe' exited with non-zero exit code",
+  "function": "Tool 'cilly.asm.exe' exited with non-zero exit code",
   "pattern": "CIL failure"
 }
