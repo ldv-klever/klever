@@ -564,51 +564,50 @@ class Job(core.utils.CallbacksCaller):
             os._exit(1)
 
     def __match_ideal_verdict(self, verification_status):
-        def match_verification_object(vo, iv):
-            if (isinstance(iv['verification object'], str) and iv['verification object'] == vo) or \
-               (isinstance(iv['verification object'], list) and vo in iv['verification object']):
+        def match_attr(attr, ideal_attr):
+            if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
+                                   (isinstance(ideal_attr, list) and attr in ideal_attr)):
                 return True
-            else:
-                return False
+
+            return False
 
         verification_object = verification_status['verification object']
         rule_specification = verification_status['rule specification']
         ideal_verdicts = self.components_common_conf['ideal verdicts']
 
-        is_matched = False
+        matched_ideal_verdict = None
 
         # Try to match exactly by both verification object and rule specification.
         for ideal_verdict in ideal_verdicts:
-            if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
-                    and ideal_verdict['verification object'] == verification_object \
-                    and ideal_verdict['rule specification'] == rule_specification:
-                is_matched = True
+            if match_attr(verification_object, ideal_verdict.get('verification object')) \
+                    and match_attr(rule_specification, ideal_verdict.get('rule specification')):
+                matched_ideal_verdict = ideal_verdict
                 break
 
         # Try to match just by verification object.
-        if not is_matched:
+        if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
-                        and match_verification_object(verification_object, ideal_verdict):
-                    is_matched = True
+                if 'rule specification' not in ideal_verdict \
+                        and match_attr(verification_object, ideal_verdict.get('verification object')):
+                    matched_ideal_verdict = ideal_verdict
                     break
 
         # Try to match just by rule specification.
-        if not is_matched:
+        if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'verification object' not in ideal_verdict and 'rule specification' in ideal_verdict \
-                        and ideal_verdict['rule specification'] == rule_specification:
-                    is_matched = True
+                if 'verification object' not in ideal_verdict \
+                        and match_attr(rule_specification, ideal_verdict.get('rule specification')):
+                    matched_ideal_verdict = ideal_verdict
                     break
 
         # If nothing of above matched.
-        if not is_matched:
+        if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
                 if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
-                    is_matched = True
+                    matched_ideal_verdict = ideal_verdict
                     break
 
-        if not is_matched:
+        if not matched_ideal_verdict:
             raise ValueError(
                 'Could not match ideal verdict for verification object "{0}" and rule specification "{1}"'
                 .format(verification_object, rule_specification))
@@ -620,8 +619,8 @@ class Job(core.utils.CallbacksCaller):
 
         return name_suffix, {
             'verdict': verification_status['verdict'],
-            'ideal verdict': ideal_verdict['ideal verdict'],
-            'comment': ideal_verdict.get('comment')
+            'ideal verdict': matched_ideal_verdict['ideal verdict'],
+            'comment': matched_ideal_verdict.get('comment')
         }
 
     def __process_validation_results(self, name, verification_result):
