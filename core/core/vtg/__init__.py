@@ -299,8 +299,11 @@ def collect_plugin_callbacks(conf, logger):
 
 
 def resolve_rule_class(name):
-    rc = [identifier for identifier in _rule_spec_classes if name in
-          [r['id'] for r in _rule_spec_classes[identifier]]][0]
+    if len(_rule_spec_classes) > 0:
+        rc = [identifier for identifier in _rule_spec_classes if name in
+              [r['id'] for r in _rule_spec_classes[identifier]]][0]
+    else:
+        rc = None
     return rc
 
 
@@ -440,10 +443,12 @@ class VTG(core.components.Component):
                 self.logger.info("Pilot verificatio task for {!r} and rule name {!r} is prepared".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
-
-                if vobject in processing_status and rule_class in processing_status[vobject] and \
-                                rule_name in processing_status[vobject][rule_class]:
-                    processing_status[vobject][rule_class][rule_name] = False
+                if rule_class:
+                    if vobject in processing_status and rule_class in processing_status[vobject] and \
+                       rule_name in processing_status[vobject][rule_class]:
+                        processing_status[vobject][rule_class][rule_name] = False
+                else:
+                    self.logger.warning("Do nothing with {} since no rules to check".format(vobject))
 
             # Fetch solutions
             solutions = []
@@ -456,8 +461,9 @@ class VTG(core.components.Component):
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
-                processing_status[vobject][rule_class][rule_name] = True
-                active_tasks -= 1
+                if rule_class:
+                    processing_status[vobject][rule_class][rule_name] = True
+                    active_tasks -= 1
 
             # Fetch object
             if expect_objects:
@@ -468,12 +474,12 @@ class VTG(core.components.Component):
                     with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
                               encoding='utf8') as fp:
                         verification_obj_desc = json.load(fp)
-                    vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
-                    initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
-
-                    if not self.rule_spec_descs:
+                    if len(self.rule_spec_descs) == 0:
                         self.logger.warning('Verification object {0} will not be verified since rule specifications'
                                             ' are not specified'.format(verification_obj_desc['id']))
+                    else:
+                        vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
+                        initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
 
             # Submit initial objects
             for vo in list(initial.keys()):
@@ -732,18 +738,26 @@ class VTGW(core.components.Component):
             shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
                                                           self.conf['shadow source tree']))
 
-            task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
-                                                 os.path.join(plugin_work_dir, 'task files.zip'))
-            with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
-                final_task_data = json.load(fp)
+            if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
+               os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
+                task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
+                                                     os.path.join(plugin_work_dir, 'task files.zip'))
+                with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
+                    final_task_data = json.load(fp)
 
-            # Plan for checking staus
-            self.mqs['pending tasks'].put([str(task_id),
-                                           final_task_data["result processing"],
-                                           self.verification_object,
-                                           self.rule_specification,
-                                           final_task_data['verifier'],
-                                           shadow_src_dir])
+                # Plan for checking staus
+                self.mqs['pending tasks'].put([str(task_id),
+                                               final_task_data["result processing"],
+                                               self.verification_object,
+                                               self.rule_specification,
+                                               final_task_data['verifier'],
+                                               shadow_src_dir])
+                self.logger.info("Submitted successfully verification task {} for solution".
+                                 format(os.path.join(plugin_work_dir, 'task.json')))
+            else:
+                self.logger.warning("There is no verification task generated by the last plugin, expect {}".
+                                    format(os.path.join(plugin_work_dir, 'task.json')))
+                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
