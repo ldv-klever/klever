@@ -8,7 +8,61 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
-    "rule specifications": ["linux:emg:test"]
+    "rule specifications": ["linux:emg:test"],
+    "ideal verdicts": [
+        {"ideal verdict": "safe"},
+        {
+          "ideal verdict": "unsafe",
+          "verification object": [
+            "ext-modules/block_device_operations_v.1/disk_invoke.ko",
+            "ext-modules/class_v.1/class_invoke.ko",
+            "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
+            "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
+            "ext-modules/dm_dirty_log_type_v.1/dm_dirty_log_type_invoke.ko",
+            "ext-modules/ethtool_ops_v.1/ethtool_ops_invoke.ko",
+            "ext-modules/ethtool_ops_v.2/ethtool_ops_invoke.ko",
+            "ext-modules/file_operations_v.1/file_operations_invoke.ko",
+            "ext-modules/get_sb_v.1/get_sb_bdev_invoke.ko",
+            "ext-modules/get_sb_v.1/get_sb_nodev_invoke.ko",
+            "ext-modules/get_sb_v.1/get_sb_ns_invoke.ko",
+            "ext-modules/get_sb_v.1/get_sb_single_invoke.ko",
+            "ext-modules/hid_v.1/hid_invoke.ko",
+            "ext-modules/ieee80211_ops_v.1/ieee80211_invoke.ko",
+            "ext-modules/iio_triggered_buffer_v.1/iio_triggered_buffer_invoke.ko",
+            "ext-modules/irq_v.1/irq_invoke.ko",
+            "ext-modules/irq_v.2/irq_invoke.ko",
+            "ext-modules/net_device_ops_v.1/net_device_invoke.ko",
+            "ext-modules/net_device_ops_v.1/setup_invoke.ko",
+            "ext-modules/net_device_ops_v.2/net_device_invoke.ko",
+            "ext-modules/net_device_ops_v.2/setup_invoke.ko",
+            "ext-modules/pci_driver_v.1/pci_driver_invoke.ko",
+            "ext-modules/percpu_irq_v.1/percpu_irq_invoke.ko",
+            "ext-modules/platform_driver_v.1/platform_driver_invoke.ko",
+            "ext-modules/platform_driver_v.1/platform_driver_with_pm_invoke.ko",
+            "ext-modules/proto_v.1/pppox_proto_invoke.ko",
+            "ext-modules/proto_v.1/proto_family_invoke.ko",
+            "ext-modules/proto_v.1/proto_invoke.ko",
+            "ext-modules/proto_v.2/pppox_proto_invoke.ko",
+            "ext-modules/proto_v.2/proto_family_invoke.ko",
+            "ext-modules/proto_v.2/proto_invoke.ko",
+            "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
+            "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
+            "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
+            "ext-modules/se_subsystem_api_v.1/se_invoke.ko",
+            "ext-modules/seq_operations_v.1/seq_operations_invoke.ko",
+            "ext-modules/serial_core_v.1/serial_core_invoke.ko",
+            "ext-modules/super_block_v.1/fs_invoke.ko",
+            "ext-modules/target_backend_v1/target_backend_invoke.ko",
+            "ext-modules/tty_v.1/tty_operations_invoke.ko",
+            "ext-modules/tty_v.1/tty_port_operations_invoke.ko",
+            "ext-modules/tty_v.2/tty_operations_invoke.ko",
+            "ext-modules/tty_v.2/tty_port_operations_invoke.ko",
+            "ext-modules/usb_serial_driver_v.1/usb_serial_invoke.ko",
+            "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.ko",
+            "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.koext-modules/ethtool_ops_v.2/ethtool_ops_invoke.ko"
+          ]
+        }
+      ]
   },
   "Sub-jobs": [
     {
@@ -39,46 +93,7 @@
           "tty_v.1",
           "usb_serial_driver_v.1"
         ]
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"},
-        {
-          "ideal verdict": "unsafe",
-          "verification object": [
-            "ext-modules/block_device_operations_v.1/disk_invoke.ko",
-            "ext-modules/class_v.1/class_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
-            "ext-modules/dm_dirty_log_type_v.1/dm_dirty_log_type_invoke.ko",
-            "ext-modules/ethtool_ops_v.1/ethtool_ops_invoke.ko",
-            "ext-modules/file_operations_v.1/file_operations_invoke.ko",
-            "ext-modules/get_sb_v.1/get_sb_ns_invoke.ko",
-            "ext-modules/get_sb_v.1/get_sb_bdev_invoke.ko",
-            "ext-modules/get_sb_v.1/get_sb_nodev_invoke.ko",
-            "ext-modules/get_sb_v.1/get_sb_single_invoke.ko",
-            "ext-modules/hid_v.1/hid_invoke.ko",
-            "ext-modules/ieee80211_ops_v.1/ieee80211_invoke.ko",
-            "ext-modules/irq_v.1/irq_invoke.ko",
-            "ext-modules/net_device_ops_v.1/setup_invoke.ko",
-            "ext-modules/net_device_ops_v.1/net_device_invoke.ko",
-            "ext-modules/pci_driver_v.1/pci_driver_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_with_pm_invoke.ko",
-            "ext-modules/proto_v.1/proto_invoke.ko",
-            "ext-modules/proto_v.1/pppox_proto_invoke.ko",
-            "ext-modules/proto_v.1/proto_family_invoke.ko",
-            "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
-            "ext-modules/seq_operations_v.1/seq_operations_invoke.ko",
-            "ext-modules/serial_core_v.1/serial_core_invoke.ko",
-            "ext-modules/super_block_v.1/fs_invoke.ko",
-            "ext-modules/tty_v.1/tty_operations_invoke.ko",
-            "ext-modules/tty_v.1/tty_port_operations_invoke.ko",
-            "ext-modules/usb_serial_driver_v.1/usb_serial_invoke.ko"
-          ]
-        }
-      ]
+      }
     },
     {
       "specifications set": "Linux 3.14 (base)",
@@ -109,44 +124,7 @@
           "tty_v.2",
           "usb_serial_driver_v.2"
         ]
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"},
-        {
-          "ideal verdict": "unsafe",
-          "verification object": [
-            "ext-modules/block_device_operations_v.1/disk_invoke.ko",
-            "ext-modules/class_v.1/class_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
-            "ext-modules/dm_dirty_log_type_v.1/dm_dirty_log_type_invoke.ko",
-            "ext-modules/ethtool_ops_v.1/ethtool_ops_invoke.ko",
-            "ext-modules/file_operations_v.1/file_operations_invoke.ko",
-            "ext-modules/hid_v.1/hid_invoke.ko",
-            "ext-modules/ieee80211_ops_v.1/ieee80211_invoke.ko",
-            "ext-modules/iio_triggered_buffer_v.1/iio_triggered_buffer_invoke.ko",
-            "ext-modules/irq_v.2/irq_invoke.ko",
-            "ext-modules/net_device_ops_v.1/setup_invoke.ko",
-            "ext-modules/net_device_ops_v.1/net_device_invoke.ko",
-            "ext-modules/pci_driver_v.1/pci_driver_invoke.ko",
-            "ext-modules/percpu_irq_v.1/percpu_irq_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_with_pm_invoke.ko",
-            "ext-modules/proto_v.1/proto_invoke.ko",
-            "ext-modules/proto_v.1/pppox_proto_invoke.ko",
-            "ext-modules/proto_v.1/proto_family_invoke.ko",
-            "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
-            "ext-modules/seq_operations_v.1/seq_operations_invoke.ko",
-            "ext-modules/serial_core_v.1/serial_core_invoke.ko",
-            "ext-modules/se_subsystem_api_v.1/se_invoke.ko",
-            "ext-modules/tty_v.2/tty_operations_invoke.ko",
-            "ext-modules/tty_v.2/tty_port_operations_invoke.ko",
-            "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.ko"
-          ]
-        }
-      ]
+      }
     },
     {
       "specifications set": "Linux 4.6.7",
@@ -177,44 +155,7 @@
           "tty_v.2",
           "usb_serial_driver_v.2"
         ]
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"},
-        {
-          "ideal verdict": "unsafe",
-          "verification object": [
-            "ext-modules/block_device_operations_v.1/disk_invoke.ko",
-            "ext-modules/class_v.1/class_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_irq_invoke.ko",
-            "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko",
-            "ext-modules/dm_dirty_log_type_v.1/dm_dirty_log_type_invoke.ko",
-            "ext-modules/ethtool_ops_v.2/ethtool_ops_invoke.ko",
-            "ext-modules/file_operations_v.1/file_operations_invoke.ko",
-            "ext-modules/hid_v.1/hid_invoke.ko",
-            "ext-modules/ieee80211_ops_v.1/ieee80211_invoke.ko",
-            "ext-modules/iio_triggered_buffer_v.1/iio_triggered_buffer_invoke.ko",
-            "ext-modules/irq_v.2/irq_invoke.ko",
-            "ext-modules/net_device_ops_v.2/setup_invoke.ko",
-            "ext-modules/net_device_ops_v.2/net_device_invoke.ko",
-            "ext-modules/pci_driver_v.1/pci_driver_invoke.ko",
-            "ext-modules/percpu_irq_v.1/percpu_irq_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_invoke.ko",
-            "ext-modules/platform_driver_v.1/platform_driver_with_pm_invoke.ko",
-            "ext-modules/proto_v.2/proto_invoke.ko",
-            "ext-modules/proto_v.2/pppox_proto_invoke.ko",
-            "ext-modules/proto_v.2/proto_family_invoke.ko",
-            "ext-modules/rtc_class_ops_v.1/rtc_class_ops_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_alloc_invoke.ko",
-            "ext-modules/scsi_host_template_v.1/scsi_host_template_invoke.ko",
-            "ext-modules/seq_operations_v.1/seq_operations_invoke.ko",
-            "ext-modules/target_backend_v1/target_backend_invoke.ko",
-            "ext-modules/serial_core_v.1/serial_core_invoke.ko",
-            "ext-modules/tty_v.2/tty_operations_invoke.ko",
-            "ext-modules/tty_v.2/tty_port_operations_invoke.ko",
-            "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.ko"
-          ]
-        }
-      ]
+      }
     }
   ],
   "Default": [
