@@ -40,7 +40,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 4
+ARCHIVE_FORMAT = 5
 
 
 class KleverCoreArchiveGen:
@@ -282,13 +282,12 @@ class ReportsData(object):
             'pk': report.pk,
             'parent': self._parents[report.parent_id],
             'identifier': report.identifier,
+            'cpu_time': report.cpu_time,
+            'wall_time': report.wall_time,
+            'memory': report.memory,
             'attrs': []
         }
-        if isinstance(report, ReportSafe):
-            data['verifier_time'] = report.verifier_time
-        elif isinstance(report, ReportUnsafe):
-            data['verifier_time'] = report.verifier_time
-        elif isinstance(report, ReportUnknown):
+        if isinstance(report, ReportUnknown):
             data['component'] = report.component.name
         return data
 
@@ -636,7 +635,7 @@ class UploadReports:
             report = ReportSafe(
                 root=self.job.reportroot, identifier=self.data[i]['identifier'],
                 parent_id=self._parents[self.data[i]['parent']],
-                verifier_time=self.data[i]['verifier_time']
+                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
             )
             proof_id = (ReportSafe.__name__, 'proof', self.data[i]['pk'])
             if proof_id in self.files:
@@ -650,7 +649,7 @@ class UploadReports:
             report = ReportUnsafe(
                 root=self.job.reportroot, identifier=self.data[i]['identifier'],
                 parent_id=self._parents[self.data[i]['parent']],
-                verifier_time=self.data[i]['verifier_time']
+                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
             )
             trace_id = (ReportUnsafe.__name__, 'trace', self.data[i]['pk'])
             with open(self.files[trace_id], mode='rb') as fp:
@@ -662,7 +661,8 @@ class UploadReports:
             report = ReportUnknown(
                 root=self.job.reportroot, identifier=self.data[i]['identifier'],
                 parent_id=self._parents[self.data[i]['parent']],
-                component_id=self.__get_component(self.data[i]['component'])
+                component_id=self.__get_component(self.data[i]['component']),
+                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
             )
             problem_id = (ReportUnknown.__name__, 'problem', self.data[i]['pk'])
             with open(self.files[problem_id], mode='rb') as fp:

@@ -33,7 +33,17 @@
             <div class="twelve wide field">
                 <div class="ui radio checkbox">
                     <input id="order_by_parent_cpu__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_cpu"{% if view.order.1 == 'parent_cpu' %} checked{% endif %}>
-                    <label for="order_by_parent_cpu__{{ view.type }}">{% trans 'Order by verifiers time' %}</label>
+                    <label for="order_by_parent_cpu__{{ view.type }}">{% trans 'Order by verifiers cpu time' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_by_parent_wall__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_wall"{% if view.order.1 == 'parent_wall' %} checked{% endif %}>
+                    <label for="order_by_parent_wall__{{ view.type }}">{% trans 'Order by verifiers wall time' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_by_parent_memory__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_memory"{% if view.order.1 == 'parent_memory' %} checked{% endif %}>
+                    <label for="order_by_parent_memory__{{ view.type }}">{% trans 'Order by verifiers memory' %}</label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
@@ -58,7 +68,7 @@
         <input id="view_data_{{ view.type }}__hidden" value="checkboxes" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_{{ view.type }}__hidden__confirmed_marks"{% if 'confirmed_marks' in view.hidden %} checked{% endif %}>
-            <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed unsafes number' %}</label>
+            <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed reports number' %}</label>
         </div>
         <div class="ui divider"></div>
 
@@ -158,11 +168,11 @@
 
         <div class="ui divider"></div>
 
-        {# Verifiers time #}
+        {# Verifiers cpu time #}
         <input id="view_data_{{ view.type }}__parent_cpu" value="list_if_parent_cpu" data-list="parent_cpu_operator__parent_cpu_value__parent_cpu_measure" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__parent_cpu"{% if 'parent_cpu' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__parent_cpu">{% trans 'Verifiers time' %}</label>
+            <label for="view_condition_{{ view.type }}__parent_cpu">{% trans 'Verifiers cpu time' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
@@ -184,6 +194,65 @@
                     <option value="ms"{% if 'parent_cpu' in view and view.parent_cpu.2 == 'ms' %} selected{% endif %}>{% trans 'milliseconds' %}</option>
                 </select>
                 <label for="view_{{ view.type }}__parent_cpu_measure">&nbsp;</label>
+            </div>
+        </div>
+
+        {# Verifiers wall time #}
+        <input id="view_data_{{ view.type }}__parent_wall" value="list_if_parent_wall" data-list="parent_wall_operator__parent_wall_value__parent_wall_measure" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__parent_wall"{% if 'parent_wall' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__parent_wall">{% trans 'Verifiers wall time' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <select id="view_{{ view.type }}__parent_wall_operator" class="ui dropdown">
+                    <option value="lt"{% if 'parent_wall' in view and view.parent_wall.0 == 'lt' %} selected{% endif %}>{% trans 'less than' %}</option>
+                    <option value="gt"{% if 'parent_wall' in view and view.parent_wall.0 == 'gt' %} selected{% endif %}>{% trans 'greater than' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__parent_wall_operator">&nbsp;</label>
+            </div>
+            <div class="field">
+                <input id="view_{{ view.type }}__parent_wall_value" type="number"{% if 'parent_wall' in view %} value="{{ view.parent_wall.1 }}"{% endif %}>
+                <label for="view_{{ view.type }}__parent_wall_value">&nbsp;</label>
+            </div>
+            <div class="field">
+                <select id="view_{{ view.type }}__parent_wall_measure" class="ui dropdown">
+                    <option value="m"{% if 'parent_wall' in view and view.parent_wall.2 == 'm' %} selected{% endif %}>{% trans 'minutes' %}</option>
+                    <option value="s"{% if 'parent_wall' in view and view.parent_wall.2 == 's' %} selected{% endif %}>{% trans 'seconds' %}</option>
+                    <option value="ms"{% if 'parent_wall' in view and view.parent_wall.2 == 'ms' %} selected{% endif %}>{% trans 'milliseconds' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__parent_wall_measure">&nbsp;</label>
+            </div>
+        </div>
+
+        {# Verifiers memory #}
+        <input id="view_data_{{ view.type }}__parent_memory" value="list_if_parent_memory" data-list="parent_memory_operator__parent_memory_value__parent_memory_measure" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__parent_memory"{% if 'parent_memory' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__parent_memory">{% trans 'Verifiers memory' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <select id="view_{{ view.type }}__parent_memory_operator" class="ui dropdown">
+                    <option value="lt"{% if 'parent_memory' in view and view.parent_memory.0 == 'lt' %} selected{% endif %}>{% trans 'less than' %}</option>
+                    <option value="gt"{% if 'parent_memory' in view and view.parent_memory.0 == 'gt' %} selected{% endif %}>{% trans 'greater than' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__parent_memory_operator">&nbsp;</label>
+            </div>
+            <div class="field">
+                <input id="view_{{ view.type }}__parent_memory_value" type="number"{% if 'parent_memory' in view %} value="{{ view.parent_memory.1 }}"{% endif %}>
+                <label for="view_{{ view.type }}__parent_memory_value">&nbsp;</label>
+            </div>
+            <div class="field">
+                <select id="view_{{ view.type }}__parent_memory_measure" class="ui dropdown">
+                    <option value="B"{% if 'parent_memory' in view and view.parent_memory.2 == 'B' %} selected{% endif %}>{% trans 'B' %}</option>
+                    <option value="KB"{% if 'parent_memory' in view and view.parent_memory.2 == 'KB' %} selected{% endif %}>{% trans 'KB' %}</option>
+                    <option value="MB"{% if 'parent_memory' in view and view.parent_memory.2 == 'MB' %} selected{% endif %}>{% trans 'MB' %}</option>
+                    <option value="GB"{% if 'parent_memory' in view and view.parent_memory.2 == 'GB' %} selected{% endif %}>{% trans 'GB' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__parent_memory_measure">&nbsp;</label>
             </div>
         </div>
     </div>

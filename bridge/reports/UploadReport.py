@@ -542,6 +542,10 @@ class UploadReport:
                 identifier=identifier, parent=self.parent, root=self.root,
                 component=self.parent.component, problem_description=self.data['problem desc']
             )
+        if self.parent.verification:
+            report.cpu_time = self.parent.cpu_time,
+            report.wall_time = self.parent.wall_time
+            report.memory = self.parent.memory
         report.add_problem_desc(REPORT_ARCHIVE['problem desc'], self.archives[self.data['problem desc']], True)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.problem_description.name)):
             report.delete()
@@ -556,7 +560,8 @@ class UploadReport:
             if self.parent.cpu_time is None:
                 raise ValueError('safe parent need to be verification report and must have cpu_time')
             report = ReportSafe(
-                identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
+                identifier=identifier, parent=self.parent, root=self.root, cpu_time=self.parent.cpu_time,
+                wall_time=self.parent.wall_time, memory=self.parent.memory
             )
         if 'proof' in self.data:
             report.add_proof(REPORT_ARCHIVE['proof'], self.archives[self.data['proof']], True)
@@ -576,7 +581,8 @@ class UploadReport:
                 raise ValueError('unsafe parent need to be verification report and must have cpu_time')
             report = ReportUnsafe(
                 identifier=identifier, parent=self.parent, root=self.root,
-                error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
+                error_trace=self.data['error trace'], cpu_time=self.parent.cpu_time,
+                wall_time=self.parent.wall_time, memory=self.parent.memory
             )
 
         report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[self.data['error trace']], True)
