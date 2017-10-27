@@ -30,10 +30,10 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	queue = create_workqueue("ldv_queue");
 	if (!queue)
 		return -ENOMEM;
-
 	INIT_WORK(&work, ldv_handler);
 	queue_work(queue, &work);
 

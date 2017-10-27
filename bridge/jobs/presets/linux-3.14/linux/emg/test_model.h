@@ -21,6 +21,9 @@ void ldv_initialize(void);
 /* MODEL_FUNC Callback reached. */
 void ldv_invoke_callback(void);
 
+/* MODEL_FUNC Supress unrelevant warnings. */
+void ldv_invoke_test(void);
+
 /* MODEL_FUNC Middle callback reached. */
 void ldv_invoke_middle_callback(void);
 

@@ -49,6 +49,7 @@ static const struct net_device_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	dev.netdev_ops = &ldv_ops;
 	return register_netdev(&dev);
 }

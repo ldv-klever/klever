@@ -38,6 +38,7 @@ static struct class_interface ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return class_interface_register(&ldv_driver);
 }
 

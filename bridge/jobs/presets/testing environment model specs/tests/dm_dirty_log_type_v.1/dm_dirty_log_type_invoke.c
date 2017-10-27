@@ -40,14 +40,13 @@ static struct dm_dirty_log_type ldv_type = {
 
 static int __init ldv_init(void)
 {
-	ldv_register();
+	ldv_invoke_test();
 	return dm_dirty_log_type_register(&ldv_type);
 }
 
 static void __exit ldv_exit(void)
 {
 	dm_dirty_log_type_unregister(&ldv_type);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

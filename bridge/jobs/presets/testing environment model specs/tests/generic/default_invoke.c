@@ -31,6 +31,7 @@ static struct ldv_driver ops = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return ldv_driver_register(& ops);
 }
 

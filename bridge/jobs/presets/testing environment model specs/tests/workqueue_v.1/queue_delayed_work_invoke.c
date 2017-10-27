@@ -31,7 +31,7 @@ static void ldv_handler(struct work_struct *work)
 static int __init ldv_init(void)
 {
 	int delay = ldv_undef_int();
-
+	ldv_invoke_test();
 	queue = create_workqueue("ldv_queue");
 	if (!queue)
 		return -ENOMEM;

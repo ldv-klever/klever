@@ -20,7 +20,6 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-int flip_a_coin;
 struct uart_driver *driver;
 struct uart_port *port;
 
@@ -42,25 +41,14 @@ static struct uart_ops ldv_uart_ops = {
 
 static int __init ldv_init(void)
 {
-	int res = ldv_undef_int();
-	flip_a_coin = ldv_undef_int();
-	if(flip_a_coin) {
-		port->ops = &ldv_uart_ops;
-		ldv_register();
-		res = uart_add_one_port(driver, port);
-		if (res)
-			ldv_deregister();
-	}
-	
-	return res;
+	ldv_invoke_test();
+	port->ops = &ldv_uart_ops;
+	return uart_add_one_port(driver, port);
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		uart_remove_one_port(driver, port);
-		ldv_deregister();
-	}
+	uart_remove_one_port(driver, port);
 }
 
 module_init(ldv_init);

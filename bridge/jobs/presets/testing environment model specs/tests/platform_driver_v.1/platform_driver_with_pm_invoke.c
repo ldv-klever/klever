@@ -57,6 +57,7 @@ static struct platform_driver ldv_platform_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return platform_driver_register(&ldv_platform_driver);
 }
 

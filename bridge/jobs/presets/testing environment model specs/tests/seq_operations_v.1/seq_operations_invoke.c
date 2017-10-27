@@ -41,6 +41,7 @@ static const struct seq_operations ldv_ops = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return seq_open(file, &ldv_ops);
 }
 

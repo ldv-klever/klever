@@ -31,6 +31,7 @@ void ldv_handler(unsigned long data)
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	setup_timer(&ldv_timer, ldv_handler, data);
 	return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
 }

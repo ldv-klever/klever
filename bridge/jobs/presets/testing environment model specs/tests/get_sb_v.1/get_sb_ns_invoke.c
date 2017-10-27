@@ -33,6 +33,7 @@ int fill_super(struct super_block *sb, void *a, int b)
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return get_sb_ns(& fs_type, flags, NULL, & fill_super, & mnt);
 }
 

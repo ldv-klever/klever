@@ -35,7 +35,7 @@ static struct ethtool_ops ops = {
 
 static int __init ldv_init(void)
 {
-	ldv_register();
+	ldv_invoke_test();
 	netdev_set_default_ethtool_ops(&dev, &ops);
 	return register_netdev(&dev);
 }
@@ -43,7 +43,6 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void)
 {
 	unregister_netdev(&dev);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

@@ -33,6 +33,7 @@ static struct net_proto_family ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return sock_register(& ldv_driver);
 }
 

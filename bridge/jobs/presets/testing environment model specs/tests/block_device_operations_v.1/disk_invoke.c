@@ -37,6 +37,7 @@ struct gendisk disk = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
     add_disk(& disk);
 	return 0;
 }

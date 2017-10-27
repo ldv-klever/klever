@@ -35,6 +35,7 @@ static struct scsi_host_template ldv_template = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	host.hostt = & ldv_template;
 	return scsi_add_host(& host, dev);
 }

@@ -62,10 +62,10 @@ static const struct tty_port_operations ldv_tty_port_ops = {
 static int __init ldv_init(void)
 {
 	int res = ldv_undef_int();
+	ldv_invoke_test();
 	driver = alloc_tty_driver(lines);
 	if (driver) {
 		tty_set_operations(driver, &ldv_tty_ops);
-		ldv_register();
 		res = tty_register_driver(driver);
 		if (res) {
 			put_tty_driver(driver);
@@ -85,7 +85,6 @@ static void __exit ldv_exit(void)
 	tty_port_put(&port);
 	tty_unregister_driver(driver);
 	put_tty_driver(driver);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

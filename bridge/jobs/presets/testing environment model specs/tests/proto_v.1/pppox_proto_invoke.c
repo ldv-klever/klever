@@ -32,6 +32,7 @@ struct pppox_proto ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return register_pppox_proto(5, & ldv_driver);
 }
 

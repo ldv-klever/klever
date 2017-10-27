@@ -40,6 +40,7 @@ static struct target_type ldv_target = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return dm_register_target(&ldv_target);
 }
 

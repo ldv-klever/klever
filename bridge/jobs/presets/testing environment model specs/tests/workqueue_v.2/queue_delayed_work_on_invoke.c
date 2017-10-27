@@ -33,6 +33,7 @@ static int __init ldv_init(void)
 	int cpu = 1;
 	int delay = ldv_undef_int();
 
+	ldv_invoke_test();
 	queue = alloc_workqueue("ldv_queue", 0, 0);
 	if (!queue)
 		return -ENOMEM;

@@ -42,6 +42,7 @@ struct hid_device ldvdev = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return hid_add_device(&ldvdev);
 }
 

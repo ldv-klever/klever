@@ -31,6 +31,7 @@ static int __init ldv_init(void)
 {
 	int delay = ldv_undef_int();
 
+	ldv_invoke_test();
 	INIT_DELAYED_WORK(&work, ldv_handler);
 	schedule_delayed_work(&work, delay);
 	return 0;

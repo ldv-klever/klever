@@ -36,12 +36,10 @@ static struct scsi_host_template ldv_template = {
 static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
+	ldv_invoke_test();
 	host = scsi_host_alloc(&ldv_template, sizeof(void *));
 	if (host) {
-		ldv_register();
 		ret = scsi_add_host(host, dev);
-		if (ret)
-			ldv_deregister();
 		return ret;
 	}
 	else

@@ -32,19 +32,16 @@ static int __init ldv_init(void)
 {
 	int flip_a_coin = ldv_undef_int();
 	int delay = ldv_undef_int();
-
+	ldv_invoke_test();
 	queue = create_workqueue("ldv_queue");
 	if (!queue)
 		return -ENOMEM;
 
-	ldv_register();
 	INIT_DELAYED_WORK(&work, ldv_handler);
 	queue_delayed_work(queue, &work, delay);
 
-	if (flip_a_coin) {
+	if (flip_a_coin)
 		flush_delayed_work(&work);
-		ldv_deregister();
-	}
 	return 0;
 }
 

@@ -62,6 +62,7 @@ static int __init ldv_init(void)
 {
 	int res;
 
+	ldv_invoke_test();
 	driver = alloc_tty_driver(lines);
 	if (driver) {
 		tty_set_operations(driver, &ldv_tty_ops);
@@ -71,7 +72,6 @@ static int __init ldv_init(void)
 			return res;
 		}
 		else {
-			ldv_register();
 			tty_port_init(& port);
 			port.ops = & ldv_tty_port_ops;
 			tty_port_register_device(& port, driver, ldv_undef_int(), device);
@@ -86,7 +86,6 @@ static void __exit ldv_exit(void)
 	tty_port_destroy(&port);
 	tty_unregister_driver(driver);
 	put_tty_driver(driver);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

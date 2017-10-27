@@ -17,6 +17,7 @@
 
 int registered;
 int probed;
+int supress;
 
 /* MODEL_FUNC Initialize EMG test rule specification. */
 void ldv_initialize(void)
@@ -24,6 +25,13 @@ void ldv_initialize(void)
     /* NOTE Initializing EMG test states. */
     int registered = 0;
     int probed = 0;
+}
+
+/* MODEL_FUNC Supress unrelevant warnings. */
+void ldv_invoke_test(void)
+{
+    /* NOTE This test is intended to only the fact that callbacks are called. Supress rest warnings. */
+    int supress = 1;
 }
 
 /* MODEL_FUNC Callback reached. */
@@ -99,7 +107,7 @@ void ldv_release_completely(void)
 void ldv_check_final_state( void )
 {
 	/* ASSERT At the end of the test all resources should be released. */
-	ldv_assert("linux:emg:test", probed == 0);
+	ldv_assert("linux:emg:test", probed == 0 || supress);
     /* ASSERT At the end of the test all callbacks should be deregistered. */
-    ldv_assert("linux:emg:test", registered == 0);
+    ldv_assert("linux:emg:test", registered == 0 || supress);
 }

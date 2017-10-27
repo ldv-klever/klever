@@ -31,6 +31,7 @@ void ldv_handler(unsigned long data)
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	ldv_timer.function = ldv_handler;
 	ldv_timer.data = data;
 	init_timer(&ldv_timer);

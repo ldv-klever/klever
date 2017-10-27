@@ -50,7 +50,7 @@ static int __init ldv_init(void)
 {
 	int res1;
 	int res2;
-
+	ldv_invoke_test();
 	res1 = ldv_driver_register(& ops1);
 	res2 = ldv_driver_register(& ops2);
 	if (!res1 && !res2) {

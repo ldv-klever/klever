@@ -41,6 +41,7 @@ static struct serio_driver ldv_drv = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return serio_register_driver(&ldv_drv);
 }
 

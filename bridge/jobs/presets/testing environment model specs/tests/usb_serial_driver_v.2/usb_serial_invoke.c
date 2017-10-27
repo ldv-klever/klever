@@ -46,6 +46,7 @@ static struct usb_serial_driver * const ldv_drivers[] = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return usb_serial_register_drivers(ldv_drivers, "ldv_driver", id_table);
 }
 

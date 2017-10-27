@@ -22,7 +22,6 @@
 
 struct net_device *dev;
 struct mutex *ldv_envgen;
-int flip_a_coin;
 
 static netdev_tx_t ldv_xmit(struct sk_buff *skb, struct net_device *dev)
 {
@@ -52,29 +51,20 @@ static const struct net_device_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-	int ret = ldv_undef_int();
-	flip_a_coin = ldv_undef_int();
-	if (flip_a_coin) {
-		dev = alloc_netdev(sizeof(struct net_device_ops), "ldv_dev", ldv_setup);
-		if (dev) {
-			dev->netdev_ops = &ldv_ops;
-			ldv_register();
-			ret = register_netdev(dev);
-			if (ret)
-				ldv_deregister();
-		}
-		else
-			return -ENOMEM;
+	ldv_invoke_test();
+	dev = alloc_netdev(sizeof(struct net_device_ops), "ldv_dev", ldv_setup);
+	if (dev) {
+		dev->netdev_ops = &ldv_ops;
+		ldv_register();
+		return register_netdev(dev);
 	}
-	return ret;
+	else
+		return -ENOMEM;
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		unregister_netdev(dev);
-		ldv_deregister();
-	}
+	unregister_netdev(dev);
 }
 
 module_init(ldv_init);

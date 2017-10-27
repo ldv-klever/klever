@@ -49,6 +49,7 @@ struct proto_ops ldv_proto_ops = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return sock_register(& ldv_driver);
 }
 

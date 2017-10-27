@@ -44,10 +44,9 @@ static int __init ldv_init(void)
 	unsigned long *flags = ldv_undef_ptr();
 	int ret = ldv_undef_int();
 
-	ldv_register();
+	ldv_invoke_test();
 	ldv_dev = atm_dev_register("ldv", &ldv_ops, ldv_undef_int(), flags);
 	if (!ldv_dev) {
-		ldv_deregister();
 		ret = ldv_undef_int_negative();
 	}
 	return ret;
@@ -56,7 +55,6 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void)
 {
 	atm_dev_deregister(ldv_dev);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

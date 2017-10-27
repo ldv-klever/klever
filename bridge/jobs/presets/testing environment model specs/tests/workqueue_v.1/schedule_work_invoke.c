@@ -29,6 +29,7 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	INIT_WORK(&work, ldv_handler);
 	schedule_work(&work);
 	return 0;

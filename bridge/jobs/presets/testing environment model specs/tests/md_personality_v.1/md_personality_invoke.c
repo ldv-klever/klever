@@ -40,6 +40,7 @@ static struct md_personality ldv_personality =
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return register_md_personality(&ldv_personality);
 }
 

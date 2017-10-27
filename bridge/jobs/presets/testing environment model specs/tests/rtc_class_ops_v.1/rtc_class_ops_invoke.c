@@ -36,11 +36,10 @@ static const struct rtc_class_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-	ldv_register();
+	ldv_invoke_test();
 	dev = ldv_undef_ptr();
 	rtc = rtc_device_register("rtc-ldv", dev, &ldv_ops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
-		ldv_deregister();
 		return PTR_ERR(rtc);
 	}
 	return 0;

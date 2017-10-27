@@ -38,6 +38,7 @@ static struct file_system_type ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return register_filesystem(&ldv_driver);
 }
 

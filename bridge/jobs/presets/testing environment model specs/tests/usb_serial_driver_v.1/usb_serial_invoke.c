@@ -42,6 +42,7 @@ static struct usb_serial_driver ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return usb_serial_register(& ldv_driver);
 }
 

@@ -38,6 +38,7 @@ static struct scsi_device_handler ldv_test_struct = {
 
 static int __init test_init(void)
 {
+	ldv_invoke_test();
 	return scsi_register_device_handler(&ldv_test_struct);
 }
 

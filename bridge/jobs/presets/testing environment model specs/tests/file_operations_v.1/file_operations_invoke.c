@@ -47,6 +47,7 @@ static struct cdev ldv_cdev = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	cdev_init(&ldv_cdev, &ldv_fops);
 	return 0;
 }

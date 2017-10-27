@@ -30,7 +30,7 @@ static void ldv_handler(struct work_struct *work)
 static int __init ldv_init(void)
 {
 	int cpu = 1;
-
+	ldv_invoke_test();
 	INIT_WORK(&work, ldv_handler);
 	schedule_work_on(cpu, &work);
 	return 0;

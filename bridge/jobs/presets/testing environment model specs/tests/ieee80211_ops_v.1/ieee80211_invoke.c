@@ -40,13 +40,12 @@ static const struct ieee80211_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-	ldv_register();
+	ldv_invoke_test();
 	priv = ieee80211_alloc_hw(sizeof(struct ieee80211_ops), &ldv_ops);
 	if (priv) {
 		return 0;
 	}
 	else {
-		ldv_deregister();
 		return -ENOMEM;
 	}
 }
@@ -54,7 +53,6 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void)
 {
 	ieee80211_free_hw(priv);
-	ldv_deregister();
 }
 
 module_init(ldv_init);

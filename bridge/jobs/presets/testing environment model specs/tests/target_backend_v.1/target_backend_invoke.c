@@ -42,6 +42,7 @@ static struct target_backend_ops ldv_driver = {
 
 static int __init ldv_init(void)
 {
+	ldv_invoke_test();
 	return transport_backend_register(&ldv_driver);
 }
 
