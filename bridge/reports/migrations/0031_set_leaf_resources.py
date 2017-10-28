@@ -29,5 +29,5 @@ def set_leaf_resources(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0031_auto_20171027_1638')]
+    dependencies = [('reports', '0030_auto_20171027_1638')]
     operations = [migrations.RunPython(set_leaf_resources)]
