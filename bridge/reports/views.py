@@ -431,7 +431,7 @@ def report_unsafe(request, report_id):
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
                 'include_jquery_ui': True,
-                'resources': reports.utils.get_parent_resources(request.user, report)
+                'resources': reports.utils.get_leaf_resources(request.user, report)
             }
         )
     except Exception as e:
@@ -475,7 +475,7 @@ def report_safe(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': proof_content,
-                'resources': reports.utils.get_parent_resources(request.user, report)
+                'resources': reports.utils.get_leaf_resources(request.user, report)
             }
         )
     except Exception as e:
@@ -516,7 +516,7 @@ def report_unknown(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'resources': reports.utils.get_parent_resources(request.user, report)
+                'resources': reports.utils.get_leaf_resources(request.user, report)
             }
         )
     except Exception as e:
