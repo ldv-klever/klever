@@ -17,29 +17,39 @@
 
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-    struct device *dev;
-    struct page *page;
-    void *cpu_addr;
-    void *ptr;
-    struct dma_attrs *attrs;
-    dma_addr_t map;
+	gfp_t gfp_mask = ldv_undef_uint();
+	struct page *page;
+	DEFINE_DMA_ATTRS(attrs);
+	struct device *dev = ldv_undef_ptr_non_null();
+	size_t offset = ldv_undef_uint(), size = ldv_undef_uint();
+	unsigned int dir = ldv_undef_uint();
+	dma_addr_t map;
+	void *cpu_addr = ldv_undef_ptr(), *ptr = ldv_undef_ptr();
 
-	map = dma_map_page(dev, page, 0, 1, DMA_BIDIRECTIONAL);
-	if (dma_mapping_error(dev, map))
-	    return -1;
+	page = alloc_page(gfp_mask);
+	ldv_assume(page != NULL);
+	dma_set_attr(ldv_undef_uint(), &attrs);
 
-	map = dma_map_single(dev, cpu_addr, 1, DMA_BIDIRECTIONAL);
+	map = dma_map_page(dev, page, offset, size, dir);
 	if (dma_mapping_error(dev, map))
-	    return -1;
+		return ldv_undef_int_negative();
 
-    map = dma_map_single_attrs(dev, ptr, 1, DMA_BIDIRECTIONAL, attrs);
+	map = dma_map_single(dev, cpu_addr, size, dir);
 	if (dma_mapping_error(dev, map))
-	    return -1;
+		return ldv_undef_int_negative();
+
+    map = dma_map_single_attrs(dev, ptr, size, dir, &attrs);
+	if (dma_mapping_error(dev, map))
+		return ldv_undef_int_negative();
+
+	__free_page(page);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

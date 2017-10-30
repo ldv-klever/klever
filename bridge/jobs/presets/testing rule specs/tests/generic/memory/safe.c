@@ -17,9 +17,9 @@
 
 #include <linux/module.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

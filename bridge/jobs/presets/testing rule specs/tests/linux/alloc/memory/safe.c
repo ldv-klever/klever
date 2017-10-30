@@ -15,32 +15,33 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/etherdevice.h>
 #include <linux/gfp.h>
+#include <linux/etherdevice.h>
+#include <verifier/nondet.h>
+#include "memory.h"
 
-static struct my_struct
+static int __init ldv_init(void)
 {
-	const char *name;
-	unsigned int *irq;
-};
+	size_t n = ldv_undef_uint();
+	int sizeof_priv = ldv_undef_int();
+	unsigned int txqs = ldv_undef_uint(), rxqs = ldv_undef_uint();
+	struct ldv_struct *ldv1, *ldv2, *ldv3;
 
-static int __init my_init(void)
-{
-	int sizeof_priv, length;
-	unsigned int txqs, rxqs;
-	struct my_struct *mem_1 = kmalloc(sizeof(struct my_struct), GFP_ATOMIC);
-	struct my_struct *mem_2 = kcalloc(length, sizeof(struct my_struct), GFP_ATOMIC);
-	struct net_device *mem_3 = alloc_etherdev_mqs(sizeof_priv, txqs, rxqs);
-	if (!IS_ERR_OR_NULL(mem_1))
-		kfree(mem_1);
-	if (!IS_ERR_OR_NULL(mem_2))
-		kfree(mem_2);
-	if (!IS_ERR_OR_NULL(mem_3))
-		kfree(mem_3);
+	ldv1 = kmalloc(sizeof(struct ldv_struct), GFP_ATOMIC);
+	ldv_assume(ldv1);
+	kfree(ldv1);
+
+	ldv2 = kcalloc(n, sizeof(struct ldv_struct), GFP_ATOMIC);
+	ldv_assume(ldv2);
+	kfree(ldv2);
+
+	ldv3 = alloc_etherdev_mqs(sizeof_priv, txqs, rxqs);
+	ldv_assume(ldv3);
+	kfree(ldv3);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

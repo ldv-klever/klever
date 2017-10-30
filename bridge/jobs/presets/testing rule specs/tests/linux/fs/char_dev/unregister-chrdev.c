@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	dev_t *dev;
-	unsigned int count;
+	dev_t dev = ldv_undef_uint();
+	unsigned int count = ldv_undef_uint();
 
-	unregister_chrdev_region(dev, count);
+	unregister_chrdev_region(&dev, count);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

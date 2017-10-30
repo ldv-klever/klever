@@ -15,18 +15,16 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-
+#include <verifier/common.h>
 
 static int ldv_usb_probe(struct usb_interface *interface,
                          const struct usb_device_id *id)
 {
-	int err;
-	struct usb_driver *ldv_usb_driver2;
+	struct usb_driver driver;
 
-	err = usb_register(ldv_usb_driver2);
+	ldv_assume(usb_register(&driver) < 0);
 
 	return 0;
 }
@@ -35,9 +33,12 @@ static struct usb_driver ldv_usb_driver = {
 	.probe = ldv_usb_probe
 };
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	return usb_register(&ldv_usb_driver);
+	ldv_assume(!usb_register(&ldv_usb_driver));
+	usb_deregister(&ldv_usb_driver);
+
+	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

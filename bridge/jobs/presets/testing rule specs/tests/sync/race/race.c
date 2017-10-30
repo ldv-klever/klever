@@ -15,43 +15,41 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/device.h>
 #include <linux/mutex.h>
+#include <verifier/nondet.h>
+#include <verifier/thread.h>
 
-static DEFINE_MUTEX(my_mutex);
+static DEFINE_MUTEX(ldv_lock);
+static int _ldv_global_var;
 
-int gvar;
-
-struct my_struct {
-	int (*func)(void);
-	int (*gunc)(void);
-};
-
-int f(void) {
-	mutex_lock(&my_mutex);
-	gvar = 1;
-	mutex_unlock(&my_mutex);
-	return 0;
-}
-
-void g(void) {
-	int b;
-
-	mutex_lock(&my_mutex);
-	b = gvar;
-	mutex_unlock(&my_mutex);
-}
-
-struct my_struct my_driver = {
-	.func = f,
-	.gunc = g
-};
-
-static int __init init(void)
+static void *ldv_func1(void *arg)
 {
+	_ldv_global_var = 1;
+	return NULL;
+}
+
+static void *ldv_func2(void *arg)
+{
+	int var;
+
+	mutex_lock(&ldv_lock);
+	var = _ldv_global_var;
+	mutex_unlock(&ldv_lock);
+
+	return NULL;
+}
+
+static int __init ldv_init(void)
+{
+	pthread_t thread1, thread2;
+	pthread_attr_t const *attr1 = ldv_undef_ptr(), *attr2 = ldv_undef_ptr();
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
+
+	pthread_create(&thread1, attr1, &ldv_func1, arg1);
+	pthread_create(&thread2, attr2, &ldv_func2, arg2);
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

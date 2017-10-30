@@ -25,20 +25,12 @@
       "rule specifications": ["generic:memory"]
     },
     {
-      "Linux kernel": {"external modules": "tests/linux/empty"},
-      "rule specifications": [
-        "linux:alloc:irq",
-        "linux:alloc:spinlock",
-        "linux:alloc:usb lock",
-        "linux:kernel:locking:spinlock",
-        "linux:kernel:locking:rwlock",
-        "linux:kernel:locking:mutex",
-        "linux:mmc:sdio_func"
-      ]
-    },
-    {
       "Linux kernel": {"external modules": "tests/linux/alloc/irq"},
       "rule specifications": ["linux:alloc:irq"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/linux/alloc/memory"},
+      "rule specifications": ["linux:alloc"]
     },
     {
       "Linux kernel": {"external modules": "tests/linux/alloc/spinlock"},
@@ -47,10 +39,6 @@
     {
       "Linux kernel": {"external modules": "tests/linux/alloc/usb-lock"},
       "rule specifications": ["linux:alloc:usb lock"]
-    },
-    {
-      "Linux kernel": {"external modules": "tests/linux/alloc/memory"},
-      "rule specifications": ["linux:alloc"]
     },
     {
       "Linux kernel": {"external modules": "tests/linux/arch/io"},
@@ -85,6 +73,18 @@
       "rule specifications": ["linux:drivers:clk2"]
     },
     {
+      "Linux kernel": {"external modules": "tests/linux/empty"},
+      "rule specifications": [
+        "linux:alloc:irq",
+        "linux:alloc:spinlock",
+        "linux:alloc:usb lock",
+        "linux:kernel:locking:spinlock",
+        "linux:kernel:locking:rwlock",
+        "linux:kernel:locking:mutex",
+        "linux:mmc:sdio_func"
+      ]
+    },
+    {
       "Linux kernel": {"external modules": "tests/linux/fs/char_dev"},
       "rule specifications": ["linux:fs:char_dev"]
     },
@@ -105,6 +105,14 @@
       "rule specifications": ["linux:kernel:locking:spinlock"]
     },
     {
+      "Linux kernel": {"external modules": "tests/linux/kernel/module"},
+      "rule specifications": ["linux:kernel:module"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/srcu"},
+      "rule specifications": ["linux:kernel:rcu:srcu"]
+    },
+    {
       "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock"},
       "rule specifications": ["linux:kernel:rcu:update:lock"]
     },
@@ -117,23 +125,15 @@
       "rule specifications": ["linux:kernel:rcu:update:lock sched"]
     },
     {
-      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/srcu"},
-      "rule specifications": ["linux:kernel:rcu:srcu"]
-    },
-    {
       "Linux kernel": {"external modules": "tests/linux/kernel/sched/completion"},
       "rule specifications": ["linux:kernel:sched:completion"]
     },
     {
       "Linux kernel": {
         "config file": "configs/no-lockdep",
-        "external modules": "tests/linux/kernel/sched/completion/no-lockdep"
+        "external modules": "tests/linux/kernel/sched/completion-no-lockdep"
       },
       "rule specifications": ["linux:kernel:sched:completion"]
-    },
-    {
-      "Linux kernel": {"external modules": "tests/linux/kernel/module"},
-      "rule specifications": ["linux:kernel:module"]
     },
     {
       "Linux kernel": {"external modules": "tests/linux/lib/find_bit"},
@@ -180,7 +180,7 @@
       "rule specifications": ["linux:usb:urb"]
     },
     {
-      "Linux kernel": {"external modules": "tests/sync/races"},
+      "Linux kernel": {"external modules": "tests/sync/race"},
       "rule specifications": ["sync:race"]
     }
   ]

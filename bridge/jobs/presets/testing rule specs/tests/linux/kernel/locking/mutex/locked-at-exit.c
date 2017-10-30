@@ -18,12 +18,12 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 
-static DEFINE_MUTEX(mutex);
+static DEFINE_MUTEX(ldv_lock);
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	mutex_lock(&mutex);
+	mutex_lock(&ldv_lock);
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

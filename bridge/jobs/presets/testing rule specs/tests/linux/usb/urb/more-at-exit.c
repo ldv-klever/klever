@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <linux/types.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct urb *tmp_1;
-	int iso_packets;
-	gfp_t mem_flags;
+	int iso_packets = ldv_undef_int();
+	gfp_t mem_flags = ldv_undef_uint();
 
-	tmp_1 = usb_alloc_urb(iso_packets, mem_flags);
+	ldv_assume(usb_alloc_urb(iso_packets, mem_flags) != NULL);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

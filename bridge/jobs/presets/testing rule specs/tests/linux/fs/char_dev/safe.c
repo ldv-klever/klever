@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
 	dev_t *dev;
 	const struct file_operations *fops;
@@ -44,4 +43,4 @@ static int __init init(void)
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

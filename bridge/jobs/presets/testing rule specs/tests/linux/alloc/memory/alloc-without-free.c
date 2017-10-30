@@ -15,21 +15,20 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/gfp.h>
+#include <verifier/nondet.h>
+#include "memory.h"
 
-static struct my_struct
+static int __init ldv_init(void)
 {
-	const char *name;
-	unsigned int *irq;
-};
+	struct ldv_struct *ldv1;
 
-static int __init my_init(void)
-{
-	struct my_struct *mem_1 = kmalloc(sizeof(struct my_struct), GFP_ATOMIC);
+	ldv1 = kmalloc(sizeof(struct ldv_struct), GFP_ATOMIC);
+	ldv_assume(ldv1);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

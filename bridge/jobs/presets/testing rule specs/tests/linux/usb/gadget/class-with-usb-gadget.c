@@ -15,26 +15,23 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
+#include <verifier/common.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct class *cur_class;
-	struct usb_gadget_driver *cur_driver;
+	struct usb_gadget_driver driver;
+	struct class class;
 
-	// All at once.
-	if (!usb_gadget_probe_driver(cur_driver)) {
-		if (class_register(cur_class) == 0) {
-			class_unregister(cur_class);
-		}
-		usb_gadget_unregister_driver(cur_driver);
-	}
+	ldv_assume(!usb_gadget_probe_driver(&driver));
+	ldv_assume(!class_register(&class));
+	class_destroy(&class);
+	usb_gadget_unregister_driver(&driver);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

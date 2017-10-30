@@ -16,8 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/mutex.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
@@ -26,56 +24,56 @@
 irqreturn_t handler(void){return IRQ_HANDLED;}
 
 /* This is a safe test for rule 0150 to verify that the implementation is working correctly and it supports multiple nested claims. */
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	int* err_ret = kmalloc(sizeof(int), 0);
-	struct mmc_host* test_host = mmc_alloc_host(0, 0);
-	struct mmc_host* test_host1 = mmc_alloc_host(0, 0);
-	struct mmc_card test_card;
-	struct mmc_card test_card1;
-	struct sdio_func test_func;
-	struct sdio_func test_func1;
+	int *err_ret = kmalloc(sizeof(int), 0);
+	struct mmc_host *mmc;
+	struct mmc_host *mmc1;
+	struct mmc_card card;
+	struct mmc_card card1;
+	struct sdio_func func;
+	struct sdio_func func1;
 
-	test_card.type = MMC_TYPE_SDIO;
-	test_card1.type = MMC_TYPE_SDIO;
+	mmc = mmc_alloc_host(0, 0);
+	mmc1 = mmc_alloc_host(0, 0);
+	card.type = MMC_TYPE_SDIO;
+	card1.type = MMC_TYPE_SDIO;
+	card.host = mmc;
+	func.card = &card;
+	card1.host = mmc1;
+	func1.card = &card1;
+	func.device = 1;
+	func1.device = 2;
 
-	test_card.host = test_host;
-	test_func.card = &test_card;
-	test_card1.host = test_host1;
-	test_func1.card = &test_card1;
-
-	test_func.device = 1;
-	test_func1.device = 2;
-
-	sdio_claim_host(&test_func);
+	sdio_claim_host(&func);
 	printk(KERN_DEBUG "two sdio func claimed\n");
 
-	sdio_enable_func(&test_func);
-	sdio_disable_func(&test_func);
-	sdio_claim_irq(	&test_func, handler);
-	sdio_release_irq(&test_func);
-	sdio_readb(&test_func, 0, err_ret);
-	sdio_readw(&test_func, 0, err_ret);
-	sdio_readl(&test_func, 0, err_ret);
-	sdio_readsb(&test_func, 0, 0, 0);
-	sdio_writeb(&test_func, 0, 0 ,err_ret);
-	sdio_writew(&test_func, 0, 0, err_ret);
-	sdio_writel(&test_func, 0, 0, err_ret);
-	sdio_writesb(&test_func, 0, 0, 0);
-	sdio_writeb_readb(&test_func, 0, 0, err_ret);
-	sdio_memcpy_fromio(&test_func, 0 , 0, 0);
-	sdio_memcpy_toio(&test_func, 0, 0, 0);
-	sdio_f0_readb(&test_func, 0, err_ret);
-	sdio_f0_writeb(&test_func, 0, 0 ,err_ret);
+	sdio_enable_func(&func);
+	sdio_disable_func(&func);
+	sdio_claim_irq(	&func, handler);
+	sdio_release_irq(&func);
+	sdio_readb(&func, 0, err_ret);
+	sdio_readw(&func, 0, err_ret);
+	sdio_readl(&func, 0, err_ret);
+	sdio_readsb(&func, 0, 0, 0);
+	sdio_writeb(&func, 0, 0 ,err_ret);
+	sdio_writew(&func, 0, 0, err_ret);
+	sdio_writel(&func, 0, 0, err_ret);
+	sdio_writesb(&func, 0, 0, 0);
+	sdio_writeb_readb(&func, 0, 0, err_ret);
+	sdio_memcpy_fromio(&func, 0 , 0, 0);
+	sdio_memcpy_toio(&func, 0, 0, 0);
+	sdio_f0_readb(&func, 0, err_ret);
+	sdio_f0_writeb(&func, 0, 0 ,err_ret);
 
-	sdio_release_host(&test_func);
-	sdio_claim_host(&test_func);
-	sdio_release_host(&test_func);
+	sdio_release_host(&func);
+	sdio_claim_host(&func);
+	sdio_release_host(&func);
 
-	sdio_claim_host(&test_func1);
-	sdio_release_host(&test_func1);
+	sdio_claim_host(&func1);
+	sdio_release_host(&func1);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

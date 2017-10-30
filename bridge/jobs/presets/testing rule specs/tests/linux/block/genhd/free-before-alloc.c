@@ -17,14 +17,15 @@
 
 #include <linux/module.h>
 #include <linux/genhd.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	int minors;
-	struct gendisk *disk;
+	struct gendisk *disk = ldv_undef_ptr();
+
 	put_disk(disk);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

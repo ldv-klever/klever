@@ -15,31 +15,29 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <linux/types.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct urb *tmp_1;
-	struct urb *tmp_2;
-	struct urb *tmp_3;
-	int iso_packets;
-	gfp_t mem_flags;
+	int iso_packets1 = ldv_undef_int(), iso_packets2 = ldv_undef_int(), iso_packets3 = ldv_undef_int();
+	gfp_t mem_flags1 = ldv_undef_uint(), mem_flags2 = ldv_undef_uint(), mem_flags3 = ldv_undef_uint();
+	struct urb *urb1;
+	struct urb *urb2;
+	struct urb *urb3;
 
-	tmp_1 = usb_alloc_urb(iso_packets, mem_flags);
-	tmp_2 = usb_alloc_urb(iso_packets, mem_flags);
+	urb1 = usb_alloc_urb(iso_packets1, mem_flags1);
+	urb2 = usb_alloc_urb(iso_packets2, mem_flags2);
+	usb_free_urb(urb1);
+	usb_free_urb(urb2);
 
-	usb_free_urb(tmp_1);
-	usb_free_urb(tmp_2);
-
-	tmp_3 = usb_alloc_urb(iso_packets, mem_flags);
-	tmp_3 = usb_get_urb(tmp_3);
-	usb_put_urb(tmp_3);
-	usb_put_urb(tmp_3);
+	urb3 = usb_alloc_urb(iso_packets3, mem_flags3);
+	urb3 = usb_get_urb(urb3);
+	usb_put_urb(urb3);
+	usb_put_urb(urb3);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

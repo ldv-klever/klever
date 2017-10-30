@@ -15,44 +15,27 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/vmalloc.h>
+#include <linux/slab.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static struct my_struct
+static int __init ldv_init(void)
 {
-	const char *name;
-	unsigned int *irq;
-};
+	struct usb_device *udev = ldv_undef_ptr_non_null();
+	unsigned long size = ldv_undef_ulong();
+	void *data;
 
-static int undef_int(void)
-{
-	int nondet;
-	return nondet;
-}
-
-static void memory_allocation_nonatomic(void)
-{
-	int size, node;
-	void *mem;
-	if (undef_int()) mem = vmalloc(size);
-	if (undef_int()) mem = vzalloc(size);
-	if (undef_int()) mem = vmalloc_user(size);
-	if (undef_int()) mem = vmalloc_node(size, node);
-	if (undef_int()) mem = vzalloc_node(size, node);
-	if (undef_int()) mem = vmalloc_exec(size);
-	if (undef_int()) mem = vmalloc_32(size);
-	if (undef_int()) mem = vmalloc_32_user(size);
-}
-
-static int __init my_init(void)
-{
-	struct usb_device *udev;
 	usb_lock_device(udev);
-	memory_allocation_nonatomic();
+	data = vmalloc(size);
+	ldv_assume(data != NULL);
 	usb_unlock_device(udev);
+
+	kfree(data);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

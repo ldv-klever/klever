@@ -15,21 +15,19 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
+	unsigned int major = ldv_undef_uint();
+	const char *name = ldv_undef_ptr();
+	const struct file_operations fops;
 
-	if (!register_chrdev(count, "test", fops)) {
-		unregister_chrdev_region(dev, count);
-	}
+	ldv_assume(!register_chrdev(major, name, &fops));
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

@@ -17,15 +17,18 @@
 
 #include <linux/module.h>
 #include <linux/blkdev.h>
-#include <linux/types.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct request_queue *r;
-	int x;
-	gfp_t flags;
-	struct request *request_1 = blk_get_request(r, x, flags);
+	struct request_queue *q = ldv_undef_ptr();
+	int rw = ldv_undef_int();
+	gfp_t gfp_mask = ldv_undef_uint();
+
+	ldv_assume(blk_get_request(q, rw, gfp_mask) != NULL);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

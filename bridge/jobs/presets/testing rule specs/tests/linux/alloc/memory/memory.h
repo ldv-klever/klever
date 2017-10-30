@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
  * Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,20 +15,8 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/spinlock.h>
-
-static int __init my_init(void)
+struct ldv_struct
 {
-	spinlock_t *lock;
-
-	spin_trylock(lock);
-	if (spin_is_locked(lock)) {
-		spin_unlock(lock);
-	}
-
-	return 0;
-}
-
-module_init(my_init);
+	const char *name;
+	unsigned int irq;
+};

@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	dev_t *dev;
-	unsigned int baseminor, count;
+	dev_t dev = ldv_undef_uint();
+	unsigned int baseminor = ldv_undef_uint(), count = ldv_undef_uint();
+	const char *name = ldv_undef_ptr();
 
-	alloc_chrdev_region(dev, baseminor, count, "test__");
+	ldv_assume(!alloc_chrdev_region(&dev, baseminor, count, name));
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);
