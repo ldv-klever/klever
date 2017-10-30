@@ -29,10 +29,6 @@
       "rule specifications": ["linux:alloc:irq"]
     },
     {
-      "Linux kernel": {"external modules": "tests/linux/alloc/memory"},
-      "rule specifications": ["linux:alloc"]
-    },
-    {
       "Linux kernel": {"external modules": "tests/linux/alloc/spinlock"},
       "rule specifications": ["linux:alloc:spinlock"]
     },
@@ -80,13 +76,8 @@
         "linux:alloc:usb lock",
         "linux:kernel:locking:spinlock",
         "linux:kernel:locking:rwlock",
-        "linux:kernel:locking:mutex",
-        "linux:mmc:sdio_func"
+        "linux:kernel:locking:mutex"
       ]
-    },
-    {
-      "Linux kernel": {"external modules": "tests/linux/fs/char_dev"},
-      "rule specifications": ["linux:fs:char_dev"]
     },
     {
       "Linux kernel": {"external modules": "tests/linux/fs/sysfs"},
@@ -144,10 +135,6 @@
       "rule specifications": ["linux:lib:idr"]
     },
     {
-      "Linux kernel": {"external modules": "tests/linux/mmc"},
-      "rule specifications": ["linux:mmc:sdio_func"]
-    },
-    {
       "Linux kernel": {"external modules": "tests/linux/net/register"},
       "rule specifications": ["linux:net:register"]
     },
@@ -182,6 +169,20 @@
     {
       "Linux kernel": {"external modules": "tests/sync/race"},
       "rule specifications": ["sync:race"]
+    }
+  ],
+  "Sub-jobs staging": [
+    {
+      "Linux kernel": {"external modules": "tests/linux/alloc/memory"},
+      "rule specifications": ["linux:alloc"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/linux/fs/char_dev"},
+      "rule specifications": ["linux:fs:char_dev"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/linux/mmc"},
+      "rule specifications": ["linux:mmc:sdio_func"]
     }
   ]
 }
