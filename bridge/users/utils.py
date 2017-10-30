@@ -87,7 +87,7 @@ REPORT_CHILDREN_VIEW = {
 
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
@@ -101,7 +101,7 @@ UNSAFES_VIEW = {
 }
 
 SAFES_VIEW = {
-    'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     # 'order': ['down', 'attr', 'Rule specification'],
@@ -116,7 +116,7 @@ SAFES_VIEW = {
 }
 
 UNKNOWNS_VIEW = {
-    'columns': ['marks_number', 'parent_cpu'],
+    'columns': ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, component|attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     'order': ['down', 'component', ''],
