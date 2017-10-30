@@ -400,7 +400,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
             self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
-    # TODO: very close to code in job.py. Maybe join them.
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:
@@ -434,3 +433,65 @@ class Component(multiprocessing.Process, CallbacksCaller):
             for p in subcomponent_processes:
                 if p.is_alive():
                     p.stop()
+
+    def launch_children_set(self, queue_name, constructor, number, fail_tolerant):
+        """
+        Blocking function that run given number of workers processing elements of particular queue.
+
+        :param queue_name: multiprocessing.Queue
+        :param constructor: Function that gets element and returns Component
+        :param number: Max number of simultaneously working workers
+        :param fail_tolerant: True if no need to stop processing on fail.
+        :return: None
+        """
+        self.logger.info("Start children set for queue {!r} with {!r} workers".format(queue_name, number))
+        active = True
+        elements = []
+        components = []
+        try:
+            while True:
+                # Fetch all new elements
+                if active:
+                    active = core.utils.drain_queue(elements, queue_name)
+
+                # Then run new workers
+                diff = number - len(components)
+                if len(components) < number and len(elements) > 0:
+                    self.logger.debug("Going to start {} new workers".format(diff))
+                    for _ in range(min(number - len(components), len(elements))):
+                        element = elements.pop(0)
+                        worker = constructor(element)
+                        if isinstance(worker, Component):
+                            components.append(worker)
+                            worker.start()
+                        else:
+                            raise TypeError("Incorrect constructor, expect Component but get {}".
+                                            format(type(worker).__name__))
+
+                # Wait for components termination
+                finished = 0
+                # Becouse we use i for deletion we always delete the element near the end to not break order of
+                # following of the rest unprocessed elements
+                for i, p in reversed(list(enumerate(list(components)))):
+                    try:
+                        p.join(1.0 / len(components))
+                    except ComponentError:
+                        # Ignore or terminate the rest
+                        if not fail_tolerant:
+                            raise RuntimeError("Sub-component failed, terminating the rest")
+
+                    # If all is OK
+                    if not p.is_alive():
+                        # Just remove it
+                        components.pop(i)
+                        finished += 1
+                if finished > 0:
+                    self.logger.debug("Finished {} workers".format(finished))
+
+                # Check that we can quit
+                if len(components) == 0 and len(elements) == 0 and not active:
+                    break
+        finally:
+            for p in components:
+                if p.is_alive():
+                    p.terminate()

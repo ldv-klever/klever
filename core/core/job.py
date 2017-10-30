@@ -27,10 +27,12 @@ import zipfile
 import traceback
 
 import core.utils
+import core.components
+import core.progress
 import core.vrp.coverage_parser
 
 
-class Job(core.utils.CallbacksCaller):
+class Job(core.components.CallbacksCaller):
     FORMAT = 1
     ARCHIVE = 'job.zip'
     DIR = 'job'
@@ -200,12 +202,12 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    core.utils.set_component_callbacks(self.logger, type(self),
-                                                       (
-                                                           after_plugin_fail_processing,
-                                                           after_process_single_verdict,
-                                                           after_process_failed_task
-                                                       ))
+                    core.components.set_component_callbacks(self.logger, type(self),
+                                                            (
+                                                                after_plugin_fail_processing,
+                                                                after_process_single_verdict,
+                                                                after_process_failed_task
+                                                            ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
                     # created and filled above can be overfilled that results in VTG processes will not terminate.
@@ -221,7 +223,8 @@ class Job(core.utils.CallbacksCaller):
                         context.logger.info('Terminate rule specifications and coverage infos message queue')
                         context.mqs['rule specifications and coverage info files'].put(None)
 
-                core.utils.set_component_callbacks(self.logger, type(self), (after_finish_task_results_processing,))
+                core.components.set_component_callbacks(self.logger, type(self),
+                                                        (after_finish_task_results_processing,))
 
                 if self.components_common_conf['collect total code coverage']:
                     self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
@@ -234,7 +237,7 @@ class Job(core.utils.CallbacksCaller):
                                                                       context.conf['main working directory'])
                             })
 
-                    core.utils.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
+                    core.components.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
 
                     self.collecting_total_coverages_process = \
                         multiprocessing.Process(target=self.collect_total_coverage)
@@ -242,8 +245,8 @@ class Job(core.utils.CallbacksCaller):
 
                 self.get_sub_job_components()
 
-                self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                    self.components_common_conf)
+                self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
+                                                                         self.components_common_conf)
 
                 self.launch_sub_job_components()
             except Exception:
@@ -292,7 +295,7 @@ class Job(core.utils.CallbacksCaller):
                         if self.collecting_total_coverages_process.exitcode:
                             raise RuntimeError('Collecting total coverages failed')
 
-                    core.utils.remove_component_callbacks(self.logger, type(self))
+                    core.components.remove_component_callbacks(self.logger, type(self))
 
                     if self.name:
                         report = {

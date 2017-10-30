@@ -31,12 +31,12 @@ import core.utils
 import core.lkbce.utils
 
 
-@core.utils.before_callback
+@core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['model headers'] = multiprocessing.Queue()
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_model_headers(context):
     context.mqs['model headers'].put(context.model_headers)
 

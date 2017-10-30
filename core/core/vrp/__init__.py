@@ -34,13 +34,13 @@ import core.utils
 from core.vrp.coverage_parser import LCOV
 
 
-@core.utils.before_callback
+@core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_common_prj_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
 

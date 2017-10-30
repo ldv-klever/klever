@@ -231,9 +231,6 @@ def is_src_tree_root(filenames):
     return False
 
 
-
-
-
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string
@@ -597,3 +594,22 @@ def time_units_converter(num, outunit=''):
     }
 
     return __converter(num, units_in_seconds, 'time', outunit)
+
+
+def drain_queue(collection, given_queue):
+    """
+    Get all available elements from the given queue without waiting.
+
+    :param collection: List.
+    :param given_queue: multiprocessing.Queue
+    :return: False - no elements will come, True - otherwise
+    """
+    try:
+        while True:
+            element = given_queue.get_nowait()
+            if element is None:
+                given_queue.close()
+                return False
+            collection.append(element)
+    except queue.Empty:
+        return True
