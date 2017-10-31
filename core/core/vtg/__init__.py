@@ -333,7 +333,7 @@ class VTG(core.components.Component):
 
         # Start plugins
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
-        self.launch_subcomponents(*subcomponents)
+        self.launch_subcomponents(False, *subcomponents)
 
         self.mqs['pending tasks'].put(None)
         self.mqs['pending tasks'].close()
@@ -557,7 +557,7 @@ class VTGWL(core.components.Component):
     def task_generating_loop(self):
         self.logger.info("Start VTGL worker")
         number = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
-        self.launch_children_set(self.mqs['prepare verification objects'], self.vtgw_constructor, number, True)
+        self.launch_queue_workers(self.mqs['prepare verification objects'], self.vtgw_constructor, number, True)
         self.logger.info("Terminate VTGL worker")
 
     def vtgw_constructor(self, element):

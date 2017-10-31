@@ -83,7 +83,8 @@ class LKVOG(core.components.Component):
                           self.mqs['report files'],
                           self.vals['report id'],
                           self.conf['main working directory'])
-        self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
+        self.launch_subcomponents(True,
+                                  ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
     def send_loc_report(self):

@@ -95,7 +95,8 @@ class LKBCE(core.components.Component):
 
             self.receive_modules_to_build()
 
-            self.launch_subcomponents(('LKB', self.build_linux_kernel),
+            self.launch_subcomponents(True,
+                                      ('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
 
             if not self.conf['keep intermediate files']:

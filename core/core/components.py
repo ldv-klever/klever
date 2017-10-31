@@ -400,41 +400,68 @@ class Component(multiprocessing.Process, CallbacksCaller):
             self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
-    def launch_subcomponents(self, *subcomponents):
-        subcomponent_processes = []
-        try:
-            for index, subcomponent in enumerate(subcomponents):
-                if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
-                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0] + str(index),
-                                                         (type(self),))
-                    setattr(subcomponent_class, 'main', subcomponent[1])
-                    # Do not try to separate these subcomponents from their parents - it is a true headache.
-                    # We always include child resources into resources of these components since otherwise they will
-                    # disappear from resources statistics.
-                else:
-                    subcomponent_class = types.new_class('KleverSubcomponent' + str(subcomponent.__name__) + str(index),
-                                                         (subcomponent,))
-                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
-                                       include_child_resources=True)
-                p.start()
-                subcomponent_processes.append(p)
+    def function_to_subcomponent(self, include_child_resources, name, executable):
+        """
+        Convert given function or component into Component to run it as a subcomponent.
 
-            self.logger.info('Wait for subcomponents')
+        :param include_child_resources: Flag.
+        :param name: Component name string.
+        :param executable: Function or Class.
+        :return: Component
+        """
+        if isinstance(executable, types.MethodType) or isinstance(executable, types.FunctionType):
+            subcomponent_class = types.new_class(name, (type(self),))
+            setattr(subcomponent_class, 'main', executable)
+        else:
+            subcomponent_class = types.new_class(name, (executable,))
+        p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
+                               include_child_resources=include_child_resources)
+        return p
+
+    def launch_workers(self, workers):
+        """
+        Wait until all given components will finish their work. If one among them fails, terminate the rest.
+
+        :param workers: List of Component objects.
+        :return: None
+        """
+        try:
+            for w in workers:
+                w.start()
+
+            self.logger.info('Wait for components')
             while True:
                 operating_subcomponents_num = 0
 
-                for p in subcomponent_processes:
-                    p.join(1.0 / len(subcomponent_processes))
+                for p in workers:
+                    p.join(1.0 / len(workers))
                     operating_subcomponents_num += p.is_alive()
 
                 if not operating_subcomponents_num:
                     break
         finally:
-            for p in subcomponent_processes:
+            for p in workers:
                 if p.is_alive():
                     p.stop()
 
-    def launch_children_set(self, queue_name, constructor, number, fail_tolerant):
+    def launch_subcomponents(self, include_child_resources, *subcomponents):
+        subcomponent_processes = []
+        for index, subcomponent in enumerate(subcomponents):
+            # Do not try to separate these subcomponents from their parents - it is a true headache.
+            # We always include child resources into resources of these components since otherwise they will
+            # disappear from resources statistics.
+            if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
+                name = 'KleverSubcomponent' + subcomponent[0] + str(index)
+                executable = subcomponent[1]
+            else:
+                name = 'KleverSubcomponent' + str(subcomponent.__name__) + str(index)
+                executable = subcomponent
+            p = self.function_to_subcomponent(include_child_resources, name, executable)
+            subcomponent_processes.append(p)
+        # Wait for their termination
+        self.launch_workers(subcomponent_processes)
+
+    def launch_queue_workers(self, queue_name, constructor, number, fail_tolerant):
         """
         Blocking function that run given number of workers processing elements of particular queue.
 

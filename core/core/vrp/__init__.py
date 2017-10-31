@@ -80,7 +80,7 @@ class VRP(core.components.Component):
         subcomponents = [('RPL', self.__result_processing)]
         for i in range(self.__workers):
             subcomponents.append(('RPWL', self.__loop_worker))
-        self.launch_subcomponents(*subcomponents)
+        self.launch_subcomponents(False, *subcomponents)
 
         # Finalize
         self.finish_task_results_processing()

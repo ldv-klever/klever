@@ -87,7 +87,7 @@ class Session:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(1)
 
-    def start_job_decision(self, job, start_report_file):
+    def start_job_decision(self, format, archive, start_report_file):
         with open(start_report_file, encoding='utf8') as fp:
             start_report = fp.read()
 
@@ -95,10 +95,10 @@ class Session:
         self.__download_archive('job', 'jobs/decide_job/',
                                 {
                                     'attempt': 0,
-                                    'job format': job.FORMAT,
+                                    'job format': format,
                                     'report': start_report
                                 },
-                                job.ARCHIVE)
+                                archive)
 
     def schedule_task(self, task_file, archive):
         with open(task_file, 'r', encoding='utf8') as fp:
