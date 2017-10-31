@@ -25,7 +25,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
 from bridge.tableHead import Header
@@ -51,9 +51,10 @@ REP_MARK_TITLES = {
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
     'tags': _('Tags'),
-    'parent_cpu': _('Verifiers cpu time'),
-    'parent_wall': _('Verifiers wall time'),
-    'parent_memory': _('Verifiers memory')
+    'verifiers': _('Verifiers'),
+    'verifiers:cpu': _('CPU time'),
+    'verifiers:wall': _('Wall time'),
+    'verifiers:memory': _('RAM')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -74,6 +75,20 @@ def computer_description(computer):
         'name': comp_name,
         'data': data
     }
+
+
+def get_column_title(column):
+    col_parts = column.split(':')
+    column_starts = []
+    for i in range(0, len(col_parts)):
+        column_starts.append(':'.join(col_parts[:(i + 1)]))
+    titles = []
+    for col_st in column_starts:
+        titles.append(REP_MARK_TITLES.get(col_st, col_st))
+    concated_title = titles[0]
+    for i in range(1, len(titles)):
+        concated_title = string_concat(concated_title, '/', titles[i])
+    return concated_title
 
 
 def get_parents(report):
@@ -151,21 +166,25 @@ class SafesTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu', 'parent_wall', 'parent_memory'}:
+            if col not in {
+                'marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+            }:
                 return []
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu', 'parent_wall', 'parent_memory']:
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+        for col in ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
@@ -308,11 +327,11 @@ class SafesTable:
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
                         val = reports[rep_id]['tags']
-                elif col == 'parent_cpu':
+                elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
-                elif col == 'parent_wall':
+                elif col == 'verifiers:wall':
                     val = get_user_time(self.user, reports[rep_id]['parent_wall'])
-                elif col == 'parent_memory':
+                elif col == 'verifiers:memory':
                     val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'color': color, 'href': href})
             else:
@@ -384,21 +403,25 @@ class UnsafesTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu', 'parent_wall', 'parent_memory'}:
+            if col not in {
+                'marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+            }:
                 return []
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu', 'parent_wall', 'parent_memory']:
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+        for col in ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
@@ -543,11 +566,11 @@ class UnsafesTable:
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
                         val = reports[rep_id]['tags']
-                elif col == 'parent_cpu':
+                elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
-                elif col == 'parent_wall':
+                elif col == 'verifiers:wall':
                     val = get_user_time(self.user, reports[rep_id]['parent_wall'])
-                elif col == 'parent_memory':
+                elif col == 'verifiers:memory':
                     val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'color': color, 'href': href})
             else:
@@ -616,21 +639,23 @@ class UnknownsTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'parent_cpu', 'parent_wall', 'parent_memory'}:
+            if col not in {'marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
                 return []
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'parent_cpu', 'parent_wall', 'parent_memory']:
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+        for col in ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
@@ -744,13 +769,13 @@ class UnknownsTable:
                     href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
-                elif col == 'parent_cpu':
+                elif col == 'verifiers:cpu':
                     if reports[rep_id]['parent_cpu'] is not None:
                         val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
-                elif col == 'parent_wall':
+                elif col == 'verifiers:wall':
                     if reports[rep_id]['parent_wall'] is not None:
                         val = get_user_time(self.user, reports[rep_id]['parent_wall'])
-                elif col == 'parent_memory':
+                elif col == 'verifiers:memory':
                     if reports[rep_id]['parent_memory'] is not None:
                         val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'href': href})

@@ -543,7 +543,7 @@ class UploadReport:
                 component=self.parent.component, problem_description=self.data['problem desc']
             )
         if self.parent.verification:
-            report.cpu_time = self.parent.cpu_time,
+            report.cpu_time = self.parent.cpu_time
             report.wall_time = self.parent.wall_time
             report.memory = self.parent.memory
         report.add_problem_desc(REPORT_ARCHIVE['problem desc'], self.archives[self.data['problem desc']], True)
