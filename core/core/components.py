@@ -175,6 +175,33 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
     return resources
 
 
+def launch_workers(logger, workers):
+    """
+    Wait until all given components will finish their work. If one among them fails, terminate the rest.
+
+    :param workers: List of Component objects.
+    :return: None
+    """
+    try:
+        for w in workers:
+            w.start()
+
+        logger.info('Wait for components')
+        while True:
+            operating_subcomponents_num = 0
+
+            for p in workers:
+                p.join(1.0 / len(workers))
+                operating_subcomponents_num += p.is_alive()
+
+            if not operating_subcomponents_num:
+                break
+    finally:
+        for p in workers:
+            if p.is_alive():
+                p.stop()
+
+
 class ComponentError(ChildProcessError):
     pass
 
@@ -228,6 +255,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.attrs = attrs
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
+        self.coverage = None
 
         self.name = type(self).__name__.replace('KleverSubcomponent', '')
         # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
@@ -330,6 +358,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
                     'resources': count_consumed_resources(self.logger, self.start_time,
                                                           self.include_child_resources, child_resources)
                 }
+                # todo: this is embarassing
+                if self.coverage:
+                    report['coverage'] = self.coverage
 
                 if os.path.isfile('log.txt'):
                     report['log'] = core.utils.ReportFiles(['log.txt'])
@@ -415,34 +446,8 @@ class Component(multiprocessing.Process, CallbacksCaller):
         else:
             subcomponent_class = types.new_class(name, (executable,))
         p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
-                               include_child_resources=include_child_resources)
+                               separate_from_parent=False, include_child_resources=include_child_resources)
         return p
-
-    def launch_workers(self, workers):
-        """
-        Wait until all given components will finish their work. If one among them fails, terminate the rest.
-
-        :param workers: List of Component objects.
-        :return: None
-        """
-        try:
-            for w in workers:
-                w.start()
-
-            self.logger.info('Wait for components')
-            while True:
-                operating_subcomponents_num = 0
-
-                for p in workers:
-                    p.join(1.0 / len(workers))
-                    operating_subcomponents_num += p.is_alive()
-
-                if not operating_subcomponents_num:
-                    break
-        finally:
-            for p in workers:
-                if p.is_alive():
-                    p.stop()
 
     def launch_subcomponents(self, include_child_resources, *subcomponents):
         subcomponent_processes = []
@@ -459,7 +464,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             p = self.function_to_subcomponent(include_child_resources, name, executable)
             subcomponent_processes.append(p)
         # Wait for their termination
-        self.launch_workers(subcomponent_processes)
+        launch_workers(self.logger, subcomponent_processes)
 
     def launch_queue_workers(self, queue_name, constructor, number, fail_tolerant):
         """

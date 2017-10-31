@@ -199,7 +199,7 @@ class RP(core.components.Component):
         self.rule_specification = None
         self.verification_object = None
         self.task_error = None
-        self.coverage = None
+        self.verification_coverage = None
         self.__exception = None
 
         # Common initialization
@@ -445,12 +445,13 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
 
-        self.coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
-                             self.conf['main working directory'], opts.get('coverage', None))
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
+                                          self.conf['main working directory'], opts.get('coverage', None))
 
         if os.path.isfile('coverage.json'):
-            report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(self.coverage.arcnames.keys()),
-                                                        arcnames=self.coverage.arcnames)
+            report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
+                                                        list(self.verification_coverage.arcnames.keys()),
+                                                        arcnames=self.verification_coverage.arcnames)
 
         core.utils.report(self.logger,
                           'verification',

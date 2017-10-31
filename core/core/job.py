@@ -46,77 +46,29 @@ def start_jobs(executor, locks, vals):
     common_components_conf = __get_common_components_conf(executor.logger, executor.conf)
     executor.logger.info("Start results arranging and reporting subcomponent")
     sub_jobs = __get_sub_jobs(executor, locks, vals, common_components_conf, job_type)
-    if isinstance(sub_jobs, list):
-        # todo: run results reporter and other jobs
-        raise NotImplementedError
-        ra = ResultsArranger(executor.conf, executor.logger, executor.ID, executor.callbacks, executor.mqs, locks, vals,
-                             separate_from_parent=False, include_child_resources=True, job_type=job_type)
-        ra.start()
-        if sub_jobs:
-            executor.logger.info('Decide sub-jobs')
+    if isinstance(sub_jobs, list) and len(sub_jobs) > 0:
+        if 'ideal verdicts' in common_components_conf:
+            ra = ResultsArranger(executor.conf, executor.logger, executor.ID, executor.callbacks, executor.mqs, locks, vals,
+                                 separate_from_parent=False, include_child_resources=True, job_type=job_type)
+            ra.start()
 
-            sub_job_solvers_num = core.utils.get_parallel_threads_num(executor.logger, common_components_conf,
-                                                                      'Sub-jobs processing')
-            executor.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+        executor.logger.info('Decide sub-jobs')
+        sub_job_solvers_num = core.utils.get_parallel_threads_num(executor.logger, common_components_conf,
+                                                                  'Sub-jobs processing')
+        executor.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+        core.components.launch_workers(executor.logger, sub_jobs)
 
-            executor.mqs['sub-job indexes'] = multiprocessing.Queue()
-            for i in range(len(sub_jobs)):
-                executor.mqs['sub-job indexes'].put(i)
-            for i in range(sub_job_solvers_num):
-                executor.mqs['sub-job indexes'].put(None)
-
-            # todo: use new factory
-            sub_job_solver_processes = []
-            try:
-                for i in range(sub_job_solvers_num):
-                    p = multiprocessing.Process(target=executor.decide_sub_job, name='Worker ' + str(i))
-                    p.start()
-                    sub_job_solver_processes.append(p)
-
-                executor.logger.info('Wait for sub-jobs')
-                while True:
-                    operating_sub_job_solvers_num = 0
-
-                    for p in sub_job_solver_processes:
-                        p.join(1.0 / len(sub_job_solver_processes))
-                        if p.exitcode:
-                            executor.logger.warning('Sub-job worker exitted with "{0}"'.format(p.exitcode))
-                            raise ChildProcessError('Decision of sub-job failed')
-                        operating_sub_job_solvers_num += p.is_alive()
-
-                    if not operating_sub_job_solvers_num:
-                        break
-            finally:
-                for p in sub_job_solver_processes:
-                    if p.is_alive():
-                        p.terminate()
-        else:
-            pass
-        ra.join()
-    # Klever Core working directory is used for the only sub-job that is job itcore.
+        if 'ideal verdicts' in common_components_conf:
+            ra.join()
+    elif isinstance(sub_jobs, list) and len(sub_jobs) == 0:
+        raise RuntimeError("There is no sub-jobs to solve")
     else:
-        # todo: run results reporter  and the job
+        # Klever Core working directory is used for the only sub-job that is job itcore.
         job = sub_jobs
         job.start()
         job.join()
         executor.logger.info("Finished main job")
     executor.logger.info('Jobs and arranging results reporter finished')
-
-    def decide_sub_job(self):
-        while True:
-            sub_job_index = self.mqs['sub-job indexes'].get()
-
-            if sub_job_index is None:
-                self.logger.debug('Sub-job indexes message queue was terminated')
-                break
-
-            try:
-                self.sub_jobs[sub_job_index].__decide_sub_job()
-            except SystemExit:
-                self.logger.error('Decision of sub-job of type "{0}" with identifier "{1}" failed'.
-                                  format(self.type, self.sub_jobs[sub_job_index].id))
-                if not self.components_common_conf['ignore failed sub-jobs']:
-                    sys.exit(1)
 
 
 def __get_common_components_conf(logger, conf):
@@ -444,7 +396,6 @@ class Job(core.components.Component):
 
         self.components = []
         self.component_processes = []
-        self.collecting_total_coverages_process = None
         self.total_coverages = multiprocessing.Manager().dict()
 
     def decide(self):
@@ -538,12 +489,14 @@ class Job(core.components.Component):
             self.get_sub_job_components()
             self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                      self.components_common_conf)
-            #self.collecting_total_coverages_process = \
+            # todo: return coverage back
+            #collecting_total_coverages_process = \
             #    self.function_to_subcomponent(True, 'coverage_reporter', self.collect_total_coverage)
-            #self.collecting_total_coverages_process.start()
+            #collecting_total_coverages_process.start()
             self.launch_sub_job_components()
             self.logger.info("All components finished, waiting for coverage reporter...")
-            #self.collecting_total_coverages_process.join()
+            #collecting_total_coverages_process.join()
+            #self.collect_total_coverage()
 
     main = decide
 
@@ -568,7 +521,7 @@ class Job(core.components.Component):
                           self.locks, self.vals, separate_from_parent=True)
             self.component_processes.append(p)
 
-        self.launch_workers(self.component_processes)
+        core.components.launch_workers(self.logger, self.component_processes)
 
     def collect_total_coverage(self):
         total_coverage_infos = {}
@@ -584,7 +537,7 @@ class Job(core.components.Component):
             rule_spec = rule_spec_and_coverage_info_files['rule specification']
             total_coverage_infos.setdefault(rule_spec, {})
 
-            with open(os.path.join(self.components_common_conf['main working directory'],
+            with open(os.path.join(self.conf['main working directory'],
                                    rule_spec_and_coverage_info_files['coverage info file']), encoding='utf8') as fp:
                 coverage_info = json.load(fp)
 
@@ -614,6 +567,4 @@ class Job(core.components.Component):
 
             total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
                                                                 arcnames)
-
-        # Share collected total coverages and arcnames to report them within Sub-job/Core finish report.
-        self.total_coverages.update(total_coverages)
+        self.coverage = total_coverages
