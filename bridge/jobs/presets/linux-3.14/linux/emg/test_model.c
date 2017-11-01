@@ -104,7 +104,7 @@ void ldv_release_completely(void)
 }
 
 /* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
-void ldv_check_final_state( void )
+void ldv_check_final_state(void)
 {
 	/* ASSERT At the end of the test all resources should be released. */
 	ldv_assert("linux:emg:test", probed == 0 || supress);
