@@ -22,7 +22,6 @@ import json
 import multiprocessing
 import os
 import re
-import sys
 import zipfile
 
 import core.utils
@@ -31,44 +30,87 @@ import core.progress
 import core.vrp.coverage_parser
 
 
-def start_jobs(executor, locks, vals):
-    executor.logger.info('Check how many jobs we need to start and setup them')
+JOB_FORMAT = 1
+JOB_ARCHIVE = 'job.zip'
 
-    executor.logger.info('Extract job archive "{0}" to directory "{1}"'.format('job.zip', 'job'))
-    with zipfile.ZipFile('job.zip') as ZipFile:
+
+def start_jobs(core_obj, locks, vals):
+    core_obj.logger.info('Check how many jobs we need to start and setup them')
+
+    core_obj.logger.info('Extract job archive "{0}" to directory "{1}"'.format(JOB_ARCHIVE, 'job'))
+    with zipfile.ZipFile(JOB_ARCHIVE) as ZipFile:
         ZipFile.extractall('job')
 
-    executor.logger.info('Get job class')
+    core_obj.logger.info('Get job class')
     with open(os.path.join('job', 'class'), encoding='utf8') as fp:
         job_type = fp.read()
-    executor.logger.debug('Job class is "{0}"'.format(job_type))
-    executor.mqs['verification statuses'] = multiprocessing.Queue()
-    common_components_conf = __get_common_components_conf(executor.logger, executor.conf)
-    executor.logger.info("Start results arranging and reporting subcomponent")
-    sub_jobs = __get_sub_jobs(executor, locks, vals, common_components_conf, job_type)
-    if isinstance(sub_jobs, list) and len(sub_jobs) > 0:
-        if 'ideal verdicts' in common_components_conf:
-            ra = ResultsArranger(executor.conf, executor.logger, executor.ID, executor.callbacks, executor.mqs, locks, vals,
-                                 separate_from_parent=False, include_child_resources=True, job_type=job_type)
+    core_obj.logger.debug('Job class is "{0}"'.format(job_type))
+
+    common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
+    core_obj.logger.info("Start results arranging and reporting subcomponent")
+
+    if 'Common' in common_components_conf and 'Sub-jobs' not in common_components_conf:
+        raise KeyError('You can not specify common sub-jobs configuration without sub-jobs themselves')
+
+    if 'Common' in common_components_conf:
+        common_components_conf.update(common_components_conf['Common'])
+        del (common_components_conf['Common'])
+
+    if 'Sub-jobs' in common_components_conf:
+        subcomponents = []
+        queues_to_terminate = []
+        if __check_ideal_verdicts(common_components_conf):
+            ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                    locks, vals, separate_from_parent=False, include_child_resources=True,
+                    job_type=job_type, queues_to_terminate=queues_to_terminate)
             ra.start()
+            subcomponents.append(ra)
+        if 'collect total code coverage' in common_components_conf and \
+                common_components_conf['collect total code coverage']:
+            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                     locks, vals, separate_from_parent=False, include_child_resources=True)
+            #cr.start()
+            #subcomponents.append(cr)
 
-        executor.logger.info('Decide sub-jobs')
-        sub_job_solvers_num = core.utils.get_parallel_threads_num(executor.logger, common_components_conf,
+        core_obj.logger.info('Decide sub-jobs')
+        sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
                                                                   'Sub-jobs processing')
-        executor.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
-        core.components.launch_workers(executor.logger, sub_jobs)
-
-        if 'ideal verdicts' in common_components_conf:
-            ra.join()
-    elif isinstance(sub_jobs, list) and len(sub_jobs) == 0:
-        raise RuntimeError("There is no sub-jobs to solve")
+        core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+        __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type)
+        # Stop queues
+        for queue in queues_to_terminate:
+            core_obj.logger.info('Terminate queue {!r}'.format(queue))
+            core_obj.mqs[queue].put(None)
+        # Stop subcomponents
+        core_obj.logger.info('Jobs are solved, waiting for subcomponents')
+        for subcomponent in subcomponents:
+            subcomponent.join()
     else:
         # Klever Core working directory is used for the only sub-job that is job itcore.
-        job = sub_jobs
+        job = Job(
+            core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+            locks, vals,
+            id=core_obj.ID,
+            work_dir=os.path.join(os.path.curdir, 'job'),
+            separate_from_parent=True,
+            include_child_resources=False,
+            job_type=job_type,
+            components_common_conf=common_components_conf)
         job.start()
         job.join()
-        executor.logger.info("Finished main job")
-    executor.logger.info('Jobs and arranging results reporter finished')
+        core_obj.logger.info("Finished main job")
+    core_obj.logger.info('Jobs and arranging results reporter finished')
+
+
+def __check_ideal_verdicts(conf):
+    # Check that configuration has ideal verdicts sets for at least one sub-job
+    if 'ideal verdicts' in conf:
+        return True
+    if 'Sub-jobs' in conf:
+        for sj in conf['Sub-jobs']:
+            if 'ideal verdicts' in sj:
+                return True
+    return False
 
 
 def __get_common_components_conf(logger, conf):
@@ -92,98 +134,98 @@ def __get_common_components_conf(logger, conf):
     return components_common_conf
 
 
-def __get_sub_jobs(executor, locks, vals, components_common_conf, job_type):
-    executor.logger.info('Get job sub-jobs')
+def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type):
     sub_jobs = []
 
-    if 'Common' in components_common_conf and 'Sub-jobs' not in components_common_conf:
-        raise KeyError('You can not specify common sub-jobs configuration without sub-jobs themselves')
+    def constructor(number):
+        # Sub-job configuration is based on common sub-jobs configuration.
+        sub_job_components_common_conf = copy.deepcopy(components_common_conf)
+        del (sub_job_components_common_conf['Sub-jobs'])
+        sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf,
+                                                       components_common_conf['Sub-jobs'][number])
 
-    if 'Common' in components_common_conf:
-        components_common_conf.update(components_common_conf['Common'])
-        del (components_common_conf['Common'])
+        core_obj.logger.info('Get sub-job name and type')
+        external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
 
-    if 'Sub-jobs' in components_common_conf:
-        for sub_job_concrete_conf in components_common_conf['Sub-jobs']:
-            # Sub-job configuration is based on common sub-jobs configuration.
-            sub_job_components_common_conf = copy.deepcopy(components_common_conf)
-            del (sub_job_components_common_conf['Sub-jobs'])
-            sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
+        modules = sub_job_concrete_conf['Linux kernel']['modules']
+        if len(modules) == 1:
+            modules_hash = modules[0]
+        else:
+            modules_hash = hashlib.sha1(''.join(modules).encode('utf8')).hexdigest()[:7]
 
-            executor.logger.info('Get sub-job name and type')
-            external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
+        rule_specs = sub_job_concrete_conf['rule specifications']
+        if len(rule_specs) == 1:
+            rule_specs_hash = rule_specs[0]
+        else:
+            rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
 
-            modules = sub_job_concrete_conf['Linux kernel']['modules']
-            if len(modules) == 1:
-                modules_hash = modules[0]
-            else:
-                modules_hash = hashlib.sha1(''.join(modules).encode('utf8')).hexdigest()[:7]
+        if job_type == 'Validation on commits in Linux kernel Git repositories':
+            commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
+            if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
+                raise ValueError(
+                    'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'
+                    .format(commit))
 
-            rule_specs = sub_job_concrete_conf['rule specifications']
-            if len(rule_specs) == 1:
-                rule_specs_hash = rule_specs[0]
-            else:
-                rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
+            sub_job_name_prefix = os.path.join(commit, external_modules)
+        elif job_type == 'Verification of Linux kernel modules':
+            sub_job_name_prefix = os.path.join(str(number), external_modules)
+        else:
+            raise NotImplementedError('Job class "{0}" is not supported'.format(job_type))
+        sub_job_name = os.path.join(sub_job_name_prefix, modules_hash, rule_specs_hash)
+        sub_job_work_dir = os.path.join(sub_job_name_prefix, modules_hash,
+                                        re.sub(r'\W', '-', rule_specs_hash))
+        core_obj.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, job_type))
 
-            if job_type == 'Validation on commits in Linux kernel Git repositories':
-                commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
-                if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
-                    raise ValueError(
-                        'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
-                            commit))
-                sub_job_name_prefix = os.path.join(commit, external_modules)
-                sub_job_name = os.path.join(commit, external_modules, modules_hash, rule_specs_hash)
-                sub_job_work_dir = os.path.join(commit, external_modules, modules_hash,
-                                                re.sub(r'\W', '-', rule_specs_hash))
-                sub_job_type = 'Verification of Linux kernel modules'
-            elif job_type == 'Verification of Linux kernel modules':
-                sub_job_name_prefix = os.path.join(external_modules)
-                sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
-                sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
-                sub_job_type = 'Verification of Linux kernel modules'
-            else:
-                raise NotImplementedError('Job class "{0}" is not supported'.format(job_type))
-            executor.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, sub_job_type))
+        sub_job_id = core_obj.ID + sub_job_name
 
-            sub_job_id = executor.ID + sub_job_name
+        for sub_job in sub_jobs:
+            if sub_job.id == sub_job_id:
+                raise ValueError('Several sub-jobs have the same identifier "{0}"'.format(sub_job_id))
 
-            for sub_job in sub_jobs:
-                if sub_job.id == sub_job_id:
-                    raise ValueError('Several sub-jobs have the same identifier "{0}"'.format(sub_job_id))
-
-            sub_job = Job(
-                executor.conf, executor.logger, executor.ID, executor.callbacks, executor.mqs,
-                locks, vals,
-                id=sub_job_id,
-                work_dir=sub_job_work_dir,
-                separate_from_parent=True,
-                include_child_resources=False,
-                job_type=job_type,
-                components_common_conf=sub_job_concrete_conf,
-                name_prefix=sub_job_name_prefix)
-            sub_jobs.append(sub_job)
-    else:
-        return Job(
-            executor.conf, executor.logger, executor.ID, executor.callbacks, executor.mqs,
+        job = Job(
+            core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             locks, vals,
-            id=executor.ID,
-            work_dir=os.path.join(os.path.curdir, 'job'),
+            id=sub_job_id,
+            work_dir=sub_job_work_dir,
             separate_from_parent=True,
             include_child_resources=False,
             job_type=job_type,
-            components_common_conf=components_common_conf)
+            components_common_conf=sub_job_concrete_conf,
+            name_prefix=sub_job_name_prefix)
+        sub_jobs.append(job)
+        return job
 
-    return sub_jobs
+    core_obj.logger.info('Start job sub-jobs')
+    sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, components_common_conf,
+                                                              'Sub-jobs processing')
+    core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+
+    subjob_queue = multiprocessing.Queue()
+    # Initialize queue first
+    core_obj.logger.debug('Initialize workqueue with sub-job identifiers')
+    for num in range(len(components_common_conf['Sub-jobs'])):
+        subjob_queue.put(num)
+    subjob_queue.put(None)
+
+    # Then run jobs
+    core_obj.logger.debug('Start sub-jobs pull of workers')
+    core.components.launch_queue_workers(core_obj.logger, subjob_queue, constructor, sub_job_solvers_num,
+                                         components_common_conf['ignore failed sub-jobs'])
 
 
-class ResultsArranger(core.components.Component):
+class RA(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, job_type=None):
-        super(ResultsArranger, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
-                                              separate_from_parent, include_child_resources)
+                 separate_from_parent=True, include_child_resources=False, job_type=None, queues_to_terminate=None):
+        super(RA, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+                                 separate_from_parent, include_child_resources)
         self.job_type = job_type
         self.data = dict()
+
+        # Initialize callbacks
+        self.mqs['verification statuses'] = multiprocessing.Queue()
+        queues_to_terminate.append('verification statuses')
+        self.__set_callbacks()
 
     def report_results(self):
         # Process exceptions like for uploading reports.
@@ -191,16 +233,14 @@ class ResultsArranger(core.components.Component):
 
         while True:
             verification_status = self.mqs['verification statuses'].get()
-            # todo: provide job name_prefix
 
             if verification_status is None:
                 self.logger.debug('Verification statuses message queue was terminated')
                 self.mqs['verification statuses'].close()
-                del self.mqs['verification statuses']
                 break
 
             # Block several sub-jobs from each other to reliably produce outcome.
-            name_suffix, verification_result, name_prefix = self.match_ideal_verdict(verification_status)
+            name_prefix, name_suffix, verification_result = self.__match_ideal_verdict(verification_status)
 
             name = os.path.join(name_prefix, name_suffix)
 
@@ -209,19 +249,20 @@ class ResultsArranger(core.components.Component):
                     name, verification_result['ideal verdict'], verification_result['verdict'],
                     ' ("{0}")'.format(verification_result['comment'])
                     if verification_result['comment'] else ''))
+                task_name = name
             elif self.job_type == 'Validation on commits in Linux kernel Git repositories':
-                name, verification_result = self.process_validation_results(name, verification_result)
+                task_name, verification_result = self.__process_validation_results(name, verification_result)
             else:
-                raise NotImplementedError('Job class "{0}" is not supported'.format(self.job_type))
+                raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
 
-            results_dir = os.path.join('results', re.sub(r'/', '-', name_suffix))
+            results_dir = os.path.join('results', re.sub(r'/', '-', name))
             os.mkdir(results_dir)
 
             core.utils.report(self.logger,
                               'data',
                               {
                                   'id': self.parent_id,
-                                  'data': {name: verification_result}
+                                  'data': {task_name: verification_result}
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
@@ -230,11 +271,48 @@ class ResultsArranger(core.components.Component):
 
     main = report_results
 
-    def match_ideal_verdict(self, verification_status):
+    def __set_callbacks(self):
+
+        def after_plugin_fail_processing(context):
+            context.mqs['verification statuses'].put({
+                'verification object': context.verification_object,
+                'rule specification': context.rule_specification,
+                'verdict': 'non-verifier unknown',
+                'name prefix': context.conf['Job prexix'],
+                'ideal verdicts': context.conf['ideal verdicts']
+            })
+
+        def after_process_failed_task(context):
+            context.mqs['verification statuses'].put({
+                'verification object': context.verification_object,
+                'rule specification': context.rule_specification,
+                'verdict': context.verdict,
+                'name prefix': context.conf['Job prexix'],
+                'ideal verdicts': context.conf['ideal verdicts']
+            })
+
+        def after_process_single_verdict(context):
+            context.mqs['verification statuses'].put({
+                'verification object': context.verification_object,
+                'rule specification': context.rule_specification,
+                'verdict': context.verdict,
+                'name prefix': context.conf['Job prefix'],
+                'ideal verdicts': context.conf['ideal verdicts']
+            })
+
+        core.components.set_component_callbacks(self.logger, type(self),
+                                                (
+                                                    after_plugin_fail_processing,
+                                                    after_process_single_verdict,
+                                                    after_process_failed_task
+                                                ))
+
+    @staticmethod
+    def __match_ideal_verdict(verification_status):
         verification_object = verification_status['verification object']
         rule_specification = verification_status['rule specification']
-        prefix = verification_status['name prefix']
-        ideal_verdicts = self.conf['ideal verdicts']
+        name_prefix = verification_status['name prefix']
+        ideal_verdicts = verification_status['ideal verdicts']
 
         is_matched = False
 
@@ -279,13 +357,13 @@ class ResultsArranger(core.components.Component):
         name_suffix = os.path.join(verification_object, rule_specification)\
             if verification_object and rule_specification else ''
 
-        return name_suffix, {
+        return name_prefix, name_suffix, {
             'verdict': verification_status['verdict'],
             'ideal verdict': ideal_verdict['ideal verdict'],
             'comment': ideal_verdict.get('comment')
-        }, prefix
+        }
 
-    def process_validation_results(self, name, verification_result):
+    def __process_validation_results(self, name, verification_result):
         # Relate verificaiton results on commits before and after corresponding bug fixes if so.
         # Without this we won't be able to reliably iterate over data since it is multiprocessing.Manager().dict().
         # Data is intended to keep verification results that weren't bound still. For such the results
@@ -375,153 +453,17 @@ class ResultsArranger(core.components.Component):
         return bug_name, new_verification_result
 
 
-class Job(core.components.Component):
-    JOB_CLASS_COMPONENTS = {
-        'Verification of Linux kernel modules': [
-            'LKBCE',
-            'LKVOG',
-            'VTG',
-            'VRP'
-        ],
-    }
+class JCR(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None,
-                 name_prefix=None):
-        super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
-                                  separate_from_parent, include_child_resources)
-        self.name_prefix = name_prefix
-        self.job_type = job_type
-        self.components_common_conf = components_common_conf
-
-        self.components = []
-        self.component_processes = []
-        self.total_coverages = multiprocessing.Manager().dict()
-
-    def decide(self):
-        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
-
-        # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
-        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
-        if self.name_prefix:
-            os.makedirs(self.work_dir.encode('utf8'))
-
-        # Do not produce any reports until changing directory. Otherwise there can be races between various sub-jobs.
-        with core.utils.Cd(self.work_dir if self.name_prefix else os.path.curdir):
-            if self.name_prefix:
-                if self.components_common_conf['keep intermediate files']:
-                    if os.path.isfile('conf.json'):
-                        raise FileExistsError(
-                            'Components configuration file "conf.json" already exists')
-                    self.logger.debug('Create components configuration file "conf.json"')
-                    with open('conf.json', 'w', encoding='utf8') as fp:
-                        json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-                core.utils.report(self.logger,
-                                  'start',
-                                  {
-                                      'id': self.id,
-                                      'parent id': self.parent_id,
-                                      'name': 'Sub-job',
-                                      'attrs': [{'name': self.name_prefix}],
-                                  },
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
-                                  self.components_common_conf['main working directory'])
-
-            if 'ideal verdicts' in self.components_common_conf:
-                def after_plugin_fail_processing(context):
-                    context.mqs['verification statuses'].put({
-                        'verification object': context.verification_object,
-                        'rule specification': context.rule_specification,
-                        'verdict': 'non-verifier unknown',
-                        'name prefix': self.name_prefix
-                    })
-
-                def after_process_failed_task(context):
-                    context.mqs['verification statuses'].put({
-                        'verification object': context.verification_object,
-                        'rule specification': context.rule_specification,
-                        'verdict': context.verdict,
-                        'name prefix': self.name_prefix
-                    })
-
-                def after_process_single_verdict(context):
-                    context.mqs['verification statuses'].put({
-                        'verification object': context.verification_object,
-                        'rule specification': context.rule_specification,
-                        'verdict': context.verdict,
-                        'name prefix': self.name_prefix
-                    })
-
-                core.components.set_component_callbacks(self.logger, type(self),
-                                                        (
-                                                            after_plugin_fail_processing,
-                                                            after_process_single_verdict,
-                                                            after_process_failed_task
-                                                        ))
-
-            def after_finish_task_results_processing(context):
-                if 'ideal verdicts' in self.components_common_conf:
-                    context.logger.info('Terminate verification statuses message queue')
-                    context.mqs['verification statuses'].put(None)
-
-                if self.components_common_conf['collect total code coverage']:
-                    context.logger.info('Terminate rule specifications and coverage infos message queue')
-                    context.mqs['rule specifications and coverage info files'].put(None)
-
-            core.components.set_component_callbacks(self.logger, type(self),
-                                                    (after_finish_task_results_processing,))
-
-            if self.components_common_conf['collect total code coverage']:
-                self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
-
-                def after_process_finished_task(context):
-                    if os.path.isfile('coverage info.json'):
-                        context.mqs['rule specifications and coverage info files'].put({
-                            'rule specification': context.rule_specification,
-                            'coverage info file': os.path.relpath('coverage info.json',
-                                                                  context.conf['main working directory'])
-                        })
-
-                core.components.set_component_callbacks(self.logger, type(self), (after_process_finished_task,))
-
-            self.get_sub_job_components()
-            self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                     self.components_common_conf)
-            # todo: return coverage back
-            #collecting_total_coverages_process = \
-            #    self.function_to_subcomponent(True, 'coverage_reporter', self.collect_total_coverage)
-            #collecting_total_coverages_process.start()
-            self.launch_sub_job_components()
-            self.logger.info("All components finished, waiting for coverage reporter...")
-            #collecting_total_coverages_process.join()
-            #self.collect_total_coverage()
-
-    main = decide
-
-    def get_sub_job_components(self):
-        self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
-                         format(self.job_type, self.id))
-
-        if self.job_type not in self.JOB_CLASS_COMPONENTS:
-            raise NotImplementedError('Job class "{0}" is not supported'.format(self.job_type))
-
-        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
-                           component in self.JOB_CLASS_COMPONENTS[self.job_type]]
-
-        self.logger.debug('Components to be launched: "{0}"'.format(
-            ', '.join([component.__name__ for component in self.components])))
-
-    def launch_sub_job_components(self):
-        self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.
-                         format(self.job_type, self.id))
-        for component in self.components:
-            p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
-                          self.locks, self.vals, separate_from_parent=True)
-            self.component_processes.append(p)
-
-        core.components.launch_workers(self.logger, self.component_processes)
+                 separate_from_parent=True, include_child_resources=False):
+        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir,
+                                  attrs, separate_from_parent, include_child_resources)
+        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
+        # This function adds callbacks and it should work until we call it in the new process
+        # todo: Fix this. You need callbacks with names that differs from RA callbacks and at the same time you need to
+        # todo: get messages from each job before it finishes to upload coverage for it
+        #self.__set_new_callbacks()
 
     def collect_total_coverage(self):
         total_coverage_infos = {}
@@ -568,3 +510,104 @@ class Job(core.components.Component):
             total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
                                                                 arcnames)
         self.coverage = total_coverages
+
+    main = collect_total_coverage
+
+    def __set_new_callbacks(self):
+
+        def after_finish_task_results_processing(context):
+            context.logger.info('Terminate rule specifications and coverage infos message queue')
+            context.mqs['rule specifications and coverage info files'].put(None)
+
+        def after_process_finished_task(context):
+            if os.path.isfile('coverage info.json'):
+                context.mqs['rule specifications and coverage info files'].put({
+                    'rule specification': context.rule_specification,
+                    'coverage info file': os.path.relpath('coverage info.json',
+                                                          context.conf['main working directory'])
+                })
+
+        core.components.set_component_callbacks(self.logger, type(self),
+                                                (
+                                                    after_finish_task_results_processing,
+                                                    after_process_finished_task
+                                                ))
+
+
+class Job(core.components.Component):
+    SUPPORTED_JOB_TYPES = [
+        'Verification of Linux kernel modules',
+        'Validation on commits in Linux kernel Git repositories'
+    ]
+    JOB_CLASS_COMPONENTS = [
+        'LKBCE',
+        'LKVOG',
+        'VTG',
+        'VRP'
+    ]
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None,
+                 name_prefix=None):
+        super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+                                  separate_from_parent, include_child_resources)
+        self.name_prefix = name_prefix
+        self.job_type = job_type
+        self.common_components_conf = components_common_conf
+
+        self.components = []
+        self.component_processes = []
+        self.total_coverages = multiprocessing.Manager().dict()
+
+    def decide_job(self):
+        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+
+        # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
+        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
+        if self.name_prefix:
+            self.common_components_conf['Job prefix'] = self.name_prefix
+        self.conf['job identifier'] = self.id
+
+        if self.name_prefix:
+            if self.common_components_conf['keep intermediate files']:
+                if os.path.isfile('conf.json'):
+                    raise FileExistsError(
+                        'Components configuration file "conf.json" already exists')
+                self.logger.debug('Create components configuration file "conf.json"')
+                with open('conf.json', 'w', encoding='utf8') as fp:
+                    json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        self.__get_sub_job_components()
+        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
+                                                                 self.common_components_conf)
+        self.launch_sub_job_components()
+        self.logger.info("All components finished, waiting for coverage reporter...")
+
+    main = decide_job
+
+    def __get_sub_job_components(self):
+        self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
+                         format(self.job_type, self.id))
+
+        if self.job_type not in self.SUPPORTED_JOB_TYPES:
+            raise NotImplementedError('Job class "{0}" is not supported'.format(self.job_type))
+
+        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
+                           component in self.JOB_CLASS_COMPONENTS]
+
+        self.logger.debug('Components to be launched: "{0}"'.format(
+            ', '.join([component.__name__ for component in self.components])))
+
+    def launch_sub_job_components(self):
+        """Has a callback"""
+        self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.
+                         format(self.job_type, self.id))
+        for component in self.components:
+            p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,
+                          self.locks, self.vals, separate_from_parent=True)
+            self.component_processes.append(p)
+
+        core.components.launch_workers(self.logger, self.component_processes)
+
+
+

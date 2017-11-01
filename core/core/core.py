@@ -42,7 +42,6 @@ class Core(core.components.CallbacksCaller):
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
-        self.job = None
         self.comp = []
         self.session = None
         self.mqs = {}
@@ -72,7 +71,7 @@ class Core(core.components.CallbacksCaller):
                                                   self.report_id,
                                                   self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-            self.session.start_job_decision(1, 'job.zip', start_report_file)
+            self.session.start_job_decision(core.job.JOB_FORMAT, core.job.JOB_ARCHIVE, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             os.makedirs('child resources'.encode('utf8'))
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,

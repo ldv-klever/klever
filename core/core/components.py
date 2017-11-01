@@ -74,17 +74,16 @@ def propogate_callbacks(decorated_function):
 def set_component_callbacks(logger, component, callbacks):
     logger.info('Set callbacks for component "{0}"'.format(component.__name__))
 
-    module = sys.modules[component.__module__]
-
+    modl = sys.modules[component.__module__]
     for callback in callbacks:
         logger.debug('Set callback "{0}" for component "{1}"'.format(callback.__name__, component.__name__))
         if not any(callback.__name__.startswith(kind) for kind in CALLBACK_KINDS):
             raise ValueError('Callback "{0}" does not start with one of {1}'.format(callback.__name__, ', '.join(
                 ('"{0}"'.format(kind) for kind in CALLBACK_KINDS))))
-        if callback.__name__ in dir(module):
+        if callback.__name__ in dir(modl):
             raise ValueError(
                 'Callback "{0}" already exists for component "{1}"'.format(callback.__name__, component.__name__))
-        setattr(module, callback.__name__, callback)
+        setattr(modl, callback.__name__, callback)
 
 
 def get_component_callbacks(logger, components, components_conf):
@@ -94,20 +93,20 @@ def get_component_callbacks(logger, components, components_conf):
     callbacks = {kind: {} for kind in CALLBACK_KINDS}
 
     for component in components:
-        module = sys.modules[component.__module__]
-        for attr in dir(module):
+        modl = sys.modules[component.__module__]
+        for attr in dir(modl):
             for kind in CALLBACK_KINDS:
                 match = re.search(r'^{0}_(.+)$'.format(kind), attr)
                 if match:
                     event = match.groups()[0]
                     if event not in callbacks[kind]:
                         callbacks[kind][event] = []
-                    callbacks[kind][event].append((component.__name__, getattr(module, attr)))
+                    callbacks[kind][event].append((component.__name__, getattr(modl, attr)))
 
             # This special function implies that component has subcomponents for which callbacks should be get as well
             # using this function.
             if attr == CALLBACK_PROPOGATOR:
-                subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
+                subcomponents_callbacks = getattr(modl, attr)(components_conf, logger)
 
                 # Merge subcomponent callbacks into component ones.
                 for kind in CALLBACK_KINDS:
@@ -122,11 +121,10 @@ def get_component_callbacks(logger, components, components_conf):
 def remove_component_callbacks(logger, component):
     logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
 
-    module = sys.modules[component.__module__]
-
-    for attr in dir(module):
+    modl = sys.modules[component.__module__]
+    for attr in dir(modl):
         if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
-            delattr(module, attr)
+            delattr(modl, attr)
 
 
 def all_child_resources():
@@ -182,6 +180,7 @@ def launch_workers(logger, workers):
     :param workers: List of Component objects.
     :return: None
     """
+    logger.info('Run {} components'.format(len(workers)))
     try:
         for w in workers:
             w.start()
@@ -200,6 +199,71 @@ def launch_workers(logger, workers):
         for p in workers:
             if p.is_alive():
                 p.stop()
+    logger.info('All components finished')
+
+
+def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
+    """
+    Blocking function that run given number of workers processing elements of particular queue.
+
+    :param logger: Logger object.
+    :param queue: multiprocessing.Queue
+    :param constructor: Function that gets element and returns Component
+    :param number: Max number of simultaneously working workers
+    :param fail_tolerant: True if no need to stop processing on fail.
+    :return: None
+    """
+    logger.info("Start children set with {!r} workers".format(number))
+    active = True
+    elements = []
+    components = []
+    try:
+        while True:
+            # Fetch all new elements
+            if active:
+                active = core.utils.drain_queue(elements, queue)
+
+            # Then run new workers
+            diff = number - len(components)
+            if len(components) < number and len(elements) > 0:
+                logger.debug("Going to start {} new workers".format(diff))
+                for _ in range(min(number - len(components), len(elements))):
+                    element = elements.pop(0)
+                    worker = constructor(element)
+                    if isinstance(worker, Component):
+                        components.append(worker)
+                        worker.start()
+                    else:
+                        raise TypeError("Incorrect constructor, expect Component but get {}".
+                                        format(type(worker).__name__))
+
+            # Wait for components termination
+            finished = 0
+            # Becouse we use i for deletion we always delete the element near the end to not break order of
+            # following of the rest unprocessed elements
+            for i, p in reversed(list(enumerate(list(components)))):
+                try:
+                    p.join(1.0 / len(components))
+                except ComponentError:
+                    # Ignore or terminate the rest
+                    if not fail_tolerant:
+                        raise RuntimeError("Sub-component failed, terminating the rest")
+
+                # If all is OK
+                if not p.is_alive():
+                    # Just remove it
+                    components.pop(i)
+                    finished += 1
+            if finished > 0:
+                logger.debug("Finished {} workers".format(finished))
+
+            # Check that we can quit
+            if len(components) == 0 and len(elements) == 0 and not active:
+                break
+    finally:
+        for p in components:
+            if p.is_alive():
+                p.terminate()
 
 
 class ComponentError(ChildProcessError):
@@ -466,64 +530,3 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)
 
-    def launch_queue_workers(self, queue_name, constructor, number, fail_tolerant):
-        """
-        Blocking function that run given number of workers processing elements of particular queue.
-
-        :param queue_name: multiprocessing.Queue
-        :param constructor: Function that gets element and returns Component
-        :param number: Max number of simultaneously working workers
-        :param fail_tolerant: True if no need to stop processing on fail.
-        :return: None
-        """
-        self.logger.info("Start children set for queue {!r} with {!r} workers".format(queue_name, number))
-        active = True
-        elements = []
-        components = []
-        try:
-            while True:
-                # Fetch all new elements
-                if active:
-                    active = core.utils.drain_queue(elements, queue_name)
-
-                # Then run new workers
-                diff = number - len(components)
-                if len(components) < number and len(elements) > 0:
-                    self.logger.debug("Going to start {} new workers".format(diff))
-                    for _ in range(min(number - len(components), len(elements))):
-                        element = elements.pop(0)
-                        worker = constructor(element)
-                        if isinstance(worker, Component):
-                            components.append(worker)
-                            worker.start()
-                        else:
-                            raise TypeError("Incorrect constructor, expect Component but get {}".
-                                            format(type(worker).__name__))
-
-                # Wait for components termination
-                finished = 0
-                # Becouse we use i for deletion we always delete the element near the end to not break order of
-                # following of the rest unprocessed elements
-                for i, p in reversed(list(enumerate(list(components)))):
-                    try:
-                        p.join(1.0 / len(components))
-                    except ComponentError:
-                        # Ignore or terminate the rest
-                        if not fail_tolerant:
-                            raise RuntimeError("Sub-component failed, terminating the rest")
-
-                    # If all is OK
-                    if not p.is_alive():
-                        # Just remove it
-                        components.pop(i)
-                        finished += 1
-                if finished > 0:
-                    self.logger.debug("Finished {} workers".format(finished))
-
-                # Check that we can quit
-                if len(components) == 0 and len(elements) == 0 and not active:
-                    break
-        finally:
-            for p in components:
-                if p.is_alive():
-                    p.terminate()

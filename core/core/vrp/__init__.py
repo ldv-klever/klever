@@ -217,18 +217,21 @@ class RP(core.components.Component):
 
         self.logger.debug("Prcess results of task {}".format(task_id))
 
-        if status == 'finished':
-            self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
-            # Raise exception just here sinse the method above has callbacks.
-            if self.__exception:
-                self.logger.warning("Raising the saved exception")
-                raise self.__exception
-        elif status == 'error':
-            self.process_failed_task(task_id)
-            # Raise exception just here sinse the method above has callbacks.
-            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
-        else:
-            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        try:
+            if status == 'finished':
+                self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+                # Raise exception just here sinse the method above has callbacks.
+                if self.__exception:
+                    self.logger.warning("Raising the saved exception")
+                    raise self.__exception
+            elif status == 'error':
+                self.process_failed_task(task_id)
+                # Raise exception just here sinse the method above has callbacks.
+                raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
+            else:
+                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        finally:
+            self.session.sign_out()
 
     main = fetcher
 

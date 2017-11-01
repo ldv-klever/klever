@@ -557,7 +557,8 @@ class VTGWL(core.components.Component):
     def task_generating_loop(self):
         self.logger.info("Start VTGL worker")
         number = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
-        self.launch_queue_workers(self.mqs['prepare verification objects'], self.vtgw_constructor, number, True)
+        core.components.launch_queue_workers(self.logger, self.mqs['prepare verification objects'],
+                                             self.vtgw_constructor, number, True)
         self.logger.info("Terminate VTGL worker")
 
     def vtgw_constructor(self, element):
@@ -586,6 +587,8 @@ class VTGW(core.components.Component):
             self.generate_abstact_verification_task_desc(self.verification_object, self.rule_specification)
         except Exception:
             self.plugin_fail_processing()
+        finally:
+            self.session.sign_out()
 
     main = tasks_generator_worker
 
@@ -688,7 +691,7 @@ class VTGW(core.components.Component):
                     break
 
                 if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                        plugin_desc['name']  == 'EMG':
+                        plugin_desc['name'] == 'EMG':
                     self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
                                       "further use".format(pilot_rule))
                     self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
