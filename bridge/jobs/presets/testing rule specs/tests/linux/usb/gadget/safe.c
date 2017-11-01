@@ -19,6 +19,7 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
+#include <verifier/common.h>
 #include <verifier/nondet.h>
 
 static int __init ldv_init(void)
@@ -28,6 +29,8 @@ static int __init ldv_init(void)
 	dev_t dev = ldv_undef_uint();
 	unsigned int baseminor = ldv_undef_uint(), count = ldv_undef_uint();
 	const char *name = ldv_undef_ptr();
+
+	ldv_assume(!IS_ERR(&class));
 
 	if (!usb_gadget_probe_driver(&driver))
 		usb_gadget_unregister_driver(&driver);

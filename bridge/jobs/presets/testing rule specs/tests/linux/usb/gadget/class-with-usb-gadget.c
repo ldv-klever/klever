@@ -26,6 +26,8 @@ static int __init ldv_init(void)
 	struct usb_gadget_driver driver;
 	struct class class;
 
+	ldv_assume(!IS_ERR(&class));
+
 	ldv_assume(!usb_gadget_probe_driver(&driver));
 	ldv_assume(!class_register(&class));
 	class_destroy(&class);
