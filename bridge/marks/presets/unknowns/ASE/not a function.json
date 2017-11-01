@@ -1,6 +1,6 @@
 {
-  "function": "is not a function",
-  "pattern": "Not a func",
+  "pattern": "is not a function",
+  "problem": "Not a func",
   "link": "http://forge.ispras.ru/issues/7562",
   "description": "EMG tries to call an object which is not a function."
 }

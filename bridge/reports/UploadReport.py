@@ -137,12 +137,6 @@ class UploadReport:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
                     raise ValueError("Log archive wasn't found in the archives list")
-            if 'coverage' in data:
-                self.data['coverage'] = data['coverage']
-                if not isinstance(self.data['coverage'], dict):
-                    raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
-                if any(x not in self.archives for x in self.data['coverage'].values()):
-                    raise ValueError("One of coverage archives wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -223,6 +217,15 @@ class UploadReport:
                 self.data.update({'data': data['data']})
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+        elif data['type'] == 'job coverage':
+            try:
+                self.data['coverage'] = data['coverage']
+            except KeyError as e:
+                raise ValueError("property '%s' is required." % e)
+            if not isinstance(self.data['coverage'], dict):
+                raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
+            if any(x not in self.archives for x in self.data['coverage'].values()):
+                raise ValueError("One of coverage archives wasn't found in the archives list")
         else:
             raise ValueError("report type is not supported")
 
@@ -281,7 +284,8 @@ class UploadReport:
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
-            'data': self.__update_report_data
+            'data': self.__update_report_data,
+            'job coverage': self.__upload_job_coverage
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
@@ -407,6 +411,19 @@ class UploadReport:
         if report.covnum > 0:
             FillCoverageCache(report)
 
+    def __upload_job_coverage(self, identifier):
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+        except ObjectDoesNotExist:
+            raise ValueError('updated report does not exist')
+        if report.component.name in {'Core', 'Sub-job'}:
+            report.covnum = len(self.data['coverage'])
+            for cov_id in self.data['coverage']:
+                carch = CoverageArchive(report=report, identifier=cov_id)
+                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
+            report.save()
+            FillCoverageCache(report)
+
     def __update_attrs(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -474,7 +491,6 @@ class UploadReport:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
         report.finish_date = now()
-        report.covnum = len(self.data['coverage']) if 'coverage' in self.data else 0
 
         if save_add_data and 'data' in self.data:
             # Report is saved after the data is updated
@@ -485,11 +501,6 @@ class UploadReport:
         if report.log.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.log.name)):
             report.delete()
             raise CheckArchiveError('Report archive "log" was not saved')
-
-        if 'coverage' in self.data and report.component.name in {'Core', 'Sub-job'}:
-            for cov_id in self.data['coverage']:
-                carch = CoverageArchive(report=report, identifier=cov_id)
-                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -505,8 +516,6 @@ class UploadReport:
             report.delete()
         else:
             report_ids.add(report.id)
-            if report.covnum > 0:
-                FillCoverageCache(report)
         ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
             .update(in_progress=(F('in_progress') - 1))
 
@@ -542,6 +551,10 @@ class UploadReport:
                 identifier=identifier, parent=self.parent, root=self.root,
                 component=self.parent.component, problem_description=self.data['problem desc']
             )
+        if self.parent.verification:
+            report.cpu_time = self.parent.cpu_time
+            report.wall_time = self.parent.wall_time
+            report.memory = self.parent.memory
         report.add_problem_desc(REPORT_ARCHIVE['problem desc'], self.archives[self.data['problem desc']], True)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.problem_description.name)):
             report.delete()
@@ -556,7 +569,8 @@ class UploadReport:
             if self.parent.cpu_time is None:
                 raise ValueError('safe parent need to be verification report and must have cpu_time')
             report = ReportSafe(
-                identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
+                identifier=identifier, parent=self.parent, root=self.root, cpu_time=self.parent.cpu_time,
+                wall_time=self.parent.wall_time, memory=self.parent.memory
             )
         if 'proof' in self.data:
             report.add_proof(REPORT_ARCHIVE['proof'], self.archives[self.data['proof']], True)
@@ -576,7 +590,8 @@ class UploadReport:
                 raise ValueError('unsafe parent need to be verification report and must have cpu_time')
             report = ReportUnsafe(
                 identifier=identifier, parent=self.parent, root=self.root,
-                error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
+                error_trace=self.data['error trace'], cpu_time=self.parent.cpu_time,
+                wall_time=self.parent.wall_time, memory=self.parent.memory
             )
 
         report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[self.data['error trace']], True)

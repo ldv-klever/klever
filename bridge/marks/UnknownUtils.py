@@ -393,12 +393,12 @@ class PopulateMarks:
                             raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
-                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
+                if not isinstance(data, dict) or any(x not in data for x in ['pattern', 'problem']):
                     raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
                 try:
-                    re.compile(data['function'])
+                    re.compile(data['pattern'])
                 except re.error:
-                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
+                    raise ValueError('Wrong regular expression: "%s"' % data['pattern'])
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
@@ -408,19 +408,19 @@ class PopulateMarks:
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
                 if 'is regexp' not in data:
-                    data['is regexp'] = True
+                    data['is regexp'] = False
 
-                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['pattern']) == 0 \
+                        or not 0 < len(data['problem']) <= 15 or not isinstance(data['is_modifiable'], bool):
                     raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 self.total += 1
                 try:
-                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
+                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['problem'])
                 except ObjectDoesNotExist:
                     mark = MarkUnknown.objects.create(
                         identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
                         author=manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                        function=data['pattern'], problem_pattern=data['problem'], description=data['description'],
                         type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None,
                         is_regexp=data['is regexp']
                     )

@@ -756,24 +756,10 @@ class DecideJobs(object):
             raise DecisionError('Component %s failed!' % name)
         return r_id
 
-    def __upload_finish_report(self, r_id, coverage=None):
-        report = {
-            'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'It does not matter', 'log': 'log.zip'
-        }
-        files = [open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb')]
-        if coverage is not None:
-            report['coverage'] = coverage
-            for carch in coverage.values():
-                files.append(open(os.path.join(ARCHIVE_PATH, carch), mode='rb'))
-        try:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
-        except Exception:
-            for fp in files:
-                fp.close()
-            raise
-        else:
-            for fp in files:
-                fp.close()
+    def __upload_finish_report(self, r_id):
+        report = {'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'Description text', 'log': 'log.zip'}
+        with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as fp:
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp]})
 
         if len(self._cmp_stack) > 0:
             self._cmp_stack.pop()
@@ -847,6 +833,21 @@ class DecideJobs(object):
                 'error trace': os.path.basename(fp.name)
             }), 'file': fp})
 
+    def __upload_job_coverage(self, r_id, coverage):
+        report = {'id': r_id, 'type': 'job coverage', 'coverage': coverage}
+        files = []
+        for carch in coverage.values():
+            files.append(open(os.path.join(ARCHIVE_PATH, carch), mode='rb'))
+        try:
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
+        except Exception:
+            for fp in files:
+                fp.close()
+            raise
+        else:
+            for fp in files:
+                fp.close()
+
     def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
@@ -912,7 +913,8 @@ class DecideJobs(object):
                 pass
 
         if self.full_coverage and len(core_coverage) > 0:
-            self.__upload_finish_report('/', coverage=core_coverage)
+            self.__upload_job_coverage('/', core_coverage)
+            self.__upload_finish_report('/')
         else:
             self.__upload_finish_report('/')
 
@@ -946,10 +948,11 @@ class DecideJobs(object):
         self.__upload_finish_report(vrp)
 
         if self.full_coverage:
-            # full_coverage = 'big_full_coverage.zip'
-            full_coverage = 'Core_coverage.zip'
-            self.__upload_finish_report(sj, coverage={subjob['rule']: full_coverage})
-            return {subjob['rule']: full_coverage}
+            # sj_coverage = {subjob['rule']: 'big_full_coverage.zip'}
+            sj_coverage = {subjob['rule']: 'Core_coverage.zip'}
+            self.__upload_job_coverage(sj, sj_coverage)
+            self.__upload_finish_report(sj)
+            return sj_coverage
         else:
             self.__upload_finish_report(sj)
         return {}

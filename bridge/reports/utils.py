@@ -25,7 +25,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
 from bridge.tableHead import Header
@@ -37,7 +37,7 @@ from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUn
 from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
-from jobs.utils import get_resource_data, get_user_time
+from jobs.utils import get_resource_data, get_user_time, get_user_memory
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 
 
@@ -51,7 +51,10 @@ REP_MARK_TITLES = {
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
     'tags': _('Tags'),
-    'parent_cpu': _('Verifiers time')
+    'verifiers': _('Verifiers'),
+    'verifiers:cpu': _('CPU time'),
+    'verifiers:wall': _('Wall time'),
+    'verifiers:memory': _('RAM')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -72,6 +75,20 @@ def computer_description(computer):
         'name': comp_name,
         'data': data
     }
+
+
+def get_column_title(column):
+    col_parts = column.split(':')
+    column_starts = []
+    for i in range(0, len(col_parts)):
+        column_starts.append(':'.join(col_parts[:(i + 1)]))
+    titles = []
+    for col_st in column_starts:
+        titles.append(REP_MARK_TITLES.get(col_st, col_st))
+    concated_title = titles[0]
+    for i in range(1, len(titles)):
+        concated_title = string_concat(concated_title, '/', titles[i])
+    return concated_title
 
 
 def get_parents(report):
@@ -97,13 +114,9 @@ def get_parents(report):
     return parents_data
 
 
-def get_parent_resources(user, report):
-    try:
-        parent = ReportComponent.objects.get(id=report.parent_id)
-    except ObjectDoesNotExist:
-        return {}
-    if all(x is not None for x in [parent.wall_time, parent.cpu_time, parent.memory]):
-        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, parent)
+def get_leaf_resources(user, report):
+    if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
+        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, report)
         return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
     return None
 
@@ -153,21 +166,25 @@ class SafesTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu'}:
+            if col not in {
+                'marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+            }:
                 return []
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu']:
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+        for col in ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
@@ -188,17 +205,34 @@ class SafesTable:
                 safes_filters['safe__attrs__attr'] = self.attr
 
         if 'parent_cpu' in self.view:
-            parent_cpu_value = int(self.view['parent_cpu'][1])
+            parent_cpu_value = float(self.view['parent_cpu'][1].replace(',', '.'))
             if self.view['parent_cpu'][2] == 's':
                 parent_cpu_value *= 1000
             elif self.view['parent_cpu'][2] == 'm':
                 parent_cpu_value *= 60000
-            safes_filters['safe__verifier_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+            safes_filters['safe__cpu_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+        if 'parent_wall' in self.view:
+            parent_wall_value = float(self.view['parent_wall'][1].replace(',', '.'))
+            if self.view['parent_wall'][2] == 's':
+                parent_wall_value *= 1000
+            elif self.view['parent_wall'][2] == 'm':
+                parent_wall_value *= 60000
+            safes_filters['safe__wall_time__%s' % self.view['parent_wall'][0]] = parent_wall_value
+        if 'parent_memory' in self.view:
+            parent_memory_value = float(self.view['parent_memory'][1].replace(',', '.'))
+            if self.view['parent_memory'][2] == 'KB':
+                parent_memory_value *= 1024
+            elif self.view['parent_memory'][2] == 'MB':
+                parent_memory_value *= 1024 * 1024
+            elif self.view['parent_memory'][2] == 'GB':
+                parent_memory_value *= 1024 * 1024 * 1024
+            safes_filters['safe__memory__%s' % self.view['parent_memory'][0]] = parent_memory_value
 
         leaves_set = self.report.leaves.filter(**safes_filters).exclude(safe=None).annotate(
             marks_number=Count('safe__markreport_set'),
             confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
-        ).values('safe_id', 'confirmed', 'marks_number', 'safe__verdict', 'safe__parent_id', 'safe__verifier_time')
+        ).values('safe_id', 'confirmed', 'marks_number', 'safe__verdict', 'safe__parent_id',
+                 'safe__cpu_time', 'safe__wall_time', 'safe__memory')
 
         if 'marks_number' in self.view:
             if self.view['marks_number'][0] == 'confirmed':
@@ -219,7 +253,9 @@ class SafesTable:
                 'marks_number': marks_num,
                 'verdict': leaf['safe__verdict'],
                 'parent_id': leaf['safe__parent_id'],
-                'parent_cpu': leaf['safe__verifier_time'],
+                'parent_cpu': leaf['safe__cpu_time'],
+                'parent_wall': leaf['safe__wall_time'],
+                'parent_memory': leaf['safe__memory'],
                 'tags': {}
             }
         for r_id, tag in SafeReportTag.objects.filter(report_id__in=reports).values_list('report_id', 'tag__tag'):
@@ -239,10 +275,10 @@ class SafesTable:
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
-        elif 'order' in self.view and self.view['order'][1] == 'parent_cpu':
+        elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
             for attr in data:
                 for rep_id in data[attr]:
-                    order_id = (reports[rep_id]['parent_cpu'], rep_id)
+                    order_id = (reports[rep_id][self.view['order'][1]], rep_id)
                     if order_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
                         reports_ordered.append(order_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
@@ -291,8 +327,12 @@ class SafesTable:
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
                         val = reports[rep_id]['tags']
-                elif col == 'parent_cpu':
+                elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
+                elif col == 'verifiers:wall':
+                    val = get_user_time(self.user, reports[rep_id]['parent_wall'])
+                elif col == 'verifiers:memory':
+                    val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'color': color, 'href': href})
             else:
                 cnt += 1
@@ -363,21 +403,25 @@ class UnsafesTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu'}:
+            if col not in {
+                'marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'
+            }:
                 return []
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu']:
-            col_title = col
-            if col_title in REP_MARK_TITLES:
-                col_title = REP_MARK_TITLES[col_title]
+        for col in ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
             columns.append({'value': col, 'title': col_title})
         return columns
 
@@ -398,18 +442,34 @@ class UnsafesTable:
                 unsafes_filters['unsafe__attrs__attr'] = self.attr
 
         if 'parent_cpu' in self.view:
-            parent_cpu_value = int(self.view['parent_cpu'][1])
+            parent_cpu_value = float(self.view['parent_cpu'][1].replace(',', '.'))
             if self.view['parent_cpu'][2] == 's':
                 parent_cpu_value *= 1000
             elif self.view['parent_cpu'][2] == 'm':
                 parent_cpu_value *= 60000
-            unsafes_filters['unsafe__verifier_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+            unsafes_filters['unsafe__cpu_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+        if 'parent_wall' in self.view:
+            parent_wall_value = float(self.view['parent_wall'][1].replace(',', '.'))
+            if self.view['parent_wall'][2] == 's':
+                parent_wall_value *= 1000
+            elif self.view['parent_wall'][2] == 'm':
+                parent_wall_value *= 60000
+            unsafes_filters['unsafe__wall_time__%s' % self.view['parent_wall'][0]] = parent_wall_value
+        if 'parent_memory' in self.view:
+            parent_memory_value = float(self.view['parent_memory'][1].replace(',', '.'))
+            if self.view['parent_memory'][2] == 'KB':
+                parent_memory_value *= 1024
+            elif self.view['parent_memory'][2] == 'MB':
+                parent_memory_value *= 1024 * 1024
+            elif self.view['parent_memory'][2] == 'GB':
+                parent_memory_value *= 1024 * 1024 * 1024
+            unsafes_filters['unsafe__memory__%s' % self.view['parent_memory'][0]] = parent_memory_value
 
         leaves_set = self.report.leaves.filter(**unsafes_filters).exclude(unsafe=None).annotate(
             marks_number=Count('unsafe__markreport_set'),
             confirmed=Count(Case(When(unsafe__markreport_set__type='1', then=1)))
         ).values('unsafe_id', 'confirmed', 'marks_number', 'unsafe__verdict',
-                 'unsafe__parent_id', 'unsafe__verifier_time')
+                 'unsafe__parent_id', 'unsafe__cpu_time', 'unsafe__wall_time', 'unsafe__memory')
 
         if 'marks_number' in self.view:
             if self.view['marks_number'][0] == 'confirmed':
@@ -430,7 +490,9 @@ class UnsafesTable:
                 'marks_number': marks_num,
                 'verdict': leaf['unsafe__verdict'],
                 'parent_id': leaf['unsafe__parent_id'],
-                'parent_cpu': leaf['unsafe__verifier_time'],
+                'parent_cpu': leaf['unsafe__cpu_time'],
+                'parent_wall': leaf['unsafe__wall_time'],
+                'parent_memory': leaf['unsafe__memory'],
                 'tags': {}
             }
         for r_id, tag in UnsafeReportTag.objects.filter(report_id__in=reports).values_list('report_id', 'tag__tag'):
@@ -452,10 +514,10 @@ class UnsafesTable:
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
-        elif 'order' in self.view and self.view['order'][1] == 'parent_cpu':
+        elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
             for attr in data:
                 for rep_id in data[attr]:
-                    order_id = (reports[rep_id]['parent_cpu'], rep_id)
+                    order_id = (reports[rep_id][self.view['order'][1]], rep_id)
                     if order_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
                         reports_ordered.append(order_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
@@ -504,8 +566,12 @@ class UnsafesTable:
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
                         val = reports[rep_id]['tags']
-                elif col == 'parent_cpu':
+                elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
+                elif col == 'verifiers:wall':
+                    val = get_user_time(self.user, reports[rep_id]['parent_wall'])
+                elif col == 'verifiers:memory':
+                    val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'color': color, 'href': href})
             else:
                 cnt += 1
@@ -562,55 +628,129 @@ class UnknownsTable:
         self.attr = attr
 
         self.view = ViewData(self.user, VIEW_TYPES[6][0], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         columns, values = self.__unknowns_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
 
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in {'marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
+                return []
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        self.__is_not_used()
+        columns = []
+        for col in ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+            if ':' in col:
+                col_title = get_column_title(col)
+            else:
+                col_title = REP_MARK_TITLES.get(col, col)
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
     def __unknowns_data(self):
+        columns = ['component']
+        columns.extend(self.view['columns'])
+
         data = {}
-        components = {}
+        reports = {}
 
         unknowns_filters = {}
+        annotations = {
+            'marks_number': Count('unknown__markreport_set'),
+            'confirmed': Count(Case(When(unknown__markreport_set__type='1', then=1)))
+        }
         if self.component_id is not None:
             unknowns_filters['unknown__component_id'] = int(self.component_id)
         if 'component' in self.view and self.view['component'][0] in {'iexact', 'istartswith', 'icontains'}:
             unknowns_filters['unknown__component__name__%s' % self.view['component'][0]] = self.view['component'][1]
 
+        if 'parent_cpu' in self.view:
+            parent_cpu_value = float(self.view['parent_cpu'][1].replace(',', '.'))
+            if self.view['parent_cpu'][2] == 's':
+                parent_cpu_value *= 1000
+            elif self.view['parent_cpu'][2] == 'm':
+                parent_cpu_value *= 60000
+            unknowns_filters['unknown__cpu_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+        if 'parent_wall' in self.view:
+            parent_wall_value = float(self.view['parent_wall'][1].replace(',', '.'))
+            if self.view['parent_wall'][2] == 's':
+                parent_wall_value *= 1000
+            elif self.view['parent_wall'][2] == 'm':
+                parent_wall_value *= 60000
+            unknowns_filters['unknown__wall_time__%s' % self.view['parent_wall'][0]] = parent_wall_value
+        if 'parent_memory' in self.view:
+            parent_memory_value = float(self.view['parent_memory'][1].replace(',', '.'))
+            if self.view['parent_memory'][2] == 'KB':
+                parent_memory_value *= 1024
+            elif self.view['parent_memory'][2] == 'MB':
+                parent_memory_value *= 1024 * 1024
+            elif self.view['parent_memory'][2] == 'GB':
+                parent_memory_value *= 1024 * 1024 * 1024
+            unknowns_filters['unknown__memory__%s' % self.view['parent_memory'][0]] = parent_memory_value
+
+        if 'marks_number' in self.view:
+            if self.view['marks_number'][0] == 'confirmed':
+                unknowns_filters['confirmed__%s' % self.view['marks_number'][1]] = int(self.view['marks_number'][2])
+            else:
+                unknowns_filters['marks_number__%s' % self.view['marks_number'][1]] = int(self.view['marks_number'][2])
+
         if isinstance(self.problem, UnknownProblem):
-            leaves_set = self.report.leaves.filter(unknown__markreport_set__problem=self.problem)\
-                .filter(~Q(unknown=None) & Q(**unknowns_filters)).values_list('unknown_id', 'unknown__component__name')
+            unknowns_filters['unknown__markreport_set__problem'] = self.problem
         elif self.attr is not None:
-            leaves_set = self.report.leaves.filter(unknown__attrs__attr=self.attr)\
-                .filter(~Q(unknown=None) & Q(**unknowns_filters)).values_list('unknown_id', 'unknown__component__name')
-        else:
-            if self.problem == 0:
-                unknowns_filters['mr_set_len'] = 0
-            leaves_set = self.report.leaves.annotate(mr_set_len=Count('unknown__markreport_set'))\
-                .filter(~Q(unknown=None) & Q(**unknowns_filters)).values_list('unknown_id', 'unknown__component__name')
+            unknowns_filters['unknown__attrs__attr'] = self.attr
+        elif self.problem == 0:
+            unknowns_filters['marks_number'] = 0
+        leaves_set = self.report.leaves.annotate(**annotations).filter(~Q(unknown=None) & Q(**unknowns_filters)).values(
+            'unknown_id', 'unknown__component__name', 'confirmed', 'marks_number',
+            'unknown__cpu_time', 'unknown__wall_time', 'unknown__memory'
+        )
 
-        for u_id, component_name in leaves_set:
-            components[u_id] = component_name
+        include_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
 
-        columns = ['component']
-        for u_id, aname, aval in ReportAttr.objects.filter(report_id__in=components).order_by('id') \
+        for leaf in leaves_set:
+            if include_confirmed:
+                marks_num = "%s (%s)" % (leaf['confirmed'], leaf['marks_number'])
+            else:
+                marks_num = str(leaf['marks_number'])
+            reports[leaf['unknown_id']] = {
+                'component': leaf['unknown__component__name'],
+                'marks_number': marks_num,
+                'parent_cpu': leaf['unknown__cpu_time'],
+                'parent_wall': leaf['unknown__wall_time'],
+                'parent_memory': leaf['unknown__memory'],
+            }
+
+        for u_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports).order_by('id') \
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if aname not in data:
                 columns.append(aname)
                 data[aname] = {}
             data[aname][u_id] = aval
 
-        report_ids = []
+        ids_order_data = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            ids_ordered = []
             for rep_id in data[self.view['order'][2]]:
-                ids_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
-            report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
+                ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
+        elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
+            for rep_id in reports:
+                if reports[rep_id][self.view['order'][1]] is not None:
+                    ids_order_data.append((reports[rep_id][self.view['order'][1]], rep_id))
         else:
-            comp_data = []
-            for u_id in components:
-                comp_data.append((components[u_id], u_id))
-            for name, rep_id in sorted(comp_data, key=lambda x: x[0]):
-                report_ids.append(rep_id)
+            for u_id in reports:
+                ids_order_data.append((reports[u_id]['component'], u_id))
+        report_ids = list(x[1] for x in sorted(ids_order_data))
         if 'order' in self.view and self.view['order'][0] == 'up':
             report_ids = list(reversed(report_ids))
 
@@ -625,8 +765,19 @@ class UnknownsTable:
                     if not self.__filter_attr(col, val):
                         break
                 elif col == 'component':
-                    val = components[rep_id]
+                    val = reports[rep_id]['component']
                     href = reverse('reports:unknown', args=[rep_id])
+                elif col == 'marks_number':
+                    val = reports[rep_id]['marks_number']
+                elif col == 'verifiers:cpu':
+                    if reports[rep_id]['parent_cpu'] is not None:
+                        val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
+                elif col == 'verifiers:wall':
+                    if reports[rep_id]['parent_wall'] is not None:
+                        val = get_user_time(self.user, reports[rep_id]['parent_wall'])
+                elif col == 'verifiers:memory':
+                    if reports[rep_id]['parent_memory'] is not None:
+                        val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'href': href})
             else:
                 values_data.append(values_row)
@@ -658,6 +809,9 @@ class UnknownsTable:
         except EmptyPage:
             values = self.paginator.page(self.paginator.num_pages)
         return values
+
+    def __is_not_used(self):
+        pass
 
 
 class ReportChildrenTable:

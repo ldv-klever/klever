@@ -1,4 +1,4 @@
 {
-  "function": "CPU time exhausted",
-  "pattern": "Timeout"
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout"
 }

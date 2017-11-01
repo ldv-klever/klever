@@ -1,4 +1,5 @@
 {
-  "function": "Killing process \\d+ due to wall time timeout",
-  "pattern": "WallTimeout"
+  "pattern": "Killing process \\d+ due to wall time timeout",
+  "problem": "WallTimeout",
+  "is regexp": true
 }
