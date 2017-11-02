@@ -416,13 +416,12 @@ class UploadReport:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
-        if report.component.name in {'Core', 'Sub-job'}:
-            report.covnum = len(self.data['coverage'])
-            for cov_id in self.data['coverage']:
-                carch = CoverageArchive(report=report, identifier=cov_id)
-                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
-            report.save()
-            FillCoverageCache(report)
+        report.covnum = len(self.data['coverage'])
+        for cov_id in self.data['coverage']:
+            carch = CoverageArchive(report=report, identifier=cov_id)
+            carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
+        report.save()
+        FillCoverageCache(report)
 
     def __update_attrs(self, identifier):
         try:
