@@ -84,7 +84,9 @@ class Core(core.components.CallbacksCaller):
 
             if self.mqs:
                 try:
-                    with open('problem desc.txt', 'w', encoding='utf8') as fp:
+                    with open('problem desc.txt', 'a', encoding='utf8') as fp:
+                        if fp.tell():
+                            fp.write('\n')
                         traceback.print_exc(file=fp)
 
                     core.utils.report(self.logger,
