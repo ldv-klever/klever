@@ -423,6 +423,8 @@ class UploadReport:
                 carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
             report.save()
             FillCoverageCache(report)
+        else:
+            raise ValueError('coverage can be uploaded only for Core and first-level reports')
 
     def __update_attrs(self, identifier):
         try:
