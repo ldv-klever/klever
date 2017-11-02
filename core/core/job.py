@@ -68,9 +68,10 @@ def start_jobs(core_obj, locks, vals):
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
             cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                     locks, vals, separate_from_parent=False, include_child_resources=True)
-            #cr.start()
-            #subcomponents.append(cr)
+                     locks, vals, separate_from_parent=False, include_child_resources=True,
+                     queues_to_terminate=queues_to_terminate)
+            cr.start()
+            subcomponents.append(cr)
 
         core_obj.logger.info('Decide sub-jobs')
         sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
@@ -456,81 +457,104 @@ class RA(core.components.Component):
 class JCR(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False):
+                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
         super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir,
                                   attrs, separate_from_parent, include_child_resources)
-        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
+
         # This function adds callbacks and it should work until we call it in the new process
-        # todo: Fix this. You need callbacks with names that differs from RA callbacks and at the same time you need to
-        # todo: get messages from each job before it finishes to upload coverage for it
-        #self.__set_new_callbacks()
+        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
+        queues_to_terminate.append('rule specifications and coverage info files')
+        self.__set_callbacks()
+        self.coverage = dict()
 
     def collect_total_coverage(self):
-        total_coverage_infos = {}
-
+        total_coverage_infos = dict()
+        os.mkdir('total coverages')
+        self.logger.debug("Begin collecting coverage")
         while True:
-            rule_spec_and_coverage_info_files = self.mqs['rule specifications and coverage info files'].get()
+            coverage_info = self.mqs['rule specifications and coverage info files'].get()
 
-            if rule_spec_and_coverage_info_files is None:
+            if coverage_info is None:
                 self.logger.debug('Rule specification coverage info files message queue was terminated')
                 self.mqs['rule specifications and coverage info files'].close()
                 break
 
-            rule_spec = rule_spec_and_coverage_info_files['rule specification']
-            total_coverage_infos.setdefault(rule_spec, {})
+            if 'coverage info file' in coverage_info:
+                if coverage_info['job id'] not in total_coverage_infos:
+                    total_coverage_infos[coverage_info['job id']] = dict()
+                rule_spec = coverage_info['rule specification']
+                total_coverage_infos[coverage_info['job id']].setdefault(rule_spec, {})
 
-            with open(os.path.join(self.conf['main working directory'],
-                                   rule_spec_and_coverage_info_files['coverage info file']), encoding='utf8') as fp:
-                coverage_info = json.load(fp)
+                with open(os.path.join(self.conf['main working directory'],
+                                       coverage_info['coverage info file']), encoding='utf8') as fp:
+                    loaded_coverage_info = json.load(fp)
 
-            for file_name, coverage_info in coverage_info.items():
-                total_coverage_infos[rule_spec].setdefault(file_name, [])
-                total_coverage_infos[rule_spec][file_name] += coverage_info
+                for file_name, coverage_info_element in loaded_coverage_info.items():
+                    total_coverage_infos[coverage_info['job id']][rule_spec].setdefault(file_name, [])
+                    total_coverage_infos[coverage_info['job id']][rule_spec][file_name] += coverage_info_element
+            else:
+                job_id = coverage_info['job id']
+                self.logger.debug("Coverage of the job {!r}".format(job_id))
 
-        os.mkdir('total coverages')
+                total_coverages = dict()
+                for rule_spec, coverage_info in total_coverage_infos[job_id].items():
+                    total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', job_id),
+                                                      re.sub(r'/', '-', rule_spec))
+                    os.makedirs(total_coverage_dir)
 
-        total_coverages = {}
+                    total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
+                    if os.path.isfile(total_coverage_file):
+                        raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
+                    arcnames = {total_coverage_file: 'coverage.json'}
 
-        for rule_spec, coverage_info in total_coverage_infos.items():
-            total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', rule_spec))
-            os.mkdir(total_coverage_dir)
+                    coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
 
-            total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
-            if os.path.isfile(total_coverage_file):
-                raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
-            arcnames = {total_coverage_file: 'coverage.json'}
+                    with open(total_coverage_file, 'w', encoding='utf8') as fp:
+                        json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-            coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
+                    arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
 
-            with open(total_coverage_file, 'w', encoding='utf8') as fp:
-                json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+                    total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
+                                                                        list(arcnames.keys()), arcnames)
 
-            arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
-
-            total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] + list(arcnames.keys()),
-                                                                arcnames)
-        self.coverage = total_coverages
+                if len(total_coverages.keys()) > 0:
+                    core.utils.report(self.logger,
+                                      'job coverage',
+                                      {
+                                          'id': job_id,
+                                          'coverage': total_coverages
+                                      },
+                                      self.mqs['report files'],
+                                      self.vals['report id'],
+                                      self.conf['main working directory'],
+                                      os.path.join('total coverages', re.sub(r'/', '-', job_id)))
+                    del total_coverage_infos[job_id]
+                else:
+                    self.logger.warning('There is no coverage to send for Job {!r}'.format(job_id))
+        self.logger.info("Finish coverage reporting")
 
     main = collect_total_coverage
 
-    def __set_new_callbacks(self):
-
-        def after_finish_task_results_processing(context):
-            context.logger.info('Terminate rule specifications and coverage infos message queue')
-            context.mqs['rule specifications and coverage info files'].put(None)
+    def __set_callbacks(self):
 
         def after_process_finished_task(context):
             if os.path.isfile('coverage info.json'):
                 context.mqs['rule specifications and coverage info files'].put({
+                    'job id': context.conf['job identifier'],
                     'rule specification': context.rule_specification,
                     'coverage info file': os.path.relpath('coverage info.json',
                                                           context.conf['main working directory'])
                 })
 
+        def after_launch_sub_job_components(context):
+            context.mqs['rule specifications and coverage info files'].put({
+                'job id': context.id
+            })
+
         core.components.set_component_callbacks(self.logger, type(self),
                                                 (
-                                                    after_finish_task_results_processing,
-                                                    after_process_finished_task
+                                                    after_process_finished_task,
+                                                    after_launch_sub_job_components
                                                 ))
 
 
@@ -566,7 +590,7 @@ class Job(core.components.Component):
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
         if self.name_prefix:
             self.common_components_conf['Job prefix'] = self.name_prefix
-        self.conf['job identifier'] = self.id
+        self.common_components_conf['job identifier'] = self.id
 
         if self.name_prefix:
             if self.common_components_conf['keep intermediate files']:
@@ -599,7 +623,7 @@ class Job(core.components.Component):
             ', '.join([component.__name__ for component in self.components])))
 
     def launch_sub_job_components(self):
-        """Has a callback"""
+        """Has callbacks"""
         self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.
                          format(self.job_type, self.id))
         for component in self.components:
