@@ -247,8 +247,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
                 except ComponentError:
                     # Ignore or terminate the rest
                     if not fail_tolerant:
-                        raise RuntimeError("Sub-component failed, terminating the rest")
-
+                        raise
                 # If all is OK
                 if not p.is_alive():
                     # Just remove it
@@ -363,10 +362,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
         # Try to launch component.
         exception = False
         try:
+            # Get component specific logger.
+            self.logger = core.utils.get_logger(self.name, self.conf['logging'])
             if self.separate_from_parent:
-                # Get component specific logger.
-                self.logger = core.utils.get_logger(self.name, self.conf['logging'])
-
                 # Create special directory where child resources of processes separated from parents will be printed.
                 self.logger.info('Create child resources directory "child resources"')
                 os.makedirs('child resources'.encode('utf8'))
