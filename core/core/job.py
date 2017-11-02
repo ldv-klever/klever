@@ -185,7 +185,7 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
             if sub_job.id == sub_job_id:
                 raise ValueError('Several sub-jobs have the same identifier "{0}"'.format(sub_job_id))
 
-        job = Job(
+        job = Subjob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             locks, vals,
             id=sub_job_id,
@@ -636,4 +636,5 @@ class Job(core.components.Component):
         core.components.launch_workers(self.logger, self.component_processes)
 
 
-
+class Subjob(Job):
+    pass
