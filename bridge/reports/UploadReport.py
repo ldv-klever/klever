@@ -307,7 +307,7 @@ class UploadReport:
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
 
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
 
         if save_add_data and 'data' in self.data:
             report.new_data('report-data.json', BytesIO(
@@ -416,7 +416,7 @@ class UploadReport:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
-        if report.component.name in {'Core', 'Sub-job'}:
+        if self.parent is None or self.parent.parent is None:
             report.covnum = len(self.data['coverage'])
             for cov_id in self.data['coverage']:
                 carch = CoverageArchive(report=report, identifier=cov_id)
@@ -486,7 +486,7 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
         if save_add_data and 'log' in self.data:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
@@ -628,8 +628,8 @@ class UploadReport:
                 SafeUtils.RecalculateTags([leaf])
 
     def __cut_parents_branch(self):
-        if len(self._parents_branch) > 1 and self._parents_branch[1].component.name == 'Sub-job':
-            # Just Core and Sub-job report
+        if len(self._parents_branch) > 1:
+            # Just Core and first-level report
             self._parents_branch = self._parents_branch[:2]
         elif len(self._parents_branch) > 0:
             # Just Core report
@@ -638,7 +638,7 @@ class UploadReport:
     def __cut_leaf_parents_branch(self, leaf):
         self.__cut_parents_branch()
         if self.parent.verifier_input or self.parent.covnum > 0:
-            # After verification finish report self.parent.parent will be Core/Sub-job report
+            # After verification finish report self.parent.parent will be Core/first-level report
             self._parents_branch.append(self.parent)
         else:
             leaf.parent = self._parents_branch[-1]
@@ -772,7 +772,12 @@ class CollapseReports:
         root = self.job.reportroot
         sub_jobs = {}
         sj_reports = set()
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__component__name='Sub-job'):
+        rel_reports = [
+            'safe__parent__reportcomponent', 'unsafe__parent__reportcomponent', 'unknown__parent__reportcomponent'
+        ]
+
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__parent__parent=None)\
+                .exclude(report__parent=None).select_related(*rel_reports):
             if leaf.report_id not in sub_jobs:
                 sub_jobs[leaf.report_id] = set()
             for fname in ['safe', 'unsafe', 'unknown']:
@@ -789,7 +794,8 @@ class CollapseReports:
 
         core_id = ReportComponent.objects.get(root=root, parent=None).id
         core_reports = set()
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id):
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id)\
+                .select_related(*rel_reports):
             for fname in ['safe', 'unsafe', 'unknown']:
                 report = getattr(leaf, fname)
                 if report:
@@ -803,7 +809,7 @@ class CollapseReports:
         Report.objects.filter(id__in=core_reports).update(parent_id=core_id)
 
         ReportComponent.objects.filter(root=root, verifier_input='', covnum=0)\
-            .exclude(component__name__in={'Core', 'Sub-job'}).delete()
+            .exclude(id__in=set(sub_jobs) | {core_id}).delete()
 
         RecalculateLeaves([root])
         RecalculateVerdicts([root])
