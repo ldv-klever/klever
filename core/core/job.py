@@ -56,36 +56,30 @@ def start_jobs(core_obj, locks, vals):
         common_components_conf.update(common_components_conf['Common'])
         del (common_components_conf['Common'])
 
+    subcomponents = []
+    queues_to_terminate = []
+    if 'collect total code coverage' in common_components_conf and \
+            common_components_conf['collect total code coverage']:
+        cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                 locks, vals, separate_from_parent=False, include_child_resources=True,
+                 queues_to_terminate=queues_to_terminate)
+        cr.start()
+        subcomponents.append(cr)
+
     if 'Sub-jobs' in common_components_conf:
-        subcomponents = []
-        queues_to_terminate = []
         if __check_ideal_verdicts(common_components_conf):
             ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                     locks, vals, separate_from_parent=False, include_child_resources=True,
                     job_type=job_type, queues_to_terminate=queues_to_terminate)
             ra.start()
             subcomponents.append(ra)
-        if 'collect total code coverage' in common_components_conf and \
-                common_components_conf['collect total code coverage']:
-            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                     locks, vals, separate_from_parent=False, include_child_resources=True,
-                     queues_to_terminate=queues_to_terminate)
-            cr.start()
-            subcomponents.append(cr)
 
         core_obj.logger.info('Decide sub-jobs')
         sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
                                                                   'Sub-jobs processing')
         core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
-        __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type)
-        # Stop queues
-        for queue in queues_to_terminate:
-            core_obj.logger.info('Terminate queue {!r}'.format(queue))
-            core_obj.mqs[queue].put(None)
-        # Stop subcomponents
-        core_obj.logger.info('Jobs are solved, waiting for subcomponents')
-        for subcomponent in subcomponents:
-            subcomponent.join()
+        __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type,
+                         subcomponents + [core_obj.uploading_reports_process])
     else:
         # Klever Core working directory is used for the only sub-job that is job itcore.
         job = Job(
@@ -97,9 +91,17 @@ def start_jobs(core_obj, locks, vals):
             include_child_resources=False,
             job_type=job_type,
             components_common_conf=common_components_conf)
-        job.start()
-        job.join()
+        core.components.launch_workers(core_obj.logger, [job], subcomponents + [core_obj.uploading_reports_process])
         core_obj.logger.info("Finished main job")
+
+    # Stop queues
+    for queue in queues_to_terminate:
+        core_obj.logger.info('Terminate queue {!r}'.format(queue))
+        core_obj.mqs[queue].put(None)
+    # Stop subcomponents
+    core_obj.logger.info('Jobs are solved, waiting for subcomponents')
+    for subcomponent in subcomponents:
+        subcomponent.join()
     core_obj.logger.info('Jobs and arranging results reporter finished')
 
 
@@ -135,7 +137,7 @@ def __get_common_components_conf(logger, conf):
     return components_common_conf
 
 
-def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type):
+def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, subcomponents):
     sub_jobs = []
 
     def constructor(number):
@@ -211,7 +213,7 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type):
     # Then run jobs
     core_obj.logger.debug('Start sub-jobs pull of workers')
     core.components.launch_queue_workers(core_obj.logger, subjob_queue, constructor, sub_job_solvers_num,
-                                         components_common_conf['ignore failed sub-jobs'])
+                                         components_common_conf['ignore failed sub-jobs'], subcomponents)
 
 
 class RA(core.components.Component):

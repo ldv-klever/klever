@@ -173,11 +173,14 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
     return resources
 
 
-def launch_workers(logger, workers):
+def launch_workers(logger, workers, monitoring_list=None):
     """
     Wait until all given components will finish their work. If one among them fails, terminate the rest.
 
+    :param logger: Logger object.
     :param workers: List of Component objects.
+    :param monitoring_list: List with already started Components that should be checked as other workers and if some of
+                            them fails then we should also termionate the rest workers.
     :return: None
     """
     logger.info('Run {} components'.format(len(workers)))
@@ -192,6 +195,7 @@ def launch_workers(logger, workers):
             for p in workers:
                 p.join(1.0 / len(workers))
                 operating_subcomponents_num += p.is_alive()
+            check_components(logger, monitoring_list)
 
             if not operating_subcomponents_num:
                 break
@@ -202,7 +206,7 @@ def launch_workers(logger, workers):
     logger.info('All components finished')
 
 
-def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
+def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, monitoring_list=None):
     """
     Blocking function that run given number of workers processing elements of particular queue.
 
@@ -211,6 +215,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
     :param constructor: Function that gets element and returns Component
     :param number: Max number of simultaneously working workers
     :param fail_tolerant: True if no need to stop processing on fail.
+    :param monitoring_list: List with already started Components that should be checked as other workers and if some of
+                            them fails then we should also termionate the rest workers.
     :return: None
     """
     logger.info("Start children set with {!r} workers".format(number))
@@ -253,6 +259,10 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
                     # Just remove it
                     components.pop(i)
                     finished += 1
+            # Check additional components, actually they should not terminate or finish during this funciton run so
+            # just check that they are OK
+            check_components(logger, monitoring_list)
+
             if finished > 0:
                 logger.debug("Finished {} workers".format(finished))
 
@@ -263,6 +273,23 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant):
         for p in components:
             if p.is_alive():
                 p.terminate()
+
+
+def check_components(logger, components):
+    """
+    Check that all given processes are alive and raise an exception if it is not so.
+
+    :param logger: Logger Object.
+    :param components: List with Component objects.
+    :return: None.
+    """
+    # Check additional components, actually they should not terminate or finish during this funciton run so
+    # just check that they are OK
+    if isinstance(components, list):
+        for mc in (m for m in components if not m.is_alive()):
+            # Here we expect an exception
+            logger.info("Some of the subcomponents running in the background failed")
+            mc.join()
 
 
 class ComponentError(ChildProcessError):
