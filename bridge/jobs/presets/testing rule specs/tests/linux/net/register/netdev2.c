@@ -37,7 +37,7 @@ static struct net_device ldv_net_device = {
 	.netdev_ops = &ldv_net_device_ops
 };
 
-static int ldv_usb_probe(struct usb_interface *interface,
+static int ldv_usb_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
 	ldv_assume(!register_netdev(&ldv_net_device));
