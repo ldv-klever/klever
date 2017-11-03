@@ -17,16 +17,26 @@
 
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-    struct device *dev;
-    struct page *page;
-    dma_addr_t map;
+	gfp_t gfp_mask = ldv_undef_uint();
+	struct page *page;
+	struct device *dev = ldv_undef_ptr_non_null();
+	size_t offset = ldv_undef_uint(), size = ldv_undef_uint();
+	unsigned int dir = ldv_undef_uint();
+	dma_addr_t map;
 
-	map = dma_map_page(dev, page, 0, 1, DMA_BIDIRECTIONAL);
+	page = alloc_page(gfp_mask);
+	ldv_assume(page != NULL);
+
+	map = dma_map_page(dev, page, offset, size, dir);
+
+	__free_page(page);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

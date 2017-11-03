@@ -17,15 +17,16 @@
 
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-    struct device *dev;
-    dma_addr_t map;
+	struct device *dev = ldv_undef_ptr_non_null();
+	dma_addr_t map = ldv_undef_ulonglong();
 
-    dma_mapping_error(dev, map);
+	dma_mapping_error(dev, map);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

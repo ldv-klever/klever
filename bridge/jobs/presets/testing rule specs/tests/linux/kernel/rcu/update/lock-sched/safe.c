@@ -18,14 +18,13 @@
 #include <linux/module.h>
 #include <linux/rcupdate.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
 	rcu_read_lock_sched();
 	rcu_read_unlock_sched();
-
 	rcu_barrier_sched();
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

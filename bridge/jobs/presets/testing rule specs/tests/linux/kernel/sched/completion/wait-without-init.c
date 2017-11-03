@@ -18,14 +18,13 @@
 #include <linux/module.h>
 #include <linux/completion.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct completion *x;
+	struct completion x;
 
-	wait_for_completion(x);
-	init_completion(x);
+	wait_for_completion(&x);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

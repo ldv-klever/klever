@@ -17,30 +17,36 @@
 
 #include <linux/module.h>
 #include <linux/genhd.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	int minors;
-	struct gendisk *disk;
+	int minors1 = ldv_undef_int(), minors2 = ldv_undef_int();
+	struct gendisk *disk1, *disk2;
 
-	disk = alloc_disk(minors);
-	if (!disk)
-	    return -1;
-	add_disk(disk);
-	del_gendisk(disk);
-	add_disk(disk);
-	del_gendisk(disk);
-	put_disk(disk);
-	disk = alloc_disk(minors);
-	if (!disk)
-	    return -1;
-	add_disk(disk);
-	del_gendisk(disk);
-	add_disk(disk);
-	del_gendisk(disk);
-	put_disk(disk);
+	disk1 = alloc_disk(minors1);
+	if (!disk1)
+		return ldv_undef_int_negative();
+
+	add_disk(disk1);
+	del_gendisk(disk1);
+
+	add_disk(disk1);
+	del_gendisk(disk1);
+	put_disk(disk1);
+
+	disk2 = alloc_disk(minors2);
+	if (!disk2)
+		return ldv_undef_int_negative();
+
+	add_disk(disk2);
+	del_gendisk(disk2);
+
+	add_disk(disk2);
+	del_gendisk(disk2);
+	put_disk(disk2);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

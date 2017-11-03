@@ -15,48 +15,27 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/usb.h>
-#include <linux/irq.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/skbuff.h>
-#include <linux/slab.h>
-#include <linux/mempool.h>
-#include <linux/dmapool.h>
-#include <linux/dma-mapping.h>
-#include <linux/vmalloc.h>
 #include <linux/spinlock.h>
+#include <linux/slab.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
+static DEFINE_SPINLOCK(ldv_lock);
 
-static struct my_struct
+static int __init ldv_init(void)
 {
-	const char *name;
-	unsigned int *irq;
-};
+	unsigned long size = ldv_undef_ulong();
+	void *data;
 
-static int undef_int(void)
-{
-	int nondet;
-	return nondet;
-}
+	ldv_assume(spin_trylock(&ldv_lock));
+	data = kmalloc(size, GFP_KERNEL);
+	ldv_assume(data != NULL);
+	spin_unlock(&ldv_lock);
 
-static void memory_allocation(void)
-{
-	gfp_t flags;
-	struct my_struct *mem = kmalloc(sizeof(mem), flags);
-	kfree(mem);
-}
+	kfree(data);
 
-static int __init my_init(void)
-{
-	spinlock_t *lock;
-	if (spin_trylock(lock)) {
-		memory_allocation();
-		spin_unlock(lock);
-	}
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

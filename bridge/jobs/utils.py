@@ -596,6 +596,14 @@ def get_user_time(user, milliseconds):
     return converted
 
 
+def get_user_memory(user, bytes_val):
+    if user.extended.data_format == 'hum':
+        converted = convert_memory(int(bytes_val), user.extended.accuracy)
+    else:
+        converted = "%s %s" % (int(bytes_val), _('B'))
+    return converted
+
+
 class CompareFileSet(object):
     def __init__(self, job1, job2):
         self.j1 = job1

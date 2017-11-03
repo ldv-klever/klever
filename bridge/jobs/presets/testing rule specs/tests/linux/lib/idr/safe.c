@@ -17,33 +17,35 @@
 
 #include <linux/module.h>
 #include <linux/idr.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct idr *idp, *idp2;
-	void *ptr, *found;
-	int start, end;
-	gfp_t gfp_mask;
+	struct idr idp1, idp2;
+	void *ptr1 = ldv_undef_ptr(), *found1, *ptr2 = ldv_undef_ptr(), *found2;
+	int start1 = ldv_undef_int(), end1 = ldv_undef_int(), start2 = ldv_undef_int(), end2 = ldv_undef_int();
+	gfp_t gfp_mask1 = ldv_undef_uint(), gfp_mask2 = ldv_undef_uint();
 
-	idr_init(idp);
-	idr_init(idp2);
-	idr_alloc(idp, ptr, start, end, gfp_mask);
-	found = idr_find(idp, end);
-	idr_remove(idp, end);
-	idr_alloc(idp, ptr, start, end, gfp_mask);
-	found = idr_find(idp, end);
-	idr_remove(idp, end);
-	idr_destroy(idp);
+	idr_init(&idp1);
+	idr_init(&idp2);
 
-	idr_alloc(idp2, ptr, start, end, gfp_mask);
-	found = idr_find(idp2, end);
-	idr_remove(idp2, end);
-	idr_alloc(idp2, ptr, start, end, gfp_mask);
-	found = idr_find(idp2, end);
-	idr_remove(idp2, end);
-	idr_destroy(idp2);
+	idr_alloc(&idp1, ptr1, start1, end1, gfp_mask1);
+	found1 = idr_find(&idp1, end1);
+	idr_remove(&idp1, end1);
+	idr_alloc(&idp1, ptr1, start1, end1, gfp_mask1);
+	found1 = idr_find(&idp1, end1);
+	idr_remove(&idp1, end1);
+	idr_destroy(&idp1);
+
+	idr_alloc(&idp2, ptr2, start2, end2, gfp_mask2);
+	found2 = idr_find(&idp2, end2);
+	idr_remove(&idp2, end2);
+	idr_alloc(&idp2, ptr2, start2, end2, gfp_mask2);
+	found2 = idr_find(&idp2, end2);
+	idr_remove(&idp2, end2);
+	idr_destroy(&idp2);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

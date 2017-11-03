@@ -15,25 +15,27 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <net/sock.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct sock *sk1;
-	struct sock *sk2;
+	struct sock *sk1 = ldv_undef_ptr();
+	struct sock *sk2 = ldv_undef_ptr();
 
 	lock_sock(sk1);
-	lock_sock_nested(sk2,1);
+	lock_sock_nested(sk2, 1);
 	release_sock(sk1);
 	release_sock(sk2);
+
 	if (lock_sock_fast(sk1))
-		unlock_sock_fast(sk1,false);
+		unlock_sock_fast(sk1, false);
+
 	lock_sock(sk1);
-	unlock_sock_fast(sk1,true);
+	unlock_sock_fast(sk1, true);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

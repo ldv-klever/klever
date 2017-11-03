@@ -15,36 +15,36 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct class *cur_class;
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
+	struct usb_gadget_driver driver;
+	struct class class;
+	dev_t dev = ldv_undef_uint();
+	unsigned int baseminor = ldv_undef_uint(), count = ldv_undef_uint();
+	const char *name = ldv_undef_ptr();
 
-	if (!usb_gadget_probe_driver(cur_driver)) {
-		usb_gadget_unregister_driver(cur_driver);
-	}
+	ldv_assume(!IS_ERR(&class));
 
-	// All at once.
-	if (class_register(cur_class) == 0) {
-		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
-			if (!usb_gadget_probe_driver(cur_driver)) {
-				usb_gadget_unregister_driver(cur_driver);
-			}
+	if (!usb_gadget_probe_driver(&driver))
+		usb_gadget_unregister_driver(&driver);
+
+	if (!class_register(&class)) {
+		if (!alloc_chrdev_region(&dev, baseminor, count, name)) {
+			if (!usb_gadget_probe_driver(&driver))
+				usb_gadget_unregister_driver(&driver);
 			unregister_chrdev_region(dev, count);
 		}
-		class_destroy(cur_class);
+		class_destroy(&class);
 	}
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

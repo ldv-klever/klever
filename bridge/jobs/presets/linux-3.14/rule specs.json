@@ -254,14 +254,6 @@
         "linux:alloc:usb lock::nonatomic"
       ]}}}
     },
-    "linux:alloc": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
-        "linux:alloc::more at exit",
-        "linux:alloc::less at exit"
-      ]}}}
-    },
     "linux:arch:io": {
       "description": "...",
       "template": "Linux kernel modules",
@@ -336,15 +328,6 @@
         "linux/drivers/clk2.aspect.tmpl"
       ]},
       "RSG": {"models": {"$linux/drivers/clk2.c": {"bug kinds": ["linux:drivers:clk2::less initial decrement"]}}}
-    },
-    "linux:fs:char_dev": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/fs/char_dev.c": {"bug kinds": [
-        "linux:fs:char_dev::double registration",
-        "linux:fs:char_dev::double deregistration",
-        "linux:fs:char_dev::registered at exit"
-      ]}}}
     },
     "linux:fs:sysfs": {
       "description": "...",
@@ -483,23 +466,6 @@
           ]
       }}}
     },
-    "linux:mmc:sdio_func": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/mmc/sdio_func.c": {
-        "bug kinds": [
-          "linux:mmc:sdio_func::wrong params",
-          "linux:mmc:sdio_func::double claim",
-          "linux:mmc:sdio_func::release without claim",
-          "linux:mmc:sdio_func::unreleased at exit"
-        ],
-        "headers": [
-          "linux/mmc/sdio_func.h",
-          "linux/mmc/host.h",
-          "linux/mmc/card.h"
-        ]
-      }}}
-    },
     "linux:net:register": {
       "description": "Error handling for netdev in probe()",
       "template": "Linux kernel modules",
@@ -613,6 +579,42 @@
           "expect several witnesses": true
         }
       }
+    }
+  },
+  "rule specifications staging": {
+    "linux:alloc": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
+        "linux:alloc::more at exit",
+        "linux:alloc::less at exit"
+      ]}}}
+    },
+    "linux:fs:char_dev": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/fs/char_dev.c": {"bug kinds": [
+        "linux:fs:char_dev::double registration",
+        "linux:fs:char_dev::double deregistration",
+        "linux:fs:char_dev::registered at exit"
+      ]}}}
+    },
+    "linux:mmc:sdio_func": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/mmc/sdio_func.c": {
+        "bug kinds": [
+          "linux:mmc:sdio_func::wrong params",
+          "linux:mmc:sdio_func::double claim",
+          "linux:mmc:sdio_func::release without claim",
+          "linux:mmc:sdio_func::unreleased at exit"
+        ],
+        "headers": [
+          "linux/mmc/sdio_func.h",
+          "linux/mmc/host.h",
+          "linux/mmc/card.h"
+        ]
+      }}}
     }
   }
 }

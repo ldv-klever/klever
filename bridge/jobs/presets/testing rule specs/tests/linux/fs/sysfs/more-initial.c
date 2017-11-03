@@ -17,15 +17,24 @@
 
 #include <linux/module.h>
 #include <linux/sysfs.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static struct attribute *attrs[] = {
+	NULL,
+};
+
+static struct attribute_group attr_group = {
+	.attrs = attrs,
+};
+
+static int __init ldv_init(void)
 {
-	const struct attribute_group *grp;
-	struct kobject *kobj;
+	struct kobject *kobj = ldv_undef_ptr();
 
-	sysfs_create_group(kobj, grp);
+	ldv_assume(!sysfs_create_group(kobj, &attr_group));
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

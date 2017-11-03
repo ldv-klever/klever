@@ -17,16 +17,15 @@
 
 #include <linux/module.h>
 #include <asm/io.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	void *res;
-	phys_addr_t paddr;
-	unsigned long size;
+	void *io_base = ldv_undef_ptr();
 
-	iounmap(res);
+	iounmap(io_base);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

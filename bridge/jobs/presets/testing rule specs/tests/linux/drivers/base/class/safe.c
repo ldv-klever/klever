@@ -17,27 +17,25 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct module *cur_module;
-	struct class *cur_class;
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
+	const char *name = ldv_undef_ptr();
+	struct class *class1, class2;
 
-	cur_class = class_create(cur_module, "test");
-	if (IS_ERR(cur_class)) {
-		return -10;
-	}
-	class_destroy(cur_class);
+	ldv_assume(!IS_ERR(&class2));
 
-	if (class_register(cur_class) == 0) {
-		class_destroy(cur_class);
-	}
+	class1 = class_create(THIS_MODULE, name);
+	if (IS_ERR(class1))
+		return ldv_undef_int_negative();
+	class_destroy(class1);
+
+	if (!class_register(&class2))
+		class_destroy(&class2);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

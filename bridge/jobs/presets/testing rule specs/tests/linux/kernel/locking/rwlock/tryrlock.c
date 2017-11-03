@@ -17,15 +17,16 @@
 
 #include <linux/module.h>
 #include <linux/spinlock.h>
+#include <verifier/common.h>
 
-static int __init init(void)
+static DEFINE_RWLOCK(ldv_lock);
+
+static int __init ldv_init(void)
 {
-	rwlock_t *rwlock_1;
-
-	read_trylock(rwlock_1);
-	read_unlock(rwlock_1);
+	ldv_assume(!read_trylock(&ldv_lock));
+	read_unlock(&ldv_lock);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

@@ -16,9 +16,9 @@
 #
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.vtg.emg.common.process import Dispatch, get_common_parameter
-from core.vtg.emg.translator.fsa_translator import FSATranslator
 from core.vtg.emg.translator.code import Variable
-from core.vtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
+from core.vtg.emg.translator.fsa_translator import FSATranslator
+from core.vtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file, add_model_function
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
@@ -221,8 +221,7 @@ class LabelTranslator(FSATranslator):
         self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
-                self._cmodel.add_function_declaration(file, cf, extern=True)
+            add_model_function(self._analysis, self._cmodel, automaton, cf)
         return
 
     def _entry_point(self):

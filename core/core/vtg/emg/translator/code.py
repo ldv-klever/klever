@@ -44,6 +44,7 @@ class CModel:
         self.entry_name = entry_point_name
         self.files = files
         self.types = list()
+        self.extra_headers = dict()
         self._logger = logger
         self._conf = conf
         self._workdir = workdir
@@ -52,8 +53,25 @@ class CModel:
         self._function_definitions = dict()
         self._function_declarations = dict()
         self._before_aspects = dict()
-        self._common_aspects = list()
+        self._common_aspects = dict()
         self.__external_allocated = dict()
+
+    def add_extra_headers(self, headers, files):
+        """
+        Add list of headers to given files.
+
+        :param headers: List with header file names.
+        :param files: List with files names where headers should be added.
+        :return: None
+        """
+        for header in headers:
+            for file in files:
+                if header not in self.extra_headers:
+                    self.extra_headers[header] = []
+                if file not in self.extra_headers[header]:
+                    self.extra_headers[header].append(file)
+
+                self.add_before_aspect('#include <{}>\n'.format(header), file)
 
     def add_before_aspect(self, code, file=None):
         # Prepare code
@@ -144,10 +162,13 @@ class CModel:
         models = FunctionModels(self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
         return models.text_processor(automaton, statement)
 
-    def add_function_model(self, function, body):
+    def add_function_model(self, function, body, files):
         new_aspect = Aspect(function.identifier, function)
         new_aspect.body = body
-        self._common_aspects.append(new_aspect)
+        for file in files:
+            if file not in self._common_aspects:
+                self._common_aspects[file] = list()
+            self._common_aspects[file].append(new_aspect)
 
     def print_source_code(self, additional_lines):
         aspect_dir = "aspects"
@@ -167,12 +188,13 @@ class CModel:
                     lines.extend(additional_lines)
                     lines.append("\n")
 
-            if len(self._before_aspects[file]) > 0:
-                for aspect in self._before_aspects[file]:
-                    lines.append("\n")
-                    lines.append("/* EMG aspect */\n")
-                    lines.extend(aspect)
-                    lines.append("\n")
+            if file in self._before_aspects:
+                if len(self._before_aspects[file]) > 0:
+                    for aspect in self._before_aspects[file]:
+                        lines.append("\n")
+                        lines.append("/* EMG aspect */\n")
+                        lines.extend(aspect)
+                        lines.append("\n")
 
             # Add model itself
             lines.append('after: file ("$this")\n')
@@ -181,7 +203,8 @@ class CModel:
             for tp in self.types:
                 lines.append(tp.to_string('') + " {\n")
                 for field in sorted(list(tp.fields.keys())):
-                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params')))
+                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
+                                                  scope={file}))
                 lines.append("};\n")
                 lines.append("\n")
 
@@ -211,9 +234,10 @@ class CModel:
 
             lines.append("}\n")
             lines.append("/* EMG kernel function models */\n")
-            for aspect in self._common_aspects:
-                lines.extend(aspect.get_aspect())
-                lines.append("\n")
+            if file in self._common_aspects:
+                for aspect in self._common_aspects[file]:
+                    lines.extend(aspect.get_aspect())
+                    lines.append("\n")
 
             name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0], '.aspect'))
             with open(name, "w", encoding="utf8") as fh:
@@ -307,7 +331,7 @@ class Variable:
 
     def declare(self, extern=False):
         # Generate declaration
-        expr = self.declaration.to_string(self.name, typedef='complex_and_params')
+        expr = self.declaration.to_string(self.name, typedef='complex_and_params', scope={self.file})
 
         # Add extern prefix
         if extern and self.scope == 'global':
@@ -332,7 +356,7 @@ class FunctionDefinition:
         self.declaration = import_declaration(signature)
 
     def get_declaration(self, extern=False):
-        declaration = self.declaration.to_string(self.name, typedef='complex_and_params')
+        declaration = self.declaration.to_string(self.name, typedef='complex_and_params', scope={self.file})
         declaration += ';'
 
         if extern:
@@ -340,10 +364,12 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def get_definition(self):
-        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(typedef='complex_and_params'),
+        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(typedef='complex_and_params',
+                                                                                 scope={self.file}),
                                          self.name, ', '.join(
                                             [self.declaration.parameters[index].to_string('arg{}'.format(index),
-                                                                                          typedef='complex_and_params')
+                                                                                          typedef='complex_and_params',
+                                                                                          scope={self.file})
                                              for index in range(len(self.declaration.parameters))]))
 
         lines = list()

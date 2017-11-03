@@ -15,18 +15,23 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/rtnetlink.h>
 #include <net/mac80211.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct ieee80211_hw* hw;
+	struct ieee80211_hw *hw = ldv_undef_ptr();
+
+	ldv_assume(!ieee80211_register_hw(hw));
+
 	rtnl_lock();
 	ieee80211_unregister_hw(hw);
-        rtnl_unlock();
+	rtnl_unlock();
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);
