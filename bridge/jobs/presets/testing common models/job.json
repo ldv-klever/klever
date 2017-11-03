@@ -1,0 +1,38 @@
+{
+  "Common": {
+    "Linux kernel": {
+      "source": "linux-3.14",
+      "configuration": "allmodconfig",
+      "architecture": "x86_64",
+      "modules": ["all"]
+    },
+    "LKVOG strategy": {"name": "separate modules"},
+    "maximum verification object size": 30000,
+    "rule specifications DB": "rule specs.json",
+    "verifier profiles DB": "verifier profiles.json",
+    "specifications set": "Linux 3.14 (base)",
+    "rule specifications": ["test"],
+    "ideal verdicts": [
+      {
+        "ideal verdict": "safe",
+        "verification object": "ext-modules/safe.ko"
+      },
+      {"ideal verdict": "unsafe"}
+    ]
+  },
+  "Sub-jobs": [
+    {"Linux kernel": {"external modules": "tests/linux/drivers/base/dd"}},
+    {"Linux kernel": {"external modules": "tests/linux/drivers/spi"}},
+    {"Linux kernel": {"external modules": "tests/linux/err"}},
+    {"Linux kernel": {"external modules": "tests/linux/ldv/common"}},
+    {"Linux kernel": {"external modules": "tests/linux/mm/gfp"}},
+    {"Linux kernel": {"external modules": "tests/linux/mm/slab"}},
+    {"Linux kernel": {"external modules": "tests/verifier/common"}},
+    {"Linux kernel": {"external modules": "tests/verifier/gcc"}},
+    {"Linux kernel": {"external modules": "tests/verifier/map"}},
+    {"Linux kernel": {"external modules": "tests/verifier/memory"}},
+    {"Linux kernel": {"external modules": "tests/verifier/nondet"}},
+    {"Linux kernel": {"external modules": "tests/verifier/set"}},
+    {"Linux kernel": {"external modules": "tests/verifier/thread"}}
+  ]
+}
