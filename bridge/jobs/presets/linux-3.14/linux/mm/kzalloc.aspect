@@ -17,8 +17,7 @@
 
 before: file("$this")
 {
-#include <linux/types.h>
-void *ldv_kzalloc(size_t size, gfp_t flags);
+#include <linux/ldv/slab.h>
 } 
 
 around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
