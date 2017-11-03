@@ -57,42 +57,57 @@ def start_jobs(core_obj, locks, vals):
         del (common_components_conf['Common'])
 
     subcomponents = []
-    queues_to_terminate = []
-    if 'collect total code coverage' in common_components_conf and \
-            common_components_conf['collect total code coverage']:
-        cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                 locks, vals, separate_from_parent=False, include_child_resources=True,
-                 queues_to_terminate=queues_to_terminate)
-        cr.start()
-        subcomponents.append(cr)
+    try:
+        queues_to_terminate = []
 
-    if 'Sub-jobs' in common_components_conf:
-        if __check_ideal_verdicts(common_components_conf):
-            ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                    locks, vals, separate_from_parent=False, include_child_resources=True,
-                    job_type=job_type, queues_to_terminate=queues_to_terminate)
-            ra.start()
-            subcomponents.append(ra)
+        pc = core.progress.PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks,
+                              core_obj.mqs, locks, vals, separate_from_parent=False,
+                              include_child_resources=True,
+                              subjobs_number=(len(common_components_conf['Sub-jobs'])
+                                              if 'Sub-jobs' in common_components_conf else 1))
+        pc.start()
+        subcomponents.append(pc)
 
-        core_obj.logger.info('Decide sub-jobs')
-        sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
-                                                                  'Sub-jobs processing')
-        core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
-        __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type,
-                         subcomponents + [core_obj.uploading_reports_process])
-    else:
-        # Klever Core working directory is used for the only sub-job that is job itcore.
-        job = Job(
-            core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-            locks, vals,
-            id=core_obj.ID,
-            work_dir=os.path.join(os.path.curdir, 'job'),
-            separate_from_parent=True,
-            include_child_resources=False,
-            job_type=job_type,
-            components_common_conf=common_components_conf)
-        core.components.launch_workers(core_obj.logger, [job], subcomponents + [core_obj.uploading_reports_process])
-        core_obj.logger.info("Finished main job")
+        if 'collect total code coverage' in common_components_conf and \
+                common_components_conf['collect total code coverage']:
+            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                     locks, vals, separate_from_parent=False, include_child_resources=True,
+                     queues_to_terminate=queues_to_terminate)
+            cr.start()
+            subcomponents.append(cr)
+
+        if 'Sub-jobs' in common_components_conf:
+            if __check_ideal_verdicts(common_components_conf):
+                ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                        locks, vals, separate_from_parent=False, include_child_resources=True,
+                        job_type=job_type, queues_to_terminate=queues_to_terminate)
+                ra.start()
+                subcomponents.append(ra)
+
+            core_obj.logger.info('Decide sub-jobs')
+            sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
+                                                                      'Sub-jobs processing')
+            core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+            __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type,
+                             subcomponents + [core_obj.uploading_reports_process])
+        else:
+            # Klever Core working directory is used for the only sub-job that is job itcore.
+            job = Job(
+                core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
+                locks, vals,
+                id=core_obj.ID,
+                work_dir=os.path.join(os.path.curdir, 'job'),
+                separate_from_parent=True,
+                include_child_resources=False,
+                job_type=job_type,
+                components_common_conf=common_components_conf)
+            core.components.launch_workers(core_obj.logger, [job], subcomponents + [core_obj.uploading_reports_process])
+            core_obj.logger.info("Finished main job")
+    except Exception:
+        for p in subcomponents:
+            if p.is_alive():
+                p.terminate()
+        raise
 
     # Stop queues
     for queue in queues_to_terminate:
@@ -259,7 +274,7 @@ class RA(core.components.Component):
                 raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
 
             results_dir = os.path.join('results', re.sub(r'/', '-', name))
-            os.mkdir(results_dir)
+            os.makedirs(results_dir)
 
             core.utils.report(self.logger,
                               'data',
@@ -281,7 +296,7 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': 'non-verifier unknown',
-                'name prefix': context.conf['Job prexix'],
+                'name prefix': context.conf['Job prefix'],
                 'ideal verdicts': context.conf['ideal verdicts']
             })
 
@@ -290,7 +305,7 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': context.verdict,
-                'name prefix': context.conf['Job prexix'],
+                'name prefix': context.conf['Job prefix'],
                 'ideal verdicts': context.conf['ideal verdicts']
             })
 
@@ -583,7 +598,6 @@ class Job(core.components.Component):
 
         self.components = []
         self.component_processes = []
-        self.total_coverages = multiprocessing.Manager().dict()
 
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
@@ -607,7 +621,7 @@ class Job(core.components.Component):
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
         self.launch_sub_job_components()
-        self.logger.info("All components finished, waiting for coverage reporter...")
+        self.logger.info("All components finished")
 
     main = decide_job
 
@@ -637,4 +651,13 @@ class Job(core.components.Component):
 
 
 class Subjob(Job):
-    pass
+
+    def decide_subjob(self):
+        try:
+            self.decide_job()
+            self.vals['subjobs progress'][self.id] = 'finished'
+        except Exception:
+            self.vals['subjobs progress'][self.id] = 'failed'
+            raise
+
+    main = decide_subjob

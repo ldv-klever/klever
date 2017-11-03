@@ -175,7 +175,9 @@ class VRP(core.components.Component):
                 rp.join()
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
-            self.mqs['processed tasks'].put((vo, rule))
+            finally:
+                self.mqs['processed tasks'].put((vo, rule))
+                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
         self.logger.info("VRP fetcher finishes its work")
 
