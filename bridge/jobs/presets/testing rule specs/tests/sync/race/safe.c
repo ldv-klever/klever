@@ -28,6 +28,8 @@ static void *ldv_func1(void *arg)
 	mutex_lock(&ldv_lock);
 	_ldv_global_var = 1;
 	mutex_unlock(&ldv_lock);
+
+	return NULL;
 }
 
 static void *ldv_func2(void *arg)
