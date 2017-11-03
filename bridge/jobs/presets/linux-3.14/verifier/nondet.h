@@ -20,10 +20,14 @@
 
 /* Special nondeterministic functions. */
 extern int ldv_undef_int(void);
-extern int ldv_undef_uint(void);
+extern int ldv_undef_long(void);
+extern unsigned int ldv_undef_uint(void);
 extern unsigned long ldv_undef_ulong(void);
 extern unsigned long long ldv_undef_ulonglong(void);
 extern void *ldv_undef_ptr(void);
+
+/* Return nondeterministic positive integer number. */
+extern int ldv_undef_int_positive(void);
 
 /* Return nondeterministic negative integer number. */
 extern int ldv_undef_int_negative(void);

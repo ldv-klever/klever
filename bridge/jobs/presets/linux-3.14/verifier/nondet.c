@@ -43,7 +43,12 @@ int ldv_undef_int(void)
 	return __VERIFIER_nondet_int();
 }
 
-int ldv_undef_uint(void)
+int ldv_undef_long(void)
+{
+	return __VERIFIER_nondet_long();
+}
+
+unsigned int ldv_undef_uint(void)
 {
 	return __VERIFIER_nondet_uint();
 }
@@ -61,6 +66,15 @@ unsigned long ldv_undef_ulong(void)
 unsigned long long ldv_undef_ulonglong(void)
 {
 	return __VERIFIER_nondet_ulonglong();
+}
+
+int ldv_undef_int_positive(void)
+{
+	int ret = ldv_undef_int();
+
+	ldv_assume(ret > 0);
+
+	return ret;
 }
 
 int ldv_undef_int_negative(void)
