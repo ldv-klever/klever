@@ -24,7 +24,7 @@
 static int ldv_ndo_open(struct net_device *dev1) {
 	struct net_device *dev2 = ldv_undef_ptr();
 
-	ldv_assume(register_netdev(dev2) < 0);
+	ldv_assume(register_netdev(dev2));
 
 	return 0;
 }

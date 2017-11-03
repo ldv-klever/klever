@@ -26,7 +26,7 @@ static int ldv_usb_probe(struct usb_interface *intf,
 {
 	struct net_device *dev = ldv_undef_ptr();
 
-	ldv_assume(register_netdev(dev) < 0);
+	ldv_assume(register_netdev(dev));
 
 	return 0;
 }

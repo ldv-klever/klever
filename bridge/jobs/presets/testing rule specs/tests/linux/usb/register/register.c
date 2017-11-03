@@ -24,7 +24,7 @@ static int ldv_usb_probe(struct usb_interface *intf,
 {
 	struct usb_driver driver;
 
-	ldv_assume(usb_register(&driver) < 0);
+	ldv_assume(usb_register(&driver));
 
 	return 0;
 }
