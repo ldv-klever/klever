@@ -16,16 +16,29 @@
  */
 
 #include <linux/module.h>
+#include <linux/emg/test_model.h>
 
-void bad_export(void) 
+static int i;
+
+void set_i(void) 
 {
-    /* nothing */
+  i = 7;
 }
 
-static int __init binit1(void)
+int __init init1(void) 
 {
-	return 0;
+  i = 5;
+  return 0;
 }
 
-module_init(binit1);
-EXPORT_SYMBOL(bad_export);
+void __exit exit1(void) 
+{
+  if(i != 5) {
+      ldv_invoke_callback();
+  }
+}
+
+module_init(init1);
+module_exit(exit1);
+
+EXPORT_SYMBOL(set_i);

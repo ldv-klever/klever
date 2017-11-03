@@ -17,15 +17,9 @@
 
 #include <linux/module.h>
 
-void bad_export(void) 
+void export_without_error(void) 
 {
     /* nothing */
 }
 
-static int __init binit1(void)
-{
-	return 0;
-}
-
-module_init(binit1);
-EXPORT_SYMBOL(bad_export);
+EXPORT_SYMBOL(export_without_error);

@@ -17,7 +17,8 @@
 
 #include <linux/module.h>
 
-void bad_export(void) {
+void bad_export(void) 
+{
     /* nothing */
 }
 

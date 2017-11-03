@@ -1,4 +1,2 @@
-extra/disabled/big_module.ko needs "export_err": extra/disabled/init.ko
-extra/disabled/small_module.ko needs "export_err": extra/disabled/init.ko
-extra/enabled/big_module.ko needs "export_err": extra/enabled/init.ko
-extra/enabled/small_module.ko needs "export_err": extra/enabled/init.ko
+extra/big_module.ko needs "export_err": extra/init.ko
+extra/small_module.ko needs "export_err": extra/init.ko

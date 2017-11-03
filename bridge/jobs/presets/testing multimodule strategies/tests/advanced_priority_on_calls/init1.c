@@ -22,10 +22,9 @@ void bad_export(void)
     /* nothing */
 }
 
-static int __init binit1(void)
+static int __init init(void)
 {
 	return 0;
 }
 
-module_init(binit1);
-EXPORT_SYMBOL(bad_export);
+module_init(init);

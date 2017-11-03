@@ -16,16 +16,17 @@
  */
 
 #include <linux/module.h>
+#include <linux/emg/test_model.h>
+
+int __init main_init(void) 
+{
+  return 0;
+}
 
 void bad_export(void) 
 {
-    /* nothing */
+  ldv_invoke_callback();
 }
 
-static int __init binit1(void)
-{
-	return 0;
-}
-
-module_init(binit1);
 EXPORT_SYMBOL(bad_export);
+module_init(main_init);

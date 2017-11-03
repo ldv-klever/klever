@@ -3,34 +3,30 @@
     "Linux kernel": {
       "source": "linux-3.14",
       "configuration": "defconfig",
-      "architecture": "x86_64"
+      "architecture": "x86_64",
+      "modules": ["init.ko"]
     },
     "rule specifications": ["linux:emg:test"],
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
-    "specifications set": "Linux 3.14 (base)"
+    "specifications set": "Linux 3.14 (base)",
+    "ideal verdicts": [{
+      "ideal verdict": "safe"
+    }]
   },
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "external modules": "tests/several_groups/separate/",
-        "modules": ["init.ko"]
+        "external modules": "tests/several_groups/"
       },
       "LKVOG strategy": {
         "name": "separate modules"
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/init.ko"
-        }
-        ]
+      }
     },
-      {
+    {
       "Linux kernel": {
-        "external modules": "tests/several_groups/advanced/",
-        "modules": ["init.ko"],
+        "external modules": "tests/several_groups/",
         "module dependencies file": "tests/several_groups/dep_file"
       },
       "LKVOG strategy": {
@@ -39,19 +35,18 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/init.koc9dcb38bb29b"
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/init.kob8c0f1536431"
         },
         {
-            "ideal verdict": "unsafe",
-            "verification object": "ext-modules/init.kof9ddddb7d986"
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/init.ko34dac758bdcb"
         }
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/several_groups/closure/",
-        "modules": ["init.ko"],
+        "external modules": "tests/several_groups/",
         "module dependencies file": "tests/several_groups/dep_file"
       },
       "LKVOG strategy": {
@@ -60,19 +55,18 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/init.ko62e7f25e623d"
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/init.kob8c0f1536431"
         },
         {
-            "ideal verdict": "unsafe",
-            "verification object": "ext-modules/init.ko3a368968acb1"
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/init.ko34dac758bdcb"
         }
-        ]
-    },    
+      ]
+    },
     {
       "Linux kernel": {
-        "external modules": "tests/several_groups/manual",
-        "modules": ["init.ko"],
+        "external modules": "tests/several_groups/",
         "module dependencies file": "tests/several_groups/dep_file"
       },
       "LKVOG strategy": {
@@ -81,19 +75,18 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/init.koaa76e14c482c"
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/init.kob8c0f1536431"
         },
         {
-            "ideal verdict": "unsafe",
-            "verification object": "ext-modules/init.koa300380214e6"
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/init.ko34dac758bdcb"
         }
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/kernel_library/manual/",
-        "modules": ["init.o"]
+        "external modules": "tests/kernel_library/"
       },
       "LKVOG strategy": {
         "name": "manual",
@@ -105,12 +98,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/load_order/manual-unsafe/",
-        "modules": ["init.ko"]
+        "external modules": "tests/load_order/"
       },
       "LKVOG strategy": {
         "name": "manual",
@@ -122,12 +114,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/load_order/manual-safe/",
-        "modules": ["init.ko"]
+        "external modules": "tests/load_order/"
       },
       "LKVOG strategy": {
         "name": "manual",
@@ -136,16 +127,12 @@
           "external.ko",
           "init.ko"
         ]]}
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
-        "external modules": "tests/load_order/advanced-unsafe/",
-        "modules": ["init.ko"],
-        "module dependencies file": "tests/load_order/advanced-unsafe/dep_file"
+        "external modules": "tests/load_order",
+        "module dependencies file": "tests/load_order/dep_file_unsafe"
       },
       "LKVOG strategy": {
         "name": "advanced",
@@ -153,26 +140,21 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/load_order/advanced-safe/",
-        "modules": ["init.ko"],
-        "module dependencies file": "tests/load_order/advanced-safe/dep_file"
+        "external modules": "tests/load_order/",
+        "module dependencies file": "tests/load_order/dep_file_safe"
       },
       "LKVOG strategy": {
         "name": "advanced",
         "cluster size": 2
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
         "external modules": "tests/advanced_alphabet_sort/",
-        "modules": ["init.ko"],
         "module dependencies file": "tests/advanced_alphabet_sort/dep_file"
       },
       "LKVOG strategy": {
@@ -181,12 +163,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_calls/enabled/",
-        "modules": ["external1.ko"],
+        "external modules": "tests/advanced_priority_on_calls/",
         "module dependencies file": "tests/advanced_priority_on_calls/dep_file"
       },
       "LKVOG strategy": {
@@ -195,27 +176,22 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_calls/disabled/",
-        "modules": ["external1.ko"],
+        "external modules": "tests/advanced_priority_on_calls/",
         "module dependencies file": "tests/advanced_priority_on_calls/dep_file"
       },
       "LKVOG strategy": {
         "name": "advanced",
         "cluster size": 2,
         "priority on calls": false
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_export/enabled/",
-        "modules": ["init.ko"],
+        "external modules": "tests/advanced_priority_on_export/",
         "module dependencies file": "tests/advanced_priority_on_export/dep_file"
       },
       "LKVOG strategy": {
@@ -224,26 +200,22 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_export/disabled/",
-        "modules": ["init.ko"],
+        "external modules": "tests/advanced_priority_on_export/",
         "module dependencies file": "tests/advanced_priority_on_export/dep_file"
       },
       "LKVOG strategy": {
         "name": "advanced",
         "cluster size": 2,
         "priority on export function": false
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_subsystem/enabled/",
+        "external modules": "tests/advanced_priority_on_subsystem/",
         "modules": ["subsystem1/init.ko"],
         "module dependencies file": "tests/advanced_priority_on_subsystem/dep_file"
       },
@@ -253,11 +225,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_subsystem/disabled/",
+        "external modules": "tests/advanced_priority_on_subsystem/",
         "modules": ["subsystem1/init.ko"],
         "module dependencies file": "tests/advanced_priority_on_subsystem/dep_file"
       },
@@ -265,15 +237,11 @@
         "name": "advanced",
         "cluster size": 2,
         "maximize subsystems": false
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_size/enabled/",
-        "modules": ["init.ko"],
+        "external modules": "tests/advanced_priority_on_size/",
         "module dependencies file": "tests/advanced_priority_on_size/dep_file",
         "module sizes file": "tests/advanced_priority_on_size/sizes"
       },
@@ -283,26 +251,22 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/advanced_priority_on_size/disabled/",
-        "modules": ["init.ko"],
+        "external modules": "tests/advanced_priority_on_size/",
         "module dependencies file": "tests/advanced_priority_on_size/dep_file"
       },
       "LKVOG strategy": {
         "name": "advanced",
         "cluster size": 2,
         "priority on module size": false
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-        ]
+      }
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/separate/",
+        "external modules": "tests/multimodule_false_error/",
         "modules": ["init.ko"]
       },
       "LKVOG strategy": {
@@ -311,11 +275,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/closure/",
+        "external modules": "tests/multimodule_false_error/",
         "modules": ["init.ko"],
         "module dependencies file": "tests/multimodule_false_error/dep_file"
       },
@@ -325,11 +289,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "safe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/manual/",
+        "external modules": "tests/multimodule_false_error/",
         "modules": ["init.ko"]
       },
       "LKVOG strategy": {
@@ -341,11 +305,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "safe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/advanced/",
+        "external modules": "tests/multimodule_false_error/",
         "modules": ["init.ko"],
         "module dependencies file": "tests/multimodule_false_error/dep_file"
       },
@@ -355,11 +319,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "safe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_error/separate/",
+        "external modules": "tests/multimodule_error/",
         "modules": ["init.ko"]
       },
       "LKVOG strategy": {
@@ -368,11 +332,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "safe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_error/closure/",
+        "external modules": "tests/multimodule_error/",
         "modules": ["init.ko"],
         "module dependencies file": "tests/multimodule_error/dep_file"
       },
@@ -382,11 +346,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_error/manual/",
+        "external modules": "tests/multimodule_error/",
         "modules": ["init.ko"]
       },
       "LKVOG strategy": {
@@ -399,11 +363,11 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
     },
     {
       "Linux kernel": {
-        "external modules": "tests/multimodule_error/advanced/",
+        "external modules": "tests/multimodule_error/",
         "modules": ["init.ko"],
         "module dependencies file": "tests/multimodule_error/dep_file"
       },
@@ -413,7 +377,102 @@
       },
       "ideal verdicts": [
         {"ideal verdict": "unsafe"}
-        ]
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/"
+      },
+      "LKVOG strategy": {
+        "name": "separate modules",
+        "cluster size": 2
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "module dependencies file": "tests/multimodule_false_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "closure",
+        "cluster size": 2
+      }
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/"
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"init.ko": [[
+          "external.ko", "init.ko"
+        ]]}
+      }
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "module dependencies file": "tests/multimodule_false_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      }
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/"
+      },
+      "LKVOG strategy": {
+        "name": "separate modules",
+        "cluster size": 2
+      }
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "module dependencies file": "tests/multimodule_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "closure",
+        "cluster size": 2
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/"
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"init.ko": [[
+          "external.ko",
+          "init.ko"
+        ]]}
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "module dependencies file": "tests/multimodule_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+      ]
     }
   ]
 }

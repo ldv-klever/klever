@@ -17,15 +17,11 @@
 
 #include <linux/module.h>
 
-void bad_export(void) 
-{
-    /* nothing */
-}
+extern void export_err(void);
 
-static int __init binit1(void)
+int __init big_init(void) 
 {
-	return 0;
+    
+    return 0;
 }
-
-module_init(binit1);
-EXPORT_SYMBOL(bad_export);
+module_init(big_init)

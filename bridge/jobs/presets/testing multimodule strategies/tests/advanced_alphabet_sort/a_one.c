@@ -18,7 +18,8 @@
 #include <linux/module.h>
 #include <linux/emg/test_model.h>
 
-void bad_export(void) {
+void bad_export(void) 
+{
     ldv_invoke_callback();
 }
 
