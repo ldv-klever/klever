@@ -222,9 +222,7 @@
     "linux:alloc:irq": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {
-        "linux/ldv/irq.c": {},
-        "linux/alloc/irq.c": {"bug kinds": [
+      "RSG": {"models": {"linux/alloc/irq.c": {"bug kinds": [
           "linux:alloc:irq::wrong flags",
           "linux:alloc:irq::nonatomic"
         ]}
