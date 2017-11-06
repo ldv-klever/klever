@@ -108,9 +108,6 @@ class SolvingProgress(models.Model):
     error = models.CharField(max_length=1024, null=True)
     configuration = models.BinaryField()
     fake = models.BooleanField(default=False)
-    local_average_time = models.PositiveIntegerField(default=0)
-    global_average_time = models.PositiveIntegerField(default=0)
-    estimated_total_tasks = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'solving_progress'
@@ -126,6 +123,23 @@ def get_progress_configuration(**kwargs):
     progress = kwargs['instance']
     if not isinstance(progress.configuration, bytes):
         progress.configuration = progress.configuration.tobytes()
+
+
+class JobProgress(models.Model):
+    job = models.OneToOneField(Job)
+    total_sj = models.PositiveIntegerField(null=True)
+    failed_sj = models.PositiveIntegerField(null=True)
+    solved_sj = models.PositiveIntegerField(null=True)
+    expected_time_sj = models.PositiveIntegerField(null=True)
+    start_sj = models.DateTimeField(null=True)
+    finish_sj = models.DateTimeField(null=True)
+
+    total_ts = models.PositiveIntegerField(null=True)
+    failed_ts = models.PositiveIntegerField(null=True)
+    solved_ts = models.PositiveIntegerField(null=True)
+    expected_time_ts = models.PositiveIntegerField(null=True)
+    start_ts = models.DateTimeField(null=True)
+    finish_ts = models.DateTimeField(null=True)
 
 
 class Task(models.Model):

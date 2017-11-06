@@ -23,7 +23,6 @@ from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
-from django.db import transaction
 from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
@@ -34,9 +33,9 @@ from bridge.utils import file_checksum, logger, BridgeException
 from jobs.models import RunHistory, JobFile, FileSystem, Job
 from reports.models import ReportRoot, ReportUnknown, ReportComponent, ComponentInstances
 from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
-    SchedulerUser, Workload
+    SchedulerUser, Workload, JobProgress
 
-from jobs.utils import JobAccess, change_job_status
+from jobs.utils import JobAccess, change_job_status, get_user_time
 
 
 class ServiceError(Exception):
@@ -240,7 +239,16 @@ class FinishJobDecision:
                 return JOB_STATUS[5][0]
             if ReportUnknown.objects\
                     .filter(parent=core_r, component=core_r.component, root=self.progress.job.reportroot).count() > 0:
-                status = JOB_STATUS[4][0]
+                return JOB_STATUS[4][0]
+            try:
+                self.__check_progress()
+            except ServiceError as e:
+                self.error = str(e)
+                return JOB_STATUS[5][0]
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'Unknown error while checking progress'
+                return JOB_STATUS[5][0]
         elif status == JOB_STATUS[4][0]:
             try:
                 core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
@@ -254,6 +262,26 @@ class FinishJobDecision:
             if self.error is None:
                 self.error = "The scheduler hasn't given an error description"
         return status
+
+    def __check_progress(self):
+        try:
+            jp = JobProgress.objects.get(job=self.job)
+        except ObjectDoesNotExist:
+            return
+        if jp.start_ts is not None:
+            if any(x is None for x in [jp.solved_ts, jp.failed_ts, jp.total_ts, jp.start_ts, jp.finish_ts]):
+                raise ServiceError("The job didn't got full tasks progress data")
+            else:
+                if jp.solved_ts + jp.failed_ts != jp.total_ts or jp.finish_ts is None:
+                    print(jp.solved_ts, jp.failed_ts, jp.total_ts, jp.finish_ts)
+                    raise ServiceError("Tasks solving progress is not finished")
+        if jp.start_sj is not None:
+            if any(x is None for x in [jp.solved_sj, jp.failed_sj, jp.total_sj, jp.start_sj, jp.finish_sj]):
+                raise ServiceError("The job didn't got full subjobs progress data")
+            else:
+                if jp.solved_sj + jp.failed_sj != jp.total_sj or jp.finish_sj is None:
+                    print(jp.solved_sj, jp.failed_sj, jp.total_sj, jp.finish_sj)
+                    raise ServiceError("Subjobs solving progress is not finished")
 
 
 class KleverCoreStartDecision:
@@ -862,6 +890,7 @@ class StartJobDecision:
     def __create_solving_progress(self):
         try:
             self.job.solvingprogress.delete()
+            self.job.jobprogress.delete()
         except ObjectDoesNotExist:
             pass
         self.__save_configuration()
@@ -898,18 +927,165 @@ class StartJobDecision:
                 raise BridgeException(_("You didn't specify credentials for VerifierCloud"))
 
 
-class UpdateProgresses:
-    def __init__(self, data):
-        self.data = json.loads(data)
-        self.__update_progresses()
+class JobProgressData:
+    data_map = {
+        'total subjobs to be solved': 'total_sj',
+        'failed subjobs': 'failed_sj',
+        'solved subjobs': 'solved_sj',
+        'expected time for solving subjobs': 'expected_time_sj',
+        'total tasks to be generated': 'total_ts',
+        'failed tasks': 'failed_ts',
+        'solved tasks': 'solved_ts',
+        'expected time for solving tasks': 'expected_time_ts'
+    }
+    dates_map = {
+        'start tasks solution': 'start_ts',
+        'finish tasks solution': 'finish_ts',
+        'start subjobs solution': 'start_sj',
+        'finish subjobs solution': 'finish_sj'
+    }
 
-    @transaction.atomic
-    def __update_progresses(self):
-        if not isinstance(self.data, list) or any(not isinstance(d, dict) for d in self.data):
+    def __init__(self, job):
+        self._job = job
+
+    def update(self, data):
+        data = json.loads(data)
+        if not isinstance(data, dict) or any(x not in set(self.data_map) | set(self.dates_map) for x in data):
             raise ServiceError('Wrong format of data')
-        for data in self.data:
-            progress = SolvingProgress.objects.get(job_id=data['job id'])
-            progress.local_average_time = int(data['local average time'])
-            progress.global_average_time = int(data['global average time'])
-            progress.estimated_total_tasks = int(data['estimated total tasks'])
-            progress.save()
+        try:
+            progress = JobProgress.objects.get(job=self._job)
+        except ObjectDoesNotExist:
+            progress = JobProgress(job=self._job)
+        for dkey in self.data_map:
+            if dkey in data:
+                setattr(progress, self.data_map[dkey], data[dkey])
+        for dkey in self.dates_map:
+            if dkey in data and data[dkey] and getattr(progress, self.dates_map[dkey]) is None:
+                setattr(progress, self.dates_map[dkey], now())
+        progress.save()
+
+    def get(self):
+        data = {}
+        try:
+            progress = JobProgress.objects.get(job=self._job)
+        except ObjectDoesNotExist:
+            return {}
+        else:
+            for dkey in self.data_map:
+                value = getattr(progress, self.data_map[dkey])
+                if value is not None:
+                    data[dkey] = getattr(progress, self.data_map[dkey])
+            for dkey in self.dates_map:
+                data[dkey] = (getattr(progress, self.dates_map[dkey]) is not None)
+        return data
+
+
+class GetJobsProgresses:
+    def __init__(self, user, jobs_ids):
+        self._user = user
+        self._s_progress = {}
+        self._j_progress = {}
+        self.__get_progresses(jobs_ids)
+        self.data = self.__get_data(jobs_ids)
+
+    def __get_progresses(self, jobs_ids):
+        for j_id, status, start, finish in SolvingProgress.objects.filter(job_id__in=jobs_ids)\
+                .values_list('job_id', 'job__status', 'start_date', 'finish_date'):
+            if start is None:
+                start = '-'
+            if finish is None:
+                finish = '-'
+            self._s_progress[j_id] = (status, start, finish)
+        for jp in JobProgress.objects.filter(job_id__in=jobs_ids):
+            self._j_progress[jp.job_id] = jp
+
+    def __get_data(self, jobs_ids):
+        data = {}
+        for j_id in jobs_ids:
+            data[j_id] = self.__job_values(j_id)
+        return data
+
+    def __job_values(self, j_id):
+        if j_id not in self._s_progress:
+            # Not-solved jobs: JOB_STATUS[0][0]
+            return {}
+
+        job_status = self._s_progress[j_id][0]
+        data = {
+            'start_decision': self._s_progress[j_id][1],
+            'finish_decision': self._s_progress[j_id][2]
+        }
+        # For pending and successfully finished jobs we need just start and finish decision dates.
+        # For pending jobs it will be '-' both.
+        if job_status in {JOB_STATUS[1][0], JOB_STATUS[3][0]}:
+            return data
+
+        has_sj = (j_id in self._j_progress and
+                  (self._j_progress[j_id].start_sj is not None or self._j_progress[j_id].total_sj is not None))
+        has_progress_ts = (j_id in self._j_progress and self.__has_progress(j_id, 'ts'))
+        has_progress_sj = (has_sj and self.__has_progress(j_id, 'sj'))
+
+        # Add other data
+        data.update({
+            'total_ts': self.__get_int_attr(j_id, 'total_ts', _('Estimating the number')),
+            'start_ts': self.__get_date_attr(j_id, 'start_ts', '-'),
+            'finish_ts': self.__get_date_attr(j_id, 'finish_ts', '-'),
+            'progress_ts': self.__progress(j_id, 'ts') if has_progress_ts else _('Estimating progress')
+        })
+        if has_sj:
+            data.update({
+                'total_sj': self.__get_int_attr(j_id, 'total_sj', _('Estimating the number')),
+                'start_sj': self.__get_date_attr(j_id, 'start_sj', '-'),
+                'finish_sj': self.__get_date_attr(j_id, 'finish_sj', '-'),
+                'progress_sj': self.__progress(j_id, 'sj') if has_progress_sj else _('Estimating progress')
+            })
+
+        # Get expected time if job is solving
+        if job_status == JOB_STATUS[2][0]:
+            data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000) \
+                if has_progress_ts else _('Estimating time')
+            if has_sj:
+                data['expected_time_sj'] = get_user_time(self._user, self._j_progress[j_id].expected_time_sj * 1000) \
+                    if has_progress_sj else _('Estimating time')
+        else:
+            # Do not show "Estimating progress" for jobs finished with error
+            if not has_progress_ts:
+                del data['progress_ts']
+            if not has_progress_sj:
+                del data['progress_sj']
+        return data
+
+    def __get_int_attr(self, j_id, valname, defval):
+        if j_id not in self._j_progress:
+            return defval
+        value = getattr(self._j_progress[j_id], valname)
+        if value is None or value == 0:
+            return defval
+        return value
+
+    def __get_date_attr(self, j_id, valname, defval):
+        if j_id not in self._j_progress:
+            return defval
+        value = getattr(self._j_progress[j_id], valname)
+        if value is None:
+            return defval
+        return value
+
+    def __progress(self, j_id, progress_type):
+        if progress_type not in {'sj', 'ts'}:
+            return None
+        total = getattr(self._j_progress[j_id], 'total_%s' % progress_type)
+        solved = getattr(self._j_progress[j_id], 'solved_%s' % progress_type)
+        failed = getattr(self._j_progress[j_id], 'failed_%s' % progress_type)
+        if total > failed:
+            return "%s%%" % int(100 * solved / (total - failed))
+        else:
+            return "100%"
+
+    def __has_progress(self, j_id, progress_type):
+        if progress_type not in {'sj', 'ts'}:
+            return False
+        args = list(x.format(progress_type) for x in ['total_{0}', 'solved_{0}', 'failed_{0}', 'expected_time_{0}'])
+        if all(getattr(self._j_progress[j_id], x) is not None for x in args):
+            return True
+        return False

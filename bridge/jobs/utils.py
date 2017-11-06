@@ -104,10 +104,17 @@ TITLES = {
     'tasks_error': _('Error tasks'),
     'tasks_cancelled': _('Cancelled tasks'),
     'tasks_total': _('Total tasks'),
-    'progress': _('Progress of job decision'),
     'solutions': _('Number of task decisions'),
-    'global_average_time': _('Average time before finishing decision (all jobs)'),
-    'local_average_time': _('Average time before finishing decision (just this jobs)')
+    'total_ts': _('Total tasks to be solved'),
+    'start_ts': _('Start verification tasks solution date'),
+    'finish_ts': _('Finish verification tasks solution date'),
+    'progress_ts': _('Verification tasks solution progress'),
+    'expected_time_ts': _('Expected verification tasks solution time'),
+    'total_sj': _('Total subjobs to be solved'),
+    'start_sj': _('Start subjobs solution date'),
+    'finish_sj': _('Finish subjobs solution date'),
+    'progress_sj': _('Subjobs solution progress'),
+    'expected_time_sj': _('Expected subjobs solution time'),
 }
 
 
@@ -933,24 +940,3 @@ class StartDecisionData:
         elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
             raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
-
-
-def get_job_progress(user, job):
-    progress = '-'
-    global_average_time = '-'
-    local_average_time = '-'
-
-    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        total_tasks = job.solvingprogress.estimated_total_tasks
-        solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
-        pending_tasks = total_tasks - solved_tasks
-        if total_tasks > 0:
-            curr_progress = int(solved_tasks / total_tasks * 100)
-            if curr_progress < 100:
-                progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
-        else:
-            progress = '0%'
-        if progress != '-' and pending_tasks > 0:
-            global_average_time = get_user_time(user, pending_tasks * job.solvingprogress.global_average_time)
-            local_average_time = get_user_time(user, pending_tasks * job.solvingprogress.local_average_time)
-    return progress, global_average_time, local_average_time

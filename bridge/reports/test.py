@@ -18,6 +18,7 @@
 import os
 import json
 import random
+import time
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -701,12 +702,13 @@ class TestReports(KleverTestCase):
 
 
 class DecideJobs(object):
-    def __init__(self, username, password, reports_data, with_full_coverage=False):
+    def __init__(self, username, password, reports_data, with_full_coverage=False, with_progress=False):
         self.service = Client()
         self.username = username
         self.password = password
         self.reports_data = reports_data
         self.full_coverage = with_full_coverage
+        self._progress = with_progress
         self.ids_in_use = []
         self._cmp_stack = []
         self.__upload_reports()
@@ -817,6 +819,29 @@ class DecideJobs(object):
             raise
         return r_id
 
+    def __upload_progress(self, ts, sj=None, start=False, finish=False):
+        if not self._progress:
+            return
+        data = {
+            'total tasks to be generated': ts[0],
+            'failed tasks': ts[1],
+            'solved tasks': ts[2],
+            'expected time for solving tasks': ts[3],
+            'start tasks solution': start,
+            'finish tasks solution': finish,
+        }
+        if sj is not None:
+            data.update({
+                'total subjobs to be solved': sj[0],
+                'failed subjobs': sj[1],
+                'solved subjobs': sj[2],
+                'expected time for solving subjobs': sj[3],
+                'start subjobs solution': start,
+                'finish subjobs solution': finish
+            })
+        self.service.post('/service/update_progress/', {'progress': json.dumps(data)})
+        time.sleep(2)
+
     def __upload_finish_verification_report(self, r_id):
         self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'verification finish'})})
 
@@ -851,6 +876,8 @@ class DecideJobs(object):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
+
+        self.__upload_progress([1, 0, 0, 1000], None, True, False)
 
         core_data = None
         job = Job.objects.get(identifier=job_identifier)
@@ -899,12 +926,21 @@ class DecideJobs(object):
 
         core_coverage = {}
         if any('chunks' in chunk for chunk in self.reports_data):
+            progress_sj = [len(self.reports_data), 0, 0, 100 * len(self.reports_data) + 10]
+            progress_ts = [len(self.reports_data) * 2, 0, 0, 100 * len(self.reports_data)]
+            self.__upload_progress(progress_ts, progress_sj, True, False)
             for subjob in self.reports_data:
                 if 'chunks' in subjob:
                     try:
                         core_coverage.update(self.__upload_subjob(subjob))
                     except DecisionError:
                         pass
+                progress_sj[2] += 1
+                progress_sj[3] -= 100
+                progress_ts[2] += 2
+                progress_ts[3] -= 100
+                self.__upload_progress(progress_ts, progress_sj, False, False)
+            self.__upload_progress(progress_ts, progress_sj, False, True)
         else:
             try:
                 self.__upload_chunks()
@@ -973,6 +1009,8 @@ class DecideJobs(object):
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
 
+        progress_ts = [len(self.reports_data), 0, 0, 100 * len(self.reports_data)]
+        self.__upload_progress(progress_ts, None, True, False)
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             rp = self.__upload_start_report('RP', vrp, [
@@ -980,7 +1018,11 @@ class DecideJobs(object):
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
+            progress_ts[2] += 1
+            progress_ts[3] -= 100
+            self.__upload_progress(progress_ts, None, False, False)
         self.__upload_finish_report(vrp)
+        self.__upload_progress(progress_ts, None, False, True)
 
     def __upload_verdicts(self, parent, chunk):
         if 'unsafes' in chunk:
