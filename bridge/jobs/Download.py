@@ -41,7 +41,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 5
+ARCHIVE_FORMAT = 6
 
 
 class KleverCoreArchiveGen:
