@@ -352,7 +352,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.id = '{0}/{1}'.format(parent_id, id if id else self.name)
         self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
-        self.start_time = 0
+        self.tasks_start_time = 0
         self.__pid = None
 
     def start(self):
@@ -371,7 +371,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
     def run(self):
         # Remember approximate time of start to count wall time.
-        self.start_time = time.time()
+        self.tasks_start_time = time.time()
 
         # Remember component pid to distinguish it from its auxiliary subcomponents, e.g. synchronization managers,
         # later during finalization on stopping.
@@ -444,7 +444,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 child_resources = all_child_resources()
                 report = {
                     'id': self.id,
-                    'resources': count_consumed_resources(self.logger, self.start_time,
+                    'resources': count_consumed_resources(self.logger, self.tasks_start_time,
                                                           self.include_child_resources, child_resources)
                 }
                 # todo: this is embarassing
@@ -458,7 +458,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                   self.conf['main working directory'])
             else:
                 with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
-                    json.dump(count_consumed_resources(self.logger, self.start_time, self.include_child_resources),
+                    json.dump(count_consumed_resources(self.logger, self.tasks_start_time, self.include_child_resources),
                               fp, ensure_ascii=False, sort_keys=True, indent=4)
         except Exception:
             exception = True
