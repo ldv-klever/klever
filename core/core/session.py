@@ -143,6 +143,10 @@ class Session:
         if 'task identifier' in report:
             self.remove_task(report['task identifier'])
 
+    def submit_progress(self, progress):
+        self.logger.info('Submit solution progress')
+        self.__request('service/update_progress/', {'progress': json.dumps(progress)})
+
     def __download_archive(self, kind, path_url, data, archive):
         while True:
             resp = None
