@@ -33,8 +33,8 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
-    Component, ComponentUnknown, ComponentResource, ReportAttr, TasksNumbers, ReportComponentLeaf,\
-    Computer, ComponentInstances, CoverageArchive
+    Component, ComponentUnknown, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
+    CoverageArchive
 from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
@@ -439,28 +439,7 @@ class UploadReport:
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
 
-        report_data = self.data['data']
-        if report.component.name == 'AVTG' and (AVTG_FAIL_NAME in report_data or AVTG_TOTAL_NAME in report_data):
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            if AVTG_TOTAL_NAME in report_data:
-                tasks_nums.avtg_total = int(report_data[AVTG_TOTAL_NAME])
-            if AVTG_FAIL_NAME in report_data:
-                tasks_nums.avtg_fail = int(report_data[AVTG_FAIL_NAME])
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name == 'VTG' and VTG_FAIL_NAME in report_data:
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name == 'RSB' and BT_TOTAL_NAME in report_data:
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
-            tasks_nums.bt_num += 1
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        else:
-            self.__update_dict_data(report, report_data)
+        self.__update_dict_data(report, self.data['data'])
 
     def __update_dict_data(self, report, new_data):
         if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None:
@@ -704,16 +683,6 @@ class UploadReport:
             compres.memory = max(report.memory, compres.memory)
             compres.save()
             update_total_resources(p)
-
-    def __save_total_tasks_number(self, tnums):
-        if tnums.bt_num == 0:
-            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail)
-        else:
-            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail) * tnums.bt_total / tnums.bt_num
-        if tasks_total < 0:
-            tasks_total = 0
-        self.root.tasks_total = int(tasks_total)
-        self.root.save()
 
     def __attr_children(self, name, val):
         attr_data = []

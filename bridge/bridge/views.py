@@ -35,7 +35,7 @@ def index_page(request):
     return HttpResponseRedirect(reverse('users:login'))
 
 
-@unparallel_group(['Job', 'MarkUnknown', 'TaskStatistic', 'Scheduler', 'Component'])
+@unparallel_group(['Job', 'MarkUnknown', 'Scheduler', 'Component'])
 @login_required
 def population(request):
     try:

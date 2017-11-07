@@ -16,9 +16,9 @@
  */
 
 var do_not_count = [
-    'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier', 'progress',
+    'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier',
     'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
-    'average_time', 'local_average_time'
+    'start_ts', 'finish_ts', 'progress_ts', 'expected_time_ts', 'start_sj', 'finish_sj', 'progress_sj', 'expected_time_sj'
 ];
 
 function fill_all_values() {

@@ -102,7 +102,7 @@
                                 </td>
                             </tr>
                         {% endif %}
-                        <tr>
+                        <tr id="tr_before_progress">
                             <th class="right aligned">{% trans 'Last change' %}</th>
                             <td>
                                 {% if user.extended.data_format == 'hum' %}
@@ -120,48 +120,7 @@
                                 {% endif %}
                             </td>
                         </tr>
-                        {% if job.solvingprogress.start_date %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Start decision date' %}</th>
-                                <td>
-                                    {% if user.extended.data_format == 'hum' %}
-                                        {{ job.solvingprogress.start_date|naturaltime }}
-                                    {% else %}
-                                        {% timezone user.extended.timezone %}
-                                            {{ job.solvingprogress.start_date|date:"r" }}
-                                        {% endtimezone %}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endif %}
-                        {% if job.solvingprogress.finish_date %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Finish decision date' %}</th>
-                                <td>
-                                    {% if user.extended.data_format == 'hum' %}
-                                        {{ job.solvingprogress.finish_date|naturaltime }}
-                                    {% else %}
-                                        {% timezone user.extended.timezone %}
-                                            {{ job.solvingprogress.finish_date|date:"r" }}
-                                        {% endtimezone %}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endif %}
-                        {% if progress_data %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Decision progress' %}</th>
-                                <td id="progress_val">{{ progress_data.0 }}</td>
-                            </tr>
-                            <tr>
-                                <th class="right aligned">{% trans 'Average time before finishing decision (all jobs)' %}</th>
-                                <td id="average_time">{{ progress_data.1 }}</td>
-                            </tr>
-                            <tr>
-                                <th class="right aligned">{% trans 'Average time before finishing decision (just this jobs)' %}</th>
-                                <td id="local_average_time">{{ progress_data.2 }}</td>
-                            </tr>
-                        {% endif %}
+                        {% include 'jobs/jobProgress.html' with user=user progress=progress %}
                         <tr id="job_status_popup_activator">
                             <th class="right aligned">{% trans 'Decision status' %}</th>
                             <td>

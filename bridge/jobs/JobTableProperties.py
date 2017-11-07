@@ -15,22 +15,23 @@
 # limitations under the License.
 #
 
+from datetime import datetime
 from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Case, When, Count
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
-from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, TaskStatistic,\
-    ReportComponentLeaf
+from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, ReportComponentLeaf
 
 from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
+from service.utils import GetJobsProgresses
 
 
 ORDERS = [
@@ -69,6 +70,8 @@ FILTER_TITLES = {
     'finish_date': _('Finish decision date')
 }
 
+DATE_COLUMNS = {'date', 'start_ts', 'finish_ts', 'start_sj', 'finish_sj', 'start_date', 'finish_date'}
+
 
 def all_user_columns():
     columns = ['role', 'author', 'date', 'status', 'unsafe']
@@ -80,8 +83,9 @@ def all_user_columns():
     columns.extend([
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
         'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
-        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
-        'average_time', 'local_average_time'
+        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions',
+        'total_ts', 'start_ts', 'finish_ts', 'progress_ts', 'expected_time_ts',
+        'total_sj', 'start_sj', 'finish_sj', 'progress_sj', 'expected_time_sj'
     ])
     return columns
 
@@ -549,8 +553,10 @@ class TableTree:
         if 'role' in self._columns:
             self.__collect_roles()
         progress_columns = {
-            'priority', 'solutions', 'progress', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
-            'tasks_total', 'tasks_cancelled', 'tasks_error', 'tasks_finished', 'tasks_processing', 'tasks_pending'
+            'priority', 'solutions', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
+            'tasks_total', 'tasks_cancelled', 'tasks_error', 'tasks_finished', 'tasks_processing', 'tasks_pending',
+            'total_ts', 'start_ts', 'finish_ts', 'progress_ts', 'expected_time_ts',
+            'total_sj', 'start_sj', 'finish_sj', 'progress_sj', 'expected_time_sj'
         }
         if any(x in progress_columns for x in self._columns):
             self.__collect_progress_data()
@@ -573,6 +579,10 @@ class TableTree:
                             href = self._values_data[job['id']][col][1]
                     else:
                         cell_value = self._values_data[job['id']][col]
+                if col in DATE_COLUMNS:
+                    if self._user.extended.data_format == 'hum' and isinstance(cell_value, datetime):
+                        cell_value = Template('{% load humanize %}{{ date|naturaltime }}')\
+                            .render(Context({'date': cell_value}))
                 row_values.append({
                     'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
@@ -588,6 +598,10 @@ class TableTree:
 
     def __collect_progress_data(self):
         jobs_with_progress = set()
+        progresses = GetJobsProgresses(self._user, self._job_ids).data
+        for j_id in progresses:
+            self._values_data[j_id].update(progresses[j_id])
+
         for progress in SolvingProgress.objects.filter(job_id__in=self._job_ids):
             self._values_data[progress.job_id].update({
                 'priority': progress.get_priority_display(),
@@ -608,43 +622,10 @@ class TableTree:
                     )
             jobs_with_progress.add(progress.job_id)
 
-        stat_average_time = TaskStatistic.objects.get_or_create()[0].average_time
-        solving_jobs = set(j.id for j in Job.objects.filter(
-            id__in=self._job_ids, status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]
-        ))
-        for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress & solving_jobs))\
-                .select_related('user', 'job'):
+        for root in ReportRoot.objects.filter(job_id__in=self._job_ids).select_related('user'):
             self._values_data[root.job_id]['operator'] = (
                 root.user.get_full_name(), reverse('users:show_profile', args=[root.user_id])
             )
-            total_tasks = root.tasks_total
-            solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
-                self._values_data[root.job_id]['tasks_finished']
-            progress = '-'
-            if root.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
-                progress = '-'
-            elif total_tasks > 0:
-                curr_progress = int(solved_tasks / total_tasks * 100)
-                if curr_progress < 100:
-                    progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
-            else:
-                progress = '0%'
-            if progress == '-':
-                self._values_data[root.job_id].update({
-                    'progress': '-', 'average_time': '-', 'local_average_time': '-',
-                })
-            else:
-                self._values_data[root.job_id]['progress'] = progress
-                atime = (total_tasks - solved_tasks) * stat_average_time
-                if atime <= 0:
-                    self._values_data[root.job_id]['average_time'] = '-'
-                else:
-                    self._values_data[root.job_id]['average_time'] = get_user_time(self._user, atime)
-                local_atime = (total_tasks - solved_tasks) * root.average_time
-                if local_atime <= 0:
-                    self._values_data[root.job_id]['local_average_time'] = '-'
-                else:
-                    self._values_data[root.job_id]['local_average_time'] = get_user_time(self._user, local_atime)
 
     def __collect_authors(self):
         for j in Job.objects.filter(id__in=self._job_ids) \
@@ -658,8 +639,6 @@ class TableTree:
     def __collect_jobs_data(self):
         for j in Job.objects.filter(id__in=self._job_ids):
             date = j.change_date
-            if self._user.extended.data_format == 'hum':
-                date = Template('{% load humanize %}{{ date|naturaltime }}').render(Context({'date': date}))
             self._values_data[j.id].update({
                 'format': j.format,
                 'version': j.version,

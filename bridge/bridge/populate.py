@@ -34,7 +34,6 @@ import marks.UnknownUtils as UnknownUtils
 
 from users.models import Extended
 from jobs.models import Job, JobFile
-from reports.models import TaskStatistic
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
 from service.models import Scheduler
 
@@ -73,7 +72,6 @@ class Population:
         self.__population()
 
     def __population(self):
-        TaskStatistic.objects.get_or_create()
         if self.user is not None:
             try:
                 Extended.objects.get(user=self.user)
