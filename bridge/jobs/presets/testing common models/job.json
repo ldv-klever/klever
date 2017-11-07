@@ -32,7 +32,9 @@
     {"Linux kernel": {"external modules": "tests/verifier/map"}},
     {"Linux kernel": {"external modules": "tests/verifier/memory"}},
     {"Linux kernel": {"external modules": "tests/verifier/nondet"}},
-    {"Linux kernel": {"external modules": "tests/verifier/set"}},
+    {"Linux kernel": {"external modules": "tests/verifier/set/counter"}},
+    {"Linux kernel": {"external modules": "tests/verifier/set/flag"}},
+    {"Linux kernel": {"external modules": "tests/verifier/set/nonnegative-counter"}},
     {"Linux kernel": {"external modules": "tests/verifier/thread"}}
   ]
 }
