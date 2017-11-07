@@ -988,6 +988,15 @@ class GetJobsProgresses:
         self.__get_progresses(jobs_ids)
         self.data = self.__get_data(jobs_ids)
 
+    def table_data(self):
+        for j_id in self.data:
+            for col in list(self.data[j_id]):
+                if col.endswith('_ts'):
+                    self.data[j_id]["tasks:%s" % col] = self.data[j_id].pop(col)
+                elif col.endswith('_sj'):
+                    self.data[j_id]["subjobs:%s" % col] = self.data[j_id].pop(col)
+        return self.data
+
     def __get_progresses(self, jobs_ids):
         for j_id, status, start, finish in SolvingProgress.objects.filter(job_id__in=jobs_ids)\
                 .values_list('job_id', 'job__status', 'start_date', 'finish_date'):
