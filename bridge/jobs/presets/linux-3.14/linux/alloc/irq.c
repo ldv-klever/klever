@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-#include <linux/gfp.h>
+#include <linux/ldv/slab.h>
 #include <linux/ldv/common.h>
-#include <linux/ldv/irq.h>
 #include <verifier/common.h>
 
 /* MODEL_FUNC Check that correct flag was used in context of interrupt */

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include <verifier/memory.h>
+#include <linux/ldv/err.h>
 
 long ldv_is_err(const void *ptr)
 {

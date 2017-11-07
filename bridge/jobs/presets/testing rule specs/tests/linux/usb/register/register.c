@@ -19,12 +19,12 @@
 #include <linux/usb.h>
 #include <verifier/common.h>
 
-static int ldv_usb_probe(struct usb_interface *interface,
+static int ldv_usb_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
 	struct usb_driver driver;
 
-	ldv_assume(usb_register(&driver) < 0);
+	ldv_assume(usb_register(&driver));
 
 	return 0;
 }

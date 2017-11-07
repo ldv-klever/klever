@@ -19,12 +19,12 @@
 #include <linux/usb.h>
 #include <verifier/nondet.h>
 
-static int ldv_usb_probe(struct usb_interface *interface,
+static int ldv_usb_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
 	struct usb_driver driver;
 
-	if (usb_register(&driver) < 0)
+	if (usb_register(&driver))
 		return ldv_undef_int_negative();
 
 	usb_deregister(&driver);
@@ -38,7 +38,7 @@ static struct usb_driver ldv_usb_driver = {
 
 static int __init ldv_init(void)
 {
-	if (usb_register(&ldv_usb_driver) < 0)
+	if (usb_register(&ldv_usb_driver))
 		return ldv_undef_int_negative();
 
 	usb_deregister(&ldv_usb_driver);

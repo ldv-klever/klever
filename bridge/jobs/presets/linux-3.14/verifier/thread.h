@@ -34,15 +34,14 @@ int pthread_create(pthread_t *thread, pthread_attr_t const *attr, void *(*start_
 
 /* Join a thread according to the pthread library interface.
  */
-int pthread_join(pthread_t thread, void **value_ptr );
+int pthread_join(pthread_t thread, void **retval);
 
 /* Create N threads. This is an artificial function accepted by specific verifiers.
  */
-int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*function)(void *), void *data);
+int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*start_routine)(void *), void *arg);
 
 /* Join N threads. This is an artificial function accepted by specific verifiers.
  */
-int pthread_join_N(pthread_t **thread, void (*function)(void *));
-
+int pthread_join_N(pthread_t **thread, void (*start_routine)(void *));
 
 #endif /* __VERIFIER_THREAD_H */

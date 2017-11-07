@@ -18,6 +18,29 @@
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 
+/*
+ * Trivial model for interrupt context. Likely it is correct just in case of
+ * single thread executed on single CPU core.
+ */
+static bool __ldv_in_interrupt_context = false;
+
+/* MODEL_FUNC Switch to interrupt context */
+void ldv_switch_to_interrupt_context(void)
+{
+	__ldv_in_interrupt_context = true;
+}
+
+/* MODEL_FUNC Switch to process context */
+void ldv_switch_to_process_context(void)
+{
+	__ldv_in_interrupt_context = false;
+}
+
+bool ldv_in_interrupt_context(void)
+{
+	return __ldv_in_interrupt_context;
+}
+
 static int ldv_filter_positive_int(int val)
 {
 	ldv_assume(val <= 0);

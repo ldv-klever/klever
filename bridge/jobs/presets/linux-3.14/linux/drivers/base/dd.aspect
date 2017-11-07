@@ -17,10 +17,7 @@
 
 before: file("$this")
 {
-struct device;
-
-void *ldv_dev_get_drvdata(const struct device *dev);
-int ldv_dev_set_drvdata(struct device *dev, void *data);
+#include <linux/ldv/device.h>
 }
 
 around: call(void *dev_get_drvdata(const struct device *dev))
