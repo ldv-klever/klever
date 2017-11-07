@@ -1049,9 +1049,9 @@ class GetJobsProgresses:
                     if has_progress_sj else _('Estimating time')
         else:
             # Do not show "Estimating progress" for jobs finished with error
-            if not has_progress_ts:
+            if not has_progress_ts and 'progress_ts' in data:
                 del data['progress_ts']
-            if not has_progress_sj:
+            if not has_progress_sj and 'progress_sj' in data:
                 del data['progress_sj']
         return data
 
