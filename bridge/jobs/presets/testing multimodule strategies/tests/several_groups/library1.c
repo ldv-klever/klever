@@ -16,11 +16,10 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
+#include <ldv-test.h>
 
 void export_with_error(void)
 {
-    ldv_invoke_callback();
+	ldv_error();
 }
-
 EXPORT_SYMBOL(export_with_error);

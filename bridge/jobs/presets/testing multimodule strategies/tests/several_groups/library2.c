@@ -19,7 +19,6 @@
 
 void export_without_error(void) 
 {
-    /* nothing */
+	/* nothing */
 }
-
 EXPORT_SYMBOL(export_without_error);

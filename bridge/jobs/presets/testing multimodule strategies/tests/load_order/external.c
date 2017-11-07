@@ -19,10 +19,10 @@
 
 extern void set_i(void);
 
-int __init init2(void) 
+static int __init init2(void)
 {
-  set_i();
-  return 0;
+	set_i();
+	return 0;
 }
 
 module_init(init2);

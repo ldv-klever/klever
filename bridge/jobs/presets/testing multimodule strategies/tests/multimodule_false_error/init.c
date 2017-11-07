@@ -16,16 +16,18 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
+#include <ldv-test.h>
 
 extern int export_with_error(void);
 
 static int __init init(void)
 {
 	int c = export_with_error();
-	if(c != 0) {
-	  ldv_invoke_callback();
-	}
+
+	if (c)
+	  ldv_error();
+
+
 	return 0;
 }
 

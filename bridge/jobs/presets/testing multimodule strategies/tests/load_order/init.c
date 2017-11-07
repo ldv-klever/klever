@@ -16,29 +16,27 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
+#include <ldv-test.h>
 
 static int i;
 
 void set_i(void) 
 {
-  i = 7;
+	i = 7;
+}
+EXPORT_SYMBOL(set_i);
+
+static int __init init1(void)
+{
+	i = 5;
+	return 0;
 }
 
-int __init init1(void) 
+static void __exit exit1(void)
 {
-  i = 5;
-  return 0;
-}
-
-void __exit exit1(void) 
-{
-  if(i != 5) {
-      ldv_invoke_callback();
-  }
+	if (i != 5)
+		ldv_error();
 }
 
 module_init(init1);
 module_exit(exit1);
-
-EXPORT_SYMBOL(set_i);

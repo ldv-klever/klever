@@ -19,7 +19,7 @@
 
 void bad_export(void) 
 {
-    /* nothing */
+	/* nothing */
 }
 
 static int __init init(void)

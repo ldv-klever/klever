@@ -16,17 +16,17 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
+#include <ldv-test.h>
 
-int __init main_init(void) 
+void bad_export(void)
 {
-  return 0;
+	ldv_error();
 }
-
-void bad_export(void) 
-{
-  ldv_invoke_callback();
-}
-
 EXPORT_SYMBOL(bad_export);
+
+static int __init main_init(void)
+{
+	return 0;
+}
+
 module_init(main_init);

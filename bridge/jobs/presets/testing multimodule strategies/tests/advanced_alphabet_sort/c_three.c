@@ -19,8 +19,9 @@
 
 void bad_export(void) 
 {
-    /* nothing */
+	/* nothing */
 }
+EXPORT_SYMBOL(bad_export);
 
 static int __init cinit1(void)
 {
@@ -28,4 +29,3 @@ static int __init cinit1(void)
 }
 
 module_init(cinit1);
-EXPORT_SYMBOL(bad_export);

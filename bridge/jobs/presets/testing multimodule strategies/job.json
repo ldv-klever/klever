@@ -6,23 +6,17 @@
       "architecture": "x86_64",
       "modules": ["init.ko"]
     },
-    "rule specifications": ["linux:emg:test"],
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
-    "ideal verdicts": [{
-      "ideal verdict": "safe"
-    }]
+    "rule specifications": ["test"],
+    "ideal verdicts": [{"ideal verdict": "safe"}]
   },
   "Sub-jobs": [
     {
-      "Linux kernel": {
-        "external modules": "tests/several_groups/"
-      },
-      "LKVOG strategy": {
-        "name": "separate modules"
-      }
+      "Linux kernel": {"external modules": "tests/several_groups/"},
+      "LKVOG strategy": {"name": "separate modules"}
     },
     {
       "Linux kernel": {
@@ -71,7 +65,16 @@
       },
       "LKVOG strategy": {
         "name": "manual",
-        "groups": {"init.ko": [["library1.ko", "init.ko"], ["library2.ko", "init.ko"]]}
+        "groups": {"init.ko": [
+          [
+            "library1.ko",
+            "init.ko"
+          ],
+          [
+            "library2.ko",
+            "init.ko"
+          ]
+        ]}
       },
       "ideal verdicts": [
         {
@@ -85,9 +88,7 @@
       ]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/kernel_library/"
-      },
+      "Linux kernel": {"external modules": "tests/kernel_library/"},
       "LKVOG strategy": {
         "name": "manual",
         "cluster size": 2,
@@ -96,14 +97,10 @@
           "external.ko"
         ]]}
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/load_order/"
-      },
+      "Linux kernel": {"external modules": "tests/load_order/"},
       "LKVOG strategy": {
         "name": "manual",
         "cluster size": 2,
@@ -112,9 +109,7 @@
           "external.ko"
         ]]}
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -138,9 +133,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -161,9 +154,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -174,9 +165,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -198,9 +187,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -223,9 +210,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -249,9 +234,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -273,9 +256,7 @@
         "name": "separate modules",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -286,10 +267,7 @@
       "LKVOG strategy": {
         "name": "closure",
         "cluster size": 2
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-      ]
+      }
     },
     {
       "Linux kernel": {
@@ -302,10 +280,7 @@
         "groups": {"init.ko": [[
           "external.ko", "init.ko"
         ]]}
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-      ]
+      }
     },
     {
       "Linux kernel": {
@@ -316,10 +291,7 @@
       "LKVOG strategy": {
         "name": "advanced",
         "cluster size": 2
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-      ]
+      }
     },
     {
       "Linux kernel": {
@@ -329,10 +301,7 @@
       "LKVOG strategy": {
         "name": "separate modules",
         "cluster size": 2
-      },
-      "ideal verdicts": [
-        {"ideal verdict": "safe"}
-      ]
+      }
     },
     {
       "Linux kernel": {
@@ -344,9 +313,7 @@
         "name": "closure",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -361,9 +328,7 @@
           "init.ko"
         ]]}
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -375,21 +340,15 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/"
-      },
+      "Linux kernel": {"external modules": "tests/multimodule_false_error/"},
       "LKVOG strategy": {
         "name": "separate modules",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -402,9 +361,7 @@
       }
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/multimodule_false_error/"
-      },
+      "Linux kernel": {"external modules": "tests/multimodule_false_error/"},
       "LKVOG strategy": {
         "name": "manual",
         "cluster size": 2,
@@ -424,9 +381,7 @@
       }
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/multimodule_error/"
-      },
+      "Linux kernel": {"external modules": "tests/multimodule_error/"},
       "LKVOG strategy": {
         "name": "separate modules",
         "cluster size": 2
@@ -441,14 +396,10 @@
         "name": "closure",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Linux kernel": {
-        "external modules": "tests/multimodule_error/"
-      },
+      "Linux kernel": {"external modules": "tests/multimodule_error/"},
       "LKVOG strategy": {
         "name": "manual",
         "cluster size": 2,
@@ -457,9 +408,7 @@
           "init.ko"
         ]]}
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -470,9 +419,7 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
-      ]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     }
   ]
 }

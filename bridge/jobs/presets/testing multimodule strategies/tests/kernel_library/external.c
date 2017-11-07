@@ -16,15 +16,14 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
-
-static DEFINE_MUTEX(mutex);
+#include <ldv-test.h>
 
 int export_with_error(void)
 {
-    ldv_invoke_callback();
+	ldv_error();
 	return 0;
 }
+EXPORT_SYMBOL(export_with_error);
 
 static int __init init1(void)
 {
@@ -32,5 +31,3 @@ static int __init init1(void)
 }
 
 module_init(init1);
-
-EXPORT_SYMBOL(export_with_error);

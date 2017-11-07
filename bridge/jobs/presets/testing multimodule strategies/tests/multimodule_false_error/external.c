@@ -21,6 +21,7 @@ int export_with_error(void)
 {
 	return 0;
 }
+EXPORT_SYMBOL(export_with_error);
 
 static int __init init1(void)
 {
@@ -28,5 +29,3 @@ static int __init init1(void)
 }
 
 module_init(init1);
-
-EXPORT_SYMBOL(export_with_error);

@@ -16,11 +16,11 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
+#include <ldv-test.h>
 
 void bad_export(void) 
 {
-    ldv_invoke_callback();
+	ldv_error();
 }
 
 static int __init init(void)

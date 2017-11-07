@@ -23,7 +23,8 @@ extern void export_with_error(void);
 static int __init init(void)
 {
 	export_without_error();
-    export_with_error();
+	export_with_error();
+
 	return 0;
 }
 

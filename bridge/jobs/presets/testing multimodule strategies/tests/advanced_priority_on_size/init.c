@@ -16,17 +16,17 @@
  */
 
 #include <linux/module.h>
-#include <linux/emg/test_model.h>
-
-static int __init init1(void)
-{
-  return 0;
-}
+#include <ldv-test.h>
 
 void export_err(void)
 {
-  ldv_invoke_callback();
+	ldv_error();
+}
+EXPORT_SYMBOL(export_err);
+
+static int __init init1(void)
+{
+	return 0;
 }
 
-EXPORT_SYMBOL(export_err);
 module_init(init1);
