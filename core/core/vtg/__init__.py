@@ -412,6 +412,7 @@ class VTG(core.components.Component):
         total_vo_descriptions = 0
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
+        first_task_flag = False
         active_tasks = 0
         expect_objects = True
         while True:
@@ -421,6 +422,10 @@ class VTG(core.components.Component):
             core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
             # Process them
             for status in pilot_statuses:
+                if not first_task_flag:
+                    self.logger.info("Send message that the first task is generated")
+                    self.mqs['first task appeared'].put(True)
+                    first_task_flag = True
                 vobject, rule_name = status
                 self.logger.info("Pilot verificatio task for {!r} and rule name {!r} is prepared".
                                  format(vobject, rule_name))
@@ -440,6 +445,10 @@ class VTG(core.components.Component):
             # Process them
             for solution in solutions:
                 vobject, rule_name = solution
+                if not first_task_flag:
+                    self.logger.info("Send message that the first task is generated")
+                    self.mqs['first task appeared'].put(True)
+                    first_task_flag = True
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
@@ -593,9 +602,6 @@ class VTGW(core.components.Component):
     def tasks_generator_worker(self):
         try:
             self.generate_abstact_verification_task_desc(self.verification_object, self.rule_specification)
-            if not self.vals['first task is generated'].value:
-                with self.vals['first task is generated'].get_lock():
-                    self.vals['first task is generated'].value += 1
         except Exception:
             self.plugin_fail_processing()
             raise
