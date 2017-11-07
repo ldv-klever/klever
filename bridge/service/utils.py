@@ -340,7 +340,8 @@ class GetTasks:
             'task descriptions': {},
             'task solutions': {},
             'job errors': {},
-            'job configurations': {}
+            'job configurations': {},
+            'jobs progress': {}
         }
         self.__get_tasks(tasks)
         try:
@@ -386,6 +387,7 @@ class GetTasks:
                     FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
                 else:
                     self._data['jobs']['processing'].append(progress.job.identifier)
+                    self._data['jobs progress'][progress.job.identifier] = JobProgressData(progress.job).get()
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
                 self._data['jobs']['cancelled'].append(progress[0])
 
@@ -974,7 +976,7 @@ class JobProgressData:
             for dkey in self.data_map:
                 value = getattr(progress, self.data_map[dkey])
                 if value is not None:
-                    data[dkey] = getattr(progress, self.data_map[dkey])
+                    data[dkey] = value
             for dkey in self.dates_map:
                 data[dkey] = (getattr(progress, self.dates_map[dkey]) is not None)
         return data
