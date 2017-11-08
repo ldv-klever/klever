@@ -954,7 +954,8 @@ class JobProgressData:
 
     def update(self, data):
         data = json.loads(data)
-        if not isinstance(data, dict) or any(x not in set(self.data_map) | set(self.dates_map) for x in data):
+        if not isinstance(data, dict) or any(x not in set(self.data_map) | set(self.dates_map) | set(self.int_or_text)
+                                             for x in data):
             raise ServiceError('Wrong format of data')
         try:
             progress = JobProgress.objects.get(job=self._job)
@@ -966,8 +967,8 @@ class JobProgressData:
         for dkey in self.dates_map:
             if dkey in data and data[dkey] and getattr(progress, self.dates_map[dkey]) is None:
                 setattr(progress, self.dates_map[dkey], now())
-        for dkey in self.int_or_text:
-            if dkey in data and isinstance(data[dkey], int):
+        for dkey in (k for k in self.int_or_text if k in data):
+            if isinstance(data[dkey], int):
                 setattr(progress, self.int_or_text[dkey][0], data[dkey])
                 setattr(progress, self.int_or_text[dkey][1], None)
             else:
@@ -1063,7 +1064,7 @@ class GetJobsProgresses:
         if job_status == JOB_STATUS[2][0]:
             if has_progress_ts:
                 data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000)
-            elif self._j_progress[j_id].gag_text_ts is not None:
+            elif j_id in self._j_progress and self._j_progress[j_id].gag_text_ts is not None:
                 data['expected_time_ts'] = self._j_progress[j_id].gag_text_ts
             else:
                 data['expected_time_ts'] = _('Estimating time')
