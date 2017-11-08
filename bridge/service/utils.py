@@ -340,7 +340,8 @@ class GetTasks:
             'task descriptions': {},
             'task solutions': {},
             'job errors': {},
-            'job configurations': {}
+            'job configurations': {},
+            'jobs progress': {}
         }
         self.__get_tasks(tasks)
         try:
@@ -386,6 +387,7 @@ class GetTasks:
                     FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
                 else:
                     self._data['jobs']['processing'].append(progress.job.identifier)
+                    self._data['jobs progress'][progress.job.identifier] = JobProgressData(progress.job).get()
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
                 self._data['jobs']['cancelled'].append(progress[0])
 
@@ -974,7 +976,7 @@ class JobProgressData:
             for dkey in self.data_map:
                 value = getattr(progress, self.data_map[dkey])
                 if value is not None:
-                    data[dkey] = getattr(progress, self.data_map[dkey])
+                    data[dkey] = value
             for dkey in self.dates_map:
                 data[dkey] = (getattr(progress, self.dates_map[dkey]) is not None)
         return data
@@ -987,6 +989,15 @@ class GetJobsProgresses:
         self._j_progress = {}
         self.__get_progresses(jobs_ids)
         self.data = self.__get_data(jobs_ids)
+
+    def table_data(self):
+        for j_id in self.data:
+            for col in list(self.data[j_id]):
+                if col.endswith('_ts'):
+                    self.data[j_id]["tasks:%s" % col] = self.data[j_id].pop(col)
+                elif col.endswith('_sj'):
+                    self.data[j_id]["subjobs:%s" % col] = self.data[j_id].pop(col)
+        return self.data
 
     def __get_progresses(self, jobs_ids):
         for j_id, status, start, finish in SolvingProgress.objects.filter(job_id__in=jobs_ids)\

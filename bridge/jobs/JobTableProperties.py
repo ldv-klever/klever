@@ -70,7 +70,20 @@ FILTER_TITLES = {
     'finish_date': _('Finish decision date')
 }
 
-DATE_COLUMNS = {'date', 'start_ts', 'finish_ts', 'start_sj', 'finish_sj', 'start_date', 'finish_date'}
+DATE_COLUMNS = {
+    'date', 'tasks:start_ts', 'tasks:finish_ts', 'subjobs:start_sj', 'subjobs:finish_sj', 'start_date', 'finish_date'
+}
+
+TASKS_COLUMNS = [
+    'tasks', 'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error', 'tasks:cancelled',
+    'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'tasks:start_ts', 'tasks:finish_ts',
+    'tasks:progress_ts', 'tasks:expected_time_ts'
+]
+
+SUBJOBS_COLUMNS = [
+    'subjobs', 'subjobs:total_sj', 'subjobs:start_sj', 'subjobs:finish_sj',
+    'subjobs:progress_sj', 'subjobs:expected_time_sj'
+]
 
 
 def all_user_columns():
@@ -80,12 +93,11 @@ def all_user_columns():
     columns.append('safe')
     for safe in SAFES:
         columns.append("safe:%s" % safe)
+    columns.extend(TASKS_COLUMNS)
+    columns.extend(SUBJOBS_COLUMNS)
     columns.extend([
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
-        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
-        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions',
-        'total_ts', 'start_ts', 'finish_ts', 'progress_ts', 'expected_time_ts',
-        'total_sj', 'start_sj', 'finish_sj', 'progress_sj', 'expected_time_sj'
+        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
     ])
     return columns
 
@@ -220,8 +232,10 @@ class TableTree:
         return columns
 
     def __is_countable(self, col):
-        if col in {'unsafe', 'safe', 'tag', 'problem', 'tasks_pending', 'tasks_processing',
-                   'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions'}:
+        if col in {
+            'unsafe', 'safe', 'tag', 'problem', 'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error',
+            'tasks:cancelled', 'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'subjobs:total_sj'
+        }:
             return True
         self.__is_not_used()
         return False
@@ -397,7 +411,9 @@ class TableTree:
             'problem': self.__unknowns_columns,
             'tag': lambda: self.__safe_tags_columns() + self.__unsafe_tags_columns(),
             'tag:safe': self.__safe_tags_columns,
-            'tag:unsafe': self.__unsafe_tags_columns
+            'tag:unsafe': self.__unsafe_tags_columns,
+            'tasks': lambda: TASKS_COLUMNS[1:],
+            'subjobs': lambda: SUBJOBS_COLUMNS[1:]
         }
         all_columns = all_user_columns()
         for col in self.view['columns']:
@@ -552,12 +568,9 @@ class TableTree:
             self.__collect_unsafe_tags()
         if 'role' in self._columns:
             self.__collect_roles()
-        progress_columns = {
-            'priority', 'solutions', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
-            'tasks_total', 'tasks_cancelled', 'tasks_error', 'tasks_finished', 'tasks_processing', 'tasks_pending',
-            'total_ts', 'start_ts', 'finish_ts', 'progress_ts', 'expected_time_ts',
-            'total_sj', 'start_sj', 'finish_sj', 'progress_sj', 'expected_time_sj'
-        }
+
+        progress_columns = {'priority', 'solutions', 'start_date', 'finish_date', 'solution_wall_time', 'operator'}\
+            | set(TASKS_COLUMNS) | set(SUBJOBS_COLUMNS)
         if any(x in progress_columns for x in self._columns):
             self.__collect_progress_data()
 
@@ -598,20 +611,20 @@ class TableTree:
 
     def __collect_progress_data(self):
         jobs_with_progress = set()
-        progresses = GetJobsProgresses(self._user, self._job_ids).data
+        progresses = GetJobsProgresses(self._user, self._job_ids).table_data()
         for j_id in progresses:
             self._values_data[j_id].update(progresses[j_id])
 
         for progress in SolvingProgress.objects.filter(job_id__in=self._job_ids):
             self._values_data[progress.job_id].update({
                 'priority': progress.get_priority_display(),
-                'tasks_total': progress.tasks_total,
-                'tasks_cancelled': progress.tasks_cancelled,
-                'tasks_error': progress.tasks_error,
-                'tasks_finished': progress.tasks_finished,
-                'tasks_processing': progress.tasks_processing,
-                'tasks_pending': progress.tasks_pending,
-                'solutions': progress.solutions
+                'tasks:total': progress.tasks_total,
+                'tasks:cancelled': progress.tasks_cancelled,
+                'tasks:error': progress.tasks_error,
+                'tasks:finished': progress.tasks_finished,
+                'tasks:processing': progress.tasks_processing,
+                'tasks:pending': progress.tasks_pending,
+                'tasks:solutions': progress.solutions
             })
             if progress.start_date is not None:
                 self._values_data[progress.job_id]['start_date'] = progress.start_date
