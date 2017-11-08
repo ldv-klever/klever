@@ -934,17 +934,19 @@ class JobProgressData:
         'total subjobs to be solved': 'total_sj',
         'failed subjobs': 'failed_sj',
         'solved subjobs': 'solved_sj',
-        'expected time for solving subjobs': 'expected_time_sj',
         'total tasks to be generated': 'total_ts',
         'failed tasks': 'failed_ts',
-        'solved tasks': 'solved_ts',
-        'expected time for solving tasks': 'expected_time_ts'
+        'solved tasks': 'solved_ts'
     }
     dates_map = {
         'start tasks solution': 'start_ts',
         'finish tasks solution': 'finish_ts',
         'start subjobs solution': 'start_sj',
         'finish subjobs solution': 'finish_sj'
+    }
+    int_or_text = {
+        'expected time for solving subjobs': ['expected_time_sj', 'gag_text_sj'],
+        'expected time for solving tasks': ['expected_time_ts', 'gag_text_ts']
     }
 
     def __init__(self, job):
@@ -964,6 +966,13 @@ class JobProgressData:
         for dkey in self.dates_map:
             if dkey in data and data[dkey] and getattr(progress, self.dates_map[dkey]) is None:
                 setattr(progress, self.dates_map[dkey], now())
+        for dkey in self.int_or_text:
+            if dkey in data and isinstance(data[dkey], int):
+                setattr(progress, self.int_or_text[dkey][0], data[dkey])
+                setattr(progress, self.int_or_text[dkey][1], None)
+            else:
+                setattr(progress, self.int_or_text[dkey][0], None)
+                setattr(progress, self.int_or_text[dkey][1], str(data[dkey]))
         progress.save()
 
     def get(self):
@@ -1026,9 +1035,8 @@ class GetJobsProgresses:
             'start_decision': self._s_progress[j_id][1],
             'finish_decision': self._s_progress[j_id][2]
         }
-        # For pending and successfully finished jobs we need just start and finish decision dates.
-        # For pending jobs it will be '-' both.
-        if job_status in {JOB_STATUS[1][0], JOB_STATUS[3][0]}:
+        # For pending jobs we need just start and finish decision dates. It will be '-' both.
+        if job_status == JOB_STATUS[1][0]:
             return data
 
         has_sj = (j_id in self._j_progress and
@@ -1053,14 +1061,22 @@ class GetJobsProgresses:
 
         # Get expected time if job is solving
         if job_status == JOB_STATUS[2][0]:
-            data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000) \
-                if has_progress_ts else _('Estimating time')
+            if has_progress_ts:
+                data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000)
+            elif self._j_progress[j_id].gag_text_ts is not None:
+                data['expected_time_ts'] = self._j_progress[j_id].gag_text_ts
+            else:
+                data['expected_time_ts'] = _('Estimating time')
             if has_sj:
-                data['expected_time_sj'] = get_user_time(self._user, self._j_progress[j_id].expected_time_sj * 1000) \
-                    if has_progress_sj else _('Estimating time')
+                if has_progress_sj:
+                    data['expected_time_sj'] = get_user_time(self._user, self._j_progress[j_id].expected_time_sj * 1000)
+                elif self._j_progress[j_id].gag_text_sj is not None:
+                    data['expected_time_sj'] = self._j_progress[j_id].gag_text_sj
+                else:
+                    data['expected_time_sj'] = _('Estimating time')
         else:
             # Do not show "Estimating progress" for jobs finished with error
-            if not has_progress_ts and 'progress_ts' in data:
+            if not has_progress_ts:
                 del data['progress_ts']
             if not has_progress_sj and 'progress_sj' in data:
                 del data['progress_sj']

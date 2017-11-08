@@ -133,6 +133,7 @@ class JobProgress(models.Model):
     expected_time_sj = models.PositiveIntegerField(null=True)
     start_sj = models.DateTimeField(null=True)
     finish_sj = models.DateTimeField(null=True)
+    gag_text_sj = models.CharField(max_length=128, null=True)
 
     total_ts = models.PositiveIntegerField(null=True)
     failed_ts = models.PositiveIntegerField(null=True)
@@ -140,6 +141,7 @@ class JobProgress(models.Model):
     expected_time_ts = models.PositiveIntegerField(null=True)
     start_ts = models.DateTimeField(null=True)
     finish_ts = models.DateTimeField(null=True)
+    gag_text_ts = models.CharField(max_length=128, null=True)
 
 
 class Task(models.Model):
