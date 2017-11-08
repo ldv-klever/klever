@@ -63,7 +63,7 @@ def start_jobs(core_obj, locks, vals):
         pc = core.progress.PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks,
                               core_obj.mqs, locks, vals, separate_from_parent=False,
                               include_child_resources=True, session=core_obj.session,
-                              subjobs_number=(len(common_components_conf['Sub-jobs'])
+                              total_subjobs=(len(common_components_conf['Sub-jobs'])
                                               if 'Sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)
