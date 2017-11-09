@@ -246,13 +246,7 @@ def show_job(request, job_id=None):
     children = []
     for child in job.children.all().order_by('change_date'):
         if jobs.utils.JobAccess(request.user, child).can_view():
-            job_id = child.pk
-        else:
-            job_id = None
-        children.append({
-            'pk': job_id,
-            'name': child.name,
-        })
+            children.append({'pk': child.pk, 'name': child.name})
 
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
