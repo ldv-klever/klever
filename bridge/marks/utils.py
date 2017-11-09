@@ -16,7 +16,6 @@
 #
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import USER_ROLES, JOB_ROLES
@@ -104,7 +103,8 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
-        if self.mark.versions.get(version=F('mark__version')).author == self.user:
+        authors = list(set(v_id for v_id, in self.mark.versions.values_list('author_id') if v_id is not None))
+        if len(authors) == 1 and authors[0] == self.user.id:
             return True
         return False
 

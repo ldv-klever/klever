@@ -212,6 +212,7 @@ def edit_mark(request, mark_type, mark_id):
         'reports': MarkReportsTable(request.user, mark),
         'versions': mark_versions,
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+        'can_delete': mutils.MarkAccess(request.user, mark=mark).can_delete(),
         'tags': tags,
         'error_trace': error_trace,
         'report_id': request.GET.get('report_to_redirect')

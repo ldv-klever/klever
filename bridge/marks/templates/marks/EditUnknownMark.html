@@ -20,7 +20,9 @@
                 <div class="ui small icon buttons top attached">
                     <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
                     <button id="edit_mark_versions" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
-                    <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
+                    {% if can_delete %}
+                        <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
+                    {% endif %}
                 </div>
                 <table class="ui selectable compact inverted violet table attached">
                     <thead>
