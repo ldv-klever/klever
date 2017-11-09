@@ -1064,7 +1064,7 @@ class GetJobsProgresses:
         if job_status == JOB_STATUS[2][0]:
             if has_progress_ts:
                 data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000)
-            elif j_id in self._j_progress and self._j_progress[j_id].gag_text_ts is not None:
+            elif self._j_progress[j_id].gag_text_ts is not None:
                 data['expected_time_ts'] = self._j_progress[j_id].gag_text_ts
             else:
                 data['expected_time_ts'] = _('Estimating time')
@@ -1076,7 +1076,7 @@ class GetJobsProgresses:
                 else:
                     data['expected_time_sj'] = _('Estimating time')
         else:
-            # Do not show "Estimating progress" for jobs finished with error
+            # Do not show "Estimating progress" for finished jobs
             if not has_progress_ts:
                 del data['progress_ts']
             if not has_progress_sj and 'progress_sj' in data:
