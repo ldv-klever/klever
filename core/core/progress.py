@@ -226,17 +226,17 @@ class PW(core.components.Component):
             return round((rest / solved) * last_update_time - delta_time)
 
         if progress <= 10:
-            ret = 'Estimating solution time'
+            ret = 'Estimating time'
         elif 10 < progress <= 90:
             ret = formula()
             if ret < 0 or ret == 0:
-                ret = "Reestimating solution time"
+                ret = "Reestimating time"
         elif 90 < progress < 100:
             ret = formula()
             if ret < 0 or ret == 0:
                 ret = "Solution is about to finish"
         else:
-            ret = "Solution finished"
+            ret = 0
 
         self.logger.info("Solution progress: {}, time estimation: {}".format(progress, ret))
         return ret
