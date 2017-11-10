@@ -108,6 +108,26 @@ class MarkAccess(object):
             return True
         return False
 
+    def can_remove_version(self, mark_version):
+        if not isinstance(self.user, User) or not isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
+            return False
+        # Nobody can remove first or last version. Also while mark is being deleted users can't clear versions.
+        if mark_version.version in {1, self.mark.version} or self.mark.version == 0:
+            return False
+        # Manager can remove all other versions
+        if self.user.extended.role == USER_ROLES[2][0]:
+            return True
+        # Others can't remove versions if mark is frozen.
+        if not self.mark.is_modifiable:
+            return False
+        # Expert can remove all versions.
+        if self.user.extended.role == USER_ROLES[3][0]:
+            return True
+        # Others can remove version only if they are authors of it.
+        if mark_version.author == self.user:
+            return True
+        return False
+
 
 class TagsInfo:
     def __init__(self, mark_type, mark=None):

@@ -398,15 +398,21 @@ def role_info(job, user):
 
     users = []
     user_roles_data = []
-    users_roles = job.userrole_set.exclude(user=user).order_by('user__last_name')
+    users_roles = job.userrole_set.all().order_by('user__last_name')
     job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
         u_id = ur.user_id
-        user_roles_data.append({
-            'user': {'id': u_id, 'name': ur.user.get_full_name()},
-            'role': {'val': ur.role, 'title': ur.get_role_display()}
-        })
+        if u_id == user.id:
+            user_roles_data.append({
+                'user': {'name': _('Your role for the job')},
+                'role': {'val': ur.role, 'title': ur.get_role_display()}
+            })
+        else:
+            user_roles_data.append({
+                'user': {'id': u_id, 'name': ur.user.get_full_name()},
+                'role': {'val': ur.role, 'title': ur.get_role_display()}
+            })
         users.append(u_id)
 
     roles_data['user_roles'] = user_roles_data
