@@ -460,7 +460,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
                     # Flushing tasks
                     logging.debug("Flush submitted tasks and jobs if necessary")
-                    self.flush()
+                    if len(tasks_to_start.keys()) > 0:
+                        self.flush()
                 else:
                     logging.warning("Do not run any tasks until actual information about the nodes will be obtained")
 
