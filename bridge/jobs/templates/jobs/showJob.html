@@ -30,7 +30,11 @@
     {% if roles.user_roles|length %}
         <ul>
             {% for u in roles.user_roles %}
-                <li><a href="{% url 'users:show_profile' u.user.id %}">{{ u.user.name }}</a>: {{ u.role.title }}</li>
+                {% if u.user.id %}
+                    <li><a href="{% url 'users:show_profile' u.user.id %}">{{ u.user.name }}</a>: {{ u.role.title }}</li>
+                {% else %}
+                    <li>{{ u.user.name }}: {{ u.role.title }}</li>
+                {% endif %}
             {% endfor %}
         </ul>
     {% endif %}
