@@ -1042,7 +1042,7 @@ class GetJobsProgresses:
 
         has_sj = (j_id in self._j_progress and
                   (self._j_progress[j_id].start_sj is not None or self._j_progress[j_id].total_sj is not None))
-        has_progress_ts = (j_id in self._j_progress and self.__has_progress(j_id, 'ts'))
+        has_progress_ts = self.__has_progress(j_id, 'ts')
         has_progress_sj = (has_sj and self.__has_progress(j_id, 'sj'))
 
         # Add other data
@@ -1062,14 +1062,14 @@ class GetJobsProgresses:
 
         # Get expected time if job is solving
         if job_status == JOB_STATUS[2][0]:
-            if has_progress_ts:
+            if j_id in self._j_progress and self._j_progress[j_id].expected_time_ts is not None:
                 data['expected_time_ts'] = get_user_time(self._user, self._j_progress[j_id].expected_time_ts * 1000)
             elif j_id in self._j_progress and self._j_progress[j_id].gag_text_ts is not None:
                 data['expected_time_ts'] = self._j_progress[j_id].gag_text_ts
             else:
                 data['expected_time_ts'] = _('Estimating time')
             if has_sj:
-                if has_progress_sj:
+                if self._j_progress[j_id].expected_time_sj is not None:
                     data['expected_time_sj'] = get_user_time(self._user, self._j_progress[j_id].expected_time_sj * 1000)
                 elif self._j_progress[j_id].gag_text_sj is not None:
                     data['expected_time_sj'] = self._j_progress[j_id].gag_text_sj
@@ -1079,7 +1079,7 @@ class GetJobsProgresses:
             # Do not show "Estimating progress" for finished jobs
             if not has_progress_ts:
                 del data['progress_ts']
-            if not has_progress_sj and 'progress_sj' in data:
+            if has_sj and not has_progress_sj:
                 del data['progress_sj']
         return data
 
@@ -1111,9 +1111,9 @@ class GetJobsProgresses:
             return "100%"
 
     def __has_progress(self, j_id, progress_type):
-        if progress_type not in {'sj', 'ts'}:
+        if progress_type not in {'sj', 'ts'} or j_id not in self._j_progress:
             return False
-        args = list(x.format(progress_type) for x in ['total_{0}', 'solved_{0}', 'failed_{0}', 'expected_time_{0}'])
+        args = list(x.format(progress_type) for x in ['total_{0}', 'solved_{0}', 'failed_{0}'])
         if all(getattr(self._j_progress[j_id], x) is not None for x in args):
             return True
         return False
