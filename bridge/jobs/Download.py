@@ -41,7 +41,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 6
+ARCHIVE_FORMAT = 7
 
 
 class KleverCoreArchiveGen:
@@ -180,7 +180,8 @@ class JobArchiveGenerator:
                 'total_ts': jp.total_ts, 'failed_ts': jp.failed_ts, 'solved_ts': jp.solved_ts,
                 'start_ts': jp.start_ts.timestamp() if jp.start_ts is not None else None,
                 'finish_ts': jp.finish_ts.timestamp() if jp.finish_ts is not None else None,
-                'expected_time_sj': jp.expected_time_sj, 'expected_time_ts': jp.expected_time_ts
+                'expected_time_sj': jp.expected_time_sj, 'expected_time_ts': jp.expected_time_ts,
+                'gag_text_sj': jp.gag_text_sj, 'gag_text_ts': jp.gag_text_ts
             })
         return data
 
@@ -586,7 +587,8 @@ class UploadJob(object):
                 if data['start_ts'] is not None else None,
                 finish_ts=datetime.fromtimestamp(data['finish_ts'], pytz.timezone('UTC'))
                 if data['finish_ts'] is not None else None,
-                expected_time_sj=data['expected_time_sj'], expected_time_ts=data['expected_time_ts']
+                expected_time_sj=data['expected_time_sj'], expected_time_ts=data['expected_time_ts'],
+                gag_text_sj=data['gag_text_sj'], gag_text_ts=data['gag_text_ts']
             )
 
     def __is_not_used(self):
