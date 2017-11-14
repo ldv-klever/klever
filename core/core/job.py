@@ -95,7 +95,7 @@ def start_jobs(core_obj, locks, vals):
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 locks, vals,
-                id=core_obj.ID,
+                id='-',
                 work_dir=os.path.join(os.path.curdir, 'job'),
                 separate_from_parent=True,
                 include_child_resources=False,
