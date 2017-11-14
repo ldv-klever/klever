@@ -184,17 +184,15 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
                     'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'
                     .format(commit))
 
-            sub_job_name_prefix = os.path.join(commit, external_modules)
+            sub_job_id_prefix = os.path.join(commit, external_modules)
         elif job_type == 'Verification of Linux kernel modules':
-            sub_job_name_prefix = os.path.join(str(number), external_modules)
+            sub_job_id_prefix = os.path.join(str(number), external_modules)
         else:
             raise NotImplementedError('Job class "{0}" is not supported'.format(job_type))
-        sub_job_name = os.path.join(sub_job_name_prefix, modules_hash, rule_specs_hash)
-        sub_job_work_dir = os.path.join(sub_job_name_prefix, modules_hash,
-                                        re.sub(r'\W', '-', rule_specs_hash))
-        core_obj.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, job_type))
 
-        sub_job_id = core_obj.ID + sub_job_name
+        sub_job_id = os.path.join(sub_job_id_prefix, modules_hash, rule_specs_hash)
+        sub_job_work_dir = os.path.join(sub_job_id_prefix, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
+        core_obj.logger.debug('Sub-job identifier and type are "{0}" and "{1}"'.format(sub_job_id, job_type))
 
         for sub_job in sub_jobs:
             if sub_job.id == sub_job_id:
@@ -209,8 +207,10 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
             include_child_resources=False,
             job_type=job_type,
             components_common_conf=sub_job_concrete_conf,
-            name_prefix=sub_job_name_prefix)
+            id_prefix=sub_job_id_prefix)
+
         sub_jobs.append(job)
+
         return job
 
     core_obj.logger.info('Start job sub-jobs')
@@ -258,29 +258,28 @@ class RA(core.components.Component):
                 break
 
             # Block several sub-jobs from each other to reliably produce outcome.
-            name_prefix, name_suffix, verification_result = self.__match_ideal_verdict(verification_status)
+            id_prefix, id_suffix, verification_result = self.__match_ideal_verdict(verification_status)
 
-            name = os.path.join(name_prefix, name_suffix)
+            task_id = os.path.join(id_prefix, id_suffix)
 
             if self.job_type == 'Verification of Linux kernel modules':
                 self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
-                    name, verification_result['ideal verdict'], verification_result['verdict'],
+                    id, verification_result['ideal verdict'], verification_result['verdict'],
                     ' ("{0}")'.format(verification_result['comment'])
                     if verification_result['comment'] else ''))
-                task_name = name
             elif self.job_type == 'Validation on commits in Linux kernel Git repositories':
-                task_name, verification_result = self.__process_validation_results(name, verification_result)
+                task_id, verification_result = self.__process_validation_results(task_id, verification_result)
             else:
                 raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
 
-            results_dir = os.path.join('results', re.sub(r'/', '-', name))
+            results_dir = os.path.join('results', re.sub(r'/', '-', task_id))
             os.makedirs(results_dir)
 
             core.utils.report(self.logger,
                               'data',
                               {
                                   'id': self.parent_id,
-                                  'data': {task_name: verification_result}
+                                  'data': {task_id: verification_result}
                               },
                               self.mqs['report files'],
                               self.vals['report id'],
@@ -296,7 +295,7 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': 'non-verifier unknown',
-                'name prefix': context.conf['Job prefix'],
+                'id prefix': context.conf['job identifier prefix'],
                 'ideal verdicts': context.conf['ideal verdicts']
             })
 
@@ -305,7 +304,7 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': context.verdict,
-                'name prefix': context.conf['Job prefix'],
+                'id prefix': context.conf['job identifier prefix'],
                 'ideal verdicts': context.conf['ideal verdicts']
             })
 
@@ -314,7 +313,7 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': context.verdict,
-                'name prefix': context.conf['Job prefix'],
+                'id prefix': context.conf['job identifier prefix'],
                 'ideal verdicts': context.conf['ideal verdicts']
             })
 
@@ -329,7 +328,7 @@ class RA(core.components.Component):
     def __match_ideal_verdict(verification_status):
         verification_object = verification_status['verification object']
         rule_specification = verification_status['rule specification']
-        name_prefix = verification_status['name prefix']
+        id_prefix = verification_status['id prefix']
         ideal_verdicts = verification_status['ideal verdicts']
 
         is_matched = False
@@ -372,10 +371,10 @@ class RA(core.components.Component):
 
         # Refine name (it can contain hashes if several modules or/and rule specifications are checked within one
         # sub-job).
-        name_suffix = os.path.join(verification_object, rule_specification)\
+        id_suffix = os.path.join(verification_object, rule_specification)\
             if verification_object and rule_specification else ''
 
-        return name_prefix, name_suffix, {
+        return id_prefix, id_suffix, {
             'verdict': verification_status['verdict'],
             'ideal verdict': ideal_verdict['ideal verdict'],
             'comment': ideal_verdict.get('comment')
@@ -589,10 +588,10 @@ class Job(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None,
-                 name_prefix=None):
+                 id_prefix=None):
         super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
-        self.name_prefix = name_prefix
+        self.id_prefix = id_prefix
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
@@ -604,11 +603,11 @@ class Job(core.components.Component):
 
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
-        if self.name_prefix:
-            self.common_components_conf['Job prefix'] = self.name_prefix
+        if self.id_prefix:
+            self.common_components_conf['job identifier prefix'] = self.id_prefix
         self.common_components_conf['job identifier'] = self.id
 
-        if self.name_prefix:
+        if self.id_prefix:
             if self.common_components_conf['keep intermediate files']:
                 if os.path.isfile('conf.json'):
                     raise FileExistsError(
