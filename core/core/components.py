@@ -349,7 +349,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.name = type(self).__name__.replace('KleverSubcomponent', '')
         # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
-        self.id = '{0}/{1}'.format(parent_id, id if id else self.name)
+        self.id = os.path.join(parent_id, id if id else self.name)
         self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
         self.tasks_start_time = 0
