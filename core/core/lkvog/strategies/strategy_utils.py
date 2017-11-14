@@ -37,12 +37,12 @@ class Module:
         return hash(self.id)
 
     def add_predecessor(self, predecessor):
-        if predecessor:
+        if predecessor and predecessor not in self.predecessors:
             self.predecessors.append(predecessor)
             predecessor.successors.append(self)
 
     def add_successor(self, successor):
-        if successor:
+        if successor and successor not in self.successors:
             self.successors.append(successor)
             successor.predecessors.append(self)
 

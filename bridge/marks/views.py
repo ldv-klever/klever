@@ -23,7 +23,7 @@ from urllib.parse import unquote
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, F
+from django.db.models import F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
@@ -212,6 +212,7 @@ def edit_mark(request, mark_type, mark_id):
         'reports': MarkReportsTable(request.user, mark),
         'versions': mark_versions,
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+        'can_delete': mutils.MarkAccess(request.user, mark=mark).can_delete(),
         'tags': tags,
         'error_trace': error_trace,
         'report_id': request.GET.get('report_to_redirect')
@@ -308,7 +309,7 @@ def get_mark_version_data(request):
         unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
         data = unknown_data_tmpl.render({
             'markdata': MarkData(mark_type, mark_version=mark_version)
-        })
+        }, request)
     else:
         data_templ = get_template('marks/MarkAddData.html')
         try:
@@ -323,7 +324,7 @@ def get_mark_version_data(request):
             'tags': tags,
             'can_edit': True,
             'error_trace': error_trace
-        })
+        }, request)
     return JsonResponse({'data': data})
 
 
@@ -445,18 +446,21 @@ def remove_versions(request):
             return JsonResponse({'error': str(UNKNOWN_ERROR)})
         if mark.version == 0:
             return JsonResponse({'error': _('The mark is being deleted')})
-        mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
+        mark_history = mark.versions.exclude(version__in=[mark.version, 1])
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
     if not mutils.MarkAccess(request.user, mark).can_edit():
         return JsonResponse({'error': _("You don't have an access to edit this mark")})
 
-    versions = json.loads(request.POST.get('versions', '[]'))
-    checked_versions = mark_history.filter(version__in=versions)
-    deleted_versions = len(checked_versions)
-    checked_versions.delete()
+    checked_versions = mark_history.filter(version__in=json.loads(request.POST.get('versions', '[]')))
+    for mark_version in checked_versions:
+        if not mutils.MarkAccess(request.user, mark=mark).can_remove_version(mark_version):
+            # Error will never happen in usual cases as list of versions user can select should always be with access
+            # So we can use str(UNKNOWN_ERROR) here
+            return JsonResponse({'error': _("You don't have an access to remove one of the selected version")})
 
-    if deleted_versions > 0:
+    if len(checked_versions) > 0:
+        checked_versions.delete()
         return JsonResponse({'message': _('Selected versions were successfully deleted')})
     return JsonResponse({'error': _('Nothing to delete')})
 
@@ -481,12 +485,13 @@ def get_mark_versions(request):
             return JsonResponse({'error': str(UNKNOWN_ERROR)})
         if mark.version == 0:
             return JsonResponse({'error': 'The mark is being deleted'})
-        mark_history = mark.versions.filter(
-            ~Q(version__in=[mark.version, 1])).order_by('-version')
+        mark_history = mark.versions.exclude(version__in=[mark.version, 1]).order_by('-version')
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
+        if not mutils.MarkAccess(request.user, mark=mark).can_remove_version(m):
+            continue
         mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
         if m.author is not None:
@@ -669,7 +674,7 @@ def get_tags_data(request):
         'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
         'tree': get_template('marks/MarkTagsTree.html').render({
             'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True, 'user': request.user
-        })
+        }, request)
     })
 
 
@@ -814,7 +819,7 @@ def get_inline_mark_form(request):
     return JsonResponse({
         'data': get_template('marks/InlineMarkForm.html').render({
             'type': request.POST['type'], 'markdata': markdata, 'tags': tags
-        })
+        }, request)
     })
 
 

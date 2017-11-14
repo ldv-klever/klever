@@ -16,7 +16,6 @@
 #
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import USER_ROLES, JOB_ROLES
@@ -104,7 +103,28 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
-        if self.mark.versions.get(version=F('mark__version')).author == self.user:
+        authors = list(set(v_id for v_id, in self.mark.versions.values_list('author_id') if v_id is not None))
+        if len(authors) == 1 and authors[0] == self.user.id:
+            return True
+        return False
+
+    def can_remove_version(self, mark_version):
+        if not isinstance(self.user, User) or not isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
+            return False
+        # Nobody can remove first or last version. Also while mark is being deleted users can't clear versions.
+        if mark_version.version in {1, self.mark.version} or self.mark.version == 0:
+            return False
+        # Manager can remove all other versions
+        if self.user.extended.role == USER_ROLES[2][0]:
+            return True
+        # Others can't remove versions if mark is frozen.
+        if not self.mark.is_modifiable:
+            return False
+        # Expert can remove all versions.
+        if self.user.extended.role == USER_ROLES[3][0]:
+            return True
+        # Others can remove version only if they are authors of it.
+        if mark_version.author == self.user:
             return True
         return False
 

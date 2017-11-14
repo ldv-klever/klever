@@ -34,13 +34,13 @@ import core.utils
 from core.vrp.coverage_parser import LCOV
 
 
-@core.utils.before_callback
+@core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_common_prj_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
 
@@ -80,7 +80,7 @@ class VRP(core.components.Component):
         subcomponents = [('RPL', self.__result_processing)]
         for i in range(self.__workers):
             subcomponents.append(('RPWL', self.__loop_worker))
-        self.launch_subcomponents(*subcomponents)
+        self.launch_subcomponents(False, *subcomponents)
 
         # Finalize
         self.finish_task_results_processing()
@@ -102,57 +102,59 @@ class VRP(core.components.Component):
 
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        while True:
-            # Get new tasks
-            if receiving:
-                if len(pending) > 0:
-                    number = 0
-                    try:
-                        while True:
-                            data = self.mqs['pending tasks'].get_nowait()
+        try:
+            while True:
+                # Get new tasks
+                if receiving:
+                    if len(pending) > 0:
+                        number = 0
+                        try:
+                            while True:
+                                data = self.mqs['pending tasks'].get_nowait()
+                                if not data:
+                                    receiving = False
+                                    self.logger.info("Expect no tasks to be generated")
+                                else:
+                                    pending[data[0]] = data
+                                number += 1
+                        except queue.Empty:
+                            self.logger.debug("Fetched {} tasks".format(number))
+                    else:
+                        try:
+                            data = self.mqs['pending tasks'].get(block=True, timeout=generation_timeout)
                             if not data:
                                 receiving = False
                                 self.logger.info("Expect no tasks to be generated")
                             else:
                                 pending[data[0]] = data
-                            number += 1
-                    except queue.Empty:
-                        self.logger.debug("Fetched {} tasks".format(number))
-                else:
-                    try:
-                        data = self.mqs['pending tasks'].get(block=True, timeout=generation_timeout)
-                        if not data:
-                            receiving = False
-                            self.logger.info("Expect no tasks to be generated")
-                        else:
-                            pending[data[0]] = data
-                    except queue.Empty:
-                        self.logger.debug("No tasks has come for last 30 seconds")
+                        except queue.Empty:
+                            self.logger.debug("No tasks has come for last 30 seconds")
 
-            # Plan for processing new tasks
-            if len(pending) > 0:
-                tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
-                for task in list(pending.keys()):
-                    if task in tasks_statuses['finished']:
-                        submit_processing_task('finished', task)
-                        del pending[task]
-                    elif task in tasks_statuses['error']:
-                        submit_processing_task('error', task)
-                        del pending[task]
-                    elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
-                        raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
-                                       "tasks".format(task))
+                # Plan for processing new tasks
+                if len(pending) > 0:
+                    tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
+                    for task in list(pending.keys()):
+                        if task in tasks_statuses['finished']:
+                            submit_processing_task('finished', task)
+                            del pending[task]
+                        elif task in tasks_statuses['error']:
+                            submit_processing_task('error', task)
+                            del pending[task]
+                        elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
+                            raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
+                                           "tasks".format(task))
 
-            if not receiving and len(pending) == 0:
-                # Wait for all rest tasks, no tasks can come currently
-                self.mqs['pending tasks'].close()
-                for _ in range(self.__workers):
-                    self.mqs['processing tasks'].put(None)
-                self.mqs['processing tasks'].close()
-                break
+                if not receiving and len(pending) == 0:
+                    # Wait for all rest tasks, no tasks can come currently
+                    self.mqs['pending tasks'].close()
+                    for _ in range(self.__workers):
+                        self.mqs['processing tasks'].put(None)
+                    self.mqs['processing tasks'].close()
+                    break
 
-            time.sleep(solution_timeout)
-
+                time.sleep(solution_timeout)
+        finally:
+            session.sign_out()
         self.logger.debug("Shutting down result processing gracefully")
 
     def __loop_worker(self):
@@ -175,7 +177,9 @@ class VRP(core.components.Component):
                 rp.join()
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
-            self.mqs['processed tasks'].put((vo, rule))
+            finally:
+                self.mqs['processed tasks'].put((vo, rule))
+                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -199,7 +203,7 @@ class RP(core.components.Component):
         self.rule_specification = None
         self.verification_object = None
         self.task_error = None
-        self.coverage = None
+        self.verification_coverage = None
         self.__exception = None
 
         # Common initialization
@@ -217,18 +221,21 @@ class RP(core.components.Component):
 
         self.logger.debug("Prcess results of task {}".format(task_id))
 
-        if status == 'finished':
-            self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
-            # Raise exception just here sinse the method above has callbacks.
-            if self.__exception:
-                self.logger.warning("Raising the saved exception")
-                raise self.__exception
-        elif status == 'error':
-            self.process_failed_task(task_id)
-            # Raise exception just here sinse the method above has callbacks.
-            raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
-        else:
-            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        try:
+            if status == 'finished':
+                self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+                # Raise exception just here sinse the method above has callbacks.
+                if self.__exception:
+                    self.logger.warning("Raising the saved exception")
+                    raise self.__exception
+            elif status == 'error':
+                self.process_failed_task(task_id)
+                # Raise exception just here sinse the method above has callbacks.
+                raise RuntimeError('Failed to decide verification task: {0}'.format(self.task_error))
+            else:
+                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        finally:
+            self.session.sign_out()
 
     main = fetcher
 
@@ -445,12 +452,13 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
 
-        self.coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
-                             self.conf['main working directory'], opts.get('coverage', None))
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
+                                          self.conf['main working directory'], opts.get('coverage', None))
 
         if os.path.isfile('coverage.json'):
-            report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(self.coverage.arcnames.keys()),
-                                                        arcnames=self.coverage.arcnames)
+            report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
+                                                        list(self.verification_coverage.arcnames.keys()),
+                                                        arcnames=self.verification_coverage.arcnames)
 
         core.utils.report(self.logger,
                           'verification',

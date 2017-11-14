@@ -61,8 +61,6 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     job = models.OneToOneField(Job)
-    tasks_total = models.PositiveIntegerField(default=0)
-    average_time = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'report_root'
@@ -300,26 +298,6 @@ class CompareJobsCache(models.Model):
     class Meta:
         db_table = 'cache_report_jobs_compare'
         index_together = ["info", "verdict1", "verdict2"]
-
-
-class TasksNumbers(models.Model):
-    root = models.OneToOneField(ReportRoot)
-    bt_total = models.PositiveIntegerField(default=0)
-    bt_num = models.PositiveIntegerField(default=0)
-    avtg_total = models.PositiveIntegerField(default=0)
-    avtg_fail = models.PositiveIntegerField(default=0)
-    vtg_fail = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'report_tasks_numbers'
-
-
-class TaskStatistic(models.Model):
-    number_of_tasks = models.BigIntegerField(default=0)
-    average_time = models.BigIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_task_statistic'
 
 
 class ComponentInstances(models.Model):

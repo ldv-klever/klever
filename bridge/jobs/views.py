@@ -43,7 +43,7 @@ from reports.models import ReportComponent, ReportRoot
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
-from service.utils import StartJobDecision, StopDecision
+from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
 
 import jobs.utils
 import marks.SafeUtils as SafeUtils
@@ -246,13 +246,7 @@ def show_job(request, job_id=None):
     children = []
     for child in job.children.all().order_by('change_date'):
         if jobs.utils.JobAccess(request.user, child).can_view():
-            job_id = child.pk
-        else:
-            job_id = None
-        children.append({
-            'pk': job_id,
-            'name': child.name,
-        })
+            children.append({'pk': child.pk, 'name': child.name})
 
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
@@ -265,8 +259,11 @@ def show_job(request, job_id=None):
         view_args['view'] = request.GET.get('view')
         view_args['view_id'] = request.GET.get('view_id')
 
-    progress_data = jobs.utils.get_job_progress(request.user, job)\
-        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
+    try:
+        progress = GetJobsProgresses(request.user, [job.id]).data[job.id]
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(
         request,
         'jobs/viewJob.html',
@@ -275,7 +272,7 @@ def show_job(request, job_id=None):
             'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
-            'progress_data': progress_data,
+            'progress': progress,
             'reportdata': ViewJobData(request.user, report, **view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
@@ -307,17 +304,21 @@ def get_job_data(request):
     data = {'jobstatus': job.status}
     if 'just_status' in request.POST and not json.loads(request.POST['just_status']):
         try:
+            progress = GetJobsProgresses(request.user, [job.id]).data[job.id]
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+        try:
             data['jobdata'] = loader.get_template('jobs/jobData.html').render({
                 'reportdata': ViewJobData(
                     request.user,
                     ReportComponent.objects.get(root__job=job, parent=None),
                     view=request.POST.get('view', None)
                 )
-            })
+            }, request)
         except ObjectDoesNotExist:
             pass
-        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-            data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
+        data['progress'] = loader.get_template('jobs/jobProgress.html').render({'progress': progress}, request)
     return JsonResponse(data)
 
 

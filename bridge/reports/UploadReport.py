@@ -33,8 +33,8 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
-    Component, ComponentUnknown, ComponentResource, ReportAttr, TasksNumbers, ReportComponentLeaf,\
-    Computer, ComponentInstances, CoverageArchive
+    Component, ComponentUnknown, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
+    CoverageArchive
 from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
@@ -137,12 +137,6 @@ class UploadReport:
                 self.data['log'] = data['log']
                 if self.data['log'] not in self.archives:
                     raise ValueError("Log archive wasn't found in the archives list")
-            if 'coverage' in data:
-                self.data['coverage'] = data['coverage']
-                if not isinstance(self.data['coverage'], dict):
-                    raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
-                if any(x not in self.archives for x in self.data['coverage'].values()):
-                    raise ValueError("One of coverage archives wasn't found in the archives list")
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -223,6 +217,15 @@ class UploadReport:
                 self.data.update({'data': data['data']})
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+        elif data['type'] == 'job coverage':
+            try:
+                self.data['coverage'] = data['coverage']
+            except KeyError as e:
+                raise ValueError("property '%s' is required." % e)
+            if not isinstance(self.data['coverage'], dict):
+                raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
+            if any(x not in self.archives for x in self.data['coverage'].values()):
+                raise ValueError("One of coverage archives wasn't found in the archives list")
         else:
             raise ValueError("report type is not supported")
 
@@ -281,7 +284,8 @@ class UploadReport:
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
-            'data': self.__update_report_data
+            'data': self.__update_report_data,
+            'job coverage': self.__upload_job_coverage
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
@@ -303,7 +307,7 @@ class UploadReport:
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
 
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
 
         if save_add_data and 'data' in self.data:
             report.new_data('report-data.json', BytesIO(
@@ -407,6 +411,21 @@ class UploadReport:
         if report.covnum > 0:
             FillCoverageCache(report)
 
+    def __upload_job_coverage(self, identifier):
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+        except ObjectDoesNotExist:
+            raise ValueError('updated report does not exist')
+        if self.parent is None or self.parent.parent is None:
+            report.covnum = len(self.data['coverage'])
+            for cov_id in self.data['coverage']:
+                carch = CoverageArchive(report=report, identifier=cov_id)
+                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
+            report.save()
+            FillCoverageCache(report)
+        else:
+            raise ValueError('coverage can be uploaded only for Core and first-level reports')
+
     def __update_attrs(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -420,28 +439,7 @@ class UploadReport:
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
 
-        report_data = self.data['data']
-        if report.component.name == 'AVTG' and (AVTG_FAIL_NAME in report_data or AVTG_TOTAL_NAME in report_data):
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            if AVTG_TOTAL_NAME in report_data:
-                tasks_nums.avtg_total = int(report_data[AVTG_TOTAL_NAME])
-            if AVTG_FAIL_NAME in report_data:
-                tasks_nums.avtg_fail = int(report_data[AVTG_FAIL_NAME])
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name == 'VTG' and VTG_FAIL_NAME in report_data:
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name == 'RSB' and BT_TOTAL_NAME in report_data:
-            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-            tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
-            tasks_nums.bt_num += 1
-            tasks_nums.save()
-            self.__save_total_tasks_number(tasks_nums)
-        else:
-            self.__update_dict_data(report, report_data)
+        self.__update_dict_data(report, self.data['data'])
 
     def __update_dict_data(self, report, new_data):
         if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None:
@@ -469,12 +467,11 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or report.component.name in {'Core', 'Sub-job'})
+        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
         if save_add_data and 'log' in self.data:
             report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
 
         report.finish_date = now()
-        report.covnum = len(self.data['coverage']) if 'coverage' in self.data else 0
 
         if save_add_data and 'data' in self.data:
             # Report is saved after the data is updated
@@ -485,11 +482,6 @@ class UploadReport:
         if report.log.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.log.name)):
             report.delete()
             raise CheckArchiveError('Report archive "log" was not saved')
-
-        if 'coverage' in self.data and report.component.name in {'Core', 'Sub-job'}:
-            for cov_id in self.data['coverage']:
-                carch = CoverageArchive(report=report, identifier=cov_id)
-                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -505,8 +497,6 @@ class UploadReport:
             report.delete()
         else:
             report_ids.add(report.id)
-            if report.covnum > 0:
-                FillCoverageCache(report)
         ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
             .update(in_progress=(F('in_progress') - 1))
 
@@ -619,8 +609,8 @@ class UploadReport:
                 SafeUtils.RecalculateTags([leaf])
 
     def __cut_parents_branch(self):
-        if len(self._parents_branch) > 1 and self._parents_branch[1].component.name == 'Sub-job':
-            # Just Core and Sub-job report
+        if len(self._parents_branch) > 1:
+            # Just Core and first-level report
             self._parents_branch = self._parents_branch[:2]
         elif len(self._parents_branch) > 0:
             # Just Core report
@@ -629,7 +619,7 @@ class UploadReport:
     def __cut_leaf_parents_branch(self, leaf):
         self.__cut_parents_branch()
         if self.parent.verifier_input or self.parent.covnum > 0:
-            # After verification finish report self.parent.parent will be Core/Sub-job report
+            # After verification finish report self.parent.parent will be Core/first-level report
             self._parents_branch.append(self.parent)
         else:
             leaf.parent = self._parents_branch[-1]
@@ -694,16 +684,6 @@ class UploadReport:
             compres.save()
             update_total_resources(p)
 
-    def __save_total_tasks_number(self, tnums):
-        if tnums.bt_num == 0:
-            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail)
-        else:
-            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail) * tnums.bt_total / tnums.bt_num
-        if tasks_total < 0:
-            tasks_total = 0
-        self.root.tasks_total = int(tasks_total)
-        self.root.save()
-
     def __attr_children(self, name, val):
         attr_data = []
         if isinstance(val, list):
@@ -763,7 +743,12 @@ class CollapseReports:
         root = self.job.reportroot
         sub_jobs = {}
         sj_reports = set()
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__component__name='Sub-job'):
+        rel_reports = [
+            'safe__parent__reportcomponent', 'unsafe__parent__reportcomponent', 'unknown__parent__reportcomponent'
+        ]
+
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__parent__parent=None)\
+                .exclude(report__parent=None).select_related(*rel_reports):
             if leaf.report_id not in sub_jobs:
                 sub_jobs[leaf.report_id] = set()
             for fname in ['safe', 'unsafe', 'unknown']:
@@ -780,7 +765,8 @@ class CollapseReports:
 
         core_id = ReportComponent.objects.get(root=root, parent=None).id
         core_reports = set()
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id):
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id)\
+                .select_related(*rel_reports):
             for fname in ['safe', 'unsafe', 'unknown']:
                 report = getattr(leaf, fname)
                 if report:
@@ -794,7 +780,7 @@ class CollapseReports:
         Report.objects.filter(id__in=core_reports).update(parent_id=core_id)
 
         ReportComponent.objects.filter(root=root, verifier_input='', covnum=0)\
-            .exclude(component__name__in={'Core', 'Sub-job'}).delete()
+            .exclude(id__in=set(sub_jobs) | {core_id}).delete()
 
         RecalculateLeaves([root])
         RecalculateVerdicts([root])

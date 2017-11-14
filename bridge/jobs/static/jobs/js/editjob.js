@@ -1213,11 +1213,10 @@ $(document).ready(function () {
                             window.location.replace('');
                         }
                     }
-                    if ('progress_data' in data) {
-                        var progress_data = JSON.parse(data['progress_data']);
-                        $('#progress_val').text(progress_data[0]);
-                        $('#average_time').text(progress_data[1]);
-                        $('#local_average_time').text(progress_data[2]);
+                    if ('progress' in data) {
+                        var tr_before_progress = $('#tr_before_progress');
+                        tr_before_progress.nextUntil($('#job_status_popup_activator')).remove();
+                        tr_before_progress.after(data['progress']);
                     }
                     num_of_updates++;
                     if (num_of_updates > 60) {
