@@ -485,9 +485,11 @@ class JCR(core.components.Component):
         self.coverage = dict()
 
     def collect_total_coverage(self):
+        self.logger.debug("Begin collecting coverage")
+
         total_coverage_infos = dict()
         os.mkdir('total coverages')
-        self.logger.debug("Begin collecting coverage")
+
         while True:
             coverage_info = self.mqs['rule specifications and coverage info files'].get()
 
@@ -496,22 +498,23 @@ class JCR(core.components.Component):
                 self.mqs['rule specifications and coverage info files'].close()
                 break
 
+            job_id = coverage_info['job id']
+
             if 'coverage info file' in coverage_info:
-                if coverage_info['job id'] not in total_coverage_infos:
-                    total_coverage_infos[coverage_info['job id']] = dict()
+                if job_id not in total_coverage_infos:
+                    total_coverage_infos[job_id] = dict()
                 rule_spec = coverage_info['rule specification']
-                total_coverage_infos[coverage_info['job id']].setdefault(rule_spec, {})
+                total_coverage_infos[job_id].setdefault(rule_spec, {})
 
                 with open(os.path.join(self.conf['main working directory'],
                                        coverage_info['coverage info file']), encoding='utf8') as fp:
                     loaded_coverage_info = json.load(fp)
 
                 for file_name, coverage_info_element in loaded_coverage_info.items():
-                    total_coverage_infos[coverage_info['job id']][rule_spec].setdefault(file_name, [])
-                    total_coverage_infos[coverage_info['job id']][rule_spec][file_name] += coverage_info_element
-            else:
-                job_id = coverage_info['job id']
-                self.logger.debug("Coverage of the job {!r}".format(job_id))
+                    total_coverage_infos[job_id][rule_spec].setdefault(file_name, [])
+                    total_coverage_infos[job_id][rule_spec][file_name] += coverage_info_element
+            elif job_id in total_coverage_infos:
+                self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
 
                 total_coverages = dict()
                 for rule_spec, coverage_info in total_coverage_infos[job_id].items():
@@ -534,20 +537,19 @@ class JCR(core.components.Component):
                     total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
                                                                         list(arcnames.keys()), arcnames)
 
-                if len(total_coverages.keys()) > 0:
-                    core.utils.report(self.logger,
-                                      'job coverage',
-                                      {
-                                          'id': job_id,
-                                          'coverage': total_coverages
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'],
-                                      os.path.join('total coverages', re.sub(r'/', '-', job_id)))
-                    del total_coverage_infos[job_id]
-                else:
-                    self.logger.warning('There is no coverage to send for Job {!r}'.format(job_id))
+                core.utils.report(self.logger,
+                                  'job coverage',
+                                  {
+                                      'id': job_id,
+                                      'coverage': total_coverages
+                                  },
+                                  self.mqs['report files'],
+                                  self.vals['report id'],
+                                  self.conf['main working directory'],
+                                  os.path.join('total coverages', re.sub(r'/', '-', job_id)))
+
+                del total_coverage_infos[job_id]
+
         self.logger.info("Finish coverage reporting")
 
     main = collect_total_coverage
