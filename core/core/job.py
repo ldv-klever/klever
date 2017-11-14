@@ -203,6 +203,7 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
             locks, vals,
             id=sub_job_id,
             work_dir=sub_job_work_dir,
+            attrs=[{'name': sub_job_id}],
             separate_from_parent=True,
             include_child_resources=False,
             job_type=job_type,
