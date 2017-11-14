@@ -32,7 +32,7 @@ from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATT
 from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
+from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -98,16 +98,27 @@ TITLES = {
     'finish_date': _('Decision finish date'),
     'solution_wall_time': _('Decision wall time'),
     'operator': _('Operator'),
-    'tasks_pending': _('Pending tasks'),
-    'tasks_processing': _('Processing tasks'),
-    'tasks_finished': _('Finished tasks'),
-    'tasks_error': _('Error tasks'),
-    'tasks_cancelled': _('Cancelled tasks'),
-    'tasks_total': _('Total tasks'),
-    'progress': _('Progress of job decision'),
-    'solutions': _('Number of task decisions'),
-    'average_time': _('Average time before finishing decision (all jobs)'),
-    'local_average_time': _('Average time before finishing decision (just this jobs)')
+
+    'tasks': _('Verification tasks'),
+    'tasks:pending': _('Pending'),
+    'tasks:processing': _('Processing'),
+    'tasks:finished': _('Finished'),
+    'tasks:error': _('Error'),
+    'tasks:cancelled': _('Cancelled'),
+    'tasks:total': _('Total'),
+    'tasks:solutions': _('Number of decisions'),
+    'tasks:total_ts': _('Total to be solved'),
+    'tasks:start_ts': _('Start solution date'),
+    'tasks:finish_ts': _('Finish solution date'),
+    'tasks:progress_ts': _('Solution progress'),
+    'tasks:expected_time_ts': _('Expected solution time'),
+
+    'subjobs': _('Subjobs'),
+    'subjobs:total_sj': _('Total to be solved'),
+    'subjobs:start_sj': _('Start solution date'),
+    'subjobs:finish_sj': _('Finish solution date'),
+    'subjobs:progress_sj': _('Solution progress'),
+    'subjobs:expected_time_sj': _('Expected solution time'),
 }
 
 
@@ -939,25 +950,3 @@ class StartDecisionData:
         elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
             raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
-
-
-def get_job_progress(user, job):
-    progress = '-'
-    average_time = '-'
-    local_average_time = '-'
-
-    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        total_tasks = job.reportroot.tasks_total
-        solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
-        if total_tasks > 0:
-            curr_progress = int(solved_tasks / total_tasks * 100)
-            if curr_progress < 100:
-                progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
-        else:
-            progress = '0%'
-        if progress != '-' and total_tasks > solved_tasks:
-            average_time = get_user_time(
-                user, (total_tasks - solved_tasks) * TaskStatistic.objects.get_or_create()[0].average_time
-            )
-            local_average_time = get_user_time(user, (total_tasks - solved_tasks) * job.reportroot.average_time)
-    return progress, average_time, local_average_time

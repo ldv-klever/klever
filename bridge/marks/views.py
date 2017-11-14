@@ -309,7 +309,7 @@ def get_mark_version_data(request):
         unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
         data = unknown_data_tmpl.render({
             'markdata': MarkData(mark_type, mark_version=mark_version)
-        })
+        }, request)
     else:
         data_templ = get_template('marks/MarkAddData.html')
         try:
@@ -324,7 +324,7 @@ def get_mark_version_data(request):
             'tags': tags,
             'can_edit': True,
             'error_trace': error_trace
-        })
+        }, request)
     return JsonResponse({'data': data})
 
 
@@ -674,7 +674,7 @@ def get_tags_data(request):
         'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
         'tree': get_template('marks/MarkTagsTree.html').render({
             'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True, 'user': request.user
-        })
+        }, request)
     })
 
 
@@ -819,7 +819,7 @@ def get_inline_mark_form(request):
     return JsonResponse({
         'data': get_template('marks/InlineMarkForm.html').render({
             'type': request.POST['type'], 'markdata': markdata, 'tags': tags
-        })
+        }, request)
     })
 
 

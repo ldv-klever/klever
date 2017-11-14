@@ -33,6 +33,7 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
     Component, Computer, ReportAttr, ComponentResource, CoverageArchive
+from service.models import SolvingProgress, JobProgress, Scheduler
 from jobs.utils import create_job, update_job, change_job_status, GetConfiguration
 from reports.utils import AttrData
 from service.utils import StartJobDecision
@@ -40,7 +41,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 5
+ARCHIVE_FORMAT = 7
 
 
 class KleverCoreArchiveGen:
@@ -147,8 +148,42 @@ class JobArchiveGenerator:
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
             'type': self.job.type, 'status': self.job.status, 'files_map': self.arch_files,
-            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks
+            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks,
+            'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
+
+    def __get_progress_data(self):
+        data = {}
+        try:
+            sp = SolvingProgress.objects.get(job=self.job)
+        except ObjectDoesNotExist:
+            pass
+        else:
+            data.update({
+                'priority': sp.priority, 'scheduler': sp.scheduler.type,
+                'start_date': sp.start_date.timestamp() if sp.start_date is not None else None,
+                'finish_date': sp.finish_date.timestamp() if sp.finish_date is not None else None,
+                'tasks_total': sp.tasks_total, 'tasks_pending': sp.tasks_pending,
+                'tasks_processing': sp.tasks_processing, 'tasks_finished': sp.tasks_finished,
+                'tasks_error': sp.tasks_error, 'tasks_cancelled': sp.tasks_cancelled, 'solutions': sp.solutions,
+                'error': sp.error, 'configuration': sp.configuration.decode('utf8')
+            })
+        try:
+            jp = JobProgress.objects.get(job=self.job)
+        except ObjectDoesNotExist:
+            pass
+        else:
+            data.update({
+                'total_sj': jp.total_sj, 'failed_sj': jp.failed_sj, 'solved_sj': jp.solved_sj,
+                'start_sj': jp.start_sj.timestamp() if jp.start_sj is not None else None,
+                'finish_sj': jp.finish_sj.timestamp() if jp.finish_sj is not None else None,
+                'total_ts': jp.total_ts, 'failed_ts': jp.failed_ts, 'solved_ts': jp.solved_ts,
+                'start_ts': jp.start_ts.timestamp() if jp.start_ts is not None else None,
+                'finish_ts': jp.finish_ts.timestamp() if jp.finish_ts is not None else None,
+                'expected_time_sj': jp.expected_time_sj, 'expected_time_ts': jp.expected_time_ts,
+                'gag_text_sj': jp.gag_text_sj, 'gag_text_ts': jp.gag_text_ts
+            })
+        return data
 
     def __add_run_history_files(self):
         data = []
@@ -400,7 +435,7 @@ class UploadJob(object):
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
         if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
-                                          'run_history', 'weight', 'safe_marks']):
+                                          'run_history', 'weight', 'safe_marks', 'progress']):
             raise BridgeException(_("The job archive was corrupted"))
         if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
             raise BridgeException(_("The job archive format is not supported"))
@@ -508,6 +543,7 @@ class UploadJob(object):
 
         # Change job's status as it was in downloaded archive
         change_job_status(job, jobdata['status'])
+        self.__create_progress(job, jobdata['progress'])
         ReportRoot.objects.create(user=self.user, job=job)
         try:
             UploadReports(job, computers, reports_data, report_files, resources, coverage_data, coverage_files)
@@ -519,6 +555,44 @@ class UploadJob(object):
             job.delete()
             raise BridgeException(_("Unknown error while uploading reports"))
         self.job = job
+
+    def __create_progress(self, job, data):
+        self.__is_not_used()
+        if 'scheduler' in data:
+            try:
+                scheduler = Scheduler.objects.get(type=data['scheduler'])
+            except ObjectDoesNotExist:
+                raise BridgeException(_('Scheduler for the job was not found'))
+            SolvingProgress.objects.create(
+                job=job, scheduler=scheduler, fake=True, priority=data['priority'],
+                start_date=datetime.fromtimestamp(data['start_date'], pytz.timezone('UTC'))
+                if data['start_date'] is not None else None,
+                finish_date=datetime.fromtimestamp(data['finish_date'], pytz.timezone('UTC'))
+                if data['finish_date'] is not None else None,
+                tasks_total=data['tasks_total'], tasks_pending=data['tasks_pending'],
+                tasks_processing=data['tasks_processing'], tasks_finished=data['tasks_finished'],
+                tasks_error=data['tasks_error'], tasks_cancelled=data['tasks_cancelled'],
+                solutions=data['solutions'], error=data['error'], configuration=data['configuration'].encode('utf8')
+            )
+        if 'total_sj' in data:
+            JobProgress.objects.create(
+                job=job,
+                total_sj=data['total_sj'], failed_sj=data['failed_sj'], solved_sj=data['solved_sj'],
+                start_sj=datetime.fromtimestamp(data['start_sj'], pytz.timezone('UTC'))
+                if data['start_sj'] is not None else None,
+                finish_sj=datetime.fromtimestamp(data['finish_sj'], pytz.timezone('UTC'))
+                if data['finish_sj'] is not None else None,
+                total_ts=data['total_ts'], failed_ts=data['failed_ts'], solved_ts=data['solved_ts'],
+                start_ts=datetime.fromtimestamp(data['start_ts'], pytz.timezone('UTC'))
+                if data['start_ts'] is not None else None,
+                finish_ts=datetime.fromtimestamp(data['finish_ts'], pytz.timezone('UTC'))
+                if data['finish_ts'] is not None else None,
+                expected_time_sj=data['expected_time_sj'], expected_time_ts=data['expected_time_ts'],
+                gag_text_sj=data['gag_text_sj'], gag_text_ts=data['gag_text_ts']
+            )
+
+    def __is_not_used(self):
+        pass
 
 
 class UploadReports:

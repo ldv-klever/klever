@@ -1,0 +1,160 @@
+{% load i18n %}
+{% load tz %}
+{% load humanize %}
+
+{% if progress %}
+    {% if progress.start_decision %}
+        <tr>
+            <th class="right aligned">{% trans 'Start decision date' %}</th>
+            <td>
+                {% if progress.start_decision == '-' %}
+                    <span>-</span>
+                {% else %}
+                    {% if user.extended.data_format == 'hum' %}
+                        {{ progress.start_decision|naturaltime }}
+                    {% else %}
+                        {% timezone user.extended.timezone %}
+                            {{ progress.start_decision|date:"r" }}
+                        {% endtimezone %}
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+    {% endif %}
+    {% if progress.finish_decision %}
+        <tr>
+            <th class="right aligned">{% trans 'Finish decision date' %}</th>
+            <td>
+                {% if progress.finish_decision == '-' %}
+                    <span>-</span>
+                {% else %}
+                    {% if user.extended.data_format == 'hum' %}
+                        {{ progress.finish_decision|naturaltime }}
+                    {% else %}
+                        {% timezone user.extended.timezone %}
+                            {{ progress.finish_decision|date:"r" }}
+                        {% endtimezone %}
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+    {% endif %}
+    {% if progress.total_ts %}
+        <tr>
+            <th class="right aligned">{% trans 'Total tasks to be solved' %}</th>
+            <td>{{ progress.total_ts }}</td>
+        </tr>
+    {% endif %}
+    {% if progress.total_sj %}
+        <tr>
+            <th class="right aligned">{% trans 'Total subjobs to be solved' %}</th>
+            <td>{{ progress.total_sj }}</td>
+        </tr>
+    {% endif %}
+    {% if progress.progress_ts %}
+        <tr>
+            <th class="right aligned">{% trans 'Tasks decision progress' %}</th>
+            <td>
+                <ul>
+                    {% if progress.start_ts %}
+                        <li>
+                            <b>{% trans 'Start verification tasks solution date' %}:</b>
+                            {% if progress.start_ts == '-' %}
+                                <span>-</span>
+                            {% else %}
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ progress.start_ts|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ progress.start_ts|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                    {% if progress.progress_ts %}
+                        <li>
+                            <b>{% trans 'Verification tasks solution progress' %}:</b>
+                            <span>{{ progress.progress_ts }}</span>
+                        </li>
+                    {% endif %}
+                    {% if progress.expected_time_ts %}
+                        <li>
+                            <b>{% trans 'Expected solution time' %}:</b>
+                            <span>{{ progress.expected_time_ts }}</span>
+                        </li>
+                    {% endif %}
+                    {% if progress.finish_ts %}
+                        <li>
+                            <b>{% trans 'Finish verification tasks solution date' %}:</b>
+                            {% if progress.finish_ts == '-' %}
+                                <span>-</span>
+                            {% else %}
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ progress.finish_ts|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ progress.finish_ts|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                </ul>
+            </td>
+        </tr>
+    {% endif %}
+    {% if progress.progress_sj %}
+        <tr>
+            <th class="right aligned">{% trans 'Subjobs decision progress' %}</th>
+            <td>
+                <ul>
+                    {% if progress.start_sj %}
+                        <li>
+                            <b>{% trans 'Start subjobs solution date' %}:</b>
+                            {% if progress.start_sj == '-' %}
+                                <span>-</span>
+                            {% else %}
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ progress.start_sj|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ progress.start_sj|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                    {% if progress.progress_sj %}
+                        <li>
+                            <b>{% trans 'Subjobs solution progress' %}:</b>
+                            <span>{{ progress.progress_sj }}</span>
+                        </li>
+                    {% endif %}
+                    {% if progress.expected_time_sj %}
+                        <li>
+                            <b>{% trans 'Expected solution time' %}:</b>
+                            <span>{{ progress.expected_time_sj }}</span>
+                        </li>
+                    {% endif %}
+                    {% if progress.finish_sj %}
+                        <li>
+                            <b>{% trans 'Finish subjobs solution date' %}:</b>
+                            {% if progress.finish_sj == '-' %}
+                                <span>-</span>
+                            {% else %}
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ progress.finish_sj|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ progress.finish_sj|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                </ul>
+            </td>
+        </tr>
+    {% endif %}
+{% endif %}

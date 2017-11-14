@@ -19,7 +19,6 @@ import re
 import importlib
 import json
 import multiprocessing
-import queue
 import os
 import copy
 import hashlib
@@ -29,7 +28,7 @@ import core.components
 import core.utils
 import core.session
 
-@core.utils.before_callback
+@core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['pending tasks'] = multiprocessing.Queue()
@@ -43,24 +42,24 @@ def __launch_sub_job_components(context):
     context.mqs['model CC opts'] = multiprocessing.Queue()
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_shadow_src_tree(context):
     context.mqs['shadow src tree'].put(context.shadow_src_tree)
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __fixup_model_cc_opts(context):
     context.mqs['model CC opts'].put(context.model_cc_opts)
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __generate_verification_obj_desc(context):
     if context.verification_obj_desc:
         context.mqs['verification obj desc files'].put(
             os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __generate_all_verification_obj_descs(context):
     context.logger.info('Terminate verification object description files message queue')
     context.mqs['verification obj desc files'].put(None)
@@ -68,7 +67,7 @@ def __generate_all_verification_obj_descs(context):
     #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
@@ -273,7 +272,7 @@ _rule_spec_descs = None
 _rule_spec_classes = None
 
 
-@core.utils.propogate_callbacks
+@core.components.propogate_callbacks
 def collect_plugin_callbacks(conf, logger):
     logger.info('Get VTG plugin callbacks')
 
@@ -295,7 +294,7 @@ def collect_plugin_callbacks(conf, logger):
             except ImportError:
                 raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
 
-    return core.utils.get_component_callbacks(logger, plugins, conf)
+    return core.components.get_component_callbacks(logger, plugins, conf)
 
 
 def resolve_rule_class(name):
@@ -333,10 +332,8 @@ class VTG(core.components.Component):
                           self.conf['main working directory'])
 
         # Start plugins
-        subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs)]
-        for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-            subcomponents.append(VTGWL)
-        self.launch_subcomponents(*subcomponents)
+        subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
+        self.launch_subcomponents(False, *subcomponents)
 
         self.mqs['pending tasks'].put(None)
         self.mqs['pending tasks'].close()
@@ -408,26 +405,11 @@ class VTG(core.components.Component):
         self.mqs['model CC opts'].close()
 
     def __generate_all_abstract_verification_task_descs(self):
-        def get_from_queue_no_wait(collection, name):
-            s = True
-            try:
-                while True:
-                    element = self.mqs[name].get_nowait()
-                    if element is None:
-                        self.logger.debug('Message queue {!r} was terminated'.format(name))
-                        self.mqs[name].close()
-                        s = False
-                        break
-                    collection.append(element)
-            except queue.Empty:
-                pass
-
-            return s
-
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
         processing_status = dict()
         initial = dict()
+        total_vo_descriptions = 0
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
@@ -436,7 +418,7 @@ class VTG(core.components.Component):
             # Fetch pilot statuses
             pilot_statuses = []
             # This queue will not inform about the end of tasks generation
-            get_from_queue_no_wait(pilot_statuses, 'prepared verification tasks')
+            core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
             # Process them
             for status in pilot_statuses:
                 vobject, rule_name = status
@@ -453,7 +435,7 @@ class VTG(core.components.Component):
             # Fetch solutions
             solutions = []
             # This queue will not inform about the end of tasks generation
-            get_from_queue_no_wait(solutions, 'processed tasks')
+            core.utils.drain_queue(solutions, self.mqs['processed tasks'])
 
             # Process them
             for solution in solutions:
@@ -468,7 +450,17 @@ class VTG(core.components.Component):
             # Fetch object
             if expect_objects:
                 verification_obj_desc_files = []
-                expect_objects = get_from_queue_no_wait(verification_obj_desc_files, 'verification obj desc files')
+                old_size = len(verification_obj_desc_files)
+                expect_objects = core.utils.drain_queue(verification_obj_desc_files,
+                                                        self.mqs['verification obj desc files'])
+                total_vo_descriptions += len(verification_obj_desc_files) - old_size
+
+                if not expect_objects:
+                    self.logger.info("No verification objects will be generated")
+
+                    # Drop a line to a progress watcher
+                    self.mqs['total tasks'].put([self.conf['job identifier'],
+                                                 int(total_vo_descriptions * len(self.rule_spec_descs))])
 
                 for verification_obj_desc_file in verification_obj_desc_files:
                     with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
@@ -541,8 +533,7 @@ class VTG(core.components.Component):
                     del vo_descriptions[vobject]
 
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
-                for _ in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-                    self.mqs['prepare verification objects'].put(None)
+                self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 break
             else:
@@ -570,31 +561,20 @@ class VTGWL(core.components.Component):
                  separate_from_parent=False, include_child_resources=False):
         super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                     separate_from_parent, include_child_resources)
-        # Required for a callback
-        self.verification_object = None
-        self.rule_specification = None
 
     def task_generating_loop(self):
         self.logger.info("Start VTGL worker")
-        while True:
-            pair = self.mqs['prepare verification objects'].get()
-            if pair is None:
-                self.mqs['prepare verification objects'].close()
-                break
-            vo = pair[0]
-            rs = pair[1]
-            self.logger.debug("VTGL is about to start VTGW for {!r}, {!r}".format(vo['id'], rs['id']))
-            try:
-                obj = VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                           self.locks, self.vals,"{}/{}/VTGW".format(vo['id'], rs['id']), os.path.join(vo['id'], rs['id']),
-                           attrs=[{"Rule specification": rs['id']}, {"Verification object": vo['id']}],
-                           separate_from_parent=True, verification_object=vo, rule_spec=rs)
-                obj.start()
-                obj.join()
-            except core.components.ComponentError:
-                self.logger.warning("Failed to generate verification task for {!r} and {!r}".format(vo, rs))
-
+        number = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        core.components.launch_queue_workers(self.logger, self.mqs['prepare verification objects'],
+                                             self.vtgw_constructor, number, True)
         self.logger.info("Terminate VTGL worker")
+
+    def vtgw_constructor(self, element):
+        return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
+                    self.locks, self.vals, "{}/{}/VTGW".format(element[0]['id'], element[1]['id']),
+                    os.path.join(element[0]['id'], element[1]['id']),
+                    attrs=[{"Rule specification": element[1]['id']}, {"Verification object": element[0]['id']}],
+                    separate_from_parent=True, verification_object=element[0], rule_spec=element[1])
 
     main = task_generating_loop
 
@@ -613,27 +593,23 @@ class VTGW(core.components.Component):
     def tasks_generator_worker(self):
         try:
             self.generate_abstact_verification_task_desc(self.verification_object, self.rule_specification)
+            if not self.vals['task solving flag'].value:
+                with self.vals['task solving flag'].get_lock():
+                    self.vals['task solving flag'].value = 1
         except Exception:
             self.plugin_fail_processing()
+            raise
+        finally:
+            self.session.sign_out()
 
     main = tasks_generator_worker
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         """Has a callback!"""
-        # todo: fix or reimplement
-        # Count the number of generated abstract verification task descriptions.
-        # self.abstract_task_desc_num += 1
         self.logger.info("Start generating tasks for verification object {!r} and rule specification {!r}".
                          format(verification_obj_desc['id'], rule_spec_desc['id']))
         self.verification_object = verification_obj_desc['id']
         self.rule_specification = rule_spec_desc['id']
-
-        # todo: fix or reimplement
-        # self.logger.info(
-        #     'Generate abstract verification task description for {0} ({1}{2})'.format(
-        #         'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals),
-        #         self.abstract_task_desc_num, '/{0}'.format(self.abstract_task_descs_num.value)
-        #         if self.abstract_task_descs_num.value else ''))
 
         # Prepare pilot workdirs if it will be possible to reuse data
         rule_class = resolve_rule_class(rule_spec_desc['id'])
@@ -717,7 +693,7 @@ class VTGW(core.components.Component):
                     break
 
                 if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                        plugin_desc['name']  == 'EMG':
+                        plugin_desc['name'] == 'EMG':
                     self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
                                       "further use".format(pilot_rule))
                     self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
@@ -758,10 +734,12 @@ class VTGW(core.components.Component):
                 self.logger.warning("There is no verification task generated by the last plugin, expect {}".
                                     format(os.path.join(plugin_work_dir, 'task.json')))
                 self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
+                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
         self.logger.debug("VTGW that processed {!r}, {!r} failed".
                           format(self.verification_object, self.rule_specification))
         self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
+        self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 

@@ -29,7 +29,7 @@ import core.components
 import core.utils
 
 
-@core.utils.before_callback
+@core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd desc files'] = multiprocessing.Queue()
@@ -39,17 +39,17 @@ def __launch_sub_job_components(context):
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __get_linux_kernel_build_cmd_desc(context):
     context.mqs['Linux kernel build cmd desc files'].put(context.linux_kernel['build cmd desc file'])
 
 
-@core.utils.after_callback
+@core.components.after_callback
 def __get_all_linux_kernel_build_cmd_descs(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
     context.mqs['Linux kernel build cmd desc files'].put(None)
@@ -83,7 +83,8 @@ class LKVOG(core.components.Component):
                           self.mqs['report files'],
                           self.vals['report id'],
                           self.conf['main working directory'])
-        self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
+        self.launch_subcomponents(True,
+                                  ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
     def send_loc_report(self):
