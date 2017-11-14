@@ -102,57 +102,59 @@ class VRP(core.components.Component):
 
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        while True:
-            # Get new tasks
-            if receiving:
-                if len(pending) > 0:
-                    number = 0
-                    try:
-                        while True:
-                            data = self.mqs['pending tasks'].get_nowait()
+        try:
+            while True:
+                # Get new tasks
+                if receiving:
+                    if len(pending) > 0:
+                        number = 0
+                        try:
+                            while True:
+                                data = self.mqs['pending tasks'].get_nowait()
+                                if not data:
+                                    receiving = False
+                                    self.logger.info("Expect no tasks to be generated")
+                                else:
+                                    pending[data[0]] = data
+                                number += 1
+                        except queue.Empty:
+                            self.logger.debug("Fetched {} tasks".format(number))
+                    else:
+                        try:
+                            data = self.mqs['pending tasks'].get(block=True, timeout=generation_timeout)
                             if not data:
                                 receiving = False
                                 self.logger.info("Expect no tasks to be generated")
                             else:
                                 pending[data[0]] = data
-                            number += 1
-                    except queue.Empty:
-                        self.logger.debug("Fetched {} tasks".format(number))
-                else:
-                    try:
-                        data = self.mqs['pending tasks'].get(block=True, timeout=generation_timeout)
-                        if not data:
-                            receiving = False
-                            self.logger.info("Expect no tasks to be generated")
-                        else:
-                            pending[data[0]] = data
-                    except queue.Empty:
-                        self.logger.debug("No tasks has come for last 30 seconds")
+                        except queue.Empty:
+                            self.logger.debug("No tasks has come for last 30 seconds")
 
-            # Plan for processing new tasks
-            if len(pending) > 0:
-                tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
-                for task in list(pending.keys()):
-                    if task in tasks_statuses['finished']:
-                        submit_processing_task('finished', task)
-                        del pending[task]
-                    elif task in tasks_statuses['error']:
-                        submit_processing_task('error', task)
-                        del pending[task]
-                    elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
-                        raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
-                                       "tasks".format(task))
+                # Plan for processing new tasks
+                if len(pending) > 0:
+                    tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
+                    for task in list(pending.keys()):
+                        if task in tasks_statuses['finished']:
+                            submit_processing_task('finished', task)
+                            del pending[task]
+                        elif task in tasks_statuses['error']:
+                            submit_processing_task('error', task)
+                            del pending[task]
+                        elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
+                            raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
+                                           "tasks".format(task))
 
-            if not receiving and len(pending) == 0:
-                # Wait for all rest tasks, no tasks can come currently
-                self.mqs['pending tasks'].close()
-                for _ in range(self.__workers):
-                    self.mqs['processing tasks'].put(None)
-                self.mqs['processing tasks'].close()
-                break
+                if not receiving and len(pending) == 0:
+                    # Wait for all rest tasks, no tasks can come currently
+                    self.mqs['pending tasks'].close()
+                    for _ in range(self.__workers):
+                        self.mqs['processing tasks'].put(None)
+                    self.mqs['processing tasks'].close()
+                    break
 
-            time.sleep(solution_timeout)
-
+                time.sleep(solution_timeout)
+        finally:
+            self.session.sign_out()
         self.logger.debug("Shutting down result processing gracefully")
 
     def __loop_worker(self):
