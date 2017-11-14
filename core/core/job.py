@@ -273,7 +273,7 @@ class RA(core.components.Component):
             else:
                 raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
 
-            results_dir = os.path.join('results', re.sub(r'/', '-', task_id))
+            results_dir = os.path.join('results', id_prefix, id_suffix)
             os.makedirs(results_dir)
 
             core.utils.report(self.logger,
