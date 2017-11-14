@@ -154,7 +154,7 @@ class VRP(core.components.Component):
 
                 time.sleep(solution_timeout)
         finally:
-            self.session.sign_out()
+            session.sign_out()
         self.logger.debug("Shutting down result processing gracefully")
 
     def __loop_worker(self):
