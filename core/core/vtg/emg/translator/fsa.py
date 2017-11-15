@@ -406,6 +406,7 @@ class Automaton:
 
     @property
     def model_comment(self):
+        # todo: This code should be moved
         # First get list of container implementations
         expressions = []
         for collection in self.process.accesses().values():

@@ -33,11 +33,13 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
 
     # Generate instances
     logger.info("Generate finite state machines on each process from an intermediate model")
+    # todo: Instantiation it is better to do even on level of processes
     entry_fsa, model_fsa, main_fsa = yield_instances(logger, conf["translation options"], analysis, model,
                                                      instance_maps)
 
     # Determine entry point
     logger.info("Determine entry point file and function name")
+    # todo: it should be explicitly given
     entry_point_name, entry_file = __determine_entry(logger, conf, analysis)
 
     # Collect files

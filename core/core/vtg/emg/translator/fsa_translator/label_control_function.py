@@ -32,6 +32,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
         ret_expression = 'return;'
 
     if model:
+        # todo: it is replacable with simple code analysis
         kfunction_obj = analysis.get_kernel_function(automaton.process.name)
         if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
             ret_expression = None
@@ -73,6 +74,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
         name = automaton.process.name
         v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment))
     else:
+        # todo: this should be also replaced
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
         v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment, automaton.identifier))
     f_code.append(control_function_comment_end(cf.name, name))

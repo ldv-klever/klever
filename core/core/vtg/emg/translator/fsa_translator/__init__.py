@@ -25,7 +25,7 @@ from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Con
     get_common_parameter
 from core.vtg.emg.translator.code import FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
-    extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables
+    extract_relevant_automata, choose_file, initialize_automaton_variables
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -60,6 +60,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._logger.info("Include extra header files if necessary")
 
         # Get from unused interfaces
+        # todo: it is possible to replace this using explicit list of headers
         header_list = list()
         for interface in (self._analysis.get_intf(i) for i in self._analysis.interfaces):
             if len(interface.declaration.implementations) == 0 and interface.header:
@@ -105,6 +106,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 model_comment('KERNEL_MODEL', 'Perform the model code of the function {!r}'.
                               format(automaton.process.name))
             ]
+            # todo: Get this signature either explicitly or using short code analysis
             function_obj = self._analysis.get_kernel_function(automaton.process.name)
             params = []
             for position, param in enumerate(function_obj.declaration.parameters):
@@ -303,6 +305,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             # Generate artificial function
             body = []
+            # todo: All entrances of choosing file should become unnecessary
             file = choose_file(self._cmodel, self._analysis, automaton)
 
             if not get_conf_property(self._conf, 'direct control functions calls'):
@@ -324,6 +327,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Add parameters
             for index in range(len(state.action.parameters)):
                 # Determine dispatcher parameter
+                # todo: this need to be simplified.
                 interface = get_common_parameter(state.action, automaton.process, index)
 
                 # Determine dispatcher parameter
@@ -440,6 +444,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _call(self, state, automaton):
+        # todo: This is need to move to Linux specific part and replace it with a code block
         """
         Generate code block for callback call. This can not be configured in translator implementations and for each
         callback call consists of: guard, pre-conditions (similarly to conditional code blocks), function call of the
@@ -661,6 +666,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 signature = access.interface.declaration
                 implementation = automaton.process.get_implementation(access)
 
+                # todo: This can be extraced also from code analysis results
                 if implementation and self._analysis.callback_name(implementation.value):
                     # Eplicit callback call by found function name
                     invoke = '(' + implementation.value + ')'
@@ -685,10 +691,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 signature = access.label.prior_signature
 
                 func_variable = automaton.determine_variable(access.label)
+                # todo: This can be extraced also from code analysis results
                 if access.label.value and self._analysis.callback_name(access.label.value):
                     # Call function provided by an explicit name but with no interface
                     invoke = self._analysis.callback_name(access.label.value)
                     func_variable = func_variable.name
+                    # todo: This can be extraced also from code analysis results
                     file = self._analysis.determine_original_file(access.label.value)
                     check = False
                 else:
@@ -709,6 +717,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 code, comments = list(), list()
 
                 # Determine structure type name of the container with the callback if such exists
+                # todo: This is used for comments. It is better to generate comments directly in model
                 structure_name = None
                 if access.interface and implementation and len(implementation.sequence) > 0:
                     field = implementation.sequence[-1]
@@ -730,11 +739,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
                 comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
                 comments.append(action_model_comment(state.action, None, begin=False))
-
-                relevant_automata = registration_intf_check(self._analysis,
-                                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                                            self._model_fsa,
-                                                            invoke)
 
                 conditions = list()
 
@@ -890,6 +894,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
                 name = 'ldv_emg_{}'.format(automaton.process.name)
+                # todo: This can be extraced also from code analysis results
                 function_obj = self._analysis.get_kernel_function(automaton.process.name)
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):

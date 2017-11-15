@@ -154,6 +154,7 @@ class LabelTranslator(FSATranslator):
 
                 if len(state.action.parameters) > 0:
                     for index in range(len(state.action.parameters)):
+                        # todo: this part should be simplified
                         # Determine dispatcher parameter
                         interface = get_common_parameter(state.action, automaton.process, index)
 
@@ -221,6 +222,7 @@ class LabelTranslator(FSATranslator):
         self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
+            # todo: use simple code analysis
             for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         return

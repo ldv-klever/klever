@@ -26,7 +26,6 @@ class Interface:
         self.manually_specified = manually_specified
         self.declaration = None
         self.header = None
-        self.implemented_in_kernel = False
 
     def update_declaration(self, declaration):
         if not self.declaration.clean_declaration:

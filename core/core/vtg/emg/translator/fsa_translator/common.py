@@ -110,10 +110,12 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
     """
     automata_peers = {}
 
+    # todo: it is replacable with simple code analysis
     name = analysis.callback_name(function_call)
     if name:
         # Caclulate relevant models
         if name in analysis.modules_functions:
+            # todo: it is replacable with simple code analysis
             relevant_models = analysis.collect_relevant_models(name)
 
             # Check relevant state machines for each model
@@ -135,6 +137,7 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
 
 
 def choose_file(cmodel, analysis, automaton):
+    # todo: this function should be deprecated
     file = automaton.file
     if file:
         return file
