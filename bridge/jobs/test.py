@@ -105,9 +105,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(tree_view, json.loads(view.view))
 
         # Making view preffered
-        response = self.client.post('/jobs/ajax/preferable_view/', {
-            'view_type': '1', 'view_id': view_id
-        })
+        response = self.client.post('/jobs/ajax/preferable_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -116,6 +114,17 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(PreferableView.objects.filter(user__username='manager', view_id=view_id)), 1)
         response = self.client.get(reverse('jobs:tree'))
         self.assertEqual(response.status_code, 200)
+
+        # Share view
+        self.assertFalse(view.shared)
+        response = self.client.post('/jobs/ajax/share_view/', {'view_type': '1', 'view_id': view_id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertIn('message', res)
+        view = View.objects.get(id=view_id)
+        self.assertTrue(view.shared)
 
         # Testing view name check
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
@@ -164,6 +173,12 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
+        # Job template shouldn't have children now
+        response = self.client.post('/jobs/ajax/do_job_has_children/', {'job_id': job_template.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')), {})
+
         # Create job page
         response = self.client.post(reverse('jobs:create'), {'parent_id': job_template.pk})
         self.assertEqual(response.status_code, 200)
@@ -196,6 +211,12 @@ class TestJobs(KleverTestCase):
         except ValueError or KeyError:
             self.fail('Integer job id is expected')
 
+        # Job template should have children now
+        response = self.client.post('/jobs/ajax/do_job_has_children/', {'job_id': job_template.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')), {'children': True})
+
         # Job page
         response = self.client.get(reverse('jobs:job', args=[newjob_pk]))
         self.assertEqual(response.status_code, 200)
@@ -217,6 +238,15 @@ class TestJobs(KleverTestCase):
             self.fail('New job was created without version')
         except MultipleObjectsReturned:
             self.fail('New job has too many versions')
+
+        # Enable safe marks
+        self.assertFalse(newjob.safe_marks)
+        response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': newjob_pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        newjob = Job.objects.get(id=newjob_pk)
+        self.assertTrue(newjob.safe_marks)
 
         # Edit job data
         response = self.client.post('/jobs/ajax/editjob/', {'job_id': newjob.pk, 'version': newjob.version})
@@ -433,12 +463,12 @@ class TestJobs(KleverTestCase):
 
         # Start decision with settings
         run_conf = json.dumps([
-            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            ["HIGH", "0", 100], ["1", "2.0", "1.0", "2"], [1, 1, 100, '', 15, None],
             [
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, '0']
+            [False, True, True, False, True, False, True, '0']
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)
@@ -446,6 +476,14 @@ class TestJobs(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[1][0])
         self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 2)
+
+        self.client.post('/jobs/ajax/stop_decision/', {'job_id': job_pk})
+        response = self.client.post('/jobs/ajax/lastconf_run_decision/', {'job_id': job_pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[1][0])
+        self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 3)
 
         response = self.client.get(
             '/jobs/download_configuration/%s/' % RunHistory.objects.filter(job_id=job_pk).order_by('-date').first().pk

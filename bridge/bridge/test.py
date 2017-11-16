@@ -18,7 +18,6 @@
 import os
 import json
 from django.core.urlresolvers import reverse
-from django.db.models import Q
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
 from bridge.utils import KleverTestCase
@@ -55,9 +54,7 @@ class TestPopulation(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Trying to populate without service username
-        response = self.client.post(reverse('population'), {
-            'manager_username': 'superuser', 'service_username': ''
-        })
+        response = self.client.post(reverse('population'), {'manager_username': 'superuser', 'service_username': ''})
         self.assertEqual(response.status_code, 400)
 
         # Normal population
@@ -69,8 +66,7 @@ class TestPopulation(KleverTestCase):
         # Testing populated jobs
         self.assertEqual(Job.objects.filter(parent=None).count(), len(JOB_CLASSES))
         self.assertEqual(
-            Job.objects.filter(~Q(parent=None)).count(),
-            len(os.listdir(os.path.join(BASE_DIR, 'jobs', 'presets')))
+            Job.objects.exclude(parent=None).count(), len(os.listdir(os.path.join(BASE_DIR, 'jobs', 'presets')))
         )
 
         # Testing populated users
