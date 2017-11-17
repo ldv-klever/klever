@@ -18,7 +18,7 @@
 import copy
 
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
-from core.vtg.emg.common.signature import Implementation
+from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container
 
@@ -80,9 +80,268 @@ def simplify_process(logger, conf, analysis, model, process):
                     if len(pr['interfaces']) == index:
                         pr['interfaces'].append(interface)
 
-    # todo: remove callback actions
+    # Remove callback actions
+    for action in (a for a in process.actions.values() if isinstance(a, Call)):
+        generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, action)
+
     # todo: process rest code
     return
+
+
+def yeild_identifier():
+    """Return unique identifier."""
+    identifier_counter = 1
+    while True:
+        identifier_counter += 1
+        yield identifier_counter
+
+
+def generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, call):
+    param_identifiers = yeild_identifier()
+    action_identifiers = yeild_identifier()
+
+    def ret_expression():
+        # Generate external function retval
+        return_expression = ''
+        ret_access = None
+        if call.retlabel:
+            ret_access = process.resolve_access(call.retlabel)
+        else:
+            ret_subprocess = [process.actions[n] for n in sorted(process.actions.keys())
+                              if type(process.actions[name]) is CallRetval and
+                              process.actions[n].callback == call.callback and process.actions[n].retlabel]
+            if ret_subprocess:
+                ret_access = process.resolve_access(ret_subprocess[0].retlabel)
+
+        if ret_access:
+            suits = [a for a in ret_access if
+                     (a.interface and
+                      a.interface.declaration.compare(signature.points.return_value)) or
+                     (not a.interface and a.label and
+                      any((signature.points.return_value.compare(d) for d in a.label.declarations)))]
+            if len(suits) > 0:
+                if suits[0].interface:
+                    lbl = label_map[suits[0].label.name][suits[0].interface.identifier]
+                else:
+                    lbl = suits[0].label
+                return_expression = suits[0].access_with_label(lbl) + ' = '
+            else:
+                raise RuntimeError("Cannot find a suitable label for return value of action '{}'".
+                                   format(call.name))
+
+        return return_expression
+
+    def match_parameters(declaration):
+        # Try to match action parameters
+        found_positions = dict()
+        for label_index in range(len(call.parameters)):
+            accss = process.resolve_access(call.parameters[label_index])
+            for acc in (a for a in accss if a.list_interface and len(a.list_interface) > 0):
+                for position in (p for p in list(range(len(declaration.points.parameters)))[label_index:]
+                                 if p not in found_positions):
+                    parameter = declaration.points.parameters[position]
+                    if (acc.list_interface[-1].declaration.compare(parameter) or
+                            acc.list_interface[-1].declaration.pointer_alias(parameter)):
+                        expression = acc.access_with_label(label_map[acc.label.name][acc.list_interface[0].identifier])
+                        found_positions[position] = expression
+                        break
+
+        # Fulfil rest parameters
+        pointer_params = []
+        label_params = []
+        for index in range(len(declaration.points.parameters)):
+            if type(declaration.points.parameters[index]) is not str and index not in found_positions:
+                if type(declaration.points.parameters[index]) is not Primitive and \
+                                type(declaration.points.parameters[index]) is not Pointer:
+                    param_signature = declaration.points.parameters[index].take_pointer
+                    pointer_params.append(index)
+                else:
+                    param_signature = declaration.points.parameters[index]
+                tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__), param_signature)
+                label_params.append(tmp_lb)
+                expression = "%{}%".format(tmp_lb.name)
+
+                # Add string
+                found_positions[index] = expression
+
+        return pointer_params, label_params, found_positions
+
+    def manage_default_resources(label_parameters):
+        # Add precondition and postcondition
+        if len(label_parameters) > 0:
+            pre_stments = []
+            post_stments = []
+            for label in sorted(list(set(label_parameters)), key=lambda lb: lb.name):
+                pre_stments.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
+                post_stments.append('$FREE(%{}%);'.format(label.name))
+
+            pre_name = 'pre_call_{}'.format(action_identifiers.__next__)
+            pre_action = process.add_condition(pre_name, [], pre_stments,
+                                               "Allocate memory for adhoc callback parameters.")
+            # todo: Inserat a precondition
+            #pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
+            #self._compose_action(pre_st, automaton)
+
+            # todo: Inserat a prostcondition
+            post_name = 'post_call_{}'.format(action_identifiers.__next__)
+            post_action = process.add_condition(post_name, [], post_stments,
+                                                "Free memory of adhoc callback parameters.")
+            #post_st = automaton.fsa.add_new_successor(st, post_action)
+            #self._compose_action(post_st, automaton)
+
+    def generate_function(callback_declaration, inv, chck):
+        pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
+        manage_default_resources(label_parameters)
+        return_expression = ret_expression()
+
+        # Determine label params
+        external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
+
+        true_invoke = return_expression + '({})'.format(inv) + '(' + ', '.join(external_parameters) + ');'
+        return [true_invoke]
+
+    def add_post_conditions(inv):
+        post_call = []
+        if access.interface and access.interface.interrupt_context:
+            post_call.append('$SWITCH_TO_PROCESS_CONTEXT();')
+
+        if call.post_call and len(call.post_call) > 0:
+            post_call.extend(call.post_call)
+
+        if len(post_call) > 0:
+            post_call.insert(0, '/* Callback post-call */')
+            inv += post_call
+
+        return inv
+
+    def add_pre_conditions(inv):
+        callback_pre_call = []
+        if call.pre_call and len(call.pre_call) > 0:
+            callback_pre_call.extend(call.pre_call)
+
+        if access.interface and access.interface.interrupt_context:
+            callback_pre_call.append('$SWITCH_TO_IRQ_CONTEXT();')
+
+        if len(callback_pre_call) > 0:
+            callback_pre_call.insert(0, '/* Callback pre-call */')
+            inv = callback_pre_call + inv
+
+        return inv
+
+    def make_action(declaration, inv, chck):
+        cd = generate_function(declaration, inv, chck)
+        cd = add_pre_conditions(cd)
+        cd = add_post_conditions(cd)
+
+        return cd
+
+    # Determine callback implementations
+    generated_callbacks = list()
+    accesses = process.resolve_access(call.callback)
+    for access in accesses:
+        reinitialize_vars_flag = False
+        if access.interface:
+            signature = access.interface.declaration
+            implementation = process.get_implementation(access)
+
+            if implementation and analysis.callback_name(implementation.value):
+                # Eplicit callback call by found function name
+                invoke = '(' + implementation.value + ')'
+                check = False
+            elif signature.clean_declaration and not isinstance(implementation, bool) and \
+                    get_necessary_conf_property(conf, 'implicit callback calls'):
+                # Call by pointer
+                invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0]])
+                check = True
+                func_variable = invoke
+                reinitialize_vars_flag = True
+            else:
+                # Avoid call if neither implementation and pointer call are known
+                invoke = None
+        else:
+            signature = access.label.prior_signature
+            if access.label.value and analysis.callback_name(access.label.value):
+                # Call function provided by an explicit name but with no interface
+                invoke = analysis.callback_name(access.label.value)
+                check = False
+            else:
+                if func_variable and get_necessary_conf_property(conf, 'implicit callback calls'):
+                    # Call if label(variable) is provided but with no explicit value
+                    invoke = access.access_with_label(access.label)
+                    check = True
+                else:
+                    invoke = None
+
+        if invoke:
+            code, comments = list(), list()
+
+            # Determine structure type name of the container with the callback if such exists
+            structure_name = None
+            if access.interface and implementation and len(implementation.sequence) > 0:
+                field = implementation.sequence[-1]
+                containers = analysis.resolve_containers(access.interface.declaration,
+                                                               access.interface.category)
+                if len(containers.keys()) > 0:
+                    for name in (name for name in containers if field in containers[name]):
+                        structure = analysis.get_intf(name).declaration
+                        # todo: this code does not take into account that implementation of callback and
+                        #       implementation of the container should be connected.
+                        if isinstance(structure, Structure):
+                            structure_name = structure.name
+                            break
+            if not structure_name:
+                # Use instead role and category
+                field = call.name
+                structure_name = process.category.upper()
+
+            # todo: Generate comments
+            #comment = state.action.comment.format(field, structure_name)
+            #comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
+            #comments.append(action_model_comment(state.action, None, begin=False))
+
+            # todo: What is it?
+            #relevant_automata = registration_intf_check(self._analysis,
+            #                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
+            #                                            self._model_fsa,
+            #                                            invoke)
+
+            conditions = call.condition if call.condition and len(call.condition) > 0 else list()
+            if check:
+                conditions.append(invoke)
+            new_code = make_action(signature, invoke, check)
+            code.extend(new_code)
+
+            # todo: Insert new action and delete this one
+            if len(generated_callbacks) == 0:
+                act = act
+            else:
+                act = automaton.fsa.clone_state(state)
+
+            # todo: Do we need this
+            # If necessary reinitialize variables, for instance, if probe skipped
+            if reinitialize_vars_flag:
+                code.append("$DROP_STATE")
+
+            # todo: Repalace this
+            #generated_callbacks.append((st, code, list(), conditions, comments))
+
+    if len(generated_callbacks) == 0:
+        # Todo: It is simply enough to delete the action or generate an empty action with a specific comment
+        code, comments = list(), list()
+
+        # Make comments
+        # comments.append(action_model_comment(state.action,
+        #                                      'Call callback {!r} of a process {!r} of an interface category {!r}'. \
+        #                                      format(state.action.name, automaton.process.name,
+        #                                             automaton.process.category),
+        #                                      begin=True))
+        # comments.append(action_model_comment(state.action, None, begin=False))
+        # code.append('/* Skip callback without implementations */')
+
+        # If necessary reinitialize variables, for instance, if probe skipped
+        #reinitialize_variables(code)
+
+        #generated_callbacks.append((state, code, list(), list(), comments))
 
 def yield_instances(logger, conf, analysis, model, instance_maps):
     """
@@ -96,12 +355,6 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
            {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
     :return: Entry point autmaton, list with model qutomata, list with callback automata.
     """
-    def yeild_identifier():
-        """Return unique identifier."""
-        identifier_counter = 1
-        while True:
-            identifier_counter += 1
-            yield identifier_counter
     logger.info("Generate automata for processes with callback calls")
     identifiers = yeild_identifier()
     

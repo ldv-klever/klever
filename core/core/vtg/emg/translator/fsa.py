@@ -513,20 +513,6 @@ class Automaton:
 
         return variables
 
-    def new_param(self, name, declaration, value):
-        """
-        Introduce new label with the given name, declaration and value and generate variable for it.
-
-        :param name: Label name string.
-        :param declaration:  Label type declaration string.
-        :param value: Value string
-        :return: Label object, Variable object
-        """
-        lb = self.process.add_label(name, declaration, value, scope='local')
-        lb.resource = True
-        vb = self.determine_variable(lb)
-        return lb, vb
-
     def determine_variable(self, label, interface=None):
         """
         Get Label object and interface and generate or return already generated Variable object for this label.
