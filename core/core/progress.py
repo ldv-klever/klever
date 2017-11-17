@@ -45,7 +45,7 @@ class PW(core.components.Component):
         self.total_tasks_data = dict()
         self.failed_tasks_data = dict()
         self.finished_tasks_data = dict()
-        self.subjobs_cache = self.subjobs.copy()
+        self.subjobs_cache = dict()
         self.report_cache = dict()
         self.cached_tasks_progress = None
         self.cached_subjobs_progress = None
@@ -98,7 +98,7 @@ class PW(core.components.Component):
     def subjobs_progress(self):
         if not self.job_mode and self.failed_subjobs != self.subjobs_number:
             return round(100 * self.solved_subjobs / (self.subjobs_number - self.failed_subjobs))
-        elif self.job_mode and self.failed_subjobs == self.subjobs_number:
+        if not self.job_mode and self.failed_subjobs == self.subjobs_number:
             return 100
         else:
             return None
@@ -159,7 +159,8 @@ class PW(core.components.Component):
                 total_tasks_determined = True
 
             # Check subjobs
-            if any([True for i in self.subjobs.keys() if i not in self.subjobs_cache]):
+            changes = [i for i in self.subjobs.keys() if i not in self.subjobs_cache]
+            if any(changes):
                 for job_id in (i for i in self.subjobs.keys() if self.subjobs[i] == 'failed' and
                                i not in self.subjobs_cache):
                     self.logger.debug("The job {!r} has failed".format(job_id))
@@ -183,10 +184,12 @@ class PW(core.components.Component):
                         if self.subjobs[i] == 'finished' and i not in self.subjobs_cache]):
                     self.logger.debug("Set new time as some jobs has been finished")
                     subjobs_update_time = time.time()
-                self.subjobs_cache = self.subjobs.copy()
+                for i in changes:
+                    self.subjobs_cache[i] = self.subjobs[i]
 
             # Calculate time on each report sending on base of all time and the whole numbe of tasks/subjobs
-            if isinstance(self.total_tasks, int) and self.solved_tasks > 0:
+            if isinstance(self.total_tasks, int) and isinstance(self.tasks_progress, int):
+                self.logger.info("Current tasks progress is {}".format(self.tasks_progress))
                 self.logger.debug("Left to solve {} tasks of {} in total".format(self.rest_tasks, self.total_tasks))
                 task_estimation = self._estimate_time(tasks_start_time, task_update_time,
                                                       self.solved_tasks, self.rest_tasks, self.tasks_progress)
@@ -197,7 +200,8 @@ class PW(core.components.Component):
                     data_report["finish tasks solution"] = True
 
             # Estimate subjobs
-            if not self.job_mode and self.solved_subjobs > 0:
+            if not self.job_mode and isinstance(self.subjobs_progress, int):
+                self.logger.info("Current subjobs progress is {}".format(self.subjobs_progress))
                 subjob_estimation = self._estimate_time(subjobs_start_time, subjobs_update_time,
                                                         self.solved_subjobs, self.rest_subjobs, self.subjobs_progress)
                 self.logger.debug("Left to solve {} subjobs of {} in total".format(self.rest_subjobs,
@@ -211,8 +215,8 @@ class PW(core.components.Component):
             # Send report
             self._send_report(data_report)
 
-            if (not self.job_mode and len(self.subjobs_cache.keys()) == self.subjobs_number) or \
-                    (self.job_mode and isinstance(self.total_tasks, int) and self.rest_tasks == 0):
+            if (not self.job_mode and self.subjobs_progress == 100) or \
+                    (self.job_mode and self.tasks_progress == 100):
                 break
             time.sleep(10)
         self.logger.info("Finish progress calculation")
