@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/gfp.h>
 #include <linux/ldv/slab.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
