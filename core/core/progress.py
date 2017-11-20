@@ -285,11 +285,10 @@ class PW(core.components.Component):
                 percent = self.__getattribute__('{}_progress'.format(kind))
                 if not cached or abs(cached - percent) > 1:
                     send_report += True
-                    for i in ["failed {}".format(kind), "solved {}".format(kind)]:
-                        if i in report:
-                            new_report[i] = report[i]
             elif exp_key in report:
                 send_report += True
+
+            if send_report:
                 for i in ["failed {}".format(kind), "solved {}".format(kind)]:
                     if i in report:
                         new_report[i] = report[i]
