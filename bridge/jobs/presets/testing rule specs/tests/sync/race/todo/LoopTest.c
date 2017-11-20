@@ -1,12 +1,9 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *	 http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,30 +12,50 @@
  * limitations under the License.
  */
 
-/* This test checks the work of ProbeFilter
- */
- 
-#include <linux/kernel.h>
+/* Test should check, how the value analysis handles loops. */
+
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
+#include <verifier/nondet.h>
 #include <verifier/thread.h>
 
-static DEFINE_MUTEX(my_mutex);
+static int _ldv_global_var;
 
-int gvar = 0;
+static int ldv_func1(int a)
+{
+	return a + 1;
+}
 
-void* probe(void* arg) {
-  gvar = 2;
-  return 0;
+static int ldv_func2(void)
+{
+	int i = 0;
+	int res = 0;
+
+	for (i = 0; i < 10000; i++)
+		res = ldv_func1(res);
+
+	if (res < 10000)
+		_ldv_global_var = 0;
+
+	return 0;
+}
+
+static void *ldv_main(void *arg)
+{
+	_ldv_global_var = 1;
+	ldv_func2();
+
+	return NULL;
 }
 
 static int __init init(void)
 {
-	pthread_t thread1;
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
+	void *arg = ldv_undef_ptr();
 
-	pthread_create(&thread1, 0, &probe, 0);
-	gvar = 1;
+	pthread_create(&thread, attr, &ldv_main, arg);
+	ldv_main(0);
+
 	return 0;
 }
 

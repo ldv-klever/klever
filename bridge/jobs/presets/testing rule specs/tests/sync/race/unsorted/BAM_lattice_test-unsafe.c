@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+/* Test check the lattice with influence of BAM. */
+
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <verifier/nondet.h>
@@ -23,37 +25,29 @@
 static DEFINE_MUTEX(ldv_lock);
 static int _ldv_global_var = 0;
 
-static int ldv_func2(void) {
-  return 0;
-}
-
-static int ldv_func1(void) {
-    ldv_func2();
-    _ldv_global_var = 0;
-    return 0;
-}
-
-static void *ldv_func3(void* arg) {
-    ldv_func1();
-    
-    ldv_func2();
-    
-    ldv_func1();
-    
-    return NULL;
-}
-
-static int __init init(void)
+static void *ldv_func1(void *arg)
 {
-	pthread_t thread1;
-	pthread_attr_t const *attr1 = ldv_undef_ptr();
-	void *arg1 = ldv_undef_ptr();
-
-	pthread_create(&thread1, attr1, &ldv_func3, arg1);
-	mutex_lock(&ldv_lock);
 	_ldv_global_var = 1;
-	mutex_unlock(&ldv_lock);
+	return NULL;
+}
+
+static void ldv_func2(void)
+{
+	ldv_func1(&_ldv_global_var);
+	mutex_lock(&ldv_lock);
+	ldv_func1(&_ldv_global_var);
+}
+
+static int __init ldv_init(void)
+{
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
+	void *arg = ldv_undef_ptr();
+
+	pthread_create(&thread, attr, &ldv_func1, arg);
+	ldv_func2();
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

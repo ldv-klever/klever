@@ -21,65 +21,53 @@
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-
-static int _ldv_global;
+static int _ldv_false_unsafe;
+static int _ldv_false_unsafe2;
 static int _ldv_true_unsafe;
-static int _ldv_true_unsafe2;
-static int _ldv_true_unsafe3;
-static int _ldv_true_unsafe4;
+static int _ldv_lockLevel;
 
-struct ldv_struct {
-	int* field;
-};
-
-static int ldv_func1(int arg) {
-  if (_ldv_global != 0) {
-	mutex_lock(&ldv_lock);
-	_ldv_true_unsafe = 1;
-	_ldv_true_unsafe2 = 1;
-	mutex_unlock(&ldv_lock);
-	if (_ldv_global == 0) {
-	 _ldv_true_unsafe2 = 0;
-	}		
-  }
-  if (((struct ldv_struct *)23)->field != 0) {
-	mutex_lock(&ldv_lock);
-	_ldv_true_unsafe3 = 0;
-	mutex_unlock(&ldv_lock);
-	if (((struct ldv_struct *)23)->field == 0) {		  
-	  _ldv_true_unsafe3 = 0;
+static int ldv_func1(void)
+{
+	if (_ldv_lockLevel)
+		_ldv_false_unsafe = 0;
+	else {
+		mutex_lock(&ldv_lock);
+		_ldv_false_unsafe2 = 1;
+		_ldv_true_unsafe = 0;
+		mutex_unlock(&ldv_lock);
 	}
-  }
-  if (arg != 0) {
-	mutex_lock(&ldv_lock);
-    _ldv_true_unsafe4 = 1;
-	mutex_unlock(&ldv_lock);
-  }
-  return 0;
-} 
 
-static int ldv_func2(void) {
-  _ldv_global = 0;
-  _ldv_true_unsafe4 = 0;
-  ((struct ldv_struct *)23)->field = 0;
-  ldv_func1(_ldv_global);
-  _ldv_true_unsafe = 0;
-  return 0;
+	return 0;
 }
 
-static void *ldv_main(void* arg) {
+static int ldv_func2(void)
+{
+	mutex_lock(&ldv_lock);
+	_ldv_false_unsafe = 1;
+	_ldv_false_unsafe2 = 1;
+	mutex_unlock(&ldv_lock);
+	_ldv_true_unsafe = 0;
+
+	return 0;
+}
+
+static void *ldv_main(void *arg)
+{
+	ldv_func1();
 	ldv_func2();
+
 	return NULL;
 }
 
 static int __init ldv_init(void)
 {
-	pthread_t thread2;
-	pthread_attr_t const *attr1 = ldv_undef_ptr();
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
 	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
-	pthread_create(&thread2, attr1, &ldv_main, arg1);
+	pthread_create(&thread, attr, &ldv_main, arg1);
 	ldv_main(arg2);
+
 	return 0;
 }
 

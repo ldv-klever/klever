@@ -167,7 +167,15 @@
       "rule specifications": ["linux:usb:urb"]
     },
     {
-      "Linux kernel": {"external modules": "tests/sync/race"},
+      "Linux kernel": {"external modules": "tests/sync/race/lock-reduce"},
+      "rule specifications": ["sync:race"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/sync/race/simple"},
+      "rule specifications": ["sync:race"]
+    },
+    {
+      "Linux kernel": {"external modules": "tests/sync/race/unsorted"},
       "rule specifications": ["sync:race"]
     }
   ],

@@ -12,47 +12,47 @@
  * limitations under the License.
  */
 
-/* The main aim of this test is to check handling of variable links */
- 
-#include <linux/kernel.h>
+/* 
+ * The test should check processing of function pointers with different
+ * declarations.
+ */
+
 #include <linux/module.h>
-#include <linux/device.h>
 #include <linux/mutex.h>
+#include <verifier/nondet.h>
 #include <verifier/thread.h>
 
-//Test should check, how the value analysis handles loops
+static DEFINE_MUTEX(ldv_lock);
+static int _ldv_safe;
+static int _ldv_unsafe;
 
-int global;
-
-int g(int a) {
-    return a + 1;
-}
-
-int my_main(void) {
-  int i = 0;
-  int res = 0;
-  for (i = 0; i < 10000; i++) {
-      res = g(res);
-  }
-  if (res < 10000) {
-    global = 0;
-  }
-  return 0;
-}
-
-int ldv_main(void* arg) {
-    global = 1;
-	my_main();
-	return 0;
-}
-
-static int __init init(void)
+static int ldv_func(void)
 {
-	pthread_t thread2;
+	_ldv_safe = 1;
+	_ldv_unsafe = 1;
 
-	pthread_create(&thread2, 0, ldv_main, 0);
-    ldv_main(0);
 	return 0;
 }
 
-module_init(init);
+static void *ldv_control_function(void *arg)
+{
+	ldv_func();
+	return NULL;
+}
+
+static int __init ldv_init(void)
+{
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
+	void *arg = ldv_undef_ptr();
+	void *status;
+
+	pthread_create(&thread, attr, &ldv_control_function, arg);
+	_ldv_unsafe = 0;
+	pthread_join(thread, &status);
+	_ldv_safe = 0;
+
+	return 0;
+}
+
+module_init(ldv_init);

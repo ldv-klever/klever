@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+/*
+ * Recursion test.
+ * In this test global variable gvar has two access points: write without locks
+ * and write under lock.
+ */
+
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <verifier/nondet.h>
@@ -23,36 +29,38 @@
 static DEFINE_MUTEX(ldv_lock);
 static int _ldv_global_var;
 
-static int ldv_func1(unsigned int ldv_cmd)
+static void *ldv_func2(void *arg);
+
+static void *ldv_func1(void *arg)
 {
-  switch (ldv_cmd) {
-    case (1UL | (unsigned long )4 ): 
-      _ldv_global_var++;
-    break;
-  }
-  
-  return 0;
+	_ldv_global_var = 1;
+	return NULL;
 }
 
-static void *ldv_func2(void* arg)
-{
-
-  ldv_func1(1UL | (unsigned long )3);
-  
-  return NULL;
+static void ldv_func3(void* arg) {
+	ldv_func2(arg);
 }
 
-static int __init ldv_init(void)
+static void *ldv_func2(void *arg)
 {
-	pthread_t thread1;
-	pthread_attr_t const *attr1 = ldv_undef_ptr();
-	void *arg1 = ldv_undef_ptr();
-
-	pthread_create(&thread1, attr1, &ldv_func2, arg1);
 	mutex_lock(&ldv_lock);
+	ldv_func3(&_ldv_global_var);
 	_ldv_global_var = 1;
 	mutex_unlock(&ldv_lock);
+
+	return NULL;
+}
+
+static int __init init(void)
+{
+	pthread_t thread1, thread2;
+	pthread_attr_t const *attr1 = ldv_undef_ptr(), *attr2 = ldv_undef_ptr();
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
+
+	pthread_create(&thread1, attr1, &ldv_func1, arg1);
+	pthread_create(&thread2, attr2, &ldv_func2, arg2);
+
 	return 0;
 }
 
-module_init(ldv_init);
+module_init(init);

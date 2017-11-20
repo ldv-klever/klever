@@ -20,71 +20,73 @@
 #include <verifier/nondet.h>
 #include <verifier/thread.h>
 
-static int _ldv_global;
- 
 static DEFINE_MUTEX(ldv_lock);
+static DEFINE_MUTEX(ldv_lock2);
+static int _ldv_global_var;
 
-static int ldv_func3(int arg) {
-	 int ldv_tmp = ldv_func3(arg);
-	 
-	 arg++;
-	 if (ldv_tmp > arg) {
-		 ldv_tmp = ldv_tmp - arg;
-	 } else {
-		 ldv_tmp = arg - ldv_tmp;
-		 _ldv_global++;
-	 }
-	 ldv_tmp = ldv_func3(ldv_tmp);
-	 ldv_tmp++;
-	 return ldv_tmp;
- }
- 
-static int ldv_func2(int arg) {
-	 int ldv_tmp = ldv_func3(arg);
-	 
-	 arg++;
-	 if (ldv_tmp > arg) {
-		 ldv_tmp = ldv_tmp - arg;
-	 } else {
-		 ldv_tmp = arg - ldv_tmp;
-	 }
-	 ldv_tmp = ldv_func3(ldv_tmp);
-	 ldv_tmp++;
-	 return ldv_tmp;
- }
- 
-static int ldv_func1(int arg) {
-	 int ldv_tmp = ldv_func2(arg);
-	 
-	 arg++;
-	 if (ldv_tmp > arg) {
-		 ldv_tmp = ldv_tmp - arg;
-	 } else {
-		 ldv_tmp = arg - ldv_tmp;
-	 }
-	 ldv_tmp = ldv_func2(ldv_tmp);
-	 ldv_tmp++;
-	 return ldv_tmp;
- }
+static int ldv_func1(void)
+{
+	int local = 0;
 
-void* ldv_main(void* arg) {
-	int ldv_tmp = ldv_undef_int();
-	
-	ldv_func1(ldv_tmp);
+	local++;
 	mutex_lock(&ldv_lock);
-	ldv_func1(ldv_tmp++);
+
+	return 0;
+}
+
+static int ldv_func2(void)
+{
+	ldv_func1();
+	return 0;
+}
+
+static int ldv_func3(void)
+{
+	mutex_lock(&ldv_lock2);
+	ldv_func2();
+	mutex_unlock(&ldv_lock2);
+
+	return 0;
+}
+
+static int ldv_func4(void)
+{
+	mutex_lock(&ldv_lock2);
+	ldv_func1();
+	mutex_unlock(&ldv_lock2);
+
+	return 0;
+}
+
+static int ldv_func5(void)
+{
+	ldv_func4();
+	_ldv_global_var++;
+
+	return 0;
+}
+
+void *ldv_main(void *arg)
+{
+	_ldv_global_var++;
+	ldv_func3();
 	mutex_unlock(&ldv_lock);
-	return NULL;
+	ldv_func4();
+	mutex_unlock(&ldv_lock);
+	ldv_func5();
+
+	return 0;
 }
 
 static int __init ldv_init(void)
 {
-	pthread_t thread2;
-	pthread_attr_t const *attr1 = ldv_undef_ptr();
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
 	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
-	pthread_create(&thread2, attr1, &ldv_main, arg1);
+	pthread_create(&thread, attr, &ldv_main, arg1);
 	ldv_main(arg2);
+
 	return 0;
 }
 

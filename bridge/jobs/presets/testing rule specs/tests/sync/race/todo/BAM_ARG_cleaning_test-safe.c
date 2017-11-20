@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* The test should check processing of function pointers with different declarations */
+/* The test checks the work of cleanin BAM caches. */
 
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -23,60 +23,73 @@
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-static int _ldv_global_var = 0;
+static int _ldv_global_var;
+static int _ldv_global_var2;
 
-struct ldv_struct {
-  int (*field1)(void);
-  int (*field2)(void);
-  int (*field3)(int d);
-} *_ldv_var;
-
-static int ldv_hook(void)
+static void ldv_func3(int a) 
 {
+	/* Uninportant function. */
 	int b = 0;
-	mutex_lock(&ldv_lock);
-	_ldv_global_var = b++;
-	mutex_unlock(&ldv_lock);
+
+	b++;
+
+	if (a > b)
+		b++;
+}
+
+static void ldv_func4(int a) 
+{
+	/* Uninportant function. */
+	int b = 0;
+
+	b++;
+
+	if (a > b)
+		b++;
+}
+
+static int ldv_func1(int a) 
+{
+	/* Uninportant function, but there were predicates inserted. */
+	int b = 0;
+
+	b++;
+
+	if (a > b)
+		b++;
+
 	return b;
 }
 
-static int ldv_hook2(int arg)
+static void *ldv_func2(void *arg)
 {
-	int b = arg + 1;
-	_ldv_global_var = b++;
-	return b;
-}
+	int p = 0;
+	int b = ldv_undef_int();
+	
+	ldv_func3(p);
+	b = ldv_func1(p);
+	ldv_func4(p);
 
-static int ldv_func(int arg)
-{
-  int t = arg;
-  _ldv_var->field1();
-  _ldv_var->field2();
-  _ldv_var->field3(t);
-  return 0;
-}
+	if (b == 0)
+		/* False unsafe. f should be cleaned after refinement. */
+		_ldv_global_var++;
 
-static void *locker(void *arg)
-{
-  mutex_lock(&ldv_lock);
-  _ldv_var->field1 = &ldv_hook;
-  _ldv_var->field2 = &ldv_hook;
-  _ldv_var->field3 = &ldv_hook2;  
-  mutex_unlock(&ldv_lock);
-  return NULL;
+	/* True unsafe. */
+	_ldv_global_var2++;
+
+	return NULL;
 }
 
 static int __init ldv_init(void)
 {
-	pthread_t thread1;
-	pthread_attr_t const *attr1 = ldv_undef_ptr();
-	void *arg1 = ldv_undef_ptr();
-	int arg2 = ldv_undef_int();
+	pthread_t thread;
+	pthread_attr_t const *attr = ldv_undef_ptr();
+	void *arg = ldv_undef_ptr();
 
-	pthread_create(&thread1, attr1, &locker, arg1);
-	ldv_func(arg2);
+	pthread_create(&thread, attr, &ldv_func2, arg);
+	_ldv_global_var++;
+
 	return 0;
 }
 
 module_init(ldv_init);
-
