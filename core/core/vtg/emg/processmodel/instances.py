@@ -17,7 +17,7 @@
 
 import copy
 
-from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
+from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container
@@ -41,11 +41,19 @@ def simplify_process(logger, conf, analysis, model, process):
     for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
         label_map[label.name] = dict()
         simpl_access = process.resolve_access(label)
-        for number, access in enumerate(simpl_access):
+        if len(simpl_access) > 1:
+            for number, access in enumerate(simpl_access):
+                declaration = label.get_declaration(access.interface.identifier)
+                value = process.get_implementation(access)
+                new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
+                label_map[label.name][access.interface.identifier] = new
+        elif len(simpl_access) == 1:
+            access = simpl_access[0]
             declaration = label.get_declaration(access.interface.identifier)
             value = process.get_implementation(access)
-            new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
-            label_map[label.name][access.interface.identifier] = new
+            label.prior_signature = declaration
+            label.value = value
+            label_map[label.name][access.interface.identifier] = label
 
     # Then replace accesses in parameters with simplified expressions
     for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
@@ -99,6 +107,7 @@ def yeild_identifier():
 def generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, call):
     param_identifiers = yeild_identifier()
     action_identifiers = yeild_identifier()
+    the_last_added = None
 
     def ret_expression():
         # Generate external function retval
@@ -108,7 +117,7 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             ret_access = process.resolve_access(call.retlabel)
         else:
             ret_subprocess = [process.actions[n] for n in sorted(process.actions.keys())
-                              if type(process.actions[name]) is CallRetval and
+                              if type(process.actions[n]) is CallRetval and
                               process.actions[n].callback == call.callback and process.actions[n].retlabel]
             if ret_subprocess:
                 ret_access = process.resolve_access(ret_subprocess[0].retlabel)
@@ -168,6 +177,8 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
 
     def manage_default_resources(label_parameters):
         # Add precondition and postcondition
+        pre = None
+        post = None
         if len(label_parameters) > 0:
             pre_stments = []
             post_stments = []
@@ -176,29 +187,27 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 post_stments.append('$FREE(%{}%);'.format(label.name))
 
             pre_name = 'pre_call_{}'.format(action_identifiers.__next__)
-            pre_action = process.add_condition(pre_name, [], pre_stments,
-                                               "Allocate memory for adhoc callback parameters.")
-            # todo: Inserat a precondition
-            #pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
-            #self._compose_action(pre_st, automaton)
+            pre = process.add_condition(pre_name, [], pre_stments,
+                                        "Allocate memory for adhoc callback parameters.")
 
-            # todo: Inserat a prostcondition
             post_name = 'post_call_{}'.format(action_identifiers.__next__)
-            post_action = process.add_condition(post_name, [], post_stments,
-                                                "Free memory of adhoc callback parameters.")
-            #post_st = automaton.fsa.add_new_successor(st, post_action)
-            #self._compose_action(post_st, automaton)
+            post = process.add_condition(post_name, [], post_stments,
+                                         "Free memory of adhoc callback parameters.")
+
+        return pre, post
 
     def generate_function(callback_declaration, inv, chck):
         pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
-        manage_default_resources(label_parameters)
+        pre, post = manage_default_resources(label_parameters)
         return_expression = ret_expression()
 
         # Determine label params
         external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
 
-        true_invoke = return_expression + '({})'.format(inv) + '(' + ', '.join(external_parameters) + ');'
-        return [true_invoke]
+        true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
+        # todo: remove if it works without this
+        cmnt = model_comment('callback', call.name, {'call': true_invoke})
+        return [cmnt, true_invoke], pre, post
 
     def add_post_conditions(inv):
         post_call = []
@@ -229,14 +238,19 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
         return inv
 
     def make_action(declaration, inv, chck):
-        cd = generate_function(declaration, inv, chck)
+        cd, pre, post = generate_function(declaration, inv, chck)
         cd = add_pre_conditions(cd)
         cd = add_post_conditions(cd)
 
-        return cd
+        return cd, pre, post
+
+    def reinitialize_variables(base_code):
+        reinitialization_action_set = get_conf_property(conf, 'callback actions with reinitialization', list)
+        if reinitialization_action_set and call.name in reinitialization_action_set:
+            base_code.append("$REINITIALIZE_STATE;")
 
     # Determine callback implementations
-    generated_callbacks = list()
+    generated_callbacks = 0
     accesses = process.resolve_access(call.callback)
     for access in accesses:
         reinitialize_vars_flag = False
@@ -251,9 +265,8 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             elif signature.clean_declaration and not isinstance(implementation, bool) and \
                     get_necessary_conf_property(conf, 'implicit callback calls'):
                 # Call by pointer
-                invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0]])
+                invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
                 check = True
-                func_variable = invoke
                 reinitialize_vars_flag = True
             else:
                 # Avoid call if neither implementation and pointer call are known
@@ -265,10 +278,13 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 invoke = analysis.callback_name(access.label.value)
                 check = False
             else:
-                if func_variable and get_necessary_conf_property(conf, 'implicit callback calls'):
+                if len(access.list_interface) > 0 and get_necessary_conf_property(conf, 'implicit callback calls'):
                     # Call if label(variable) is provided but with no explicit value
-                    invoke = access.access_with_label(access.label)
-                    check = True
+                    try:
+                        invoke = access.access_with_label(access.label)
+                        check = True
+                    except ValueError:
+                        invoke = None
                 else:
                     invoke = None
 
@@ -279,8 +295,7 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             structure_name = None
             if access.interface and implementation and len(implementation.sequence) > 0:
                 field = implementation.sequence[-1]
-                containers = analysis.resolve_containers(access.interface.declaration,
-                                                               access.interface.category)
+                containers = analysis.resolve_containers(access.interface.declaration, access.interface.category)
                 if len(containers.keys()) > 0:
                     for name in (name for name in containers if field in containers[name]):
                         structure = analysis.get_intf(name).declaration
@@ -294,54 +309,46 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 field = call.name
                 structure_name = process.category.upper()
 
-            # todo: Generate comments
-            #comment = state.action.comment.format(field, structure_name)
-            #comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
-            #comments.append(action_model_comment(state.action, None, begin=False))
-
-            # todo: What is it?
-            #relevant_automata = registration_intf_check(self._analysis,
-            #                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
-            #                                            self._model_fsa,
-            #                                            invoke)
-
+            # Generate comment
+            comment = call.comment.format(field, structure_name)
             conditions = call.condition if call.condition and len(call.condition) > 0 else list()
             if check:
                 conditions.append(invoke)
-            new_code = make_action(signature, invoke, check)
+            new_code, pre_action, post_action = make_action(signature, invoke, check)
             code.extend(new_code)
 
-            # todo: Insert new action and delete this one
-            if len(generated_callbacks) == 0:
-                act = act
+            # Insert new action and replace this one
+            new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__),
+                                        conditions, code, comment)
+
+            if generated_callbacks == 0:
+                process.insert_action(call.name, new.name, position='instead')
+                the_last_added = new
             else:
-                act = automaton.fsa.clone_state(state)
+                process.insert_action(the_last_added.name, new.name, position='in parallel')
+            generated_callbacks += 1
 
-            # todo: Do we need this
-            # If necessary reinitialize variables, for instance, if probe skipped
+            # Reinitialize state
             if reinitialize_vars_flag:
-                code.append("$DROP_STATE")
+                reinitialize_variables(code)
 
-            # todo: Repalace this
-            #generated_callbacks.append((st, code, list(), conditions, comments))
+            # Add post and pre conditions
+            if pre_action:
+                process.insert_action(new.name, pre_action.name, position='before')
+            if post_action:
+                process.insert_action(new.name, post_action.name, position='after')
 
-    if len(generated_callbacks) == 0:
-        # Todo: It is simply enough to delete the action or generate an empty action with a specific comment
+    if generated_callbacks == 0:
+        # It is simply enough to delete the action or generate an empty action with a specific comment
         code, comments = list(), list()
 
         # Make comments
-        # comments.append(action_model_comment(state.action,
-        #                                      'Call callback {!r} of a process {!r} of an interface category {!r}'. \
-        #                                      format(state.action.name, automaton.process.name,
-        #                                             automaton.process.category),
-        #                                      begin=True))
-        # comments.append(action_model_comment(state.action, None, begin=False))
-        # code.append('/* Skip callback without implementations */')
+        code.append('/* Skip callback without implementations */')
 
         # If necessary reinitialize variables, for instance, if probe skipped
-        #reinitialize_variables(code)
+        if reinitialize_vars_flag:
+            reinitialize_variables(code)
 
-        #generated_callbacks.append((state, code, list(), list(), comments))
 
 def yield_instances(logger, conf, analysis, model, instance_maps):
     """

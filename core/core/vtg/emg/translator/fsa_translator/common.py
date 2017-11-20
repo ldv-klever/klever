@@ -14,25 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import json
 
-from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.signature import Pointer, Primitive
+from core.vtg.emg.common import get_conf_property, model_comment
 from core.vtg.emg.common.process import Receive, Dispatch
-
-
-def model_comment(comment_type, text, other=None):
-    if other and isinstance(other, dict):
-        comment = other
-    else:
-        comment = dict()
-
-    comment['type'] = comment_type.upper()
-    if text:
-        comment['comment'] = text
-
-    string = json.dumps(comment)
-    return "/* LDV {} */".format(string)
+from core.vtg.emg.common.signature import Pointer, Primitive
 
 
 def action_model_comment(action, text, begin=None, callback=False):
@@ -97,21 +82,21 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
                     automata_peers[automaton.identifier]["states"].add(state)
 
 
-def registration_intf_check(analysis, automata, model_fsa, function_call):
+def registration_intf_check(analysis, processes, model_processes, invoke):
     """
     Tries to find relevant automata that can receive signals from model processes of those kernel functions which
     can be called whithin the execution of a provided callback.
 
     :param analysis: ModuleCategoriesSpecification object
     :param model: ProcessModel object.
-    :param function_call: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
+    :param invoke: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
     :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                      'automaton': 'Automaton object'}
     """
     automata_peers = {}
 
     # todo: it is replacable with simple code analysis
-    name = analysis.callback_name(function_call)
+    name = analysis.callback_name(invoke)
     if name:
         # Caclulate relevant models
         if name in analysis.modules_functions:
@@ -119,7 +104,7 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
             relevant_models = analysis.collect_relevant_models(name)
 
             # Check relevant state machines for each model
-            for model in (m.process for m in model_fsa if m.process.name in relevant_models):
+            for model in (m.process for m in model_processes if m.process.name in relevant_models):
                 signals = [model.actions[name] for name in sorted(model.actions.keys())
                            if (type(model.actions[name]) is Receive or
                                type(model.actions[name]) is Dispatch) and
@@ -131,7 +116,7 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
                     peers.extend(signal.peers)
 
                 # Add relevant state machines
-                extract_relevant_automata(automata, automata_peers, peers)
+                extract_relevant_automata(processes, automata_peers, peers)
 
     return automata_peers
 

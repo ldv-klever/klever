@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
 
 
 def get_conf_property(conf, name, expected_type=None):
@@ -76,3 +77,17 @@ def check_necessary_conf_property(conf, name, expected_type=None):
         raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
                         format(name, str(expected_type), str(type(conf[name]))))
     return True
+
+
+def model_comment(comment_type, text, other=None):
+    if other and isinstance(other, dict):
+        comment = other
+    else:
+        comment = dict()
+
+    comment['type'] = comment_type.upper()
+    if text:
+        comment['comment'] = text
+
+    string = json.dumps(comment)
+    return "/* LDV {} */".format(string)

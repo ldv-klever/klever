@@ -263,34 +263,33 @@ class Process:
         new.comment = comment
         return new
 
-    def insert_action(self, name, after=None, before=None, instead=None):
-        # Sanity checks
-        if not (after or before or instead):
-            raise ValueError('Choose where to insert the action')
-        if not name or name not in self.actions:
+    def insert_action(self, old, new, position):
+        if not old or old not in self.actions:
             raise KeyError('Cannot rename action {!r} in process {!r} because it does not exist'.
-                           format(name, self.name))
-        if instead:
+                           format(old, self.name))
+        if position == 'instead':
             # Delete old subprocess
-            del self.actions[name]
+            del self.actions[old]
 
         # Replace action entries
         processes = [self]
         processes.extend(
             [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Subprocess])
-        regexes = generate_regex_set(name)
+        regexes = generate_regex_set(old)
         for process in processes:
             for regex in regexes:
                 m = regex['regex'].search(process.process)
                 if m:
                     # Replace signal entries
                     curr_expr = m.group(0)
-                    if before:
-                        next_expr = "{}.{}".format(before, curr_expr)
-                    elif after:
-                        next_expr = "{}.{}".format(curr_expr, after)
+                    if position == 'before':
+                        next_expr = "{}.{}".format(new, curr_expr)
+                    elif position == 'after':
+                        next_expr = "{}.{}".format(curr_expr, new)
+                    elif position == 'instead':
+                        next_expr = new
                     else:
-                        next_expr = instead
+                        next_expr = '({} | {})'.format(curr_expr, new)
 
                     process.process = process.process.replace(curr_expr, next_expr)
                     break

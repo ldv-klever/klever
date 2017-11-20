@@ -16,10 +16,10 @@
 #
 from operator import attrgetter
 
-from core.vtg.emg.common import get_conf_property
+from core.vtg.emg.common import get_conf_property, model_comment
 from core.vtg.emg.common.process import Subprocess
 from core.vtg.emg.translator.fsa_translator.common import control_function_comment_begin, control_function_comment_end,\
-    initialize_automaton_variables, model_comment
+    initialize_automaton_variables
 
 
 def label_based_function(conf, analysis, automaton, cf, model=True):

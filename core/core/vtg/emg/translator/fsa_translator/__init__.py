@@ -19,13 +19,12 @@ from operator import attrgetter
 
 import graphviz
 
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
 from core.vtg.emg.translator.code import FunctionDefinition
-from core.vtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
-    extract_relevant_automata, choose_file, initialize_automaton_variables
+from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata, choose_file, initialize_automaton_variables
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -738,7 +737,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 comment = state.action.comment.format(field, structure_name)
 
                 comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
-                comments.append(action_model_comment(state.action, None, begin=False))
 
                 conditions = list()
 
