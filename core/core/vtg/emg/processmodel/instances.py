@@ -19,9 +19,70 @@ import copy
 
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
 from core.vtg.emg.common.signature import Implementation
+from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container
-from core.vtg.emg.translator.fsa import Automaton
 
+
+def generate_instances(logger, conf, analysis, model, instance_maps):
+    entry_process, model_processes, callback_processes = yield_instances(logger, conf, analysis, model, instance_maps)
+
+    # Generate new actions in processes
+    for process in [entry_process] + model_processes + callback_processes:
+        simplify_process(logger, conf, analysis, model, process)
+
+    # todo: Save these processes instead of the old one
+
+
+def simplify_process(logger, conf, analysis, model, process):
+    # todo: add logging
+    # todo: add new function name
+    # Create maps
+    label_map = dict()
+    for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
+        label_map[label.name] = dict()
+        simpl_access = process.resolve_access(label)
+        for number, access in enumerate(simpl_access):
+            declaration = label.get_declaration(access.interface.identifier)
+            value = process.get_implementation(access)
+            new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
+            label_map[label.name][access.interface.identifier] = new
+
+    # Then replace accesses in parameters with simplified expressions
+    for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
+        for index in range(len(action.parameters)):
+            # Determine dispatcher parameter
+            try:
+                interface = get_common_parameter(action, process, index)
+                interface = interface.identifier
+            except RuntimeError:
+                suts = [peer['interfaces'][index] for peer in action.peers
+                        if 'interfaces' in peer and len(peer['interfaces']) > index]
+                if len(suts) > 0:
+                    interface = suts[0]
+                else:
+                    raise
+
+            # Determine dispatcher parameter
+            access = process.resolve_access(action.parameters[index], interface)
+            new_label = label_map[access.label.name][access.interface.identifier]
+            new_expression = access.access_with_label(new_label)
+            action.parameters[index] = new_expression
+
+            # Go through peers and set proper interfaces
+            for peer in action.peers:
+                if 'interfaces' not in peer:
+                    peer['interfaces'] = list()
+                if len(peer['interfaces']) == index:
+                    peer['interfaces'].append(interface)
+                for pr in peer['subprocess'].peers:
+                    if 'interfaces' not in pr:
+                        pr['interfaces'] = list()
+                    if len(pr['interfaces']) == index:
+                        pr['interfaces'].append(interface)
+
+    # todo: remove callback actions
+    # todo: process rest code
+    return
 
 def yield_instances(logger, conf, analysis, model, instance_maps):
     """
@@ -61,8 +122,8 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
                     format(len(base_list), process.name, process.category))
 
         for instance in base_list:
-            fsa = Automaton(instance, identifiers.__next__())
-            callback_fsa.append(fsa)
+            instance.identifier = "{}_{}".format(instance, identifiers.__next__())
+            callback_fsa.append(instance)
 
     # Generate automata for models
     logger.info("Generate automata for kernel model processes")
@@ -70,12 +131,12 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
-            fsa = Automaton(instance, identifiers.__next__())
-            model_fsa.append(fsa)
+            instance.identifier = "{}_{}".format(instance, identifiers.__next__())
+            model_fsa.append(instance)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
-    entry_fsa = Automaton(model.entry_process, identifiers.__next__())
+    entry_fsa = model.entry_process
 
     return entry_fsa, model_fsa, callback_fsa
 

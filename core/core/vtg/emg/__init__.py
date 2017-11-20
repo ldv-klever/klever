@@ -27,7 +27,7 @@ from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_p
 from core.vtg.emg.interfacespec import InterfaceCategoriesSpecification
 from core.vtg.emg.processmodel import ProcessModel
 from core.vtg.emg.processmodel.process_parser import parse_event_specification
-from core.vtg.emg.translator import translate_intermediate_model
+#from core.vtg.emg.translator import translate_intermediate_model
 
 
 class EMG(core.vtg.plugins.Plugin):
@@ -84,18 +84,6 @@ class EMG(core.vtg.plugins.Plugin):
             parse_event_specification(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
                                       event_categories_spec)
 
-        model = ProcessModel(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
-                             model_processes, env_processes,
-                             self.__get_json_content(get_necessary_conf_property(self.conf,
-                                                                                 'intermediate model options'),
-                                                     "roles map file"))
-        model.generate_event_model(ics)
-        self.logger.info("An intermediate environment model has been prepared")
-
-        # Generate module interface specification
-        self.logger.info("============== An intermediat model translation stage ==============")
-        check_or_set_conf_property(self.conf, 'translation options', default_value=dict(), expected_type=dict)
-
         # Get instance maps if possible
         instance_maps = dict()
         if get_conf_property(self.conf, "EMG instances"):
@@ -106,11 +94,17 @@ class EMG(core.vtg.plugins.Plugin):
                                                   get_necessary_conf_property(self.conf, "EMG instances")),
                       encoding='utf8') as fp:
                 instance_maps = json.load(fp)
+        model = ProcessModel(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
+                             model_processes, env_processes,
+                             self.__get_json_content(get_necessary_conf_property(self.conf,
+                                                                                 'intermediate model options'),
+                                                     "roles map file"))
+        instance_maps = model.prepare_event_model(ics, instance_maps)
+        self.logger.info("An intermediate environment model has been prepared")
 
-        # Import additional aspect files
-        instance_maps = translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
-                                                     instance_maps, self.__read_additional_content("aspects"))
-        self.logger.info("An environment model has been generated successfully")
+        # Generate module interface specification
+        self.logger.info("============== An intermediat model translation stage ==============")
+        check_or_set_conf_property(self.conf, 'translation options', default_value=dict(), expected_type=dict)
 
         # Dump to disk instance map
         instance_map_file = 'instance map.json'
@@ -118,13 +112,20 @@ class EMG(core.vtg.plugins.Plugin):
         with open(instance_map_file, "w", encoding="utf8") as fh:
             fh.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
+        # Import additional aspect files
+        # todo: proceed to refactoring of the translator
+        #translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
+        #                             self.__read_additional_content("aspects"))
+        self.logger.info("An environment model has been generated successfully")
+
         # Send data to the server
         self.logger.info("Send data on generated instances to server")
         core.utils.report(self.logger,
                           'data',
                           {
                               'id': self.id,
-                              'data': instance_maps
+                              # todo: why it is so?
+                              'data': dict()
                           },
                           self.mqs['report files'],
                           self.vals['report id'],

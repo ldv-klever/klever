@@ -67,17 +67,16 @@ class Access:
         self.list_interface = None
         self.complete_list_interface = None
 
-    def replace_with_variable(self, statement, variable):
+    def replace_with_label(self, statement, label):
         reg = re.compile(self.expression)
         if reg.search(statement):
-            expr = self.access_with_variable(variable)
+            expr = self.access_with_variable(label)
             return statement.replace(self.expression, expr)
         else:
             return statement
 
-    def access_with_variable(self, variable):
+    def access_with_label(self, label):
         # Increase use counter
-        variable.use += 1
 
         if self.label and self.label.prior_signature:
             target = self.label.prior_signature
@@ -86,11 +85,11 @@ class Access:
         else:
             target = self.list_interface[-1].declaration
 
-        expression = variable.name
+        expression = "%{}%".format(label.name)
         accesses = self.list_access[1:]
 
         if len(accesses) > 0:
-            candidate = variable.declaration
+            candidate = label.prior_signature
             previous = None
             while candidate:
                 tmp = candidate
@@ -126,7 +125,7 @@ class Access:
 
 class Label:
 
-    def __init__(self, name, scope=None):
+    def __init__(self, name):
         self.container = False
         self.resource = False
         self.callback = False
@@ -139,7 +138,6 @@ class Label:
         self.__signature_map = {}
 
         self.name = name
-        self.scope = scope
 
     @property
     def interfaces(self):
@@ -243,8 +241,8 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_label(self, name, declaration, value=None, scope=None):
-        lb = Label(name, scope)
+    def add_label(self, name, declaration, value=None):
+        lb = Label(name)
         lb.prior_signature = declaration
         if value:
             lb.value = value

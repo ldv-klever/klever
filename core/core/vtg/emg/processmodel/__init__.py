@@ -21,6 +21,7 @@ from core.vtg.emg.common import get_necessary_conf_property
 from core.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition
 from core.vtg.emg.common.interface import Interface, Callback, Container
 from core.vtg.emg.processmodel.entry import EntryProcessGenerator
+from core.vtg.emg.processmodel.instances import generate_instances
 
 
 class ProcessModel:
@@ -45,7 +46,7 @@ class ProcessModel:
         self.entry_process = None
         self.entry = EntryProcessGenerator(self.logger, self.conf)
 
-    def generate_event_model(self, analysis):
+    def prepare_event_model(self, analysis, instance_maps):
         # Generate intermediate model
         self.logger.info("Generate an intermediate model")
         self.__select_processes_and_models(analysis)
@@ -61,6 +62,9 @@ class ProcessModel:
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
         self.__resolve_accesses(analysis)
+
+        # Simplify processes then
+        generate_instances(self.logger, self.conf, analysis, self, instance_maps)
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models
