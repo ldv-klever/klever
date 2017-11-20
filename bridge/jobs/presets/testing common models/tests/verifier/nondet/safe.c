@@ -52,7 +52,7 @@ static int __init ldv_init(void)
 
 	var6 = ldv_undef_ptr_non_null();
 
-	if (!var6)
+	if (var6 == NULL)
 		ldv_error();
 
 	return 0;

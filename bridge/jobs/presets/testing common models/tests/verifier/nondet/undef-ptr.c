@@ -21,13 +21,13 @@
 
 static int __init ldv_init(void)
 {
-	if (!ldv_undef_ptr() &&
-		ldv_undef_ptr() == (void *)1 &&
-		ldv_undef_ptr() == (void *)2 &&
-		ldv_undef_ptr() == (void *)5 &&
-		ldv_undef_ptr() == (void *)10 &&
-		ldv_undef_ptr() == (void *)ULONG_MAX)
-		ldv_error();
+	if (ldv_undef_ptr() == NULL &&
+	    ldv_undef_ptr() == (void *)1 &&
+	    ldv_undef_ptr() == (void *)2 &&
+	    ldv_undef_ptr() == (void *)5 &&
+	    ldv_undef_ptr() == (void *)10 &&
+	    ldv_undef_ptr() == (void *)ULONG_MAX)
+	    ldv_error();
 
 	return 0;
 }

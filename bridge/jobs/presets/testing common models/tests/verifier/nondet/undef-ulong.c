@@ -21,13 +21,13 @@
 
 static int __init ldv_init(void)
 {
-	if (!ldv_undef_ulong() &&
-		ldv_undef_ulong() == 1 &&
-		ldv_undef_ulong() == 2 &&
-		ldv_undef_ulong() == 5 &&
-		ldv_undef_ulong() == 10 &&
-		ldv_undef_ulong() == ULONG_MAX)
-		ldv_error();
+	if (ldv_undef_ulong() == 0 &&
+	    ldv_undef_ulong() == 1 &&
+	    ldv_undef_ulong() == 2 &&
+	    ldv_undef_ulong() == 5 &&
+	    ldv_undef_ulong() == 10 &&
+	    ldv_undef_ulong() == ULONG_MAX)
+	    ldv_error();
 
 	return 0;
 }

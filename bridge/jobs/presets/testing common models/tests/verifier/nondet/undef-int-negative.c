@@ -22,11 +22,11 @@
 static int __init ldv_init(void)
 {
 	if (ldv_undef_int_negative() == INT_MIN &&
-		ldv_undef_int_negative() == -10 &&
-		ldv_undef_int_negative() == -5 &&
-		ldv_undef_int_negative() == -2 &&
-		ldv_undef_int_negative() == -1)
-		ldv_error();
+	    ldv_undef_int_negative() == -10 &&
+	    ldv_undef_int_negative() == -5 &&
+	    ldv_undef_int_negative() == -2 &&
+	    ldv_undef_int_negative() == -1)
+	    ldv_error();
 
 	return 0;
 }

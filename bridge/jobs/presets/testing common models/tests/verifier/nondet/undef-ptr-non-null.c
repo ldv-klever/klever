@@ -22,11 +22,11 @@
 static int __init ldv_init(void)
 {
 	if (ldv_undef_ptr_non_null() == (void *)1 &&
-		ldv_undef_ptr_non_null() == (void *)2 &&
-		ldv_undef_ptr_non_null() == (void *)5 &&
-		ldv_undef_ptr_non_null() == (void *)10 &&
-		ldv_undef_ptr_non_null() == (void *)ULONG_MAX)
-		ldv_error();
+	    ldv_undef_ptr_non_null() == (void *)2 &&
+	    ldv_undef_ptr_non_null() == (void *)5 &&
+	    ldv_undef_ptr_non_null() == (void *)10 &&
+	    ldv_undef_ptr_non_null() == (void *)ULONG_MAX)
+	    ldv_error();
 
 	return 0;
 }

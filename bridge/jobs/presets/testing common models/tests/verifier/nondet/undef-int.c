@@ -22,17 +22,17 @@
 static int __init ldv_init(void)
 {
 	if (ldv_undef_int() == INT_MIN &&
-		ldv_undef_int() == -10 &&
-		ldv_undef_int() == -5 &&
-		ldv_undef_int() == -2 &&
-		ldv_undef_int() == -1 &&
-		!ldv_undef_int() &&
-		ldv_undef_int() == 1 &&
-		ldv_undef_int() == 2 &&
-		ldv_undef_int() == 5 &&
-		ldv_undef_int() == 10 &&
-		ldv_undef_int() == INT_MAX)
-		ldv_error();
+	    ldv_undef_int() == -10 &&
+	    ldv_undef_int() == -5 &&
+	    ldv_undef_int() == -2 &&
+	    ldv_undef_int() == -1 &&
+	    ldv_undef_int() == 0 &&
+	    ldv_undef_int() == 1 &&
+	    ldv_undef_int() == 2 &&
+	    ldv_undef_int() == 5 &&
+	    ldv_undef_int() == 10 &&
+	    ldv_undef_int() == INT_MAX)
+	    ldv_error();
 
 	return 0;
 }
