@@ -29,7 +29,7 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness):
+    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness, coverage_id):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
@@ -48,7 +48,7 @@ class LCOV:
             if self.completeness in ('full', 'partial', 'lightweight'):
                 self.coverage_info = self.parse()
 
-                with open('coverage info.json', 'w', encoding='utf-8') as fp:
+                with open(coverage_id, 'w', encoding='utf-8') as fp:
                     json.dump(self.coverage_info, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
                 with open('coverage.json', 'w', encoding='utf-8') as fp:

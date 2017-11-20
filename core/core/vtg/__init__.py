@@ -335,6 +335,8 @@ class VTG(core.components.Component):
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
         self.launch_subcomponents(False, *subcomponents)
 
+        self.clean_dir = True
+
         self.mqs['pending tasks'].put(None)
         self.mqs['pending tasks'].close()
 
@@ -466,6 +468,8 @@ class VTG(core.components.Component):
                     with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
                               encoding='utf8') as fp:
                         verification_obj_desc = json.load(fp)
+                    if not self.conf['keep intermediate files']:
+                        os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
                     if len(self.rule_spec_descs) == 0:
                         self.logger.warning('Verification object {0} will not be verified since rule specifications'
                                             ' are not specified'.format(verification_obj_desc['id']))

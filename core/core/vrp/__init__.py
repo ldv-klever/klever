@@ -82,6 +82,7 @@ class VRP(core.components.Component):
             subcomponents.append(('RPWL', self.__loop_worker))
         self.launch_subcomponents(False, *subcomponents)
 
+        self.clean_dir = True
         # Finalize
         self.finish_task_results_processing()
 
@@ -209,6 +210,8 @@ class RP(core.components.Component):
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
+
+        self.clean_dir = True
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def fetcher(self):
@@ -452,8 +455,19 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
 
+        # Save coverage in 'total coverages' dir
+        coverage_info_dir = os.path.join('total coverages',
+                                         self.conf['job identifier'].replace('/', '-'),
+                                         self.rule_specification.replace('/', '-'))
+        if not os.path.exists(os.path.join(self.conf['main working directory'], coverage_info_dir)):
+            os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir))
+
+        self.coverage_info_file = os.path.join(coverage_info_dir,
+                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
+
         self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
-                                          self.conf['main working directory'], opts.get('coverage', None))
+                                          self.conf['main working directory'], opts.get('coverage', None),
+                                          os.path.join(self.conf['main working directory'], self.coverage_info_file))
 
         if os.path.isfile('coverage.json'):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +

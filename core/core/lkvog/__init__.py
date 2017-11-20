@@ -72,6 +72,9 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
 
+        # These dirs are excluded from cleaning by lkvog
+        self.dynamic_excluded_clean = multiprocessing.Manager().list()
+
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
         core.utils.report(self.logger,
@@ -86,6 +89,10 @@ class LKVOG(core.components.Component):
         self.launch_subcomponents(True,
                                   ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
+
+        self.clean_dir = True
+        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
+        self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
     def send_loc_report(self):
         core.utils.report(self.logger,
@@ -349,6 +356,13 @@ class LKVOG(core.components.Component):
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
             self.module, self.verification_obj_desc_file))
         os.makedirs(os.path.dirname(self.verification_obj_desc_file).encode('utf8'), exist_ok=True)
+
+        # Add dir to exlcuded from cleaning by lkvog
+        root_dir_id = self.verification_obj_desc_file.split('/')[0]
+        if root_dir_id not in self.dynamic_excluded_clean:
+            self.logger.debug("Add excl {0}".format(root_dir_id))
+            self.dynamic_excluded_clean.append(root_dir_id)
+
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 

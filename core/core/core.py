@@ -72,6 +72,11 @@ class Core(core.components.CallbacksCaller):
                                                   self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(core.job.JOB_FORMAT, core.job.JOB_ARCHIVE, start_report_file)
+
+            # Remove first report file manually
+            if not self.conf['keep intermediate files']:
+                os.remove(start_report_file)
+
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             os.makedirs('child resources'.encode('utf8'))
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
@@ -156,6 +161,10 @@ class Core(core.components.CallbacksCaller):
                     if self.logger:
                         self.logger.info('Release working directory')
                     os.remove(self.is_solving_file)
+
+                # Remove dir if needed
+                if not self.conf['keep intermediate files']:
+                    shutil.rmtree(os.path.abspath('.'))
 
                 if self.logger:
                     self.logger.info('Exit with code "{0}"'.format(self.exit_code))
@@ -286,5 +295,12 @@ class Reporter(core.components.Component):
                 if report_file_archives else ''))
 
             self.session.upload_report(report_file, report_file_archives)
+
+            # Remove report if needed
+            if not self.conf['keep intermediate files']:
+                os.remove(report_file)
+                if report_file_archives:
+                    for archive in report_file_archives:
+                        os.remove(archive)
 
     main = send_reports

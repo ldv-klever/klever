@@ -21,6 +21,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import shutil
 import re
 import zipfile
 
@@ -506,9 +507,13 @@ class JCR(core.components.Component):
                 rule_spec = coverage_info['rule specification']
                 total_coverage_infos[job_id].setdefault(rule_spec, {})
 
-                with open(os.path.join(self.conf['main working directory'],
-                                       coverage_info['coverage info file']), encoding='utf8') as fp:
+                with open(coverage_info['coverage info file'], encoding='utf8') as fp:
                     loaded_coverage_info = json.load(fp)
+
+                # Clean if needed
+                if self.conf['keep intermediate files']:
+                    os.remove(os.path.join(self.conf['main working directory'],
+                                           coverage_info['coverage info file']))
 
                 for file_name, coverage_info_element in loaded_coverage_info.items():
                     total_coverage_infos[job_id][rule_spec].setdefault(file_name, [])
@@ -517,10 +522,12 @@ class JCR(core.components.Component):
                 self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
 
                 total_coverages = dict()
+                coverage_info_dumped_files = []
                 for rule_spec, coverage_info in total_coverage_infos[job_id].items():
                     total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', job_id),
                                                       re.sub(r'/', '-', rule_spec))
-                    os.makedirs(total_coverage_dir)
+                    if not os.path.exists(total_coverage_dir):
+                        os.makedirs(total_coverage_dir)
 
                     total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
                     if os.path.isfile(total_coverage_file):
@@ -531,6 +538,8 @@ class JCR(core.components.Component):
 
                     with open(total_coverage_file, 'w', encoding='utf8') as fp:
                         json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+                    coverage_info_dumped_files.append(total_coverage_file)
 
                     arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
 
@@ -549,20 +558,30 @@ class JCR(core.components.Component):
                                   os.path.join('total coverages', re.sub(r'/', '-', job_id)))
 
                 del total_coverage_infos[job_id]
+                # Clean files if needed
+                if not self.conf['keep intermediate files']:
+                    for coverage_file in coverage_info_dumped_files:
+                        os.remove(coverage_file)
 
         self.logger.info("Finish coverage reporting")
+
+        # Clean
+        if not self.conf['keep intermediate files']:
+            shutil.rmtree('total coverages')
 
     main = collect_total_coverage
 
     def __set_callbacks(self):
 
         def after_process_finished_task(context):
-            if os.path.isfile('coverage info.json'):
+            coverage_info_file = os.path.join(context.conf['main working directory'],
+                                              context.coverage_info_file)
+
+            if os.path.isfile(coverage_info_file):
                 context.mqs['rule specifications and coverage info files'].put({
                     'job id': context.conf['job identifier'],
                     'rule specification': context.rule_specification,
-                    'coverage info file': os.path.relpath('coverage info.json',
-                                                          context.conf['main working directory'])
+                    'coverage info file': coverage_info_file
                 })
 
         def after_launch_sub_job_components(context):
@@ -623,6 +642,8 @@ class Job(core.components.Component):
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
         self.launch_sub_job_components()
+
+        self.clean_dir = True
         self.logger.info("All components finished")
 
     main = decide_job
