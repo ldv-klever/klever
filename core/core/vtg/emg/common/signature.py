@@ -68,6 +68,17 @@ def import_typedefs(tds):
         __typedefs[name] = ast
 
 
+def is_static(signature):
+    def check(a):
+        return 'specifiers' in a and 'specifiers' in a['specifiers'] and 'static' in a['specifiers']['specifiers']
+
+    ast = parse_signature(signature)
+    if ('return value type' in ast and check(ast['return value type'])) or check(ast):
+        return True
+    else:
+        return False
+
+
 def import_declaration(signature, ast=None, track_typedef=False):
     global __type_collection
     global __typedefs
@@ -304,8 +315,8 @@ class Declaration:
 
         return None
 
-    def add_implementation(self, value, path, root_type, root_value, root_sequence):
-        new = Implementation(self, value, path, root_type, root_value, root_sequence)
+    def add_implementation(self, value, path, root_type, root_value, root_sequence, static=False):
+        new = Implementation(self, value, path, root_type, root_value, root_sequence, static)
         if new.identifier not in self.implementations:
             self.implementations[new.identifier] = new
         return new
@@ -706,12 +717,13 @@ class UndefinedReference(Declaration):
 
 class Implementation:
 
-    def __init__(self, declaration, value, file, base_container=None, base_value=None, sequence=None):
+    def __init__(self, declaration, value, file, base_container=None, base_value=None, sequence=None, static=False):
         self.base_container = base_container
         self.base_value = base_value
         self.value = value
         self.file = file
         self.sequence = sequence
+        self.is_static = static
         self.identifier = str([value, file, base_value, sequence])
         self.fixed_interface = None
         self.__declaration = declaration

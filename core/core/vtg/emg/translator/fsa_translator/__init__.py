@@ -666,7 +666,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 implementation = automaton.process.get_implementation(access)
 
                 # todo: This can be extraced also from code analysis results
-                if implementation and self._analysis.callback_name(implementation.value):
+                if implementation and self._analysis.refined_name(implementation.value):
                     # Eplicit callback call by found function name
                     invoke = '(' + implementation.value + ')'
                     file = implementation.file
@@ -691,9 +691,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
                 func_variable = automaton.determine_variable(access.label)
                 # todo: This can be extraced also from code analysis results
-                if access.label.value and self._analysis.callback_name(access.label.value):
+                if access.label.value and self._analysis.refined_name(access.label.value):
                     # Call function provided by an explicit name but with no interface
-                    invoke = self._analysis.callback_name(access.label.value)
+                    invoke = self._analysis.refined_name(access.label.value)
                     func_variable = func_variable.name
                     # todo: This can be extraced also from code analysis results
                     file = self._analysis.determine_original_file(access.label.value)

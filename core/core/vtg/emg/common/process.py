@@ -70,7 +70,7 @@ class Access:
     def replace_with_label(self, statement, label):
         reg = re.compile(self.expression)
         if reg.search(statement):
-            expr = self.access_with_variable(label)
+            expr = self.access_with_label(label)
             return statement.replace(self.expression, expr)
         else:
             return statement

@@ -329,7 +329,7 @@ class InterfaceCategoriesSpecification:
         return matches
 
     @staticmethod
-    def callback_name(call):
+    def refined_name(call):
         """
         Resolve function name from simple expressions which contains explicit function name like '& myfunc', '(myfunc)',
         '(& myfunc)' or 'myfunc'.
@@ -359,7 +359,7 @@ class InterfaceCategoriesSpecification:
         :param label_value: String expression like '& myfunc'.
         :return: File name.
         """
-        label_name = self.callback_name(label_value)
+        label_name = self.refined_name(label_value)
         if label_name and label_name in self._modules_functions:
             # todo: if several files exist?
             return list(self._modules_functions[label_name])[0]

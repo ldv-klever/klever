@@ -16,7 +16,7 @@
 #
 from core.vtg.emg.common.interface import SourceFunction
 from core.vtg.emg.common.signature import Structure, Union, Array, import_declaration, import_typedefs, extract_name, \
-    check_null
+    check_null, is_static
 from core.vtg.emg.interfacespec.tarjan import calculate_load_order
 
 
@@ -93,10 +93,11 @@ def __extract_types(collection, analysis):
                     variable['path'],
                     None,
                     None,
-                    []
+                    [],
+                    is_static(variable['declaration'])
                 )
                 entities.append(entity)
-        __import_entities(collection, entities)
+        __import_entities(collection, analysis, entities)
 
     if 'kernel functions' in analysis:
         collection.logger.info("Import types from kernel functions")
@@ -145,7 +146,9 @@ def __extract_types(collection, analysis):
                             for index in [index for index in range(len(call))
                                           if call[index] and check_null(kf.declaration, call[index])]:
                                 new = kf.declaration.parameters[index]. \
-                                    add_implementation(call[index], path, None, None, [])
+                                    add_implementation(call[index], path, None, None, [],
+                                                       is_static(
+                                                           analysis['kernel functions'][kf.identifier]['signature']))
                                 if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
                                     new.fixed_interface = kf.param_interfaces[index].identifier
 
@@ -159,20 +162,47 @@ def __extract_types(collection, analysis):
     collection._modules_functions = modules_functions
 
 
-def __import_entities(collection, entities):
+def __import_entities(collection, analysis, entities):
     while len(entities) > 0:
         entity = entities.pop()
         bt = entity["type"]
 
         if "value" in entity["description"] and type(entity["description"]['value']) is str:
             if check_null(bt, entity["description"]["value"]):
+                if "declaration" in entity:
+                    static = is_static(entity["declaration"])
+                else:
+                    # Try to find it in global variables and module_functions
+                    rn = collection.refined_name(entity["description"]["value"])
+                    val = rn if isinstance(rn, str) else entity["description"]["value"]
+                    match = False
+                    static = False
+                    for variable in analysis["global variable initializations"]:
+                        variable_name = extract_name(variable['declaration'])
+                        if variable_name == val:
+                            static = is_static(variable['declaration'])
+                            match = True
+                            break
+
+                    if not match:
+                        for mf in [name for name in sorted(analysis["modules functions"].keys())
+                                   if 'files' in analysis["modules functions"][name] and name == val]:
+                            module_function = analysis["modules functions"][mf]
+                            for path in module_function["files"].keys():
+                                static = is_static(module_function["files"][path]["signature"])
+                                match = True
+                                break
+
+                            if match:
+                                break
+
                 bt.add_implementation(
                     entity["description"]["value"],
                     entity["path"],
                     entity["root type"],
                     entity["root value"],
-                    entity["root sequence"]
-                )
+                    entity["root sequence"],
+                    static)
             else:
                 collection.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
         elif "value" in entity["description"] and type(entity["description"]['value']) is list:

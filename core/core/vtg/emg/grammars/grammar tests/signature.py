@@ -15,9 +15,13 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.signature import import_declaration
+from core.vtg.emg.common.signature import import_declaration, is_static
 
 __grammar_tests = [
+    "static int func(int, void (*)(void))",
+    "static int (*func)(int, void (*)(void))",
+    "static int (*func [])(int, void (*)(void))",
+    "static int a;",
     "int ** a(int **(*(*arg))(void))",
     "struct {   struct file *file;   struct page *page;   struct dir_context *ctx;   long unsigned int page_index;   u64 *dir_cookie;   u64 last_cookie;   loff_t current_index;   decode_dirent_t decode;   long unsigned int timestamp;   long unsigned int gencount;   unsigned int cache_entry_index;   unsigned char plus : 1;   unsigned char eof : 1; } nfs_readdir_descriptor_t",
     'union {   void *arg;   struct kparam_string const *str;   struct kparam_array const *arr; }',
@@ -106,6 +110,7 @@ __grammar_tests = [
 for test in __grammar_tests:
     print(test)
     object = import_declaration(test)
+    is_static(test)
     #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))

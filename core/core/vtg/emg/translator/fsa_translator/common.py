@@ -96,7 +96,7 @@ def registration_intf_check(analysis, processes, model_processes, invoke):
     automata_peers = {}
 
     # todo: it is replacable with simple code analysis
-    name = analysis.callback_name(invoke)
+    name = analysis.refined_name(invoke)
     if name:
         # Caclulate relevant models
         if name in analysis.modules_functions:
