@@ -88,7 +88,8 @@ class PW(core.components.Component):
     @property
     def tasks_progress(self):
         if isinstance(self.total_tasks, int) and self.failed_tasks != self.total_tasks:
-            return round(100 * self.solved_tasks / (self.total_tasks - self.failed_tasks))
+            # We should not round the progress value as it may lead to an incomplete progress submitting
+            return int(100 * self.solved_tasks / (self.total_tasks - self.failed_tasks))
         elif isinstance(self.total_tasks, int) and self.failed_tasks == self.total_tasks:
             return 100
         else:
@@ -97,7 +98,8 @@ class PW(core.components.Component):
     @property
     def subjobs_progress(self):
         if not self.job_mode and self.failed_subjobs != self.subjobs_number:
-            return round(100 * self.solved_subjobs / (self.subjobs_number - self.failed_subjobs))
+            # We should not round the progress value as it may lead to an incomplete progress submitting
+            return int(100 * self.solved_subjobs / (self.subjobs_number - self.failed_subjobs))
         if not self.job_mode and self.failed_subjobs == self.subjobs_number:
             return 100
         else:
