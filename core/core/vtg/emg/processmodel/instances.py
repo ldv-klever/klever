@@ -89,7 +89,7 @@ def simplify_process(logger, conf, analysis, model, process):
                         pr['interfaces'].append(interface)
 
     # Remove callback actions
-    for action in (a for a in process.actions.values() if isinstance(a, Call)):
+    for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
         generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, action)
 
     # todo: process rest code
@@ -166,7 +166,8 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                     pointer_params.append(index)
                 else:
                     param_signature = declaration.points.parameters[index]
-                tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__), param_signature)
+                tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__()),
+                                           param_signature)
                 label_params.append(tmp_lb)
                 expression = "%{}%".format(tmp_lb.name)
 
@@ -186,11 +187,11 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 pre_stments.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
                 post_stments.append('$FREE(%{}%);'.format(label.name))
 
-            pre_name = 'pre_call_{}'.format(action_identifiers.__next__)
+            pre_name = 'pre_call_{}'.format(action_identifiers.__next__())
             pre = process.add_condition(pre_name, [], pre_stments,
                                         "Allocate memory for adhoc callback parameters.")
 
-            post_name = 'post_call_{}'.format(action_identifiers.__next__)
+            post_name = 'post_call_{}'.format(action_identifiers.__next__())
             post = process.add_condition(post_name, [], post_stments,
                                          "Free memory of adhoc callback parameters.")
 
@@ -278,7 +279,8 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 invoke = analysis.callback_name(access.label.value)
                 check = False
             else:
-                if len(access.list_interface) > 0 and get_necessary_conf_property(conf, 'implicit callback calls'):
+                if access.list_interface and len(access.list_interface) > 0 and\
+                        get_necessary_conf_property(conf, 'implicit callback calls'):
                     # Call if label(variable) is provided but with no explicit value
                     try:
                         invoke = access.access_with_label(access.label)
@@ -318,14 +320,14 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             code.extend(new_code)
 
             # Insert new action and replace this one
-            new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__),
+            new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
                                         conditions, code, comment)
 
             if generated_callbacks == 0:
-                process.insert_action(call.name, new.name, position='instead')
+                process.insert_action(call.name, "<{}>".format(new.name), position='instead')
                 the_last_added = new
             else:
-                process.insert_action(the_last_added.name, new.name, position='in parallel')
+                process.insert_action(the_last_added.name, "<{}>".format(new.name), position='in parallel')
             generated_callbacks += 1
 
             # Reinitialize state
@@ -334,9 +336,9 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
 
             # Add post and pre conditions
             if pre_action:
-                process.insert_action(new.name, pre_action.name, position='before')
+                process.insert_action(new.name, "<{}>".format(pre_action.name), position='before')
             if post_action:
-                process.insert_action(new.name, post_action.name, position='after')
+                process.insert_action(new.name, "<{}>".format(post_action.name), position='after')
 
     if generated_callbacks == 0:
         # It is simply enough to delete the action or generate an empty action with a specific comment
