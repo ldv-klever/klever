@@ -23,7 +23,7 @@ from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, 
 from core.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
-from core.vtg.emg.translator.code import FunctionDefinition
+from core.vtg.emg.common.code import FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata, choose_file, initialize_automaton_variables
 
 

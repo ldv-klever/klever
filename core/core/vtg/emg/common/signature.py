@@ -726,20 +726,22 @@ class Implementation:
         self.is_static = static
         self.identifier = str([value, file, base_value, sequence])
         self.fixed_interface = None
-        self.__declaration = declaration
+        self.declaration = declaration
 
     def adjusted_value(self, declaration):
-        if self.__declaration.compare(declaration):
+        if self.declaration.compare(declaration):
             return self.value
-        elif self.__declaration.compare(declaration.take_pointer):
+        elif self.declaration.compare(declaration.take_pointer):
             return '*' + self.value
-        elif self.__declaration.take_pointer.compare(declaration):
+        elif self.declaration.take_pointer.compare(declaration):
             return '&' + self.value
-        elif type(declaration) is Pointer and type(self.__declaration) is Pointer and \
-                        self.__declaration.identifier == 'void *':
+        elif type(declaration) is Pointer and type(self.declaration) is Pointer and \
+                self.declaration.identifier == 'void *':
             return self.value
         else:
             raise ValueError("Cannot adjust declaration '{}' to declaration '{}'".
-                             format(self.__declaration.to_string('%s'), declaration.to_string('%s')))
+                             format(self.declaration.to_string('%s'), declaration.to_string('%s')))
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+

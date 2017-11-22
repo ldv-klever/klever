@@ -17,7 +17,7 @@
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, model_comment
 from core.vtg.emg.common.process import Receive, Dispatch, CallRetval, Call, Condition, Subprocess
 from core.vtg.emg.translator.fsa_translator import FSATranslator
-from core.vtg.emg.translator.code import Variable, FunctionDefinition
+from core.vtg.emg.common.code import Variable, FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables, \
     control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa

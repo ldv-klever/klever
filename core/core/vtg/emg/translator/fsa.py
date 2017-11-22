@@ -20,7 +20,7 @@ from operator import attrgetter
 
 from core.vtg.emg.common.interface import Container, Callback
 from core.vtg.emg.common.process import Subprocess, Receive, Dispatch
-from core.vtg.emg.translator.code import Variable
+from core.vtg.emg.common.code import Variable
 
 
 class FSA:

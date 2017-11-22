@@ -16,28 +16,34 @@
 #
 
 import copy
+import re
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, model_comment
-from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer
+from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container
+from core.vtg.emg.common.code import Variable, FunctionDefinition
 
 
 def generate_instances(logger, conf, analysis, model, instance_maps):
-    entry_process, model_processes, callback_processes = yield_instances(logger, conf, analysis, model, instance_maps)
+    entry_process, model_processes, callback_processes = _yield_instances(logger, conf, analysis, model, instance_maps)
 
     # Generate new actions in processes
     for process in [entry_process] + model_processes + callback_processes:
-        simplify_process(logger, conf, analysis, model, process)
+        _simplify_process(logger, conf, analysis, model, process)
 
-    # todo: Save these processes instead of the old one
+    model.entry_process = entry_process
+    model.model_processes = model_processes
+    model.event_processes = callback_processes
+    logger.info("Finish generating simplified environment model for further translation")
+    return
 
 
-def simplify_process(logger, conf, analysis, model, process):
-    # todo: add logging
-    # todo: add new function name
+def _simplify_process(logger, conf, analysis, model, process):
+    logger.debug("Simplify process {!r}".format(process.name))
     # Create maps
     label_map = dict()
+
     for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
         label_map[label.name] = dict()
         simpl_access = process.resolve_access(label)
@@ -90,13 +96,50 @@ def simplify_process(logger, conf, analysis, model, process):
 
     # Remove callback actions
     for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
-        generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, action)
+        _convert_calls_to_conds(conf, analysis, process, label_map, action)
 
-    # todo: process rest code
+    # Process rest code
+    def code_replacment(statments):
+        access_re = re.compile('(%\w+(?:(?:[.]|->)\w+)*%)')
+
+        # Replace rest accesses
+        final = []
+        for original_stm in statments:
+            # Collect dublicates
+            stm_set = {original_stm}
+
+            while len(stm_set) > 0:
+                stm = stm_set.pop()
+
+                if access_re.finditer(stm):
+                    matched = False
+                    for match in access_re.finditer(stm):
+                        expression = match.group(1)
+                        accesses = process.resolve_access(expression)
+                        for acc in accesses:
+                            if acc.interface:
+                                nl = label_map[acc.label.name][acc.list_interface[0].identifier]
+                                stm = acc.replace_with_label(stm, nl)
+                                final.append(stm)
+                                matched = True
+                    if not matched:
+                        final.append(stm)
+                else:
+                    final.append(stm)
+
+        return final
+
+    for action in process.actions.values():
+        if isinstance(action, Condition):
+            # Implement statements processing
+            action.statements = code_replacment(action.statements)
+        if action.condition:
+            action.condition = code_replacment(action.condition)
+
     return
 
 
-def yeild_identifier():
+def _yeild_identifier():
     """Return unique identifier."""
     identifier_counter = 1
     while True:
@@ -104,9 +147,9 @@ def yeild_identifier():
         yield identifier_counter
 
 
-def generate_simplified_callbacks_actions(logger, conf, analysis, model, process, label_map, call):
-    param_identifiers = yeild_identifier()
-    action_identifiers = yeild_identifier()
+def _convert_calls_to_conds(conf, analysis, process, label_map, call):
+    param_identifiers = _yeild_identifier()
+    action_identifiers = _yeild_identifier()
     the_last_added = None
 
     def ret_expression():
@@ -259,7 +302,7 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             signature = access.interface.declaration
             implementation = process.get_implementation(access)
 
-            if implementation and analysis.callback_name(implementation.value):
+            if implementation and analysis.refined_name(implementation.value):
                 # Eplicit callback call by found function name
                 invoke = '(' + implementation.value + ')'
                 check = False
@@ -274,9 +317,9 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
                 invoke = None
         else:
             signature = access.label.prior_signature
-            if access.label.value and analysis.callback_name(access.label.value):
+            if access.label.value and analysis.refined_name(access.label.value):
                 # Call function provided by an explicit name but with no interface
-                invoke = analysis.callback_name(access.label.value)
+                invoke = analysis.refined_name(access.label.value)
                 check = False
             else:
                 if access.list_interface and len(access.list_interface) > 0 and\
@@ -352,7 +395,7 @@ def generate_simplified_callbacks_actions(logger, conf, analysis, model, process
             reinitialize_variables(code)
 
 
-def yield_instances(logger, conf, analysis, model, instance_maps):
+def _yield_instances(logger, conf, analysis, model, instance_maps):
     """
     Generate automata for all processes in an intermediate environment model.
 
@@ -365,7 +408,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
     :return: Entry point autmaton, list with model qutomata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
-    identifiers = yeild_identifier()
+    identifiers = _yeild_identifier()
     
     # Check configuraition properties first
     check_or_set_conf_property(conf, "max instances number", default_value=1000, expected_type=int)
@@ -482,13 +525,97 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
     logger.info("Going to generate {} instances for process '{}' with category '{}'".
                 format(len(maps), process.name, process.category))
     new_base_list = []
+    declarations = {}
+    definitions = {}
     for access_map in maps:
         for instance in base_list:
             newp = _copy_process(instance, instances_left)
+
+            if get_conf_property(conf, "convert static to global", expected_type=bool):
+                am = _remove_statics(analysis, access_map, declarations, definitions)
+
             newp.allowed_implementations = access_map
             new_base_list.append(newp)
 
     return new_base_list
+
+
+def _remove_statics(analysis, access_map, declarations, definitions):
+    identifiers = _yeild_identifier()
+
+    def resolve_existing(nm, impl, collection):
+        if impl.file in collection and nm in collection[impl.file]:
+            return collection[impl.file][nm]
+        else:
+            return None
+
+    def create_definition(decl, nm, impl):
+        f = FunctionDefinition("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
+                               implementation.file, signature=decl, export=True)
+        # Generate call
+        if f.declaration.return_value:
+            ret = 'return'
+        else:
+            ret = ''
+
+        # Generate params
+        params = ', '.join(["arg{}".format(i) for i in range(len(f.declaration.parameters))])
+        call = "{} ({})({});".format(ret, impl.value, params)
+        f.body.append(call)
+
+        return f
+
+    # todo: write docstring
+    # For each static Implementation add to the origin file aspect which adds a variable with the same global
+    # declaration
+    for access in access_map:
+        for interface in (i for i in access_map[access] if access_map[access][i]):
+            implementation = access_map[access][interface]
+
+            # Determine name
+            name = analysis.refined_name(implementation.value)
+            if not name:
+                name = implementation.value
+            func = None
+            var = None
+
+            # Prepare dictionary
+            for coll in (definitions, declarations):
+                if implementation.file not in coll:
+                    coll[implementation.file] = dict()
+
+            # Create new artificial variables and functions
+            if isinstance(implementation.declaration, Pointer) and \
+                    isinstance(implementation.declaration.points, Function):
+                func = resolve_existing(name, implementation, definitions)
+                if not func:
+                    func = create_definition(implementation.declaration.points, name, implementation)
+                    definitions[implementation.file][name] = func
+            elif isinstance(implementation.declaration, Function):
+                func = resolve_existing(name, implementation, definitions)
+                if not func:
+                    func = create_definition(implementation.declaration, name, implementation)
+                    definitions[implementation.file][name] = func
+            elif isinstance(implementation.declaration, Pointer):
+                var = resolve_existing(name, implementation, declarations)
+                if not var:
+                    var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                   implementation.file, implementation.declaration, export=True, scope='global')
+                    var.value = implementation.value
+                    declarations[implementation.file][name] = var
+            else:
+                var = resolve_existing(name, implementation, declarations)
+                if not var:
+                    var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                   implementation.file, implementation.declaration.take_pointer,
+                                   export=True, scope='global')
+                    var.value = "& {}".format(implementation.value)
+                    declarations[implementation.file][name] = var
+
+            new_value = func.name if func else var.name
+            implementation.value = new_value
+
+    return
 
 
 def _copy_process(process, instances_left):

@@ -17,7 +17,7 @@
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.vtg.emg.common.process import Dispatch, get_common_parameter
 from core.vtg.emg.translator.fsa_translator import FSATranslator
-from core.vtg.emg.translator.code import Variable
+from core.vtg.emg.common.code import Variable
 from core.vtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
