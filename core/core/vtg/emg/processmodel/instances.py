@@ -24,13 +24,17 @@ from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval
 from core.vtg.emg.common.interface import Resource, Container
 from core.vtg.emg.common.code import Variable, FunctionDefinition
 
+_declarations = dict()
+_definitions = dict()
+_values_map = dict()
+
 
 def generate_instances(logger, conf, analysis, model, instance_maps):
     entry_process, model_processes, callback_processes = _yield_instances(logger, conf, analysis, model, instance_maps)
 
     # Generate new actions in processes
     for process in [entry_process] + model_processes + callback_processes:
-        _simplify_process(logger, conf, analysis, model, process)
+        _simplify_process(logger, conf, analysis, process)
 
     model.entry_process = entry_process
     model.model_processes = model_processes
@@ -39,7 +43,7 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
     return
 
 
-def _simplify_process(logger, conf, analysis, model, process):
+def _simplify_process(logger, conf, analysis, process):
     logger.debug("Simplify process {!r}".format(process.name))
     # Create maps
     label_map = dict()
@@ -240,7 +244,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
 
         return pre, post
 
-    def generate_function(callback_declaration, inv, chck):
+    def generate_function(callback_declaration, inv):
         pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
         pre, post = manage_default_resources(label_parameters)
         return_expression = ret_expression()
@@ -249,8 +253,11 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
         external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
-        # todo: remove if it works without this
-        cmnt = model_comment('callback', call.name, {'call': true_invoke})
+        if true_call:
+            comment_invoke = return_expression + '{}'.format(true_call) + '(' + ', '.join(external_parameters) + ');'
+        else:
+            comment_invoke = true_invoke
+        cmnt = model_comment('callback', call.name, {'call': comment_invoke})
         return [cmnt, true_invoke], pre, post
 
     def add_post_conditions(inv):
@@ -296,6 +303,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
     # Determine callback implementations
     generated_callbacks = 0
     accesses = process.resolve_access(call.callback)
+    true_call = None
     for access in accesses:
         reinitialize_vars_flag = False
         if access.interface:
@@ -304,6 +312,8 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
 
             if implementation and analysis.refined_name(implementation.value):
                 # Eplicit callback call by found function name
+                if implementation.file in _values_map and implementation.value in _values_map:
+                    true_call = '(' + _values_map[implementation.file][implementation.value] + ')'
                 invoke = '(' + implementation.value + ')'
                 check = False
             elif signature.clean_declaration and not isinstance(implementation, bool) and \
@@ -525,22 +535,20 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
     logger.info("Going to generate {} instances for process '{}' with category '{}'".
                 format(len(maps), process.name, process.category))
     new_base_list = []
-    declarations = {}
-    definitions = {}
     for access_map in maps:
         for instance in base_list:
             newp = _copy_process(instance, instances_left)
 
             if get_conf_property(conf, "convert static to global", expected_type=bool):
-                am = _remove_statics(analysis, access_map, declarations, definitions)
-
+                _remove_statics(analysis, access_map)
             newp.allowed_implementations = access_map
             new_base_list.append(newp)
 
     return new_base_list
 
 
-def _remove_statics(analysis, access_map, declarations, definitions):
+def _remove_statics(analysis, access_map):
+    # todo: write docstring
     identifiers = _yeild_identifier()
 
     def resolve_existing(nm, impl, collection):
@@ -565,7 +573,6 @@ def _remove_statics(analysis, access_map, declarations, definitions):
 
         return f
 
-    # todo: write docstring
     # For each static Implementation add to the origin file aspect which adds a variable with the same global
     # declaration
     for access in access_map:
@@ -580,39 +587,40 @@ def _remove_statics(analysis, access_map, declarations, definitions):
             var = None
 
             # Prepare dictionary
-            for coll in (definitions, declarations):
+            for coll in (_definitions, _declarations):
                 if implementation.file not in coll:
                     coll[implementation.file] = dict()
 
             # Create new artificial variables and functions
             if isinstance(implementation.declaration, Pointer) and \
                     isinstance(implementation.declaration.points, Function):
-                func = resolve_existing(name, implementation, definitions)
+                func = resolve_existing(name, implementation, _definitions)
                 if not func:
                     func = create_definition(implementation.declaration.points, name, implementation)
-                    definitions[implementation.file][name] = func
+                    _definitions[implementation.file][name] = func
             elif isinstance(implementation.declaration, Function):
-                func = resolve_existing(name, implementation, definitions)
+                func = resolve_existing(name, implementation, _definitions)
                 if not func:
                     func = create_definition(implementation.declaration, name, implementation)
-                    definitions[implementation.file][name] = func
+                    _definitions[implementation.file][name] = func
             elif isinstance(implementation.declaration, Pointer):
-                var = resolve_existing(name, implementation, declarations)
+                var = resolve_existing(name, implementation, _declarations)
                 if not var:
                     var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
                                    implementation.file, implementation.declaration, export=True, scope='global')
                     var.value = implementation.value
-                    declarations[implementation.file][name] = var
+                    _declarations[implementation.file][name] = var
             else:
-                var = resolve_existing(name, implementation, declarations)
+                var = resolve_existing(name, implementation, _declarations)
                 if not var:
                     var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
                                    implementation.file, implementation.declaration.take_pointer,
                                    export=True, scope='global')
                     var.value = "& {}".format(implementation.value)
-                    declarations[implementation.file][name] = var
+                    _declarations[implementation.file][name] = var
 
             new_value = func.name if func else var.name
+            _values_map[implementation.file][new_value] = implementation.value
             implementation.value = new_value
 
     return

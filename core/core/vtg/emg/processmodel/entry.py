@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common import get_necessary_conf_property
+from core.vtg.emg.common import get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Dispatch, Receive, Call, Label, Process
+from core.vtg.emg.common.process import Dispatch, Receive, Call, Condition, Label, Process
 
 
 class EntryProcessGenerator:
@@ -26,6 +26,7 @@ class EntryProcessGenerator:
         self.__logger = logger
         self.__conf = conf
         self.__default_signals = dict()
+        self.code = dict()
 
     def entry_process(self, analysis):
         """
@@ -107,6 +108,20 @@ class EntryProcessGenerator:
         self.__logger.debug("Main process is generated")
         return ep
 
+    def __generate_alias(self, name, file, int_retval=False):
+        new_name = "ldv_emg_{}".format(name)
+        code = [
+            "{}(void)\n".format("int {}".format(new_name) if int_retval else new_name),
+            "{\n",
+            "\t{}();\n".format("return {}".format(name) if int_retval else new_name),
+            "}\n"
+        ]
+        if file not in self.code:
+            self.code[file] = code
+        else:
+            self.code[file].extend(["\n"] + code)
+        return new_name
+
     def __generate_insmod_process(self, analysis, default_dispatches=False):
         self.__logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
         ep = Process("insmod")
@@ -127,18 +142,16 @@ class EntryProcessGenerator:
 
         # Generate init subprocess
         for filename, init_name in analysis.inits:
-            init_label = ep.add_label(init_name, import_declaration("int (*f)(void)"), "& {}".format(init_name))
-            init_label.file = filename
-            init_subprocess = Call(init_label.name)
+            new_name = self.__generate_alias(init_name, filename, True)
+            init_subprocess = Condition(init_name)
             init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
-            init_subprocess.callback = "%{}%".format(init_label.name)
-            init_subprocess.retlabel = "%ret%"
-            init_subprocess.post_call = [
-                '%ret% = ldv_post_init(%ret%);'
+            init_subprocess.statements = [
+                model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
+                "%ret% = {}();".format(new_name),
+                "%ret% = ldv_post_init(%ret%);"
             ]
             self.__logger.debug("Found init function {}".format(init_name))
-            ep.labels[init_label.name] = init_label
-            ep.actions[init_label.name] = init_subprocess
+            ep.actions[init_subprocess.name] = init_subprocess
 
         # Add ret label
         ep.add_label('ret', import_declaration("int label"))
@@ -159,7 +172,7 @@ class EntryProcessGenerator:
             for filename, exit_name in analysis.exits:
                 exit_label = ep.add_label(exit_name, import_declaration("void (*f)(void)"), exit_name)
                 exit_label.file = filename
-                exit_subprocess = Call(exit_label.name)
+                exit_subprocess = Cond(exit_label.name)
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.callback = "%{}%".format(exit_label.name)
                 self.__logger.debug("Found exit function {}".format(exit_name))

@@ -132,7 +132,6 @@ class Label:
         self.parameter = False
         self.pointer = False
         self.parameters = []
-        self.file = None
         self.value = None
         self.prior_signature = None
         self.__signature_map = {}
