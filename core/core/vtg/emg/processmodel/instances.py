@@ -39,8 +39,27 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
     model.entry_process = entry_process
     model.model_processes = model_processes
     model.event_processes = callback_processes
+
+    final_code = dict()
+    for file in _declarations:
+        if file not in final_code:
+            final_code[file] = {
+                "declarations": list(),
+                "definitions": list()
+            }
+        for name in _declarations[file]:
+            final_code[file]["declarations"].extend([_declarations[file][name].declare_with_init() + ";\n"])
+    for file in _definitions:
+        if file not in final_code:
+            final_code[file] = {
+                "declarations": list(),
+                "definitions": list()
+            }
+        for name in _definitions[file]:
+            final_code[file]["definitions"].extend(_definitions[file][name].get_definition() + ["\n"])
+
     logger.info("Finish generating simplified environment model for further translation")
-    return
+    return final_code
 
 
 def _simplify_process(logger, conf, analysis, process):
@@ -288,8 +307,8 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
 
         return inv
 
-    def make_action(declaration, inv, chck):
-        cd, pre, post = generate_function(declaration, inv, chck)
+    def make_action(declaration, inv):
+        cd, pre, post = generate_function(declaration, inv)
         cd = add_pre_conditions(cd)
         cd = add_post_conditions(cd)
 
@@ -369,7 +388,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
             conditions = call.condition if call.condition and len(call.condition) > 0 else list()
             if check:
                 conditions.append(invoke)
-            new_code, pre_action, post_action = make_action(signature, invoke, check)
+            new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
 
             # Insert new action and replace this one
@@ -620,6 +639,8 @@ def _remove_statics(analysis, access_map):
                     _declarations[implementation.file][name] = var
 
             new_value = func.name if func else var.name
+            if implementation.file not in _values_map:
+                _values_map[implementation.file] = dict()
             _values_map[implementation.file][new_value] = implementation.value
             implementation.value = new_value
 

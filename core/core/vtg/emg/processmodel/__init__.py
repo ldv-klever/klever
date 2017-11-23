@@ -53,7 +53,9 @@ class ProcessModel:
 
         # Finish entry point process generation
         self.logger.info("Generate model processes for Init and Exit module functions")
-        self.entry_process, additional_processes = self.entry.entry_process(analysis)
+        new_process = self.entry.entry_process(analysis)
+        additional_code = self.entry.code
+        self.entry_process, additional_processes = new_process
         # Del unnecessary reference
         self.entry = None
         for process in additional_processes:
@@ -64,7 +66,18 @@ class ProcessModel:
         self.__resolve_accesses(analysis)
 
         # Simplify processes then
-        generate_instances(self.logger, self.conf, analysis, self, instance_maps)
+        generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
+
+        # Prepare generated code
+        for file in additional_code:
+            if file not in generated_code:
+                generated_code[file] = {
+                    "definitions": additional_code[file]
+                }
+            else:
+                generated_code[file]["definitions"].extend(additional_code[file])
+
+        return generated_code
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models

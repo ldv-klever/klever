@@ -27,7 +27,7 @@ from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_p
 from core.vtg.emg.interfacespec import InterfaceCategoriesSpecification
 from core.vtg.emg.processmodel import ProcessModel
 from core.vtg.emg.processmodel.process_parser import parse_event_specification
-from core.vtg.emg.translator import translate_intermediate_model
+#from core.vtg.emg.translator import translate_intermediate_model
 
 
 class EMG(core.vtg.plugins.Plugin):

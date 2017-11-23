@@ -16,7 +16,7 @@
 #
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
 from core.vtg.emg.translator.code import CModel
-from core.vtg.emg.translator.instances import yield_instances
+#from core.vtg.emg.translator.instances import yield_instances
 from core.vtg.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
 from core.vtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
 

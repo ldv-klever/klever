@@ -113,7 +113,7 @@ class EntryProcessGenerator:
         code = [
             "{}(void)\n".format("int {}".format(new_name) if int_retval else new_name),
             "{\n",
-            "\t{}();\n".format("return {}".format(name) if int_retval else new_name),
+            "\t{}();\n".format("return {}".format(name) if int_retval else name),
             "}\n"
         ]
         if file not in self.code:
@@ -170,11 +170,15 @@ class EntryProcessGenerator:
             ep.actions[exit_subprocess.name] = exit_subprocess
         else:
             for filename, exit_name in analysis.exits:
+                new_name = self.__generate_alias(exit_name, filename, False)
                 exit_label = ep.add_label(exit_name, import_declaration("void (*f)(void)"), exit_name)
                 exit_label.file = filename
-                exit_subprocess = Cond(exit_label.name)
+                exit_subprocess = Condition(exit_label.name)
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
-                exit_subprocess.callback = "%{}%".format(exit_label.name)
+                exit_subprocess.statements = [
+                    model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
+                    "{}();".format(new_name)
+                ]
                 self.__logger.debug("Found exit function {}".format(exit_name))
                 ep.labels[exit_label.name] = exit_label
                 ep.actions[exit_label.name] = exit_subprocess
