@@ -59,7 +59,7 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
             final_code[file]["definitions"].extend(_definitions[file][name].get_definition() + ["\n"])
 
     logger.info("Finish generating simplified environment model for further translation")
-    return final_code
+    return instance_maps, final_code
 
 
 def _simplify_process(logger, conf, analysis, process):
@@ -551,6 +551,8 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
 
+
+
     logger.info("Going to generate {} instances for process '{}' with category '{}'".
                 format(len(maps), process.name, process.category))
     new_base_list = []
@@ -558,12 +560,53 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
         for instance in base_list:
             newp = _copy_process(instance, instances_left)
 
+            newp.allowed_implementations = access_map
+            __generate_model_comment(newp)
             if get_conf_property(conf, "convert static to global", expected_type=bool):
                 _remove_statics(analysis, access_map)
-            newp.allowed_implementations = access_map
             new_base_list.append(newp)
 
     return new_base_list
+
+
+def __generate_model_comment(process):
+    # First get list of container implementations
+    expressions = []
+    for collection in process.accesses().values():
+        for acc in collection:
+            if acc.interface and isinstance(acc.interface, Container) and \
+                            acc.expression in process.allowed_implementations and \
+                    process.allowed_implementations[acc.expression] and \
+                    acc.interface.identifier in process.allowed_implementations[acc.expression] and \
+                    process.allowed_implementations[acc.expression][acc.interface.identifier] and \
+                    process.allowed_implementations[acc.expression][acc.interface.identifier].value:
+                expressions.append(process.allowed_implementations[acc.expression]
+                                   [acc.interface.identifier].value)
+
+            if len(expressions) == 3:
+                break
+
+    # If there is no container implementations find callbacks
+    if len(expressions) == 0:
+        for collection in process.accesses().values():
+            for acc in collection:
+                if acc.interface and isinstance(acc.interface, Callback) and \
+                                acc.expression in process.allowed_implementations and \
+                        process.allowed_implementations[acc.expression] and \
+                        acc.interface.identifier in process.allowed_implementations[acc.expression] and \
+                        process.allowed_implementations[acc.expression][acc.interface.identifier] and \
+                        process.allowed_implementations[acc.expression][acc.interface.identifier].value:
+                    expressions.append(process.allowed_implementations[acc.expression]
+                                       [acc.interface.identifier].value)
+
+                if len(expressions) == 3:
+                    break
+
+    # Generate a comment as a concatenation of an original comment and a suffix
+    if len(expressions) > 0:
+        comment = "{} (Relevant to {})".format(process.comment,
+                                               ' '.join(("{!r}".format(e) for e in expressions)))
+        process.comment = comment
 
 
 def _remove_statics(analysis, access_map):

@@ -16,30 +16,27 @@
 #
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
 from core.vtg.emg.translator.code import CModel
-#from core.vtg.emg.translator.instances import yield_instances
+from core.vtg.emg.translator.fsa import Automaton
 from core.vtg.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
 from core.vtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
 
 
-def translate_intermediate_model(logger, conf, avt, analysis, model, instance_maps, aspect_lines=None):
+def translate_intermediate_model(logger, conf, avt, analysis, model, additional_code):
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf, 'entry point', default_value='main', expected_type=str)
-    check_or_set_conf_property(conf["translation options"], "nested automata", default_value=True, expected_type=bool)
-    check_or_set_conf_property(conf["translation options"], "direct control functions calls", default_value=True,
+    check_or_set_conf_property(conf, "nested automata", default_value=True, expected_type=bool)
+    check_or_set_conf_property(conf, "direct control functions calls", default_value=True,
                                expected_type=bool)
-    check_or_set_conf_property(conf["translation options"], "implicit callback calls", default_value=True,
+    check_or_set_conf_property(conf, "implicit callback calls", default_value=True,
                                expected_type=bool)
 
     # Generate instances
     logger.info("Generate finite state machines on each process from an intermediate model")
-    # todo: Instantiation it is better to do even on level of processes
-    entry_fsa, model_fsa, main_fsa = yield_instances(logger, conf["translation options"], analysis, model,
-                                                     instance_maps)
+    # todo: We need somewhere generate main file
 
     # Determine entry point
     logger.info("Determine entry point file and function name")
-    # todo: it should be explicitly given
     entry_point_name, entry_file = __determine_entry(logger, conf, analysis)
 
     # Collect files
@@ -50,20 +47,30 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
     logger.info("Files found: {}".format(len(files)))
 
     # Initalize code representation
-    cmodel = CModel(logger, conf["translation options"], conf['main working directory'], files, entry_point_name,
+    cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name,
                     entry_file)
+
+    logger.info("Generate finite state machine on each process")
+    entry_fsa = Automaton(model.entry_process, 0)
+    identifier_cnt = 1
+    model_fsa = []
+    main_fsa = []
+    for process in model.model_processes:
+        model_fsa.append(Automaton(process, identifier_cnt))
+        identifier_cnt += 1
+    for process in model.event_processes:
+        main_fsa.append(Automaton(process, identifier_cnt))
+        identifier_cnt += 1
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_necessary_conf_property(conf["translation options"], "nested automata"):
-        LabelTranslator(logger, conf["translation options"], analysis, cmodel, entry_fsa, model_fsa,
-                                         main_fsa)
+    if get_necessary_conf_property(conf, "nested automata"):
+        LabelTranslator(logger, conf, analysis, cmodel, entry_fsa, model_fsa,main_fsa)
     else:
-        StateTranslator(logger, conf["translation options"], analysis, cmodel, entry_fsa, model_fsa,
-                                         main_fsa)
+        StateTranslator(logger, conf, analysis, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
-    addictions = cmodel.print_source_code(aspect_lines)
+    addictions = cmodel.print_source_code(additional_code)
 
     # Set entry point function in abstract task
     logger.info("Add an entry point function name to the abstract verification task")
@@ -83,17 +90,10 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
                     }
                 )
 
-    return instance_maps
-
 
 def __determine_entry(logger, conf, analysis):
     logger.info("Determine entry point function name and a file to add")
-    if len(analysis.inits) >= 1:
-        file = analysis.inits[0][0]
-        entry_file = file
-    elif len(analysis.inits) < 1:
-        raise RuntimeError("Cannot generate entry point without module initialization function")
-
+    entry_file = get_necessary_conf_property(conf, 'entry point')
     entry_point_name = get_necessary_conf_property(conf, 'entry point')
     return entry_point_name, entry_file
 

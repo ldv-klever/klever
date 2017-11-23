@@ -27,7 +27,7 @@ from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_p
 from core.vtg.emg.interfacespec import InterfaceCategoriesSpecification
 from core.vtg.emg.processmodel import ProcessModel
 from core.vtg.emg.processmodel.process_parser import parse_event_specification
-#from core.vtg.emg.translator import translate_intermediate_model
+from core.vtg.emg.translator import translate_intermediate_model
 
 
 class EMG(core.vtg.plugins.Plugin):
@@ -99,7 +99,7 @@ class EMG(core.vtg.plugins.Plugin):
                              self.__get_json_content(get_necessary_conf_property(self.conf,
                                                                                  'intermediate model options'),
                                                      "roles map file"))
-        instance_maps = model.prepare_event_model(ics, instance_maps)
+        instance_maps, additional_code = model.prepare_event_model(ics, instance_maps)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Generate module interface specification
@@ -114,8 +114,8 @@ class EMG(core.vtg.plugins.Plugin):
 
         # Import additional aspect files
         # todo: proceed to refactoring of the translator
-        #translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
-        #                             self.__read_additional_content("aspects"))
+        translate_intermediate_model(self.logger, self.conf["translation options"], self.abstract_task_desc, ics, model,
+                                     additional_code)
         self.logger.info("An environment model has been generated successfully")
 
         # Send data to the server

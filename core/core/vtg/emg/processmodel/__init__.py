@@ -66,7 +66,7 @@ class ProcessModel:
         self.__resolve_accesses(analysis)
 
         # Simplify processes then
-        generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
+        instance_maps, generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
 
         # Prepare generated code
         for file in additional_code:
@@ -77,7 +77,7 @@ class ProcessModel:
             else:
                 generated_code[file]["definitions"].extend(additional_code[file])
 
-        return generated_code
+        return instance_maps, generated_code
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models

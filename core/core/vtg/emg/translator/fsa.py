@@ -18,7 +18,6 @@
 import copy
 from operator import attrgetter
 
-from core.vtg.emg.common.interface import Container, Callback
 from core.vtg.emg.common.process import Subprocess, Receive, Dispatch
 from core.vtg.emg.common.code import Variable
 
@@ -325,6 +324,7 @@ class State:
         """
         Replace given successor State object with a new State object.
 
+        :param old: Old next State object.
         :param new: New next State object.
         :return: None
         """
@@ -337,6 +337,7 @@ class State:
         """
         Replace given predecessor State object with a new State object.
 
+        :param old: Old predecessor State object.
         :param new: New predecessor State object.
         :return: None
         """
@@ -367,7 +368,7 @@ class State:
         """
         Unlink given State object and remove it from successors.
 
-        :param new: State object.
+        :param old: State object.
         :return: None
         """
         if old in self._successors:
@@ -377,7 +378,7 @@ class State:
         """
         Unlink given State object and remove it from predecessors.
 
-        :param new: State object.
+        :param old: State object.
         :return: None
         """
         if old in self._predecessors:
@@ -404,94 +405,6 @@ class Automaton:
         self.fsa = FSA(self.process)
         self.variables()
 
-    @property
-    def model_comment(self):
-        # todo: This code should be moved
-        # First get list of container implementations
-        expressions = []
-        for collection in self.process.accesses().values():
-            for acc in collection:
-                if acc.interface and isinstance(acc.interface, Container) and \
-                        acc.expression in self.process.allowed_implementations and \
-                        self.process.allowed_implementations[acc.expression] and \
-                        acc.interface.identifier in self.process.allowed_implementations[acc.expression] and \
-                        self.process.allowed_implementations[acc.expression][acc.interface.identifier] and \
-                        self.process.allowed_implementations[acc.expression][acc.interface.identifier].value:
-                    expressions.append(self.process.allowed_implementations[acc.expression]
-                                       [acc.interface.identifier].value)
-
-                if len(expressions) == 3:
-                    break
-
-        # If there is no container implementations find callbacks
-        if len(expressions) == 0:
-            for collection in self.process.accesses().values():
-                for acc in collection:
-                    if acc.interface and isinstance(acc.interface, Callback) and \
-                            acc.expression in self.process.allowed_implementations and \
-                            self.process.allowed_implementations[acc.expression] and \
-                            acc.interface.identifier in self.process.allowed_implementations[acc.expression] and \
-                            self.process.allowed_implementations[acc.expression][acc.interface.identifier] and \
-                            self.process.allowed_implementations[acc.expression][acc.interface.identifier].value:
-                        expressions.append(self.process.allowed_implementations[acc.expression]
-                                           [acc.interface.identifier].value)
-
-                    if len(expressions) == 3:
-                        break
-
-        # Generate a comment as a concatenation of an original comment and a suffix
-        if len(expressions) > 0:
-            comment = "{} (Relevant to {})".format(self.process.comment, ' '.join(("{!r}".format(e) for e in expressions)))
-        else:
-            comment = self.process.comment
-        return comment
-
-    @property
-    def file(self):
-        """
-        Chooses the best file to place result of a translation to C code generated for the process. Algorythm tries to
-        found implementations of containers where callback implementations and the other interfaces are stored and
-        choose randomly one of such files where containers are implemented. if now container implementations would be
-        found then it chooses from files with callback implementations.
-
-        :return: File name string or None.
-        """
-        if self.__file:
-            return self.__file
-        files = set()
-
-        # Iterate over interface imlementations and extract from Implementation objects files where they have been
-        # found.
-        base_values = set()
-        change = True
-        while change:
-            change = False
-
-            for expr in self.process.allowed_implementations:
-                for impl in (impl for impl in self.process.allowed_implementations[expr].values() if impl):
-                    if impl.base_value and impl.base_value not in base_values:
-                        base_values.add(impl.base_value)
-                        change = True
-                    elif not impl.base_value and impl.value not in base_values:
-                        base_values.add(impl.value)
-                        change = True
-
-                    if impl.value in base_values and impl.file not in files:
-                        files.add(impl.file)
-                        change = True
-
-        # If no base values then try to find callback call files
-        files.update(set([s.code['file'] for s in self.fsa.states if s.code and 'file' in s.code]))
-
-        # Choose randomly file
-        if len(files) > 0:
-            chosen_one = sorted(list(files))[0]
-            self.__file = chosen_one
-        else:
-            self.__file = None
-
-        return self.__file
-
     def variables(self):
         """
         Generate if variables are not generated or just return if there are all variables generated for this Automaton
@@ -503,65 +416,37 @@ class Automaton:
 
         # Generate variable for each label
         for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
-            if label.interfaces:
-                for interface in label.interfaces:
-                    variables.append(self.determine_variable(label, interface))
-            else:
-                var = self.determine_variable(label)
-                if var:
-                    variables.append(self.determine_variable(label))
+            var = self.determine_variable(label)
+            if var:
+                variables.append(self.determine_variable(label))
 
         return variables
 
-    def determine_variable(self, label, interface=None):
+    def determine_variable(self, label):
         """
         Get Label object and interface and generate or return already generated Variable object for this label.
 
         :param label: Label object.
-        :param interface: Interface identifier string.
         :return: Variable object.
         """
-        if not interface:
-            if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
+        if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
+            return self.__label_variables[label.name]["default"]
+        else:
+            if label.prior_signature:
+                var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"),
+                               None, label.prior_signature, export=True, scope=label.scope)
+                if label.value:
+                    var.value = label.value
+                if label.file:
+                    var.file = label.file
+
+                if label.name not in self.__label_variables:
+                    self.__label_variables[label.name] = {}
+                self.__label_variables[label.name]["default"] = var
                 return self.__label_variables[label.name]["default"]
             else:
-                if label.prior_signature:
-                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"),
-                                   None, label.prior_signature, export=True, scope=label.scope)
-                    if label.value:
-                        var.value = label.value
-                    if label.file:
-                        var.file = label.file
-
-                    if label.name not in self.__label_variables:
-                        self.__label_variables[label.name] = {}
-                    self.__label_variables[label.name]["default"] = var
-                    return self.__label_variables[label.name]["default"]
-                else:
-                    return None
-        else:
-            if label.name in self.__label_variables and interface in self.__label_variables[label.name]:
-                return self.__label_variables[label.name][interface]
-            else:
-                if interface not in label.interfaces:
-                    raise KeyError("Label {} is not matched with interface {}".format(label.name, interface))
-                else:
-                    access = self.process.resolve_access(label, interface)
-                    category, short_id = interface.split(".")
-                    implementation = self.process.get_implementation(access)
-                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, short_id),
-                                   None, label.get_declaration(interface), export=True, scope=label.scope)
-
-                    if implementation:
-                        var.value = implementation.adjusted_value(var.declaration)
-
-                        # Change file according to the value
-                        var.file = implementation.file
-
-                    if label.name not in self.__label_variables:
-                        self.__label_variables[label.name] = {}
-                    self.__label_variables[label.name][interface] = var
-                    return self.__label_variables[label.name][interface]
+                return None
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+
