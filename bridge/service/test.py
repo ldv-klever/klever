@@ -24,7 +24,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.test import Client
 
-from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, TASK_STATUS, NODE_STATUS
+from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
 from bridge.utils import KleverTestCase
 from bridge.populate import populate_users
 
@@ -198,9 +198,6 @@ class TestService(KleverTestCase):
                 'pending': [self.job.identifier], 'processing': [], 'error': [], 'finished': [], 'cancelled': []
             })
             self.assertEqual(new_sch_data['job errors'], {})
-            self.assertEqual(new_sch_data['job configurations'], {
-                self.job.identifier: json.loads(self.job.solvingprogress.configuration.decode('utf8'))
-            })
         except Exception as e:
             self.fail("Wrong json: %s" % e)
 
@@ -261,7 +258,7 @@ class TestService(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertEqual(res['tasks statuses'], {
+        self.assertEqual(json.loads(res['tasks statuses']), {
             'pending': [task_ids[3]], 'processing': [], 'finished': [], 'error': []
         })
 
@@ -373,13 +370,13 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=task_ids)), 0)
 
         # Upload finish report
-        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'log.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
                         'CPU time': 1000, 'memory size': 5 * 10 ** 8, 'wall time': 2000
                     },
-                    'log': 'log.txt', 'desc': 'It does not matter'
+                    'log': 'log.zip', 'desc': 'It does not matter'
                 }), 'file': fp
             })
             fp.close()
@@ -512,13 +509,13 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1], task_ids[3]])), 0)
 
         # Upload finish report
-        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'log.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
                         'CPU time': 1000, 'memory size': 5 * 10**8, 'wall time': 2000
                     },
-                    'log': 'log.txt', 'desc': 'It does not matter'
+                    'log': 'log.zip', 'desc': 'It does not matter'
                 }), 'file': fp
             })
             fp.close()
@@ -684,13 +681,13 @@ class TestService(KleverTestCase):
         })
 
         # Check that after job is corrupted you can't upload report
-        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'log.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
                         'CPU time': 1000, 'memory size': 5 * 10 ** 8, 'wall time': 2000
                     },
-                    'log': 'log.txt', 'desc': 'It does not matter'
+                    'log': 'log.zip', 'desc': 'It does not matter'
                 }), 'file': fp
             })
         self.assertEqual(response.status_code, 200)
