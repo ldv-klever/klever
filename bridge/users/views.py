@@ -17,6 +17,7 @@
 
 import json
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, models
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
@@ -28,7 +29,6 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.settings import DEF_USER
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR
 from bridge.utils import logger
 from bridge.populate import extend_user
@@ -99,7 +99,7 @@ def register(request):
         'user_form': user_form,
         'profile_form': profile_form,
         'timezones': pytz.common_timezones,
-        'def_timezone': DEF_USER['timezone']
+        'def_timezone': settings.DEF_USER['timezone']
     })
 
 

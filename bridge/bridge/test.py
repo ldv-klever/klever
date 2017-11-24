@@ -17,11 +17,14 @@
 
 import os
 import json
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
+
 from bridge.populate import populate_users
-from bridge.settings import BASE_DIR
 from bridge.utils import KleverTestCase
 from bridge.vars import JOB_CLASSES, USER_ROLES
+
 from users.models import User, Extended
 from jobs.models import Job
 from marks.models import MarkUnknown, SafeTag, UnsafeTag
@@ -66,7 +69,8 @@ class TestPopulation(KleverTestCase):
         # Testing populated jobs
         self.assertEqual(Job.objects.filter(parent=None).count(), len(JOB_CLASSES))
         self.assertEqual(
-            Job.objects.exclude(parent=None).count(), len(os.listdir(os.path.join(BASE_DIR, 'jobs', 'presets')))
+            Job.objects.exclude(parent=None).count(),
+            len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets')))
         )
 
         # Testing populated users
@@ -75,14 +79,15 @@ class TestPopulation(KleverTestCase):
 
         # Testing populated unknown marks
         num_of_preset_marks = 0
-        for comp_dir in os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns')):
-            if os.path.isdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)):
-                num_of_preset_marks += len(os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)))
+        for comp_dir in os.listdir(os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')):
+            if os.path.isdir(os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)):
+                num_of_preset_marks += len(os.listdir(os.path.join(
+                    settings.BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)))
         self.assertEqual(MarkUnknown.objects.count(), num_of_preset_marks)
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[0][0]).count(), 1)
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[1][0]).count(), 1)
 
-        safe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'safe.json')
+        safe_tags_presets = os.path.join(settings.BASE_DIR, 'marks', 'tags_presets', 'safe.json')
         prepopulated_tags = set()
         if os.path.isfile(safe_tags_presets):
             with open(safe_tags_presets, encoding='utf8') as fp:
@@ -105,7 +110,7 @@ class TestPopulation(KleverTestCase):
             prepopulated_tags.remove(tag_data)
         self.assertEqual(prepopulated_tags, set())
 
-        unsafe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'unsafe.json')
+        unsafe_tags_presets = os.path.join(settings.BASE_DIR, 'marks', 'tags_presets', 'unsafe.json')
         prepopulated_tags = set()
         if os.path.isfile(unsafe_tags_presets):
             with open(unsafe_tags_presets, encoding='utf8') as fp:

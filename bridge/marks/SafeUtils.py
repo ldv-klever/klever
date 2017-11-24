@@ -25,7 +25,6 @@ from django.db.models import F, Q
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.settings import ENABLE_SAFE_MARKS
 from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARKS_COMPARE_ATTRS, MARK_TYPE, \
     ASSOCIATION_TYPE
 from bridge.utils import unique_id, BridgeException
@@ -139,7 +138,7 @@ class NewMark:
         return mark
 
     def upload_mark(self):
-        if not ENABLE_SAFE_MARKS:
+        if not settings.ENABLE_SAFE_MARKS:
             raise BridgeException(_('Safe marks are disabled'))
         if 'format' not in self._args:
             raise BridgeException(_('Safe mark format is required'))
