@@ -16,10 +16,10 @@
 #
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from users.models import Extended
-from bridge.settings import DEF_USER
 
 
 class UserForm(forms.ModelForm):
@@ -86,7 +86,8 @@ class EditUserForm(forms.ModelForm):
 
 
 class UserExtendedForm(forms.ModelForm):
-    accuracy = forms.IntegerField(widget=forms.NumberInput(), min_value=0, max_value=10, initial=DEF_USER['accuracy'])
+    accuracy = forms.IntegerField(widget=forms.NumberInput(), min_value=0, max_value=10,
+                                  initial=settings.DEF_USER['accuracy'])
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
