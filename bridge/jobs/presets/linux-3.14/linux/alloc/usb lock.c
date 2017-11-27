@@ -16,6 +16,7 @@
  */
 
 #include <linux/gfp.h>
+#include <linux/ldv/slab.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 

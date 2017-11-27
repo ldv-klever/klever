@@ -22,9 +22,9 @@
  * linux/types.h, linux/gfp.h, linux/errno.h, linux/spinlock_types.h, are
  * present because of they are included from linux/module.h that is included
  * by all modules. */
-int __init my_init(void)
+static int __init ldv_init(void)
 {
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

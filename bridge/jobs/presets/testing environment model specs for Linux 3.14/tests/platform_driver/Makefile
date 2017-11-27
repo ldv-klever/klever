@@ -1,1 +1,0 @@
-obj-m += platform_driver_callbacks.o platform_driver_invoke.o platform_driver_probe.o platform_driver_register.o platform_driver_unregister.o platform_driver_with_pm_invoke.o platform_driver_with_pm_callbacks.o

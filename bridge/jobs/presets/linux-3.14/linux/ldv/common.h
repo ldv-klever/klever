@@ -18,6 +18,37 @@
 #ifndef __LINUX_LDV_H
 #define __LINUX_LDV_H
 
+#include <linux/types.h>
+
+/**
+ * ldv_switch_to_interrupt_context() - switch to interrupt context.
+ *
+ * ldv_switch_to_interrupt_context() can be defined by rule specification
+ * models.
+ *
+ * ldv_switch_to_interrupt_context() should be always called by generated
+ * environment models just before calling interrupt callbacks.
+ */
+extern void ldv_switch_to_interrupt_context(void);
+/**
+ * ldv_switch_to_process_context() - switch to process context.
+ *
+ * ldv_switch_to_process_context() can be defined by rule specification
+ * models.
+ *
+ * ldv_switch_to_process_context() should be always called by generated
+ * environment models just after calling interrupt callbacks.
+ */
+extern void ldv_switch_to_process_context(void);
+/**
+ * ldv_in_interrupt_context() - is execution in interrupt context.
+ *
+ * ldv_in_interrupt_context() can be defined by rule specification models.
+ *
+ * Return: True in case of execution in interrupt context and false otherwise.
+ */
+extern bool ldv_in_interrupt_context(void);
+
 /**
  * ldv_initialize() - explicitly initialize rule specification model states.
  *
@@ -29,6 +60,41 @@
  * just before calling all module initialization functions.
  */
 extern void ldv_initialize(void);
+
+/**
+ * ldv_check_final_state() - perform some checks of final state specific for
+ *                           rule specification models.
+ *
+ * ldv_check_final_state() can be defined by rule specification models if they
+ * use model states and need to check it at the end.
+ *
+ * ldv_check_final_state() should be always called by generated environment
+ * models just after calling all module exit functions. Nothing should be
+ * performed after calling ldv_check_final_state() since this can lead to
+ * unexpected false alarms.
+ */
+extern void ldv_check_final_state(void);
+
+/**
+ * ldv_failed_usb_register_driver() - do specific for rule specifications actions if
+ *                                    USB callbacks registration failed.
+ *
+ * ldv_failed_usb_register_driver() can be defined by rule specification models.
+ *
+ * ldv_failed_usb_register_driver() should be always called by generated
+ * environment models in a failing branch of usb_register model function.
+ */
+extern void ldv_failed_usb_register_driver(void);
+
+/**
+ * ldv_failed_register_netdev() - perform some actions and checks specific for
+ *                                rule specifications after failed call of register_netdev.
+ *
+ * ldv_failed_register_netdev() can be defined by rule specification models.
+ *
+ * ldv_failed_register_netdev() should be always called by generated environment.
+ */
+extern void ldv_failed_register_netdev(void);
 
 /**
  * ldv_post_init() - perform some actions and checks specific for rule
@@ -73,41 +139,6 @@ extern int ldv_post_probe(int probe_ret_val);
  * ldv_filter_err_code() is very like ldv_post_init().
  */
 extern int ldv_filter_err_code(int ret_val);
-
-/**
- * ldv_failed_usb_register_driver() - do specific for rule specifications actions if
- *                                    USB callbacks registration failed.
- *
- * ldv_failed_usb_register_driver() can be defined by rule specification models.
- *
- * ldv_failed_usb_register_driver() should be always called by generated
- * environment models in a failing branch of usb_register model function.
- */
-int ldv_failed_usb_register_driver(void);
-
-/**
- * ldv_failed_register_netdev() - perform some actions and checks specific for
- *                                rule specifications after failed call of register_netdev.
- *
- * ldv_failed_register_netdev() can be defined by rule specification models.
- *
- * ldv_failed_register_netdev() should be always called by generated environment.
- */
-int ldv_failed_register_netdev(void);
-
-/**
- * ldv_check_final_state() - perform some checks of final state specific for
- *                           rule specification models.
- *
- * ldv_check_final_state() can be defined by rule specification models if they
- * use model states and need to check it at the end.
- *
- * ldv_check_final_state() should be always called by generated environment
- * models just after calling all module exit functions. Nothing should be
- * performed after calling ldv_check_final_state() since this can lead to
- * unexpected false alarms.
- */
-extern void ldv_check_final_state(void);
 
 /**
  * ldv_add_disk() - add partitioning information to kernel list.

@@ -16,10 +16,10 @@
 #
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
 from core.vtg.emg.common.process import Receive, Dispatch, CallRetval, Call, Condition, Subprocess
-from core.vtg.emg.translator.fsa_translator import FSATranslator
 from core.vtg.emg.translator.code import Variable, FunctionDefinition
+from core.vtg.emg.translator.fsa_translator import FSATranslator
 from core.vtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables, model_comment, \
-    control_function_comment_begin, control_function_comment_end
+    control_function_comment_begin, control_function_comment_end, add_model_function
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
@@ -168,8 +168,7 @@ class StateTranslator(FSATranslator):
         self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
-                self._cmodel.add_function_declaration(file, cf, extern=True)
+            add_model_function(self._analysis, self._cmodel, automaton, cf)
         else:
             for var in (v for v in automaton.variables() if v.scope != 'local'):
                 # To declare and initialize

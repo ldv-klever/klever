@@ -15,27 +15,24 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <linux/types.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	void *tmp_1;
-	void *tmp_2;
-	struct usb_device *dev_1, *dev_2;
-	size_t size;
-	gfp_t mem_flags;
-	dma_addr_t *dma;
+	struct usb_device *dev1 = ldv_undef_ptr(), *dev2 = ldv_undef_ptr();
+	size_t size1 = ldv_undef_uint(), size2 = ldv_undef_uint();
+	gfp_t mem_flags1 = ldv_undef_uint(), mem_flags2 = ldv_undef_uint();
+	dma_addr_t dma1, dma2;
+	char *buf1, *buf2;
 
-	tmp_1 = usb_alloc_coherent(dev_1, size, mem_flags, dma);
-	tmp_2 = usb_alloc_coherent(dev_2, size, mem_flags, dma);
-
-	usb_free_coherent(dev_1, size, tmp_1, &dma);
-	usb_free_coherent(dev_2, size, tmp_2, &dma);
+	buf1 = usb_alloc_coherent(dev1, size1, mem_flags1, &dma1);
+	buf2 = usb_alloc_coherent(dev2, size2, mem_flags2, &dma2);
+	usb_free_coherent(dev1, size1, buf1, dma1);
+	usb_free_coherent(dev2, size2, buf2, dma2);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

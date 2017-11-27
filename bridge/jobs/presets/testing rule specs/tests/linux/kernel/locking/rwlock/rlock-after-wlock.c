@@ -19,16 +19,14 @@
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 
-static int __init init(void)
-{
-	rwlock_t *rwlock_1;
+static DEFINE_RWLOCK(ldv_lock);
 
-	write_lock(rwlock_1);
-	read_lock(rwlock_1);
-	read_unlock(rwlock_1);
-	write_unlock(rwlock_1);
+static int __init ldv_init(void)
+{
+	write_lock(&ldv_lock);
+	read_lock(&ldv_lock);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
+#include <linux/types.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
-#include <linux/types.h>
 
 /* SV-COMP functions intended for modelling nondeterminism. */
 char __VERIFIER_nondet_char(void);
@@ -34,31 +34,72 @@ unsigned int __VERIFIER_nondet_uint(void);
 unsigned short __VERIFIER_nondet_ushort(void);
 unsigned __VERIFIER_nondet_unsigned(void);
 unsigned long __VERIFIER_nondet_ulong(void);
+unsigned long long __VERIFIER_nondet_ulonglong(void);
 void *__VERIFIER_nondet_pointer(void);
 void __VERIFIER_assume(int expression);
 
-int ldv_undef_int(void) {
+int ldv_undef_int(void)
+{
 	return __VERIFIER_nondet_int();
 }
 
-void *ldv_undef_ptr(void) {
+int ldv_undef_long(void)
+{
+	return __VERIFIER_nondet_long();
+}
+
+unsigned int ldv_undef_uint(void)
+{
+	return __VERIFIER_nondet_uint();
+}
+
+void *ldv_undef_ptr(void)
+{
 	return __VERIFIER_nondet_pointer();
 }
 
-unsigned long ldv_undef_ulong(void) {
+unsigned long ldv_undef_ulong(void)
+{
 	return __VERIFIER_nondet_ulong();
+}
+
+unsigned long long ldv_undef_ulonglong(void)
+{
+	return __VERIFIER_nondet_ulonglong();
+}
+
+int ldv_undef_int_positive(void)
+{
+	int ret = ldv_undef_int();
+
+	ldv_assume(ret > 0);
+
+	return ret;
 }
 
 int ldv_undef_int_negative(void)
 {
 	int ret = ldv_undef_int();
+
 	ldv_assume(ret < 0);
+
 	return ret;
 }
 
 int ldv_undef_int_nonpositive(void)
 {
 	int ret = ldv_undef_int();
+
 	ldv_assume(ret <= 0);
+
+	return ret;
+}
+
+void *ldv_undef_ptr_non_null(void)
+{
+	void *ret = ldv_undef_int();
+
+	ldv_assume(ret != NULL);
+
 	return ret;
 }

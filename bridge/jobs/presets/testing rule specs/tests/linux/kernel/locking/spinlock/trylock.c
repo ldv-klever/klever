@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/spinlock.h>
+#include <verifier/common.h>
 
-static int __init my_init(void)
+static DEFINE_SPINLOCK(ldv_lock);
+
+static int __init ldv_init(void)
 {
-	spinlock_t *lock_1;
-
-	spin_trylock(lock_1);
-	spin_unlock(lock_1);
+	ldv_assume(!spin_trylock(&ldv_lock));
+	spin_unlock(&ldv_lock);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);
