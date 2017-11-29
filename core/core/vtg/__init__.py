@@ -332,6 +332,8 @@ class VTG(core.components.Component):
                           self.conf['main working directory'])
 
         # Start plugins
+        if not self.conf['keep intermediate files']:
+            self.mqs['delete dir'] = multiprocessing.Queue()
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
         self.launch_subcomponents(False, *subcomponents)
 
@@ -409,6 +411,7 @@ class VTG(core.components.Component):
         vo_descriptions = dict()
         processing_status = dict()
         initial = dict()
+        delete_ready = dict()
         total_vo_descriptions = 0
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
@@ -436,6 +439,16 @@ class VTG(core.components.Component):
             solutions = []
             # This queue will not inform about the end of tasks generation
             core.utils.drain_queue(solutions, self.mqs['processed tasks'])
+
+            if not self.conf['keep intermediate files']:
+                ready = []
+                core.utils.drain_queue(ready, self.mqs['delete dir'])
+                while len(ready) > 0:
+                    vo, rule = ready.pop()
+                    if vo not in delete_ready:
+                        delete_ready[vo] = {rule}
+                    else:
+                        delete_ready[vo].add(rule)
 
             # Process them
             for solution in solutions:
@@ -519,10 +532,13 @@ class VTG(core.components.Component):
                                 processing_status[vobject][rule_class][rule['id']]:
                             solved += 1
 
-                    if solved == len(_rule_spec_classes[rule_class]):
+                    if solved == len(_rule_spec_classes[rule_class]) and \
+                            (self.conf['keep intermediate files'] or solved == len(delete_ready[vobject])):
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
-                                shutil.rmtree(os.path.join(vobject, rule))
+                                deldir = os.path.join(vobject, rule)
+                                shutil.rmtree(deldir)
+                            del delete_ready[vobject]
                         del processing_status[vobject][rule_class]
 
                 if len(processing_status[vobject]) == 0:
@@ -535,6 +551,7 @@ class VTG(core.components.Component):
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
+                self.mqs['delete dir'].close()
                 break
             else:
                 self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
@@ -743,3 +760,7 @@ class VTGW(core.components.Component):
         self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
         self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
+    def join(self, timeout=None, stopped=False):
+        super(VTGW, self).join(timeout, stopped)
+        if not self.conf['keep intermediate files']:
+            self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
