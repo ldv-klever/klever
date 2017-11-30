@@ -276,13 +276,13 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
 
     def handler(arg1, arg2):
         def terminate():
-            print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
+            print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid))
             os._exit(-1)
 
         # Repeate until it dies
         if p and p.pid:
             pid = p.pid
-            print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
+            print("{}: Cancelling process {}".format(os.getpid(), pid))
             # Sent initial signals
             try:
                 os.kill(pid, signal.SIGINT)
@@ -294,7 +294,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                 # Try to wait - it helps if a process is waiting for something, we need to check its status
                 p.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                print('{}: Process {} is still alive ...'.format(os.getpid(), pid), file=sys.stderr)
+                print('{}: Process {} is still alive ...'.format(os.getpid(), pid))
                 # Lets try it again
                 try:
                     os.killpg(os.getpgid(pid), signal.SIGTERM)
@@ -316,7 +316,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
             s = dir_size("./")
             if s > limitation:
                 # Kill the process
-                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
+                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid))
                 os.kill(pid, signal.SIGINT)
             time.sleep(period)
         os._exit(0)

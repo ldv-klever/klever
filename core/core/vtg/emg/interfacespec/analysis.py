@@ -164,7 +164,7 @@ def __import_entities(collection, entities):
         entity = entities.pop()
         bt = entity["type"]
 
-        if "value" in entity["description"] and type(entity["description"]['value']) is str:
+        if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
             if check_null(bt, entity["description"]["value"]):
                 bt.add_implementation(
                     entity["description"]["value"],
@@ -175,8 +175,8 @@ def __import_entities(collection, entities):
                 )
             else:
                 collection.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
-        elif "value" in entity["description"] and type(entity["description"]['value']) is list:
-            if type(bt) is Array:
+        elif "value" in entity["description"] and isinstance(entity["description"]['value'], list):
+            if isinstance(bt, Array):
                 for entry in entity["description"]['value']:
                     if not entity["root type"]:
                         new_root_type = bt
@@ -197,7 +197,7 @@ def __import_entities(collection, entities):
                     }
 
                     entities.append(new_desc)
-            elif type(bt) is Structure or type(bt) is Union:
+            elif isinstance(bt, Structure) or isinstance(bt, Union):
                 for entry in sorted(entity["description"]['value'], key=lambda key: str(key['field'])):
                     if not entity["root type"] and not entity["root value"]:
                         new_root_type = bt

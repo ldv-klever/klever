@@ -30,7 +30,7 @@ enum
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
 /* MODEL_FUNC Change state after failed call of register_netdev() */
-int ldv_failed_register_netdev(void)
+void ldv_failed_register_netdev(void)
 {
 	/* NOTE Error occured */
 	ldv_probe_state = LDV_PROBE_ERROR;

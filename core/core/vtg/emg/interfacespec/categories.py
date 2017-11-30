@@ -73,7 +73,7 @@ def __distribute_container_types():
             if merged:
                 container_sets.remove(current_set)
             else:
-                raise RuntimeError("Cannot determine container set for {!r}".format(cont.identifier))
+                current_set.append(cont)
         elif cont not in current_set:
             current_set.append(cont)
 

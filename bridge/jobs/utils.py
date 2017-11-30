@@ -19,19 +19,21 @@ import os
 import re
 import json
 import hashlib
+
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, Case, When, IntegerField
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
-    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
+
 from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
-from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from users.notifications import Notify
+
+from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
@@ -477,7 +479,7 @@ def create_job(kwargs):
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
         newjob.identifier = hashlib.md5(time_encoded).hexdigest()
-    newjob.safe_marks = bool(kwargs.get('safe_marks', ENABLE_SAFE_MARKS))
+    newjob.safe_marks = bool(kwargs.get('safe_marks', settings.ENABLE_SAFE_MARKS))
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
@@ -714,7 +716,7 @@ def change_job_status(job, status):
 
 def get_default_configurations():
     configurations = []
-    for conf in DEF_KLEVER_CORE_MODES:
+    for conf in settings.DEF_KLEVER_CORE_MODES:
         mode = next(iter(conf))
         configurations.append([
             mode,
@@ -738,9 +740,9 @@ class GetConfiguration(object):
 
     def __get_default_conf(self, name):
         if name is None:
-            name = DEF_KLEVER_CORE_MODE
+            name = settings.DEF_KLEVER_CORE_MODE
         conf_template = None
-        for conf in DEF_KLEVER_CORE_MODES:
+        for conf in settings.DEF_KLEVER_CORE_MODES:
             mode = next(iter(conf))
             if mode == name:
                 conf_template = conf[mode]
@@ -749,13 +751,13 @@ class GetConfiguration(object):
         try:
             self.configuration = [
                 list(conf_template[0]),
-                list(KLEVER_CORE_PARALLELISM_PACKS[conf_template[1]]),
+                list(settings.KLEVER_CORE_PARALLELISM_PACKS[conf_template[1]]),
                 list(conf_template[2]),
                 [
                     conf_template[3][0],
-                    KLEVER_CORE_LOG_FORMATTERS[conf_template[3][1]],
+                    settings.KLEVER_CORE_LOG_FORMATTERS[conf_template[3][1]],
                     conf_template[3][2],
-                    KLEVER_CORE_LOG_FORMATTERS[conf_template[3][3]],
+                    settings.KLEVER_CORE_LOG_FORMATTERS[conf_template[3][3]],
                 ],
                 list(conf_template[4:])
             ]
@@ -827,6 +829,7 @@ class GetConfiguration(object):
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
                     filedata['collect total code coverage'],
+                    filedata['generate makefiles'],
                     filedata['weight']
                 ]
             ]
@@ -870,11 +873,11 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 8:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 9:
             return False
-        if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
+        if self.configuration[0][0] not in set(x[0] for x in PRIORITY):
             return False
-        if self.configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
+        if self.configuration[0][1] not in set(x[0] for x in SCHEDULER_TYPE):
             return False
         if not isinstance(self.configuration[0][2], int) or \
                 (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
@@ -894,9 +897,9 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[2][5], (float, int)) and self.configuration[2][5] is not None:
             return False
-        if self.configuration[3][0] not in LOGGING_LEVELS:
+        if self.configuration[3][0] not in settings.LOGGING_LEVELS:
             return False
-        if self.configuration[3][2] not in LOGGING_LEVELS:
+        if self.configuration[3][2] not in settings.LOGGING_LEVELS:
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
             return False
@@ -913,7 +916,7 @@ class StartDecisionData:
         self.job_sch_err = None
         self.schedulers = self.__get_schedulers()
         self.priorities = list(reversed(PRIORITY))
-        self.logging_levels = LOGGING_LEVELS
+        self.logging_levels = settings.LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
         self.formatters = KLEVER_CORE_FORMATTERS
         self.job_weight = JOB_WEIGHT

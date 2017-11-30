@@ -18,46 +18,45 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 
-static int __init init(void)
-{
-	rwlock_t *rwlock_1;
-	rwlock_t *rwlock_2;
-	rwlock_t *rwlock_3;
-	rwlock_t *rwlock_4;
+static DEFINE_RWLOCK(ldv_lock1);
+static DEFINE_RWLOCK(ldv_lock2);
+static DEFINE_RWLOCK(ldv_lock3);
 
+static int __init ldv_init(void)
+{
 	unsigned long flags;
 
-	write_lock(rwlock_1);
-	write_unlock(rwlock_1);
+	write_lock(&ldv_lock1);
+	write_unlock(&ldv_lock1);
 
-	read_lock(rwlock_1);
-	read_lock_irqsave(rwlock_1, flags);
+	read_lock(&ldv_lock1);
+	read_lock_irqsave(&ldv_lock1, flags);
 
-	write_lock_irq(rwlock_2);
-	write_unlock_irq(rwlock_2);
+	write_lock_irq(&ldv_lock2);
+	write_unlock_irq(&ldv_lock2);
 
-	read_lock_irq(rwlock_2);
-	read_lock_bh(rwlock_3);
+	read_lock_irq(&ldv_lock2);
+	read_lock_bh(&ldv_lock3);
 
-	write_lock_bh(rwlock_2);
-	write_unlock_bh(rwlock_2);
+	write_lock_bh(&ldv_lock2);
+	write_unlock_bh(&ldv_lock2);
 
-	read_unlock_bh(rwlock_3);
-	read_unlock_irq(rwlock_2);
-	read_unlock_irqrestore(rwlock_1, flags);
-	read_unlock(rwlock_1);
+	read_unlock_bh(&ldv_lock3);
+	read_unlock_irq(&ldv_lock2);
+	read_unlock_irqrestore(&ldv_lock1, flags);
+	read_unlock(&ldv_lock1);
 
-	write_lock_irqsave(rwlock_3, flags);
-	write_unlock_irqrestore(rwlock_3, flags);
+	write_lock_irqsave(&ldv_lock3, flags);
+	write_unlock_irqrestore(&ldv_lock3, flags);
 
-	if (read_trylock(rwlock_1)) {
-		if (write_trylock(rwlock_1)) {
-			write_unlock(rwlock_1);
-		}
-		read_unlock(rwlock_1);
+	if (read_trylock(&ldv_lock1)) {
+		if (write_trylock(&ldv_lock1))
+			write_unlock(&ldv_lock1);
+
+		read_unlock(&ldv_lock1);
 	}
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

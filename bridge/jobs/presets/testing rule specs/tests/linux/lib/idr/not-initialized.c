@@ -17,18 +17,18 @@
 
 #include <linux/module.h>
 #include <linux/idr.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct idr *idp;
-	void *ptr, *found;
-	int start, end;
-	gfp_t gfp_mask;
+	struct idr idp;
+	void *ptr = ldv_undef_ptr();
+	int start = ldv_undef_int(), end = ldv_undef_int();
+	gfp_t gfp_mask = ldv_undef_uint();
 
-	idr_alloc(idp, ptr, start, end, gfp_mask);
-
+	idr_alloc(&idp, ptr, start, end, gfp_mask);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

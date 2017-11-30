@@ -18,13 +18,12 @@
 #include <linux/module.h>
 #include <linux/spinlock.h>
 
-static int __init init(void)
+static DEFINE_RWLOCK(ldv_lock);
+
+static int __init ldv_init(void)
 {
-	rwlock_t *rwlock_1;
-
-	write_lock(rwlock_1);
-
+	write_lock(&ldv_lock);
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

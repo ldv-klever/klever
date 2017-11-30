@@ -1,1 +1,0 @@
-obj-m += safe.o wrong-flags.o nonatomic.o

@@ -17,18 +17,19 @@
 
 #include <linux/module.h>
 #include <linux/genhd.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	int minors;
+	int minors = ldv_undef_int();
 	struct gendisk *disk;
 
 	disk = alloc_disk(minors);
-	if (!disk)
-	    return -1;
+	ldv_assume(disk != NULL);
 	del_gendisk(disk);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

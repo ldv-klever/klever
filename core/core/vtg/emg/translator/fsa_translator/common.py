@@ -166,4 +166,22 @@ def initialize_automaton_variables(conf, automaton):
         initializations.insert(0, '/* Initialize automaton variables */')
     return initializations
 
+
+def model_relevant_files(analysis, cmodel, automaton):
+    files = set()
+    # Add declarations to files with explicit calls
+    kf = analysis.get_kernel_function(automaton.process.name)
+    files.update(kf.files_called_at)
+    # Then check where we added relevant headers that may contain calls potentially
+    if kf.header and len(kf.header) > 0:
+        for header in (h for h in kf.header if h in cmodel.extra_headers):
+            files.update(cmodel.extra_headers[header])
+    return files
+
+
+def add_model_function(analysis, cmodel, automaton, model):
+    files = model_relevant_files(analysis, cmodel, automaton)
+    for file in files:
+        cmodel.add_function_declaration(file, model, extern=True)
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

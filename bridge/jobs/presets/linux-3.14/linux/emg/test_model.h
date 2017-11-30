@@ -15,26 +15,35 @@
  * limitations under the License.
  */
 
-/* Check that callback can be called */
+/* MODEL_FUNC Initialize EMG test rule specification. */
+void ldv_initialize(void);
+
+/* MODEL_FUNC Callback reached. */
 void ldv_invoke_callback(void);
 
-/* Check that callback which requires allocated resources can be called */
+/* MODEL_FUNC Supress unrelevant warnings. */
+void ldv_invoke_test(void);
+
+/* MODEL_FUNC Middle callback reached. */
 void ldv_invoke_middle_callback(void);
 
-/* If function can be reached then produce an unsafe verdict to guarantee that there is a trace to the callback */
+/* MODEL_FUNC Callback has been called successfully, the test should pass. */
 void ldv_invoke_reached(void);
 
-/* Call if callbacks registration function has been successfully called */
+/* MODEL_FUNC Deregistration is done. */
 void ldv_deregister(void);
 
-/* Call if callbacks deregistration function has been successfully called */
+/* MODEL_FUNC Registration is done. */
 void ldv_register(void);
 
-/* More resources are allocated */
+/* MODEL_FUNC Called probing callback. */
 void ldv_probe_up(void);
 
-/* More resources are freed */
+/* MODEL_FUNC Called releasing callback. */
 void ldv_release_down(void);
 
-/* Free all resources */
+/* MODEL_FUNC All resources are released. */
 void ldv_release_completely(void);
+
+/* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
+void ldv_check_final_state(void);

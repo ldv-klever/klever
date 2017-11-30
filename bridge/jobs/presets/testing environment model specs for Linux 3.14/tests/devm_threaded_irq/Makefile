@@ -1,1 +1,0 @@
-obj-m += devm_irq_invoke.o devm_thread_invoke.o devm_request_threaded_irq.o devm_free_irq.o devm_threaded_irq_callbacks.o

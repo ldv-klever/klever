@@ -17,17 +17,19 @@
 
 #include <linux/module.h>
 #include <asm-generic/bitops/find.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	unsigned long size, offset, res;
-	const unsigned long *addr;
-	if (size < offset)
-		return;
-	res = find_next_zero_bit(addr, size, offset);
-	res = find_next_bit(addr, size, offset);
+	unsigned long size = ldv_undef_ulong(), offset = ldv_undef_ulong();
+	const unsigned long *addr = ldv_undef_ptr();
+
+	ldv_assume(size >= offset);
+	find_next_zero_bit(addr, size, offset);
+	find_next_bit(addr, size, offset);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

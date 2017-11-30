@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	dev_t *dev;
-	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
+	struct usb_gadget_driver driver;
+	dev_t dev = ldv_undef_uint();
+	unsigned int baseminor = ldv_undef_uint(), count = ldv_undef_uint();
+	const char *name = ldv_undef_ptr();
 
-	if (!usb_gadget_probe_driver(cur_driver)) {
-		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
-			usb_gadget_unregister_driver(cur_driver);
-			unregister_chrdev_region(dev, count);
-		}
-	}
+	ldv_assume(!usb_gadget_probe_driver(&driver));
+	ldv_assume(!alloc_chrdev_region(&dev, baseminor, count, name));
+	unregister_chrdev_region(dev, count);
+	usb_gadget_unregister_driver(&driver);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

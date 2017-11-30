@@ -16,18 +16,20 @@
  */
 
 #include <linux/module.h>
-#include <linux/kernel.h>
 #include <linux/clk.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct clk *clk_1;
-	struct clk *clk_2;
-	if (!clk_enable(clk_1)) {
-		if (!clk_enable(clk_2))
-			clk_disable(clk_2);
-	}
+	struct device *dev = ldv_undef_ptr();
+	const char *id = ldv_undef_ptr();
+	struct clk *clk;
+
+	clk = clk_get(dev, id);
+	ldv_assume(!clk_enable(clk));
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

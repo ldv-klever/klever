@@ -19,39 +19,49 @@
 #include <linux/mutex.h>
 #include <linux/types.h>
 #include <linux/kref.h>
+#include <verifier/nondet.h>
 
-static DEFINE_MUTEX(mutex_1);
-static DEFINE_MUTEX(mutex_2);
-static DEFINE_MUTEX(mutex_3);
+static DEFINE_MUTEX(ldv_lock1);
+static DEFINE_MUTEX(ldv_lock2);
+static DEFINE_MUTEX(ldv_lock3);
 
-static void specific_func(struct kref *kref);
-
-static int __init init(void)
+static void ldv_release(struct kref *kref)
 {
-	unsigned int num;
-	struct kref *kref;
-	atomic_t *counter;
+}
+
+static int __init ldv_init(void)
+{
+	unsigned int subclass = ldv_undef_uint();
+	struct kref kref;
+	atomic_t cnt;
+
+	kref_init(&kref);
+	atomic_set(&cnt, ldv_undef_int());
+
+	mutex_lock(&ldv_lock1);
+	mutex_lock_nested(&ldv_lock2, subclass);
+	kref_put_mutex(&kref, ldv_release, &ldv_lock3);
+	mutex_unlock(&ldv_lock1);
+	mutex_unlock(&ldv_lock2);
+	mutex_unlock(&ldv_lock3);
 	
-	mutex_lock(&mutex_1);
-	mutex_lock_nested(&mutex_2, num);
-	kref_put_mutex(kref, specific_func, &mutex_3);
-	mutex_unlock(&mutex_1);
-	mutex_unlock(&mutex_2);
-	mutex_unlock(&mutex_3);
-	
-	if (!mutex_lock_interruptible(&mutex_1))
-		mutex_unlock(&mutex_1);
-	if (!mutex_lock_killable(&mutex_1))
-		mutex_unlock(&mutex_1);
-	if (mutex_trylock(&mutex_1))
-		mutex_unlock(&mutex_1);
-	if (atomic_dec_and_mutex_lock(counter, &mutex_1))
-		mutex_unlock(&mutex_1);
-	mutex_lock(&mutex_1);
-	if (mutex_is_locked(&mutex_1))
-		mutex_unlock(&mutex_1);
+	if (!mutex_lock_interruptible(&ldv_lock1))
+		mutex_unlock(&ldv_lock1);
+
+	if (!mutex_lock_killable(&ldv_lock1))
+		mutex_unlock(&ldv_lock1);
+
+	if (mutex_trylock(&ldv_lock1))
+		mutex_unlock(&ldv_lock1);
+
+	if (atomic_dec_and_mutex_lock(&cnt, &ldv_lock1))
+		mutex_unlock(&ldv_lock1);
+
+	mutex_lock(&ldv_lock1);
+	if (mutex_is_locked(&ldv_lock1))
+		mutex_unlock(&ldv_lock1);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

@@ -30,7 +30,7 @@ enum
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
 /* MODEL_FUNC Nondeterministically change state after call to usb_register_driver() */
-int ldv_failed_usb_register_driver(void)
+void ldv_failed_usb_register_driver(void)
 {
 	/* NOTE Error occured */
 	ldv_probe_state = LDV_PROBE_ERROR;

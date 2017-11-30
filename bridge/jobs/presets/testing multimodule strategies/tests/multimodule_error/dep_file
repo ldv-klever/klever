@@ -1,2 +1,1 @@
-extra/advanced/init.ko needs "export_with_erro": extra/advanced/external.ko
-extra/closure/init.ko needs "export_with_erro": extra/closure/external.ko
+extra/init.ko needs "export_with_erro": extra/external.ko

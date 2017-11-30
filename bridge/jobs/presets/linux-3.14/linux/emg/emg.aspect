@@ -18,7 +18,6 @@
 before: file ("$this")
 {
 #include <linux/ldv/common.h>
-#include <linux/ldv/irq.h>
 #include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/gcc.h>

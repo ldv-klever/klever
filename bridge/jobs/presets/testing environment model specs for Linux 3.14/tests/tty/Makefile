@@ -1,1 +1,0 @@
-obj-m += tty_operations_callbacks.o tty_operations_invoke.o tty_port_operations_callbacks.o tty_port_operations_invoke.o tty_register_device.o tty_register_driver.o tty_unregister_device.o tty_unregister_driver.o

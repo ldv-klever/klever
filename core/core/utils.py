@@ -224,13 +224,6 @@ def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
     return abs_path_to_file_or_dir
 
 
-def is_src_tree_root(filenames):
-    for filename in filenames:
-        if filename == 'Makefile':
-            return True
-    return False
-
-
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string

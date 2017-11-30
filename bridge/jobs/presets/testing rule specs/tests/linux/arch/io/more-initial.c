@@ -17,16 +17,17 @@
 
 #include <linux/module.h>
 #include <asm/io.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	void *res;
-	phys_addr_t paddr;
-	unsigned long size;
+	phys_addr_t offset = ldv_undef_uint();
+	unsigned long size = ldv_undef_ulong();
 
-	res = ioremap(paddr, size);
+	ldv_assume(ioremap(offset, size) != NULL);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);
