@@ -551,7 +551,8 @@ class VTG(core.components.Component):
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
-                self.mqs['delete dir'].close()
+                if not self.conf['keep intermediate files']:
+                    self.mqs['delete dir'].close()
                 break
             else:
                 self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
