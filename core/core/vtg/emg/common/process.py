@@ -130,6 +130,7 @@ class Label:
         self.resource = False
         self.callback = False
         self.parameter = False
+        self.retval = False
         self.pointer = False
         self.parameters = []
         self.value = None
@@ -338,12 +339,14 @@ class Process:
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
-                if len(label1.interfaces) > 0 and not label2.prior_signature and not label2.parameter:
+                if len(label1.interfaces) > 0 and not label2.prior_signature and \
+                        not (label2.parameter or label2.retval):
                     for intf in label1.interfaces:
                         if label1.get_declaration(intf) and (intf not in label2.interfaces or
                                                              not label2.get_declaration(intf)):
                             label2.set_declaration(intf, label1.get_declaration(intf))
-                if len(label2.interfaces) > 0 and not label1.prior_signature and not label1.parameter:
+                if len(label2.interfaces) > 0 and not label1.prior_signature and \
+                        not (label1.parameter or label1.retval):
                     for intf in label2.interfaces:
                         if label2.get_declaration(intf) and (intf not in label1.interfaces or
                                                              not label1.get_declaration(intf)):

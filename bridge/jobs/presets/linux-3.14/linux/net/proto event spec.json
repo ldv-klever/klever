@@ -17,15 +17,24 @@
             "interface": [
               "proto.family"
             ]
+          },
+          "socket": {
+            "interface": ["proto.socket"],
+            "resource": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           }
         },
-        "process": "<assign>.[register].<success> | <fail>",
+        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get socket from arguments.",
             "statements": [
               "%ops% = $ARG1;",
-              "%family% = %ops%->family;"
+              "%family% = %ops%->family;",
+              "%socket% = $ALLOC(%socket%);"
             ]
           },
           "fail": {
@@ -42,7 +51,30 @@
           },
           "register": {
             "parameters": [
-              "%ops%", "%family%"
+              "%socket%", "%family%"
+            ]
+          },
+          "create": {
+            "callback": "%ops.family_create%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "create_success": {
+            "comment": "Create has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "create_fail": {
+            "comment": "Create has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "statements": [
+              "$FREE(%socket%);",
+              "return %ret%;"
             ]
           }
         }
@@ -89,15 +121,24 @@
             "interface": [
               "proto.family"
             ]
+          },
+          "socket": {
+            "interface": ["proto.socket"],
+            "resource": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           }
         },
-        "process": "<assign>.[register].<success> | <fail>",
+        "process": "<assign>.[create].(<create_success>.[register].<success> | <create_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get PPP encapsulation socket family identifier and socket from arguments.",
             "statements": [
               "%family% = $ARG1;",
-              "%ops% = $ARG2;"
+              "%ops% = $ARG2;",
+              "%socket% = $ALLOC(%socket%);"
             ]
           },
           "fail": {
@@ -114,7 +155,30 @@
           },
           "register": {
             "parameters": [
-              "%ops%", "%family%"
+              "%socket%", "%family%"
+            ]
+          },
+          "create": {
+            "callback": "%ops.proto_create%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "create_success": {
+            "comment": "Create has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "create_fail": {
+            "comment": "Create has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "statements": [
+              "$FREE(%socket%);",
+              "return %ret%;"
             ]
           }
         }
@@ -151,11 +215,9 @@
         "headers": ["linux/poll.h"],
         "comment": "Invoke socket family callbacks.",
         "labels": {
-          "container": {
-            "container": true
-          },
           "proto_ops": {
             "container": true,
+            "pointer": true,
             "interface": ["proto.proto_ops"]
           },
           "family": {
@@ -171,14 +233,15 @@
           },
           "socket": {
             "interface": ["proto.socket"],
+            "pointer": true,
             "resource": true
           }
         },
-        "process": "(!register).<alloc>.[create].(<create_success>.[bind].(<bind_success>.[callback].[release] | <bind_fail>) | <create_fail>).<free>.(deregister)",
+        "process": "(!register).<alloc>.[bind].(<bind_success>.[callback].[release] | <bind_fail>).<free>.(deregister)",
         "actions": {
           "register": {
             "parameters": [
-              "%container%",
+              "%socket%",
               "%family%"
             ]
           },
@@ -195,13 +258,6 @@
             "callback": "%callback%",
             "parameters": []
           },
-          "create": {
-            "callback": "%container.create%",
-            "callback return value": "%ret%",
-            "parameters": [
-              "%socket%"
-            ]
-          },
           "bind": {
             "callback": "%proto_ops.bind%",
             "callback return value": "%ret%",
@@ -216,27 +272,15 @@
             ]
           },
           "alloc": {
-            "comment": "Alloc memory for socket structure.",
+            "comment": "Initialize socket structure with proto ops.",
             "statements": [
-              "%socket% = $ALLOC(%socket%);"
+              "%socket%->ops = %proto_ops%;"
             ]
           },
           "free": {
             "comment": "Free memory of socket structure.",
             "statements": [
               "$FREE(%socket%);"
-            ]
-          },
-          "create_success": {
-            "comment": "Create has been successfull.",
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "create_fail": {
-            "comment": "Create has failed.",
-            "condition": [
-              "%ret% != 0"
             ]
           },
           "bind_success": {

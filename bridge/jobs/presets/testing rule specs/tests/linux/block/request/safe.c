@@ -17,25 +17,26 @@
 
 #include <linux/module.h>
 #include <linux/blkdev.h>
-#include <linux/types.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct request_queue *r;
-	struct bio *bio;
-	int x;
-	gfp_t flags = __GFP_WAIT;
-	struct request_queue *queue;
+	struct request_queue *q1 = ldv_undef_ptr(), *q2 = ldv_undef_ptr();
+	int rw = ldv_undef_int();
+	struct bio *bio = ldv_undef_ptr();
+	gfp_t gfp_mask1 = ldv_undef_uint(), gfp_mask2 = ldv_undef_uint();
+    struct request *request1, *request2;
 
-	struct request *request_1 = blk_get_request(r, x, flags);
-	if (request_1)
-		blk_put_request(request_1);
-	else
-		return -1;
-//	struct request *request_2 = blk_make_request(r, bio, flags);
-//	if (!IS_ERR(request_2))
-//		__blk_put_request(queue, request_2);
+	request1 = blk_get_request(q1, rw, gfp_mask1);
+	if (request1)
+		blk_put_request(request1);
+
+	request2 = blk_make_request(q2, bio, gfp_mask2);
+	if (!IS_ERR(request2))
+		__blk_put_request(q2, request2);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

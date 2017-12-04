@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct usb_device *udev;
+	struct usb_device *dev = ldv_undef_ptr_non_null();
 
-	udev = usb_get_dev(udev);
+	usb_get_dev(dev);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

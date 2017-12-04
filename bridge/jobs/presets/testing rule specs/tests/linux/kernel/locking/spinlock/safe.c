@@ -15,41 +15,40 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/spinlock.h>
 #include <linux/atomic.h>
+#include <verifier/nondet.h>
 
-static int __init my_init(void)
+static DEFINE_SPINLOCK(ldv_lock1);
+static DEFINE_SPINLOCK(ldv_lock2);
+
+static int __init ldv_init(void)
 {
-	spinlock_t *lock_1;
-	spinlock_t *lock_2;
+	atomic_t atomic;
 
-	spin_lock(lock_1);
-	spin_lock(lock_2);
-	spin_unlock(lock_2);
-	spin_unlock(lock_1);
+	atomic_set(&atomic, ldv_undef_int());
 
-	if (spin_trylock(lock_1)) {
-		spin_unlock(lock_1);
-	}
+	spin_lock(&ldv_lock1);
+	spin_lock(&ldv_lock2);
+	spin_unlock(&ldv_lock2);
+	spin_unlock(&ldv_lock1);
 
-	spin_lock(lock_1);
-	if (spin_is_locked(lock_1)) {
-		spin_unlock(lock_1);
-	}
+	if (spin_trylock(&ldv_lock1))
+		spin_unlock(&ldv_lock1);
 
-	spin_lock(lock_1);
-	if (!spin_can_lock(lock_1)) {
-		spin_unlock(lock_1);
-	}
+	spin_lock(&ldv_lock1);
+	if (spin_is_locked(&ldv_lock1))
+		spin_unlock(&ldv_lock1);
 
-	atomic_t *atomic;
-	if (atomic_dec_and_lock(atomic, lock_1)) {
-		spin_unlock(lock_1);
-	}
+	spin_lock(&ldv_lock1);
+	if (!spin_can_lock(&ldv_lock1))
+		spin_unlock(&ldv_lock1);
+
+	if (atomic_dec_and_lock(&atomic, &ldv_lock1))
+		spin_unlock(&ldv_lock1);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

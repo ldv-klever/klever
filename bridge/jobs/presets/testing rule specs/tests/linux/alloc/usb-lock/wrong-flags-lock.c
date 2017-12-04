@@ -15,46 +15,26 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <linux/irq.h>
 #include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/skbuff.h>
-#include <linux/slab.h>
-#include <linux/mempool.h>
-#include <linux/dmapool.h>
-#include <linux/dma-mapping.h>
-#include <linux/vmalloc.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-
-static struct my_struct
+static int __init ldv_init(void)
 {
-	const char *name;
-	unsigned int *irq;
-};
+	struct usb_device *udev = ldv_undef_ptr_non_null();
+	size_t size = ldv_undef_uint();
+	void *data;
 
-static int undef_int(void)
-{
-	int nondet;
-	return nondet;
-}
-
-static void memory_allocation(void)
-{
-	gfp_t flags;
-	struct my_struct *mem = kmalloc(sizeof(mem), flags);
-	kfree(mem);
-}
-
-static int __init my_init(void)
-{
-	struct usb_device *udev;
 	usb_lock_device(udev);
-	memory_allocation();
+	data = kmalloc(size, GFP_KERNEL);
+	ldv_assume(data != NULL);
 	usb_unlock_device(udev);
+
+	kfree(data);
+
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

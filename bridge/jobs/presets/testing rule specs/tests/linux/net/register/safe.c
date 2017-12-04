@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/netdevice.h>
+#include <verifier/nondet.h>
 
-
-static int ldv_usb_probe(struct usb_interface *interface,
+static int ldv_usb_probe(struct usb_interface *intf,
                          const struct usb_device_id *id)
 {
-	int err;
-	struct net_device *ldv_net_device;
+	struct net_device *dev = ldv_undef_ptr();
 
-	err = register_netdev(ldv_net_device);
-	if (err < 0) {
-		return err;
-	}
+	if (register_netdev(dev))
+		return ldv_undef_int_negative();
+
+	unregister_netdev(dev);
 
 	return 0;
 }
@@ -39,9 +37,14 @@ static struct usb_driver ldv_usb_driver = {
 	.probe = ldv_usb_probe
 };
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	return usb_register(&ldv_usb_driver);
+	if (usb_register(&ldv_usb_driver))
+		return ldv_undef_int_negative();
+
+	usb_deregister(&ldv_usb_driver);
+
+	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

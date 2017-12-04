@@ -110,7 +110,6 @@ __grammar_tests = [
 for test in __grammar_tests:
     print(test)
     object = import_declaration(test)
-    is_static(test)
     #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))

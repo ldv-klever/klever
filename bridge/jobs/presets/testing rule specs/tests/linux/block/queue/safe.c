@@ -17,21 +17,29 @@
 
 #include <linux/module.h>
 #include <linux/blkdev.h>
-#include <linux/types.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static DEFINE_SPINLOCK(ldv_lock);
+
+static void ldv_rfn(struct request_queue *q)
 {
-	request_fn_proc *r;
-	spinlock_t *spin;
-	gfp_t flags;
-	struct request_queue *queue = blk_init_queue(r, spin);
-	if (queue)
-		blk_cleanup_queue(queue);
-	queue = blk_alloc_queue(flags);
-	if (queue)
-		blk_cleanup_queue(queue);
+}
+
+static int __init ldv_init(void)
+{
+	gfp_t gfp_mask = ldv_undef_uint();
+	struct request_queue *queue1, *queue2;
+
+	queue1 = blk_init_queue(ldv_rfn, &ldv_lock);
+	ldv_assume(queue1 != NULL);
+	blk_cleanup_queue(queue1);
+
+	queue2 = blk_alloc_queue(gfp_mask);
+	ldv_assume(queue2 != NULL);
+	blk_cleanup_queue(queue2);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

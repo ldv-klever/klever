@@ -69,6 +69,7 @@ void ldv_module_put_and_exit(void)
 {
 	/* MODEL_FUNC_CALL Decrement module reference counter */ 
 	ldv_module_put((struct module *)1);
+	/* TODO: indeed this can result in missing bugs because of final state won't be checked. Safe test shows that. */
 	/* NOTE Stop execution */
 	LDV_STOP: goto LDV_STOP;
 }

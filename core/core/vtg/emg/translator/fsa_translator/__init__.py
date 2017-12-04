@@ -443,7 +443,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _call(self, state, automaton):
-        # todo: This is need to move to Linux specific part and replace it with a code block
         """
         Generate code block for callback call. This can not be configured in translator implementations and for each
         callback call consists of: guard, pre-conditions (similarly to conditional code blocks), function call of the
@@ -737,6 +736,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 comment = state.action.comment.format(field, structure_name)
 
                 comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
+                comments.append(action_model_comment(state.action, None, begin=False))
+
+                relevant_automata = registration_intf_check(self._analysis,
+                                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
+                                                            self._model_fsa,
+                                                            invoke)
 
                 conditions = list()
 

@@ -17,14 +17,14 @@
 
 #include <linux/module.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-    int *var1, var2;
+	int *var1, var2;
 
-    var1 = NULL;
-    var2 = *var1;
+	var1 = NULL;
+	var2 = *var1;
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

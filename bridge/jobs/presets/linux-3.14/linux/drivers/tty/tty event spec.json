@@ -485,7 +485,7 @@
         }
       },
       "tty_unregister_driver": {
-        "comment": "Unregister a tty device.",
+        "comment": "Unregister a tty driver.",
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -513,6 +513,7 @@
     },
     "environment processes": {
       "tty_scenario": {
+        "comment": "Invoke tty callbacks",
         "headers": [
           "linux/tty.h"
         ],

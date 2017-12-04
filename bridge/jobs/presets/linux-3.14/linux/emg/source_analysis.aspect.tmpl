@@ -145,5 +145,5 @@ info: init_global($ $){
 }
 
 info: introduce($ $) {
-	$fprintf<"$env<CWD>/typedefs.txt","declaration: %s\n",$signature>
+	$fprintf<"$env<CWD>/typedefs.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
 }

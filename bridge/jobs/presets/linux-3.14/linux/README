@@ -1,0 +1,2 @@
+Please, place header files within subdirectory "ldv" to avoid any conflicts
+with original Linux kernel header files.

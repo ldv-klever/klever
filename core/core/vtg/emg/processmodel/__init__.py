@@ -137,7 +137,14 @@ class ProcessModel:
                                                   format(label, parameter.identifier))
                                 new_process.labels[label].set_declaration(parameter.identifier, signature)
                                 break
-                    elif not new_process.labels[label].parameter and new_process.labels[label].interfaces:
+                    elif new_process.labels[label].retval and not new_process.labels[label].prior_signature:
+                        if function_obj.rv_interface:
+                            new_process.labels[label].set_declaration(function_obj.rv_interface.identifier,
+                                                                      function_obj.rv_interface.declaration)
+                        else:
+                            new_process.labels[label].prior_signature = function_obj.declaration.return_value
+                    elif not (new_process.labels[label].parameter or new_process.labels[label].retval) and \
+                            new_process.labels[label].interfaces:
                         for interface in new_process.labels[label].interfaces:
                             interface_obj = analysis.get_intf(interface)
                             new_process.labels[label].set_declaration(interface, interface_obj.declaration)

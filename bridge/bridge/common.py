@@ -150,6 +150,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
 #   collect total code coverage - True of False.
+#   generate makefiles - True of False.
 #   weight of decision - '0' for full-weight and '1' for lightweight jobs.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
@@ -159,7 +160,7 @@ DEF_KLEVER_CORE_MODES = [
             'slow',
             [1.0, 0, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False, True, '1'
+            False, False, False, False, False, False, True, False, '1'
         ]
     },
     {
@@ -168,7 +169,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, True, '0'
+            True, True, False, True, True, True, True, True, '0'
         ]
     },
     {
@@ -177,7 +178,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True, True, '0'
+            True, True, True, True, True, True, True, True, '0'
         ]
     },
 ]

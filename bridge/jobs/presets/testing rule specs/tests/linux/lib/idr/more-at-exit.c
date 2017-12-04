@@ -18,13 +18,13 @@
 #include <linux/module.h>
 #include <linux/idr.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct idr *idp;
+	struct idr idp;
 
-	idr_init(idp);
+	idr_init(&idp);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);

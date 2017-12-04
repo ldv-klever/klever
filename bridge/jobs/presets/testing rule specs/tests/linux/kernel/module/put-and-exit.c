@@ -16,13 +16,17 @@
  */
 
 #include <linux/module.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct module *test_module;
-	__module_get(test_module);
-	module_put_and_exit(0x0);
+	struct module *module = ldv_undef_ptr();
+
+	/* TODO: __module_get() can fail while module_put_and_exit() operates with another module. */
+	__module_get(module);
+	module_put_and_exit(0);
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);
