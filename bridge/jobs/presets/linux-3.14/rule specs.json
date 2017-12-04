@@ -27,6 +27,7 @@
               "add missing activation signals": ["register", "instance_register", "irq_register"],
               "add missing deactivation signals": ["deregister", "instance_deregister", "irq_deregister"],
               "ignore missed callbacks": true,
+              "implicit callback calls": true,
               "roles map file": "linux/emg/roles match.json",
               "callback comment": "Invoke callback {0} from {1}.",
               "action comments": {
@@ -48,7 +49,6 @@
             },
             "translation options": {
               "dump automata graphs": false,
-              "implicit callback calls": true,
               "direct control functions calls": true,
               "nested automata": true,
               "pointer initialization": {

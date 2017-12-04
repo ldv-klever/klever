@@ -114,7 +114,7 @@ class EMG(core.vtg.plugins.Plugin):
 
         # Import additional aspect files
         # todo: proceed to refactoring of the translator
-        translate_intermediate_model(self.logger, self.conf["translation options"], self.abstract_task_desc, ics, model,
+        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
                                      additional_code)
         self.logger.info("An environment model has been generated successfully")
 
