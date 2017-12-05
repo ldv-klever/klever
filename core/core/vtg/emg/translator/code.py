@@ -300,7 +300,6 @@ class FunctionModels:
             return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], '0')
 
     def text_processor(self, automaton, statement):
-        # todo: this should be refactored but how?
         # Replace function names
         stms = []
         matched = False

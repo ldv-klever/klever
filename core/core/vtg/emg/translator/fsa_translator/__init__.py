@@ -527,7 +527,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
                 name = 'ldv_emg_{}'.format(automaton.process.name)
-                # todo: This can be extraced also from code analysis results
                 function_obj = self._analysis.get_kernel_function(automaton.process.name)
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
