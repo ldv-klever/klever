@@ -565,6 +565,21 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
             __generate_model_comment(newp)
             if get_conf_property(conf, "convert static to global", expected_type=bool):
                 _remove_statics(analysis, access_map)
+
+            # Add relevant headers
+            header_list = list.copy(newp.headers)
+            for access in access_map:
+                for i in access_map[access]:
+                    try:
+                        interface = analysis.get_intf(i)
+                        if interface and interface.header:
+                            for header in interface.header:
+                                if header not in header_list:
+                                    header_list.append(header)
+                    except KeyError:
+                        pass
+            newp.headers = header_list
+
             new_base_list.append(newp)
 
     return new_base_list

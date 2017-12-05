@@ -52,6 +52,7 @@ class CModel:
         self._variables_initializations = dict()
         self._function_definitions = dict()
         self._function_declarations = dict()
+        self._headers = dict()
         self._before_aspects = dict()
         self._common_aspects = list()
         self.__external_allocated = dict()
@@ -75,21 +76,11 @@ class CModel:
 
         return
 
-    def propogate_aux_function(self, analysis, automaton, function):
-        # todo: this function should be depreceated
-        # Determine files to export
-        files = set()
-        if automaton.process.category == "kernel models":
-            # Calls
-            function_obj = analysis.get_kernel_function(automaton.process.name)
-            files.update(set(function_obj.files_called_at))
-            for caller in (c for c in function_obj.functions_called_at):
-                # Caller definitions
-                files.update(set(analysis.get_modules_function_files(caller)))
-
-        # Export
-        for file in files:
-            self.add_function_declaration(file, function, extern=True)
+    def add_headers(self, file, headers):
+        if file not in self._headers:
+            self._headers[file] = headers
+        else:
+            self._headers[file].extend([h for h in headers if h not in self._headers[file]])
 
     def add_function_definition(self, file, function):
         if not file:

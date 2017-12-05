@@ -20,8 +20,8 @@ from operator import attrgetter
 import graphviz
 
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
-from core.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
+from core.vtg.emg.common.signature import import_declaration
+from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess, \
     get_common_parameter
 from core.vtg.emg.common.code import FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata, choose_file, initialize_automaton_variables
@@ -59,23 +59,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._logger.info("Include extra header files if necessary")
 
         # Get from unused interfaces
-        # todo: it is possible to replace this using explicit list of headers
-        header_list = list()
-        for interface in (self._analysis.get_intf(i) for i in self._analysis.interfaces):
-            if len(interface.declaration.implementations) == 0 and interface.header:
-                for header in interface.header:
-                    if header not in header_list:
-                        header_list.append(header)
-
-        # Get from specifications
         for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
-            for header in process.headers:
-                if header not in header_list:
-                    header_list.append(header)
-
-        # Generate aspect
-        self._cmodel.add_before_aspect(('#include <{}>\n'.format(h) for h in header_list))
-        self._logger.info("Have added {!s} additional headers".format(len(header_list)))
+            self._cmodel.add_headers(self._cmodel.entry_file, process.headers)
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
@@ -442,361 +427,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         return code, v_code, conditions, comments
 
-    def _call(self, state, automaton):
-        """
-        Generate code block for callback call. This can not be configured in translator implementations and for each
-        callback call consists of: guard, pre-conditions (similarly to conditional code blocks), function call of the
-        aux function which will be added to the file where function name is definately visible and which contains only
-        the callback call and post-conditions. If a callback is matched with several interfaces then instead several
-        optional nodes will be generated with all additional pre and post- conditions.
-
-        :param state: State object.
-        :param automaton: Automaton object which contains the callback call.
-        :return: [list of strings with lines of C code statements of the code block],
-                 [list of strings with new local variable declarations required for the block],
-                 [list of strings with boolean conditional expressions which guard code block entering],
-                 [list of strings with model comments which embrace the code block]
-        """
-        def ret_expression(st):
-            # Generate external function retval
-            ret_declaration = 'void'
-            callback_return_expression = ''
-            external_return_expression = ''
-            ret_access = None
-            if st.action.retlabel:
-                ret_access = automaton.process.resolve_access(st.action.retlabel)
-            else:
-                ret_subprocess = [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
-                                  if type(automaton.process.actions[name]) is CallRetval and
-                                  automaton.process.actions[name].callback == st.action.callback and
-                                  automaton.process.actions[name].retlabel]
-                if ret_subprocess:
-                    ret_access = automaton.process.resolve_access(ret_subprocess[0].retlabel)
-
-            if ret_access:
-                suits = [access for access in ret_access if
-                         (access.interface and
-                          access.interface.declaration.compare(signature.points.return_value)) or
-                         (not access.interface and access.label and
-                          any((signature.points.return_value.compare(d) for d in access.label.declarations)))]
-                if len(suits) > 0:
-                    if suits[0].interface:
-                        label_var = automaton.determine_variable(suits[0].label, suits[0].interface.identifier)
-                    else:
-                        label_var = automaton.determine_variable(suits[0].label)
-                    ret_declaration = signature.points.return_value.to_string('', typedef='complex_and_params')
-                    callback_return_expression = 'return '
-                    external_return_expression = suits[0].access_with_variable(label_var) + ' = '
-                else:
-                    raise RuntimeError("Cannot find a suitable label for return value of action '{}'".
-                                       format(st.action.name))
-
-            return ret_declaration, callback_return_expression, external_return_expression
-
-        def match_parameters(declaration):
-            # Try to match action parameters
-            found_positions = dict()
-            for label_index in range(len(st.action.parameters)):
-                accesses = automaton.process.resolve_access(st.action.parameters[label_index])
-                for acc in (a for a in accesses if a.list_interface and len(a.list_interface) > 0):
-                    for position in (p for p in list(range(len(declaration.points.parameters)))[label_index:]
-                                     if p not in found_positions):
-                        parameter = declaration.points.parameters[position]
-                        if (acc.list_interface[-1].declaration.compare(parameter) or
-                                acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                            expression = acc.access_with_variable(
-                                automaton.determine_variable(acc.label, acc.list_interface[0].identifier))
-                            found_positions[position] = expression
-                            break
-
-            # Fulfil rest parameters
-            pointer_params = []
-            label_params = []
-            for index in range(len(declaration.points.parameters)):
-                if type(declaration.points.parameters[index]) is not str and index not in found_positions:
-                    if type(declaration.points.parameters[index]) is not Primitive and \
-                            type(declaration.points.parameters[index]) is not Pointer:
-                        param_signature = declaration.points.parameters[index].take_pointer
-                        pointer_params.append(index)
-                    else:
-                        param_signature = declaration.points.parameters[index]
-
-                    lb, var = automaton.new_param("ldv_param_{}_{}".format(st.identifier, index),
-                                                  param_signature, None)
-                    label_params.append(lb)
-                    expression = var.name
-
-                    # Add string
-                    found_positions[index] = expression
-
-            return pointer_params, label_params, found_positions
-
-        def manage_default_resources(label_parameters):
-            # Add precondition and postcondition
-            if len(label_parameters) > 0:
-                pre_stments = []
-                post_stments = []
-                for label in sorted(list(set(label_parameters)), key=lambda lb: lb.name):
-                    pre_stments.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
-                    post_stments.append('$FREE(%{}%);'.format(label.name))
-
-                pre_name = 'pre_call_{}'.format(st.identifier)
-                pre_action = automaton.process.add_condition(pre_name, [], pre_stments,
-                                                             "Allocate memory for adhoc callback parameters.")
-                pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
-                self._compose_action(pre_st, automaton)
-
-                post_name = 'post_call_{}'.format(st.identifier)
-                post_action = automaton.process.add_condition(post_name, [], post_stments,
-                                                              "Free memory of adhoc callback parameters.")
-                post_st = automaton.fsa.add_new_successor(st, post_action)
-                self._compose_action(post_st, automaton)
-
-        def generate_function(st, callback_declaration, invoke, file, check, func_variable):
-            pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
-            manage_default_resources(label_parameters)
-            ret_declaration, callback_return_expression, external_return_expression = ret_expression(st)
-
-            # Determine external function params
-            resources = [signature.to_string('arg0', typedef='complex_and_params')]
-            callback_params = []
-            for index in range(len(signature.points.parameters)):
-                if type(signature.points.parameters[index]) is not str:
-                    if index in pointer_params:
-                        resources.append(signature.points.parameters[index].take_pointer.
-                                         to_string('arg{}'.format(index + 1), typedef='complex_and_params'))
-                        callback_params.append('*arg{}'.format(index + 1))
-                    else:
-                        resources.append(signature.points.parameters[index].
-                                         to_string('arg{}'.format(index + 1), typedef='complex_and_params'))
-                        callback_params.append('arg{}'.format(index + 1))
-            callback_params = ", ".join(callback_params)
-            resources = ", ".join(resources)
-
-            fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, st.action.name, automaton.identifier,
-                                             st.identifier)
-            function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources),
-                                          export=True, callback=True)
-
-            # Determine label params
-            external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
-
-            true_invoke = external_return_expression + '({})'.format(invoke) + \
-                          '(' + ', '.join(external_parameters) + ');'
-            inv = []
-            if check:
-                f_invoke = external_return_expression + fname + '(' + ', '.join([invoke] + external_parameters) + ');'
-                inv.append('if ({}) '.format(invoke) + '{')
-                inv.append(model_comment('callback', st.action.name, {'call': true_invoke}))
-                inv.append('\t' + f_invoke)
-                inv.append('}')
-                call = callback_return_expression + '(*arg0)' + '(' + callback_params + ')'
-            else:
-                f_invoke = external_return_expression + fname + '(' + \
-                           ', '.join([func_variable] + external_parameters) + ');'
-                inv.append(model_comment('callback', st.action.name, {'call': true_invoke}))
-                inv.append(f_invoke)
-                call = callback_return_expression + '({})'.format(invoke) + '(' + callback_params + ')'
-            function.body.append('{};'.format(call))
-
-            self._cmodel.add_function_definition(file, function)
-            self._cmodel.add_function_declaration(choose_file(self._cmodel, self._analysis, automaton),
-                                                  function, extern=True)
-            self._cmodel.propogate_aux_function(self._analysis, automaton, function)
-
-            return inv
-
-        def add_post_conditions(st, inv):
-            post_call = []
-            if access.interface and access.interface.interrupt_context:
-                post_call.extend(self._cmodel.text_processor(automaton, '$SWITCH_TO_PROCESS_CONTEXT();'))
-
-            if st.action.post_call and len(st.action.post_call) > 0:
-                for stment in st.action.post_call:
-                    post_call.extend(self._cmodel.text_processor(automaton, stment))
-
-            if len(post_call) > 0:
-                post_call.insert(0, '/* Callback post-call */')
-                inv += post_call
-
-            return inv
-
-        def add_pre_conditions(st, inv):
-            callback_pre_call = []
-            if st.action.pre_call and len(st.action.pre_call) > 0:
-                for stment in st.action.pre_call:
-                    callback_pre_call.extend(self._cmodel.text_processor(automaton, stment))
-
-            if access.interface and access.interface.interrupt_context:
-                callback_pre_call.extend(self._cmodel.text_processor(automaton, '$SWITCH_TO_IRQ_CONTEXT();'))
-
-            if len(callback_pre_call) > 0:
-                callback_pre_call.insert(0, '/* Callback pre-call */')
-                inv = callback_pre_call + inv
-
-            return inv
-
-        def make_action(st, declaration, invoke, file, check, func_variable):
-            # Add an additional condition
-            if st.action.condition and len(st.action.condition) > 0:
-                for stment in st.action.condition:
-                    cn = self._cmodel.text_processor(automaton, stment)
-                    conditions.extend(cn)
-
-            inv = generate_function(st, declaration, invoke, file, check, func_variable)
-            inv = add_pre_conditions(st, inv)
-            inv = add_post_conditions(st, inv)
-
-            return inv
-
-        def reinitialize_variables(code):
-            reinitialization_action_set = get_conf_property(self._conf, 'callback actions with reinitialization', list)
-            if reinitialization_action_set and state.action.name in reinitialization_action_set:
-                statements = initialize_automaton_variables(self._conf, automaton)
-                code.extend(statements)
-
-        # Determine callback implementations
-        accesses = automaton.process.resolve_access(state.action.callback)
-        generated_callbacks = []
-        for access in accesses:
-            reinitialize_vars_flag = False
-            if access.interface:
-                signature = access.interface.declaration
-                implementation = automaton.process.get_implementation(access)
-
-                # todo: This can be extraced also from code analysis results
-                if implementation and self._analysis.refined_name(implementation.value):
-                    # Eplicit callback call by found function name
-                    invoke = '(' + implementation.value + ')'
-                    file = implementation.file
-                    check = False
-                    func_variable = access.access_with_variable(automaton.determine_variable(access.label,
-                                                                                        access.list_interface[0].
-                                                                                        identifier))
-                elif signature.clean_declaration and not isinstance(implementation, bool) and\
-                        get_necessary_conf_property(self._conf, 'implicit callback calls'):
-                    # Call by pointer
-                    invoke = access.access_with_variable(
-                        automaton.determine_variable(access.label, access.list_interface[0].identifier))
-                    check = True
-                    file = self._cmodel.entry_file
-                    func_variable = invoke
-                    reinitialize_vars_flag = True
-                else:
-                    # Avoid call if neither implementation and pointer call are known
-                    invoke = None
-            else:
-                signature = access.label.prior_signature
-
-                func_variable = automaton.determine_variable(access.label)
-                # todo: This can be extraced also from code analysis results
-                if access.label.value and self._analysis.refined_name(access.label.value):
-                    # Call function provided by an explicit name but with no interface
-                    invoke = self._analysis.refined_name(access.label.value)
-                    func_variable = func_variable.name
-                    # todo: This can be extraced also from code analysis results
-                    file = self._analysis.determine_original_file(access.label.value)
-                    check = False
-                else:
-                    if func_variable and get_necessary_conf_property(self._conf, 'implicit callback calls'):
-                        # Call if label(variable) is provided but with no explicit value
-                        invoke = access.access_with_variable(func_variable)
-                        func_variable = func_variable.name
-                        file = self._cmodel.entry_file
-                        check = True
-                    else:
-                        invoke = None
-
-            if invoke:
-                if len(generated_callbacks) == 0:
-                    st = state
-                else:
-                    st = automaton.fsa.clone_state(state)
-                code, comments = list(), list()
-
-                # Determine structure type name of the container with the callback if such exists
-                # todo: This is used for comments. It is better to generate comments directly in model
-                structure_name = None
-                if access.interface and implementation and len(implementation.sequence) > 0:
-                    field = implementation.sequence[-1]
-                    containers = self._analysis.resolve_containers(access.interface.declaration,
-                                                                   access.interface.category)
-                    if len(containers.keys()) > 0:
-                        for name in (name for name in containers if field in containers[name]):
-                            structure = self._analysis.get_intf(name).declaration
-                            # todo: this code does not take into account that implementation of callback and
-                            #       implementation of the container should be connected.
-                            if isinstance(structure, Structure):
-                                structure_name = structure.name
-                                break
-                if not structure_name:
-                    # Use instead role and category
-                    field = state.action.name
-                    structure_name = automaton.process.category.upper()
-                comment = state.action.comment.format(field, structure_name)
-
-                comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
-                comments.append(action_model_comment(state.action, None, begin=False))
-
-                relevant_automata = registration_intf_check(self._analysis,
-                                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
-                                                            self._model_fsa,
-                                                            invoke)
-
-                conditions = list()
-
-                inv = make_action(st, signature, invoke, file, check, func_variable)
-                code.extend(inv)
-
-                # If necessary reinitialize variables, for instance, if probe skipped
-                if reinitialize_vars_flag:
-                    reinitialize_variables(code)
-                
-                generated_callbacks.append((st, code, list(), conditions, comments))
-
-        if len(generated_callbacks) == 0:
-            code, comments = list(), list()
-
-            # Make comments
-            comments.append(action_model_comment(state.action,
-                                                 'Call callback {!r} of a process {!r} of an interface category {!r}'.\
-                                                 format(state.action.name, automaton.process.name,
-                                                        automaton.process.category),
-                                                 begin=True))
-            comments.append(action_model_comment(state.action, None, begin=False))
-            code.append('/* Skip callback without implementations */')
-
-            # If necessary reinitialize variables, for instance, if probe skipped
-            reinitialize_variables(code)
-
-            generated_callbacks.append((state, code, list(), list(), comments))
-
-        return generated_callbacks
-
-    def _call_retval(self, state, automaton):
-        """
-        Generate code block for returning value to ensure that callback is terminated. This is actual for true parallel
-        environment model.
-
-        :param state: State object.
-        :param automaton: Automaton object which contains the callback return value action.
-        :return: [list of strings with lines of C code statements of the code block],
-                 [list of strings with new local variable declarations required for the block],
-                 [list of strings with boolean conditional expressions which guard code block entering],
-                 [list of strings with model comments which embrace the code block]
-        """
-        # Add begin model comment
-        code, v_code, conditions, comments = list(), list(), list(), list()
-        comment = state.action.comment
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
-        code.append('/* Return value expectation is not supported in the current version of EMG */')
-        # todo: such kind of actions is no needed and not supported now, since no true parallel model can be generated
-        raise NotImplementedError("Avoid using of deprecated return value actions and describe returned values"
-                                  " directly at calling actions")
-
-        return code, v_code, conditions, comments
-
     def _subprocess(self, state, automaton):
         """
         Generate reduction to a subprocess as a code block. Add your own logic in the corresponding implementation.
@@ -1072,26 +702,22 @@ class FSATranslator(metaclass=abc.ABCMeta):
             final_code.append('')
             st.code = (v_code, final_code)
 
-        if type(state.action) is Call:
-            for st, code, v_code, conditions, comments in self._call(state, automaton):
-                compose_single_action(st, code, v_code, conditions, comments)
+        if type(state.action) is Dispatch:
+            code_generator = self._dispatch
+        elif type(state.action) is Receive:
+            code_generator = self._receive
+        elif type(state.action) is Condition:
+            code_generator = self._condition
+        elif type(state.action) is Subprocess:
+            code_generator = self._subprocess
+        elif state.action is None:
+            code_generator = self._art_action
         else:
-            if type(state.action) is Dispatch:
-                code_generator = self._dispatch
-            elif type(state.action) is Receive:
-                code_generator = self._receive
-            elif type(state.action) is CallRetval:
-                code_generator = self._call_retval
-            elif type(state.action) is Condition:
-                code_generator = self._condition
-            elif type(state.action) is Subprocess:
-                code_generator = self._subprocess
-            elif state.action is None:
-                code_generator = self._art_action
-            else:
-                raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
+            raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
 
-            code, v_code, conditions, comments = code_generator(state, automaton)
-            compose_single_action(state, code, v_code, conditions, comments)
+        code, v_code, conditions, comments = code_generator(state, automaton)
+        compose_single_action(state, code, v_code, conditions, comments)
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+

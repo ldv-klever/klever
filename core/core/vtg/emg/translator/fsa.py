@@ -434,11 +434,9 @@ class Automaton:
         else:
             if label.prior_signature:
                 var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"),
-                               None, label.prior_signature, export=True, scope=label.scope)
+                               None, label.prior_signature, export=True)
                 if label.value:
                     var.value = label.value
-                if label.file:
-                    var.file = label.file
 
                 if label.name not in self.__label_variables:
                     self.__label_variables[label.name] = {}
