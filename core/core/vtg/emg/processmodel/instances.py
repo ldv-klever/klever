@@ -415,14 +415,18 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
 
     if generated_callbacks == 0:
         # It is simply enough to delete the action or generate an empty action with a specific comment
-        code, comments = list(), list()
+        code = list()
 
         # Make comments
         code.append('/* Skip callback without implementations */')
-
         # If necessary reinitialize variables, for instance, if probe skipped
         if reinitialize_vars_flag:
             reinitialize_variables(code)
+
+        n = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
+                                  [], code, "No callbacks implemented to call here")
+        process.insert_action(call.name, "<{}>".format(n.name), position='instead')
+        n.statements = code
 
 
 def _yield_instances(logger, conf, analysis, model, instance_maps):
@@ -552,8 +556,6 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
 
-
-
     logger.info("Going to generate {} instances for process '{}' with category '{}'".
                 format(len(maps), process.name, process.category))
     new_base_list = []
@@ -571,6 +573,7 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
             for access in access_map:
                 for i in access_map[access]:
                     try:
+                        interface = analysis.get_intf(i)
                         interface = analysis.get_intf(i)
                         if interface and interface.header:
                             for header in interface.header:

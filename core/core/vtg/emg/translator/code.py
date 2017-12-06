@@ -22,6 +22,7 @@ from core.utils import unique_file_name
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.code import FunctionDefinition, Aspect
 from core.vtg.emg.common.signature import Pointer, Function, Primitive
+from core.vtg.emg.translator.fsa_translator.common import initialize_automaton_variables
 
 
 class CModel:
@@ -304,6 +305,11 @@ class FunctionModels:
         stms = []
         matched = False
 
+        # Find state reinitialization
+        if re.compile('\$REINITIALIZE_STATE;').search(statement):
+            statements = initialize_automaton_variables(self._conf, automaton)
+            stms.extend(statements)
+
         # First replace simple replacements
         for number in self.arg_re.findall(statement):
             new_number = int(number) - 1
@@ -323,26 +329,16 @@ class FunctionModels:
 
                 accesses = automaton.process.resolve_access('%{}%'.format(access))
                 for access in accesses:
-                    ualloc_flag = True
-                    if access.interface:
-                        if access.interface.manually_specified:
-                            ualloc_flag = False
-                        signature = access.label.get_declaration(access.interface.identifier)
-                    else:
-                        signature = access.label.prior_signature
-
+                    signature = access.label.prior_signature
                     if signature:
-                        if access.interface:
-                            var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
-                        else:
-                            var = automaton.determine_variable(access.label)
-
-                        if type(var.declaration) is Pointer:
+                        var = automaton.determine_variable(access.label)
+                        if isinstance(var.declaration, Pointer):
                             self.signature = var.declaration
-                            self.ualloc_flag = ualloc_flag
+                            self.ualloc_flag = True
                             new = self.mem_function_re.sub(replacement, statement)
-                            new = access.replace_with_variable(new, var)
                             stms.append(new)
+                    else:
+                        raise ValueError("Cannot get signature for the label {!r".format(access.label.name))
             elif fn in self.irq_function_map:
                 statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
                 stms.append(statement)
@@ -360,17 +356,13 @@ class FunctionModels:
 
             while len(stm_set) > 0:
                 stm = stm_set.pop()
-
-                if self.access_re.search(stm):
-                    expression = self.access_re.search(stm).group(1)
+                match = self.access_re.search(stm)
+                if match:
+                    expression = match.group(1)
                     accesses = automaton.process.resolve_access(expression)
                     for access in accesses:
-                        if access.interface:
-                            var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
-                        else:
-                            var = automaton.determine_variable(access.label)
-
-                        stm = access.replace_with_variable(stm, var)
+                        var = automaton.determine_variable(access.label)
+                        stm = stm.replace(expression, var.name)
                         stm_set.add(stm)
                 else:
                     final.append(stm)
@@ -386,7 +378,7 @@ class FunctionModels:
         elif not self.mem_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
-        if type(self.signature) is Pointer:
+        if isinstance(self.signature, Pointer):
             if function == 'ALLOC' and self.ualloc_flag:
                 # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
                 function = 'UALLOC'
