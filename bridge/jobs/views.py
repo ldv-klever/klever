@@ -877,9 +877,14 @@ def fast_run_decision(request):
 @unparallel_group([Job])
 def lastconf_run_decision(request):
     activate(request.user.extended.language)
-    if request.method != 'POST' or 'job_id' not in request.POST:
+    if request.method != 'POST' or 'job_id' not in request.POST or 'job_identifier' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
+    if 'job_identifier' in request.POST:
+        last_run = RunHistory.objects.filter(job__identifier=request.POST['job_identifier']).order_by('date').last()
+    elif 'job_id' in request.POST:
+        last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
+    else:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if last_run is None:
         return JsonResponse({'error': _('The job was not decided before')})
     try:
