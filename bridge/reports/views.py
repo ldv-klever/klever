@@ -866,6 +866,9 @@ def coverage_light_page(request, report_id):
 
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': _('You are not signed in')})
+
     activate(request.user.extended.language)
     if request.method != 'POST' or any(x not in request.POST for x in ['cov_arch_id', 'filename', 'with_data']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
