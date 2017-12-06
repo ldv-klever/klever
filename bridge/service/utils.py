@@ -235,7 +235,7 @@ class FinishJobDecision:
             if len(unfinished_reports) > 0:
                 self.error = 'There are unfinished reports (%s): %s' % (len(unfinished_reports), unfinished_reports)
                 logger.error(self.error)
-                if len(self.error) > 1000:
+                if len(self.error) > 1024:
                     self.error = 'There are unfinished reports (%s)' % len(unfinished_reports)
                 return JOB_STATUS[5][0]
             try:
