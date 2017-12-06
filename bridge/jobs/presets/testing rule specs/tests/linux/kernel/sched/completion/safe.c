@@ -20,20 +20,19 @@
 
 int __init my_init(void)
 {
-	struct completion *x;
-	struct completion *x2;
-	DECLARE_COMPLETION_ONSTACK(useless);
+	struct completion x1, x2;
+	DECLARE_COMPLETION_ONSTACK(work);
 
-	init_completion(x);
-	init_completion(x2);
-	wait_for_completion(x);
+	init_completion(&x1);
+	init_completion(&x2);
 
-	init_completion(x);
-	wait_for_completion(x);
+	wait_for_completion(&x1);
 
-	wait_for_completion(x2);
+	init_completion(&x1);
+	wait_for_completion(&x1);
 
-	wait_for_completion(&useless);
+	wait_for_completion(&x2);
+	wait_for_completion(&work);
 
 	return 0;
 }

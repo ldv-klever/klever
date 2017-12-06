@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-#include <linux/types.h>
 #include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
@@ -31,26 +30,28 @@ void *ldv_malloc(size_t size)
 {
 	if (ldv_undef_int()) {
 		void *res = malloc(size);
+
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
+
 		return res;
 	}
-	else {
+	else
 		return NULL;
-	}
 }
 
 void *ldv_calloc(size_t nmemb, size_t size)
 {
 	if (ldv_undef_int()) {
 		void *res = calloc(nmemb, size);
+
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
+
 		return res;
 	}
-	else {
+	else
 		return NULL;
-	}
 }
 
 void *ldv_zalloc(size_t size)
@@ -66,16 +67,20 @@ void ldv_free(void *s)
 void *ldv_xmalloc(size_t size)
 {
     void *res = malloc(size);
+
     ldv_assume(res != NULL);
     ldv_assume(!ldv_is_err(res));
+
     return res;
 }
 
 void *ldv_xzalloc(size_t size)
 {
 	void *res = calloc(1, size);
+
 	ldv_assume(res != NULL);
 	ldv_assume(!ldv_is_err(res));
+
 	return res;
 }
 
@@ -83,27 +88,29 @@ void *ldv_malloc_unknown_size(void)
 {
 	if (ldv_undef_int()) {
 		void *res = external_allocated_data();
+
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
+
 		return res;
 	}
-	else {
+	else
 		return NULL;
-	}
 }
 
 void *ldv_calloc_unknown_size(void)
 {
 	if (ldv_undef_int()) {
 		void *res = external_allocated_data();
+
 		memset(res, 0, sizeof(res));
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
+
 		return res;
 	}
-	else {
+	else
 		return NULL;
-	}
 }
 
 void *ldv_zalloc_unknown_size(void)
@@ -114,7 +121,9 @@ void *ldv_zalloc_unknown_size(void)
 void *ldv_xmalloc_unknown_size(size_t size)
 {
 	void *res = external_allocated_data();
+
 	ldv_assume(res != NULL);
 	ldv_assume(!ldv_is_err(res));
+
 	return res;
 }

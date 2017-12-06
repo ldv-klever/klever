@@ -39,7 +39,7 @@
         "path": "addons/CPAchecker-1.6.1-svn 3aa1881d05-unix",
         "executable path": "scripts"
       },
-      "CPAlocator": {
+      "CPALockator": {
         "name": "CPAchecker",
         "version": "CPALockator:24629",
         "path": "addons/CPAchecker-1.6.1-svn b9e3664606-unix",

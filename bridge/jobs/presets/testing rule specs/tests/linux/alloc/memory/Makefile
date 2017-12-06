@@ -1,1 +1,0 @@
-obj-m += safe.o alloc-without-free.o free-without-alloc.o

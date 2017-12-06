@@ -1,4 +1,2 @@
-extra/disabled/subsystem1/ex1.ko needs "bad_export": extra/disabled/subsystem1/init.ko
-extra/disabled/subsystem2/ex2.ko needs "bad_export": extra/disabled/subsystem1/init.ko
-extra/enabled/subsystem1/ex1.ko needs "bad_export": extra/enabled/subsystem1/init.ko
-extra/enabled/subsystem2/ex2.ko needs "bad_export": extra/enabled/subsystem1/init.ko
+extra/subsystem1/ex1.ko needs "bad_export": extra/subsystem1/init.ko
+extra/subsystem2/ex2.ko needs "bad_export": extra/subsystem1/init.ko

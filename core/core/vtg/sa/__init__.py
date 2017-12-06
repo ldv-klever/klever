@@ -180,7 +180,7 @@ class SA(core.vtg.plugins.Plugin):
         call_re = re.compile("^([^\s]*)\s([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
-        typedef_declaration = re.compile("^declaration: typedef ([^\n]+);")
+        typedef_declaration = re.compile("^declaration: typedef ([^\n]+); path: ([^\n]+)")
 
         func_definition_files = [
             {"file": "execution.txt", "static": False},
@@ -239,11 +239,14 @@ class SA(core.vtg.plugins.Plugin):
 
         typedef_file = "typedefs.txt"
         content = self._import_content(typedef_file)
-        self.collection['typedefs'] = []
+        self.collection['typedefs'] = dict()
         for line in content:
             if typedef_declaration.match(line):
                 declaration = typedef_declaration.match(line).group(1)
-                self.collection['typedefs'].append(declaration)
+                scope_file = typedef_declaration.match(line).group(2)
+                if scope_file not in self.collection['typedefs']:
+                    self.collection['typedefs'][scope_file] = list()
+                self.collection['typedefs'][scope_file].append(declaration)
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, typedef_file))
 

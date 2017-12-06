@@ -17,9 +17,11 @@
 
 #include <linux/module.h>
 
-void bad_export(void) {
-    /* nothing */
+void bad_export(void) 
+{
+	/* nothing */
 }
+EXPORT_SYMBOL(bad_export);
 
 static int __init einit1(void)
 {
@@ -27,4 +29,3 @@ static int __init einit1(void)
 }
 
 module_init(einit1);
-EXPORT_SYMBOL(bad_export);

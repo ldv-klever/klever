@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <net/sock.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct sock *sk;
+	struct sock *sk = ldv_undef_ptr();
 
 	unlock_sock_fast(sk, false);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

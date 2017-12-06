@@ -16,6 +16,7 @@
  */
 
 #include <linux/device.h>
+#include <linux/ldv/device.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
@@ -27,6 +28,7 @@ void *ldv_dev_get_drvdata(const struct device *dev)
 {
 	if (dev && dev->p)
 		return dev->p->driver_data;
+
 	return 0;
 }
 
@@ -40,5 +42,6 @@ int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
 	dev->p = ldv_xzalloc(sizeof(*dev->p));
 	dev->p->driver_data = data;
+
 	return 0;
 }

@@ -1,1 +1,0 @@
-obj-m += safe.o rcu-bh-more-unlocks.o rcu-bh-lock-at-read.o rcu-bh-lock-at-exit.o

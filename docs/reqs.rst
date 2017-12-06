@@ -20,7 +20,7 @@ To run Klever Bridge you need:
 
 * `Python 3.4 or higher <https://www.python.org/>`_ and its packages:
 
-  * `Django <https://www.djangoproject.com/>`__.
+  * `Django 1.10 or higher <https://www.djangoproject.com/>`__.
   * `pytz <http://pythonhosted.org/pytz/>`__.
 
     .. note:: The corresponding openSUSE RPM package is likely broken since it couldn't be updated properly.

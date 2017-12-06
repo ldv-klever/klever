@@ -1,1 +1,0 @@
-obj-m += family_and_proto_callbacks.o pppox_and_proto_callbacks.o pppox_proto_invoke.o proto_family_invoke.o proto_invoke.o register_pppox_proto.o sock_register.o sock_unregister.o unregister_pppox_proto.o

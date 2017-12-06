@@ -167,7 +167,7 @@
           "open_fail": {
             "comment": "Registration of the network device has failed.",
             "condition": [
-              "%ret% == 0"
+              "%ret% != 0"
             ],
             "statements": [
               "ldv_failed_register_netdev();",
@@ -339,7 +339,7 @@
             "value": "ldv_undef_int()"
           }
         },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <fail>) | <fail>",
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
@@ -374,11 +374,18 @@
               "return 0;"
             ]
           },
+          "open_fail": {
+            "comment": "Open at the registration of the network device has failed.",
+            "condition": [
+              "%ret% != 0"
+            ],
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
           "fail": {
             "comment": "Registration of the network device has failed.",
-            "condition": [
-              "%ret% == 0"
-            ],
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"

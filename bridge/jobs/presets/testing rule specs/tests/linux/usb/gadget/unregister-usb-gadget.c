@@ -15,19 +15,18 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	struct usb_gadget_driver *cur_driver;
+	struct usb_gadget_driver driver;
 
-	usb_gadget_unregister_driver(cur_driver);
+	usb_gadget_unregister_driver(&driver);
 
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

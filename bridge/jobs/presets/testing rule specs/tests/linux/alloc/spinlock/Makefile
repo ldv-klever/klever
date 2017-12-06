@@ -1,1 +1,0 @@
-obj-m += safe.o wrong-flags-lock.o wrong-flags-trylock.o nonatomic-lock.o nonatomic-trylock.o

@@ -1,1 +1,0 @@
-obj-m += safe.o chrdev-at-exit.o chrdev-at-exit-2.o unregister-chrdev.o

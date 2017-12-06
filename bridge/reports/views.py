@@ -60,6 +60,10 @@ def sort_list(l):
 
 
 @register.filter
+def sort_tests_list(l):
+    return sorted(l, key=lambda test: test.lstrip('1234567890'))
+
+@register.filter
 def sort_bugs_list(l):
     return sorted(l, key=lambda bug: bug[12:].lstrip('~'))
 

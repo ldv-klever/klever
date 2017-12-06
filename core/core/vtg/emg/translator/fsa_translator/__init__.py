@@ -20,12 +20,13 @@ from operator import attrgetter
 import graphviz
 
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
-from core.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
+from core.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 from core.vtg.emg.translator.code import FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
-    extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables
+    extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables, \
+    model_relevant_files
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -74,7 +75,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     header_list.append(header)
 
         # Generate aspect
-        self._cmodel.add_before_aspect(('#include <{}>\n'.format(h) for h in header_list))
+        self._cmodel.add_extra_headers(header_list, self._cmodel.files)
         self._logger.info("Have added {!s} additional headers".format(len(header_list)))
 
         # Generates base code blocks
@@ -129,7 +130,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
             invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(argгments))
             aspect_code.append(invoke)
 
-            self._cmodel.add_function_model(function_obj, aspect_code)
+            rfiles = model_relevant_files(analysis, cmodel, automaton)
+            self._cmodel.add_function_model(function_obj, aspect_code, rfiles)
+
 
         # Generate entry point function
         self._entry_point()
@@ -675,7 +678,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     invoke = access.access_with_variable(
                         automaton.determine_variable(access.label, access.list_interface[0].identifier))
                     check = True
-                    file = self._cmodel.entry_file
+                    file = automaton.file if automaton.file else self._cmodel.entry_file
                     func_variable = invoke
                     reinitialize_vars_flag = True
                 else:

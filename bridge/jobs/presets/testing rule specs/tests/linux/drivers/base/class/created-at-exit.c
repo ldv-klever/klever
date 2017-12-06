@@ -17,11 +17,18 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+static int __init ldv_init(void)
 {
-	class_create(THIS_MODULE, "test");
+	const char *name = ldv_undef_ptr();
+	struct class *class;
+
+	class = class_create(THIS_MODULE, name);
+	ldv_assume(!IS_ERR(class));
+
 	return 0;
 }
 
-module_init(init);
+module_init(ldv_init);

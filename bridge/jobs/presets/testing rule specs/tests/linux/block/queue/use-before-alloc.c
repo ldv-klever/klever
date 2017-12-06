@@ -17,14 +17,15 @@
 
 #include <linux/module.h>
 #include <linux/blkdev.h>
-#include <linux/types.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+static int __init ldv_init(void)
 {
-	struct request_queue *queue;
+	struct request_queue *queue = ldv_undef_ptr();
+
 	blk_cleanup_queue(queue);
 
 	return 0;
 }
 
-module_init(my_init);
+module_init(ldv_init);
