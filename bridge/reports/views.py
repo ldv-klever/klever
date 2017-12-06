@@ -17,7 +17,6 @@
 
 import json
 from io import BytesIO
-from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
@@ -613,7 +612,7 @@ def get_component_log(request, report_id):
 
     response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='text/plain')
     response['Content-Length'] = len(content)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % logname
     return response
 
 
