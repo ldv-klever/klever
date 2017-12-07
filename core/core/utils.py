@@ -27,6 +27,7 @@ import threading
 import time
 import queue
 import tempfile
+import shutil
 from benchexec.runexecutor import RunExecutor
 
 
@@ -169,6 +170,15 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
         raise CommandError('"{0}" failed'.format(cmd))
     elif collect_all_stdout:
         return out_q.output
+
+
+def reliable_rmtree(logger, directory):
+    try:
+        shutil.rmtree(directory)
+    except OSError as error:
+        logger.warning("Cannot delete directory {!r}: {!r}".format(directory, error))
+        execute(logger, ['lsof', str(os.path.curdir)])
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
