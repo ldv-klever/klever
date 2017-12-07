@@ -15,10 +15,10 @@
 # limitations under the License.
 #
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
-from core.vtg.emg.common.process import Dispatch, get_common_parameter
+from core.vtg.emg.common.process import Dispatch
 from core.vtg.emg.translator.fsa_translator import FSATranslator
 from core.vtg.emg.common.code import Variable
-from core.vtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
+from core.vtg.emg.translator.fsa_translator.common import extract_relevant_automata
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
@@ -31,44 +31,43 @@ class LabelTranslator(FSATranslator):
     def _relevant_checks(self, relevant_automata):
         return list()
 
-    def _join_cf_code(self, file, automaton):
+    def _join_cf_code(self, automaton):
         if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism') and \
                 get_conf_property(self._conf, 'pure pthread interface'):
             for var in self.__thread_variable(automaton, 'pair'):
-                self._cmodel.add_global_variable(var, file, extern=True)
+                self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
             return 'pthread_join({}, 0);'
         else:
             if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
                 sv = self.__thread_variable(automaton, 'array')
-                self._cmodel.add_global_variable(sv, file, extern=True)
+                self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
                 return 'pthread_join_N({}, 0);'.format(sv.name)
             else:
                 sv = self.__thread_variable(automaton, 'single')
-                self._cmodel.add_global_variable(sv, file, extern=True)
+                self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
                 return 'pthread_join({}, 0);'.format(sv.name)
 
-    def _call_cf_code(self, file, automaton, parameter='0'):
+    def _call_cf_code(self, automaton, parameter='0'):
         if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism') and \
                 get_conf_property(self._conf, 'pure pthread interface'):
             for var in self.__thread_variable(automaton, 'pair'):
-                self._cmodel.add_global_variable(var, file, extern=True)
+                self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
             # Leave the first parameter to fill twise later
             return 'pthread_create({}, 0, {}, {});'.\
                 format('{}', self._control_function(automaton).name, parameter)
         else:
             if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
                 sv = self.__thread_variable(automaton, 'array')
-                self._cmodel.add_global_variable(sv, file, extern=True)
+                self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
                 return 'pthread_create_N({}, 0, {}, {});'.\
                     format(sv.name,self._control_function(automaton).name, parameter)
             else:
                 sv = self.__thread_variable(automaton, 'single')
-                self._cmodel.add_global_variable(sv, file, extern=True)
+                self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
                 return 'pthread_create({}, 0, {}, {});'.\
                     format('& ' + sv.name, self._control_function(automaton).name, parameter)
 
-    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
-                         replicative):
+    def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers, replicative):
         pre = []
         post = []
         blocks = []
@@ -82,12 +81,12 @@ class LabelTranslator(FSATranslator):
             if replicative:
                 for r_state in automata_peers[name]['states']:
                     block = list()
-                    block.append('{} = {}(sizeof({}));'.format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"],
-                                                        decl.identifier))
+                    block.append('{} = {}(sizeof({}));'.
+                                 format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"], decl.identifier))
                     for index in range(len(function_parameters)):
                         block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
                     if r_state.action.replicative:
-                        call = self._call_cf(file, automata_peers[name]['automaton'], cf_param)
+                        call = self._call_cf(automata_peers[name]['automaton'], cf_param)
                         if get_conf_property(self._conf, 'direct control functions calls'):
                             block.append(call)
                         else:
@@ -113,7 +112,7 @@ class LabelTranslator(FSATranslator):
             # todo: Pretty ugly, but works
             elif state.action.name.find('dereg') != -1:
                 block = list()
-                call = self._join_cf(file, automata_peers[name]['automaton'])
+                call = self._join_cf(automata_peers[name]['automaton'])
                 if get_conf_property(self._conf, 'direct control functions calls'):
                     block.append(call)
                 else:
@@ -154,18 +153,10 @@ class LabelTranslator(FSATranslator):
 
                 if len(state.action.parameters) > 0:
                     for index in range(len(state.action.parameters)):
-                        # todo: this part should be simplified
-                        # Determine dispatcher parameter
-                        interface = get_common_parameter(state.action, automaton.process, index)
-
-                        # Determine receiver parameter
-                        receiver_access = automaton.process.resolve_access(state.action.parameters[index],
-                                                                           interface.identifier)
-                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
-                        receiver_expr = receiver_access.access_with_variable(var)
-
+                        receiver_access = automaton.process.resolve_access(state.action.parameters[index])[0]
+                        var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
-                        param_expressions.append(receiver_expr)
+                        param_expressions.append(var.name)
 
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
@@ -207,22 +198,21 @@ class LabelTranslator(FSATranslator):
                         get_necessary_conf_property(self._conf, 'self parallelism') and \
                         get_conf_property(self._conf, 'pure pthread interface'):
                     for var in self.__thread_variable(automaton, 'pair'):
-                        self._cmodel.add_global_variable(var, choose_file(self._cmodel, self._analysis, automaton), False)
+                        self._cmodel.add_global_variable(var, self._cmodel.entry_file, False)
                 elif automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
                     self._cmodel.add_global_variable(self.__thread_variable(automaton, 'array'),
-                                                     choose_file(self._cmodel, self._analysis, automaton), extern=False)
+                                                     self._cmodel.entry_file, extern=False)
                 else:
                     self._cmodel.add_global_variable(self.__thread_variable(automaton, 'single'),
-                                                     choose_file(self._cmodel, self._analysis, automaton), extern=False)
+                                                     self._cmodel.entry_file, extern=False)
 
         # Generate function body
         label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
 
         # Add function to source code to print
-        self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
+        self._cmodel.add_function_definition(self._cmodel.entry_file, cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            # todo: use simple code analysis
             for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         return
@@ -271,5 +261,6 @@ class LabelTranslator(FSATranslator):
             self.__thread_variables[automaton.identifier] = ret
 
         return self.__thread_variables[automaton.identifier]
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

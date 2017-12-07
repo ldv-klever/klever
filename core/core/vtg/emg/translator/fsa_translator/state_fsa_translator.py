@@ -18,7 +18,7 @@ from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_p
 from core.vtg.emg.common.process import Receive, Dispatch, CallRetval, Call, Condition, Subprocess
 from core.vtg.emg.translator.fsa_translator import FSATranslator
 from core.vtg.emg.common.code import Variable, FunctionDefinition
-from core.vtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables, \
+from core.vtg.emg.translator.fsa_translator.common import initialize_automaton_variables, \
     control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
@@ -157,7 +157,7 @@ class StateTranslator(FSATranslator):
             # Add loop for nested case
             cf.body.extend(v_code + f_code)
             self._cmodel.add_global_variable(self.__state_variable(automaton),
-                                             choose_file(self._cmodel, self._analysis, automaton), extern=False)
+                                             self._cmodel.entry_file, extern=False)
             for file in self._cmodel.files:
                 self._cmodel.add_global_variable(self.__state_variable(automaton), file, extern=True)
         else:
@@ -165,7 +165,7 @@ class StateTranslator(FSATranslator):
             label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
 
         # Add function to source code to print
-        self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
+        self._cmodel.add_function_definition(self._cmodel.entry_file, cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
             for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
@@ -177,7 +177,7 @@ class StateTranslator(FSATranslator):
                 # To allow useing it in dispatches
                 self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
                 # To add to the file with control function
-                self._cmodel.add_global_variable(var, choose_file(self._cmodel, self._analysis, automaton), extern=True)
+                self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
         return
 
     def _entry_point(self):
@@ -198,7 +198,7 @@ class StateTranslator(FSATranslator):
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),
-                    '\t\t\t{}'.format(self._call_cf(self._cmodel.entry_file, automaton, '0')),
+                    '\t\t\t{}'.format(self._call_cf(automaton, '0')),
                     "\t\tbreak;"
                 ]
             )
@@ -311,8 +311,7 @@ class StateTranslator(FSATranslator):
                 '\t{} = {};'.format(self.__state_variable(automaton).name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            switch_call = self.__state_switch([st.identifier for st in successors],
-                                              choose_file(self._cmodel, self._analysis, automaton))
+            switch_call = self.__state_switch([st.identifier for st in successors])
             code.append('{} = {};'.format(self.__state_variable(automaton).name, switch_call))
         else:
             code.append('/* Reset automaton state */')
@@ -320,21 +319,19 @@ class StateTranslator(FSATranslator):
 
         if export:
             name = 'ldv_switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
-            definition_file = choose_file(self._cmodel, self._analysis, automaton)
-            function = FunctionDefinition(name, definition_file, 'void a(void)')
+            function = FunctionDefinition(name, self._cmodel.entry_file, 'void a(void)')
             function.body = code
             code = ['{}();'.format(name)]
 
-            self._cmodel.add_function_definition(definition_file, function)
+            self._cmodel.add_function_definition(self._cmodel.entry_file, function)
             for file in export:
                 self._cmodel.add_function_declaration(file, function, extern=True)
 
         return code
 
-    def __state_switch(self, states, file):
+    def __state_switch(self, states):
         key = ''.join(sorted([str(i) for i in states]))
         if key in self.__switchers_cache:
-            self._cmodel.add_function_declaration(file, self.__switchers_cache[key]['function'], extern=True)
             return self.__switchers_cache[key]['call']
 
         # Generate switch function
@@ -355,7 +352,6 @@ class StateTranslator(FSATranslator):
 
         # Add function
         self._cmodel.add_function_definition(self._cmodel.entry_file, function)
-        self._cmodel.add_function_declaration(file, function, extern=True)
 
         invoke = '{}()'.format(name)
         self.__switchers_cache[key] = {

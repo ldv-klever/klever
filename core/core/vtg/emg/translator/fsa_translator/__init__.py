@@ -21,10 +21,9 @@ import graphviz
 
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess, \
-    get_common_parameter
+from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
 from core.vtg.emg.common.code import FunctionDefinition
-from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata, choose_file, initialize_automaton_variables
+from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -100,19 +99,19 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     params.append('$arg{}'.format(str(position + 1)))
 
             if len(params) == 0 and function_obj.declaration.return_value.identifier == 'void':
-                argгments = []
+                arguments = []
                 ret_expression = ''
             elif len(params) == 0:
-                argгments = []
+                arguments = []
                 ret_expression = 'return '
             elif function_obj.declaration.return_value.identifier == 'void':
-                argгments = params
+                arguments = params
                 ret_expression = ''
             else:
                 ret_expression = 'return '
-                argгments = params
+                arguments = params
 
-            invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(argгments))
+            invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(arguments))
             aspect_code.append(invoke)
 
             self._cmodel.add_function_model(function_obj, aspect_code)
@@ -289,8 +288,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             # Generate artificial function
             body = []
-            # todo: All entrances of choosing file should become unnecessary
-            file = choose_file(self._cmodel, self._analysis, automaton)
 
             if not get_conf_property(self._conf, 'direct control functions calls'):
                 body = ['int ret;']
@@ -311,22 +308,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Add parameters
             for index in range(len(state.action.parameters)):
                 # Determine dispatcher parameter
-                # todo: this need to be simplified.
-                interface = get_common_parameter(state.action, automaton.process, index)
-
-                # Determine dispatcher parameter
-                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index],
-                                                                     interface.identifier)
-                variable = automaton.determine_variable(dispatcher_access.label, interface.identifier)
-                dispatcher_expr = dispatcher_access.access_with_variable(variable)
-
-                param_interfaces.append(interface)
+                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index])
+                variable = automaton.determine_variable(dispatcher_access.label)
                 function_parameters.append(variable.declaration)
-                df_parameters.append(dispatcher_expr)
+                df_parameters.append(variable.name)
 
             # Generate blocks on each receive to another process
             # You can implement your own translator with different implementations of the function
-            pre, blocks, post = self._dispatch_blocks(state, file, automaton, function_parameters, param_interfaces,
+            pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, param_interfaces,
                                                       automata_peers,
                                                       replicative)
             body.extend(pre)
@@ -378,7 +367,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             df.body.extend(body)
 
             # Add function definition
-            self._cmodel.add_function_definition(file, df)
+            self._cmodel.add_function_definition(self._cmodel.entry_file, df)
 
             # Add additional declarations
             self._cmodel.propogate_aux_function(self._analysis, automaton, df)
@@ -483,11 +472,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         return decl
     
-    def _call_cf(self, file, automaton, parameter='0'):
+    def _call_cf(self, automaton, parameter='0'):
         """
         Generate statement with control function call.
 
-        :param file: File name string.
         :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
         :return: String expression.
@@ -499,11 +487,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
         else:
             return self._call_cf_code(file, automaton, parameter)
 
-    def _join_cf(self, file, automaton):
+    def _join_cf(self, automaton):
         """
         Generate statement to join control function thread if it is called in a separate thread.
 
-        :param file: File name string.
         :param automaton: Automaton object.
         :return: String expression.
         """
@@ -569,23 +556,21 @@ class FSATranslator(metaclass=abc.ABCMeta):
         raise NotImplementedError
     
     @abc.abstractstaticmethod
-    def _join_cf_code(self, file, automaton):
+    def _join_cf_code(self, automaton):
         """
         Generate statement to join control function thread if it is called in a separate thread. Depends on a translator
         implementation.
 
-        :param file: File name string.
         :param automaton: Automaton object.
         :return: String expression.
         """
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _call_cf_code(self, file, automaton, parameter='0'):
+    def _call_cf_code(self, automaton, parameter='0'):
         """
         Generate statement with control function call. Depends on a translator implementation.
 
-        :param file: File name string.
         :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
         :return: String expression.
@@ -593,16 +578,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
+    def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers,
                          replicative):
         """
         Generate parts of dispatch code blocks for your translator implementation.
 
         :param state: State object.
-        :param file: File name string.
         :param automaton: Automaton object.
         :param function_parameters: list of Label objects.
-        :param param_interfaces: List of Interface objects.
         :param automata_peers: {'Automaton identifier string': {'automaton': Automaton object,
                                 'states': set of State objects peered with the considered action}}
         :param replicative: True/False.

@@ -72,11 +72,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
              [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
     if model:
         name = automaton.process.name
-        v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment))
     else:
-        # todo: this should be also replaced
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
-        v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment, automaton.identifier))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
     f_code.append(control_function_comment_end(cf.name, name))
     cf.body.extend(v_code + f_code)
 
@@ -107,7 +106,7 @@ def normalize_fsa(automaton, composer):
 
         # Insert state
         jump_states = sorted([s for s in automaton.fsa.states if s.action and s.action.name == subprocess.name],
-                              key=attrgetter('identifier'))
+                             key=attrgetter('identifier'))
         for jump in jump_states:
             for successor in jump.successors:
                 successor.replace_predecessor(jump, new)
@@ -453,7 +452,8 @@ def __label_sequence(automaton, initial_state, ret_expression):
         return tab
 
     def require_merge(state, processed_states, condition):
-        if len(condition['pending']) == 0 and state.identifier in condition['terminals'] and len(set(condition['terminals']) - processed_states) == 0:
+        if len(condition['pending']) == 0 and state.identifier in condition['terminals'] and \
+                        len(set(condition['terminals']) - processed_states) == 0:
             return True
         else:
             return False
@@ -522,5 +522,6 @@ def __label_sequence(automaton, initial_state, ret_expression):
         raise RuntimeError('Cannot leave unclosed conditions')
 
     return [v_code, f_code]
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
