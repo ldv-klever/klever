@@ -443,6 +443,15 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     """
     logger.info("Generate automata for processes with callback calls")
     identifiers = _yeild_identifier()
+    identifiers_map = dict()
+    
+    def rename_process(inst):
+        old_id = inst.identifier
+        inst.identifier = "{}_{}".format(inst.identifier, identifiers.__next__())
+        if old_id in identifiers_map:
+            identifiers_map[old_id].append(inst)
+        else:
+            identifiers_map[old_id] = [inst]
     
     # Check configuraition properties first
     check_or_set_conf_property(conf, "max instances number", default_value=1000, expected_type=int)
@@ -461,7 +470,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
                     format(len(base_list), process.name, process.category))
 
         for instance in base_list:
-            instance.identifier = "{}_{}".format(instance, identifiers.__next__())
+            rename_process(instance)
             callback_fsa.append(instance)
 
     # Generate automata for models
@@ -470,12 +479,28 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
-            instance.identifier = "{}_{}".format(instance, identifiers.__next__())
+            rename_process(instance)
             model_fsa.append(instance)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
     entry_fsa = model.entry_process
+
+    # According to new identifiers change signals peers
+    for process in [entry_fsa] + model_fsa + callback_fsa:
+        for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
+            new_peers = []
+            for peer in action.peers:
+                if peer['process'].identifier in identifiers_map:
+                    for instance in identifiers_map[peer['process'].identifier]:
+                        new_peer = {
+                            "process": instance,
+                            "subprocess": instance.actions[peer['subprocess'].name]
+                        }
+                        new_peers.append(new_peer)
+                else:
+                    new_peers.append(peer)
+            action.peers = new_peers
 
     return entry_fsa, model_fsa, callback_fsa
 
@@ -573,7 +598,6 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
             for access in access_map:
                 for i in access_map[access]:
                     try:
-                        interface = analysis.get_intf(i)
                         interface = analysis.get_intf(i)
                         if interface and interface.header:
                             for header in interface.header:
@@ -725,6 +749,9 @@ def _copy_process(process, instances_left):
         instances_left -= 1
 
     inst.allowed_implementations = dict(process.allowed_implementations)
+
+    # Check peers and remove previous processes with this copy process with this one
+
     return inst
 
 

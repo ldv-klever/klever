@@ -51,24 +51,20 @@
               "dump automata graphs": false,
               "direct control functions calls": true,
               "nested automata": true,
-              "pointer initialization": {
-                "structures": true,
-                "arrays": true,
-                "functions": false,
-                "unions": false,
-                "primitives": false
-              },
-              "pointer free": {
-                "structures": true,
-                "arrays": true,
-                "functions": false,
-                "unions": false,
-                "primitives": false
-              },
               "allocate with sizeof": true,
-              "allocate external": false
-            },
-            "additional aspects": ["linux/emg/emg.aspect"]
+              "allocate external": false,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "additional headers": [
+                "linux/ldv/common.h",
+                "linux/ldv/err.h",
+                "verifier/common.h",
+                "verifier/gcc.h",
+                "verifier/nondet.h",
+                "verifier/memory.h",
+                "verifier/thread.h"
+              ]
+            }
           }
         },
         {

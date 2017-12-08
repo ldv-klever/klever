@@ -163,7 +163,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             # Add subself.process description
             for subp in [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
-                           if type(automaton.process.actions[name]) is Subprocess]:
+                         if type(automaton.process.actions[name]) is Subprocess]:
                 graph.node(
                     subp.name,
                     "Subprocess {}: {}".format(subp.name, subp.process),
@@ -194,7 +194,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                             graph.edge(
                                 str(state.identifier),
                                 str(succ.identifier)
-                        )
+                            )
 
             # Save to dg_file
             graph.save(dg_file)
@@ -301,22 +301,21 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         break
 
             # Determine parameters
-            param_interfaces = []
             df_parameters = []
             function_parameters = []
 
             # Add parameters
             for index in range(len(state.action.parameters)):
                 # Determine dispatcher parameter
-                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index])
+                # We expect strictly one
+                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index])[0]
                 variable = automaton.determine_variable(dispatcher_access.label)
                 function_parameters.append(variable.declaration)
                 df_parameters.append(variable.name)
 
             # Generate blocks on each receive to another process
             # You can implement your own translator with different implementations of the function
-            pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, param_interfaces,
-                                                      automata_peers,
+            pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, automata_peers,
                                                       replicative)
             body.extend(pre)
 
@@ -368,9 +367,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             # Add function definition
             self._cmodel.add_function_definition(self._cmodel.entry_file, df)
-
-            # Add additional declarations
-            self._cmodel.propogate_aux_function(self._analysis, automaton, df)
 
             code.extend([
                 '{}({});'.format(df.name, ', '.join(df_parameters))
@@ -480,12 +476,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
         :param parameter: String with argument of the control function.
         :return: String expression.
         """
-        self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
+        self._cmodel.add_function_declaration(self._cmodel.entry_file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
             return '{}({});'.format(self._control_function(automaton).name, parameter)
         else:
-            return self._call_cf_code(file, automaton, parameter)
+            return self._call_cf_code(automaton, parameter)
 
     def _join_cf(self, automaton):
         """
@@ -494,12 +490,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
         :param automaton: Automaton object.
         :return: String expression.
         """
-        self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
+        self._cmodel.add_function_declaration(self._cmodel.entry_file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
             return '/* Skip thread join call */'
         else:
-            return self._join_cf_code(file, automaton)
+            return self._join_cf_code(automaton)
 
     def _control_function(self, automaton):
         """
@@ -697,9 +693,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         else:
             raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
 
-        code, v_code, conditions, comments = code_generator(state, automaton)
-        compose_single_action(state, code, v_code, conditions, comments)
+        c, vc, grds, cmmnts = code_generator(state, automaton)
+        compose_single_action(state, c, vc, grds, cmmnts)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

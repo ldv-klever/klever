@@ -137,26 +137,6 @@ class EMG(core.vtg.plugins.Plugin):
     # PRIVATE METHODS
     ####################################################################################################################
 
-    def __read_additional_content(self, file_type):
-        lines = []
-        if get_conf_property(self.conf, "additional {}".format(file_type)):
-            files = sorted(get_necessary_conf_property(self.conf, "additional {}".format(file_type)))
-            if len(files) > 0:
-                for file in files:
-                    self.logger.info("Search for {} file {}".format(file, file_type))
-                    path = core.utils.find_file_or_dir(self.logger,
-                                                       get_necessary_conf_property(self.conf, "main working directory"),
-                                                       file)
-                    with open(path, encoding="utf8") as fh:
-                        lines.extend(fh.readlines())
-                    lines.append("\n")
-            self.logger.info("{} additional {} files are successfully imported for further importing in the model".
-                             format(len(files), file_type))
-        else:
-            self.logger.info("No additional {} files are provided to be added to the an environment model".
-                             format(file_type))
-        return lines
-
     def __get_analysis(self, avt):
         analysis = {}
         if "source analysis" in avt:
@@ -194,7 +174,7 @@ class EMG(core.vtg.plugins.Plugin):
             with open(file, encoding="utf8") as fh:
                 try:
                     content = json.loads(fh.read())
-                except json.decoder.JSONDecodeError as err:
+                except json.decoder.JSONDecodeError:
                     raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
             for tag in content:
@@ -286,4 +266,6 @@ class EMG(core.vtg.plugins.Plugin):
         with open(file, "w", encoding="utf8") as fh:
             json.dump(collection, fh, ensure_ascii=False, sort_keys=True, indent=4)
 
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+

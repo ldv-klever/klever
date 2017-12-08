@@ -58,6 +58,11 @@ class RSG(core.vtg.plugins.Plugin):
         self.logger.info('Add models to abstract verification task description')
 
         models = {}
+        if 'environment model' in self.abstract_task_desc:
+            rel_path = os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                    self.abstract_task_desc['environment model']), os.path.curdir)
+            models[rel_path] = {}
+
         # Get common and rule specific models.
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:

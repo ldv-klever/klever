@@ -80,6 +80,7 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
                           if node.action and node.action.name == peer["subprocess"].name]:
                 if not sb_type or isinstance(state.action, sb_type):
                     automata_peers[automaton.identifier]["states"].add(state)
+    return
 
 
 def extract_registration_relevant_automata(analysis, processes, model_processes, invoke):

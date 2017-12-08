@@ -55,27 +55,8 @@ class CModel:
         self._function_declarations = dict()
         self._headers = dict()
         self._before_aspects = dict()
-        self._common_aspects = list()
+        self._call_aspects = dict()
         self.__external_allocated = dict()
-
-    def add_before_aspect(self, code, file=None):
-        # Prepare code
-        body = ['before: file ("$this") \n', '{\n']
-        body.extend(code)
-        body.append('\n}\n')
-
-        if file:
-            files = [file]
-        else:
-            files = self.files
-
-        # Add code
-        for file in files:
-            if file not in self._before_aspects:
-                self._before_aspects[file] = list()
-            self._before_aspects[file].append(body)
-
-        return
 
     def add_headers(self, file, headers):
         if file not in self._headers:
@@ -83,7 +64,7 @@ class CModel:
         else:
             self._headers[file].extend([h for h in headers if h not in self._headers[file]])
 
-    def add_function_definition(self, file, function):
+    def add_function_definition(self, file, func):
         if not file:
             raise RuntimeError('Always expect file to place function definition')
         if file not in self._function_definitions:
@@ -91,21 +72,21 @@ class CModel:
         if self.entry_file not in self._function_definitions:
             self._function_definitions[self.entry_file] = dict()
 
-        if function.callback:
+        if func.callback:
             prefix = 'AUX_FUNC_CALLBACK'
         else:
             prefix = 'AUX_FUNC'
-        self._function_definitions[file][function.name] = ['/* {} {} */\n'.format(prefix, function.name)] + \
-                                                          list(function.get_definition())
-        self.add_function_declaration(file, function, extern=False)
+        self._function_definitions[file][func.name] = \
+            ['/* {} {} */\n'.format(prefix, func.name)] + list(func.get_definition())
+        self.add_function_declaration(file, func, extern=False)
 
-    def add_function_declaration(self, file, function, extern=False):
+    def add_function_declaration(self, file, func, extern=False):
         if file not in self._function_declarations:
             self._function_declarations[file] = dict()
 
-        if extern and function.name in self._function_declarations[file]:
+        if extern and func.name in self._function_declarations[file]:
             return
-        self._function_declarations[file][function.name] = function.get_declaration(extern=extern)
+        self._function_declarations[file][func.name] = func.get_declaration(extern=extern)
 
     def add_global_variable(self, variable, file, extern=False):
         if variable.scope == 'local':
@@ -138,84 +119,87 @@ class CModel:
         models = FunctionModels(self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
         return models.text_processor(automaton, statement)
 
-    def add_function_model(self, function, body, files):
-        new_aspect = Aspect(function.identifier, function)
+    def add_function_model(self, func, body):
+        new_aspect = Aspect(func.identifier, func)
         new_aspect.body = body
-        for file in files:
-            if file not in self._common_aspects:
-                self._common_aspects[file] = list()
-            self._common_aspects[file].append(new_aspect)
+        for file in func.files_called_at:
+            if file not in self._call_aspects:
+                self._call_aspects[file] = list()
+            self._call_aspects[file].append(new_aspect)
 
     def print_source_code(self, additional_lines):
+        addictions = self._write_code_addictions(additional_lines)
+        self._write_main_file()
+        return addictions
+
+    def _write_code_addictions(self, additional_lines):
         aspect_dir = "aspects"
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
         addictions = dict()
-        for file in self.files:
+        # Write aspects
+        for file in (f for f in self.files if f != self.entry_file):
+            # Check headers
+            if file in self._headers and len(self._headers[file]) > 0:
+                raise RuntimeError("We do not expect adding headers to the original source file: \n".
+                                   format('\n'.join(self._headers[file])))
+
             # Generate function declarations
             self._logger.info('Add aspects to a file {!r}'.format(file))
             # Aspect text
             lines = list()
 
-            if len(additional_lines) > 0:
-                    lines.append("\n")
-                    lines.append("/* EMG additional aspects */\n")
-                    lines.extend(additional_lines)
-                    lines.append("\n")
-
-            if file in self._before_aspects:
-                if len(self._before_aspects[file]) > 0:
-                    for aspect in self._before_aspects[file]:
-                        lines.append("\n")
-                        lines.append("/* EMG aspect */\n")
-                        lines.extend(aspect)
-                        lines.append("\n")
-
             # Add model itself
             lines.append('after: file ("$this")\n')
             lines.append('{\n')
 
-            for tp in self.types:
-                lines.append(tp.to_string('') + " {\n")
-                for field in sorted(list(tp.fields.keys())):
-                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
-                                                  scope={file}))
-                lines.append("};\n")
+            if file in additional_lines and 'declarations' in additional_lines[file] and \
+                    len(additional_lines[file]['declarations']) > 0:
                 lines.append("\n")
+                lines.append("/* EMG aliases */\n")
+                lines.extend(additional_lines[file]['declarations'])
 
-            lines.append("/* EMG Function declarations */\n")
             if file in self._function_declarations:
-                for function in sorted(self._function_declarations[file].keys()):
-                    lines.extend(self._function_declarations[file][function])
+                lines.append("\n")
+                lines.append("/* EMG Function declarations */\n")
+                for func in sorted(self._function_declarations[file].keys()):
+                    lines.extend(self._function_declarations[file][func])
 
-            lines.append("\n")
-            lines.append("/* EMG variable declarations */\n")
             if file in self._variables_declarations:
+                lines.append("\n")
+                lines.append("/* EMG variable declarations */\n")
                 for variable in sorted(self._variables_declarations[file].keys()):
                     lines.extend(self._variables_declarations[file][variable])
 
-            lines.append("\n")
-            lines.append("/* EMG variable initialization */\n")
             if file in self._variables_initializations:
+                lines.append("\n")
+                lines.append("/* EMG variable initialization */\n")
                 for variable in sorted(self._variables_initializations[file].keys()):
                     lines.extend(self._variables_initializations[file][variable])
+
+            if file in additional_lines and 'definitions' in additional_lines[file] and \
+                    len(additional_lines[file]['definitions']) > 0:
+                lines.append("\n")
+                lines.append("/* EMG aliases for functions */\n")
+                lines.extend(additional_lines[file]['definitions'])
 
             lines.append("\n")
             lines.append("/* EMG function definitions */\n")
             if file in self._function_definitions:
-                for function in sorted(self._function_definitions[file].keys()):
-                    lines.extend(self._function_definitions[file][function])
+                for func in sorted(self._function_definitions[file].keys()):
+                    lines.extend(self._function_definitions[file][func])
                     lines.append("\n")
 
             lines.append("}\n")
             lines.append("/* EMG kernel function models */\n")
-            if file in self._common_aspects:
-                for aspect in self._common_aspects[file]:
+            if file in self._call_aspects:
+                for aspect in self._call_aspects[file]:
                     lines.extend(aspect.get_aspect())
                     lines.append("\n")
 
-            name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0], '.aspect'))
+            name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0],
+                                                       '.aspect'))
             with open(name, "w", encoding="utf8") as fh:
                 fh.writelines(lines)
 
@@ -224,6 +208,49 @@ class CModel:
             addictions[file] = path
 
         return addictions
+
+    def _write_main_file(self):
+        # Write environment model main file
+        self._logger.info('Write environment model main file {!r}'.format(self.entry_file))
+        lines = list()
+        if self.entry_file in self._headers:
+            lines.extend(['#include <{}>\n'.format(h) for h in self._headers[self.entry_file]])
+        lines.append("\n")
+
+        for tp in self.types:
+            lines.append(tp.to_string('') + " {\n")
+            for field in sorted(list(tp.fields.keys())):
+                lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
+                                              scope={self.entry_file}))
+            lines.append("};\n")
+            lines.append("\n")
+
+        if self.entry_file in self._function_declarations:
+            lines.append("/* EMG Function declarations */\n")
+            for func in self._function_declarations[self.entry_file].keys():
+                lines.extend(self._function_declarations[self.entry_file][func])
+
+        if self.entry_file in self._variables_declarations:
+            lines.append("\n")
+            lines.append("/* EMG variable declarations */\n")
+            for variable in self._variables_declarations[self.entry_file].keys():
+                lines.extend(self._variables_declarations[self.entry_file][variable])
+
+        if self.entry_file in self._variables_initializations:
+            lines.append("\n")
+            lines.append("/* EMG variable initialization */\n")
+            for variable in self._variables_initializations[self.entry_file].keys():
+                lines.extend(self._variables_initializations[self.entry_file][variable])
+
+        if self.entry_file in self._function_definitions:
+            lines.append("\n")
+            lines.append("/* EMG function definitions */\n")
+            for func in self._function_definitions[self.entry_file].keys():
+                lines.extend(self._function_definitions[self.entry_file][func])
+                lines.append("\n")
+
+        with open(self.entry_file, "w", encoding="utf8") as fh:
+            fh.writelines(lines)
 
     def compose_entry_point(self, given_body):
         ep = FunctionDefinition(
@@ -292,6 +319,8 @@ class FunctionModels:
         self.mem_function_map = mem_function_map
         self.free_function_map = free_function_map
         self.irq_function_map = irq_function_map
+        self.signature = None
+        self.ualloc_flag = None
 
     def init_pointer(self, signature):
         if get_conf_property(self._conf, 'allocate with sizeof'):
@@ -370,38 +399,39 @@ class FunctionModels:
         return final
 
     def _replace_mem_call(self, match):
-        function, label_name, flag = match.groups()
+        func, label_name, flag = match.groups()
         size = '0'
 
-        if function not in self.mem_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.mem_function_map[function]:
-            raise NotImplementedError("Set implementation for the function {}".format(function))
+        if func not in self.mem_function_map:
+            raise NotImplementedError("Model of {} is not supported".format(func))
+        elif not self.mem_function_map[func]:
+            raise NotImplementedError("Set implementation for the function {}".format(func))
 
         if isinstance(self.signature, Pointer):
-            if function == 'ALLOC' and self.ualloc_flag:
+            if func == 'ALLOC' and self.ualloc_flag:
                 # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
-                function = 'UALLOC'
-            if get_conf_property(self._conf, 'disable ualloc') and function == 'UALLOC':
-                function = 'ALLOC'
-            if function != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
+                func = 'UALLOC'
+            if get_conf_property(self._conf, 'disable ualloc') and func == 'UALLOC':
+                func = 'ALLOC'
+            if func != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
                 size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
-            return "{}({})".format(self.mem_function_map[function], size)
+            return "{}({})".format(self.mem_function_map[func], size)
         else:
             raise ValueError('This is not a pointer')
 
     def _replace_free_call(self, match):
-        function, label_name, flag = match.groups()
-        if function not in self.free_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.free_function_map[function]:
-            raise NotImplementedError("Set implementation for the function {}".format(function))
+        func, label_name, flag = match.groups()
+        if func not in self.free_function_map:
+            raise NotImplementedError("Model of {} is not supported".format(func))
+        elif not self.free_function_map[func]:
+            raise NotImplementedError("Set implementation for the function {}".format(func))
 
         # Create function call
         if type(self.signature) is Pointer:
-            return "{}(%{}%)".format(self.free_function_map[function], label_name)
+            return "{}(%{}%)".format(self.free_function_map[func], label_name)
         else:
             raise ValueError('This is not a pointer')
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
