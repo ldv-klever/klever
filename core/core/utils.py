@@ -27,6 +27,7 @@ import threading
 import time
 import queue
 import tempfile
+import shutil
 from benchexec.runexecutor import RunExecutor
 
 
@@ -169,6 +170,14 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
         raise CommandError('"{0}" failed'.format(cmd))
     elif collect_all_stdout:
         return out_q.output
+
+
+def reliable_rmtree(logger, directory):
+    try:
+        shutil.rmtree(directory)
+    except OSError as error:
+        logger.warning("Cannot delete directory {!r}: {!r}".format(directory, error))
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
@@ -447,10 +456,12 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
+    logger.debug('{0} going to modify report id')
     with report_id.get_lock():
         cur_report_id = report_id.value
         report_id.value += 1
 
+    logger.debug('{0} prepare file archive')
     archives = []
     process_queue = [report_data]
     while process_queue:
@@ -460,6 +471,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
         elif isinstance(elem, ReportFiles):
+            logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
             elem.make_archive(directory=os.path.join(main_work_dir, 'reports'), prefix='{0}-'.format(cur_report_id))
 
             archives.append(elem.archive)

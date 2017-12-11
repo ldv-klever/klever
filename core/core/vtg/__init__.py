@@ -23,7 +23,6 @@ import os
 import copy
 import hashlib
 import time
-import shutil
 import core.components
 import core.utils
 import core.session
@@ -541,7 +540,7 @@ class VTG(core.components.Component):
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
                                 deldir = os.path.join(vobject, rule)
-                                shutil.rmtree(deldir)
+                                core.utils.reliable_rmtree(self.logger, deldir)
                             del delete_ready[vobject]
                         del processing_status[vobject][rule_class]
 
