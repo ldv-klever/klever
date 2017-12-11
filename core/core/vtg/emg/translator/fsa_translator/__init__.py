@@ -68,6 +68,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
                 self._compose_action(state, automaton)
+                
+            # Add implementation symbols
+
 
         # Make graph postprocessing
         for automaton in self._event_fsa + [self._entry_fsa]:

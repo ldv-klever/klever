@@ -87,6 +87,8 @@ def _simplify_process(logger, conf, analysis, process):
 
     # Then replace accesses in parameters with simplified expressions
     for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
+        guards = []
+
         for index in range(len(action.parameters)):
             # Determine dispatcher parameter
             try:
@@ -106,6 +108,12 @@ def _simplify_process(logger, conf, analysis, process):
             new_expression = access.access_with_label(new_label)
             action.parameters[index] = new_expression
 
+            if isinstance(action, Receive) and get_conf_property(conf, "add registration guards"):
+                access = process.resolve_access(new_expression)[0]
+                implementation = process.get_implementation(access)
+                if implementation and implementation.value:
+                    guards.append("{} == {}".format(new_expression, implementation.value))
+
             # Go through peers and set proper interfaces
             for peer in action.peers:
                 if 'interfaces' not in peer:
@@ -117,6 +125,12 @@ def _simplify_process(logger, conf, analysis, process):
                         pr['interfaces'] = list()
                     if len(pr['interfaces']) == index:
                         pr['interfaces'].append(interface)
+
+        if len(guards) > 0:
+            if action.condition:
+                action.condition = guards
+            else:
+                action.condition.extend(guards)
 
     # Remove callback actions
     for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
@@ -683,52 +697,47 @@ def _remove_statics(analysis, access_map):
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
+            if implementation.is_static:
+                # Determine name
+                name = analysis.refined_name(implementation.value)
+                if not name:
+                    name = implementation.value
+                func = None
+                var = None
 
-            # Determine name
-            name = analysis.refined_name(implementation.value)
-            if not name:
-                name = implementation.value
-            func = None
-            var = None
+                # Prepare dictionary
+                for coll in (_definitions, _declarations):
+                    if implementation.file not in coll:
+                        coll[implementation.file] = dict()
 
-            # Prepare dictionary
-            for coll in (_definitions, _declarations):
-                if implementation.file not in coll:
-                    coll[implementation.file] = dict()
+                # Create new artificial variables and functions
+                if isinstance(implementation.declaration, Function):
+                    func = resolve_existing(name, implementation, _definitions)
+                    if not func:
+                        func = create_definition(implementation.declaration, name, implementation)
+                        _definitions[implementation.file][name] = func
+                elif isinstance(implementation.declaration, Pointer):
+                    var = resolve_existing(name, implementation, _declarations)
+                    if not var:
+                        var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                       implementation.file, implementation.declaration, export=True, scope='global')
+                        var.value = implementation.value
+                        _declarations[implementation.file][name] = var
+                elif not isinstance(implementation.declaration, Primitive):
+                    var = resolve_existing(name, implementation, _declarations)
+                    if not var:
+                        var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                       implementation.file, implementation.declaration.take_pointer,
+                                       export=True, scope='global')
+                        var.value = "& {}".format(implementation.value)
+                        _declarations[implementation.file][name] = var
 
-            # Create new artificial variables and functions
-            if isinstance(implementation.declaration, Pointer) and \
-                    isinstance(implementation.declaration.points, Function):
-                func = resolve_existing(name, implementation, _definitions)
-                if not func:
-                    func = create_definition(implementation.declaration.points, name, implementation)
-                    _definitions[implementation.file][name] = func
-            elif isinstance(implementation.declaration, Function):
-                func = resolve_existing(name, implementation, _definitions)
-                if not func:
-                    func = create_definition(implementation.declaration, name, implementation)
-                    _definitions[implementation.file][name] = func
-            elif isinstance(implementation.declaration, Pointer):
-                var = resolve_existing(name, implementation, _declarations)
-                if not var:
-                    var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                   implementation.file, implementation.declaration, export=True, scope='global')
-                    var.value = implementation.value
-                    _declarations[implementation.file][name] = var
-            else:
-                var = resolve_existing(name, implementation, _declarations)
-                if not var:
-                    var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                   implementation.file, implementation.declaration.take_pointer,
-                                   export=True, scope='global')
-                    var.value = "& {}".format(implementation.value)
-                    _declarations[implementation.file][name] = var
-
-            new_value = func.name if func else var.name
-            if implementation.file not in _values_map:
-                _values_map[implementation.file] = dict()
-            _values_map[implementation.file][new_value] = implementation.value
-            implementation.value = new_value
+                if var or func:
+                    new_value = func.name if func else var.name
+                    if implementation.file not in _values_map:
+                        _values_map[implementation.file] = dict()
+                    _values_map[implementation.file][new_value] = implementation.value
+                    implementation.value = new_value
 
     return
 
