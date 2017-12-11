@@ -1,0 +1,150 @@
+{% load tz %}
+{% load i18n %}
+
+<h3>{% trans 'Versions comparison' %}</h3>
+<p>
+    <i class="ui red minus icon"></i>
+    {% timezone user.extended.timezone %}
+        {{ data.v1.change_date|date:"r" }}
+    {% endtimezone %}
+    {% if data.v1.author %}
+        (<a href="{% url 'users:show_profile' data.v1.author_id %}">{{ data.v1.author.get_full_name }}</a>)
+    {% endif %}
+    {% if data.v1.comment %}
+        <span>: {{ data.v1.comment }}</span>
+    {% endif %}
+</p>
+<p>
+    <i class="ui green plus icon"></i>
+    {% timezone user.extended.timezone %}
+        {{ data.v2.change_date|date:"r" }}
+    {% endtimezone %}
+    {% if data.v2.author %}
+        (<a href="{% url 'users:show_profile' data.v2.author_id %}">{{ data.v2.author.get_full_name }}</a>)
+    {% endif %}
+    {% if data.v2.comment %}
+        <span>: {{ data.v2.comment }}</span>
+    {% endif %}
+</p>
+<div class="ui divider"></div>
+
+{% if data.verdict %}
+    <h5>{% trans 'Verdict was changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i> <strong style="color: {{ data.verdict.0.color }}">{{ data.verdict.0.title }}</strong>
+        <br>
+        <i class="ui green plus icon"></i> <strong style="color: {{ data.verdict.1.color }}">{{ data.verdict.1.title }}</strong>
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.status %}
+    <h5>{% trans 'Status was changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i> <strong style="color: {{ data.status.0.color }}">{{ data.status.0.title }}</strong>
+        <br>
+        <i class="ui green plus icon"></i> <strong style="color: {{ data.status.1.color }}">{{ data.status.1.title }}</strong>
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.tags %}
+    <h5>{% trans 'Tags were changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i> {% if data.tags.0 %}{{ data.tags.0 }}{% else %}<i class="ui red ban icon"></i>{% endif %}
+        <br>
+        <i class="ui green plus icon"></i> {% if data.tags.1 %}{{ data.tags.1 }}{% else %}<i class="ui red ban icon"></i>{% endif %}
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.et_func %}
+    <h5>{% trans 'Error trace comparison function was changed' %}</h5>
+
+    <i class="ui red minus icon"></i> <b>{{ data.et_func.0.compare_name }}</b>
+    <div class="func-description">{{ data.et_func.0.compare_desc }}</div>
+    <br>
+    <b>{{ data.et_func.0.convert_name }}</b>
+    <div class="func-description">{{ data.et_func.0.convert_desc }}</div>
+    <br><br>
+    <i class="ui green plus icon"></i> <b>{{ data.et_func.1.compare_name }}</b>
+    <div class="func-description">{{ data.et_func.1.compare_desc }}</div>
+    <br>
+    <b>{{ data.et_func.1.convert_name }}</b>
+    <div class="func-description">{{ data.et_func.1.convert_desc }}</div>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.et %}
+    <h5>{% trans 'Error trace was changed' %}</h5>
+    <span class="filecontent" style="max-height: 30vh;">{{ data.et|safe }}</span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.attrs %}
+    <h5>{% trans 'Attributes to compare were changed' %}</h5>
+    <i class="ui red minus icon"></i>
+    {% if data.attrs.0|length %}
+        <ul>
+            {% for an, av in data.attrs.0 %}
+                <li><b>{{ an }}:</b> {{ av }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <i class="ui red ban icon"></i>
+    {% endif %}
+
+    <br>
+    <i class="ui green plus icon"></i>
+    {% if data.attrs.1|length %}
+        <ul>
+            {% for an, av in data.attrs.1 %}
+                <li><b>{{ an }}:</b> {{ av }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <i class="ui red ban icon"></i>
+    {% endif %}
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.unknown_func %}
+    <h5>{% trans 'Pattern was changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i>{% if data.unknown_func.0.is_regexp %}(regexp){% endif %}<br>
+        <span class="filecontent">{{ data.unknown_func.0.func }}</span>
+        <br><br>
+        <i class="ui green plus icon"></i>{% if data.unknown_func.1.is_regexp %}(regexp){% endif %}<br>
+        <span class="filecontent">{{ data.unknown_func.1.func }}</span>
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.problem %}
+    <h5>{% trans 'Problem or/and its link were changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i>{% if data.problem.0.link %}<a href="{{ data.problem.0.link }}">{{ data.problem.0.pattern }}</a>{% else %}{{ data.problem.0.pattern }}{% endif %}<br>
+        <i class="ui green plus icon"></i>{% if data.problem.1.link %}<a href="{{ data.problem.1.link }}">{{ data.problem.1.pattern }}</a>{% else %}{{ data.problem.1.pattern }}{% endif %}
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.v1.description != data.v2.description %}
+    <h5>{% trans 'Description was changed' %}</h5>
+    <span>
+        <i class="ui red minus icon"></i><br>
+        {% if data.v1.description %}
+            {{ data.v1.description|safe }}
+        {% else %}
+            <i class="ui red ban icon"></i>
+        {% endif %}
+        <br><br>
+        <i class="ui green plus icon"></i><br>
+        {% if data.v2.description %}
+            {{ data.v2.description|safe }}
+        {% else %}
+            <i class="ui red ban icon"></i>
+        {% endif %}
+    </span>
+    <div class="ui divider"></div>
+{% endif %}

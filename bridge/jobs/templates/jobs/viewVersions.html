@@ -1,45 +1,47 @@
 {% load i18n %}
 
-{% if versions|length %}
-    <div id="versions_to_delete">
-        <div id="versions_rows" class="ui brown attached segment" style="max-height: 80vh; overflow-y: auto">
-        {% for version in versions %}
-            <div class="version-line">
-                <div class="ui checkbox">
-                    <input id="checkbox_version__{{ version.version }}" type="checkbox">
-                    <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
-                </div>
-                <br><br>
+<div class="ui brown attached segment" style="max-height: 80vh; overflow-y: auto">
+    <h4 class="ui brown header">{% trans 'Job versions' %}</h4>
+    {% for version in versions %}
+        <div class="version-line">
+            <div class="ui checkbox">
+                <input id="checkbox_version__{{ version.version }}" type="checkbox">
+                <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
             </div>
-        {% endfor %}
+            <br><br>
         </div>
-        <div class="ui bottom attached buttons">
-            <button id="show_remove_versions_modal" class="ui brown button">{% trans 'Delete' %}</button>
-            <button id="cancel_edit_job_btn" class="ui blue button" style="float: right">{% trans 'Cancel' %}</button>
-        </div>
-        <div id="remove_versions_popup" class="ui basic modal">
-            <div class="ui icon header">
-                <i class="warning sign icon"></i>
-                {% trans 'Are you sure' %}?
-            </div>
-            <div class="content">
-                <div class="ui center aligned grid">
-                    <p>{% trans "You won't be able to restore deleted versions" %}</p>
-                </div>
-            </div>
-            <div class="actions">
-                <div class="ui center aligned grid">
-                    <button id="cancel_remove_versions" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                    <button id="delete_versions_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
-                </div>
-            </div>
+    {% endfor %}
+</div>
+<div class="ui bottom attached buttons">
+    <button id="compare_versions" class="ui violet button">{% trans 'Compare' %}</button>
+    <button id="show_remove_versions_modal" class="ui red button">{% trans 'Delete' %}</button>
+    <button id="close_versions" class="ui blue button">{% trans 'Cancel' %}</button>
+</div>
+<br>
+<span id="cant_remove_vers" class="small-text" style="display: none;">*{% trans "You can't remove first and last versions" %}</span>
+
+<div id="remove_versions_popup" class="ui basic modal">
+    <div class="ui icon header">
+        <i class="warning sign icon"></i>
+        {% trans 'Are you sure' %}?
+    </div>
+    <div class="content">
+        <div class="ui center aligned grid">
+            <p>{% trans "You won't be able to restore deleted versions" %}</p>
         </div>
     </div>
-    <div id="no_versions_to_delete" hidden>
-        <h4 class="header">{% trans "No versions to delete (you can't remove first and last versions)" %}</h4>
-        <button id="reload_page__versions" class="ui blue button">{% trans 'OK' %}</button>
+    <div class="actions">
+        <div class="ui center aligned grid">
+            <button id="cancel_remove_versions" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+            <button id="delete_versions_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+        </div>
     </div>
-{% else %}
-    <h4 class="header">{% trans "No versions to delete (you can't remove first and last versions)" %}</h4>
-    <button id="cancel_edit_job_btn" class="ui blue button">{% trans 'OK' %}</button>
-{% endif %}
+</div>
+
+<div id="version_comparison_modal" class="ui dinamic modal">
+    <button id="close_comparison_view" class="ui icon red button" style="float:right;margin:10px;"><i class="remove icon"></i></button>
+    <div class="content"></div>
+</div>
+
+<span id="error__no_vers_selected" hidden>{% trans "Nothing to delete" %}</span>
+<span id="error__select_two_vers" hidden>{% trans "Please select exactly two versions to compare" %}</span>

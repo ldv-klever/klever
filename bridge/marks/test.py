@@ -68,7 +68,7 @@ class TestMarks(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '0']
+            [False, True, True, False, True, False, True, True, '0']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', SJC_1)
@@ -275,7 +275,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:edit_mark', args=['safe', mark.pk]))
+        response = self.client.get(reverse('marks:mark', args=['safe', 'edit', mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
@@ -335,7 +335,7 @@ class TestMarks(KleverTestCase):
         # Safe marks list page
         response = self.client.get(reverse('marks:mark_list', args=['safe']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:view_mark', args=['safe', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['safe', 'view', mark.id]))
         self.assertEqual(response.status_code, 200)
 
         # Inline mark form
@@ -470,11 +470,6 @@ class TestMarks(KleverTestCase):
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
         self.assertIn('data', res)
-
-        # Get mark's versions
-        response = self.client.post('/marks/ajax/getversions/', {'mark_type': 'safe', 'mark_id': newmark.pk})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
         # Remove 2nd and 4th versions
         response = self.client.post('/marks/ajax/remove_versions/', {
@@ -736,7 +731,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:edit_mark', args=['unsafe', mark.pk]))
+        response = self.client.get(reverse('marks:mark', args=['unsafe', 'edit', mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
@@ -803,7 +798,7 @@ class TestMarks(KleverTestCase):
         # Unsafe marks list page
         response = self.client.get(reverse('marks:mark_list', args=['unsafe']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:view_mark', args=['unsafe', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['unsafe', 'view', mark.id]))
         self.assertEqual(response.status_code, 200)
 
         # Inline mark form
@@ -951,11 +946,6 @@ class TestMarks(KleverTestCase):
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
         self.assertIn('data', res)
-
-        # Get mark's versions
-        response = self.client.post('/marks/ajax/getversions/', {'mark_type': 'unsafe', 'mark_id': newmark.pk})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
         # Remove 2nd and 4th versions
         response = self.client.post('/marks/ajax/remove_versions/', {
@@ -1116,7 +1106,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:edit_mark', args=['unknown', mark.pk]))
+        response = self.client.get(reverse('marks:mark', args=['unknown', 'edit', mark.pk]))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
@@ -1182,7 +1172,7 @@ class TestMarks(KleverTestCase):
         # Unknown marks list page
         response = self.client.get(reverse('marks:mark_list', args=['unknown']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:view_mark', args=['unknown', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['unknown', 'view', mark.id]))
         self.assertEqual(response.status_code, 200)
 
         # Confirm/unconfirm association
@@ -1361,11 +1351,6 @@ class TestMarks(KleverTestCase):
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
         self.assertIn('data', res)
-
-        # Get mark's versions
-        response = self.client.post('/marks/ajax/getversions/', {'mark_type': 'unknown', 'mark_id': newmark.pk})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
         # Remove 2nd and 4th versions
         response = self.client.post('/marks/ajax/remove_versions/', {
