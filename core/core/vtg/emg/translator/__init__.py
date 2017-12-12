@@ -58,6 +58,11 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, additional_
         # Generate new group
         avt['environment model'] = entry_file_realpath
 
+    # Rename main file
+    if 'environment model' in additional_code:
+        additional_code[entry_file] = additional_code['environment model']
+        del additional_code['environment model']
+
     # Initalize code representation
     cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name,
                     entry_file)
@@ -85,10 +90,6 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, additional_
         StateTranslator(logger, conf['translation options'], analysis, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
-    # Rename main file
-    if 'environment model' in additional_code:
-        additional_code[cmodel.entry_file] = additional_code['environment model']
-        del additional_code['environment model']
     addictions = cmodel.print_source_code(additional_code)
 
     # Set entry point function in abstract task

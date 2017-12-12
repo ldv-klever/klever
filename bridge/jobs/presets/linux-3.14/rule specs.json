@@ -24,6 +24,7 @@
             },
             "intermediate model options": {
               "generate insmod scenario": true,
+              "convert statics to globals": true,
               "add registration guards": true,
               "add missing activation signals": ["register", "instance_register", "irq_register"],
               "add missing deactivation signals": ["deregister", "instance_deregister", "irq_deregister"],

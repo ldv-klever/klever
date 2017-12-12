@@ -116,7 +116,7 @@ def _simplify_process(logger, conf, analysis, process):
                 access = process.resolve_access(new_expression)[0]
                 implementation = process.get_implementation(access)
                 if implementation and implementation.value:
-                    guards.append("{} == {}".format(new_expression,
+                    guards.append("{} == {}".format("$ARG{}".format(index + 1),
                                                     implementation.adjusted_value(new_label.prior_signature)))
 
             # Go through peers and set proper interfaces
@@ -178,6 +178,9 @@ def _simplify_process(logger, conf, analysis, process):
             action.statements = code_replacment(action.statements)
         if action.condition:
             action.condition = code_replacment(action.condition)
+
+    # Now we ready to get rid of implementations
+    process.allowed_implementations = None
 
     return
 
@@ -353,7 +356,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
                 # Eplicit callback call by found function name
                 if implementation.file in _values_map and implementation.value in _values_map:
                     true_call = '(' + _values_map[implementation.file][implementation.value] + ')'
-                invoke = '(' + implementation.value + ')'
+                invoke = analysis.refined_name(implementation.value)
                 check = False
             elif signature.clean_declaration and not isinstance(implementation, bool) and \
                     get_necessary_conf_property(conf, 'implicit callback calls'):
@@ -507,6 +510,9 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
 
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
+        if get_conf_property(conf, "convert statics to globals", expected_type=bool):
+            _remove_statics(analysis, process.allowed_implementations)
+
         for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
             new_peers = []
             for peer in action.peers:
@@ -609,8 +615,6 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
 
             newp.allowed_implementations = access_map
             __generate_model_comment(newp)
-            if get_conf_property(conf, "convert static to global", expected_type=bool):
-                _remove_statics(analysis, access_map)
 
             # Add relevant headers
             header_list = list.copy(newp.headers)
@@ -685,10 +689,10 @@ def _remove_statics(analysis, access_map):
         f = FunctionDefinition("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
                                implementation.file, signature=decl, export=True)
         # Generate call
-        if f.declaration.return_value:
-            ret = 'return'
-        else:
+        if not f.declaration.return_value or f.declaration.return_value.identifier == 'void':
             ret = ''
+        else:
+            ret = 'return'
 
         # Generate params
         params = ', '.join(["arg{}".format(i) for i in range(len(f.declaration.parameters))])
@@ -710,39 +714,40 @@ def _remove_statics(analysis, access_map):
                 func = None
                 var = None
 
-                # Prepare dictionary
-                for coll in (_definitions, _declarations):
-                    if implementation.file not in coll:
-                        coll[implementation.file] = dict()
+                if implementation.file not in _values_map or name not in _values_map[implementation.file]:
+                    # Prepare dictionary
+                    for coll in (_definitions, _declarations):
+                        if implementation.file not in coll:
+                            coll[implementation.file] = dict()
 
-                # Create new artificial variables and functions
-                if isinstance(implementation.declaration, Function):
-                    func = resolve_existing(name, implementation, _definitions)
-                    if not func:
-                        func = create_definition(implementation.declaration, name, implementation)
-                        _definitions[implementation.file][name] = func
-                elif isinstance(implementation.declaration, Pointer):
-                    var = resolve_existing(name, implementation, _declarations)
-                    if not var:
-                        var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                       implementation.file, implementation.declaration, export=True, scope='global')
-                        var.value = implementation.value
-                        _declarations[implementation.file][name] = var
-                elif not isinstance(implementation.declaration, Primitive):
-                    var = resolve_existing(name, implementation, _declarations)
-                    if not var:
-                        var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                       implementation.file, implementation.declaration.take_pointer,
-                                       export=True, scope='global')
-                        var.value = "& {}".format(implementation.value)
-                        _declarations[implementation.file][name] = var
+                    # Create new artificial variables and functions
+                    if isinstance(implementation.declaration, Function):
+                        func = resolve_existing(name, implementation, _definitions)
+                        if not func:
+                            func = create_definition(implementation.declaration, name, implementation)
+                            _definitions[implementation.file][name] = func
+                    elif isinstance(implementation.declaration, Pointer):
+                        var = resolve_existing(name, implementation, _declarations)
+                        if not var:
+                            var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                           implementation.file, implementation.declaration, export=True, scope='global')
+                            var.value = implementation.value
+                            _declarations[implementation.file][name] = var
+                    elif not isinstance(implementation.declaration, Primitive):
+                        var = resolve_existing(name, implementation, _declarations)
+                        if not var:
+                            var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                           implementation.file, implementation.declaration.take_pointer,
+                                           export=True, scope='global')
+                            var.value = "& {}".format(implementation.value)
+                            _declarations[implementation.file][name] = var
 
-                if var or func:
-                    new_value = func.name if func else var.name
-                    if implementation.file not in _values_map:
-                        _values_map[implementation.file] = dict()
-                    _values_map[implementation.file][new_value] = implementation.value
-                    implementation.value = new_value
+                    if var or func:
+                        new_value = func.name if func else var.name
+                        if implementation.file not in _values_map:
+                            _values_map[implementation.file] = dict()
+                        _values_map[implementation.file][new_value] = implementation.value
+                        implementation.value = new_value
 
     return
 

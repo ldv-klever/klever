@@ -64,42 +64,41 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
-        implmnts = list()
+        #implmnts = list()
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
                 self._compose_action(state, automaton)
-                
-            # Add implementation symbols
-            for implementations in automaton.process.allowed_implementations.values():
-                for implementation in implementations.values():
-                    if implementation and implementation not in implmnts and not isinstance(implementation.declaration,
-                                                                                            Primitive):
-                        implmnts.append(implementation)
 
-        for impl in implmnts:
-            # Add simple variables and function references
-            cnt = 0
-            name = None
-            for regex in ('\s*\&\s*(\w+)\s*$', '\s*\&\s*(\w+)\s*$', '\s*(\w+)\s*$'):
-                m = re.compile(regex).match(impl.value)
-                if m:
-                    name = m.group(1)
-                    if cnt == 0:
-                        declaration = impl.declaration.points
-                    elif cnt == 1:
-                        declaration = impl.declaration.take_pointer
-                    else:
-                        declaration = impl.declaration
-                    break
-                cnt += 1
-            else:
-                self._logger.warning("Skip unparsed implementation external declaration {!r}".format(impl.value))
+            # for implementations in automaton.process.allowed_implementations.values():
+            #     for implementation in implementations.values():
+            #         if implementation and implementation not in implmnts and not isinstance(implementation.declaration,
+            #                                                                                 Primitive):
+            #             implmnts.append(implementation)
 
-            if name and declaration:
-                v = Variable(name, self._cmodel.entry_file, declaration, scope='global')
-                self._cmodel.add_global_variable(v, self._cmodel.entry_file, extern=True)
+        # for impl in implmnts:
+        #     # Add simple variables and function references
+        #     cnt = 0
+        #     name = None
+        #     for regex in ('\s*\&\s*(\w+)\s*$', '\s*\&\s*(\w+)\s*$', '\s*(\w+)\s*$'):
+        #         m = re.compile(regex).match(impl.value)
+        #         if m:
+        #             name = m.group(1)
+        #             if cnt == 0:
+        #                 declaration = impl.declaration.points
+        #             elif cnt == 1:
+        #                 declaration = impl.declaration.take_pointer
+        #             else:
+        #                 declaration = impl.declaration
+        #             break
+        #         cnt += 1
+        #     else:
+        #         self._logger.warning("Skip unparsed implementation external declaration {!r}".format(impl.value))
+        #
+        #     if name and declaration:
+        #         v = Variable(name, self._cmodel.entry_file, declaration, scope='global')
+        #         self._cmodel.add_global_variable(v, self._cmodel.entry_file, extern=True)
 
         # Make graph postprocessing
         for automaton in self._event_fsa + [self._entry_fsa]:

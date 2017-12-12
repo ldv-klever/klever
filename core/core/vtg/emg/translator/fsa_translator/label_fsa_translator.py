@@ -141,12 +141,6 @@ class LabelTranslator(FSATranslator):
                                       automata_peers, state.action.peers, Dispatch)
 
             # Add additional condition
-            if state.action.condition and len(state.action.condition) > 0:
-                # Arguments comparison is not supported in label-based model
-                for statement in (s for s in state.action.condition if s.find('$ARG') == -1):
-                    cn = self._cmodel.text_processor(automaton, statement)
-                    conditions.extend(cn)
-
             if state.action.replicative:
                 param_declarations = []
                 param_expressions = []
@@ -157,6 +151,14 @@ class LabelTranslator(FSATranslator):
                         var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
                         param_expressions.append(var.name)
+                        for ind, statement in enumerate(state.action.condition):
+                            state.action.condition[ind] = statement.replace('$ARG{}'.format(index + 1), var.name)
+
+                if state.action.condition and len(state.action.condition) > 0:
+                    # Arguments comparison is not supported in label-based model
+                    for statement in state.action.condition:
+                        cn = self._cmodel.text_processor(automaton, statement)
+                        conditions.extend(cn)
 
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
@@ -175,6 +177,8 @@ class LabelTranslator(FSATranslator):
                     code.append('{}({});'.format(self._cmodel.free_function_map["FREE"], 'arg0'))
             else:
                 code.append('/* Skip a non-replicative signal receiving */'.format(state.desc['label']))
+                # Ignore conditions
+                conditions = []
         else:
             # Generate comment
             code.append("/* Signal receive {!r} does not expect any signal from existing processes */".

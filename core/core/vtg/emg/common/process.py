@@ -78,10 +78,10 @@ class Access:
     def access_with_label(self, label):
         # Increase use counter
 
-        if self.label and self.label.prior_signature:
+        if self.label and self.label.prior_signature and not self.interface:
             target = self.label.prior_signature
         elif self.label and self.list_interface[-1].identifier in self.label.interfaces:
-            target = self.label.declare(self.list_interface[-1].identifier)
+            target = self.label.get_declaration(self.list_interface[-1].identifier)
         else:
             target = self.list_interface[-1].declaration
 

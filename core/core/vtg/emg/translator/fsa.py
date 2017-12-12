@@ -433,7 +433,7 @@ class Automaton:
             return self.__label_variables[label.name]["default"]
         else:
             if label.prior_signature:
-                var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"),
+                var = Variable("ldv_{}_{}".format(self.identifier, label.name),
                                None, label.prior_signature, export=True)
                 if label.value:
                     var.value = label.value
