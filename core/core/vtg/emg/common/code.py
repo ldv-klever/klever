@@ -78,7 +78,7 @@ class FunctionDefinition:
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
-    def get_declaration(self, extern=False):
+    def declare(self, extern=False):
         declaration = self.declaration.to_string(self.name, typedef='complex_and_params')
         declaration += ';'
 
@@ -86,7 +86,7 @@ class FunctionDefinition:
             declaration = "extern " + declaration
         return [declaration + "\n"]
 
-    def get_definition(self):
+    def define(self):
         declaration = '{} {}({})'.format(self.declaration.return_value.to_string(typedef='complex_and_params'),
                                          self.name, ', '.join(
                                             [self.declaration.parameters[index].to_string('arg{}'.format(index),

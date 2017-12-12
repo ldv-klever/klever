@@ -26,7 +26,7 @@ class EntryProcessGenerator:
         self.__logger = logger
         self.__conf = conf
         self.__default_signals = dict()
-        self.code = dict()
+        self.code = {'environment model': []}
 
     def entry_process(self, analysis):
         """
@@ -116,10 +116,15 @@ class EntryProcessGenerator:
             "\t{}();\n".format("return {}".format(name) if int_retval else name),
             "}\n"
         ]
+        # Add definition
         if file not in self.code:
             self.code[file] = code
         else:
             self.code[file].extend(["\n"] + code)
+
+        # Add extern declaration
+        self.code['environment model'].append('extern {} {}(void);\n'.format("int" if int_retval else "void", new_name))
+
         return new_name
 
     def __generate_insmod_process(self, analysis, default_dispatches=False):

@@ -77,7 +77,7 @@ class CModel:
         else:
             prefix = 'AUX_FUNC'
         self._function_definitions[file][func.name] = \
-            ['/* {} {} */\n'.format(prefix, func.name)] + list(func.get_definition())
+            ['/* {} {} */\n'.format(prefix, func.name)] + list(func.define())
         self.add_function_declaration(file, func, extern=False)
 
     def add_function_declaration(self, file, func, extern=False):
@@ -86,7 +86,7 @@ class CModel:
 
         if extern and func.name in self._function_declarations[file]:
             return
-        self._function_declarations[file][func.name] = func.get_declaration(extern=extern)
+        self._function_declarations[file][func.name] = func.declare(extern=extern)
 
     def add_global_variable(self, variable, file, extern=False):
         if variable.scope == 'local':
@@ -128,31 +128,35 @@ class CModel:
             self._call_aspects[file].append(new_aspect)
 
     def print_source_code(self, additional_lines):
-        addictions = self._write_code_addictions(additional_lines)
-        self._write_main_file()
-        return addictions
-
-    def _write_code_addictions(self, additional_lines):
         aspect_dir = "aspects"
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
         addictions = dict()
         # Write aspects
-        for file in (f for f in self.files if f != self.entry_file):
-            # Check headers
-            if file in self._headers and len(self._headers[file]) > 0:
-                raise RuntimeError("We do not expect adding headers to the original source file: \n".
-                                   format('\n'.join(self._headers[file])))
-
-            # Generate function declarations
-            self._logger.info('Add aspects to a file {!r}'.format(file))
-            # Aspect text
+        for file in self.files:
             lines = list()
 
-            # Add model itself
-            lines.append('after: file ("$this")\n')
-            lines.append('{\n')
+            # Check headers
+            if file == self.entry_file:
+                if self.entry_file in self._headers:
+                    lines.extend(['#include <{}>\n'.format(h) for h in self._headers[self.entry_file]])
+                lines.append("\n")
+
+                for tp in self.types:
+                    lines.append(tp.to_string('') + " {\n")
+                    for field in sorted(list(tp.fields.keys())):
+                        lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
+                                                      scope={self.entry_file}))
+                    lines.append("};\n")
+                    lines.append("\n")
+            else:
+                # Generate function declarations
+                self._logger.info('Add aspects to a file {!r}'.format(file))
+
+                # Add model itself
+                lines.append('after: file ("$this")\n')
+                lines.append('{\n')
 
             if file in additional_lines and 'declarations' in additional_lines[file] and \
                     len(additional_lines[file]['declarations']) > 0:
@@ -172,7 +176,7 @@ class CModel:
                 for variable in sorted(self._variables_declarations[file].keys()):
                     lines.extend(self._variables_declarations[file][variable])
 
-            if file in self._variables_initializations:
+            if file in self._variables_initializations and len(self._variables_initializations[file]) > 0:
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for variable in sorted(self._variables_initializations[file].keys()):
@@ -184,73 +188,32 @@ class CModel:
                 lines.append("/* EMG aliases for functions */\n")
                 lines.extend(additional_lines[file]['definitions'])
 
-            lines.append("\n")
-            lines.append("/* EMG function definitions */\n")
-            if file in self._function_definitions:
+            if file in self._function_definitions and len(self._function_definitions[file]) > 0:
+                lines.append("\n")
+                lines.append("/* EMG function definitions */\n")
                 for func in sorted(self._function_definitions[file].keys()):
                     lines.extend(self._function_definitions[file][func])
                     lines.append("\n")
 
-            lines.append("}\n")
-            lines.append("/* EMG kernel function models */\n")
-            if file in self._call_aspects:
+            if file in self._call_aspects and len(self._call_aspects[file]) > 0:
+                lines.append("}\n\n")
+                lines.append("/* EMG kernel function models */\n")
                 for aspect in self._call_aspects[file]:
                     lines.extend(aspect.get_aspect())
                     lines.append("\n")
 
-            name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0],
-                                                       '.aspect'))
+            if file != self.entry_file:
+                name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0],
+                                                           '.aspect'))
+                path = os.path.relpath(name, self._workdir)
+                self._logger.info("Add aspect file {!r}".format(path))
+                addictions[file] = path
+            else:
+                name = self.entry_file
             with open(name, "w", encoding="utf8") as fh:
                 fh.writelines(lines)
 
-            path = os.path.relpath(name, self._workdir)
-            self._logger.info("Add aspect file {!r}".format(path))
-            addictions[file] = path
-
         return addictions
-
-    def _write_main_file(self):
-        # Write environment model main file
-        self._logger.info('Write environment model main file {!r}'.format(self.entry_file))
-        lines = list()
-        if self.entry_file in self._headers:
-            lines.extend(['#include <{}>\n'.format(h) for h in self._headers[self.entry_file]])
-        lines.append("\n")
-
-        for tp in self.types:
-            lines.append(tp.to_string('') + " {\n")
-            for field in sorted(list(tp.fields.keys())):
-                lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
-                                              scope={self.entry_file}))
-            lines.append("};\n")
-            lines.append("\n")
-
-        if self.entry_file in self._function_declarations:
-            lines.append("/* EMG Function declarations */\n")
-            for func in self._function_declarations[self.entry_file].keys():
-                lines.extend(self._function_declarations[self.entry_file][func])
-
-        if self.entry_file in self._variables_declarations:
-            lines.append("\n")
-            lines.append("/* EMG variable declarations */\n")
-            for variable in self._variables_declarations[self.entry_file].keys():
-                lines.extend(self._variables_declarations[self.entry_file][variable])
-
-        if self.entry_file in self._variables_initializations:
-            lines.append("\n")
-            lines.append("/* EMG variable initialization */\n")
-            for variable in self._variables_initializations[self.entry_file].keys():
-                lines.extend(self._variables_initializations[self.entry_file][variable])
-
-        if self.entry_file in self._function_definitions:
-            lines.append("\n")
-            lines.append("/* EMG function definitions */\n")
-            for func in self._function_definitions[self.entry_file].keys():
-                lines.extend(self._function_definitions[self.entry_file][func])
-                lines.append("\n")
-
-        with open(self.entry_file, "w", encoding="utf8") as fh:
-            fh.writelines(lines)
 
     def compose_entry_point(self, given_body):
         ep = FunctionDefinition(

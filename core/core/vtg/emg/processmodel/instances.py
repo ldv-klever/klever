@@ -41,7 +41,7 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
     model.model_processes = model_processes
     model.event_processes = callback_processes
 
-    final_code = dict()
+    final_code = {'environment model': {"declarations": [], "definitions": []}}
     for file in _declarations:
         if file not in final_code:
             final_code[file] = {
@@ -50,6 +50,8 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
             }
         for name in _declarations[file]:
             final_code[file]["declarations"].extend([_declarations[file][name].declare_with_init() + ";\n"])
+            final_code['environment model']["declarations"].append(_declarations[file][name].
+                                                                   declare(extern=True) + ";\n")
     for file in _definitions:
         if file not in final_code:
             final_code[file] = {
@@ -57,7 +59,9 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
                 "definitions": list()
             }
         for name in _definitions[file]:
-            final_code[file]["definitions"].extend(_definitions[file][name].get_definition() + ["\n"])
+            final_code[file]["definitions"].extend(_definitions[file][name].definition() + ["\n"])
+            final_code['environment model']["declarations"].append(_declarations[file][name].
+                                                                   declare(extern=True) + ";\n")
 
     logger.info("Finish generating simplified environment model for further translation")
     return instance_maps, final_code
@@ -1194,5 +1198,6 @@ def _from_same_container(a, b):
             return True
 
     return False
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
