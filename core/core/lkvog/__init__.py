@@ -251,6 +251,8 @@ class LKVOG(core.components.Component):
                 self.linux_kernel_module_info_mq.close()
                 break
 
+            self.module = os.path.normpath(self.module)
+
             self.logger.debug('Recieved module {0}'.format(self.module))
             cc_ready.add(self.module)
 
@@ -406,6 +408,9 @@ class LKVOG(core.components.Component):
     def process_linux_kernel_build_cmd_desc(self, desc_file):
         with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
             desc = json.load(fp)
+
+        desc['out file'] = os.path.normpath(desc['out file'])
+        desc['in files'] = [os.path.normpath(in_file) for in_file in desc['in files']]
 
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
