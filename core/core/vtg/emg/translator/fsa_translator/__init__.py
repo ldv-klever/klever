@@ -695,7 +695,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
             final_code.append(comments[0])
 
             # Skip or assert action according to conditions
-            if len(st.predecessors) > 0 and len(list(st.predecessors)[0].successors) > 1 and len(conditions) > 0:
+            if len(conditions) > 0 and ((len(st.predecessors) > 0 and len(list(st.predecessors)[0].successors) > 1) or
+                                        isinstance(st.action, Receive)):
                 final_code.append('ldv_assume({});'.format(' && '.join(conditions)))
                 final_code.extend(code)
             elif len(conditions) > 0 and len(code) > 0:
@@ -712,13 +713,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
             final_code.append('')
             st.code = (v_code, final_code)
 
-        if type(state.action) is Dispatch:
+        if isinstance(state.action, Dispatch):
             code_generator = self._dispatch
-        elif type(state.action) is Receive:
+        elif isinstance(state.action, Receive):
             code_generator = self._receive
-        elif type(state.action) is Condition:
+        elif isinstance(state.action, Condition):
             code_generator = self._condition
-        elif type(state.action) is Subprocess:
+        elif isinstance(state.action, Subprocess):
             code_generator = self._subprocess
         elif state.action is None:
             code_generator = self._art_action

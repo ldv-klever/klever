@@ -116,7 +116,8 @@ def _simplify_process(logger, conf, analysis, process):
                 access = process.resolve_access(new_expression)[0]
                 implementation = process.get_implementation(access)
                 if implementation and implementation.value:
-                    guards.append("{} == {}".format(new_expression, implementation.value))
+                    guards.append("{} == {}".format(new_expression,
+                                                    implementation.adjusted_value(new_label.prior_signature)))
 
             # Go through peers and set proper interfaces
             for peer in action.peers:
@@ -132,9 +133,9 @@ def _simplify_process(logger, conf, analysis, process):
 
         if len(guards) > 0:
             if action.condition:
-                action.condition = guards
-            else:
                 action.condition.extend(guards)
+            else:
+                action.condition = guards
 
     # Remove callback actions
     for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
