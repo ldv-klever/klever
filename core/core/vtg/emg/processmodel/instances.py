@@ -59,9 +59,8 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
                 "definitions": list()
             }
         for name in _definitions[file]:
-            final_code[file]["definitions"].extend(_definitions[file][name].definition() + ["\n"])
-            final_code['environment model']["declarations"].append(_declarations[file][name].
-                                                                   declare(extern=True) + ";\n")
+            final_code[file]["definitions"].extend(_definitions[file][name].define() + ["\n"])
+            final_code['environment model']["declarations"].extend(_definitions[file][name].declare(extern=True))
 
     logger.info("Finish generating simplified environment model for further translation")
     return instance_maps, final_code
@@ -179,7 +178,33 @@ def _simplify_process(logger, conf, analysis, process):
         if action.condition:
             action.condition = code_replacment(action.condition)
 
-    # Now we ready to get rid of implementations
+    # Now we ready to get rid of implementations but first we must add declarations to the main file
+    for access in process.allowed_implementations:
+        for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
+            implementation = process.allowed_implementations[access][intf]
+
+            if (implementation.file not in _values_map or
+                    (implementation.value not in _values_map[implementation.file])) and not implementation.is_static:
+                # Maybe it is a variable
+                true_declaration = analysis.get_global_var_declaration(implementation.value, implementation.file,
+                                                                       original=True)
+                if not true_declaration:
+                    # Seems that it is a funciton
+                    true_declaration = analysis.get_modules_func_declaration(implementation.value, implementation.file,
+                                                                             original=True)
+                # Check
+                if true_declaration:
+                    # Add declaration
+                    if re.compile('^\s*static\s+').match(true_declaration):
+                        true_declaration = true_declaration.replace('static', 'extern')
+                    else:
+                        true_declaration = 'extern ' + true_declaration
+                    true_declaration += ';'
+                    if true_declaration not in _declarations['environment model']:
+                        _declarations['environment model'].append(true_declaration)
+                else:
+                    logger.warning("There is no function or variable {!r} in module code".format(implementation.value))
+
     process.allowed_implementations = None
 
     return
@@ -707,39 +732,40 @@ def _remove_statics(analysis, access_map):
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
             if implementation.is_static:
-                # Determine name
-                name = analysis.refined_name(implementation.value)
-                if not name:
-                    name = implementation.value
                 func = None
                 var = None
 
-                if implementation.file not in _values_map or name not in _values_map[implementation.file]:
+                declaration = analysis.get_global_var_declaration(implementation.value, implementation.file)
+                function_flag = False
+                if not declaration:
+                    declaration = analysis.get_modules_func_declaration(implementation.value, implementation.file)
+                    function_flag = True
+
+                # Determine name
+                name = analysis.refined_name(implementation.value)
+
+                if declaration and (implementation.file not in _values_map or \
+                        name not in _values_map[implementation.file]):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
                         if implementation.file not in coll:
                             coll[implementation.file] = dict()
 
                     # Create new artificial variables and functions
-                    if isinstance(implementation.declaration, Function):
+                    if function_flag:
                         func = resolve_existing(name, implementation, _definitions)
                         if not func:
-                            func = create_definition(implementation.declaration, name, implementation)
+                            func = create_definition(declaration, name, implementation)
                             _definitions[implementation.file][name] = func
-                    elif isinstance(implementation.declaration, Pointer):
+                    elif not function_flag and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
+                            if not isinstance(declaration, Pointer):
+                                # Try to use pointer instead of the value
+                                declaration = declaration.take_pointer
                             var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                           implementation.file, implementation.declaration, export=True, scope='global')
-                            var.value = implementation.value
-                            _declarations[implementation.file][name] = var
-                    elif not isinstance(implementation.declaration, Primitive):
-                        var = resolve_existing(name, implementation, _declarations)
-                        if not var:
-                            var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                           implementation.file, implementation.declaration.take_pointer,
-                                           export=True, scope='global')
-                            var.value = "& {}".format(implementation.value)
+                                           implementation.file, declaration, export=True, scope='global')
+                            var.value = implementation.adjusted_value(declaration)
                             _declarations[implementation.file][name] = var
 
                     if var or func:

@@ -97,23 +97,28 @@ def __extract_types(collection, analysis):
                     is_static(variable['declaration'])
                 )
                 entities.append(entity)
+
+            if variable_name not in collection._global_variables:
+                collection._global_variables[variable_name] = dict()
+            collection._global_variables[variable_name][variable['path']] = \
+                {'declaration': signature, 'original declaration': variable['declaration']}
         __import_entities(collection, analysis, entities)
 
     if 'kernel functions' in analysis:
         collection.logger.info("Import types from kernel functions")
-        for function in sorted(analysis['kernel functions'].keys()):
-            collection.logger.debug("Parse signature of function {}".format(function))
-            declaration = import_declaration(analysis['kernel functions'][function]['signature'])
+        for func in sorted(analysis['kernel functions'].keys()):
+            collection.logger.debug("Parse signature of function {}".format(func))
+            declaration = import_declaration(analysis['kernel functions'][func]['signature'])
 
-            if function in collection.kernel_functions:
-                collection.get_kernel_function(function).update_declaration(declaration)
+            if func in collection.kernel_functions:
+                collection.get_kernel_function(func).update_declaration(declaration)
             else:
-                new_intf = SourceFunction(function, analysis['kernel functions'][function]['header'])
+                new_intf = SourceFunction(func, analysis['kernel functions'][func]['header'])
                 new_intf.declaration = declaration
                 collection.set_kernel_function(new_intf)
 
-            collection.get_kernel_function(function).files_called_at. \
-                update(set(analysis['kernel functions'][function]["called at"]))
+            collection.get_kernel_function(func).files_called_at. \
+                update(set(analysis['kernel functions'][func]["called at"]))
 
     # Remove dirty declarations
     collection.refine_interfaces()
@@ -123,25 +128,26 @@ def __extract_types(collection, analysis):
     # todo: refactoring of this is required. I would propse to introduce to use SourceFunction for these functions.
     if 'modules functions' in analysis:
         collection.logger.info("Import modules functions and implementations from kernel functions calls in it")
-        for function in [name for name in sorted(analysis["modules functions"].keys())
-                         if 'files' in analysis["modules functions"][name]]:
-            modules_functions[function] = {}
-            module_function = analysis["modules functions"][function]
+        for func in [name for name in sorted(analysis["modules functions"].keys())
+                     if 'files' in analysis["modules functions"][name]]:
+            modules_functions[func] = {}
+            module_function = analysis["modules functions"][func]
             for path in sorted(module_function["files"].keys()):
-                collection.logger.debug("Parse signature of function {} from file {}".format(function, path))
-                modules_functions[function][path] = \
-                    {'declaration': import_declaration(module_function["files"][path]["signature"])}
+                collection.logger.debug("Parse signature of function {} from file {}".format(func, path))
+                modules_functions[func][path] = \
+                    {'declaration': import_declaration(module_function["files"][path]["signature"]),
+                     'original declaration': module_function["files"][path]["signature"]}
 
                 if "called at" in module_function["files"][path]:
-                    modules_functions[function][path]["called at"] = \
+                    modules_functions[func][path]["called at"] = \
                         set(module_function["files"][path]["called at"])
                 if "calls" in module_function["files"][path]:
-                    modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
+                    modules_functions[func][path]['calls'] = module_function["files"][path]['calls']
                     for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
                                             if name in collection.kernel_functions]:
                         kf = collection.get_kernel_function(kernel_function)
                         for call in module_function["files"][path]["calls"][kernel_function]:
-                            kf.add_call(function)
+                            kf.add_call(func)
 
                             for index in [index for index in range(len(call))
                                           if call[index] and check_null(kf.declaration, call[index])]:
@@ -153,10 +159,10 @@ def __extract_types(collection, analysis):
                                     new.fixed_interface = kf.param_interfaces[index].identifier
 
     collection.logger.info("Remove kernel functions which are not called at driver functions")
-    for function in collection.kernel_functions:
-        obj = collection.get_kernel_function(function)
-        if len(obj.functions_called_at) == 0 or function in modules_functions:
-            collection.remove_kernel_function(function)
+    for func in collection.kernel_functions:
+        obj = collection.get_kernel_function(func)
+        if len(obj.functions_called_at) == 0 or func in modules_functions:
+            collection.remove_kernel_function(func)
 
     # todo: refactoring is required
     collection._modules_functions = modules_functions

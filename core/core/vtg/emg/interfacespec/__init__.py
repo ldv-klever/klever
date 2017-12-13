@@ -41,7 +41,8 @@ class InterfaceCategoriesSpecification:
         self._exits = collections.OrderedDict()
         self._interfaces = dict()
         self._kernel_functions = dict()
-        self._modules_functions = None
+        self._modules_functions = dict()
+        self._global_variables = dict()
         self._interface_cache = dict()
         self._implementations_cache = dict()
         self._containers_cache = dict()
@@ -340,6 +341,40 @@ class InterfaceCategoriesSpecification:
         name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
         if name_re.fullmatch(call):
             return name_re.fullmatch(call).group(1)
+        else:
+            return None
+
+    def get_global_var_declaration(self, name, file, original=False):
+        """
+        Return declaration as a string or object for given global variable name.
+
+        :param name: String
+        :param original: If true returns string of an original declaration
+        :return: None or Str or Signature.
+        """
+        tn = self.refined_name(name)
+        if tn and tn in self._global_variables and file in self._global_variables[tn]:
+            if original:
+                return self._global_variables[tn][file]['original declaration']
+            else:
+                return self._global_variables[tn][file]['declaration']
+        else:
+            return None
+
+    def get_modules_func_declaration(self, name, file, original=False):
+        """
+        Return declaration as a string or object for given function name.
+
+        :param name: String
+        :param original: If true returns string of an original declaration
+        :return: None or Str or Signature.
+        """
+        tn = self.refined_name(name)
+        if tn and tn in self._modules_functions and file in self._modules_functions[tn]:
+            if original:
+                return self._modules_functions[tn][file]['original declaration']
+            else:
+                return self._modules_functions[tn][file]['declaration']
         else:
             return None
 
