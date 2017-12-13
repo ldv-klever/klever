@@ -24,6 +24,7 @@ import os
 import shutil
 import re
 import sys
+import time
 import zipfile
 import traceback
 
@@ -553,6 +554,8 @@ class JCR(core.components.Component):
 
                     total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
                                                                         list(arcnames.keys()), arcnames)
+                    self.logger.debug("Going to arcnames")
+                    self.logger.debug("ARCNAMES" + "\n".join(arcnames.keys()))
 
                 core.utils.report(self.logger,
                                   'job coverage',
@@ -570,6 +573,8 @@ class JCR(core.components.Component):
                 if not self.conf['keep intermediate files']:
                     for coverage_file in coverage_info_dumped_files:
                         os.remove(coverage_file)
+
+                self.vals['coverage_finished'][job_id] = True
 
         self.logger.info("Finish coverage reporting")
 
@@ -653,6 +658,11 @@ class Job(core.components.Component):
 
         self.clean_dir = True
         self.logger.info("All components finished")
+        if self.conf.get('collect total code coverage', None):
+            self.logger.debug('Waiting for a collecting coverage')
+            while not self.vals['coverage_finished'].get(self.common_components_conf['job identifier'], None):
+                time.sleep(1)
+            self.logger.debug("Coverage collected")
 
     main = decide_job
 
