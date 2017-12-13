@@ -277,7 +277,7 @@ class EntryProcessGenerator:
                 receiver.add_condition(allocation_name, [],
                                        ['{0} = $UALLOC({0});'.format(name) for name in activation.parameters],
                                        "Allocate memory after default registration.")
-                receiver.insert_action(activation.name, after='<{}>'.format(allocation_name))
+                receiver.insert_action(activation.name, '<{}>'.format(allocation_name), position='after')
 
                 # Rename and make dispatch
                 nd = make_signal(process, receiver, activation, self.__default_signals[receiver.identifier]['guard'])
@@ -292,7 +292,7 @@ class EntryProcessGenerator:
                     receiver.add_condition(free_name, [],
                                            ['$FREE({0});'.format(name) for name in deactivation.parameters],
                                            "Free memory before default deregistration.")
-                    receiver.insert_action(deactivation.name, before='<{}>'.format(free_name))
+                    receiver.insert_action(deactivation.name, '<{}>'.format(free_name), position='before')
 
                 # Rename and make dispatch
                 nd = make_signal(process, receiver, deactivation, self.__default_signals[receiver.identifier]['guard'])

@@ -49,6 +49,7 @@ class SA(core.vtg.plugins.Plugin):
         self.files = []
         self.modules_functions = []
         self.kernel_functions = []
+        self.used_at_initialization = set()
 
     def analyze_sources(self):
         # Init an empty collection
@@ -254,7 +255,8 @@ class SA(core.vtg.plugins.Plugin):
         self.logger.debug("Extract global variables from {}".format(global_file))
         # todo: add some logging here
         if os.path.isfile(global_file):
-            self.collection["global variable initializations"] = parse_initializations(global_file)
+            self.collection["global variable initializations"], mentioned_values = parse_initializations(global_file)
+            self.used_at_initialization = mentioned_values
 
         # export_file = "exported-symbols.txt"
         # self.logger.info("Extract export symbols from {}".format(export_file))
@@ -331,6 +333,8 @@ class SA(core.vtg.plugins.Plugin):
             for path in self.collection["functions"][name]["files"]:
                 for called in self.collection["functions"][name]["files"][path]["calls"]:
                     called_functions.append(called)
+        called_functions = set(called_functions)
+        called_functions.update(self.used_at_initialization.intersection(set(self.collection["functions"].keys())))
         self.logger.info("Determine {} functions which are called in considered modules".format(len(called_functions)))
 
         # Collect all kernel functions called in the module
@@ -373,9 +377,8 @@ class SA(core.vtg.plugins.Plugin):
 
     def _shrink_kernel_functions(self):
         names = self.collection["functions"].keys()
-        for name in list(names):
-            if name not in self.kernel_functions and name not in self.modules_functions:
-                del self.collection["functions"][name]
+        for name in (set(names) - set(self.kernel_functions) - set(self.modules_functions)):
+            del self.collection["functions"][name]
 
         for name in self.collection["functions"]:
             for path in self.collection["functions"][name]:

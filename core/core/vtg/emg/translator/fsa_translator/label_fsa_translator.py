@@ -151,8 +151,9 @@ class LabelTranslator(FSATranslator):
                         var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
                         param_expressions.append(var.name)
-                        for ind, statement in enumerate(state.action.condition):
-                            state.action.condition[ind] = statement.replace('$ARG{}'.format(index + 1), var.name)
+                        if state.action.condition:
+                            for ind, statement in enumerate(state.action.condition):
+                                state.action.condition[ind] = statement.replace('$ARG{}'.format(index + 1), var.name)
 
                 if state.action.condition and len(state.action.condition) > 0:
                     # Arguments comparison is not supported in label-based model

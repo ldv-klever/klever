@@ -301,31 +301,32 @@ class InterfaceCategoriesSpecification:
                  {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
         """
         matches = []
-        for function in self.kernel_functions:
-            function_obj = self.get_kernel_function(function)
-            match = {
-                "function": function_obj,
-                "parameters": []
-            }
-            if len(parameter_interfaces) > 0:
-                # Match parameters
-                params = []
-                suits = 0
-                for index in range(len(parameter_interfaces)):
-                    found = 0
-                    for param in (p for p in function_obj.param_interfaces[index:] if p):
-                        for option in parameter_interfaces[index]:
-                            if option.identifier == param.identifier:
-                                found = param
+        for func in self.kernel_functions:
+            function_obj = self.get_kernel_function(func)
+            if len(function_obj.functions_called_at) > 0:
+                match = {
+                    "function": function_obj,
+                    "parameters": []
+                }
+                if len(parameter_interfaces) > 0:
+                    # Match parameters
+                    params = []
+                    suits = 0
+                    for index in range(len(parameter_interfaces)):
+                        found = 0
+                        for param in (p for p in function_obj.param_interfaces[index:] if p):
+                            for option in parameter_interfaces[index]:
+                                if option.identifier == param.identifier:
+                                    found = param
+                                    break
+                            if found:
                                 break
                         if found:
-                            break
-                    if found:
-                        suits += 1
-                        params.append(found)
-                if suits == len(parameter_interfaces):
-                    match["parameters"] = params
-                    matches.append(match)
+                            suits += 1
+                            params.append(found)
+                    if suits == len(parameter_interfaces):
+                        match["parameters"] = params
+                        matches.append(match)
 
         return matches
 
@@ -348,8 +349,9 @@ class InterfaceCategoriesSpecification:
         """
         Return declaration as a string or object for given global variable name.
 
-        :param name: String
-        :param original: If true returns string of an original declaration
+        :param name: String.
+        :param file: File name.
+        :param original: If true returns string of an original declaration.
         :return: None or Str or Signature.
         """
         tn = self.refined_name(name)
@@ -365,8 +367,9 @@ class InterfaceCategoriesSpecification:
         """
         Return declaration as a string or object for given function name.
 
-        :param name: String
-        :param original: If true returns string of an original declaration
+        :param name: String.
+        :param file: File name.
+        :param original: If true returns string of an original declaration.
         :return: None or Str or Signature.
         """
         tn = self.refined_name(name)
@@ -375,6 +378,24 @@ class InterfaceCategoriesSpecification:
                 return self._modules_functions[tn][file]['original declaration']
             else:
                 return self._modules_functions[tn][file]['declaration']
+        else:
+            return None
+
+    def get_kernel_func_declaration(self, name, original=False):
+        """
+        Return declaration as a string or object for given function name.
+
+        :param name: String.
+        :param file: File name.
+        :param original: If true returns string of an original declaration.
+        :return: None or Str or Signature.
+        """
+        tn = self.refined_name(name)
+        if tn and tn in self._kernel_functions:
+            if original:
+                return self._kernel_functions[tn].true_declaration
+            else:
+                return self._kernel_functions[tn].declaration
         else:
             return None
 

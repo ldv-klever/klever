@@ -255,9 +255,11 @@ def __import_kernel_interfaces(collection, category_name, specification):
 
         collection.logger.debug("Import kernel function description '{}'".format(identifier))
         if "header" in specification[category_name][identifier]:
-            interface = SourceFunction(identifier, specification[category_name][identifier]["header"])
+            interface = SourceFunction(identifier, specification[category_name][identifier]["signature"],
+                                       specification[category_name][identifier]["header"])
         else:
-            interface = SourceFunction(identifier, specification[category_name][identifier]["headers"])
+            interface = SourceFunction(identifier, specification[category_name][identifier]["signature"],
+                                       specification[category_name][identifier]["headers"])
 
         interface.declaration = import_declaration(specification[category_name][identifier]["signature"])
         if type(interface.declaration) is Function:

@@ -31,6 +31,16 @@ ARRAY_ELEMENT_INDEX = re.compile('array[ ]element[ ]index:[ ]([^\n]+)')
 
 FIELD_DECLARATION = re.compile('field[ ]declaration:[ ]([^\n]+);')
 
+VAL = re.compile('^\s*[*|&]?\s*(\w+)\s*$')
+
+_values = set()
+
+
+def add_value(val):
+    m = VAL.match(val)
+    if m and m.group(1) not in _values:
+        _values.add(m.group(1))
+
 
 def parse(tokens):
     ast = []
@@ -96,6 +106,7 @@ def parse_initializations(file):
             token['path'] = DECLARATION.match(line).group(2)
         elif EXPLICIT_VALUE.match(line):
             token['value'] = EXPLICIT_VALUE.match(line).group(1)
+            add_value(token['value'])
         elif FIELD_DECLARATION.match(line):
             token['field'] = FIELD_DECLARATION.match(line).group(1)
         elif ARRAY_ELEMENT_INDEX.match(line):
@@ -108,7 +119,7 @@ def parse_initializations(file):
         if line != '':
             tokens.append(token)
 
-    return parse(tokens)
+    return parse(tokens), _values
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

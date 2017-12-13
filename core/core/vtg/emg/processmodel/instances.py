@@ -24,9 +24,9 @@ from core.vtg.emg.common.signature import Implementation, Structure, Primitive, 
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
-
-_declarations = dict()
-_definitions = dict()
+final_code = {'environment model': {"declarations": [], "definitions": []}}
+_declarations = {'environment model': list()}
+_definitions = {'environment model': list()}
 _values_map = dict()
 
 
@@ -41,7 +41,6 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
     model.model_processes = model_processes
     model.event_processes = callback_processes
 
-    final_code = {'environment model': {"declarations": [], "definitions": []}}
     for file in _declarations:
         if file not in final_code:
             final_code[file] = {
@@ -192,6 +191,9 @@ def _simplify_process(logger, conf, analysis, process):
                     # Seems that it is a funciton
                     true_declaration = analysis.get_modules_func_declaration(implementation.value, implementation.file,
                                                                              original=True)
+                if not true_declaration:
+                    true_declaration = analysis.get_kernel_func_declaration(implementation.value, original=True)
+
                 # Check
                 if true_declaration:
                     # Add declaration
@@ -199,9 +201,10 @@ def _simplify_process(logger, conf, analysis, process):
                         true_declaration = true_declaration.replace('static', 'extern')
                     else:
                         true_declaration = 'extern ' + true_declaration
-                    true_declaration += ';'
-                    if true_declaration not in _declarations['environment model']:
-                        _declarations['environment model'].append(true_declaration)
+                    true_declaration += '\n'
+
+                    if true_declaration not in final_code['environment model']['declarations']:
+                        final_code['environment model']['declarations'].append(true_declaration)
                 else:
                     logger.warning("There is no function or variable {!r} in module code".format(implementation.value))
 

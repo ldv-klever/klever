@@ -113,12 +113,14 @@ def __extract_types(collection, analysis):
             if func in collection.kernel_functions:
                 collection.get_kernel_function(func).update_declaration(declaration)
             else:
-                new_intf = SourceFunction(func, analysis['kernel functions'][func]['header'])
+                new_intf = SourceFunction(func, analysis['kernel functions'][func]['signature'],
+                                          analysis['kernel functions'][func]['header'])
                 new_intf.declaration = declaration
                 collection.set_kernel_function(new_intf)
 
-            collection.get_kernel_function(func).files_called_at. \
-                update(set(analysis['kernel functions'][func]["called at"]))
+            if "called at" in analysis['kernel functions'][func]:
+                collection.get_kernel_function(func).files_called_at. \
+                    update(set(analysis['kernel functions'][func]["called at"]))
 
     # Remove dirty declarations
     collection.refine_interfaces()
@@ -161,7 +163,7 @@ def __extract_types(collection, analysis):
     collection.logger.info("Remove kernel functions which are not called at driver functions")
     for func in collection.kernel_functions:
         obj = collection.get_kernel_function(func)
-        if len(obj.functions_called_at) == 0 or func in modules_functions:
+        if not obj.declaration.clean_declaration or func in modules_functions:
             collection.remove_kernel_function(func)
 
     # todo: refactoring is required

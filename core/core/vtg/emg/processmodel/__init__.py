@@ -116,48 +116,49 @@ class ProcessModel:
                                  format(category))
 
     def __import_kernel_models(self, analysis):
-        for function in sorted(list(self.__abstr_model_processes.keys())):
-            if function in analysis.kernel_functions:
-                function_obj = analysis.get_kernel_function(function)
-                self.logger.debug("Add model of function '{}' to an environment model".format(function))
-                new_process = self.__add_process(analysis, self.__abstr_model_processes[function], model=True)
-                new_process.category = "kernel models"
+        for func in sorted(list(self.__abstr_model_processes.keys())):
+            if func in analysis.kernel_functions:
+                function_obj = analysis.get_kernel_function(func)
+                if len(function_obj.functions_called_at) > 0:
+                    self.logger.debug("Add model of function '{}' to an environment model".format(func))
+                    new_process = self.__add_process(analysis, self.__abstr_model_processes[func], model=True)
+                    new_process.category = "kernel models"
 
-                self.logger.debug("Assign label interfaces according to function parameters for added process {} "
-                                  "with an identifier {}".format(new_process.name, new_process.identifier))
-                for label in sorted(new_process.labels.keys()):
-                    # Assign label-parameters
-                    if new_process.labels[label].parameter and not new_process.labels[label].prior_signature:
-                        for index in range(len(function_obj.param_interfaces)):
-                            parameter = function_obj.param_interfaces[index]
-                            signature = function_obj.declaration.parameters[index]
+                    self.logger.debug("Assign label interfaces according to function parameters for added process {} "
+                                      "with an identifier {}".format(new_process.name, new_process.identifier))
+                    for label in sorted(new_process.labels.keys()):
+                        # Assign label-parameters
+                        if new_process.labels[label].parameter and not new_process.labels[label].prior_signature:
+                            for index in range(len(function_obj.param_interfaces)):
+                                parameter = function_obj.param_interfaces[index]
+                                signature = function_obj.declaration.parameters[index]
 
-                            if parameter and parameter.identifier in new_process.labels[label].interfaces:
-                                self.logger.debug("Set label {} signature according to interface {}".
-                                                  format(label, parameter.identifier))
-                                new_process.labels[label].set_declaration(parameter.identifier, signature)
-                                break
-                    elif new_process.labels[label].retval and not new_process.labels[label].prior_signature:
-                        if function_obj.rv_interface:
-                            new_process.labels[label].set_declaration(function_obj.rv_interface.identifier,
-                                                                      function_obj.rv_interface.declaration)
-                        else:
-                            new_process.labels[label].prior_signature = function_obj.declaration.return_value
-                    elif not (new_process.labels[label].parameter or new_process.labels[label].retval) and \
-                            new_process.labels[label].interfaces:
-                        for interface in new_process.labels[label].interfaces:
-                            interface_obj = analysis.get_intf(interface)
-                            new_process.labels[label].set_declaration(interface, interface_obj.declaration)
+                                if parameter and parameter.identifier in new_process.labels[label].interfaces:
+                                    self.logger.debug("Set label {} signature according to interface {}".
+                                                      format(label, parameter.identifier))
+                                    new_process.labels[label].set_declaration(parameter.identifier, signature)
+                                    break
+                        elif new_process.labels[label].retval and not new_process.labels[label].prior_signature:
+                            if function_obj.rv_interface:
+                                new_process.labels[label].set_declaration(function_obj.rv_interface.identifier,
+                                                                          function_obj.rv_interface.declaration)
+                            else:
+                                new_process.labels[label].prior_signature = function_obj.declaration.return_value
+                        elif not (new_process.labels[label].parameter or new_process.labels[label].retval) and \
+                                new_process.labels[label].interfaces:
+                            for interface in new_process.labels[label].interfaces:
+                                interface_obj = analysis.get_intf(interface)
+                                new_process.labels[label].set_declaration(interface, interface_obj.declaration)
 
-                    if new_process.labels[label].parameter and len(new_process.labels[label].interfaces) == 0:
-                        raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
-                                         format(label, function))
+                        if new_process.labels[label].parameter and len(new_process.labels[label].interfaces) == 0:
+                            raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
+                                             format(label, func))
 
-                    # Asssign rest parameters
-                    if new_process.labels[label].interfaces and len(new_process.labels[label].interfaces) > 0:
-                        for interface in (i for i in new_process.labels[label].interfaces
-                                          if i in analysis.interfaces):
-                            self.__assign_label_interface(new_process.labels[label], analysis.get_intf(interface))
+                        # Asssign rest parameters
+                        if new_process.labels[label].interfaces and len(new_process.labels[label].interfaces) > 0:
+                            for interface in (i for i in new_process.labels[label].interfaces
+                                              if i in analysis.interfaces):
+                                self.__assign_label_interface(new_process.labels[label], analysis.get_intf(interface))
 
     def __choose_processes(self, analysis, category):
         estimations = {}

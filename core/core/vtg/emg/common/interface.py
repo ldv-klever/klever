@@ -109,10 +109,11 @@ class Callback(FunctionInterface):
 
 class SourceFunction(FunctionInterface):
 
-    def __init__(self, identifier, header):
+    def __init__(self, identifier, true_declaration, header):
         super(SourceFunction, self).__init__(None, identifier, False)
         self.functions_called_at = {}
         self.files_called_at = set()
+        self.true_declaration = true_declaration
 
         self.identifier = identifier
         if type(header) is list:
