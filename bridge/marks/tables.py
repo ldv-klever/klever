@@ -32,7 +32,7 @@ from bridge.utils import unique_id, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
-    MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
+    MarkUnsafeCompare, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
     MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
@@ -634,12 +634,8 @@ class MarkData:
                 self.mark_version.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'is_compare')
             )
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
-            for ra in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-                is_compare = False
-                if report.root.job.type in MARKS_COMPARE_ATTRS and ra[0] in MARKS_COMPARE_ATTRS[report.root.job.type]:
-                    is_compare = True
-                ra += (is_compare,)
-                values.append(ra)
+            for a_name, a_val in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+                values.append((a_name, a_val, (a_name in MARKS_COMPARE_ATTRS)))
         else:
             return None
         return values

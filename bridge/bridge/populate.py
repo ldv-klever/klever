@@ -23,9 +23,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import override, ungettext_lazy
+from django.utils.translation import ungettext_lazy
 
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
+from bridge.vars import SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
 from bridge.utils import file_get_or_create, unique_id, BridgeException
 
 import marks.SafeUtils as SafeUtils
@@ -33,7 +33,7 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from users.models import Extended
-from jobs.models import Job, JobFile
+from jobs.models import JobFile
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
 from service.models import Scheduler
 
@@ -78,9 +78,7 @@ class Population:
             except ObjectDoesNotExist:
                 extend_user(self.user)
         self.__populate_functions()
-        if len(Job.objects.filter(parent=None)) < len(JOB_CLASSES):
-            self.__populate_jobs()
-        self.__populate_default_jobs()
+        self.__populate_jobs()
         self.__populate_unknown_marks()
         self.__populate_tags()
         self.__populate_unsafe_marks()
@@ -172,22 +170,6 @@ class Population:
         return password
 
     def __populate_jobs(self):
-        args = {
-            'author': self.manager,
-            'global_role': JOB_ROLES[1][0],
-        }
-        for i in range(len(JOB_CLASSES)):
-            try:
-                Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
-            except ObjectDoesNotExist:
-                with override(settings.DEFAULT_LANGUAGE):
-                    args['name'] = JOB_CLASSES[i][1]
-                    args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
-                    args['type'] = JOB_CLASSES[i][0]
-                    create_job(args)
-                    self.changes['jobs'] = True
-
-    def __populate_default_jobs(self):
         default_jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
@@ -197,35 +179,24 @@ class Population:
                     job_settings = json.load(fp)
                 except Exception as e:
                     raise BridgeException('The default job settings file is wrong json: %s' % e)
-            if any(x not in job_settings for x in ['name', 'class', 'description']):
+            if any(x not in job_settings for x in ['name', 'description']):
                 raise BridgeException(
-                    'Default job settings must contain name, class and description. Job in "%s" has %s' % (
+                    'Default job settings must contain name and description. Job in "%s" has %s' % (
                         jobdir, str(list(job_settings))
                     )
                 )
-            if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                raise BridgeException(
-                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
-                )
             if len(job_settings['name']) == 0:
                 raise BridgeException('Default job name is required')
-            try:
-                parent = Job.objects.get(parent=None, type=job_settings['class'])
-            except ObjectDoesNotExist:
-                raise BridgeException(
-                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
-                )
             job = create_job({
                 'author': self.manager,
-                'global_role': '1',
+                'global_role': JOB_ROLES[1][0],
                 'name': job_settings['name'],
                 'description': job_settings['description'],
-                'parent': parent,
                 'filedata': self.__get_filedata(jobdir)
             })
-            if 'default_jobs' not in self.changes:
-                self.changes['default_jobs'] = []
-            self.changes['default_jobs'].append([job.name, job.identifier])
+            if 'jobs' not in self.changes:
+                self.changes['jobs'] = []
+            self.changes['jobs'].append([job.name, job.identifier])
 
     def __get_filedata(self, d):
         self.cnt = 0

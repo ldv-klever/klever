@@ -39,8 +39,6 @@ from marks.tables import UNSAFE_COLOR, SAFE_COLOR
 def can_compare(user, job1, job2):
     if not isinstance(job1, Job) or not isinstance(job2, Job) or not isinstance(user, User):
         return False
-    if job1.type != job2.type:
-        return False
     if not JobAccess(user, job1).can_view() or job1.status != JOB_STATUS[3][0]:
         return False
     if not JobAccess(user, job2).can_view() or job2.status != JOB_STATUS[3][0]:

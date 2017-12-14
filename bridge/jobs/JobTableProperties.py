@@ -97,7 +97,7 @@ def all_user_columns():
     columns.extend(SUBJOBS_COLUMNS)
     columns.extend([
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
-        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+        'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
     ])
     return columns
 
@@ -554,7 +554,7 @@ class TableTree:
 
         if 'author' in self._columns:
             self.__collect_authors()
-        if any(x in {'format', 'version', 'type', 'date', 'status'} for x in self._columns):
+        if any(x in {'format', 'version', 'date', 'status'} for x in self._columns):
             self.__collect_jobs_data()
         if any(x.startswith('safe:') or x.startswith('unsafe:') or x == 'problem:total' for x in self._columns):
             self.__collect_verdicts()
@@ -655,7 +655,6 @@ class TableTree:
             self._values_data[j.id].update({
                 'format': j.format,
                 'version': j.version,
-                'type': j.get_type_display(),
                 'date': date,
                 'status': j.get_status_display()
             })

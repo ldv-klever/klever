@@ -203,9 +203,9 @@ class NewMark:
                     else:
                         raise ValueError('Not enough attributes in args')
                 else:
-                    is_compare = (inst.root.job.type not in MARKS_COMPARE_ATTRS
-                                  or a_name in MARKS_COMPARE_ATTRS[inst.root.job.type])
-                    new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=is_compare))
+                    new_attrs.append(MarkSafeAttr(
+                        mark_id=markversion_id, attr_id=a_id, is_compare=(a_name in MARKS_COMPARE_ATTRS)
+                    ))
         elif isinstance(inst, MarkSafeHistory):
             for a_id, a_name, is_compare in inst.attrs.order_by('id')\
                     .values_list('attr_id', 'attr__name__name', 'is_compare'):

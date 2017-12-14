@@ -21,9 +21,8 @@ import json
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.db.models import Q
 
-from bridge.vars import JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from bridge.vars import JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase
 from bridge.populate import populate_users
 
@@ -157,13 +156,8 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(View.objects.filter(author__username='manager')), 0)
 
     def test_create_edit_job(self):
-        try:
-            job_template = Job.objects.filter(~Q(parent=None))[0]
-        except IndexError:
-            try:
-                job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
-            except ObjectDoesNotExist:
-                self.fail('Job template was not populated')
+        job_template = Job.objects.all().first()
+        self.assertIsNotNone(job_template)
 
         # Requests for template job's page and data for autoupdate
         response = self.client.get(reverse('jobs:job', args=[job_template.pk]))
@@ -306,7 +300,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(Job.objects.filter(id__in={newjob.id, newjob.parent_id}).count(), 0)
 
     def test_files(self):
-        job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
+        job_template = Job.objects.all().first()
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
             'description': 'Description of new job',
@@ -370,13 +364,13 @@ class TestJobs(KleverTestCase):
 
         # Try to download new job and one of the defaults
         response = self.client.post('/jobs/ajax/downloadjobs/', {
-            'job_ids': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+            'job_ids': json.dumps([newjob_pk, Job.objects.filter(parent=None).first().pk])
         })
         self.assertEqual(response.status_code, 200)
 
         # Check access to download job
         response = self.client.post('/jobs/ajax/check_access/', {
-            'jobs': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+            'jobs': json.dumps([newjob_pk, Job.objects.filter(parent=None).first().pk])
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -421,7 +415,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response.content, b'My test text')
 
     def test_run_decision(self):
-        job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
+        job_template = Job.objects.all().first()
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
             'description': 'Description of new job',
@@ -468,7 +462,7 @@ class TestJobs(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '0']
+            [False, True, True, False, True, False, True, True, '0']
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)

@@ -108,7 +108,7 @@
         {% if data %}
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
             <div class="ui brown segment">
-                {% include 'reports/ReportData.html' with data=data component=report.component.name type=report.root.job.type %}
+                {% include 'reports/ReportData.html' with data=data component=report.component.name type=data_type %}
             </div>
         {% endif %}
         <br>

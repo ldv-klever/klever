@@ -50,11 +50,6 @@ USER_ROLES = (
     ('4', _('Service user'))
 )
 
-JOB_CLASSES = (
-    ('0', _('Verification of Linux kernel modules')),
-    ('3', _('Validation on commits in Linux kernel Git repositories')),
-)
-
 # If you change it change values also in comparison.html
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
@@ -187,11 +182,7 @@ TASK_STATUS = (
     ('CANCELLED', _('Cancelled'))
 )
 
-MARKS_COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[1][0]: ['Rule specification', 'Verification object'],
-}
-
+MARKS_COMPARE_ATTRS = ['Rule specification', 'Verification object']
 
 JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
 
