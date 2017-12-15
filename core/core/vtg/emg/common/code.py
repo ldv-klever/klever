@@ -87,12 +87,7 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def define(self):
-        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(typedef='complex_and_params'),
-                                         self.name, ', '.join(
-                                            [self.declaration.parameters[index].to_string('arg{}'.format(index),
-                                                                                          typedef='complex_and_params')
-                                             for index in range(len(self.declaration.parameters))]))
-
+        declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params')
         lines = list()
         lines.append(declaration + " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])

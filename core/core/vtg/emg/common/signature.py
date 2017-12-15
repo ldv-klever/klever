@@ -463,7 +463,7 @@ class Function(Declaration):
         key = new_identifier()
         return 'func_{}'.format(key)
 
-    def _to_string(self, replacement, typedef='none', scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None, with_args=False):
         def filtered_typedef_param(available):
             if isinstance(typedef, set):
                 return {available}
@@ -480,7 +480,12 @@ class Function(Declaration):
                 if type(param) is str:
                     parameter_declarations.append(param)
                 else:
-                    expr = param.to_string('', typedef=filtered_typedef_param(self.params_typedef[index]), scope=scope)
+                    if with_args:
+                        declarator = 'arg{}'.format(index)
+                    else:
+                        declarator = ''
+                    expr = param.to_string(declarator, typedef=filtered_typedef_param(self.params_typedef[index]),
+                                           scope=scope)
                     parameter_declarations.append(expr)
             replacement = replacement + '(' + ', '.join(parameter_declarations) + ')'
 
@@ -490,6 +495,9 @@ class Function(Declaration):
         else:
             replacement = 'void {}'.format(replacement)
         return replacement
+
+    def define_with_args(self, replacement, typedef='none', scope=None):
+        return self._to_string(replacement, typedef, scope, with_args=True)
 
 
 class Structure(Declaration):
@@ -531,11 +539,11 @@ class Structure(Declaration):
         return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
-    def _to_string(self, replacement, typedef='none',scope=None):
+    def _to_string(self, replacement, typedef='none', scope=None):
         if not self.name:
             name = '{' + \
                    ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope)
-                                     for field in sorted(self.fields.keys())]) + \
+                               for field in sorted(self.fields.keys())]) + \
                    '; ' if len(self.fields) > 0 else '') \
                    + '}'
         else:
