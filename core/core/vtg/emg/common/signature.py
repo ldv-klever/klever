@@ -61,6 +61,11 @@ def extract_name(signature):
 
 def import_typedefs(tds):
     global _typedefs
+    global __type_collection
+
+    candidates = []
+    for tp in (t for t in __type_collection if isinstance(__type_collection[t], Primitive)):
+        candidates.append(tp)
 
     for file in tds:
         for signature in tds[file]:
@@ -70,6 +75,12 @@ def import_typedefs(tds):
                 _typedefs[name][1].add(file)
             else:
                 _typedefs[name] = [ast, {file}]
+
+    for tp in candidates:
+        if tp in _typedefs:
+            _typedefs[tp][1].add('common')
+
+    return
 
 
 def is_static(signature):
@@ -471,6 +482,9 @@ class Function(Declaration):
                 return {available}
             else:
                 return typedef
+
+        if typedef == 'complex_and_params':
+            scope = {'common'}
 
         if len(self.parameters) == 0:
             replacement += '(void)'
