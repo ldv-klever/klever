@@ -116,7 +116,7 @@ class CModel:
                 self.__external_allocated[file].append(variable)
 
     def text_processor(self, automaton, statement):
-        models = FunctionModels(self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
+        models = FunctionModels(self._logger, self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
         return models.text_processor(automaton, statement)
 
     def add_function_model(self, func, body):
@@ -279,7 +279,8 @@ class FunctionModels:
     access_re = re.compile('(%{}%)'.format(access_template))
     arg_re = re.compile('\$ARG(\d+)')
 
-    def __init__(self, conf, mem_function_map, free_function_map, irq_function_map):
+    def __init__(self, logger, conf, mem_function_map, free_function_map, irq_function_map):
+        self._logger = logger
         self._conf = conf
         self.mem_function_map = mem_function_map
         self.free_function_map = free_function_map
@@ -332,7 +333,7 @@ class FunctionModels:
                             new = self.mem_function_re.sub(replacement, statement)
                             stms.append(new)
                     else:
-                        raise ValueError("Cannot get signature for the label {!r".format(access.label.name))
+                        self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
             elif fn in self.irq_function_map:
                 statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
                 stms.append(statement)
