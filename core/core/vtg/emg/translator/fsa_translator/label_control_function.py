@@ -38,7 +38,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             ret_expression = None
 
     # Initialize variables
-    for var in automaton.variables():
+    for var in automaton.variables(only_used=True):
         v_code.append(var.declare() + ';')
     f_code.extend(initialize_automaton_variables(conf, automaton))
 

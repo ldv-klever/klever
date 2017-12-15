@@ -113,9 +113,7 @@ class LabelTranslator(FSATranslator):
             elif state.action.name.find('dereg') != -1:
                 block = list()
                 call = self._join_cf(automata_peers[name]['automaton'])
-                if get_conf_property(self._conf, 'direct control functions calls'):
-                    block.append(call)
-                else:
+                if not get_conf_property(self._conf, 'direct control functions calls'):
                     if automata_peers[name]['automaton'].process.self_parallelism and \
                             get_necessary_conf_property(self._conf, 'self parallelism') and \
                             get_conf_property(self._conf, 'pure pthread interface'):
@@ -127,7 +125,7 @@ class LabelTranslator(FSATranslator):
                     else:
                         block.extend(['ret = {}'.format(call),
                                       'ldv_assume(ret == 0);'])
-                blocks.append(block)
+                    blocks.append(block)
 
         return pre, blocks, post
 

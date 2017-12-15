@@ -145,7 +145,7 @@
               "version": "ldv-bam:25793"
             },
             "result processing": {
-              "coverage": "lightweight"
+              "coverage": "full"
             }
           }
         }

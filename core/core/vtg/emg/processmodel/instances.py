@@ -104,7 +104,7 @@ def _simplify_process(logger, conf, analysis, process):
                 else:
                     raise
 
-            # Determine dispatcher parameter
+            # Determine dispatch parameter
             access = process.resolve_access(action.parameters[index], interface)
             new_label = label_map[access.label.name][access.interface.identifier]
             new_expression = access.access_with_label(new_label)
@@ -136,8 +136,10 @@ def _simplify_process(logger, conf, analysis, process):
                 action.condition = guards
 
     # Remove callback actions
+    param_identifiers = _yeild_identifier()
+    action_identifiers = _yeild_identifier()
     for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
-        _convert_calls_to_conds(conf, analysis, process, label_map, action)
+        _convert_calls_to_conds(conf, analysis, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
     def code_replacment(statments):
@@ -154,17 +156,24 @@ def _simplify_process(logger, conf, analysis, process):
 
                 if access_re.finditer(stm):
                     matched = False
+                    tmp = [stm]
                     for match in access_re.finditer(stm):
+                        new_tmp = []
                         expression = match.group(1)
                         accesses = process.resolve_access(expression)
-                        for acc in accesses:
-                            if acc.interface:
-                                nl = label_map[acc.label.name][acc.list_interface[0].identifier]
-                                stm = acc.replace_with_label(stm, nl)
-                                final.append(stm)
-                                matched = True
+                        for s in tmp:
+                            for acc in accesses:
+                                if acc.interface:
+                                    nl = label_map[acc.label.name][acc.list_interface[0].identifier]
+                                    s = acc.replace_with_label(s, nl)
+                                    new_tmp.append(s)
+                                    matched = True
+                        if len(new_tmp) != 0:
+                            tmp = new_tmp
                     if not matched:
                         final.append(stm)
+                    else:
+                        final.extend(tmp)
                 else:
                     final.append(stm)
 
@@ -221,9 +230,7 @@ def _yeild_identifier():
         yield identifier_counter
 
 
-def _convert_calls_to_conds(conf, analysis, process, label_map, call):
-    param_identifiers = _yeild_identifier()
-    action_identifiers = _yeild_identifier()
+def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_identifiers, param_identifiers):
     the_last_added = None
 
     def ret_expression():
@@ -281,12 +288,14 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call):
                                 type(declaration.points.parameters[index]) is not Pointer:
                     param_signature = declaration.points.parameters[index].take_pointer
                     pointer_params.append(index)
+                    expression = "*%{}%"
                 else:
                     param_signature = declaration.points.parameters[index]
+                    expression = "%{}%"
                 tmp_lb = process.add_label("ldv_param_{}_{}".format(index, param_identifiers.__next__()),
                                            param_signature)
                 label_params.append(tmp_lb)
-                expression = "%{}%".format(tmp_lb.name)
+                expression = expression.format(tmp_lb.name)
 
                 # Add string
                 found_positions[index] = expression
@@ -747,8 +756,8 @@ def _remove_statics(analysis, access_map):
                 # Determine name
                 name = analysis.refined_name(implementation.value)
 
-                if declaration and (implementation.file not in _values_map or \
-                        name not in _values_map[implementation.file]):
+                if declaration and (implementation.file not in _values_map or
+                                    name not in _values_map[implementation.file]):
                     # Prepare dictionary
                     for coll in (_definitions, _declarations):
                         if implementation.file not in coll:
@@ -776,6 +785,7 @@ def _remove_statics(analysis, access_map):
                         if implementation.file not in _values_map:
                             _values_map[implementation.file] = dict()
                         _values_map[implementation.file][new_value] = implementation.value
+                        implementation.declaration = declaration
                         implementation.value = new_value
 
     return

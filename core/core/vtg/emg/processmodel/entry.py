@@ -111,7 +111,7 @@ class EntryProcessGenerator:
     def __generate_alias(self, name, file, int_retval=False):
         new_name = "ldv_emg_{}".format(name)
         code = [
-            "{}(void)\n".format("int {}".format(new_name) if int_retval else new_name),
+            "{}(void)\n".format("int {}".format(new_name) if int_retval else "void {}".format(new_name)),
             "{\n",
             "\t{}();\n".format("return {}".format(name) if int_retval else name),
             "}\n"
@@ -166,27 +166,18 @@ class EntryProcessGenerator:
             self.__logger.debug("There is no exit function found")
             exit_subprocess = Call('exit')
             exit_subprocess.callback = "%exit%"
-
-            exit_label = Label('exit')
-            exit_label.prior_signature = import_declaration("void (*f)(void)")
-            exit_label.value = None
-            exit_label.file = None
-            ep.labels['exit'] = exit_label
             ep.actions[exit_subprocess.name] = exit_subprocess
         else:
             for filename, exit_name in analysis.exits:
                 new_name = self.__generate_alias(exit_name, filename, False)
-                exit_label = ep.add_label(exit_name, import_declaration("void (*f)(void)"), exit_name)
-                exit_label.file = filename
-                exit_subprocess = Condition(exit_label.name)
+                exit_subprocess = Condition(exit_name)
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.statements = [
                     model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
                     "{}();".format(new_name)
                 ]
                 self.__logger.debug("Found exit function {}".format(exit_name))
-                ep.labels[exit_label.name] = exit_label
-                ep.actions[exit_label.name] = exit_subprocess
+                ep.actions[exit_subprocess.name] = exit_subprocess
 
         # Generate conditions
         success = ep.add_condition('init_success', ["%ret% == 0"], [], "Module has been initialized.")

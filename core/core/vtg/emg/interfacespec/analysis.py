@@ -162,8 +162,7 @@ def __extract_types(collection, analysis):
 
     collection.logger.info("Remove kernel functions which are not called at driver functions")
     for func in collection.kernel_functions:
-        obj = collection.get_kernel_function(func)
-        if not obj.declaration.clean_declaration or func in modules_functions:
+        if func in modules_functions or func not in analysis['kernel functions']:
             collection.remove_kernel_function(func)
 
     # todo: refactoring is required
@@ -188,6 +187,7 @@ def __import_entities(collection, analysis, entities):
                     for variable in analysis["global variable initializations"]:
                         variable_name = extract_name(variable['declaration'])
                         if variable_name == val:
+                            entity["path"] = variable["path"]
                             static = is_static(variable['declaration'])
                             match = True
                             break
@@ -197,6 +197,7 @@ def __import_entities(collection, analysis, entities):
                                    if 'files' in analysis["modules functions"][name] and name == val]:
                             module_function = analysis["modules functions"][mf]
                             for path in module_function["files"].keys():
+                                entity["path"] = path
                                 static = is_static(module_function["files"][path]["signature"])
                                 match = True
                                 break

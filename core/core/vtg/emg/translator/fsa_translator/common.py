@@ -94,7 +94,6 @@ def extract_registration_relevant_automata(analysis, processes, model_processes,
     :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                      'automaton': 'Automaton object'}
     """
-    # todo: This should be moved and somehow used in state translator
     automata_peers = {}
 
     name = analysis.refined_name(invoke)
@@ -123,7 +122,7 @@ def extract_registration_relevant_automata(analysis, processes, model_processes,
 def initialize_automaton_variables(conf, automaton):
     # todo: docs
     initializations = []
-    for var in automaton.variables():
+    for var in automaton.variables(only_used=True):
         if type(var.declaration) is Pointer and get_conf_property(conf, 'allocate external'):
             initializations.append("{} = external_allocated_data();".format(var.name))
         elif type(var.declaration) is Primitive and var.value:

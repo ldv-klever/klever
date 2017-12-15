@@ -348,60 +348,58 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # You can implement your own translator with different implementations of the function
             pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, automata_peers,
                                                       replicative)
-            body.extend(pre)
+            if len(blocks) > 0:
+                body.extend(pre)
 
-            # Print body of a dispatching function
-            if state.action.broadcast:
-                for block in blocks:
-                    body.extend(block)
-            else:
-                if len(blocks) == 1:
-                    body.extend(blocks[0])
-                elif len(blocks) == 2:
-                    for index in range(2):
-                        if index == 0:
-                            body.append('if (ldv_undef_int()) {')
-                        else:
-                            body.append('else {')
-                        body.extend(['\t' + stm for stm in blocks[index]])
-                        body.append('}')
+                # Print body of a dispatching function
+                if state.action.broadcast:
+                    for block in blocks:
+                        body.extend(block)
                 else:
-                    body.append('switch (ldv_undef_int()) {')
-                    for index in range(len(blocks)):
-                        body.append('\tcase {}: '.format(index) + '{')
-                        body.extend(['\t\t' + stm for stm in blocks[index]])
-                        body.append('\t\tbreak;')
-                        body.append('\t};')
-                    body.append('\tdefault: ldv_assume(0);')
-                    body.append('};')
+                    if len(blocks) == 1:
+                        body.append('if (ldv_undef_int()) {')
+                        body.extend(['\t' + stm for stm in blocks[0]])
+                        body.append('}')
+                    else:
+                        body.append('switch (ldv_undef_int()) {')
+                        for index in range(len(blocks)):
+                            body.append('\tcase {}: '.format(index) + '{')
+                            body.extend(['\t\t' + stm for stm in blocks[index]])
+                            body.append('\t\tbreak;')
+                            body.append('\t};')
+                        body.append('\tdefault: ldv_assume(0);')
+                        body.append('};')
 
-            if len(function_parameters) > 0:
-                df = FunctionDefinition(
-                    "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
-                    self._cmodel.entry_file,
-                    "void f({})".format(', '.
-                                        join([function_parameters[index].to_string('arg{}'.format(index),
-                                                                                   typedef='complex_and_params')
-                                              for index in range(len(function_parameters))])),
-                    False
-                )
+                if len(function_parameters) > 0:
+                    df = FunctionDefinition(
+                        "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
+                        self._cmodel.entry_file,
+                        "void f({})".format(', '.
+                                            join([function_parameters[index].to_string('arg{}'.format(index),
+                                                                                       typedef='complex_and_params')
+                                                  for index in range(len(function_parameters))])),
+                        False
+                    )
+                else:
+                    df = FunctionDefinition(
+                        "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
+                        self._cmodel.entry_file,
+                        "void f(void)",
+                        False
+                    )
+                body.extend(post)
+                body.append('return;')
+                df.body.extend(body)
+
+                # Add function definition
+                self._cmodel.add_function_definition(self._cmodel.entry_file, df)
+
+                code.extend([
+                    '{}({});'.format(df.name, ', '.join(df_parameters))
+                ])
             else:
-                df = FunctionDefinition(
-                    "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
-                    self._cmodel.entry_file,
-                    "void f(void)",
-                    False
-                )
-            body.extend(post)
-            body.append('return;')
-            df.body.extend(body)
-
-            # Add function definition
-            self._cmodel.add_function_definition(self._cmodel.entry_file, df)
-
-            code.extend([
-                '{}({});'.format(df.name, ', '.join(df_parameters))
-            ])
+                # This is becouse translators can have specific restrictions
+                code.append('/* Skip the dispatch because there is no process to receive the signal */')
         else:
             code.append('/* Skip the dispatch because there is no process to receive the signal */')
 

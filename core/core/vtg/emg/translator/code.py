@@ -195,8 +195,10 @@ class CModel:
                     lines.extend(self._function_definitions[file][func])
                     lines.append("\n")
 
-            if file in self._call_aspects and len(self._call_aspects[file]) > 0:
+            if file != self.entry_file:
                 lines.append("}\n\n")
+
+            if file in self._call_aspects and len(self._call_aspects[file]) > 0:
                 lines.append("/* EMG kernel function models */\n")
                 for aspect in self._call_aspects[file]:
                     lines.extend(aspect.get_aspect())
