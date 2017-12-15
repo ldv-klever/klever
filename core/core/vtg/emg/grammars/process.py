@@ -276,6 +276,3 @@ def parse_process(string):
         return __parser.parse(string, lexer=__lexer)
     except TypeError as err:
         raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

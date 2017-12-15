@@ -726,5 +726,3 @@ class FSATranslator(metaclass=abc.ABCMeta):
         c, vc, grds, cmmnts = code_generator(state, automaton)
         compose_single_action(state, c, vc, grds, cmmnts)
 
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

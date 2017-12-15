@@ -603,5 +603,3 @@ def parse_signature(string):
         setup_parser()
 
     return __parser.parse(string, lexer=__lexer)
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

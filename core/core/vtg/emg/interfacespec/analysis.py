@@ -269,4 +269,3 @@ def __import_entities(collection, analysis, entities):
         else:
             raise TypeError('Expect list or string')
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

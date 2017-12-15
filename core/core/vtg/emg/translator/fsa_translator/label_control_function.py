@@ -522,6 +522,3 @@ def __label_sequence(automaton, initial_state, ret_expression):
         raise RuntimeError('Cannot leave unclosed conditions')
 
     return [v_code, f_code]
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

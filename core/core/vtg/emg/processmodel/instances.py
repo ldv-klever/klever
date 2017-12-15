@@ -1243,6 +1243,3 @@ def _from_same_container(a, b):
             return True
 
     return False
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

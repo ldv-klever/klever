@@ -110,6 +110,3 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, additional_
                     }
                 )
 
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

@@ -194,5 +194,3 @@ def __import_process(name, dic, conf, model_flag=False):
             process.actions[action_name].process = dic['actions'][action_name]['process']
 
     return process
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

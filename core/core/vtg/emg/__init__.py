@@ -265,7 +265,3 @@ class EMG(core.vtg.plugins.Plugin):
         logger.info("Print final merged specification to '{}'".format(file))
         with open(file, "w", encoding="utf8") as fh:
             json.dump(collection, fh, ensure_ascii=False, sort_keys=True, indent=4)
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

@@ -126,6 +126,3 @@ class SourceFunction(FunctionInterface):
             self.functions_called_at[caller] = 1
         else:
             self.functions_called_at[caller] += 1
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

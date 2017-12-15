@@ -398,6 +398,3 @@ class FunctionModels:
             return "{}(%{}%)".format(self.free_function_map[func], label_name)
         else:
             raise ValueError('This is not a pointer')
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

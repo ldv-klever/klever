@@ -309,4 +309,3 @@ def __complement_interfaces(collection):
 
     return
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

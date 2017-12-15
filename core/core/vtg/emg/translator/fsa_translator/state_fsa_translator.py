@@ -389,5 +389,3 @@ class StateTranslator(FSATranslator):
                 body.append('}')
 
         return body
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

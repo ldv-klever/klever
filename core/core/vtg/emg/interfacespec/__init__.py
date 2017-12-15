@@ -795,5 +795,3 @@ class InterfaceCategoriesSpecification:
                 self.del_intf(interface.identifier)
 
         return
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

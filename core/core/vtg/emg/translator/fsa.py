@@ -452,6 +452,3 @@ class Automaton:
             else:
                 return None
 
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

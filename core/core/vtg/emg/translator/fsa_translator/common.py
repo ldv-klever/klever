@@ -132,6 +132,3 @@ def initialize_automaton_variables(conf, automaton):
         initializations.insert(0, '/* Initialize automaton variables */')
     return initializations
 
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

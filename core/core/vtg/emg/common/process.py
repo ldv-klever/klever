@@ -545,6 +545,3 @@ class Condition(Action):
         super().__init__(name)
         self.statements = []
         self.condition = None
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

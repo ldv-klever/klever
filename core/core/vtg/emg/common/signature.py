@@ -761,6 +761,3 @@ class Implementation:
             raise ValueError("Cannot adjust declaration '{}' to declaration '{}'".
                              format(self.declaration.to_string('%s'), declaration.to_string('%s')))
 
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

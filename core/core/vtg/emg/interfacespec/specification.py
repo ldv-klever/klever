@@ -268,6 +268,3 @@ def __import_kernel_interfaces(collection, category_name, specification):
             raise TypeError('Expect function declaration in description of kernel function {}'.format(identifier))
 
         yield interface
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

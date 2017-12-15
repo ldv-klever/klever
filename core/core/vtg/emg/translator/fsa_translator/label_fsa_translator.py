@@ -264,6 +264,3 @@ class LabelTranslator(FSATranslator):
             self.__thread_variables[automaton.identifier] = ret
 
         return self.__thread_variables[automaton.identifier]
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -299,5 +299,3 @@ class EntryProcessGenerator:
 
         return expression
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

@@ -911,4 +911,3 @@ class ProcessModel:
             # Save back updates collection of accesses
             process.accesses(accesses)
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
