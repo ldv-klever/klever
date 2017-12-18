@@ -149,12 +149,12 @@ class JobAccess(object):
         return self.__is_manager or self.__is_service
 
     def can_decide(self):
-        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_upload_reports(self):
-        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
@@ -169,7 +169,8 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_author or self.__is_manager)
+        return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]] \
+            and (self.__is_author or self.__is_manager)
 
     def can_stop(self):
         if self.job is None:
@@ -196,11 +197,11 @@ class JobAccess(object):
     def can_collapse(self):
         if self.job is None:
             return False
-        return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
+        return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]} \
             and (self.__is_author or self.__is_manager) and self.job.weight == JOB_WEIGHT[0][0]
 
     def can_clear_verifications(self):
-        if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
+        if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}:
             return False
         if not (self.__is_author or self.__is_manager):
             return False
