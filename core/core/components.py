@@ -253,6 +253,7 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     p.join(1.0 / len(components))
                 except ComponentError:
                     # Ignore or terminate the rest
+                    logger.exception('Catch worker exception')
                     if not fail_tolerant:
                         raise
                 # If all is OK
