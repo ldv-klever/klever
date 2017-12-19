@@ -503,7 +503,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     logger.info("Generate automata for processes with callback calls")
     identifiers = _yeild_identifier()
     identifiers_map = dict()
-    
+
     def rename_process(inst):
         old_id = inst.identifier
         inst.identifier = "{}_{}".format(inst.identifier, identifiers.__next__())
@@ -547,9 +547,6 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
 
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
-        if get_conf_property(conf, "convert statics to globals", expected_type=bool):
-            _remove_statics(analysis, process.allowed_implementations)
-
         for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
             new_peers = []
             for peer in action.peers:
@@ -563,6 +560,11 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
                 else:
                     new_peers.append(peer)
             action.peers = new_peers
+
+    # According to new identifiers change signals peers
+    for process in [entry_fsa] + model_fsa + callback_fsa:
+        if get_conf_property(conf, "convert statics to globals", expected_type=bool):
+            _remove_statics(analysis, process.allowed_implementations)
 
     return entry_fsa, model_fsa, callback_fsa
 
@@ -579,8 +581,6 @@ def _original_process_copies(logger, conf, analysis, process, instances_left):
     :return: List of process copies.
     """
     # Determine max number of instances that can be generated
-    original_instances = list()
-
     base_list = []
     if get_necessary_conf_property(conf, "instance modifier"):
         # Used by a parallel env model
@@ -803,6 +803,19 @@ def _copy_process(process, instances_left):
     :return: Process object copy.
     """
     inst = copy.copy(process)
+    inst.actions = copy.copy(process.actions)
+    inst.labels = copy.copy(process.labels)
+    accesses = process.accesses()
+    new_accesses = {a: accesses[a] for a in accesses}
+    inst.accesses(new_accesses)
+
+    for action in inst.actions.values():
+        cp = copy.copy(action)
+        inst.actions[cp.name] = cp
+    for label in inst.labels.values():
+        cp = copy.copy(label)
+        inst.labels[cp.name] = cp
+
     if instances_left == 0:
         raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
     elif instances_left:

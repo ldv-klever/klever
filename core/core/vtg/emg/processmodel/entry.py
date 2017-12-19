@@ -17,7 +17,7 @@
 
 from core.vtg.emg.common import get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Dispatch, Receive, Call, Condition, Label, Process
+from core.vtg.emg.common.process import Dispatch, Receive, Condition, Process
 
 
 class EntryProcessGenerator:
@@ -195,13 +195,13 @@ class EntryProcessGenerator:
 
         # Add subprocesses finally
         for i, pair in enumerate(analysis.inits):
-            ep.process += "[{0}].(<init_failed>.".format(pair[1])
+            ep.process += "<{0}>.(<init_failed>.".format(pair[1])
             for j, pair2 in enumerate(analysis.exits[::-1]):
                 if pair2[0] == pair[0]:
                     break
             j = 1
             for _, exit_name in analysis.exits[:j - 1:-1]:
-                ep.process += "[{}].".format(exit_name)
+                ep.process += "<{}>.".format(exit_name)
             ep.process += "({})|<init_success>.".format(insmod_deregister.name)
 
         # Add default dispatches
@@ -211,7 +211,7 @@ class EntryProcessGenerator:
                 ep.process += "{}.".format(expr)
 
         for _, exit_name in analysis.exits:
-            ep.process += "[{}].".format(exit_name)
+            ep.process += "<{}>.".format(exit_name)
         ep.process += "({})".format(insmod_deregister.name)
         ep.process += ")" * len(analysis.inits)
         self.__logger.debug("Artificial process for invocation of Init and Exit module functions is generated")

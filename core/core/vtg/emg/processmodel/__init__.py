@@ -232,7 +232,7 @@ class ProcessModel:
             return new
 
     def __assign_label_interface(self, label, interface):
-        if type(interface) is Container:
+        if isinstance(interface, Container):
             label.set_declaration(interface.identifier, interface.declaration.take_pointer)
         else:
             label.set_declaration(interface.identifier, interface.declaration)
@@ -353,7 +353,7 @@ class ProcessModel:
                     resolved = False
                     for interface in label.interfaces:
                         interface_obj = analysis.get_or_restore_intf(interface)
-                        if type(interface_obj) is Container and len(tail) > 0:
+                        if isinstance(interface_obj, Container) and len(tail) > 0:
                             intfs = self.__resolve_interface(analysis, interface_obj, tail, process, action)
                             if intfs:
                                 intfs[-1].called = True
@@ -361,7 +361,7 @@ class ProcessModel:
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(action.callback, process.name))
-                        elif type(interface_obj) is Callback:
+                        elif isinstance(interface_obj, Callback):
                             self.logger.debug("Callback {} can be called in the model".
                                               format(interface_obj.identifier))
                             interface_obj.called = True
@@ -442,10 +442,10 @@ class ProcessModel:
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in sorted(label_map["matched labels"][label.name]):
                         intfs = self.__resolve_interface(analysis, analysis.get_intf(intf), tail, process, action)
-                        if intfs and type(intfs[-1]) is Callback:
+                        if intfs and isinstance(intfs[-1], Callback):
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
-                    if type(label_map["matched labels"][label.name]) is set:
+                    if isinstance(label_map["matched labels"][label.name], set):
                         functions.extend([analysis.get_or_restore_intf(name) for name in
                                           sorted(label_map["matched labels"][label.name])
                                           if name in analysis.interfaces or analysis.is_deleted_intf(name)])
@@ -500,7 +500,7 @@ class ProcessModel:
                         for container_intf in [analysis.get_intf(intf) for intf in
                                                sorted(label_map["matched labels"][container.name])]:
                             for f_intf in [intf for intf in container_intf.field_interfaces.values()
-                                           if type(intf) is Callback and not intf.called and
+                                           if isinstance(intf, Callback) and not intf.called and
                                                            intf.identifier not in label_map['matched callbacks'] and
                                                            intf.identifier in analysis.interfaces]:
                                 self.__add_label_match(analysis, label_map, callback, f_intf.identifier)
@@ -605,7 +605,8 @@ class ProcessModel:
             # Be sure that process have not been added yet
             peered_processes = set()
             for subprocess in [process.actions[name] for name in sorted(process.actions.keys())
-                               if (type(process.actions[name]) is Receive or type(process.actions[name]) is Dispatch)
+                               if (isinstance(process.actions[name], Receive) or
+                                   isinstance(process.actions[name], Dispatch))
                                and len(process.actions[name].peers) > 0]:
                 peered_processes.update([peer["process"] for peer in subprocess.peers
                                          if peer["process"].name == candidate.name])
@@ -742,15 +743,15 @@ class ProcessModel:
 
         if issubclass(type(interface), Interface):
             matched = [interface]
-        elif type(interface) is str and interface in analysis.interfaces:
+        elif isinstance(interface, str) and interface in analysis.interfaces:
             matched = [analysis.get_intf(interface)]
-        elif type(interface) is str and interface not in analysis.interfaces:
+        elif isinstance(interface, str) and interface not in analysis.interfaces:
             return None
         else:
             raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
 
         # Be sure the first interface is a container
-        if type(matched[-1]) is not Container and len(tail) > 0:
+        if not isinstance(matched[-1], Container) and len(tail) > 0:
             return None
 
         # Collect interface list
@@ -767,11 +768,11 @@ class ProcessModel:
                         if matched[-1].field_interfaces[name].short_identifier == field]
 
             # Math using an interface role
-            if process and action and type(action) is Call and len(intf) == 0 and self.__roles_map and \
+            if process and action and isinstance(action, Call) and len(intf) == 0 and self.__roles_map and \
                             field in self.__roles_map:
                 intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
-                        type(matched[-1].field_interfaces[name]) is Callback]
+                        isinstance(matched[-1].field_interfaces[name], Callback)]
 
                 # Filter by retlabel
                 if action.retlabel and len(intf) > 0:
@@ -814,7 +815,7 @@ class ProcessModel:
             if len(intf) == 0:
                 return None
             else:
-                if index == (len(tail) - 1) or type(intf[-1]) is Container:
+                if index == (len(tail) - 1) or isinstance(intf[-1], Container):
                     matched.append(intf[-1])
                 else:
                     return None
@@ -872,7 +873,7 @@ class ProcessModel:
                                 else:
                                     options.append(self.__resolve_interface(analysis, interface, tail))
 
-                                for intfs in (o for o in options if type(o) is list and len(o) > 0):
+                                for intfs in (o for o in options if isinstance(o, list) and len(o) > 0):
                                     list_access = []
                                     for index in range(len(intfs)):
                                         if index == 0:
