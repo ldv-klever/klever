@@ -1,7 +1,13 @@
-{% extends 'marks/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
+
 {% block title %}{% if type == 'safe' %}{% trans 'Safe marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
+
+{% block head_block %}
+    <script type="text/javascript" src="{% static 'marks/js/marks.js' %}"></script>
+{% endblock %}
 
 {% block body_block %}
     <input id="marks_type" type="hidden" value="{{ type }}">

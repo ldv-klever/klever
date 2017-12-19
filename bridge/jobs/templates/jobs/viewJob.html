@@ -6,7 +6,10 @@
 {% load tz %}
 {% load staticfiles %}
 
-{% block jobs_head_block %}<script src="{% static 'jobs/js/editjob.js' %}"></script>{% endblock %}
+{% block jobs_head_block %}
+    <script src="{% static 'jobs/js/versions.js' %}"></script>
+    <script src="{% static 'jobs/js/editjob.js' %}"></script>
+{% endblock %}
 
 {% block title %}{% trans 'Job' %} ({{ job.get_status_display }}){% endblock %}
 
@@ -23,7 +26,7 @@
                     <button id="show_last_job_start_popup" data-variation="very wide" class="ui purple button note-popup{% if not can_decide %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Start decision with last configuration' %}"><i class="history icon"></i></button>
                     <button id="stop_job_btn" class="ui orange button note-popup{% if not can_stop %} disabled{% endif %}" data-position="bottom center" data-content="{% trans 'Stop decision' %}"><i class="stop icon"></i></button>
                     <button id="edit_job_btn" class="ui blue button note-popup{% if not can_edit %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Edit' %}"><i class="write icon"></i></button>
-                    <button id="edit_versions" class="ui brown button note-popup{% if not can_edit %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
+                    <button id="view_versions" class="ui brown button note-popup{% if not can_edit %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Versions' %}"><i class="recycle icon"></i></button>
                     <button id="show_remove_job_popup" class="ui red button note-popup{% if not can_delete %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
                     <button id="collapse_reports_modal_show" class="ui orange button note-popup{% if not can_collapse %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Collapse reports' %}"><i class="archive icon"></i></button>
                     <button id="dfc_modal_show" class="ui teal button note-popup{% if not can_dfc %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Download files for competition' %}"><i class="download icon"></i></button>

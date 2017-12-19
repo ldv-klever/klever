@@ -1,0 +1,130 @@
+{% load tz %}
+{% load i18n %}
+
+<h3>{% trans 'Versions comparison' %}</h3>
+<p>
+    <i class="ui red minus icon"></i>
+    {% timezone user.extended.timezone %}
+        {{ data.v1.change_date|date:"r" }}
+    {% endtimezone %}
+    {% if data.v1.change_author %}
+        (<a href="{% url 'users:show_profile' data.v1.change_author_id %}">{{ data.v1.change_author.get_full_name }}</a>)
+    {% endif %}
+    {% if data.v1.comment %}
+        <span>: {{ data.v1.comment }}</span>
+    {% endif %}
+</p>
+<p>
+    <i class="ui green plus icon"></i>
+    {% timezone user.extended.timezone %}
+        {{ data.v2.change_date|date:"r" }}
+    {% endtimezone %}
+    {% if data.v2.change_author %}
+        (<a href="{% url 'users:show_profile' data.v2.change_author_id %}">{{ data.v2.change_author.get_full_name }}</a>)
+    {% endif %}
+    {% if data.v2.comment %}
+        <span>: {{ data.v2.comment }}</span>
+    {% endif %}
+</p>
+<div class="ui divider"></div>
+
+{% if data.v1.name != data.v2.name %}
+    <h5>{% trans 'Title was changed' %}</h5>
+    <span><i class="ui red minus icon"></i> {{ data.v1.name }}<br><i class="ui green plus icon"></i> {{ data.v2.name }}</span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.v1.parent_id != data.v2.parent_id %}
+    <h5>{% trans 'Parent was changed' %}</h5>
+    <span>
+    {% if data.v1.parent %}
+        <i class="ui red minus icon"></i> <a href="{% url 'jobs:job' data.v1.parent_id %}">{{ data.v1.parent.name }}</a>
+    {% else %}<i class="ui red minus icon"></i> <i class="ui ban red icon"></i>{% endif %}
+    <br>
+    {% if data.v2.parent %}
+        <i class="ui green plus icon"></i> <a href="{% url 'jobs:job' data.v2.parent_id %}">{{ data.v2.parent.name }}</a>
+    {% else %}<i class="ui green plus icon"></i> <i class="ui ban red icon"></i>{% endif %}
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.v1.description != data.v2.description %}
+    <h5>{% trans 'Description was changed' %}</h5>
+    <i class="ui red minus icon"></i>
+    {{ data.v1.description|safe }}
+    <br>
+    <i class="ui green plus icon"></i>
+    {{ data.v2.description|safe }}
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.v1.global_role != data.v2.global_role %}
+    <h5>{% trans 'Global role was changed' %}</h5>
+    <p>
+        <i class="ui red minus icon"></i> {{ data.v1.get_global_role_display }}
+        <br>
+        <i class="ui green plus icon"></i> {{ data.v2.get_global_role_display }}
+    </p>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.roles %}
+    <h5>{% trans 'User roles were changed' %}</h5>
+    <i class="ui red minus icon"></i><span>
+        {% if data.roles.0|length %}
+            {% for ur in data.roles.0 %}
+                <br>
+                <a href="{% url 'users:show_profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
+            {% endfor %}
+        {% else %}<i class="ui ban red icon"></i>{% endif %}
+    </span>
+    <br>
+    <i class="ui green plus icon"></i><span>
+        {% if data.roles.1|length %}
+            {% for ur in data.roles.1 %}
+                <br>
+                <a href="{% url 'users:show_profile' ur.user_id %}">{{ ur.user.get_full_name }} ({{ ur.get_role_display }})</a>
+            {% endfor %}
+        {% else %}<i class="ui ban red icon"></i>{% endif %}
+    </span>
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.paths|length %}
+    <h5>{% trans "Files' paths were changed" %}</h5>
+    {% for f1_id, f2_id, fp1, fp2 in data.paths %}
+        <p>
+            <i class="ui red minus icon"></i> {% if f1_id %}<a class="version-file" href="{% url 'jobs:download_file' f1_id %}" data-file-id="{{ f1_id }}">{{ fp1 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+            <br>
+            <i class="ui green plus icon"></i> {% if f2_id %}<a class="version-file" href="{% url 'jobs:download_file' f2_id %}" data-file-id="{{ f2_id }}">{{ fp2 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+        </p>
+    {% endfor %}
+    <div class="ui divider"></div>
+{% endif %}
+
+{% if data.files|length %}
+    <h5>{% trans "Files were changed" %}</h5>
+    <ul>
+        {% for has_diff, fp, f1_id, f2_id in data.files %}
+            <li>
+                <a class="version-file" href="{% url 'jobs:download_file' f1_id %}" data-file-id="{{ f1_id }}">{{ fp }}</a> <i class="ui long arrow right icon"></i> <a class="version-file" href="{% url 'jobs:download_file' f2_id %}" data-file-id="{{ f2_id }}">{{ fp }}</a>
+                {% if has_diff %}(<a class="version-diff-files" href="#" data-file1-id="{{ f1_id }}" data-file2-id="{{ f2_id }}">{% trans 'diff' %}</a>){% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<div id="version_file_modal" class="ui dinamic large modal">
+    <div class="content">
+        <div class="ui grid">
+            <div class="two wide column">
+                <a id="file_download_btn" href="#" class="ui olive icon button"><i class="download icon"></i></a>
+            </div>
+            <div class="twelve wide column ui header center aligned" id="version_file_name"></div>
+            <div class="two wide column right aligned">
+                <button id="version_file_close" class="ui icon red button"><i class="remove icon"></i></button>
+            </div>
+        </div>
+        <div class="filecontent ui olive segment" id="version_file_content"></div>
+    </div>
+</div>

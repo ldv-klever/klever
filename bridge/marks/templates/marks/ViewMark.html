@@ -1,238 +1,101 @@
-{% extends 'marks/base.html' %}
+{% extends 'marks/Mark.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
-{% load tz %}
-
-{% load humanize %}
-
-{% block title %}
-    {% if markdata.type == 'safe' %}{% trans 'Safes mark' %}{% elif markdata.type == 'unknown' %}{% trans 'Unknowns mark' %}{% else %}{% trans 'Unsafes mark' %}{% endif %}
+{% block mark_head_block %}
+    <script type="text/javascript" src="{% static 'marks/js/viewMark.js' %}"></script>
 {% endblock %}
 
-{% block body_block %}
-    <div class="ui grid">
-        <div class="seven wide column">
-            <div class="ui buttons top attached">
-                <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
-                {% if can_edit %}
-                    <a href="{% url 'marks:edit_mark' type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui blue button">{% trans 'Edit' %}</a>
-                {% endif %}
+{% block edit_mark_block %}
+    {% if markdata.type == 'unknown' %}
+        <div class="ui horizontal segments">
+            <div class="ui purple segment" style="max-width: 60%;">
+                <div class="ui top left attached purple label">{% trans 'Pattern' %}{% if markdata.unknown_data.3 %} (regexp){% endif %}</div>
+                <div class="filecontent">{{ markdata.unknown_data.0 }}</div>
             </div>
-            <table class="ui selectable compact inverted violet table attached">
-                <tbody>
-                    <tr>
-                        <th class="right aligned">{% trans 'Identifier' %}</th>
-                        <td>{{ mark.identifier }}</td>
-                    </tr>
-                    <tr>
-                        <th class="right aligned">{% trans 'Format' %}</th>
-                        <td>{{ mark.format }}</td>
-                    </tr>
-                    <tr>
-                        <th class="right aligned">{% trans 'Source' %}</th>
-                        <td>{{ mark.get_type_display }}</td>
-                    </tr>
-                    {% if markdata.type == 'unknown' %}
-                        <tr>
-                            <th class="right aligned">{% trans 'Component' %}</th>
-                            <td>{{ mark.component.name }}</td>
-                        </tr>
-                    {% endif %}
-                    {% if first_version.author %}
-                        <tr>
-                            <th class="right aligned">{% trans 'Author' %}</th>
-                            <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.get_full_name }}</a></td>
-                        </tr>
-                    {% endif %}
-                    <tr>
-                        <th class="right aligned">{% trans 'Last change' %}</th>
-                        <td>
-                            {% if user.extended.data_format == 'hum' %}
-                                {{ version.change_date|naturaltime }}
-                            {% else %}
-                                {% timezone user.extended.timezone %}
-                                    {{ version.change_date }}
-                                {% endtimezone %}
-                            {% endif %}
-                            {% if version.author %}
-                                (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.get_full_name }}</a>)
-                            {% endif %}
-                            {% if version.comment|length %}
-                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small></p>
-                            {% endif %}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <br>
-
-            {% if reports.view.type == '13' %}
-                {% include 'users/views/UnsafeAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
-            {% else %}
-                {% include 'users/views/SafeAndUnkownAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
-            {% endif %}
-            <br>
-
-            {% if reports.values|length %}
-                <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
-                <div style="overflow-x: auto;">
-                    <table class="ui compact teal celled selectable table alternate-color">
-                        <thead>
-                            {% for column_row in reports.header %}
+            <div class="ui purple segment" style="max-width: 20%;">
+                <div class="ui top left attached purple label">{% trans 'Problem' %}</div>
+                <div>
+                {% if markdata.unknown_data.2 %}
+                    <a href="{{ markdata.unknown_data.2 }}">{{ markdata.unknown_data.1 }}</a>
+                {% else %}
+                    <span>{{ markdata.unknown_data.1 }}</span>
+                {% endif %}
+                </div>
+            </div>
+            <div class="ui green segment" style="max-width: 20%;">
+                <div class="ui top left attached green label">{% trans 'Status' %}</div>
+                <div>
+                {% for s in markdata.statuses %}
+                    {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="ui horizontal segments">
+            <div class="ui green segment">
+                <span class="header ui green"><small>{% trans 'Verdict' %}:</small> </span>
+                {% for v in markdata.verdicts %}
+                    {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
+                {% endfor %}
+                <div class="ui hidden divider"></div>
+                <span class="header ui green"><small>{% trans 'Status' %}:</small> </span>
+                {% for s in markdata.statuses %}
+                    {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
+                {% endfor %}
+            </div>
+            <div class="ui pink segment">
+                <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                {% include 'marks/MarkTags.html' with tags=markdata.tags.table available=markdata.tags.available selected=markdata.tags.selected %}
+            </div>
+        </div>
+        {% if markdata.type == 'unsafe' %}
+            <div class="ui teal segment">
+                <h4 class="header ui teal">{% trans 'Error traces comparison function and converted error trace' %}</h4>
+                <div class="ui teal raised segment">
+                    <span class="ui teal ribbon label">{{ markdata.selected_func.name }}</span>
+                    <p class="func-description">{{ markdata.selected_func.description }}</p>
+                    <h5>{{ markdata.selected_func.convert.name }}</h5>
+                    <p class="func-description">{{ markdata.selected_func.convert.description }}</p>
+                </div>
+                <div class="ui teal raised segment">
+                    <div class="filecontent" style="max-height:40vh;">{{ markdata.error_trace }}</div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="ui styled accordion fluid">
+            <div class="title">
+                <i class="grid layout icon"></i>{% trans 'Attributes' %}
+            </div>
+            <div class="content">
+                <div style="overflow-x:auto;">
+                    <table class="ui celled compact purple table">
+                        <tbody>
+                            {% for v in markdata.attributes %}
                                 <tr>
-                                {% for coldata in column_row %}
-                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
+                                    <th class="collapsing">{{ v.0 }}</th>
+                                    <td class="collapsing">
+                                        {% if v.2 %}
+                                            <i class="ui green small checkmark icon"></i>
+                                        {% else %}
+                                            <i class="ui red small remove icon"></i>
+                                        {% endif %}
+                                        {{ v.1 }}
+                                    </td>
                                 </tr>
                             {% endfor %}
-                        </thead>
-                        <tbody>
-                            {% for row_data in reports.values %}
-                                <tr>
-                                    {% for v in row_data %}
-                                        <td class="collapsing">
-                                            {% if v.href %}
-                                                <a href="{{ v.href }}">{{ v.value }}</a>
-                                            {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
-                                            {% endif %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                            {%  endfor %}
                         </tbody>
                     </table>
                 </div>
-            {% else %}
-                <h4>{% trans 'The list of associated reports is empty. Maybe it is because of the selected view.' %}</h4>
-            {% endif %}
+            </div>
         </div>
-        <div class="nine wide column">
-            {% if markdata.type == 'unsafe' %}
-                <div class="ui horizontal segments">
-                    <div class="ui green segment">
-                        <span class="header ui green"><small>{% trans 'Verdict' %}:</small> </span>
-                        {% for v in markdata.verdicts %}
-                            {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
-                        {% endfor %}
-                        <div class="ui hidden divider"></div>
-                        <span class="header ui green"><small>{% trans 'Status' %}:</small> </span>
-                        {% for s in markdata.statuses %}
-                            {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="ui pink segment">
-                        <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-                        {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
-                    </div>
-                </div>
-                <div class="ui teal segment">
-                    <h4 class="header ui teal">{% trans 'Error traces comparison function and converted error trace' %}</h4>
-                    <div class="ui teal raised segment">
-                        <span class="ui teal ribbon label">{{ markdata.selected_func.name }}</span>
-                        <p class="func-description">{{ markdata.selected_func.description }}</p>
-                        <h5>{{ markdata.selected_func.convert.name }}</h5>
-                        <p class="func-description">{{ markdata.selected_func.convert.description }}</p>
-                    </div>
-                    <div class="ui teal raised segment">
-                        <div class="filecontent" style="max-height:40vh;">{{ error_trace }}</div>
-                    </div>
-                </div>
-                <div class="ui styled accordion fluid">
-                    <div class="title">
-                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
-                    </div>
-                    <div class="content">
-                        <div style="overflow-x:auto;">
-                            <table class="ui celled compact purple table">
-                                <tbody>
-                                    {% for v in markdata.attributes %}
-                                        <tr>
-                                            <th class="collapsing">{{ v.0 }}</th>
-                                            <td class="collapsing">
-                                                {% if v.2 %}
-                                                    <i class="ui green small checkmark icon"></i>
-                                                {% else %}
-                                                    <i class="ui red small remove icon"></i>
-                                                {% endif %}
-                                                {{ v.1 }}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            {% elif markdata.type == 'safe' %}
-                <div class="ui horizontal segments">
-                    <div class="ui green segment">
-                        <span class="header ui green"><small>{% trans 'Verdict' %}:</small> </span>
-                        {% for v in markdata.verdicts %}
-                            {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
-                        {% endfor %}
-                        <div class="ui hidden divider"></div>
-                        <span class="header ui green"><small>{% trans 'Status' %}:</small> </span>
-                        {% for s in markdata.statuses %}
-                            {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
-                        {% endfor %}
-                    </div>
-                    <div class="ui pink segment">
-                        <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-                        {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
-                    </div>
-                </div>
-                <div class="ui styled accordion fluid">
-                    <div class="title">
-                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
-                    </div>
-                    <div class="content">
-                        <div style="overflow-x:auto;">
-                            <table class="ui celled compact purple table">
-                                <tbody>
-                                    {% for v in markdata.attributes %}
-                                        <tr>
-                                            <th class="collapsing">{{ v.0 }}</th>
-                                            <td class="collapsing">
-                                                {% if v.2 %}
-                                                    <i class="ui green small checkmark icon"></i>
-                                                {% else %}
-                                                    <i class="ui red small remove icon"></i>
-                                                {% endif %}
-                                                {{ v.1 }}
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            {% elif markdata.type == 'unknown' %}
-                <div class="ui horizontal segments">
-                    <div class="ui segment" style="max-width: 50%;">
-                        <div class="ui top left attached purple label">{% trans 'Pattern' %}{% if markdata.unknown_data.3 %} (regexp){% endif %}</div>
-                        <div class="filecontent">{{ markdata.unknown_data.0 }}</div>
-                    </div>
-                    <div class="ui segment" style="max-width: 50%;">
-                        <div class="ui top left attached purple label">{% trans 'Problem' %}</div>
-                        <div>
-                        {% if markdata.unknown_data.2 %}
-                            <a href="{{ markdata.unknown_data.2 }}">{{ markdata.unknown_data.1 }}</a>
-                        {% else %}
-                            <span>{{ markdata.unknown_data.1 }}</span>
-                        {% endif %}
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-            {% if markdata.description|length > 0 %}
-                <div class="ui blue segment">
-                    <div class="ui blue top left attached label">{% trans 'Description' %}</div>
-                    <div>{{ markdata.description|safe }}</div>
-                </div>
-            {% endif %}
+    {% endif %}
+    {% if markdata.description|length > 0 %}
+        <div class="ui blue segment">
+            <div class="ui blue top left attached label">{% trans 'Description' %}</div>
+            <div>{{ markdata.description|safe }}</div>
         </div>
-    </div>
+    {% endif %}
 {% endblock %}

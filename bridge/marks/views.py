@@ -58,164 +58,136 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
-    problem_desc = None
+    report_table = {'safe': ReportSafe, 'unsafe': ReportUnsafe, 'unknown': ReportUnknown}
     try:
-        if mark_type == 'unsafe':
-            report = ReportUnsafe.objects.get(pk=int(report_id))
-        elif mark_type == 'safe':
-            report = ReportSafe.objects.get(pk=int(report_id))
-            if not report.root.job.safe_marks:
-                return BridgeErrorResponse(_('Safe marks are disabled'))
-        else:
-            report = ReportUnknown.objects.get(pk=int(report_id))
-            try:
-                problem_desc = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE)\
-                    .content.decode('utf8')
-            except Exception as e:
-                logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
-                return BridgeErrorResponse(500)
+        report = report_table[mark_type].objects.get(id=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
+
     if not mutils.MarkAccess(request.user, report=report).can_create():
         return BridgeErrorResponse(_("You don't have an access to create new marks"))
-    tags = None
-    if mark_type != 'unknown':
+
+    problem_desc = None
+    if mark_type == 'unknown':
         try:
-            tags = TagsInfo(mark_type, [])
+            problem_desc = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
         except Exception as e:
-            logger.exception(e)
+            logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
             return BridgeErrorResponse(500)
 
+    try:
+        markdata = MarkData(mark_type, report=report)
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+
     return render(request, 'marks/CreateMark.html', {
-        'report': report,
-        'type': mark_type,
-        'markdata': MarkData(mark_type, report=report),
-        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'tags': tags,
+        'report': report, 'markdata': markdata,
+        'access': mutils.MarkAccess(request.user),
         'problem_description': problem_desc
     })
 
 
 @login_required
-@unparallel_group([])
-def view_mark(request, mark_type, mark_id):
+def mark_page(request, mtype, action, mark_id):
     activate(request.user.extended.language)
 
+    mtable = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
     try:
-        if mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=int(mark_id))
-        elif mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=int(mark_id))
-        else:
-            mark = MarkUnknown.objects.get(pk=int(mark_id))
+        mark = mtable[mtype].objects.get(id=int(mark_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(604)
 
     if mark.version == 0:
         return BridgeErrorResponse(605)
+
+    access = mutils.MarkAccess(request.user, mark=mark)
+    if action == 'edit' and not access.can_edit():
+        return BridgeErrorResponse(_("You don't have an access to edit this mark"))
 
     view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
     view_add_args = {}
     view_type = request.GET.get('view_type')
-    if view_type in view_type_map and view_type_map[view_type] == mark_type:
+    if view_type in view_type_map and view_type_map[view_type] == mtype:
         view_add_args['view_id'] = request.GET.get('view_id')
         view_add_args['view'] = request.GET.get('view')
 
     history_set = mark.versions.order_by('-version')
-    last_version = history_set.first()
+    versions = []
+    if action == 'edit':
+        for m in history_set:
+            if m.version == mark.version:
+                title = _("Current version")
+            else:
+                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
+                title = change_time.strftime("%d.%m.%Y %H:%M:%S")
+                if m.author is not None:
+                    title += " (%s)" % m.author.get_full_name()
+                title += ': ' + m.comment
+            versions.append({'version': m.version, 'title': title})
 
-    error_trace = None
-    if mark_type == 'unsafe':
-        with last_version.error_trace.file.file as fp:
-            error_trace = fp.read().decode('utf8')
-
-    tags = None
-    if mark_type != 'unknown':
-        try:
-            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
-        except Exception as e:
-            logger.exception(e)
-            return BridgeErrorResponse(500)
-    return render(request, 'marks/ViewMark.html', {
-        'mark': mark,
-        'version': last_version,
-        'first_version': history_set.last(),
-        'type': mark_type,
-        'markdata': MarkData(mark_type, mark_version=last_version),
+    try:
+        markdata = MarkData(mtype, mark_version=history_set.first())
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    if action == 'view':
+        template = 'marks/ViewMark.html'
+    else:
+        template = 'marks/EditMark.html'
+    return render(request, template, {
+        'mark': mark, 'markdata': markdata, 'access': access, 'versions': versions,
         'reports': MarkReportsTable(request.user, mark, **view_add_args),
-        'tags': tags,
-        'can_edit': mutils.MarkAccess(request.user, mark=mark).can_edit(),
-        'view_tags': True,
-        'error_trace': error_trace,
         'report_id': request.GET.get('report_to_redirect'),
-        'ass_types': ASSOCIATION_TYPE
+        'ass_types': ASSOCIATION_TYPE, 'view_tags': (action == 'view')
     })
 
 
 @login_required
-@unparallel_group([])
-def edit_mark(request, mark_type, mark_id):
+def mark_versions(request, mtype, mark_id):
     activate(request.user.extended.language)
 
+    mtable = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
     try:
-        if mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=int(mark_id))
-        elif mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=int(mark_id))
-        else:
-            mark = MarkUnknown.objects.get(pk=int(mark_id))
+        mark = mtable[mtype].objects.get(id=int(mark_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(604)
+
     if mark.version == 0:
         return BridgeErrorResponse(605)
 
-    if not mutils.MarkAccess(request.user, mark=mark).can_edit():
+    access = mutils.MarkAccess(request.user, mark=mark)
+    if not access.can_edit():
         return BridgeErrorResponse(_("You don't have an access to edit this mark"))
 
+    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
+    view_add_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == mtype:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
+
     history_set = mark.versions.order_by('-version')
-    last_version = history_set.first()
-
-    error_trace = None
-    if mark_type == 'unsafe':
-        with last_version.error_trace.file.file as fp:
-            error_trace = fp.read().decode('utf8')
-
-    tags = None
-    if mark_type != 'unknown':
-        try:
-            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
-        except Exception as e:
-            logger.exception(e)
-            return BridgeErrorResponse(500)
-
-    template = 'marks/EditMark.html'
-    if mark_type == 'unknown':
-        template = 'marks/EditUnknownMark.html'
-    mark_versions = []
+    versions = []
     for m in history_set:
-        if m.version == mark.version:
-            title = _("Current version")
-        else:
-            change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-            title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-            if m.author is not None:
-                title += " (%s)" % m.author.get_full_name()
-            title += ': ' + m.comment
-        mark_versions.append({'version': m.version, 'title': title})
+        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
+        title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
+        if m.author is not None:
+            title += " (%s)" % m.author.get_full_name()
+        title += ': ' + m.comment
+        versions.append({'version': m.version, 'title': title})
 
-    return render(request, template, {
-        'mark': mark,
-        'version': last_version,
-        'first_version': history_set.last(),
-        'type': mark_type,
-        'markdata': MarkData(mark_type, mark_version=last_version),
-        'reports': MarkReportsTable(request.user, mark),
-        'versions': mark_versions,
-        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'can_delete': mutils.MarkAccess(request.user, mark=mark).can_delete(),
-        'tags': tags,
-        'error_trace': error_trace,
-        'report_id': request.GET.get('report_to_redirect')
+    try:
+        markdata = MarkData(mtype, mark_version=history_set.first())
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+
+    return render(request, 'marks/markVersions.html', {
+        'mark': mark, 'markdata': markdata, 'access': access, 'versions': versions,
+        'reports': MarkReportsTable(request.user, mark, **view_add_args),
+        'report_id': request.GET.get('report_to_redirect'),
+        'ass_types': ASSOCIATION_TYPE
     })
 
 
@@ -431,74 +403,51 @@ def delete_marks(request):
 def remove_versions(request):
     activate(request.user.extended.language)
 
-    if request.method != 'POST':
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'mark_type', 'versions']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    mark_id = int(request.POST.get('mark_id', 0))
-    mark_type = request.POST.get('mark_type', None)
+    mark_id = int(request.POST['mark_id'])
+    mark_type = request.POST['mark_type']
+    mark_table = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
+    if mark_type not in mark_table:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
     try:
-        if mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=mark_id)
-        elif mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=mark_id)
-        elif mark_type == 'unknown':
-            mark = MarkUnknown.objects.get(pk=mark_id)
-        else:
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+        mark = mark_table[mark_type].objects.get(pk=mark_id)
         if mark.version == 0:
             return JsonResponse({'error': _('The mark is being deleted')})
-        mark_history = mark.versions.exclude(version__in=[mark.version, 1])
+        mark_history = mark.versions.all()
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
     if not mutils.MarkAccess(request.user, mark).can_edit():
         return JsonResponse({'error': _("You don't have an access to edit this mark")})
 
-    checked_versions = mark_history.filter(version__in=json.loads(request.POST.get('versions', '[]')))
+    checked_versions = mark_history.filter(version__in=json.loads(request.POST['versions']))
     for mark_version in checked_versions:
         if not mutils.MarkAccess(request.user, mark=mark).can_remove_version(mark_version):
-            # Error will never happen in usual cases as list of versions user can select should always be with access
-            # So we can use str(UNKNOWN_ERROR) here
             return JsonResponse({'error': _("You don't have an access to remove one of the selected version")})
 
     if len(checked_versions) > 0:
         checked_versions.delete()
         return JsonResponse({'message': _('Selected versions were successfully deleted')})
-    return JsonResponse({'error': _('Nothing to delete')})
+    return JsonResponse({'error': _('There is nothing to delete')})
 
 
 @login_required
-@unparallel_group([])
-def get_mark_versions(request):
+def compare_versions(request):
     activate(request.user.extended.language)
 
-    if request.method != 'POST':
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'mark_type', 'v1', 'v2']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    mark_id = int(request.POST.get('mark_id', 0))
-    mark_type = request.POST.get('mark_type', None)
+
     try:
-        if mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=mark_id)
-        elif mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=mark_id)
-        elif mark_type == 'unknown':
-            mark = MarkUnknown.objects.get(pk=mark_id)
-        else:
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-        if mark.version == 0:
-            return JsonResponse({'error': 'The mark is being deleted'})
-        mark_history = mark.versions.exclude(version__in=[mark.version, 1]).order_by('-version')
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _('The mark was not found')})
-    mark_versions = []
-    for m in mark_history:
-        if not mutils.MarkAccess(request.user, mark=mark).can_remove_version(m):
-            continue
-        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-        title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        if m.author is not None:
-            title += " (%s)" % m.author.get_full_name()
-        title += ': ' + m.comment
-        mark_versions.append({'version': m.version, 'title': title})
-    return render(request, 'marks/markVersions.html', {'versions': mark_versions})
+        return render(request, 'marks/markVCmp.html', {'data': mutils.CompareMarkVersions(
+            request.POST['mark_id'], request.POST['mark_type'], [int(request.POST['v1']), int(request.POST['v2'])]
+        )})
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @login_required

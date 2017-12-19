@@ -38,7 +38,7 @@ from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
-from marks.tables import SAFE_COLOR, UNSAFE_COLOR
+from marks.utils import SAFE_COLOR, UNSAFE_COLOR
 
 
 REP_MARK_TITLES = {
