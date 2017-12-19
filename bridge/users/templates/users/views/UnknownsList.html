@@ -134,6 +134,20 @@
         </div>
         <div class="ui divider"></div>
 
+        {# Problem #}
+        <input id="view_data_{{ view.type }}__problem" value="list_if_problem" data-list="problem_name" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__problem"{% if 'problem' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__problem">{% trans 'Has problem' %}</label>
+        </div>
+        <br><br>
+        <div class="ui input" style="margin-left: 15px;">
+            <input id="view_{{ view.type }}__problem_name" type="text"{% if 'problem' in view %} value="{{ view.problem.0 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Problem name' %}">
+        </div>
+        <br>
+        <small style="color: #656565">{% trans 'Filter works only if column "Problems" is enabled' %}</small>
+        <div class="ui divider"></div>
+
         {# Attribute #}
         <input id="view_data_{{ view.type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
         <div class="ui checkbox">

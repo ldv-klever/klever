@@ -116,7 +116,7 @@ SAFES_VIEW = {
 }
 
 UNKNOWNS_VIEW = {
-    'columns': ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': ['marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, component|attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
     'order': ['down', 'component', ''],
@@ -126,6 +126,7 @@ UNKNOWNS_VIEW = {
     # 'parent_cpu': [lt|gt, <number>, m|s|ms]
     # 'parent_wall': [lt|gt, <number>, m|s|ms]
     # 'parent_memory': [lt|gt, <number>, b|Kb|Mb|Gb]
+    # 'problem': [<problem name>]
 }
 
 UNSAFE_MARKS_VIEW = {

@@ -27,14 +27,14 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _, string_concat
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES, ASSOCIATION_TYPE
 from bridge.tableHead import Header
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
     ReportRoot
-from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
+from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag, MarkUnknownReport
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
@@ -54,7 +54,8 @@ REP_MARK_TITLES = {
     'verifiers': _('Verifiers'),
     'verifiers:cpu': _('CPU time'),
     'verifiers:wall': _('Wall time'),
-    'verifiers:memory': _('RAM')
+    'verifiers:memory': _('RAM'),
+    'problems': _('Problems')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -639,7 +640,7 @@ class UnknownsTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
+            if col not in {'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -651,7 +652,7 @@ class UnknownsTable:
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+        for col in ['marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
             if ':' in col:
                 col_title = get_column_title(col)
             else:
@@ -732,6 +733,27 @@ class UnknownsTable:
                 'parent_memory': leaf['unknown__memory'],
             }
 
+        if 'problems' in self.view['columns']:
+            for r_id, problem, link in MarkUnknownReport.objects.filter(report_id__in=reports)\
+                    .exclude(type=ASSOCIATION_TYPE[2][0]).values_list('report_id', 'problem__name', 'mark__link'):
+                if 'problems' not in reports[r_id]:
+                    reports[r_id]['problems'] = set()
+                reports[r_id]['problems'].add((problem, link))
+            for r_id in list(reports):
+                if 'problems' in reports[r_id]:
+                    problems = []
+                    has_problem = False
+                    for p, l in sorted(reports[r_id]['problems']):
+                        if 'problem' in self.view and self.view['problem'][0] == p:
+                            has_problem = True
+                        problems.append('<a href="{0}">{1}</a>'.format(l, p) if l else p)
+                    if 'problem' in self.view and not has_problem:
+                        del reports[r_id]
+                    else:
+                        reports[r_id]['problems'] = '; '.join(problems)
+                elif 'problem' in self.view:
+                    del reports[r_id]
+
         for u_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports).order_by('id') \
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if aname not in data:
@@ -760,6 +782,7 @@ class UnknownsTable:
             for col in columns:
                 val = '-'
                 href = None
+                is_html = False
                 if col in data and rep_id in data[col]:
                     val = data[col][rep_id]
                     if not self.__filter_attr(col, val):
@@ -769,6 +792,10 @@ class UnknownsTable:
                     href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
+                elif col == 'problems':
+                    if 'problems' in reports[rep_id]:
+                        val = reports[rep_id]['problems']
+                        is_html = True
                 elif col == 'verifiers:cpu':
                     if reports[rep_id]['parent_cpu'] is not None:
                         val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
@@ -778,7 +805,7 @@ class UnknownsTable:
                 elif col == 'verifiers:memory':
                     if reports[rep_id]['parent_memory'] is not None:
                         val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
-                values_row.append({'value': val, 'href': href})
+                values_row.append({'value': val, 'href': href, 'html': is_html})
             else:
                 values_data.append(values_row)
         return columns, values_data
