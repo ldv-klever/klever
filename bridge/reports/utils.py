@@ -270,9 +270,13 @@ class SafesTable:
 
         reports_ordered = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
+            for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
-                    reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    if rep_id in data[self.view['order'][2]]:
+                        reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    else:
+                        # We want reports without attribute to be at the end (with straight order)
+                        reports_ordered.append(('~', rep_id))
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -286,10 +290,9 @@ class SafesTable:
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
         else:
-            for attr in data:
-                for rep_id in data[attr]:
-                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
-                        reports_ordered.append(rep_id)
+            for rep_id in reports:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
 
         for r_id in reports:
@@ -507,11 +510,13 @@ class UnsafesTable:
 
         reports_ordered = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
+            for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
-                    reports_ordered.append(
-                        (data[self.view['order'][2]][rep_id], rep_id)
-                    )
+                    if rep_id in data[self.view['order'][2]]:
+                        reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    else:
+                        # We want reports without attribute to be at the end (with straight order)
+                        reports_ordered.append(('~', rep_id))
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -525,10 +530,9 @@ class UnsafesTable:
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
         else:
-            for attr in data:
-                for rep_id in data[attr]:
-                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
-                        reports_ordered.append(rep_id)
+            for rep_id in reports:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
 
         for r_id in reports:
@@ -766,8 +770,12 @@ class UnknownsTable:
 
         ids_order_data = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
-                ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
+            for rep_id in reports:
+                if rep_id in data[self.view['order'][2]]:
+                    ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
+                else:
+                    # We want reports without attribute to be at the end (with straight order)
+                    ids_order_data.append(('~', rep_id))
         elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
             for rep_id in reports:
                 if reports[rep_id][self.view['order'][1]] is not None:
