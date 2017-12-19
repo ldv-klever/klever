@@ -27,13 +27,23 @@
         {% endif %}
     </div>
     <br>
-    {% if can_freeze %}
-        <div class="ui toggle checkbox">
-            <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
-            <label for="is_modifiable">{% trans 'Editable' %}</label>
+    <div class="ui grid">
+    {% if access.can_freeze %}
+        <div class="seven wide column">
+            <div class="ui toggle checkbox">
+                <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
+                <label for="is_modifiable">{% trans 'Editable' %}</label>
+            </div>
         </div>
     {% endif %}
-    <br><br>
+        <div class="nine wide column">
+            <div class="ui toggle checkbox">
+                <input type="checkbox" id="autoconfirm">
+                <label for="autoconfirm">{% trans "Preserve confirmations of associations if possible" %}</label>
+            </div>
+        </div>
+    </div>
+    <br>
     <label for="edit_mark_comment"></label>
     <div class="ui action input fluid">
         <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">

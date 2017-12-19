@@ -75,6 +75,9 @@ class NewMark:
         if 'tags' not in self._args or not isinstance(self._args['tags'], list):
             raise ValueError('Unsupported tags: %s' % self._args.get('tags'))
 
+        if 'autoconfirm' in self._args and not isinstance(self._args['autoconfirm'], bool):
+            raise ValueError('Wrong type: autoconfirm (%s)' % type(self._args['autoconfirm']))
+
         tags = set(int(t) for t in self._args['tags'])
         if len(tags) > 0:
             tags_in_db = {}
@@ -156,8 +159,9 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
-            MarkUnsafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
-            UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
+            if do_recalc or not self._args.get('autoconfirm', False):
+                MarkUnsafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+                UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 changes = ConnectMarks([mark]).changes
             else:

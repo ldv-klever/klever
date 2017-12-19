@@ -74,6 +74,9 @@ class NewMark:
         if 'link' not in self._args or len(self._args['link']) == 0:
             self._args['link'] = None
 
+        if 'autoconfirm' in self._args and not isinstance(self._args['autoconfirm'], bool):
+            raise ValueError('Wrong type: autoconfirm (%s)' % type(self._args['autoconfirm']))
+
     def create_mark(self, report):
         if MarkUnknown.objects.filter(component=report.component, problem_pattern=self._args['problem']).count() > 0:
             raise BridgeException(_('Could not create a new mark since the similar mark exists already'))
@@ -100,7 +103,8 @@ class NewMark:
                 .exclude(id=mark.id).count() > 0:
             raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
 
-        do_recalc = (self._args['function'] != mark.function or self._args['problem'] != mark.problem_pattern)
+        do_recalc = (self._args['function'] != mark.function or self._args['problem'] != mark.problem_pattern
+                     or self._args['is_regexp'] != mark.is_regexp)
 
         mark.author = self._user
         mark.status = self._args['status']
@@ -115,8 +119,9 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
-            MarkUnknownReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
-            UnknownAssociationLike.objects.filter(association__mark=mark).delete()
+            if do_recalc or not self._args.get('autoconfirm', False):
+                MarkUnknownReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+                UnknownAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 self.changes = ConnectMark(mark).changes
             else:
