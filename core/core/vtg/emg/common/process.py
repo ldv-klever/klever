@@ -58,6 +58,10 @@ def get_common_parameter(action, process, position):
         return list(interfaces)[0]
 
 
+def _update_process_ast(obj):
+    obj.__process_ast = parse_process(obj.process)
+
+
 class Access:
     def __init__(self, expression):
         self.expression = expression
@@ -293,6 +297,7 @@ class Process:
 
                     process.process = process.process.replace(curr_expr, next_expr)
                     break
+            process.update_process_ast()
 
     def rename_action(self, name, new_name):
         if name not in self.actions:
@@ -320,6 +325,7 @@ class Process:
                     old_match = regex['regex'].search(process.process).group()
                     new_match = old_match.replace(name, new_name)
                     process.process = process.process.replace(old_match, new_match)
+            process.update_process_ast()
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -444,6 +450,18 @@ class Process:
             return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.interface.identifier)
                     if acc.interface and acc.interface.identifier == interface][0]
 
+    def get_implementation(self, access):
+        if access.interface:
+            if self.allowed_implementations[access.expression][access.interface.identifier] != '':
+                return self.allowed_implementations[access.expression][access.interface.identifier]
+            else:
+                return False
+        else:
+            return None
+
+    def update_process_ast(self):
+        _update_process_ast(self)
+
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
@@ -464,15 +482,6 @@ class Process:
             return match
         else:
             return False
-
-    def get_implementation(self, access):
-        if access.interface:
-            if self.allowed_implementations[access.expression][access.interface.identifier] != '':
-                return self.allowed_implementations[access.expression][access.interface.identifier]
-            else:
-                return False
-        else:
-            return None
 
 
 class Action:
@@ -495,6 +504,9 @@ class Subprocess(Action):
         if not self.__process_ast:
             self.__process_ast = parse_process(self.process)
         return self.__process_ast
+
+    def update_process_ast(self):
+        _update_process_ast(self)
 
 
 class Dispatch(Action):

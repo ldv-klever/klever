@@ -18,7 +18,7 @@ import copy
 import re
 
 from core.vtg.emg.common import get_necessary_conf_property
-from core.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition
+from core.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition, CallRetval
 from core.vtg.emg.common.interface import Interface, Callback, Container
 from core.vtg.emg.processmodel.entry import EntryProcessGenerator
 from core.vtg.emg.processmodel.instances import generate_instances
@@ -65,8 +65,20 @@ class ProcessModel:
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
         self.__resolve_accesses(analysis)
 
+        # Sanity check
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
+            if not process.category:
+                raise ValueError("Found process without category {!r}".format(process.name))
+
         # Simplify processes then
         instance_maps, generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
+
+        # Another sanity check
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
+            for action in process.actions.values():
+                if isinstance(action, Call) or isinstance(action, CallRetval):
+                    raise ValueError("Left unprepared action {!r} from process {!r} of category {!r}".
+                                     format(action.name, process.name, process.category))
 
         # Prepare generated code
         for file in additional_code:

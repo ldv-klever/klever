@@ -66,7 +66,7 @@ def start_jobs(core_obj, locks, vals):
                               core_obj.mqs, locks, vals, separate_from_parent=False,
                               include_child_resources=True, session=core_obj.session,
                               total_subjobs=(len(common_components_conf['Sub-jobs'])
-                                              if 'Sub-jobs' in common_components_conf else 0))
+                                             if 'Sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)
 

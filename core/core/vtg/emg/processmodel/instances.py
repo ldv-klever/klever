@@ -20,7 +20,7 @@ import re
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
-from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Function
+from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
@@ -772,7 +772,9 @@ def _remove_statics(analysis, access_map):
                     elif not function_flag and not isinstance(declaration, Primitive):
                         var = resolve_existing(name, implementation, _declarations)
                         if not var:
-                            if not isinstance(declaration, Pointer):
+                            if isinstance(declaration, Array):
+                                declaration = declaration.element.take_pointer
+                            elif not isinstance(declaration, Pointer):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
                             var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),

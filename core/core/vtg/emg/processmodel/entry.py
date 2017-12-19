@@ -164,8 +164,9 @@ class EntryProcessGenerator:
         # Generate exit subprocess
         if len(analysis.exits) == 0:
             self.__logger.debug("There is no exit function found")
-            exit_subprocess = Call('exit')
-            exit_subprocess.callback = "%exit%"
+            exit_subprocess = Condition('exit')
+            exit_subprocess.comment = 'There is no exit in the module'
+            exit_subprocess.statements = []
             ep.actions[exit_subprocess.name] = exit_subprocess
         else:
             for filename, exit_name in analysis.exits:

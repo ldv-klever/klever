@@ -62,7 +62,11 @@ class CModel:
         if file not in self._headers:
             self._headers[file] = headers
         else:
-            self._headers[file].extend([h for h in headers if h not in self._headers[file]])
+            # This is to avoid dependencies broken
+            if len(headers) > 1:
+                self._headers[file].extend(headers)
+            elif headers[0] not in self._headers[file]:
+                self._headers[file].append(headers[0])
 
     def add_function_definition(self, file, func):
         if not file:
