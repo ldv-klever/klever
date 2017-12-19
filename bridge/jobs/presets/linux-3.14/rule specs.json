@@ -19,8 +19,7 @@
             "specifications directory": "linux/",
             "entry point": "main",
             "interface categories options": {
-              "callstack deep search": 3,
-              "generate artificial categories": false
+              "callstack deep search": 3
             },
             "intermediate model options": {
               "generate insmod scenario": true,
@@ -145,7 +144,7 @@
               "version": "ldv-bam:25793"
             },
             "result processing": {
-              "coverage": "full"
+              "coverage": "lightweight"
             }
           }
         }

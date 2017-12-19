@@ -85,7 +85,7 @@
             "signature": "int (*port_activate)(%tty.tty_port%, %tty.tty_struct%)"
           },
           "lookup": {
-            "signature": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, int idx)"
+            "signature": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, struct inode *inode, int idx)"
           },
           "install": {
             "signature": "int  (*install)(%tty.tty_driver%, %tty.tty_struct%)"

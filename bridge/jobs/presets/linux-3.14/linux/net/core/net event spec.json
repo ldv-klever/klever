@@ -27,7 +27,7 @@
               "}",
               "%size% += NETDEV_ALIGN - 1;",
               "%netdev% = kzalloc(%size%, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);",
-              "ldv_assume(%netdev%);"
+              "ldv_assume(%netdev% != 0);"
             ]
           },
           "success": {

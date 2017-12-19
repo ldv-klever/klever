@@ -70,6 +70,11 @@
     "environment processes": {
       "usb_serial_scenario": {
         "comment": "Invoke USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
