@@ -160,7 +160,14 @@ class NewMark:
         self.__is_not_used()
         changes = {}
         for mr in mark.markreport_set.all().select_related('report'):
-            changes[mr.report] = {'kind': '='}
+            if mr.report not in changes:
+                changes[mr.report] = {'kind': '=', 'problems': {}}
+        for mr in MarkUnknownReport.objects.filter(changes):
+            if mr.problem_id not in changes[mr.report]['problems']:
+                changes[mr.report]['problems'][mr.problem_id] = [0, 0]
+            changes[mr.report]['problems'][mr.problem_id][0] += 1
+            changes[mr.report]['problems'][mr.problem_id][1] += 1
+
         return changes
 
     def __create_version(self, mark):
@@ -182,8 +189,17 @@ class ConnectMark:
         self.__connect_unknown_mark()
 
     def __connect_unknown_mark(self):
-        for mark_unknown in self.mark.markreport_set.all():
-            self.changes[mark_unknown.report] = {'kind': '-'}
+        for mr in self.mark.markreport_set.all():
+            if mr.report not in self.changes:
+                self.changes[mr.report] = {'kind': '-', 'problems': {}}
+
+        for mr in MarkUnknownReport.objects.filter(report__in=self.changes):
+            if mr.problem_id not in self.changes[mr.report]['problems']:
+                self.changes[mr.report]['problems'][mr.problem_id] = [0, 0]
+            self.changes[mr.report]['problems'][mr.problem_id][0] += 1
+            if mr.mark_id != self.mark.id:
+                self.changes[mr.report]['problems'][mr.problem_id][1] += 1
+
         self.mark.markreport_set.all().delete()
         new_markreports = []
         problems = {}
@@ -213,7 +229,12 @@ class ConnectMark:
             if unknown in self.changes:
                 self.changes[unknown]['kind'] = '='
             else:
-                self.changes[unknown] = {'kind': '+'}
+                self.changes[unknown] = {'kind': '+', 'problems': {}}
+
+            if problems[problem].id not in self.changes[unknown]['problems']:
+                self.changes[unknown]['problems'][problems[problem].id] = [0, 0]
+            self.changes[unknown]['problems'][problems[problem].id][1] += 1
+
         MarkUnknownReport.objects.bulk_create(new_markreports)
         update_unknowns_cache(list(self.changes))
 

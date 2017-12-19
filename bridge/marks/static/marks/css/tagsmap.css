@@ -79,6 +79,9 @@
 .mark-tag.safe {
     background: linear-gradient(to top, #27ab5c, #2ce884);
 }
+.mark-tag.unknown {
+    background: linear-gradient(to top, #ea78eb, #ffa8ff);
+}
 
 .line {
     min-width: 30px;

@@ -621,6 +621,9 @@ class UnsafesTable:
 
 
 class UnknownsTable:
+    columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_set = set(columns_list)
+
     def __init__(self, user, report, view=None, view_id=None, page=1, component=None, problem=None, attr=None):
         self.user = user
         self.report = report
@@ -640,7 +643,7 @@ class UnknownsTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
+            if col not in self.columns_set:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -652,7 +655,7 @@ class UnknownsTable:
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+        for col in self.columns_list:
             if ':' in col:
                 col_title = get_column_title(col)
             else:
@@ -661,7 +664,7 @@ class UnknownsTable:
         return columns
 
     def __unknowns_data(self):
-        columns = ['component']
+        columns = ['number']
         columns.extend(self.view['columns'])
 
         data = {}
@@ -776,6 +779,7 @@ class UnknownsTable:
         if 'order' in self.view and self.view['order'][0] == 'up':
             report_ids = list(reversed(report_ids))
 
+        cnt = 1
         values_data = []
         for rep_id in report_ids:
             values_row = []
@@ -787,9 +791,11 @@ class UnknownsTable:
                     val = data[col][rep_id]
                     if not self.__filter_attr(col, val):
                         break
+                elif col == 'number':
+                    val = cnt
+                    href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'component':
                     val = reports[rep_id]['component']
-                    href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'problems':
@@ -807,6 +813,7 @@ class UnknownsTable:
                         val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
                 values_row.append({'value': val, 'href': href, 'html': is_html})
             else:
+                cnt += 1
                 values_data.append(values_row)
         return columns, values_data
 

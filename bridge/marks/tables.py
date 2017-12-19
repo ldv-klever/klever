@@ -33,7 +33,7 @@ from bridge.utils import unique_id, BridgeException
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
     MarkUnsafeCompare, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, ConvertedTraces, \
-    MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
+    MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike, UnknownProblem
 
 from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
@@ -58,6 +58,7 @@ MARK_TITLES = {
     'number': _('#'),
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
+    'problems': _("Problems"),
     'component': _('Component'),
     'pattern': _('Problem pattern'),
     'checkbox': '',
@@ -130,7 +131,10 @@ class MarkChangesTable:
                     'job': [report.root.job.id, report.root.job.name],
                     'format': report.root.job.format
                 }
-                if self.mark_type != 'unknown':
+                if self.mark_type == 'unknown':
+                    if 'problems' in self.changes[report]:
+                        values[report.id]['problems'] = self.changes[report]['problems']
+                else:
                     values[report.id]['old_verdict'] = self.changes[report].get('verdict1', report.verdict)
                     values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
                     if 'tags' in self.changes[report]:
@@ -830,6 +834,7 @@ class MarkReportsTable(object):
 class AssociationChangesTable:
     def __init__(self, user, association_id, view=None, view_id=None):
         self._data = self.__get_data(association_id)
+        self._problems_names = {}
         self.href = self._data['href']
 
         self.view = ViewData(user, self._data['type'], view=view, view_id=view_id)
@@ -875,7 +880,7 @@ class AssociationChangesTable:
         return columns
 
     def __supported_columns(self):
-        supported_columns = ['change_kind', 'job', 'format']
+        supported_columns = ['change_kind', 'job', 'format', 'problems']
         if self._data['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
             supported_columns.append('sum_verdict')
             supported_columns.append('tags')
@@ -918,6 +923,13 @@ class AssociationChangesTable:
             mark_type = 'unsafe'
         elif self.view['type'] == VIEW_TYPES[18][0]:
             mark_type = 'unknown'
+            problems_ids = []
+            for r_id in self._data['values']:
+                if 'problems' in self._data['values'][r_id]:
+                    for p_id in self._data['values'][r_id]['problems']:
+                        problems_ids.append(int(p_id))
+            for problem in UnknownProblem.objects.filter(id__in=problems_ids):
+                self._problems_names[problem.id] = problem.name
         else:
             return []
 
@@ -949,12 +961,26 @@ class AssociationChangesTable:
                 elif col == 'tags':
                     val = loader.get_template('marks/tagsChanges.html')\
                         .render({'tags': self._data['values'][report_id].get('tags'), 'type': mark_type})
+                elif col == 'problems':
+                    val = loader.get_template('marks/problemsChanges.html').render({
+                        'type': mark_type, 'problems': self.__get_problem_change(self._data['values'][report_id])
+                    })
                 elif col in self._data['values'][report_id]:
                     val = self._data['values'][report_id][col]
                 values_str.append({'value': str(val), 'color': color, 'href': href})
             else:
                 values.append(values_str)
         return values
+
+    def __get_problem_change(self, changes):
+        problems_change = []
+        if 'problems' in changes:
+            for p_id in changes['problems']:
+                if int(p_id) in self._problems_names:
+                    problems_change.append([
+                        self._problems_names[int(p_id)], changes['problems'][p_id][0], changes['problems'][p_id][1]
+                    ])
+        return sorted(problems_change)
 
     def __filter_row(self, r_id):
         if 'change_kind' in self.view and self._data['values'][r_id]['change_kind'] not in self.view['change_kind']:

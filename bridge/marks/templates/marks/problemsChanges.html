@@ -1,0 +1,22 @@
+{% load i18n %}
+
+{% if problems %}
+    {% for problem in problems %}
+        <p>
+            {% if problem.1 == 0 and problem.2 > 0 %}
+                <span class="mark-tag {{ type }}">{{ problem.0 }}</span>: <i class="ui green plus icon"></i>
+            {% elif problem.1 > 0 and problem.2 == 0 %}
+                <span class="mark-tag {{ type }}">{{ problem.0 }}</span>: <i class="ui red minus icon"></i>
+            {% elif problem.1 == problem.2 %}
+                <span class="mark-tag {{ type }}">{{ problem.0 }}</span>: <span class="ui mini label">{{ problem.1 }}</span>
+            {% else %}
+                <span class="mark-tag {{ type }}">{{ problem.0 }}</span>:
+                <span class="ui mini label">{{ problem.1 }}</span>
+                <i class="ui long arrow right {% if problem.1 < problem.2 %}green{% else %}red{% endif %} icon"></i>
+                <span class="ui mini label">{{ problem.2 }}</span>
+            {% endif %}
+        </p>
+    {% endfor %}
+{% else %}
+    -
+{% endif %}
