@@ -212,6 +212,8 @@ def _simplify_process(logger, conf, analysis, process):
                         true_declaration = true_declaration.replace('static', 'extern')
                     else:
                         true_declaration = 'extern ' + true_declaration
+                    if ';' not in true_declaration:
+                        true_declaration += ';'
                     true_declaration += '\n'
 
                     if true_declaration not in final_code['environment model']['declarations']:

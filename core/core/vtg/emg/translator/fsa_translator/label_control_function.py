@@ -38,9 +38,9 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             ret_expression = None
 
     # Initialize variables
+    f_code.extend(initialize_automaton_variables(conf, automaton))
     for var in automaton.variables(only_used=True):
         v_code.append(var.declare() + ';')
-    f_code.extend(initialize_automaton_variables(conf, automaton))
 
     main_v_code, main_f_code = __label_sequence(automaton, list(automaton.fsa.initial_states)[0], ret_expression)
     v_code.extend(main_v_code)

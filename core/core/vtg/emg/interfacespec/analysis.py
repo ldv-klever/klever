@@ -122,6 +122,8 @@ def __extract_types(collection, analysis):
                 collection.get_kernel_function(func).files_called_at. \
                     update(set(analysis['kernel functions'][func]["called at"]))
 
+            collection.get_kernel_function(func).true_declaration = analysis['kernel functions'][func]['signature']
+
     # Remove dirty declarations
     collection.refine_interfaces()
 
