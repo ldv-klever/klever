@@ -17,7 +17,7 @@
 import copy
 import re
 
-from core.vtg.emg.common import get_necessary_conf_property
+from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
 from core.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition, CallRetval
 from core.vtg.emg.common.interface import Interface, Callback, Container
 from core.vtg.emg.processmodel.entry import EntryProcessGenerator
@@ -45,6 +45,8 @@ class ProcessModel:
         self.event_processes = []
         self.entry_process = None
         self.entry = EntryProcessGenerator(self.logger, self.conf)
+        check_or_set_conf_property(self.conf, 'add missing activation signals', default_value=[], expected_type=list)
+        check_or_set_conf_property(self.conf, 'add missing deactivation signals', default_value=[], expected_type=list)
 
     def prepare_event_model(self, analysis, instance_maps):
         # Generate intermediate model
