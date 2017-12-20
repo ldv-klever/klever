@@ -766,8 +766,8 @@ class VTGW(core.components.Component):
         self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
     def join(self, timeout=None, stopped=False):
-        super(VTGW, self).join(timeout, stopped)
-        if not self.conf['keep intermediate files']:
+        if not self.conf['keep intermediate files'] and not self.is_alive():
             self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
                               format(self.verification_object['id'], self.rule_specification['id']))
             self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
+        return super(VTGW, self).join(timeout, stopped)
