@@ -76,15 +76,17 @@ def _simplify_process(logger, conf, analysis, process):
         if len(simpl_access) > 1:
             for number, access in enumerate(simpl_access):
                 declaration = label.get_declaration(access.interface.identifier)
-                value = process.get_implementation(access)
+                implementation = process.get_implementation(access)
+                value = None if not implementation else implementation.adjusted_value(declaration)
                 new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
                 label_map[label.name][access.interface.identifier] = new
         elif len(simpl_access) == 1:
             access = simpl_access[0]
             declaration = label.get_declaration(access.interface.identifier)
-            value = process.get_implementation(access)
             label.prior_signature = declaration
-            label.value = value
+            implementation = process.get_implementation(access)
+            if implementation:
+                label.value = implementation.adjusted_value(declaration)
             label_map[label.name][access.interface.identifier] = label
 
     # Then replace accesses in parameters with simplified expressions

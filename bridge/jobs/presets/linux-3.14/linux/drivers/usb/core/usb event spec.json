@@ -27,10 +27,6 @@
             "interface": [
               "usb.usb_driver"
             ]
-          },
-          "res": {
-            "signature": "int a",
-            "value": "ldv_undef_int()"
           }
         },
         "process": "<assign>.[register].<success> | <fail>",
@@ -107,10 +103,6 @@
             "interface": [
               "usb.usb_device"
             ]
-          },
-          "reset_flag": {
-            "signature": "bool a",
-            "value": "false"
           },
           "probe_retval": {
             "signature": "int a",

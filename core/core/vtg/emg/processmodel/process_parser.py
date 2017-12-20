@@ -17,7 +17,7 @@
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
     check_necessary_conf_property
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Process, Label, Receive, Dispatch, Call, CallRetval, \
+from core.vtg.emg.common.process import Process, Label, Receive, Dispatch, Call, CallRetval, Condition, \
     generate_regex_set
 
 
@@ -192,5 +192,33 @@ def __import_process(name, dic, conf, model_flag=False):
         # Import process
         if 'process' in dic['actions'][action_name]:
             process.actions[action_name].process = dic['actions'][action_name]['process']
+
+    used_labels = set()
+
+    def extract_labels(expr):
+        for m in process.label_re.finditer(expr):
+            used_labels.add(m.group(1))
+
+    for action in process.actions.values():
+        if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+            extract_labels(action.callback)
+        if isinstance(action, Call):
+            for param in action.parameters:
+                extract_labels(param)
+        if isinstance(action, Receive) or isinstance(action, Dispatch):
+            for param in action.parameters:
+                extract_labels(param)
+        if isinstance(action, CallRetval) and action.retlabel:
+            extract_labels(action.retlabel)
+        if isinstance(action, Condition):
+            for statement in action.statements:
+                extract_labels(statement)
+        if action.condition:
+            for statement in action.condition:
+                extract_labels(statement)
+
+    unused_labels = set(process.labels.keys()).difference(used_labels)
+    if len(unused_labels) > 0:
+        raise RuntimeError("Found unused labels in process {!r}: {}".format(process.name, ', '.join(unused_labels)))
 
     return process
