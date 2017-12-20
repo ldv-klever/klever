@@ -220,6 +220,9 @@ def _simplify_process(logger, conf, analysis, process):
                         final_code['environment model']['declarations'].append(true_declaration)
                 else:
                     logger.warning("There is no function or variable {!r} in module code".format(implementation.value))
+            else:
+                logger.warning("Skip import if an implementation {!r} and it is {}".
+                               format(implementation.value, 'static' if implementation.is_static else 'not static'))
 
     process.allowed_implementations = None
 

@@ -141,24 +141,45 @@ def __extract_types(collection, analysis):
                 modules_functions[func][path] = \
                     {'declaration': import_declaration(module_function["files"][path]["signature"]),
                      'original declaration': module_function["files"][path]["signature"]}
-
                 if "called at" in module_function["files"][path]:
                     modules_functions[func][path]["called at"] = \
                         set(module_function["files"][path]["called at"])
-                if "calls" in module_function["files"][path]:
-                    modules_functions[func][path]['calls'] = module_function["files"][path]['calls']
-                    for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
-                                            if name in collection.kernel_functions]:
-                        kf = collection.get_kernel_function(kernel_function)
-                        for call in module_function["files"][path]["calls"][kernel_function]:
-                            kf.add_call(func)
 
-                            for index in [index for index in range(len(call))
-                                          if call[index] and check_null(kf.declaration, call[index])]:
+        # Add implementations
+        for func in [name for name in sorted(analysis["modules functions"].keys())
+                     if 'files' in analysis["modules functions"][name]]:
+            module_function = analysis["modules functions"][func]
+            for path in (p for p in module_function["files"].keys() if "calls" in module_function["files"][p]):
+                modules_functions[func][path]['calls'] = module_function["files"][path]['calls']
+                for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
+                                        if name in collection.kernel_functions]:
+                    kf = collection.get_kernel_function(kernel_function)
+                    for call in module_function["files"][path]["calls"][kernel_function]:
+                        kf.add_call(func)
+
+                        for index in [index for index in range(len(call))
+                                      if call[index] and check_null(kf.declaration, call[index])]:
+
+                            name = collection.refined_name(call[index])
+                            if name in modules_functions:
+                                if path in modules_functions[name]:
+                                    origignal = modules_functions[name][path]['original declaration']
+                                else:
+                                    for cp in modules_functions[name]:
+                                        if modules_functions[name][cp]['declaration'].\
+                                                pointer_alias(kf.declaration.parameters[index]):
+                                            origignal = modules_functions[name][cp]['original declaration']
+                                            modules_functions[name][path] = modules_functions[name][cp]
+                                            break
+                            elif name in collection.kernel_functions:
+                                origignal = collection.get_kernel_function(name).true_declaration
+                            else:
+                                raise ValueError("Cannot find function {!r} in both kernel and module functiosn".
+                                                 format(name))
+
+                            if origignal:
                                 new = kf.declaration.parameters[index]. \
-                                    add_implementation(call[index], path, None, None, [],
-                                                       is_static(
-                                                           analysis['kernel functions'][kf.identifier]['signature']))
+                                    add_implementation(call[index], path, None, None, [], is_static(origignal))
                                 if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
                                     new.fixed_interface = kf.param_interfaces[index].identifier
 
