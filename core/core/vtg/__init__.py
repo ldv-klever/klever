@@ -536,7 +536,8 @@ class VTG(core.components.Component):
                             solved += 1
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
-                            (self.conf['keep intermediate files'] or solved == len(delete_ready[vobject])):
+                            (self.conf['keep intermediate files'] or
+                             (vobject in delete_ready and solved == len(delete_ready[vobject]))):
                         self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
@@ -766,8 +767,11 @@ class VTGW(core.components.Component):
         self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
     def join(self, timeout=None, stopped=False):
-        if not self.conf['keep intermediate files'] and not self.is_alive():
-            self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
-                              format(self.verification_object['id'], self.rule_specification['id']))
-            self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
-        return super(VTGW, self).join(timeout, stopped)
+        try:
+            ret = super(VTGW, self).join(timeout, stopped)
+        finally:
+            if not self.conf['keep intermediate files'] and not self.is_alive():
+                self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
+                                  format(self.verification_object['id'], self.rule_specification['id']))
+                self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
+        return ret
