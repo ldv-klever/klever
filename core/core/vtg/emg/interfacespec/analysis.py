@@ -104,92 +104,62 @@ def __extract_types(collection, analysis):
                 {'declaration': signature, 'original declaration': variable['declaration']}
         __import_entities(collection, analysis, entities)
 
-    if 'kernel functions' in analysis:
-        collection.logger.info("Import types from kernel functions")
-        for func in sorted(analysis['kernel functions'].keys()):
-            collection.logger.debug("Parse signature of function {}".format(func))
-            declaration = import_declaration(analysis['kernel functions'][func]['signature'])
+    if 'functions' in analysis:
+        collection.logger.info("Import source functions")
+        for func in analysis['functions']:
+            for path in analysis['functions'][func]:
+                description = analysis['kernel functions'][func]
+                declaration = import_declaration(description['signature'])
+                func_intf = collection.get_source_function(func)
+                if func_intf and func_intf.declaration.compare(declaration) and not description['static']:
+                    func_intf.declaration_files.add(func)
+                    func_intf.update_declaration(declaration)
+                else:
+                    func_intf = SourceFunction(func, analysis['kernel functions'][func]['signature'])
+                    func_intf.declaration_files.add(path)
+                    if not func_intf.raw_declaration:
+                        func_intf.raw_declaration = description['signature']
 
-            if func in collection.kernel_functions:
-                collection.get_kernel_function(func).update_declaration(declaration)
-            else:
-                new_intf = SourceFunction(func, analysis['kernel functions'][func]['signature'],
-                                          analysis['kernel functions'][func]['header'])
-                new_intf.declaration = declaration
-                collection.set_kernel_function(new_intf)
+                    if 'definition' in description and description['definition']:
+                        func_intf.definition_file = path
+                collection.set_source_function(func_intf, path)
 
-            if "called at" in analysis['kernel functions'][func]:
-                collection.get_kernel_function(func).files_called_at. \
-                    update(set(analysis['kernel functions'][func]["called at"]))
+        # Remove dirty declarations
+        collection.refine_interfaces()
 
-            collection.get_kernel_function(func).true_declaration = analysis['kernel functions'][func]['signature']
+        # Then add calls
+        for func in analysis['functions']:
+            for path in analysis['functions'][func]:
+                intf = collection.get_source_function(func, path)
+                description = analysis['kernel functions'][func]
+                if "called at" in description:
+                    for name in description["called at"]:
+                        intf.add_call(name, path)
+                if "calls" in description["calls"]:
+                    for name in description["calls"]:
+                        intf.calls(name, path)
+                        for call in description["calls"][name]:
+                            for index in [index for index in range(len(call))
+                                          if call[index] and check_null(intf.declaration, call[index])]:
 
-    # Remove dirty declarations
-    collection.refine_interfaces()
-
-    # Import modules functions
-    modules_functions = {}
-    # todo: refactoring of this is required. I would propse to introduce to use SourceFunction for these functions.
-    if 'modules functions' in analysis:
-        collection.logger.info("Import modules functions and implementations from kernel functions calls in it")
-        for func in [name for name in sorted(analysis["modules functions"].keys())
-                     if 'files' in analysis["modules functions"][name]]:
-            modules_functions[func] = {}
-            module_function = analysis["modules functions"][func]
-            for path in sorted(module_function["files"].keys()):
-                collection.logger.debug("Parse signature of function {} from file {}".format(func, path))
-                modules_functions[func][path] = \
-                    {'declaration': import_declaration(module_function["files"][path]["signature"]),
-                     'original declaration': module_function["files"][path]["signature"]}
-                if "called at" in module_function["files"][path]:
-                    modules_functions[func][path]["called at"] = \
-                        set(module_function["files"][path]["called at"])
-
-        # Add implementations
-        for func in [name for name in sorted(analysis["modules functions"].keys())
-                     if 'files' in analysis["modules functions"][name]]:
-            module_function = analysis["modules functions"][func]
-            for path in (p for p in module_function["files"].keys() if "calls" in module_function["files"][p]):
-                modules_functions[func][path]['calls'] = module_function["files"][path]['calls']
-                for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
-                                        if name in collection.kernel_functions]:
-                    kf = collection.get_kernel_function(kernel_function)
-                    for call in module_function["files"][path]["calls"][kernel_function]:
-                        kf.add_call(func)
-
-                        for index in [index for index in range(len(call))
-                                      if call[index] and check_null(kf.declaration, call[index])]:
-
-                            name = collection.refined_name(call[index])
-                            if name in modules_functions:
-                                if path in modules_functions[name]:
-                                    origignal = modules_functions[name][path]['original declaration']
+                                name = collection.refined_name(call[index])
+                                candidate = collection.source_functions(name, path)
+                                if candidate:
+                                    origignal = candidate.raw_declaration
                                 else:
-                                    for cp in modules_functions[name]:
-                                        if modules_functions[name][cp]['declaration'].\
-                                                pointer_alias(kf.declaration.parameters[index]):
-                                            origignal = modules_functions[name][cp]['original declaration']
-                                            modules_functions[name][path] = modules_functions[name][cp]
-                                            break
-                            elif name in collection.kernel_functions:
-                                origignal = collection.get_kernel_function(name).true_declaration
-                            else:
-                                raise ValueError("Cannot find function {!r} in both kernel and module functiosn".
-                                                 format(name))
-
-                            if origignal:
-                                new = kf.declaration.parameters[index]. \
-                                    add_implementation(call[index], path, None, None, [], is_static(origignal))
-                                if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
-                                    new.fixed_interface = kf.param_interfaces[index].identifier
+                                    raise ValueError("Cannot find function {!r} in both kernel and module functiosn".
+                                                     format(name))
+                                new = candidate.declaration.parameters[index]. \
+                                        add_implementation(call[index], path, None, None, [], is_static(origignal))
+                                if len(intf.param_interfaces) > index and intf.param_interfaces[index]:
+                                    new.fixed_interface = intf.param_interfaces[index].identifier
+    else:
+        collection.logger.warning("There is no any functions in source analysis")
 
     collection.logger.info("Remove kernel functions which are not called at driver functions")
-    for func in collection.kernel_functions:
-        if func in modules_functions or func not in analysis['kernel functions']:
+    for func in collection.source_functions:
+        if func not in analysis['functions']:
             collection.remove_kernel_function(func)
-
-    # todo: refactoring is required
-    collection._modules_functions = modules_functions
 
 
 def __import_entities(collection, analysis, entities):

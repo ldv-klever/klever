@@ -52,7 +52,6 @@ class InterfaceCategoriesSpecification:
         import_interface_specification(self, spec)
 
         self.logger.info("Import results of source code analysis")
-        import_code_analysis(self, avt, analysis_data)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
         yield_categories(self, self._conf)
@@ -159,41 +158,34 @@ class InterfaceCategoriesSpecification:
         """
         Provides function by a given name from the collection.
 
-        :param name: Kernel function name.
+        :param name: Source function name.
         :param path: Scope of the function.
         :return: SourceFunction object.
         """
-        if path:
-            return self._source_functions[name][path]
-        else:
-            return self._source_functions[name].values()[0]
+        if name and name in self._source_functions:
+            if path and path in self._source_functions[name]:
+                return self._source_functions[name][path]
+            elif not path and len(self._source_functions[name]) > 0:
+                return self._source_functions[name].values()[0]
+        return None
 
-    def set_kernel_function(self, new_obj, path):
+    def set_source_function(self, new_obj, path):
         """
         Replace an object in kernel function collection.
 
         :param new_obj: Kernel function object.
         :return: KernelFunction object.
         """
-        self._kernel_functions[new_obj.identifier][path] = new_obj
+        self._source_functions[new_obj.identifier][path] = new_obj
 
-    def remove_kernel_function(self, name):
+    def remove_source_function(self, name):
         """
         Del kernel function from the collection.
 
         :param name: Kernel function name.
         :return: KernelFunction object.
         """
-        del self._kernel_functions[name]
-
-    def get_modules_function_files(self, name):
-        """
-        Returns sorted list of modules files where a function with a provided name is implemented.
-
-        :param name: Function name string.
-        :return: List with file names.
-        """
-        return sorted(self._modules_functions[name].keys())
+        del self._source_functions[name]
 
     def is_removed_intf(self, identifier):
         """

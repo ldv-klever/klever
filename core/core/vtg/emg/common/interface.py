@@ -23,7 +23,6 @@ class Interface:
         self.category = category
         self.short_identifier = identifier
         self.identifier = "{}.{}".format(category, identifier)
-        self.manually_specified = manually_specified
         self.declaration = None
         self.header = None
 
@@ -112,17 +111,24 @@ class SourceFunction(FunctionInterface):
     def __init__(self, identifier, raw_declaration):
         super(SourceFunction, self).__init__(None, identifier, False)
         self.identifier = identifier
-        self.calls = set()
-        self.called_at = set()
+        self.calls = dict()
+        self.called_at = dict()
         self.declaration_files = set()
+        self.definition_file = None
         self.raw_declaration = raw_declaration
 
     @property
     def files_called_at(self):
         raise NotImplementedError
 
-    def add_call(self, caller, scope):
-        if caller not in self.functions_called_at:
-            self.functions_called_at[caller] = 1
+    def calls(self, func, path):
+        if path not in self.calls:
+            self.calls[path] = {func}
         else:
-            self.functions_called_at[caller] += 1
+            self.calls[path].add(func)
+
+    def add_call(self, func, path):
+        if path not in self.called_at:
+            self.called_at[path] = {func}
+        else:
+            self.called_at[path].add(func)
