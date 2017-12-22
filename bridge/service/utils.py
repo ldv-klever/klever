@@ -229,8 +229,14 @@ class FinishJobDecision:
         if status not in set(x[0] for x in JOB_STATUS):
             raise ValueError('Unsupported status: %s' % status)
         if status == JOB_STATUS[3][0]:
-            if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0:
-                self.error = 'There are unfinished reports'
+            unfinished_reports = list(identifier for identifier, in ReportComponent.objects.filter(
+                root=self.progress.job.reportroot, finish_date=None
+            ).values_list('identifier'))
+            if len(unfinished_reports) > 0:
+                self.error = 'There are unfinished reports (%s): %s' % (len(unfinished_reports), unfinished_reports)
+                logger.error(self.error)
+                if len(self.error) > 1024:
+                    self.error = 'There are unfinished reports (%s)' % len(unfinished_reports)
                 return JOB_STATUS[5][0]
             try:
                 core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)

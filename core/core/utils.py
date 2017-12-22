@@ -456,12 +456,12 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
-    logger.debug('{0} going to modify report id')
+    logger.debug('{0} going to modify report id'.format(kind.capitalize()))
     with report_id.get_lock():
         cur_report_id = report_id.value
         report_id.value += 1
 
-    logger.debug('{0} prepare file archive')
+    logger.debug('{0} prepare file archive'.format(kind.capitalize()))
     archives = []
     process_queue = [report_data]
     while process_queue:
