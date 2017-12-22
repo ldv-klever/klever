@@ -131,7 +131,7 @@ class ProcessModel:
 
     def __import_kernel_models(self, analysis):
         for func in sorted(list(self.__abstr_model_processes.keys())):
-            if func in analysis.kernel_functions:
+            if func in analysis.source_functions:
                 function_obj = analysis.get_kernel_function(func)
                 if len(function_obj.functions_called_at) > 0:
                     self.logger.debug("Add model of function '{}' to an environment model".format(func))

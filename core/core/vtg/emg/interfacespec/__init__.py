@@ -40,19 +40,13 @@ class InterfaceCategoriesSpecification:
         self._inits = collections.OrderedDict()
         self._exits = collections.OrderedDict()
         self._interfaces = dict()
-        self._kernel_functions = dict()
-        self._modules_functions = dict()
+        self._source_functions = dict()
         self._global_variables = dict()
         self._interface_cache = dict()
         self._implementations_cache = dict()
         self._containers_cache = dict()
         self.__deleted_interfaces = dict()
         self.__function_calls_cache = dict()
-        self.__kernel_function_calls_cache = dict()
-
-        # todo: support
-        self._kernel_macro_functions = dict()
-        self._kernel_macros = dict()
 
         self.logger.info("Analyze provided interface categories specification")
         import_interface_specification(self, spec)
@@ -82,22 +76,13 @@ class InterfaceCategoriesSpecification:
         return sorted(self._interfaces.keys())
 
     @property
-    def kernel_functions(self):
+    def source_functions(self):
         """
         Return sorted list of kernel function names.
 
         :return: KernelFunction identifiers list.
         """
-        return sorted(self._kernel_functions.keys())
-
-    @property
-    def modules_functions(self):
-        """
-        Return sorted list of modules functions names.
-
-        :return: List of function name strings.
-        """
-        return sorted(self._modules_functions.keys())
+        return sorted(self._source_functions.keys())
 
     @property
     def categories(self):
@@ -170,23 +155,27 @@ class InterfaceCategoriesSpecification:
         """
         self._interfaces[new_obj.identifier] = new_obj
 
-    def get_kernel_function(self, name):
+    def get_source_function(self, name, path=None):
         """
-        Provides kernel function by a given name from the collection.
+        Provides function by a given name from the collection.
 
         :param name: Kernel function name.
-        :return: KernelFunction object.
+        :param path: Scope of the function.
+        :return: SourceFunction object.
         """
-        return self._kernel_functions[name]
+        if path:
+            return self._source_functions[name][path]
+        else:
+            return self._source_functions[name].values()[0]
 
-    def set_kernel_function(self, new_obj):
+    def set_kernel_function(self, new_obj, path):
         """
         Replace an object in kernel function collection.
 
         :param new_obj: Kernel function object.
         :return: KernelFunction object.
         """
-        self._kernel_functions[new_obj.identifier] = new_obj
+        self._kernel_functions[new_obj.identifier][path] = new_obj
 
     def remove_kernel_function(self, name):
         """

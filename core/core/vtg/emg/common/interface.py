@@ -109,19 +109,19 @@ class Callback(FunctionInterface):
 
 class SourceFunction(FunctionInterface):
 
-    def __init__(self, identifier, true_declaration, header):
+    def __init__(self, identifier, raw_declaration):
         super(SourceFunction, self).__init__(None, identifier, False)
-        self.functions_called_at = {}
-        self.files_called_at = set()
-        self.true_declaration = true_declaration
-
         self.identifier = identifier
-        if type(header) is list:
-            self.header = header
-        else:
-            self.header = [header]
+        self.calls = set()
+        self.called_at = set()
+        self.declaration_files = set()
+        self.raw_declaration = raw_declaration
 
-    def add_call(self, caller):
+    @property
+    def files_called_at(self):
+        raise NotImplementedError
+
+    def add_call(self, caller, scope):
         if caller not in self.functions_called_at:
             self.functions_called_at[caller] = 1
         else:

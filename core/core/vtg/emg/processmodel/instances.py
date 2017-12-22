@@ -200,10 +200,9 @@ def _simplify_process(logger, conf, analysis, process):
                                                                        original=True)
                 if not true_declaration:
                     # Seems that it is a funciton
-                    true_declaration = analysis.get_modules_func_declaration(implementation.value, implementation.file,
-                                                                             original=True)
-                if not true_declaration:
-                    true_declaration = analysis.get_kernel_func_declaration(implementation.value, original=True)
+                    sf = analysis.get_source_function(implementation.value, implementation.file)
+                    if sf:
+                        true_declaration = sf.raw_declaration
 
                 # Check
                 if true_declaration:

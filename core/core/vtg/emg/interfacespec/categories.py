@@ -265,7 +265,7 @@ def __complement_interfaces(collection):
         fulfill_function_interfaces(collection, callback, callback.category)
 
     # Resolve kernel function parameters
-    for function in (collection.get_kernel_function(name) for name in collection.kernel_functions):
+    for function in (collection.get_source_function(name, None) for name in collection.source_functions):
         fulfill_function_interfaces(collection, function)
 
     # Refine dirty declarations
