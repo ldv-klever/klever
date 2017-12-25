@@ -165,8 +165,24 @@ class InterfaceCategoriesSpecification:
         if name and name in self._source_functions:
             if path and path in self._source_functions[name]:
                 return self._source_functions[name][path]
-            elif not path and len(self._source_functions[name]) > 0:
+            elif not path and len(self._source_functions[name]) == 1:
                 return self._source_functions[name].values()[0]
+        return None
+
+    def get_source_functions(self, name):
+        """
+        Provides all functions by a given name from the collection.
+
+        :param name: Source function name.
+        :param path: Scope of the function.
+        :return: Pairs with the path and SourceFunction object.
+        """
+        if name and name in self._source_functions:
+            result = []
+            for func in self._source_functions[name].values():
+                if func not in result:
+                    result.append(func)
+            return result
         return None
 
     def set_source_function(self, new_obj, path):
@@ -234,15 +250,15 @@ class InterfaceCategoriesSpecification:
         self.__deleted_interfaces[identifier] = self._interfaces[identifier]
         del self._interfaces[identifier]
 
-    def collect_relevant_models(self, function):
+    def collect_relevant_models(self, func):
         """
         Collects all kernel functions which can be called in a callstack of a provided module function.
 
-        :param function: Module function name string.
+        :param func: Module function name string.
         :return: List with kernel functions name strings.
         """
-        self.logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
-        if function not in self.__kernel_function_calls_cache:
+        self.logger.debug("Collect relevant functions called in a call stack of callback '{}'".format(func))
+        if func not in self.__function_calls_cache:
             level_counter = 0
             max_level = None
 
@@ -251,7 +267,7 @@ class InterfaceCategoriesSpecification:
 
             # Simple BFS with deep counting from the given function
             relevant = set()
-            level_functions = {function}
+            level_functions = {func}
             processed = set()
             while len(level_functions) > 0 and (not max_level or level_counter < max_level):
                 next_level = set()
@@ -265,10 +281,10 @@ class InterfaceCategoriesSpecification:
                 level_functions = next_level
                 level_counter += 1
 
-            self.__kernel_function_calls_cache[function] = relevant
+            self.__function_calls_cache[func] = relevant
         else:
             self.logger.debug('Cache hit')
-            relevant = self.__kernel_function_calls_cache[function]
+            relevant = self.__function_calls_cache[func]
 
         return sorted(relevant)
 
@@ -282,33 +298,32 @@ class InterfaceCategoriesSpecification:
                  {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
         """
         matches = []
-        for func in self.kernel_functions:
-            function_obj = self.get_kernel_function(func)
-            if len(function_obj.functions_called_at) > 0:
-                match = {
-                    "function": function_obj,
-                    "parameters": []
-                }
-                if len(parameter_interfaces) > 0:
-                    # Match parameters
-                    params = []
-                    suits = 0
-                    for index in range(len(parameter_interfaces)):
-                        found = 0
-                        for param in (p for p in function_obj.param_interfaces[index:] if p):
-                            for option in parameter_interfaces[index]:
-                                if option.identifier == param.identifier:
-                                    found = param
+        for func in self.source_functions:
+            for function_obj in self.get_source_functions(func):
+                if len(function_obj.called_at) > 0:
+                    match = {
+                        "function": function_obj,
+                        "parameters": []
+                    }
+                    if len(parameter_interfaces) > 0:
+                        # Match parameters
+                        params = []
+                        suits = 0
+                        for index in range(len(parameter_interfaces)):
+                            found = 0
+                            for param in (p for p in function_obj.param_interfaces[index:] if p):
+                                for option in parameter_interfaces[index]:
+                                    if option.identifier == param.identifier:
+                                        found = param
+                                        break
+                                if found:
                                     break
                             if found:
-                                break
-                        if found:
-                            suits += 1
-                            params.append(found)
-                    if suits == len(parameter_interfaces):
-                        match["parameters"] = params
-                        matches.append(match)
-
+                                suits += 1
+                                params.append(found)
+                        if suits == len(parameter_interfaces):
+                            match["parameters"] = params
+                            matches.append(match)
         return matches
 
     @staticmethod
@@ -665,10 +680,6 @@ class InterfaceCategoriesSpecification:
 
         return
 
-    ####################################################################################################################
-    # PRIVATE METHODS
-    ####################################################################################################################
-
     def __resolve_containers(self, target, category):
         self.logger.debug("Calculate containers for signature '{}'".format(target.identifier))
 
@@ -676,26 +687,36 @@ class InterfaceCategoriesSpecification:
                 if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
                 (type(container.declaration) is Array and container.contains(target))}
 
-    def __functions_called_in(self, function, processed):
-        kfs = set()
-        mfs = set()
-        processed.add(function)
+    def __functions_called_in(self, path, name):
+        if not (path in self.__function_calls_cache and name in self.__function_calls_cache[path]):
+            fs = dict()
+            processing = [[path, name]]
+            processed = dict()
+            while len(processing) > 0:
+                p, n = processing.pop()
+                func = self.get_source_function(n, p)
+                if func:
+                    for cp in func.calls:
+                        for called in (f for f in func.calls[cp] if not (cp in processed and f in processed[cp])):
+                            if cp in self.__function_calls_cache and called in self.__function_calls_cache[cp]:
+                                for ccp in self.__function_calls_cache[cp][called]:
+                                    if ccp not in fs:
+                                        fs[ccp] = self.__function_calls_cache[cp][called][ccp]
+                                    else:
+                                        fs[ccp].update(self.__function_calls_cache[cp][called][ccp])
+                                    processed[ccp].update(self.__function_calls_cache[cp][called][ccp])
+                            else:
+                                processing.append([cp, called])
+                            if cp not in processed:
+                                processed[cp] = {called}
+                            else:
+                                processed[cp].add(called)
 
-        if function in self._modules_functions:
-            self.logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
-            if function in self.__function_calls_cache:
-                self.logger.debug("Cache hit")
-                return self.__function_calls_cache[function]
-            else:
-                for file in sorted(self._modules_functions[function].keys()):
-                    for called in self._modules_functions[function][file]['calls']:
-                        if called in self._modules_functions and called not in processed:
-                            mfs.add(called)
-                        elif called in self.kernel_functions:
-                            kfs.add(called)
+                            fs[cp].add(called)
 
-                self.__function_calls_cache[function] = [kfs, mfs]
-        return kfs, mfs
+            self.__function_calls_cache[path][name] = fs
+
+        return self.__function_calls_cache[path][name]
 
     def __refine_categories(self):
         def __check_category_relevance(function):
