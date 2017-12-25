@@ -1,6 +1,5 @@
 {
   "client": {
-    "benchexec location": "/abs/path/to/benchexec/",
     "Klever Core path": "/abs/path/to/klever-core",
     "cif location": "/abs/path/to/cif/bin/",
     "cil location": "/abs/path/to/cil/obj/x86_LINUX",
