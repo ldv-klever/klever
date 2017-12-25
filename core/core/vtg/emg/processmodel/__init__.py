@@ -38,8 +38,8 @@ class ProcessModel:
             self.__roles_map = roles_map["roles map"]
         if "functions map" in roles_map:
             self.__functions_map = roles_map["functions map"]
-            for type in self.__functions_map:
-                self.__functions_map[type] = [re.compile(pattern) for pattern in self.__functions_map[type]]
+            for tp in self.__functions_map:
+                self.__functions_map[tp] = [re.compile(pattern) for pattern in self.__functions_map[tp]]
 
         self.model_processes = []
         self.event_processes = []
@@ -110,7 +110,7 @@ class ProcessModel:
                 self.logger.info("Check again how many callbacks are not called still in category {}".format(category))
                 uncalled_callbacks = analysis.uncalled_callbacks(category)
                 if uncalled_callbacks and not ('ignore missed callbacks' in self.conf and
-                                                   self.conf['ignore missed callbacks']):
+                                               self.conf['ignore missed callbacks']):
                     names = str([callback.identifier for callback in uncalled_callbacks])
                     raise RuntimeError("There are callbacks from category {} which are not called at all in the "
                                        "model: {}".format(category, names))
@@ -132,8 +132,8 @@ class ProcessModel:
     def __import_kernel_models(self, analysis):
         for func in sorted(list(self.__abstr_model_processes.keys())):
             if func in analysis.source_functions:
-                function_obj = analysis.get_kernel_function(func)
-                if len(function_obj.functions_called_at) > 0:
+                function_obj = analysis.get_source_function(func)
+                if function_obj and len(function_obj.declaration_files) > 0:
                     self.logger.debug("Add model of function '{}' to an environment model".format(func))
                     new_process = self.__add_process(analysis, self.__abstr_model_processes[func], model=True)
                     new_process.category = "kernel models"
@@ -209,8 +209,8 @@ class ProcessModel:
                                     len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                         do = True
                     elif len(label_map["matched calls"]) >= len(best_map["matched calls"]) and \
-                                    len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
-                                    len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
+                            len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
                         do = True
                     elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
                         do = True
@@ -233,7 +233,8 @@ class ProcessModel:
                               format(best_process.name, category))
             return new
 
-    def __assign_label_interface(self, label, interface):
+    @staticmethod
+    def __assign_label_interface(label, interface):
         if isinstance(interface, Container):
             label.set_declaration(interface.identifier, interface.declaration.take_pointer)
         else:
@@ -262,7 +263,7 @@ class ProcessModel:
                 if tag in comments_by_type and isinstance(comments_by_type[tag], str):
                     action.comment = comments_by_type[tag]
                 elif tag in comments_by_type and isinstance(comments_by_type[tag], dict) and \
-                                action.name in comments_by_type[tag]:
+                        action.name in comments_by_type[tag]:
                     action.comment = comments_by_type[tag][action.name]
                 elif not isinstance(action, Call):
                     raise KeyError(
@@ -270,7 +271,7 @@ class ProcessModel:
                         "shoud either specify in the corresponding environment model specification the comment "
                         "text manually or set the default comment text for all actions of the type {2!r} at EMG "
                         "plugin configuration properties within 'action comments' attribute.".
-                            format(action.name, new.name, tag))
+                        format(action.name, new.name, tag))
 
             # Add callback comment
             if isinstance(action, Call):
@@ -378,7 +379,7 @@ class ProcessModel:
 
         if label.name not in label_map["matched labels"]:
             self.logger.debug("Match label '{}' with interface '{}'".format(label.name, interface))
-            label_map["matched labels"][label.name] = set([interface])
+            label_map["matched labels"][label.name] = {interface}
         else:
             label_map["matched labels"][label.name].add(interface)
 
@@ -427,13 +428,13 @@ class ProcessModel:
                 # Try to match container
                 if len(label.interfaces) > 0 and label.name not in label_map["matched labels"]:
                     for interface in (interface for interface in label.interfaces if interface in analysis.interfaces or
-                            analysis.is_removed_intf(interface)):
+                                      analysis.is_removed_intf(interface)):
                         interface_obj = analysis.get_intf(interface)
 
                         if interface_obj.category == category:
                             self.__add_label_match(analysis, label_map, label, interface)
                 elif len(label.interfaces) == 0 and not label.prior_signature and tail and label.container and \
-                                label.name not in label_map["matched labels"]:
+                        label.name not in label_map["matched labels"]:
                     for container in analysis.containers(category):
                         interfaces = self.__resolve_interface(analysis, container, tail, process, action)
                         if interfaces:
@@ -460,7 +461,7 @@ class ProcessModel:
                     analysis.get_or_restore_intf(intf)
 
                 # Match parameters
-                for function in functions:
+                for func in functions:
                     labels = []
                     pre_matched = set()
                     for index in range(len(action.parameters)):
@@ -474,7 +475,7 @@ class ProcessModel:
 
                         labels.append([p_label, p_tail])
 
-                    f_intfs = [pr for pr in function.param_interfaces if pr]
+                    f_intfs = [pr for pr in func.param_interfaces if pr]
                     for pr in range(len(f_intfs)):
                         matched = set([label[0] for label in labels
                                        if label[0].name in label_map['matched labels'] and
@@ -503,8 +504,8 @@ class ProcessModel:
                                                sorted(label_map["matched labels"][container.name])]:
                             for f_intf in [intf for intf in container_intf.field_interfaces.values()
                                            if isinstance(intf, Callback) and not intf.called and
-                                                           intf.identifier not in label_map['matched callbacks'] and
-                                                           intf.identifier in analysis.interfaces]:
+                                           intf.identifier not in label_map['matched callbacks'] and
+                                           intf.identifier in analysis.interfaces]:
                                 self.__add_label_match(analysis, label_map, callback, f_intf.identifier)
             if len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
@@ -537,7 +538,7 @@ class ProcessModel:
                         if action.callback not in label_map["matched calls"]:
                             label_map["matched calls"].append(action.callback)
                 elif label.container and tail and label.name not in label_map["matched labels"] and \
-                                action.callback not in label_map["unmatched callbacks"]:
+                        action.callback not in label_map["unmatched callbacks"]:
                     label_map["unmatched callbacks"].append(action.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in sorted(label_map["matched labels"][label.name]):
@@ -567,8 +568,7 @@ class ProcessModel:
                         # Discard general callbacks match
                         for callback_label in [process.labels[name].name for name in sorted(process.labels.keys())
                                                if process.labels[name].callback and
-                                                               process.labels[name].name in label_map[
-                                                           "matched labels"]]:
+                                               process.labels[name].name in label_map["matched labels"]]:
                             if intfs[-1].identifier in label_map["matched labels"][callback_label]:
                                 label_map["matched labels"][callback_label].remove(intfs[-1].identifier)
 
@@ -626,16 +626,12 @@ class ProcessModel:
         if len(process.unmatched_receives) > 0:
             for receive in (r for r in process.unmatched_receives
                             if r.name in get_necessary_conf_property(self.conf, 'add missing activation signals') or
-                               r.name in get_necessary_conf_property(self.conf, 'add missing deactivation signals')):
+                            r.name in get_necessary_conf_property(self.conf, 'add missing deactivation signals')):
                 self.logger.info("Generate default (de)registration for process {} with category {}".
                                  format(process.name, process.category))
                 success = self.__predict_dispatcher(analysis, process, receive)
                 if not success:
                     self.entry.add_default_dispatch(process, receive)
-                else:
-                    self.logger.warning("Signal {} cannot be received by process {} with category {}, "
-                                        "since nobody can send it".
-                                        format(receive.name, process.name, process.category))
         for dispatch in process.unmatched_dispatches:
             self.logger.warning("Signal {} cannot be send by process {} with category {}, "
                                 "since nobody can receive it".format(dispatch.name, process.name, process.category))
@@ -771,7 +767,7 @@ class ProcessModel:
 
             # Math using an interface role
             if process and action and isinstance(action, Call) and len(intf) == 0 and self.__roles_map and \
-                            field in self.__roles_map:
+                    field in self.__roles_map:
                 intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
                         isinstance(matched[-1].field_interfaces[name], Callback)]
@@ -799,10 +795,10 @@ class ProcessModel:
                     new_intf = []
                     for interface in intf:
                         suits = 0
-                        for index in range(len((param_match))):
+                        for indx in range(len(param_match)):
                             found = 0
-                            for param in interface.declaration.points.parameters[index:]:
-                                for option in param_match[index]:
+                            for param in interface.declaration.points.parameters[indx:]:
+                                for option in param_match[indx]:
                                     if option.compare(param):
                                         found += 1
                                         break
@@ -881,8 +877,9 @@ class ProcessModel:
                                         if index == 0:
                                             list_access.append(label.name)
                                         else:
-                                            field = list(intfs[index - 1].field_interfaces.keys()) \
-                                                [list(intfs[index - 1].field_interfaces.values()).index(intfs[index])]
+                                            field = list(intfs[index - 1].field_interfaces.keys()
+                                                         )[list(intfs[index - 1].field_interfaces.values()).
+                                                           index(intfs[index])]
                                             list_access.append(field)
                                     new.interface = intfs[-1]
                                     new.list_access = list_access
@@ -925,4 +922,3 @@ class ProcessModel:
 
             # Save back updates collection of accesses
             process.accesses(accesses)
-

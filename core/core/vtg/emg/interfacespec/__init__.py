@@ -52,6 +52,7 @@ class InterfaceCategoriesSpecification:
         import_interface_specification(self, spec)
 
         self.logger.info("Import results of source code analysis")
+        import_code_analysis(self, avt, analysis_data)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
         yield_categories(self, self._conf)
@@ -165,8 +166,10 @@ class InterfaceCategoriesSpecification:
         if name and name in self._source_functions:
             if path and path in self._source_functions[name]:
                 return self._source_functions[name][path]
-            elif not path and len(self._source_functions[name]) == 1:
-                return self._source_functions[name].values()[0]
+            else:
+                functions = self.get_source_functions(name)
+                if len(functions) == 1:
+                    return functions[0]
         return None
 
     def get_source_functions(self, name):
@@ -174,24 +177,25 @@ class InterfaceCategoriesSpecification:
         Provides all functions by a given name from the collection.
 
         :param name: Source function name.
-        :param path: Scope of the function.
         :return: Pairs with the path and SourceFunction object.
         """
+        result = []
         if name and name in self._source_functions:
-            result = []
             for func in self._source_functions[name].values():
                 if func not in result:
                     result.append(func)
-            return result
-        return None
+        return result
 
     def set_source_function(self, new_obj, path):
         """
         Replace an object in kernel function collection.
 
         :param new_obj: Kernel function object.
+        :param new_obj: Kernel function object.
         :return: KernelFunction object.
         """
+        if new_obj.identifier not in self._source_functions:
+            self._source_functions[new_obj.identifier] = dict()
         self._source_functions[new_obj.identifier][path] = new_obj
 
     def remove_source_function(self, name):
@@ -341,60 +345,6 @@ class InterfaceCategoriesSpecification:
         else:
             return None
 
-    def get_global_var_declaration(self, name, file, original=False):
-        """
-        Return declaration as a string or object for given global variable name.
-
-        :param name: String.
-        :param file: File name.
-        :param original: If true returns string of an original declaration.
-        :return: None or Str or Signature.
-        """
-        tn = self.refined_name(name)
-        if tn and tn in self._global_variables and file in self._global_variables[tn]:
-            if original:
-                return self._global_variables[tn][file]['original declaration']
-            else:
-                return self._global_variables[tn][file]['declaration']
-        else:
-            return None
-
-    def get_modules_func_declaration(self, name, file, original=False):
-        """
-        Return declaration as a string or object for given function name.
-
-        :param name: String.
-        :param file: File name.
-        :param original: If true returns string of an original declaration.
-        :return: None or Str or Signature.
-        """
-        tn = self.refined_name(name)
-        if tn and tn in self._modules_functions and file in self._modules_functions[tn]:
-            if original:
-                return self._modules_functions[tn][file]['original declaration']
-            else:
-                return self._modules_functions[tn][file]['declaration']
-        else:
-            return None
-
-    def get_kernel_func_declaration(self, name, original=False):
-        """
-        Return declaration as a string or object for given function name.
-
-        :param name: String.
-        :param file: File name.
-        :param original: If true returns string of an original declaration.
-        :return: None or Str or Signature.
-        """
-        tn = self.refined_name(name)
-        if tn and tn in self._kernel_functions:
-            if original:
-                return self._kernel_functions[tn].true_declaration
-            else:
-                return self._kernel_functions[tn].declaration
-        else:
-            return None
-
     def save_to_file(self, file):
         raise NotImplementedError
         # todo: export specification (issue 6561)
@@ -403,19 +353,6 @@ class InterfaceCategoriesSpecification:
         #
         # with open(file, "w", encoding="utf8") as fh:
         #    fh.write(content)
-
-    def determine_original_file(self, label_value):
-        """
-        Try to resolve by a given name from a global scope a module file in which the value is introduced.
-
-        :param label_value: String expression like '& myfunc'.
-        :return: File name.
-        """
-        label_name = self.refined_name(label_value)
-        if label_name and label_name in self._modules_functions:
-            # todo: if several files exist?
-            return list(self._modules_functions[label_name])[0]
-        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
 
     def containers(self, category=None):
         """
@@ -660,8 +597,11 @@ class InterfaceCategoriesSpecification:
             clean_flag = False
 
             # Refine ordinary interfaces
-            for interface in [self.get_intf(name) for name in self.interfaces] + \
-                             [self.get_kernel_function(name) for name in self.kernel_functions]:
+            kernel_interfaces = []
+            for name in self.source_functions:
+                functions = self.get_source_functions(name)
+                kernel_interfaces.extend(functions)
+            for interface in [self.get_intf(name) for name in self.interfaces] + kernel_interfaces:
                 if not interface.declaration.clean_declaration:
                     refined = refine_declaration(self._interfaces, interface.declaration)
 
@@ -737,8 +677,8 @@ class InterfaceCategoriesSpecification:
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
         # Add kernel function relevant interfaces
-        for name in self.kernel_functions:
-            intfs = __check_category_relevance(self.get_kernel_function(name))
+        for name in self.source_functions:
+            intfs = __check_category_relevance(self.get_source_function(name))
             # Skip resources from kernel functions
             relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
 

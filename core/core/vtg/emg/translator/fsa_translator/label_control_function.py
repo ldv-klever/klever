@@ -33,7 +33,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
     if model:
         # todo: it is replacable with simple code analysis
-        kfunction_obj = analysis.get_kernel_function(automaton.process.name)
+        kfunction_obj = analysis.get_source_function(automaton.process.name)
         if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
             ret_expression = None
 

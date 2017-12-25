@@ -108,14 +108,14 @@ def __extract_types(collection, analysis):
         collection.logger.info("Import source functions")
         for func in analysis['functions']:
             for path in analysis['functions'][func]:
-                description = analysis['kernel functions'][func]
+                description = analysis['functions'][func]
                 declaration = import_declaration(description['signature'])
                 func_intf = collection.get_source_function(func)
                 if func_intf and func_intf.declaration.compare(declaration) and not description['static']:
                     func_intf.declaration_files.add(func)
                     func_intf.update_declaration(declaration)
                 else:
-                    func_intf = SourceFunction(func, analysis['kernel functions'][func]['signature'])
+                    func_intf = SourceFunction(func, analysis['functions'][func]['signature'])
                     func_intf.declaration_files.add(path)
                     if not func_intf.raw_declaration:
                         func_intf.raw_declaration = description['signature']
@@ -131,7 +131,7 @@ def __extract_types(collection, analysis):
         for func in analysis['functions']:
             for path in analysis['functions'][func]:
                 intf = collection.get_source_function(func, path)
-                description = analysis['kernel functions'][func]
+                description = analysis['functions'][func]
                 if "called at" in description:
                     for name in description["called at"]:
                         intf.add_call(name, path)
@@ -149,15 +149,18 @@ def __extract_types(collection, analysis):
                                 else:
                                     raise ValueError("Cannot find function {!r} in both kernel and module functiosn".
                                                      format(name))
-                                new = candidate.declaration.parameters[index]. \
-                                        add_implementation(call[index], path, None, None, [], is_static(origignal))
+                                new = candidate.declaration.parameters[index].\
+                                    add_implementation(call[index], path, None, None, [], is_static(origignal))
                                 if len(intf.param_interfaces) > index and intf.param_interfaces[index]:
                                     new.fixed_interface = intf.param_interfaces[index].identifier
     else:
         collection.logger.warning("There is no any functions in source analysis")
 
-    collection.logger.info("Remove kernel functions which are not called at driver functions")
+    collection.logger.info("Remove functions which are not called at driver")
     for func in collection.source_functions:
+        if None in collection.source_functions[func]:
+            del collection.source_functions[func][None]
+
         if func not in analysis['functions']:
             collection.remove_kernel_function(func)
 
@@ -186,9 +189,9 @@ def __import_entities(collection, analysis, entities):
                             break
 
                     if not match:
-                        for mf in [name for name in sorted(analysis["modules functions"].keys())
-                                   if 'files' in analysis["modules functions"][name] and name == val]:
-                            module_function = analysis["modules functions"][mf]
+                        for mf in [name for name in sorted(analysis["functions"].keys())
+                                   if 'files' in analysis["functions"][name] and name == val]:
+                            module_function = analysis["functions"][mf]
                             for path in module_function["files"].keys():
                                 entity["path"] = path
                                 static = is_static(module_function["files"][path]["signature"])

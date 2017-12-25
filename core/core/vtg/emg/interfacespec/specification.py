@@ -41,7 +41,7 @@ def import_interface_specification(collection, specification):
     if "kernel functions" in specification:
         collection.logger.info("Import kernel functions description")
         for intf in __import_kernel_interfaces(collection, "kernel functions", specification):
-            collection.set_kernel_function(intf)
+            collection.set_source_function(intf, None)
             collection.logger.debug("New kernel function {} has been imported".format(intf.identifier))
     else:
         collection.logger.warning(
@@ -254,15 +254,8 @@ def __import_kernel_interfaces(collection, category_name, specification):
             raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
 
         collection.logger.debug("Import kernel function description '{}'".format(identifier))
-        if "header" in specification[category_name][identifier]:
-            interface = SourceFunction(identifier, specification[category_name][identifier]["signature"],
-                                       specification[category_name][identifier]["header"])
-        else:
-            interface = SourceFunction(identifier, specification[category_name][identifier]["signature"],
-                                       specification[category_name][identifier]["headers"])
-
-        interface.declaration = import_declaration(specification[category_name][identifier]["signature"])
-        if type(interface.declaration) is Function:
+        interface = SourceFunction(identifier, specification[category_name][identifier]["signature"])
+        if isinstance(interface.declaration, Function):
             fulfill_function_interfaces(collection, interface)
         else:
             raise TypeError('Expect function declaration in description of kernel function {}'.format(identifier))

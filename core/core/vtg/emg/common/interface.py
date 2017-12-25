@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common.signature import Function, Pointer, InterfaceReference
+from core.vtg.emg.common.signature import Function, Pointer, InterfaceReference, import_declaration
 
 
 class Interface:
@@ -116,6 +116,8 @@ class SourceFunction(FunctionInterface):
         self.declaration_files = set()
         self.definition_file = None
         self.raw_declaration = raw_declaration
+
+        self.declaration = import_declaration(raw_declaration)
 
     @property
     def files_called_at(self):

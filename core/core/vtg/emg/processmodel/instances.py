@@ -756,7 +756,7 @@ def _remove_statics(analysis, access_map):
                 declaration = analysis.get_global_var_declaration(implementation.value, implementation.file)
                 function_flag = False
                 if not declaration:
-                    declaration = analysis.get_modules_func_declaration(implementation.value, implementation.file)
+                    declaration = analysis.get_source_function(implementation.value, implementation.file)
                     function_flag = True
 
                 # Determine name

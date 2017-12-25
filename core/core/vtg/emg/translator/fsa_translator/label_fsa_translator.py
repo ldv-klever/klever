@@ -216,7 +216,7 @@ class LabelTranslator(FSATranslator):
         self._cmodel.add_function_definition(self._cmodel.entry_file, cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
+            for file in self._analysis.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         return
 

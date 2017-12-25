@@ -134,26 +134,6 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
     return automata_peers
 
 
-def choose_file(cmodel, analysis, automaton):
-    file = automaton.file
-    if file:
-        return file
-
-    files = set()
-    if automaton.process.category == "kernel models":
-        # Calls
-        function_obj = analysis.get_kernel_function(automaton.process.name)
-        files.update(set(function_obj.files_called_at))
-        for caller in (c for c in function_obj.functions_called_at):
-            # Caller definitions
-            files.update(set(analysis.get_modules_function_files(caller)))
-
-    if len(files) == 0:
-        return cmodel.entry_file
-    else:
-        return sorted(list(files))[0]
-
-
 def initialize_automaton_variables(conf, automaton):
     initializations = []
     for var in automaton.variables():
@@ -172,7 +152,7 @@ def initialize_automaton_variables(conf, automaton):
 def model_relevant_files(analysis, cmodel, automaton):
     files = set()
     # Add declarations to files with explicit calls
-    kf = analysis.get_kernel_function(automaton.process.name)
+    kf = analysis.get_source_function(automaton.process.name)
     files.update(kf.files_called_at)
     # Then check where we added relevant headers that may contain calls potentially
     if kf.header and len(kf.header) > 0:
