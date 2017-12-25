@@ -474,6 +474,7 @@ class RP(core.components.Component):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
                                                         list(self.verification_coverage.arcnames.keys()),
                                                         arcnames=self.verification_coverage.arcnames)
+            self.vals['coverage_finished'][self.common_components_conf['job identifier']] = False
 
         core.utils.report(self.logger,
                           'verification',
