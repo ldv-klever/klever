@@ -186,6 +186,10 @@
     "environment processes": {
       "scsi_LLDd_scenario": {
         "comment": "Invoke SCSI mid level callbacks (e.g. model LLD).",
+        "headers": [
+          "linux/blkdev.h",
+          "scsi/scsi_host.h"
+        ],
         "labels": {
           "host": {
             "container": true,
