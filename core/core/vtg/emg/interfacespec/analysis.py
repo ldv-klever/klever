@@ -111,7 +111,9 @@ def __extract_types(collection, analysis):
                 description = analysis['functions'][func][path]
                 declaration = import_declaration(description['signature'])
                 func_intf = collection.get_source_function(func)
-                if func_intf and func_intf.declaration.compare(declaration) and not description['static']:
+                if func_intf and \
+                        (not func_intf.declaration.clean_declaration or func_intf.declaration.compare(declaration))\
+                        and not description['static']:
                     func_intf.declaration_files.add(path)
                     func_intf.update_declaration(declaration)
                 else:
@@ -157,6 +159,9 @@ def __extract_types(collection, analysis):
                                     add_implementation(call[index], path, None, None, [], static)
                                 if len(intf.param_interfaces) > index and intf.param_interfaces[index]:
                                     new.fixed_interface = intf.param_interfaces[index].identifier
+
+        # Remove dirty declarations
+        collection.refine_interfaces()
     else:
         collection.logger.warning("There is no any functions in source analysis")
 

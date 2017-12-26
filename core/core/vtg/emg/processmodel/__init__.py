@@ -233,8 +233,7 @@ class ProcessModel:
                               format(best_process.name, category))
             return new
 
-    @staticmethod
-    def __assign_label_interface(label, interface):
+    def __assign_label_interface(self, label, interface):
         if isinstance(interface, Container):
             label.set_declaration(interface.identifier, interface.declaration.take_pointer)
         else:

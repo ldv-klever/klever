@@ -697,7 +697,7 @@ class InterfaceCategoriesSpecification:
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
         # Add kernel function relevant interfaces
-        for name in self.source_functions:
+        for name in (name for name in self.source_functions if self.get_source_function(name)):
             intfs = __check_category_relevance(self.get_source_function(name))
             # Skip resources from kernel functions
             relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])

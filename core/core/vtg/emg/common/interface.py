@@ -88,7 +88,7 @@ class FunctionInterface(Interface):
         for index in range(len(self_declaration.parameters)):
             p_declaration = declaration.parameters[index]
 
-            if self.param_interfaces[index]:
+            if len(self.param_interfaces) > index and self.param_interfaces[index]:
                 if type(self_declaration.parameters[index]) is InterfaceReference and \
                         self_declaration.parameters[index].pointer:
                     self.param_interfaces[index].update_declaration(p_declaration.points)
