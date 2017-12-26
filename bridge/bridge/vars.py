@@ -194,7 +194,7 @@ MARKS_COMPARE_ATTRS = {
 }
 
 
-JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
+JOBS_COMPARE_ATTRS = ['Verification object', 'Rule specification']
 
 KLEVER_CORE_PARALLELISM = (
     ('sequential', _('Sequentially')),
