@@ -219,6 +219,7 @@ REPORT_ARCHIVE = {
     'coverage': 'coverage.zip',
     'verifier input': 'VerifierInput.zip',
     'error trace': 'ErrorTrace.zip',
+    'sources': 'Sources.zip',
     'proof': 'proof.zip',
     'problem desc': 'ProblemDesc.zip'
 }

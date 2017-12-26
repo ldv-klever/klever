@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ETree
 from xml.dom import minidom
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
@@ -29,11 +30,11 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
 from bridge.tableHead import Header
-from bridge.utils import logger
+from bridge.utils import logger, extract_archive
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
-    ReportRoot
+from reports.models import ReportRoot, ReportComponent, AttrFile, Attr, AttrName, ReportAttr,\
+    ReportUnsafe, ReportSafe, ReportUnknown
 from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
@@ -914,13 +915,32 @@ class ReportChildrenTable:
 
 
 class AttrData:
-    def __init__(self):
+    def __init__(self, root_id, archive):
+        self._root_id = root_id
         self._data = []
         self._name = {}
         self._attrs = {}
+        self._files = {}
+        if archive is not None:
+            self.__get_files(archive)
 
-    def add(self, report_id, name, value):
-        self._data.append((report_id, name, value))
+    def __get_files(self, archive):
+        try:
+            files_dir = extract_archive(archive)
+        except Exception as e:
+            logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+            raise ValueError('Archive "%s" with attributes data is corrupted' % archive.name)
+        for dir_path, dir_names, file_names in os.walk(files_dir):
+            for file_name in file_names:
+                full_path = os.path.join(dir_path, file_name)
+                rel_path = os.path.relpath(full_path, files_dir).replace('\\', '/')
+                newfile = AttrFile(root_id=self._root_id)
+                with open(full_path, mode='rb') as fp:
+                    newfile.save(os.path.basename(rel_path), File(fp), True)
+                self._files[rel_path] = newfile.id
+
+    def add(self, report_id, name, value, compare, associate, data):
+        self._data.append((report_id, name, value, compare, associate, self._files.get(data)))
         if name not in self._name:
             self._name[name] = None
         if (name, value) not in self._attrs:
@@ -929,10 +949,10 @@ class AttrData:
     def upload(self):
         self.__upload_names()
         self.__upload_attrs()
-        ReportAttr.objects.bulk_create(
-            list(ReportAttr(report_id=d[0], attr_id=self._attrs[(d[1], d[2])]) for d in self._data)
-        )
-        self.__init__()
+        ReportAttr.objects.bulk_create(list(ReportAttr(
+            report_id=d[0], attr_id=self._attrs[(d[1], d[2])], compare=d[3], associate=d[4], data_id=d[5]
+        ) for d in self._data))
+        self.__init__(self._root_id, None)
 
     def __upload_names(self):
         existing_names = set(n.name for n in AttrName.objects.filter(name__in=self._name))

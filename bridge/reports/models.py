@@ -42,20 +42,11 @@ def get_coverage_dir(instance, filename):
     return os.path.join('Reports', 'CoverageCache', 'CovArch-%s' % instance.archive_id, filename)
 
 
-class AttrName(models.Model):
-    name = models.CharField(max_length=63, unique=True, db_index=True)
-
-    class Meta:
-        db_table = 'attr_name'
-
-
-class Attr(models.Model):
-    name = models.ForeignKey(AttrName)
-    value = models.CharField(max_length=255)
-
-    class Meta:
-        db_table = 'attr'
-        index_together = ["name", "value"]
+def get_attr_data_path(instance, filename):
+    curr_date = now()
+    return os.path.join(
+        'Reports', 'AttrData', 'Root-%s' % str(instance.root_id), str(curr_date.year), str(curr_date.month), filename
+    )
 
 
 class ReportRoot(models.Model):
@@ -73,6 +64,22 @@ def reportroot_delete_signal(**kwargs):
     logger.info('Deleting ReportRoot files took %s seconds.' % (time.time() - t1))
 
 
+class AttrName(models.Model):
+    name = models.CharField(max_length=63, unique=True, db_index=True)
+
+    class Meta:
+        db_table = 'attr_name'
+
+
+class Attr(models.Model):
+    name = models.ForeignKey(AttrName)
+    value = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'attr'
+        index_together = ["name", "value"]
+
+
 class Report(models.Model):
     root = models.ForeignKey(ReportRoot)
     parent = models.ForeignKey('self', null=True, related_name='+')
@@ -82,9 +89,26 @@ class Report(models.Model):
         db_table = 'report'
 
 
+class AttrFile(models.Model):
+    root = models.ForeignKey(ReportRoot)
+    file = models.FileField(upload_to=get_attr_data_path)
+
+    class Meta:
+        db_table = 'report_et_source'
+
+
+@receiver(pre_delete, sender=AttrFile)
+def attrfile_delete_signal(**kwargs):
+    source = kwargs['instance']
+    source.archive.storage.delete(source.archive.path)
+
+
 class ReportAttr(models.Model):
     attr = models.ForeignKey(Attr)
     report = models.ForeignKey(Report, related_name='attrs')
+    compare = models.BooleanField(default=False)
+    associate = models.BooleanField(default=False)
+    data = models.ForeignKey(AttrFile, null=True)
 
     class Meta:
         db_table = 'report_attrs'
@@ -163,8 +187,26 @@ def coverage_archive_delete_signal(**kwargs):
     arch.archive.storage.delete(arch.archive.path)
 
 
+class ErrorTraceSource(models.Model):
+    root = models.ForeignKey(ReportRoot)
+    archive = models.FileField(upload_to='Unsafes/Sources/%Y/%m')
+
+    def add_sources(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
+
+    class Meta:
+        db_table = 'report_et_source'
+
+
+@receiver(pre_delete, sender=ErrorTraceSource)
+def source_delete_signal(**kwargs):
+    source = kwargs['instance']
+    source.archive.storage.delete(source.archive.path)
+
+
 class ReportUnsafe(Report):
     error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
+    source = models.ForeignKey(ErrorTraceSource, null=True)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
     cpu_time = models.BigIntegerField()
     wall_time = models.BigIntegerField()
