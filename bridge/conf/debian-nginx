@@ -8,7 +8,7 @@ server {
 
   server_name 127.0.0.1;
 
-  keepalive_timeout 5;
+  keepalive_timeout 1440;
 
   root /var/www/klever-bridge;
 
@@ -21,6 +21,6 @@ server {
     proxy_set_header Host $http_host;
     proxy_redirect off;
     proxy_pass http://bridge_server;
-    proxy_read_timeout 900s;
+    proxy_read_timeout 86400s;
   }
 }
