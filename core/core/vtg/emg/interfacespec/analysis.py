@@ -108,20 +108,23 @@ def __extract_types(collection, analysis):
         collection.logger.info("Import source functions")
         for func in analysis['functions']:
             for path in analysis['functions'][func]:
-                description = analysis['functions'][func]
+                description = analysis['functions'][func][path]
                 declaration = import_declaration(description['signature'])
                 func_intf = collection.get_source_function(func)
                 if func_intf and func_intf.declaration.compare(declaration) and not description['static']:
-                    func_intf.declaration_files.add(func)
+                    func_intf.declaration_files.add(path)
                     func_intf.update_declaration(declaration)
                 else:
-                    func_intf = SourceFunction(func, analysis['functions'][func]['signature'])
+                    func_intf = SourceFunction(func, description['signature'])
                     func_intf.declaration_files.add(path)
-                    if not func_intf.raw_declaration:
-                        func_intf.raw_declaration = description['signature']
 
                     if 'definition' in description and description['definition']:
                         func_intf.definition_file = path
+
+                if 'static' in description:
+                    func_intf.static = description['static']
+
+                func_intf.raw_declaration = description['signature']
                 collection.set_source_function(func_intf, path)
 
         # Remove dirty declarations
@@ -131,38 +134,39 @@ def __extract_types(collection, analysis):
         for func in analysis['functions']:
             for path in analysis['functions'][func]:
                 intf = collection.get_source_function(func, path)
-                description = analysis['functions'][func]
+                description = analysis['functions'][func][path]
                 if "called at" in description:
                     for name in description["called at"]:
                         intf.add_call(name, path)
-                if "calls" in description["calls"]:
+                if "calls" in description:
                     for name in description["calls"]:
-                        intf.calls(name, path)
+                        intf.call_function(name, path)
+                        called_function = collection.get_source_function(name, path)
                         for call in description["calls"][name]:
                             for index in [index for index in range(len(call))
                                           if call[index] and check_null(intf.declaration, call[index])]:
 
-                                name = collection.refined_name(call[index])
-                                candidate = collection.source_functions(name, path)
+                                rn = collection.refined_name(call[index])
+                                candidate = collection.get_source_function(rn, path)
                                 if candidate:
-                                    origignal = candidate.raw_declaration
+                                    static = candidate.static
                                 else:
                                     raise ValueError("Cannot find function {!r} in both kernel and module functiosn".
-                                                     format(name))
-                                new = candidate.declaration.parameters[index].\
-                                    add_implementation(call[index], path, None, None, [], is_static(origignal))
+                                                     format(rn))
+                                new = called_function.declaration.parameters[index].\
+                                    add_implementation(call[index], path, None, None, [], static)
                                 if len(intf.param_interfaces) > index and intf.param_interfaces[index]:
                                     new.fixed_interface = intf.param_interfaces[index].identifier
     else:
         collection.logger.warning("There is no any functions in source analysis")
 
     collection.logger.info("Remove functions which are not called at driver")
-    for func in collection.source_functions:
-        if None in collection.source_functions[func]:
-            del collection.source_functions[func][None]
+    for func in list(collection._source_functions.keys()):
+        if None in collection._source_functions[func]:
+            del collection._source_functions[func][None]
 
-        if func not in analysis['functions']:
-            collection.remove_kernel_function(func)
+        if func not in analysis['functions'] or len(collection._source_functions[func].keys()) == 0:
+            collection.remove_source_function(func)
 
 
 def __import_entities(collection, analysis, entities):
@@ -189,17 +193,19 @@ def __import_entities(collection, analysis, entities):
                             break
 
                     if not match:
-                        for mf in [name for name in sorted(analysis["functions"].keys())
-                                   if 'files' in analysis["functions"][name] and name == val]:
-                            module_function = analysis["functions"][mf]
-                            for path in module_function["files"].keys():
-                                entity["path"] = path
-                                static = is_static(module_function["files"][path]["signature"])
-                                match = True
-                                break
-
-                            if match:
-                                break
+                        if val in analysis["functions"]:
+                            # Try to get path with definition
+                            paths = [p for p in analysis["functions"][val]
+                                     if 'definition' in analysis["functions"][val][p] and
+                                     analysis["functions"][val][p]['definition']]
+                            if len(paths) == 1:
+                                p = paths[0]
+                                entity["path"] = p
+                                static = analysis["functions"][val][p]['static']
+                            elif len(analysis["functions"][val]) > 0:
+                                p = list(analysis["functions"][val].keys())[0]
+                                entity["path"] = p
+                                static = analysis["functions"][val][p]['static']
 
                 bt.add_implementation(
                     entity["description"]["value"],

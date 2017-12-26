@@ -116,14 +116,15 @@ class SourceFunction(FunctionInterface):
         self.declaration_files = set()
         self.definition_file = None
         self.raw_declaration = raw_declaration
+        self.static = False
 
         self.declaration = import_declaration(raw_declaration)
 
     @property
     def files_called_at(self):
-        raise NotImplementedError
+        return self.called_at.keys()
 
-    def calls(self, func, path):
+    def call_function(self, func, path):
         if path not in self.calls:
             self.calls[path] = {func}
         else:

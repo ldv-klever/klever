@@ -163,6 +163,7 @@ class InterfaceCategoriesSpecification:
         :param path: Scope of the function.
         :return: SourceFunction object.
         """
+        name = self.refined_name(name)
         if name and name in self._source_functions:
             if path and path in self._source_functions[name]:
                 return self._source_functions[name][path]
@@ -179,6 +180,7 @@ class InterfaceCategoriesSpecification:
         :param name: Source function name.
         :return: Pairs with the path and SourceFunction object.
         """
+        name = self.refined_name(name)
         result = []
         if name and name in self._source_functions:
             for func in self._source_functions[name].values():
@@ -206,6 +208,24 @@ class InterfaceCategoriesSpecification:
         :return: KernelFunction object.
         """
         del self._source_functions[name]
+
+    def get_global_var_declaration(self, name, file, original=False):
+        """
+        Return declaration as a string or object for given global variable name.
+
+        :param name: String.
+        :param file: File name.
+        :param original: If true returns string of an original declaration.
+        :return: None or Str or Signature.
+        """
+        tn = self.refined_name(name)
+        if tn and tn in self._global_variables and file in self._global_variables[tn]:
+            if original:
+                return self._global_variables[tn][file]['original declaration']
+            else:
+                return self._global_variables[tn][file]['declaration']
+        else:
+            return None
 
     def is_removed_intf(self, identifier):
         """
