@@ -520,7 +520,7 @@ class JCR(core.components.Component):
                     loaded_coverage_info = json.load(fp)
 
                 # Clean if needed
-                if self.conf['keep intermediate files']:
+                if not self.conf['keep intermediate files']:
                     os.remove(os.path.join(self.conf['main working directory'],
                                            coverage_info['coverage info file']))
 
