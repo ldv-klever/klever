@@ -772,6 +772,6 @@ class Implementation:
                 self.declaration.identifier == 'void *':
             return self.value
         else:
-            raise ValueError("Cannot adjust declaration '{}' to declaration '{}'".
-                             format(self.declaration.to_string('%s'), declaration.to_string('%s')))
+            raise ValueError("Cannot adjust declaration '{}' to declaration '{}' for value {!r}".
+                             format(self.declaration.to_string('%s'), declaration.to_string('%s'), self.value))
 

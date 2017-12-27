@@ -77,7 +77,17 @@ def _simplify_process(logger, conf, analysis, process):
             for number, access in enumerate(simpl_access):
                 declaration = label.get_declaration(access.interface.identifier)
                 implementation = process.get_implementation(access)
-                value = None if not implementation else implementation.adjusted_value(declaration)
+                if implementation:
+                    if not (implementation.declaration.compare(declaration) or
+                            implementation.declaration.pointer_alias(declaration)):
+                        logger.warning(
+                            "Seems that driver provides inconsistent implementation for {!r} label of {!r} process where "
+                            "expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
+                                                                implementation.declaration.to_string()))
+                        declaration = implementation.declaration
+                    value = implementation.adjusted_value(declaration)
+                else:
+                    value = None
                 new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
                 label_map[label.name][access.interface.identifier] = new
         elif len(simpl_access) == 1:
