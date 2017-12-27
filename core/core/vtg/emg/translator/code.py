@@ -64,6 +64,8 @@ class CModel:
         else:
             # This is to avoid dependencies broken
             if len(headers) > 1:
+                for h in [h for h in headers if h in self._headers[file]]:
+                    self._headers[file].remove(h)
                 self._headers[file].extend(headers)
             elif headers[0] not in self._headers[file]:
                 self._headers[file].append(headers[0])
