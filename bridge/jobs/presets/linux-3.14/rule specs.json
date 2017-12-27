@@ -103,7 +103,9 @@
                     "scsi/scsi_host.h",
                     "linux/pagemap.h",
                     "linux/poll.h",
-                    "linux/blkdev.h"
+                    "linux/blkdev.h",
+                    "target/target_core_base.h",
+                    "target/target_core_backend.h"
                   ],
                   "Linux 3.5": {
                     "exclude": ["linux/iio/triggered_buffer.h"]

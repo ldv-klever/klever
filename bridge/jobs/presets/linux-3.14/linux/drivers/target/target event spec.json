@@ -69,6 +69,10 @@
     "environment processes": {
       "io_target_scenario": {
         "comment": "Invoke Linux-IO target callbacks.",
+        "headers": [
+          "target/target_core_base.h",
+          "target/target_core_backend.h"
+        ],
         "labels": {
           "se_subsystem_api": {
             "container": true,
