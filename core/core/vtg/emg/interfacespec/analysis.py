@@ -115,7 +115,8 @@ def __extract_types(collection, analysis):
                         (not func_intf.declaration.clean_declaration or func_intf.declaration.compare(declaration))\
                         and not description['static']:
                     func_intf.declaration_files.add(path)
-                    func_intf.update_declaration(declaration)
+                    if not declaration.compare(func_intf.declaration) or not func_intf.declaration.clean_declaration:
+                        func_intf.update_declaration(declaration)
                 else:
                     func_intf = SourceFunction(func, description['signature'])
                     func_intf.declaration_files.add(path)
