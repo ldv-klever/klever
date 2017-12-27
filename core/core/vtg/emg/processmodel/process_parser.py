@@ -135,6 +135,14 @@ def __import_process(name, dic, conf, model_flag=False):
                         act = Call(action_name)
                     elif process_type is Receive and 'callback' in dic['actions'][action_name]:
                         act = CallRetval(action_name)
+                    elif process_type is Receive:
+                        act = process_type(action_name)
+                        if '!' in regex['regex'].search(string).group(0):
+                            act.replicative = True
+                    elif process_type is Dispatch:
+                        act = process_type(action_name)
+                        if '@' in regex['regex'].search(string).group(0):
+                            act.broadcast = True
                     else:
                         act = process_type(action_name)
                     process.actions[action_name] = act

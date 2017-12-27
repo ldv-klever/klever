@@ -81,9 +81,9 @@ def _simplify_process(logger, conf, analysis, process):
                     if not (implementation.declaration.compare(declaration) or
                             implementation.declaration.pointer_alias(declaration)):
                         logger.warning(
-                            "Seems that driver provides inconsistent implementation for {!r} label of {!r} process where "
-                            "expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
-                                                                implementation.declaration.to_string()))
+                            "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
+                            "where expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
+                                                                      implementation.declaration.to_string()))
                         declaration = implementation.declaration
                     value = implementation.adjusted_value(declaration)
                 else:
@@ -100,52 +100,61 @@ def _simplify_process(logger, conf, analysis, process):
             label_map[label.name][access.interface.identifier] = label
 
     # Then replace accesses in parameters with simplified expressions
-    for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
-        guards = []
+    for action in (a for a in list(process.actions.values()) if isinstance(a, Dispatch) or isinstance(a, Receive)):
+        if len(action.peers) > 0:
+            guards = []
 
-        for index in range(len(action.parameters)):
-            # Determine dispatcher parameter
-            try:
-                interface = get_common_parameter(action, process, index)
-                interface = interface.identifier
-            except RuntimeError:
-                suts = [peer['interfaces'][index] for peer in action.peers
-                        if 'interfaces' in peer and len(peer['interfaces']) > index]
-                if len(suts) > 0:
-                    interface = suts[0]
+            for index in range(len(action.parameters)):
+                # Determine dispatcher parameter
+                try:
+                    interface = get_common_parameter(action, process, index)
+                    interface = interface.identifier
+                except RuntimeError:
+                    suts = [peer['interfaces'][index] for peer in action.peers
+                            if 'interfaces' in peer and len(peer['interfaces']) > index]
+                    if len(suts) > 0:
+                        interface = suts[0]
+                    else:
+                        raise
+
+                # Determine dispatch parameter
+                access = process.resolve_access(action.parameters[index], interface)
+                new_label = label_map[access.label.name][access.interface.identifier]
+                new_expression = access.access_with_label(new_label)
+                action.parameters[index] = new_expression
+
+                if isinstance(action, Receive) and get_conf_property(conf, "add registration guards"):
+                    access = process.resolve_access(new_expression)[0]
+                    implementation = process.get_implementation(access)
+                    if implementation and implementation.value:
+                        guards.append("{} == {}".format("$ARG{}".format(index + 1),
+                                                        implementation.adjusted_value(new_label.prior_signature)))
+
+                # Go through peers and set proper interfaces
+                for peer in action.peers:
+                    if 'interfaces' not in peer:
+                        peer['interfaces'] = list()
+                    if len(peer['interfaces']) == index:
+                        peer['interfaces'].append(interface)
+                    for pr in peer['subprocess'].peers:
+                        if 'interfaces' not in pr:
+                            pr['interfaces'] = list()
+                        if len(pr['interfaces']) == index:
+                            pr['interfaces'].append(interface)
+
+            if len(guards) > 0:
+                if action.condition:
+                    action.condition.extend(guards)
                 else:
-                    raise
-
-            # Determine dispatch parameter
-            access = process.resolve_access(action.parameters[index], interface)
-            new_label = label_map[access.label.name][access.interface.identifier]
-            new_expression = access.access_with_label(new_label)
-            action.parameters[index] = new_expression
-
-            if isinstance(action, Receive) and get_conf_property(conf, "add registration guards"):
-                access = process.resolve_access(new_expression)[0]
-                implementation = process.get_implementation(access)
-                if implementation and implementation.value:
-                    guards.append("{} == {}".format("$ARG{}".format(index + 1),
-                                                    implementation.adjusted_value(new_label.prior_signature)))
-
-            # Go through peers and set proper interfaces
-            for peer in action.peers:
-                if 'interfaces' not in peer:
-                    peer['interfaces'] = list()
-                if len(peer['interfaces']) == index:
-                    peer['interfaces'].append(interface)
-                for pr in peer['subprocess'].peers:
-                    if 'interfaces' not in pr:
-                        pr['interfaces'] = list()
-                    if len(pr['interfaces']) == index:
-                        pr['interfaces'].append(interface)
-
-        if len(guards) > 0:
-            if action.condition:
-                action.condition.extend(guards)
-            else:
-                action.condition = guards
+                    action.condition = guards
+        else:
+            # Replace it with a stub
+            new = process.add_condition(action.name, [],
+                                        ["/* Skip signal {!r} as it has no peers */".format(action.name)],
+                                        "Stub instead of the {!r} signal.".format(action.name))
+            process.insert_action(action.name, "<{}>".format(action.name), 'instead')
+            # Do this becouse deletaed and new actions have the same name
+            process.actions[action.name] = new
 
     # Remove callback actions
     param_identifiers = _yeild_identifier()
@@ -828,7 +837,13 @@ def _copy_process(process, instances_left):
     inst.accesses(new_accesses)
 
     for action in inst.actions.values():
-        cp = copy.copy(action)
+        if not (isinstance(action, Receive) or isinstance(action, Dispatch)):
+            cp = copy.deepcopy(action)
+        else:
+            # They contain references to other processes in peers
+            cp = copy.copy(action)
+            cp.parameters = copy.copy(action.parameters)
+
         inst.actions[cp.name] = cp
     for label in inst.labels.values():
         cp = copy.copy(label)

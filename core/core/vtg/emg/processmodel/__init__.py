@@ -72,6 +72,9 @@ class ProcessModel:
             if not process.category:
                 raise ValueError("Found process without category {!r}".format(process.name))
 
+        # Refine processes
+        self.__refine_processes()
+
         # Simplify processes then
         instance_maps, generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
 
@@ -921,3 +924,43 @@ class ProcessModel:
 
             # Save back updates collection of accesses
             process.accesses(accesses)
+
+    def __refine_processes(self):
+        del_flag = True
+
+        while del_flag:
+            del_flag = False
+            delete = []
+
+            for process in self.event_processes:
+                # Check replicative signals
+                replicative = [process.actions[a] for a in process.actions if isinstance(process.actions[a], Receive)
+                               and process.actions[a].replicative]
+                if len(replicative) > 0:
+                    # This is an ordinary process that should be registered and if it cannot be so, then we can safely
+                    # remove it
+                    if any([a for a in replicative if len(a.peers) == 0]):
+                        # Remove the process from the collection
+                        delete.append(process)
+
+                        # Remove it from all the peers
+                        for action in [process.actions[a] for a in process.actions if
+                                       isinstance(process.actions[a], Receive) or
+                                       isinstance(process.actions[a], Dispatch)]:
+                            for peer in action.peers:
+                                peer_action = peer['subprocess']
+                                indexes = []
+                                for index, pr in enumerate(peer_action.peers):
+                                    if pr['process'].identifier == process.identifier:
+                                        indexes.append(index)
+
+                                for index in indexes:
+                                    del peer_action.peers[index]
+
+            for p in delete:
+                self.logger.info("Remove process {!r} of cantegory {!r} as it cannot be registered".
+                                 format(p.name, p.category))
+                self.event_processes.remove(p)
+
+        return
+
