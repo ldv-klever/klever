@@ -115,7 +115,6 @@ def fulfill_function_interfaces(collection, interface, category=None):
         else:
             function_intf.param_interfaces.append(matched_intf)
 
-    collection.logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
     # Check declaration type
     if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
         declaration = interface.declaration.points
@@ -189,24 +188,18 @@ def fulfill_function_interfaces(collection, interface, category=None):
 
 
 def __import_category_interfaces(collection, category_name, description):
-    collection.logger.debug("Initialize description for category {}".format(category_name))
-
     # Import interfaces
     if "containers" in description:
-        collection.logger.debug("Import containers from an interface category description {!r}".format(category_name))
         for identifier in sorted(description['containers'].keys()):
             __import_interfaces(collection, category_name, identifier, description["containers"][identifier], Container)
     if "resources" in description:
-        collection.logger.debug("Import resources from an interface category description {!r}".format(category_name))
         for identifier in sorted(description['resources'].keys()):
             __import_interfaces(collection, category_name, identifier, description["resources"][identifier], Resource)
     if "callbacks" in description:
-        collection.logger.debug("Import callbacks from an interface category description {!r}".format(category_name))
         for identifier in sorted(description['callbacks'].keys()):
             __import_interfaces(collection, category_name, identifier, description["callbacks"][identifier], Callback)
 
     if "containers" in description:
-        collection.logger.debug("Import containers from an interface category description {!r}".format(category_name))
         for identifier in sorted(description['containers'].keys()):
             fi = "{}.{}".format(category_name, identifier)
             # Import field interfaces
@@ -222,7 +215,6 @@ def __import_category_interfaces(collection, category_name, description):
 
 def __import_interfaces(collection, category_name, identifier, description, constructor):
     if "{}.{}".format(category_name, identifier) not in collection.interfaces:
-        collection.logger.debug("Import described interface description '{}.{}'".format(category_name, identifier))
         interface = constructor(category_name, identifier, manually_specified=True)
         collection.set_intf(interface)
     else:
@@ -253,7 +245,6 @@ def __import_kernel_interfaces(collection, category_name, specification):
                 "headers" not in specification[category_name][identifier]:
             raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
 
-        collection.logger.debug("Import kernel function description '{}'".format(identifier))
         interface = SourceFunction(identifier, specification[category_name][identifier]["signature"])
         if isinstance(interface.declaration, Function):
             fulfill_function_interfaces(collection, interface)

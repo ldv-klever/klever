@@ -281,7 +281,6 @@ class InterfaceCategoriesSpecification:
         :param func: Module function name string.
         :return: List with kernel functions name strings.
         """
-        self.logger.debug("Collect relevant functions called in a call stack of callback '{}'".format(func))
         if func not in self.__function_calls_cache:
             level_counter = 0
             max_level = None
@@ -307,7 +306,6 @@ class InterfaceCategoriesSpecification:
 
             self.__function_calls_cache[func] = relevant
         else:
-            self.logger.debug('Cache hit')
             relevant = self.__function_calls_cache[func]
 
         return sorted(relevant)
@@ -431,7 +429,6 @@ class InterfaceCategoriesSpecification:
         :param category: a category name string.
         :return: List with Container objects.
         """
-        self.logger.debug("Search for containers which has field '{}'".format(field))
         return [container for container in self.containers(category)
                 if type(container.declaration) is Structure and
                 ((field in container.field_interfaces and
@@ -450,25 +447,20 @@ class InterfaceCategoriesSpecification:
         :param category:  Category name string.
         :return: List with Container objects.
         """
-        self.logger.debug("Resolve containers for signature '{}'".format(declaration.identifier))
         if declaration.identifier not in self._containers_cache:
             self._containers_cache[declaration.identifier] = {}
 
         if category and category not in self._containers_cache[declaration.identifier]:
-            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[declaration.identifier][category] = cnts
             return cnts
         elif not category and 'default' not in self._containers_cache[declaration.identifier]:
-            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[declaration.identifier]['default'] = cnts
             return cnts
         elif category and category in self._containers_cache[declaration.identifier]:
-            self.logger.debug("Cache hit")
             return self._containers_cache[declaration.identifier][category]
         else:
-            self.logger.debug("Cache hit")
             return self._containers_cache[declaration.identifier]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
@@ -486,11 +478,7 @@ class InterfaceCategoriesSpecification:
         elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
             raise KeyError('Cannot find description of interface {}'.format(signature.interface))
         else:
-            self.logger.debug("Resolve an interface for signature '{}'".format(signature.identifier))
-            if signature.identifier in self._interface_cache and use_cache:
-                self.logger.debug('Cache hit')
-            else:
-                self.logger.debug('Cache miss')
+            if not (signature.identifier in self._interface_cache and use_cache):
                 interfaces = [self.get_intf(name) for name in self.interfaces
                               if type(self.get_intf(name).declaration) is type(signature) and
                               (self.get_intf(name).declaration.identifier == signature.identifier) and
@@ -510,7 +498,6 @@ class InterfaceCategoriesSpecification:
                           extracted or generated and no new types or interfaces will appear.
         :return: Returns list of Container objects.
         """
-        self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
         intf = self.resolve_interface(signature, category, use_cache)
         if not intf and type(signature) is Pointer:
             intf = self.resolve_interface(signature.points, category, use_cache)
@@ -530,16 +517,12 @@ class InterfaceCategoriesSpecification:
                        available for a type to which given type points.
         :return: List of Implementation objects.
         """
-        self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
-            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['weak']
         elif not weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['strict']) is list:
-            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['strict']
-        self.logger.debug("Cache miss")
 
         if weakly:
             candidates = interface.declaration.weak_implementations
@@ -641,8 +624,6 @@ class InterfaceCategoriesSpecification:
         return
 
     def __resolve_containers(self, target, category):
-        self.logger.debug("Calculate containers for signature '{}'".format(target.identifier))
-
         return {container.identifier: container.contains(target) for container in self.containers(category)
                 if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
                 (type(container.declaration) is Array and container.contains(target))}
