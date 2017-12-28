@@ -96,6 +96,13 @@ def _simplify_process(logger, conf, analysis, process):
             label.prior_signature = declaration
             implementation = process.get_implementation(access)
             if implementation:
+                if not (implementation.declaration.compare(declaration) or
+                        implementation.declaration.pointer_alias(declaration)):
+                    logger.warning(
+                        "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
+                        "where expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
+                                                                  implementation.declaration.to_string()))
+                    declaration = implementation.declaration
                 label.value = implementation.adjusted_value(declaration)
             label_map[label.name][access.interface.identifier] = label
 
