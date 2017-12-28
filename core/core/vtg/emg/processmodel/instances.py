@@ -70,40 +70,36 @@ def _simplify_process(logger, conf, analysis, process):
     # Create maps
     label_map = dict()
 
+    def get_declaration(l, a):
+        d = l.get_declaration(a.interface.identifier)
+        i = process.get_implementation(a)
+        if i:
+            if not (i.declaration.compare(d) or
+                    i.declaration.pointer_alias(d)):
+                logger.warning(
+                    "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
+                    "where expected {!r} but got {!r}".format(l.name, process.name, d.to_string(),
+                                                              i.declaration.to_string()))
+                d = i.declaration
+            v = i.adjusted_value(d)
+        else:
+            v = None
+
+        return d, v
+
     for label in (l for l in list(process.labels.values()) if l.interfaces and len(l.interfaces) > 0):
         label_map[label.name] = dict()
         simpl_access = process.resolve_access(label)
         if len(simpl_access) > 1:
             for number, access in enumerate(simpl_access):
-                declaration = label.get_declaration(access.interface.identifier)
-                implementation = process.get_implementation(access)
-                if implementation:
-                    if not (implementation.declaration.compare(declaration) or
-                            implementation.declaration.pointer_alias(declaration)):
-                        logger.warning(
-                            "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
-                            "where expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
-                                                                      implementation.declaration.to_string()))
-                        declaration = implementation.declaration
-                    value = implementation.adjusted_value(declaration)
-                else:
-                    value = None
+                declaration, value = get_declaration(label, access)
                 new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
                 label_map[label.name][access.interface.identifier] = new
         elif len(simpl_access) == 1:
             access = simpl_access[0]
-            declaration = label.get_declaration(access.interface.identifier)
+            declaration, value = get_declaration(label, access)
             label.prior_signature = declaration
-            implementation = process.get_implementation(access)
-            if implementation:
-                if not (implementation.declaration.compare(declaration) or
-                        implementation.declaration.pointer_alias(declaration)):
-                    logger.warning(
-                        "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
-                        "where expected {!r} but got {!r}".format(label.name, process.name, declaration.to_string(),
-                                                                  implementation.declaration.to_string()))
-                    declaration = implementation.declaration
-                label.value = implementation.adjusted_value(declaration)
+            label.value = value
             label_map[label.name][access.interface.identifier] = label
 
     # Then replace accesses in parameters with simplified expressions
