@@ -3,6 +3,11 @@
     "kernel model": {
       "usb_serial_register_drivers": {
         "comment": "Register USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -42,6 +47,11 @@
       },
       "usb_serial_deregister_drivers": {
         "comment": "Deregister USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
