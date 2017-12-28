@@ -3,6 +3,9 @@
     "kernel model": {
       "__tty_alloc_driver": {
         "comment": "Allocate tty driver.",
+        "headers": [
+          "linux/tty.h"
+        ],
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -35,6 +38,9 @@
       },
       "alloc_tty_driver": {
         "comment": "Allocate tty driver",
+        "headers": [
+          "linux/tty.h"
+        ],
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -67,6 +73,9 @@
       },
       "tty_port_register_device": {
         "comment": "Register new tty device.",
+        "headers": [
+          "linux/tty.h"
+        ],
         "labels": {
           "tty_port": {
             "resource": true,
@@ -118,6 +127,9 @@
       },
       "tty_unregister_device": {
         "comment": "Unregister a tty device.",
+        "headers": [
+          "linux/tty.h"
+        ],
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -146,6 +158,9 @@
     "environment processes": {
       "tty_scenario": {
         "comment": "Invoke tty callbacks",
+        "headers": [
+          "linux/tty.h"
+        ],
         "labels": {
           "tty_port_operations": {
             "container": true,

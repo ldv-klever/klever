@@ -3,6 +3,10 @@
     "kernel model": {
       "ieee80211_alloc_hw": {
         "comment": "Allocate a new hardware device.",
+        "headers": [
+          "linux/rtnetlink.h",
+          "net/mac80211.h"
+        ],
         "labels": {
           "ieee80211_ops": {
             "container": true,
@@ -50,6 +54,10 @@
       },
       "ieee80211_free_hw": {
         "comment": "Free hardware device.",
+        "headers": [
+          "linux/rtnetlink.h",
+          "net/mac80211.h"
+        ],
         "labels": {
           "ieee80211_hw": {
             "resource": true,
@@ -79,7 +87,8 @@
       "ieee80211_scenario": {
         "comment": "Invoke wireless 802.11 driver callbacks.",
         "headers": [
-          "linux/rtnetlink.h"
+          "linux/rtnetlink.h",
+          "net/mac80211.h"
         ],
         "labels": {
           "container": {
