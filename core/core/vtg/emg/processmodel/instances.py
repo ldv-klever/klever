@@ -20,7 +20,7 @@ import re
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
-from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array
+from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
@@ -74,8 +74,8 @@ def _simplify_process(logger, conf, analysis, process):
         d = l.get_declaration(a.interface.identifier)
         i = process.get_implementation(a)
         if i:
-            if not (i.declaration.compare(d) or
-                    i.declaration.pointer_alias(d)):
+            if not (i.declaration.compare(d) or i.declaration.pointer_alias(d) or
+                    (isinstance(i.declaration, Function) and i.declaration.take_pointer.compare(d))):
                 logger.warning(
                     "Seems that driver provides inconsistent implementation for {!r} label of {!r} process "
                     "where expected {!r} but got {!r}".format(l.name, process.name, d.to_string(),
