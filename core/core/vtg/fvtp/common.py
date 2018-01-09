@@ -91,7 +91,7 @@ def merge_files(logger, conf, abstract_task_desc):
                '--rmUnusedInlines',
                '--out', 'cil.i',
            ] + c_files
-    core.utils.execute_external_tool(logger, args=args)
+    core.utils.execute(logger, args=args, enforce_limitations=True)
     logger.debug('Merged source files was outputted to "cil.i"')
 
     return 'cil.i'
