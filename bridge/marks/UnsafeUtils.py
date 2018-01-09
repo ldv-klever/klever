@@ -819,12 +819,17 @@ class PopulateMarks:
                 raise BridgeException(_('Corrupted preset unsafe mark: comparison function name is required'))
             if data['comparison'] not in self._functions:
                 raise BridgeException(_('Preset unsafe mark comparison fucntion is not supported'))
-            identifier = unique_id()
-            new_marks.append(MarkUnsafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
-                function_id=self._functions[data['comparison']]
-            ))
+            identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+            try:
+                MarkUnsafe.objects.get(identifier=identifier)
+            except ObjectDoesNotExist:
+                new_marks.append(MarkUnsafe(
+                    identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
+                    is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
+                    function_id=self._functions[data['comparison']]
+                ))
+            else:
+                raise Exception('Unsafe mark with specified identifier exists in the system')
             self._marks_data[identifier] = {
                 'f_id': self._functions[data['comparison']],
                 'tags': self.__get_tags(data['tags']),

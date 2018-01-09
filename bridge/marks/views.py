@@ -44,7 +44,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, Mar
 
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
-from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
+from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks, PresetMarkFile
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
@@ -346,6 +346,31 @@ def download_mark(request, mark_type, mark_id):
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
     response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    return response
+
+
+@login_required
+@unparallel_group([])
+def download_preset_mark(request, mark_type, mark_id):
+    if request.method == 'POST':
+        return HttpResponse('')
+    try:
+        if mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=int(mark_id))
+        elif mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=int(mark_id))
+        else:
+            mark = MarkUnknown.objects.get(pk=int(mark_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(604)
+    if mark.version == 0:
+        return BridgeErrorResponse(605)
+
+    generator = PresetMarkFile(mark)
+    response = HttpResponse(content_type=mimetypes.guess_type(os.path.basename(generator.filename))[0])
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.filename
+    response.write(generator.data)
+
     return response
 
 

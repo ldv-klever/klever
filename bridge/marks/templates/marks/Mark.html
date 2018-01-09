@@ -28,6 +28,7 @@
             {% endif %}
             <div class="ui buttons top attached">
                 <a href="{% url 'marks:download_mark' markdata.type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
+                <a href="{% url 'marks:download_preset_mark' markdata.type mark.pk %}" class="ui teal button note-popup" data-position="bottom center" data-content="{% trans 'Download in preset format' %}"><i class="file powerpoint outline icon"></i></a>
                 {% if access.can_edit %}
                     <a href="{% url 'marks:versions' markdata.type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Versions' %}"><i class="recycle icon"></i></a>
                     <a href="{% url 'marks:mark' markdata.type 'edit' mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui blue button note-popup" data-position="bottom center" data-content="{% trans 'Edit' %}"><i class="write icon"></i></a>

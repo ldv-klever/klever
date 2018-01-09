@@ -27,6 +27,8 @@ urlpatterns = [
     url(r'^(?P<marks_type>unsafe|safe|unknown)/$', views.mark_list, name='mark_list'),
     url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
         views.download_mark, name='download_mark'),
+    url(r'^download-preset/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
+        views.download_preset_mark, name='download_preset_mark'),
     url(r'^association_changes/(?P<association_id>.*)/$', views.association_changes),
     url(r'^tags/(?P<tags_type>unsafe|safe)/$', views.show_tags, name='tags'),
     url(r'^tags/download/(?P<tags_type>unsafe|safe)/$', views.download_tags, name='download_tags'),
