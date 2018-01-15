@@ -49,13 +49,13 @@ class Session:
 
         # Sign in.
         self.__signin()
-        logging.debug('Session was created')
 
     def __signin(self):
         # Get CSRF token via GET request.
         self.session = requests.Session()
         self.__request('users/service_signin/')
         self.__request('users/service_signin/', 'POST', self.__parameters)
+        logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
         """
@@ -91,14 +91,13 @@ class Session:
                                                                                                    method, url))
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     self.error = resp.json()['error']
+                    resp.close()
                     if self.error == 'You are not signing in':
-                        resp.close()
                         logging.debug("Session has expired, relogging in")
                         self.__signin()
                         if data:
                             data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
                     else:
-                        resp.close()
                         raise BridgeError(
                             'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
                 else:
