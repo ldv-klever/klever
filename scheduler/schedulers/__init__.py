@@ -485,6 +485,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 self.terminate()
                 if self.production:
                     logging.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
+                    self.server.stop()
                     time.sleep(30)
                     self.init_scheduler()
                 else:
