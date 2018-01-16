@@ -84,6 +84,7 @@ class Process:
         self.headers = list()
         self.declarations = dict()
         self.definitions = dict()
+        self.external_id = None
         self.__process_ast = None
         self.__accesses = dict()
 

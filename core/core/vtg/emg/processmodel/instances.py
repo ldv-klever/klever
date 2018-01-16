@@ -567,13 +567,11 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
-            # todo: generate id
             rename_process(instance)
             model_fsa.append(instance)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
-    # todo: generate its id
     entry_fsa = model.entry_process
 
     # According to new identifiers change signals peers
@@ -741,6 +739,8 @@ def __generate_model_comment(process):
     if len(expressions) > 0:
         comment = "{} (Relevant to {})".format(process.comment,
                                                ' '.join(("{!r}".format(e) for e in expressions)))
+        if not process.external_id:
+            process.external_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
         process.comment = comment
 
 
