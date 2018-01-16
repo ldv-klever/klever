@@ -130,7 +130,7 @@ class LabelTranslator(FSATranslator):
         return pre, blocks, post
 
     def _receive(self, state, automaton):
-        code, v_code, conditions, comments = super(LabelTranslator, self)._receive(self, state, automaton)
+        code, v_code, conditions, comments = super(LabelTranslator, self)._receive(state, automaton)
 
         automata_peers = {}
         if len(state.action.peers) > 0:

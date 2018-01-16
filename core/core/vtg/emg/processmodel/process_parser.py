@@ -17,13 +17,8 @@
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
     check_necessary_conf_property
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Process, Label, Receive, Dispatch, Call, CallRetval, Condition, \
-    generate_regex_set
-
-
-####################################################################################################################
-# PUBLIC FUNCTIONS
-####################################################################################################################
+from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, generate_regex_set
+from core.vtg.emg.processmodel.abstractprocess import AbstractLabel, AbstractProcess
 
 
 def parse_event_specification(logger, conf, raw):
@@ -53,34 +48,30 @@ def parse_event_specification(logger, conf, raw):
             names = name_list.split(", ")
             for name in names:
                 logger.debug("Import process which models {!r}".format(name))
-                models[name] = __import_process(name, raw["kernel model"][name_list], conf, True)
+                models[name] = __import_process(name, raw["kernel model"][name_list], conf)
     else:
         logger.warning("Kernel model is not provided")
     if "environment processes" in raw:
         logger.info("Import processes from 'environment processes'")
         for name in raw["environment processes"]:
             logger.debug("Import environment process {}".format(name))
-            process = __import_process(name, raw["environment processes"][name], conf, False)
+            process = __import_process(name, raw["environment processes"][name], conf)
             env_processes[name] = process
     else:
         raise KeyError("Model cannot be generated without environment processes")
 
     return models, env_processes
 
-####################################################################################################################
-# PRIVATE FUNCTIONS
-####################################################################################################################
 
-
-def __import_process(name, dic, conf, model_flag=False):
-    process = Process(name)
+def __import_process(name, dic, conf):
+    process = AbstractProcess(name)
 
     if 'self parallelism' in dic:
         process.self_parallelism = False
 
     if 'labels' in dic:
         for label_name in dic['labels']:
-            label = Label(label_name)
+            label = AbstractLabel(label_name)
             process.labels[label_name] = label
 
             for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file', 'retval']:
@@ -88,9 +79,9 @@ def __import_process(name, dic, conf, model_flag=False):
                     setattr(label, att, dic['labels'][label_name][att])
 
             if 'interface' in dic['labels'][label_name]:
-                if type(dic['labels'][label_name]['interface']) is str:
+                if isinstance(dic['labels'][label_name]['interface'], str):
                     label.set_declaration(dic['labels'][label_name]['interface'], None)
-                elif type(dic['labels'][label_name]['interface']) is list:
+                elif isinstance(dic['labels'][label_name]['interface'], list):
                     for string in dic['labels'][label_name]['interface']:
                         label.set_declaration(string, None)
                 else:

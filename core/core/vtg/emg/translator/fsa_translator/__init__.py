@@ -18,12 +18,11 @@ import abc
 from operator import attrgetter
 
 import graphviz
-import re
 
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
-from core.vtg.emg.common.signature import import_declaration, Primitive
+from core.vtg.emg.common.signature import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
-from core.vtg.emg.common.code import FunctionDefinition, Variable
+from core.vtg.emg.common.code import FunctionDefinition
 from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata
 
 
@@ -95,7 +94,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             function_obj = self._analysis.get_source_function(automaton.process.name)
             params = []
             for position, param in enumerate(function_obj.declaration.parameters):
-                if type(param) is str:
+                if isinstance(param, str):
                     params.append(param)
                 else:
                     params.append('$arg{}'.format(str(position + 1)))
@@ -165,7 +164,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             # Add subself.process description
             for subp in [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
-                         if type(automaton.process.actions[name]) is Subprocess]:
+                         if isinstance(automaton.process.actions[name], Subprocess)]:
                 graph.node(
                     subp.name,
                     "Subprocess {}: {}".format(subp.name, subp.process),
@@ -179,15 +178,15 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 label = "Action {}: {}\l".format(state.identifier, state.desc['label'])
                 label += '\l'.join(state.code[1])
 
-                if type(state.action) is not Subprocess or state.action.name not in subprocesses:
+                if not isinstance(state.action, Subprocess) or state.action.name not in subprocesses:
                     graph.node(str(state.identifier), label)
-                    if type(state.action) is Subprocess:
+                    if isinstance(state.action, Subprocess):
                         subprocesses[state.action.name] = state.identifier
 
             for state in automaton.fsa.states:
-                if type(state.action) is not Subprocess or state.identifier in subprocesses.values():
+                if not isinstance(state.action, Subprocess) or state.identifier in subprocesses.values():
                     for succ in state.successors:
-                        if type(succ.action) is Subprocess:
+                        if isinstance(succ.action, Subprocess):
                             graph.edge(
                                 str(state.identifier),
                                 str(subprocesses[succ.action.name])
@@ -513,7 +512,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 function_obj = self._analysis.get_source_function(automaton.process.name)
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
-                    if type(param) is str:
+                    if isinstance(param, str):
                         params.append(param)
                     else:
                         params.append(param.to_string('arg{}'.format(str(position)), typedef='complex_and_params'))

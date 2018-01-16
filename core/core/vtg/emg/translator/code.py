@@ -113,10 +113,10 @@ class CModel:
         elif not extern:
             self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
             if variable.value and variable.file and \
-                    ((type(variable.declaration) is Pointer and type(variable.declaration.points) is Function) or
-                     type(variable.declaration) is Primitive):
+                    ((isinstance(variable.declaration) is Pointer and isinstance(variable.declaration.points, Function)) or
+                     isinstance(variable.declaration, Primitive)):
                 self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
-            elif not variable.value and type(variable.declaration) is Pointer:
+            elif not variable.value and isinstance(variable.declaration, Pointer):
                 if file not in self.__external_allocated:
                     self.__external_allocated[file] = []
                 self.__external_allocated[file].append(variable)
@@ -400,7 +400,7 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(func))
 
         # Create function call
-        if type(self.signature) is Pointer:
+        if isinstance(self.signature, Pointer):
             return "{}(%{}%)".format(self.free_function_map[func], label_name)
         else:
             raise ValueError('This is not a pointer')

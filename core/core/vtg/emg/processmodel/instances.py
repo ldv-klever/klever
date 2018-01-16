@@ -21,9 +21,10 @@ import re
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
 from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array, Function
-from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call, get_common_parameter
 from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
+from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call
+from core.vtg.emg.processmodel.abstractprocess import get_common_parameter
 final_code = {'environment model': {"declarations": [], "definitions": []}}
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
@@ -269,7 +270,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
             ret_access = process.resolve_access(call.retlabel)
         else:
             ret_subprocess = [process.actions[n] for n in sorted(process.actions.keys())
-                              if type(process.actions[n]) is CallRetval and
+                              if isinstance(process.actions[n], CallRetval) and
                               process.actions[n].callback == call.callback and process.actions[n].retlabel]
             if ret_subprocess:
                 ret_access = process.resolve_access(ret_subprocess[0].retlabel)
@@ -311,9 +312,9 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
         pointer_params = []
         label_params = []
         for index in range(len(declaration.points.parameters)):
-            if type(declaration.points.parameters[index]) is not str and index not in found_positions:
-                if type(declaration.points.parameters[index]) is not Primitive and \
-                                type(declaration.points.parameters[index]) is not Pointer:
+            if not isinstance(declaration.points.parameters[index], str) and index not in found_positions:
+                if not isinstance(declaration.points.parameters[index], Primitive) and \
+                        not isinstance(declaration.points.parameters[index], Pointer):
                     param_signature = declaration.points.parameters[index].take_pointer
                     pointer_params.append(index)
                     expression = "*%{}%"
@@ -556,9 +557,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                     format(len(base_list), process.name, process.category))
 
-        # todo: Maybe reuse this section
         for instance in base_list:
-            # todo: generate id
             rename_process(instance)
             callback_fsa.append(instance)
 
@@ -567,7 +566,6 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     for process in model.model_processes:
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
-        # todo: Maybe reuse this section
         for instance in processes:
             # todo: generate id
             rename_process(instance)
@@ -980,9 +978,9 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
                     elif len(suits) > 1:
                         # There can be many useless resource implementations ...
                         interface_obj = analysis.get_intf(interface)
-                        if type(interface_obj) is Resource and resource_new_insts > 0:
+                        if isinstance(interface_obj, Resource) and resource_new_insts > 0:
                             suits = suits[0:resource_new_insts]
-                        elif type(interface_obj) is Container:
+                        elif isinstance(interface_obj, Container):
                             # Ignore additional container values which does not influence the other interfaces
                             suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
                         else:
@@ -998,7 +996,7 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
             # Add additional maps
             maps.extend(intf_additional_maps)
 
-    if type(simplified_map) is list:
+    if isinstance(simplified_map, list):
         # Forbid pointer implementations
         complete_maps = maps
         maps = []
@@ -1181,9 +1179,9 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
         if len(interface_to_value[interface][value]) > 0:
             suitable_map = None
             for mp, chosen_values in ((m, cv) for m, cv in maps if not m[expression][interface] and m not in added):
-                for e in (e for e in sorted(mp.keys()) if type(mp[e]) is dict):
+                for e in (e for e in sorted(mp.keys()) if isinstance(mp[e], dict)):
                     same_container = \
-                        [mp for i in mp[e] if i != interface and type(mp[e][i]) is Implementation and
+                        [mp for i in mp[e] if i != interface and isinstance(mp[e][i], Implementation) and
                          mp[e][i].base_value and _from_same_container(v_implementation, mp[e][i])]
                     if len(same_container) > 0 and mp not in added:
                         suitable_map = [mp, chosen_values]
@@ -1253,7 +1251,7 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
     :return: Set with all added values (a given one plus a container if so).
     """
-    added = set([value])
+    added = {value}
 
     chosen_values.add(value)
     total_chosen_values.add(value)
@@ -1293,7 +1291,7 @@ def _from_same_container(a, b):
                 for i in range(iterate):
                     if a.sequence[i] != b.sequence[i]:
                         return False
-                    elif type(a.sequence[i]) is int:
+                    elif isinstance(a.sequence[i], int):
                         return True
     else:
         if a.base_value and b.base_value and a.base_value == b.base_value:

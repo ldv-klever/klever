@@ -185,7 +185,7 @@ def p_dispatch(p):
         'number': 1,
         'label': '['
     }
-    if type(p[2]) is not str and p[2]:
+    if not isinstance(p[2], str) and p[2]:
         p[0]['broadcast'] = True
         p[0]['name'] = p[3]
         p[0]['label'] += '@'
@@ -213,7 +213,7 @@ def p_receive(p):
         'number': 1,
         'label': '('
     }
-    if type(p[2]) is not str and p[2]:
+    if not isinstance(p[2], str) and p[2]:
         p[0]['replicative'] = True
         p[0]['name'] = p[3]
         p[0]['label'] += '!'

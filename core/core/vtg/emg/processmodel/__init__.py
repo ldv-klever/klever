@@ -18,7 +18,7 @@ import copy
 import re
 
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
-from core.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition, CallRetval
+from core.vtg.emg.common.abstractprocess import Access, Process, Label, Call, Dispatch, Receive, Condition, CallRetval
 from core.vtg.emg.common.interface import Interface, Callback, Container
 from core.vtg.emg.processmodel.entry import EntryProcessGenerator
 from core.vtg.emg.processmodel.instances import generate_instances

@@ -256,7 +256,7 @@ class InterfaceCategoriesSpecification:
             del self.__deleted_interfaces[identifier]
 
             # Restore resources
-            if type(self._interfaces[identifier]) is Callback:
+            if isinstance(self._interfaces[identifier], Callback):
                 for pi in self._interfaces[identifier].param_interfaces:
                     self.get_or_restore_intf(pi)
 
@@ -381,7 +381,7 @@ class InterfaceCategoriesSpecification:
         :return: List with Container objects.
         """
         return [self.get_intf(name) for name in self.interfaces
-                if type(self.get_intf(name)) is Container and
+                if isinstance(self.get_intf(name), Container) and
                 (not category or self.get_intf(name).category == category)]
 
     def callbacks(self, category=None):
@@ -393,7 +393,7 @@ class InterfaceCategoriesSpecification:
         :return: List with Callback objects.
         """
         return [self.get_intf(name) for name in self.interfaces
-                if type(self.get_intf(name)) is Callback and
+                if isinstance(self.get_intf(name), Callback) and
                 (not category or self.get_intf(name).category == category)]
 
     def resources(self, category=None):
@@ -405,7 +405,7 @@ class InterfaceCategoriesSpecification:
         :return: List with Resource objects.
         """
         return [self.get_intf(name) for name in self.interfaces
-                if type(self.get_intf(name)) is Resource and
+                if isinstance(self.get_intf(name), Resource) and
                 (not category or self.get_intf(name).category == category)]
 
     def uncalled_callbacks(self, category=None):
@@ -430,7 +430,7 @@ class InterfaceCategoriesSpecification:
         :return: List with Container objects.
         """
         return [container for container in self.containers(category)
-                if type(container.declaration) is Structure and
+                if isinstance(container.declaration, Structure) and
                 ((field in container.field_interfaces and
                   (not signature or container.field_interfaces[
                       field].declaration.identifier == signature.identifier)) or
@@ -473,9 +473,9 @@ class InterfaceCategoriesSpecification:
                           extracted or generated and no new types or interfaces will appear.
         :return: Returns list of Container objects.
         """
-        if type(signature) is InterfaceReference and signature.interface in self.interfaces:
+        if isinstance(signature, InterfaceReference) and signature.interface in self.interfaces:
             return [self.get_intf(signature.interface)]
-        elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
+        elif isinstance(signature, InterfaceReference) and signature.interface not in self.interfaces:
             raise KeyError('Cannot find description of interface {}'.format(signature.interface))
         else:
             if not (signature.identifier in self._interface_cache and use_cache):
@@ -499,9 +499,9 @@ class InterfaceCategoriesSpecification:
         :return: Returns list of Container objects.
         """
         intf = self.resolve_interface(signature, category, use_cache)
-        if not intf and type(signature) is Pointer:
+        if not intf and isinstance(signature, Pointer):
             intf = self.resolve_interface(signature.points, category, use_cache)
-        elif not intf and type(signature) is not Pointer and signature.clean_declaration:
+        elif not intf and not isinstance(signature, Pointer) and signature.clean_declaration:
             intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
 
@@ -518,10 +518,10 @@ class InterfaceCategoriesSpecification:
         :return: List of Implementation objects.
         """
         if weakly and interface.identifier in self._implementations_cache and \
-                type(self._implementations_cache[interface.identifier]['weak']) is list:
+                isinstance(self._implementations_cache[interface.identifier]['weak'], list):
             return self._implementations_cache[interface.identifier]['weak']
         elif not weakly and interface.identifier in self._implementations_cache and \
-                type(self._implementations_cache[interface.identifier]['strict']) is list:
+                isinstance(self._implementations_cache[interface.identifier]['strict'], list):
             return self._implementations_cache[interface.identifier]['strict']
 
         if weakly:
@@ -543,7 +543,7 @@ class InterfaceCategoriesSpecification:
                 if len(impl.sequence) > 0 and len(cnts) > 0:
                     for cnt in sorted(list(cnts.keys())):
                         cnt_intf = self.get_intf(cnt)
-                        if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
+                        if isinstance(cnt_intf.declaration, Array) and cnt_intf.element_interface and \
                                 interface.identifier == cnt_intf.element_interface.identifier:
                             implementations.append(impl)
                             break
@@ -614,7 +614,7 @@ class InterfaceCategoriesSpecification:
 
         self.logger.debug("Restore field declarations in structure declarations")
         for structure in [intf for intf in self.containers() if intf.declaration and
-                          type(intf.declaration) is Structure]:
+                          isinstance(intf.declaration, Structure)]:
             for field in [field for field in sorted(structure.declaration.fields.keys())
                           if not structure.declaration.fields[field].clean_declaration]:
                 new_declaration = refine_declaration(self._interfaces, structure.declaration.fields[field])
@@ -625,8 +625,8 @@ class InterfaceCategoriesSpecification:
 
     def __resolve_containers(self, target, category):
         return {container.identifier: container.contains(target) for container in self.containers(category)
-                if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
-                (type(container.declaration) is Array and container.contains(target))}
+                if (isinstance(container.declaration, Structure) and len(container.contains(target)) > 0) or
+                (isinstance(container.declaration, Array) and container.contains(target))}
 
     def __functions_called_in(self, path, name):
         if not (path in self.__function_calls_cache and name in self.__function_calls_cache[path]):
@@ -713,7 +713,7 @@ class InterfaceCategoriesSpecification:
         while add_cnt != 0:
             add_cnt = 0
             for container in [cnt for cnt in self.containers() if cnt not in relevant_interfaces]:
-                if type(container.declaration) is Structure:
+                if isinstance(container.declaration, Structure):
                     match = False
 
                     for f_intf in [container.field_interfaces[name] for name
@@ -725,7 +725,7 @@ class InterfaceCategoriesSpecification:
                     if match:
                         relevant_interfaces.add(container)
                         add_cnt += 1
-                elif type(container.declaration) is Array:
+                elif isinstance(container.declaration, Array):
                     if container.element_interface in relevant_interfaces:
                         relevant_interfaces.add(container)
                         add_cnt += 1

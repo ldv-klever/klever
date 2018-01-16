@@ -39,7 +39,8 @@ def new_identifier():
 
 def check_null(declaration, value):
     check = re.compile('[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
-    if (type(declaration) is Function or (type(declaration) is Pointer and type(declaration.points) is Function)) and \
+    if (isinstance(declaration, Function) or (isinstance(declaration, Pointer) and
+                                              isinstance(declaration.points, Function))) and \
             check.fullmatch(value):
         return False
     else:
@@ -49,7 +50,7 @@ def check_null(declaration, value):
 def extract_name(signature):
     try:
         ast = parse_signature(signature)
-    except:
+    except Exception:
         raise ValueError("Cannot parse signature: {}".format(signature))
 
     if 'declarator' in ast and len(ast['declarator']) > 0 and 'identifier' in ast['declarator'][-1] and \
@@ -184,9 +185,9 @@ def refine_declaration(interfaces, declaration):
     if declaration.clean_declaration:
         raise ValueError('Cannot clean already cleaned declaration')
 
-    if type(declaration) is UndefinedReference:
+    if isinstance(declaration, UndefinedReference):
         return None
-    elif type(declaration) is InterfaceReference:
+    elif isinstance(declaration, InterfaceReference):
         if declaration.interface in interfaces and \
                 interfaces[declaration.interface].declaration.clean_declaration:
             if declaration.pointer:
@@ -195,7 +196,7 @@ def refine_declaration(interfaces, declaration):
                 return interfaces[declaration.interface].declaration
         else:
             return None
-    elif type(declaration) is Function:
+    elif isinstance(declaration, Function):
         refinement = False
         new = copy.deepcopy(declaration)
 
@@ -229,7 +230,7 @@ def refine_declaration(interfaces, declaration):
             return new
         else:
             return None
-    elif type(declaration) is Pointer and type(declaration.points) is Function:
+    elif isinstance(declaration, Pointer) and isinstance(declaration.points, Function):
         refined = refine_declaration(interfaces, declaration.points)
         if refined:
             ptr = refined.take_pointer
@@ -287,7 +288,7 @@ class Declaration:
 
     @property
     def weak_implementations(self):
-        if type(self) is Pointer:
+        if isinstance(self, Pointer):
             return list(self.implementations.values()) + list(self.points.implementations.values())
         else:
             return list(self.implementations.values()) + list(self.take_pointer.implementations.values())
@@ -323,9 +324,9 @@ class Declaration:
         return False
 
     def pointer_alias(self, alias):
-        if type(self) is Pointer and self.points.compare(alias):
+        if isinstance(self, Pointer) and self.points.compare(alias):
             return self
-        elif type(alias) is Pointer and self.compare(alias.points):
+        elif isinstance(alias, Pointer) and self.compare(alias.points):
             return alias
 
         return None
@@ -446,7 +447,7 @@ class Function(Declaration):
             self.return_value, self.ret_typedef = import_declaration(None, self._ast['return value type'],
                                                                      track_typedef=True)
         for parameter in self._ast['declarator'][0]['function arguments']:
-            if type(parameter) is str:
+            if isinstance(parameter, str):
                 self.parameters.append(parameter)
                 self.params_typedef.append(None)
             else:
@@ -454,7 +455,7 @@ class Function(Declaration):
                 self.parameters.append(param)
                 self.params_typedef.append(typedef)
 
-        if len(self.parameters) == 1 and type(self.parameters[0]) is Primitive and \
+        if len(self.parameters) == 1 and isinstance(self.parameters[0], Primitive) and \
                 self.parameters[0].pretty_name == 'void':
             self.parameters = []
 
@@ -463,7 +464,7 @@ class Function(Declaration):
         if not self.return_value.clean_declaration:
             return False
         for param in self.parameters:
-            if type(param) is not str and not param.clean_declaration:
+            if not isinstance(param) is not str and not param.clean_declaration:
                 return False
         return True
 
@@ -768,7 +769,7 @@ class Implementation:
             return '*' + self.value
         elif self.declaration.take_pointer.compare(declaration):
             return '&' + self.value
-        elif type(declaration) is Pointer and type(self.declaration) is Pointer and \
+        elif isinstance(declaration, Pointer) and isinstance(self.declaration, Pointer) and \
                 self.declaration.identifier == 'void *':
             return self.value
         else:

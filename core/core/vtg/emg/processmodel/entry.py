@@ -17,7 +17,8 @@
 
 from core.vtg.emg.common import get_necessary_conf_property, model_comment
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Dispatch, Receive, Condition, Process
+from core.vtg.emg.common.process import Dispatch, Receive, Condition
+from core.vtg.emg.processmodel.abstractprocess import AbstractProcess
 
 
 class EntryProcessGenerator:
@@ -130,7 +131,7 @@ class EntryProcessGenerator:
 
     def __generate_insmod_process(self, analysis, default_dispatches=False):
         self.__logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
-        ep = Process("insmod")
+        ep = AbstractProcess("insmod")
         ep.comment = "Initialize or exit module."
         ep.self_parallelism = False
         ep.identifier = 0

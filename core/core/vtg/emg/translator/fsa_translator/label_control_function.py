@@ -50,7 +50,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
 
     processed = []
     for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
-                 if type(s.action) is Subprocess]:
+                 if isinstance(s.action, Subprocess)]:
         if subp.action.name not in processed:
             sp_v_code, sp_f_code = __label_sequence(automaton, list(subp.successors)[0], ret_expression)
 
@@ -99,7 +99,7 @@ def normalize_fsa(automaton, composer):
 
     # Keep subprocess states as jump points
     # Insert process and subprocess artificial single entry states
-    for subprocess in (a for a in automaton.process.actions.values() if type(a) is Subprocess):
+    for subprocess in (a for a in automaton.process.actions.values() if isinstance(a, Subprocess)):
         new = automaton.fsa.new_state(None)
         new_states.append(new)
 
@@ -341,7 +341,7 @@ def __merge_points(initial_states):
                 graph[st.identifier][successor.identifier] = dict(out_value)
 
                 # Branches with subprocesses has no merge point
-                if type(successor.action) is Subprocess:
+                if isinstance(successor.action, Subprocess):
                     add_terminal(successor.identifier, out_value, split_points, subprocess=True)
                 else:
                     if st.identifier in split_points:
@@ -441,7 +441,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
         next_branch = conditional_stack[-1]['pending'].pop()
         tab = start_branch(tab, f_code, conditional_stack[-1])
 
-        if type(next_branch) is dict:
+        if isinstance(next_branch, dict):
             # Open condition
             tab = start_condition(tab, f_code, next_branch, conditional_stack, state_stack)
         else:
@@ -479,14 +479,14 @@ def __label_sequence(automaton, initial_state, ret_expression):
         new_f_code = list(f)
 
         v_code.extend(new_v_code)
-        if type(state.action) is Subprocess:
+        if isinstance(state.action, Subprocess):
             new_f_code.extend([
                 '/* Jump to a subprocess {!r} initial state */'.format(state.action.name),
                 'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
             ])
 
         # If this is a terminal state - quit control function
-        if type(state.action) is not Subprocess and len(state.successors) == 0:
+        if not isinstance(state.action, Subprocess) and len(state.successors) == 0:
             new_f_code.extend([
                 ''
                 "/* Exit function at a terminal state */",
@@ -507,7 +507,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
             tab = close_branch(tab, f_code, conditional_stack[-1])
             # Start new branch
             tab = process_next_branch(tab, f_code, conditional_stack, state_stack)
-        elif type(state.action) is not Subprocess:
+        elif not isinstance(state.action, Subprocess):
             # Add new states in terms of the current branch
             if len(state.successors) > 1:
                 # Add new condition

@@ -79,7 +79,7 @@ class FunctionInterface(Interface):
                             format(declaration.identifier))
 
         if self.rv_interface:
-            if type(self_declaration.return_value) is InterfaceReference and \
+            if isinstance(self_declaration.return_value, InterfaceReference) and \
                     self_declaration.return_value.pointer:
                 self.rv_interface.update_declaration(declaration.return_value.points)
             else:
@@ -89,7 +89,7 @@ class FunctionInterface(Interface):
             p_declaration = declaration.parameters[index]
 
             if len(self.param_interfaces) > index and self.param_interfaces[index]:
-                if type(self_declaration.parameters[index]) is InterfaceReference and \
+                if isinstance(self_declaration.parameters[index], InterfaceReference) and \
                         self_declaration.parameters[index].pointer:
                     self.param_interfaces[index].update_declaration(p_declaration.points)
                 else:

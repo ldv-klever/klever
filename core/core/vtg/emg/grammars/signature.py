@@ -173,10 +173,10 @@ def p_declaration_specifiers_list(p):
     p[0] = {}
     if len(p) == 2:
         p[0]['type specifier'] = p[1]
-    elif len(p) == 3 and type(p[1]) is list:
+    elif len(p) == 3 and isinstance(p[1], list):
         p[0]['type specifier'] = p[2]
         p[0]['specifiers'] = p[1]
-    elif len(p) == 3 and type(p[1]) is dict:
+    elif len(p) == 3 and isinstance(p[1], dict):
         p[0]['type specifier'] = p[1]
         p[0]['specifiers'] = p[2]
     else:
@@ -230,7 +230,7 @@ def p_type_specifier(p):
                    | enum_specifier
                    | typedef
     """
-    if type(p[1]) is str:
+    if isinstance(p[1], str):
         p[0] = {
             'class': 'primitive',
             'name': p[1]
@@ -376,9 +376,9 @@ def p_pointer(p):
     """
     if len(p) == 2:
         p[0] = 1
-    elif len(p) == 3 and type(p[2]) is int:
+    elif len(p) == 3 and isinstance(p[2], int):
         p[0] = int(p[2]) + 1
-    elif len(p) == 3 and type(p[2]) is list:
+    elif len(p) == 3 and isinstance(p[2], list):
         p[0] = 1
     else:
         p[0] = int(p[3]) + 1
@@ -424,11 +424,11 @@ def p_array_size(p):
                | STAR_SIGN
                | NUMBER
     """
-    if len(p) == 3 and type(p[2]) is str:
+    if len(p) == 3 and isinstance(p[2], str):
         p[0] = {"size": None}
-    elif len(p) == 3 and type(p[2]) is int:
+    elif len(p) == 3 and isinstance(p[2], int):
         p[0] = {"size": p[2]}
-    elif len(p) == 2 and type(p[1]) is str:
+    elif len(p) == 2 and isinstance(p[1], str):
         p[0] = {"size": None}
     else:
         p[0] = {"size": p[1]}
@@ -497,12 +497,12 @@ def declaration_processing(p):
             'specifiers': p[1],
             'declarator': p[2]
         }
-    elif len(p) == 2 and type(p[1]) is dict and 'type specifier' in p[1]:
+    elif len(p) == 2 and isinstance(p[1], dict) and 'type specifier' in p[1]:
         p[0] = {
             'specifiers': p[1],
             'declarator': [{'identifier': None}]
         }
-    elif len(p) == 2 and (type(p[1]) is dict and 'category' in p[1] or p[1] == '$'):
+    elif len(p) == 2 and (isinstance(p[1], dict) and 'category' in p[1] or p[1] == '$'):
         p[0] = {
             'specifiers': p[1]
         }
@@ -534,13 +534,13 @@ def declarator_processing(p):
                         | direct_[abstract_]declarator
                         [| pointer]
     """
-    if len(p) == 2 and type(p[1]) is int:
+    if len(p) == 2 and isinstance(p[1], int):
         new = {
             'pointer': p[1],
             'identifier': None
         }
         p[0] = [new]
-    elif len(p) == 2 and type(p[1]) is list:
+    elif len(p) == 2 and isinstance(p[1], list):
         p[0] = p[1]
     else:
         p[0] = p[2]
@@ -578,7 +578,7 @@ def direct_declarator_processing(p):
             if len(p) == 5:
                 p[0] = p[1]
 
-                if len(p[3]) == 1 and type(p[3][0]) is dict and 'type specifier' in p[3][0] and \
+                if len(p[3]) == 1 and isinstance(p[3][0], dict) and 'type specifier' in p[3][0] and \
                         p[3][0]['type specifier']['name'] == 'void' and 'declarator' not in p[3][0]:
                     p[0][0]['function arguments'] = []
                 else:

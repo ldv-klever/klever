@@ -78,9 +78,9 @@ class FSA:
                         raise KeyError("Process {!r} does not have action description {!r}".
                                        format(process.name, ast['name']))
                     node.action = process.actions[ast['name']]
-                    if type(process.actions[ast['name']]) is Receive:
+                    if isinstance(process.actions[ast['name']], Receive):
                         node.action.replicative = node.desc['replicative']
-                    if type(process.actions[ast['name']]) is Dispatch:
+                    if isinstance(process.actions[ast['name']], Dispatch):
                         node.action.broadcast = node.desc['broadcast']
 
                     # Save State in AST
@@ -93,7 +93,7 @@ class FSA:
             return initial_states
 
         # Generate nodes for subprocesses first
-        for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
+        for name in [name for name in sorted(process.actions.keys()) if isinstance(process.actions[name], Subprocess)]:
             # Make copy of the original AST to allow making changes there for more convinient exploration
             ast = copy.copy(process.actions[name].process_ast)
             generate_nodes(process, ast)
@@ -158,7 +158,7 @@ class FSA:
                 last = resolve_last(prev)
                 if len(last) > 0 and prev['type'] != "subprocess":
                     # Filter out subprocesses if there are
-                    last = [s for s in last if type(s.action) is not Subprocess]
+                    last = [s for s in last if not isinstance(s.action, Subprocess)]
 
                 for pre_state in last:
                     ast['node'].insert_predecessor(pre_state)

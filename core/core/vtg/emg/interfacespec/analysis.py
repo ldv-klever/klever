@@ -79,7 +79,7 @@ def __extract_types(collection, analysis):
                 raise ValueError('Global variable without a name')
 
             signature = import_declaration(variable['declaration'])
-            if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
+            if isinstance(signature, Structure) or isinstance(signature, Array) or isinstance(signature, Union):
                 entity = {
                     "path": variable['path'],
                     "description": variable,

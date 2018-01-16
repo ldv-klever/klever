@@ -254,7 +254,7 @@ def __complement_interfaces(collection):
                                    format(signature.to_string('a')))
 
             # Filter of resources
-            candidates = [i for i in candidates if type(i) is not Resource]
+            candidates = [i for i in candidates if not isinstance(i, Resource)]
             if len(candidates) == 1:
                 return candidates[0]
             else:

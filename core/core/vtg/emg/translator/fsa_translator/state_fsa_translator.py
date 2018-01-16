@@ -94,7 +94,7 @@ class StateTranslator(FSATranslator):
         return pre, blocks, post
 
     def _receive(self, state, automaton):
-        code, v_code, conditions, comments = super(StateTranslator, self)._receive(self, state, automaton)
+        code, v_code, conditions, comments = super(StateTranslator, self)._receive(state, automaton)
 
         code.append("/* Automaton itself cannot perform a receive, look at a dispatcher's code */".
                     format(state.action.name))
@@ -247,7 +247,7 @@ class StateTranslator(FSATranslator):
             v_code.extend(new_v_code)
             code.extend(block)
 
-        if type(state_block[0].action) is not Receive:
+        if not isinstance(state_block[0].action, Receive):
             code.append('/* Set the next state */')
             code.extend(self.__switch_state_code(automaton, state))
         else:
@@ -273,7 +273,7 @@ class StateTranslator(FSATranslator):
 
                     if len(state.successors) == 1 and (no_jump or type(list(state.successors)[0].action)
                                                        not in self.__jump_types) \
-                            and type(state.action) is not Receive:
+                            and not isinstance(state.action, Receive):
                         state_stack.append(list(state.successors)[0])
 
                 self.__state_chains_memoization[automaton.identifier][origin.identifier] = block

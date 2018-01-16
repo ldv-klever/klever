@@ -50,11 +50,11 @@ def import_interface_specification(collection, specification):
 
     # Add fields to container declaration types
     for container in collection.containers():
-        if type(container.declaration) is Structure:
+        if isinstance(container.declaration, Structure):
             for field in sorted(container.field_interfaces):
                 if container.field_interfaces[field].declaration and \
-                        (type(container.field_interfaces[field].declaration) is Array or
-                         type(container.field_interfaces[field].declaration) is Structure):
+                        (isinstance(container.field_interfaces[field].declaration, Array) or
+                         isinstance(container.field_interfaces[field].declaration, Structure)):
                     if container.declaration.fields[field].pointer:
                         container.declaration.fields[field] = \
                             container.field_interfaces[field].declaration.take_pointer
@@ -93,9 +93,9 @@ def fulfill_function_interfaces(collection, interface, category=None):
         :return: True - it is primitive, False - otherwise
         """
         # todo: Implement check agains arrays of primitives
-        if type(decl) is Primitive or \
-            (type(decl) is Pointer and
-             (type(decl.points) is Primitive or decl.identifier in {'void *', 'void **'})):
+        if isinstance(decl, Primitive) or \
+            (isinstance(decl, Pointer) and
+             (isinstance(decl.points, Primitive) or decl.identifier in {'void *', 'void **'})):
             return True
         else:
             return False
@@ -116,9 +116,9 @@ def fulfill_function_interfaces(collection, interface, category=None):
             function_intf.param_interfaces.append(matched_intf)
 
     # Check declaration type
-    if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
+    if isinstance(interface.declaration, Pointer) and isinstance(interface.declaration.points, Function):
         declaration = interface.declaration.points
-    elif type(interface.declaration) is Function:
+    elif isinstance(interface.declaration, Function):
         declaration = interface.declaration
     else:
         raise TypeError('Expect pointer to function or function declaration but got {}'.
@@ -126,7 +126,7 @@ def fulfill_function_interfaces(collection, interface, category=None):
 
     # First check explicitly stated interfaces
     if not interface.rv_interface and declaration.return_value and \
-            type(declaration.return_value) is InterfaceReference and \
+            isinstance(declaration.return_value, InterfaceReference) and \
             declaration.return_value.interface in collection.interfaces:
         interface.rv_interface = collection.get_intf(declaration.return_value.interface)
     elif interface.rv_interface and not category:
@@ -135,7 +135,7 @@ def fulfill_function_interfaces(collection, interface, category=None):
     # Check explicit parameter interface references
     for index in range(len(declaration.parameters)):
         if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]):
-            if type(declaration.parameters[index]) is InterfaceReference and \
+            if isinstance(declaration.parameters[index], InterfaceReference) and \
                     declaration.parameters[index].interface in collection.interfaces:
                 p_interface = collection.get_intf(declaration.parameters[index].interface)
             else:
@@ -164,7 +164,7 @@ def fulfill_function_interfaces(collection, interface, category=None):
 
     for index in range(len(declaration.parameters)):
         if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]) and \
-                type(declaration.parameters[index]) is not str and \
+                not isinstance(declaration.parameters[index], str) and \
                 not is_primitive_or_void(declaration.parameters[index]):
             p_interface = collection.resolve_interface(declaration.parameters[index], category, False)
             if len(p_interface) == 0:
