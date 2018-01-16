@@ -556,7 +556,9 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                     format(len(base_list), process.name, process.category))
 
+        # todo: Maybe reuse this section
         for instance in base_list:
+            # todo: generate id
             rename_process(instance)
             callback_fsa.append(instance)
 
@@ -565,12 +567,15 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     for process in model.model_processes:
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
+        # todo: Maybe reuse this section
         for instance in processes:
+            # todo: generate id
             rename_process(instance)
             model_fsa.append(instance)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
+    # todo: generate its id
     entry_fsa = model.entry_process
 
     # According to new identifiers change signals peers
@@ -592,6 +597,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
         if get_conf_property(conf, "convert statics to globals", expected_type=bool):
+            # todo: provide a process
             _remove_statics(analysis, process.allowed_implementations)
 
     return entry_fsa, model_fsa, callback_fsa
@@ -768,6 +774,8 @@ def _remove_statics(analysis, access_map):
 
     # For each static Implementation add to the origin file aspect which adds a variable with the same global
     # declaration
+
+    # todo: at saving also save all generated strings even already added to the process addons
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]

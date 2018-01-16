@@ -87,6 +87,7 @@ class EntryProcessGenerator:
 
         # Add default dispatches
         if default_dispatches:
+            # todo: insert there registration of initially present processes
             expr = self.__generate_default_dispatches(ep)
             if expr:
                 ep.process += "{}.".format(expr)
