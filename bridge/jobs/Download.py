@@ -18,6 +18,8 @@
 import os
 import re
 import json
+import zipfile
+import tempfile
 from io import BytesIO
 
 from django.conf import settings
@@ -27,14 +29,14 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import datetime, pytz
 
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
-from bridge.utils import logger, file_get_or_create, BridgeException
+from bridge.utils import logger, file_get_or_create, BridgeException, extract_archive
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
     Component, Computer, ReportAttr, ComponentResource, CoverageArchive
 from service.models import SolvingProgress, JobProgress, Scheduler
-from jobs.utils import create_job, update_job, change_job_status, GetConfiguration
+from jobs.utils import create_job, update_job, change_job_status, GetConfiguration, remove_jobs_by_id
 from reports.utils import AttrData
 from service.utils import StartJobDecision
 from tools.utils import Recalculation
@@ -245,6 +247,44 @@ class JobsArchivesGen:
         yield self.stream.close_stream()
 
 
+class JobsTreesGen:
+    def __init__(self, jobs_ids):
+        self._tree = {}
+        self.jobs = self.__get_jobs(jobs_ids)
+        self.stream = ZipStream()
+
+    def __iter__(self):
+        for job in self.jobs:
+            jobgen = JobArchiveGenerator(job)
+            buf = b''
+            for data in self.stream.compress_stream(jobgen.arcname, jobgen):
+                buf += data
+                if len(buf) > CHUNK_SIZE:
+                    yield buf
+                    buf = b''
+            if len(buf) > 0:
+                yield buf
+        for data in self.stream.compress_string('tree.json', json.dumps(self._tree, sort_keys=True, indent=2)):
+            yield data
+        yield self.stream.close_stream()
+
+    def __get_jobs(self, jobs_ids):
+        jobs = []
+        for j in Job.objects.filter(id__in=jobs_ids):
+            jobs.append(j)
+            self._tree[j.identifier] = None
+        parent_ids = jobs_ids
+        while len(parent_ids) > 0:
+            new_parents = []
+            for j in Job.objects.filter(parent_id__in=parent_ids).select_related('parent'):
+                if j.identifier not in self._tree:
+                    jobs.append(j)
+                    new_parents.append(j.id)
+                self._tree[j.identifier] = j.parent.identifier
+            parent_ids = new_parents
+        return jobs
+
+
 class ResourcesCache:
     def __init__(self, job):
         self.data = {}
@@ -358,7 +398,103 @@ class ReportsData(object):
         pass
 
 
-class UploadJob(object):
+class UploadTree:
+    def __init__(self, parent_id, user, jobs_dir):
+        self._parent = self.__get_parent(parent_id)
+        self._user = user
+        self._jobsdir = jobs_dir
+
+        self._uploaded = {}
+        self._tree = self.__get_tree()
+
+        try:
+            self.__upload_tree()
+        except Exception:
+            remove_jobs_by_id(self._user, list(j.id for j in self._uploaded.values()))
+            raise
+
+    def __get_tree(self):
+        tree_fname = os.path.join(self._jobsdir, 'tree.json')
+        if not os.path.exists(tree_fname):
+            raise BridgeException(_('The file with tree structure was not found'))
+        with open(tree_fname, mode='r', encoding='utf8') as fp:
+            return json.loads(fp.read())
+
+    def __get_jobs_order(self):
+        jobs = []
+        for j_id in self._tree:
+            if self._tree[j_id] is None:
+                jobs.append(j_id)
+        while True:
+            has_child = False
+            for j_id in self._tree:
+                if self._tree[j_id] in jobs and j_id not in jobs:
+                    jobs.append(j_id)
+                    has_child = True
+            if not has_child:
+                break
+        return jobs
+
+    def __upload_tree(self):
+        for j_id in self.__get_jobs_order():
+            jobzip_name = os.path.join(self._jobsdir, 'Job-%s.zip' % j_id[:10])
+            if not os.path.exists(jobzip_name):
+                raise BridgeException(_('One of the job archives was not found'))
+            if self._tree[j_id] is None:
+                parent = self._parent
+            elif self._tree[j_id] in self._uploaded:
+                parent = self._uploaded[self._tree[j_id]]
+            else:
+                raise BridgeException()
+            self.__upload_job(jobzip_name, parent)
+
+    def __upload_job(self, jobarch, parent):
+        try:
+            jobdir = self.__extract_archive(jobarch)
+        except Exception as e:
+            logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+            raise BridgeException(_('Extraction of the archive "%(arcname)s" has failed') % {
+                'arcname': os.path.basename(jobarch)
+            })
+        try:
+            res = UploadJob(parent, self._user, jobdir.name)
+        except BridgeException as e:
+            raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': os.path.basename(jobarch), 'message': str(e)
+                })
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': os.path.basename(jobarch), 'message': _('The job archive is corrupted')
+                })
+        self._uploaded[res.job.identifier] = res.job
+
+    def __extract_archive(self, jobarch):
+        self.__is_not_used()
+        with open(jobarch, mode='rb') as fp:
+            if os.path.splitext(jobarch)[-1] != '.zip':
+                raise ValueError('Only zip archives are supported')
+            with zipfile.ZipFile(fp, mode='r') as zfp:
+                tmp_dir_name = tempfile.TemporaryDirectory()
+                zfp.extractall(tmp_dir_name.name)
+            return tmp_dir_name
+
+    def __get_parent(self, parent_id):
+        self.__is_not_used()
+        if len(parent_id) == 0:
+            return None
+        parents = Job.objects.filter(identifier__startswith=parent_id)
+        if len(parents) == 0:
+            raise BridgeException(_("The parent with the specified identifier was not found"))
+        elif len(parents) > 1:
+            raise BridgeException(_("Too many jobs starts with the specified identifier"))
+        return parents.first()
+
+    def __is_not_used(self):
+        pass
+
+
+class UploadJob:
     def __init__(self, parent, user, job_dir):
         self.parent = parent
         self.job = None

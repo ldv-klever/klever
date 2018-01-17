@@ -12,6 +12,10 @@
     <div class="ui mini basic icon buttons">
         <button class="ui button violet note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
         <button class="ui olive button note-popup" id="download_selected_jobs" data-position="bottom left" data-content="{% trans 'Download selected jobs' %}"><i class="ui download icon"></i></button>
+        {# Only managers can upload trees (USER_ROLES[2][0]) #}
+        {% if user.extended.role == '2' %}
+            <button class="ui olive button note-popup" id="download_selected_trees" data-position="bottom left" data-content="{% trans 'Download selected trees' %}"><i class="ui sitemap icon"></i></button>
+        {% endif %}
         <button class="ui red button note-popup" id="show_remove_jobs_popup" data-position="bottom left" data-content="{% trans 'Delete selected jobs' %}"><i class="ui remove icon"></i></button>
     </div>
     <br>

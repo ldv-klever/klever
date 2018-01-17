@@ -483,6 +483,14 @@ $(document).ready(function () {
             }
         }}).modal('attach events', '#show_upload_job_popup', 'show');
     }
+    if ($('#show_upload_jobtree_popup').length) {
+        $('#upload_jobtree_popup').modal({transition: 'vertical flip', onShow: function () {
+            var parent_identifier = $('#job_identifier');
+            if (parent_identifier.length) {
+                $('#upload_jobtree_parent_id').val(parent_identifier.val());
+            }
+        }}).modal('attach events', '#show_upload_jobtree_popup', 'show');
+    }
 
     $('#upload_marks_start').click(function () {
         var files = $('#upload_marks_file_input')[0].files,
@@ -607,6 +615,62 @@ $(document).ready(function () {
         });
         return false;
     });
+
+    $('#upload_jobtree_file_input').on('fileselect', function () {
+        var files = $(this)[0].files,
+            filename_list = $('<ul>');
+        for (var i = 0; i < files.length; i++) {
+            filename_list.append($('<li>', {text: files[i].name}));
+        }
+        $('#upload_jobtree_filename').html(filename_list);
+    });
+
+    $('#upload_jobstree_cancel').click(function () {
+        var file_input = $('#upload_jobtree_file_input');
+        file_input.replaceWith(file_input.clone( true ));
+        $('#upload_jobtree_parent_id').val('');
+        $('#upload_jobtree_filename').empty();
+        $('#upload_jobtree_popup').modal('hide');
+    });
+
+    $('#upload_jobstree_start').click(function () {
+        var parent_id = $('#upload_jobtree_parent_id').val();
+        if (!parent_id.length) {
+            parent_id = '';
+        }
+        var files = $('#upload_jobtree_file_input')[0].files, data = new FormData();
+        if (files.length <= 0) {
+            err_notify($('#error__no_file_chosen').text());
+            return false;
+        }
+        data.append('file', files[0]);
+        data.append('parent_id', parent_id);
+        $('#upload_jobtree_popup').modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        $.ajax({
+            url: job_ajax_url + 'upload_jobs_tree/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            mimeType: 'multipart/form-data',
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
+            success: function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                if ('error' in data) {
+                    err_notify(data['error']);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        });
+        return false;
+    });
+
     $('.tag-description-popup').each(function () {
         $(this).popup({
             html: $(this).attr('data-content'),
