@@ -17,14 +17,15 @@
 
 import copy
 import re
+import json
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
 from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
-from core.vtg.emg.common.process import Dispatch, Receive, Condition, CallRetval, Call
-from core.vtg.emg.processmodel.abstractprocess import get_common_parameter
+from core.vtg.emg.common.process import Dispatch, Receive, Condition, export_process
+from core.vtg.emg.processmodel.abstractprocess import get_common_parameter, CallRetval, Call
 final_code = {'environment model': {"declarations": [], "definitions": []}}
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
@@ -34,36 +35,39 @@ _values_map = dict()
 def generate_instances(logger, conf, analysis, model, instance_maps):
     entry_process, model_processes, callback_processes = _yield_instances(logger, conf, analysis, model, instance_maps)
 
-    # Generate new actions in processes
     for process in [entry_process] + model_processes + callback_processes:
         _simplify_process(logger, conf, analysis, process)
+
+    # Simplify first and set ids then dump
+    for process in [entry_process] + model_processes + callback_processes:
+        export_process(process)
 
     model.entry_process = entry_process
     model.model_processes = model_processes
     model.event_processes = callback_processes
 
-    for file in _declarations:
-        if file not in final_code:
-            final_code[file] = {
-                "declarations": list(),
-                "definitions": list()
-            }
-        for name in _declarations[file]:
-            final_code[file]["declarations"].extend([_declarations[file][name].declare_with_init() + ";\n"])
-            final_code['environment model']["declarations"].append(_declarations[file][name].
-                                                                   declare(extern=True) + ";\n")
-    for file in _definitions:
-        if file not in final_code:
-            final_code[file] = {
-                "declarations": list(),
-                "definitions": list()
-            }
-        for name in _definitions[file]:
-            final_code[file]["definitions"].extend(_definitions[file][name].define() + ["\n"])
-            final_code['environment model']["declarations"].extend(_definitions[file][name].declare(extern=True))
+    # Another sanity check
+    data = dict()
+    for process in model.model_processes + model.event_processes + [model.entry_process]:
+        for action in process.actions.values():
+            if isinstance(action, Call) or isinstance(action, CallRetval):
+                raise ValueError("Left unprepared action {!r} from process {!r} of category {!r}".
+                                 format(action.name, process.name, process.category))
+
+    # Convert
+    data["kernel model"] = dict()
+    for process in model.model_processes:
+        data["kernel model"][process.external_id] = export_process(process)
+    data["environment processes"] = dict()
+    for process in model.event_processes:
+        data["environment processes"][process.external_id] = export_process(process)
+    data["entry process"] = export_process(entry_process)
+    with open("simplified model.json", "w", encoding="utf8") as fh:
+        fh.writelines(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
 
     logger.info("Finish generating simplified environment model for further translation")
-    return instance_maps, final_code
+
+    return instance_maps, data
 
 
 def _simplify_process(logger, conf, analysis, process):
@@ -96,6 +100,7 @@ def _simplify_process(logger, conf, analysis, process):
                 declaration, value = get_declaration(label, access)
                 new = process.add_label("{}_{}".format(label.name, number), declaration, value=value)
                 label_map[label.name][access.interface.identifier] = new
+            del process.labels[label.name]
         elif len(simpl_access) == 1:
             access = simpl_access[0]
             declaration, value = get_declaration(label, access)
@@ -247,6 +252,10 @@ def _simplify_process(logger, conf, analysis, process):
                                format(implementation.value, 'static' if implementation.is_static else 'not static'))
 
     process.allowed_implementations = None
+
+    # Remove unused labels
+    for label in process.unused_labels:
+        del process.labels[label]
 
     return
 
@@ -559,6 +568,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
 
         for instance in base_list:
             rename_process(instance)
+            __set_external_id(instance)
             callback_fsa.append(instance)
 
     # Generate automata for models
@@ -568,11 +578,13 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
             rename_process(instance)
+            __set_external_id(instance)
             model_fsa.append(instance)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
     entry_fsa = model.entry_process
+    __set_external_id(model.entry_process)
 
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
@@ -594,7 +606,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     for process in [entry_fsa] + model_fsa + callback_fsa:
         if get_conf_property(conf, "convert statics to globals", expected_type=bool):
             # todo: provide a process
-            _remove_statics(analysis, process.allowed_implementations)
+            _remove_statics(analysis, process)
 
     return entry_fsa, model_fsa, callback_fsa
 
@@ -702,13 +714,13 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
     return new_base_list
 
 
-def __generate_model_comment(process):
+def __get_relevant_expressions(process):
     # First get list of container implementations
     expressions = []
     for collection in process.accesses().values():
         for acc in collection:
             if acc.interface and isinstance(acc.interface, Container) and \
-                            acc.expression in process.allowed_implementations and \
+                    acc.expression in process.allowed_implementations and \
                     process.allowed_implementations[acc.expression] and \
                     acc.interface.identifier in process.allowed_implementations[acc.expression] and \
                     process.allowed_implementations[acc.expression][acc.interface.identifier] and \
@@ -724,7 +736,7 @@ def __generate_model_comment(process):
         for collection in process.accesses().values():
             for acc in collection:
                 if acc.interface and isinstance(acc.interface, Callback) and \
-                                acc.expression in process.allowed_implementations and \
+                        acc.expression in process.allowed_implementations and \
                         process.allowed_implementations[acc.expression] and \
                         acc.interface.identifier in process.allowed_implementations[acc.expression] and \
                         process.allowed_implementations[acc.expression][acc.interface.identifier] and \
@@ -735,18 +747,32 @@ def __generate_model_comment(process):
                 if len(expressions) == 3:
                     break
 
+    return expressions
+
+
+def __set_external_id(process):
+    expressions = __get_relevant_expressions(process)
+    if process.category == 'kernel models':
+        process.external_id = "{}/{}".format(process.category, process.name)
+    elif len(expressions) > 0:
+        process.external_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
+    else:
+        process.external_id = "{}/{}/{}".format(process.category, process.name, process.identifier)
+
+
+def __generate_model_comment(process):
+    expressions = __get_relevant_expressions(process)
     # Generate a comment as a concatenation of an original comment and a suffix
     if len(expressions) > 0:
         comment = "{} (Relevant to {})".format(process.comment,
                                                ' '.join(("{!r}".format(e) for e in expressions)))
-        if not process.external_id:
-            process.external_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
         process.comment = comment
 
 
-def _remove_statics(analysis, access_map):
+def _remove_statics(analysis, process):
     # todo: write docstring
     identifiers = _yeild_identifier()
+    access_map = process.allowed_implementations
 
     def resolve_existing(nm, impl, collection):
         if impl.file in collection and nm in collection[impl.file]:
@@ -773,7 +799,6 @@ def _remove_statics(analysis, access_map):
     # For each static Implementation add to the origin file aspect which adds a variable with the same global
     # declaration
 
-    # todo: at saving also save all generated strings even already added to the process addons
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
@@ -825,6 +850,13 @@ def _remove_statics(analysis, access_map):
                         _values_map[implementation.file][new_value] = implementation.value
                         implementation.declaration = declaration
                         implementation.value = new_value
+
+                        if var:
+                            process.add_declaration(implementation.file, name, var.declare_with_init() + ";\n")
+                            process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
+                        else:
+                            process.add_definition(implementation.file, name, func.define() + ["\n"])
+                            process.add_declaration(implementation.file, name, func.declare(extern=True))
 
     return
 

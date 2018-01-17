@@ -74,18 +74,17 @@ class EMG(core.vtg.plugins.Plugin):
         check_or_set_conf_property(self.conf, 'interface categories options', default_value=dict(), expected_type=dict)
         ics = InterfaceCategoriesSpecification(self.logger, self.conf['interface categories options'],
                                                self.abstract_task_desc, interface_spec, analysis)
-        # todo: export specification (issue 6561)
-        #mcs.save_to_file("module_specification.json")
 
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
         check_or_set_conf_property(self.conf, 'intermediate model options', default_value=dict(), expected_type=dict)
-        model_processes, env_processes = \
+        model_processes, env_processes, _ = \
             parse_event_specification(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
                                       event_categories_spec)
 
         # Get instance maps if possible
         instance_maps = dict()
+        extra_processes = dict()
         if get_conf_property(self.conf, "EMG instances"):
             self.logger.info('Looking for a file with an instance map {!r}'.
                              format(get_necessary_conf_property(self.conf, "EMG instances")))
@@ -94,13 +93,48 @@ class EMG(core.vtg.plugins.Plugin):
                                                   get_necessary_conf_property(self.conf, "EMG instances")),
                       encoding='utf8') as fp:
                 instance_maps = json.load(fp)
+        if get_conf_property(self.conf, "extra processes"):
+            self.logger.info('Looking for a file with additional processes {!r}'.
+                             format(get_necessary_conf_property(self.conf, "extra processes")))
+            with open(core.utils.find_file_or_dir(self.logger,
+                                                  get_necessary_conf_property(self.conf, "main working directory"),
+                                                  get_necessary_conf_property(self.conf, "extra processes")),
+                      encoding='utf8') as fp:
+                extra_processes = json.load(fp)
+
         model = ProcessModel(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
                              model_processes, env_processes,
                              self.__get_json_content(get_necessary_conf_property(self.conf,
                                                                                  'intermediate model options'),
                                                      "roles map file"))
-        instance_maps, additional_code = model.prepare_event_model(ics, instance_maps)
+        instance_maps, generated_processes = model.prepare_event_model(ics, instance_maps)
+        # Send data to the server
+        self.logger.info("Send data on generated instances to server")
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': instance_maps
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          get_necessary_conf_property(self.conf, "main working directory"))
         self.logger.info("An intermediate environment model has been prepared")
+
+        # Merge manually prepared processes with generated ones and provide the model to translator
+        # todo: how to replace main process
+        if extra_processes:
+            for category in extra_processes:
+                generated_processes[category].update(extra_processes[category])
+
+        # Parse this final model
+        model_processes, env_processes, entry_process = \
+            parse_event_specification(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
+                                      generated_processes, abstract=False)
+        # replace processes
+        model.entry_process = entry_process
+        model.event_processes = list(env_processes.values())
+        model.model_processes = list(model_processes.values())
 
         # Generate module interface specification
         self.logger.info("============== An intermediat model translation stage ==============")
@@ -113,23 +147,10 @@ class EMG(core.vtg.plugins.Plugin):
             fh.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
         # Import additional aspect files
-        # todo: proceed to refactoring of the translator
-        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
-                                     additional_code)
+        translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model)
         self.logger.info("An environment model has been generated successfully")
 
-        # Send data to the server
-        self.logger.info("Send data on generated instances to server")
-        core.utils.report(self.logger,
-                          'data',
-                          {
-                              'id': self.id,
-                              # todo: why it is so?
-                              'data': dict()
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          get_necessary_conf_property(self.conf, "main working directory"))
+
 
     main = generate_environment
 

@@ -17,7 +17,7 @@
 
 import re
 
-from core.vtg.emg.common.process import Process, Label, Access
+from core.vtg.emg.common.process import Process, Label, Access, Condition, Dispatch, Receive, Action
 from core.vtg.emg.common.signature import Array, Structure, Pointer
 
 
@@ -36,6 +36,26 @@ def get_common_parameter(action, process, position):
     else:
         # Todo how to choose between several ones?
         return list(interfaces)[0]
+
+
+class Call(Action):
+
+    def __init__(self, name):
+        super().__init__(name)
+        self.callback = None
+        self.parameters = []
+        self.retlabel = None
+        self.pre_call = []
+        self.post_call = []
+
+
+class CallRetval(Action):
+
+    def __init__(self, name):
+        super().__init__(name)
+        self.parameters = []
+        self.callback = None
+        self.retlabel = None
 
 
 class AbstractAccess(Access):
@@ -165,6 +185,38 @@ class AbstractProcess(Process):
         return unmatched
 
     @property
+    def unused_labels(self):
+        used_labels = set()
+
+        def extract_labels(expr):
+            for m in self.label_re.finditer(expr):
+                used_labels.add(m.group(1))
+
+        for action in self.actions.values():
+            if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+                extract_labels(action.callback)
+            if isinstance(action, Call):
+                for param in action.parameters:
+                    extract_labels(param)
+            if isinstance(action, Receive) or isinstance(action, Dispatch):
+                for param in action.parameters:
+                    extract_labels(param)
+            if isinstance(action, CallRetval) and action.retlabel:
+                extract_labels(action.retlabel)
+            if isinstance(action, Condition):
+                for statement in action.statements:
+                    extract_labels(statement)
+            if action.condition:
+                for statement in action.condition:
+                    extract_labels(statement)
+        unused_labels = set(self.labels.keys()).difference(used_labels)
+        return unused_labels
+
+    @property
+    def calls(self):
+        return [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Call)]
+
+    @property
     def containers(self):
         return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].container]
 
@@ -245,6 +297,50 @@ class AbstractProcess(Process):
 
         return ret
 
+    def accesses(self, accesses=None, exclude=list(), no_labels=False):
+        if not accesses:
+            accss = dict()
+
+            if not self._accesses or len(exclude) > 0 or no_labels:
+                # Collect all accesses across process subprocesses
+                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
+                    tp = type(action)
+                    if tp not in exclude:
+                        if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
+                            accss[action.callback] = []
+                        if isinstance(action, Call):
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if isinstance(action, Receive) or isinstance(action, Dispatch):
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if isinstance(action, CallRetval) and action.retlabel:
+                            accss[action.retlabel] = []
+                        if isinstance(action, Condition):
+                            for statement in action.statements:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+                        if action.condition:
+                            for statement in action.condition:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+
+                # Add labels with interfaces
+                if not no_labels:
+                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                        access = '%{}%'.format(label.name)
+                        if access not in accss:
+                            accss[access] = []
+
+                if not self._accesses and len(exclude) == 0 and not no_labels:
+                    self._accesses = accss
+            else:
+                accss = self._accesses
+
+            return accss
+        else:
+            self._accesses = accesses
+
     def resolve_access(self, access, interface=None):
         if isinstance(access, Label):
             string = '%{}%'.format(access.name)
@@ -254,9 +350,9 @@ class AbstractProcess(Process):
             raise TypeError('Unsupported access token')
 
         if not interface:
-            return self.__accesses[string]
+            return self._accesses[string]
         else:
-            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.interface.identifier)
+            return [acc for acc in sorted(self._accesses[string], key=lambda acc: acc.interface.identifier)
                     if acc.interface and acc.interface.identifier == interface][0]
 
     def get_implementation(self, access):
@@ -289,3 +385,24 @@ class AbstractProcess(Process):
         else:
             return False
 
+    def add_label(self, name, declaration, value=None):
+        lb = AbstractLabel(name)
+        lb.prior_signature = declaration
+        if value:
+            lb.value = value
+
+        self.labels[name] = lb
+        acc = AbstractAccess('%{}%'.format(name))
+        acc.label = lb
+        acc.list_access = [lb.name]
+        self._accesses[acc.expression] = [acc]
+        return lb
+
+    def add_condition(self, name, condition, statements, comment):
+        new = Condition(name)
+        self.actions[name] = new
+
+        new.condition = condition
+        new.statements = statements
+        new.comment = comment
+        return new

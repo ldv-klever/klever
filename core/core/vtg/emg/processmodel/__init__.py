@@ -18,10 +18,11 @@ import copy
 import re
 
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
-from core.vtg.emg.common.abstractprocess import Access, Process, Label, Call, Dispatch, Receive, Condition, CallRetval
+from core.vtg.emg.common.process import Dispatch, Receive, Condition
 from core.vtg.emg.common.interface import Interface, Callback, Container
 from core.vtg.emg.processmodel.entry import EntryProcessGenerator
 from core.vtg.emg.processmodel.instances import generate_instances
+from core.vtg.emg.processmodel.abstractprocess import AbstractAccess, AbstractLabel, AbstractProcess, Call, CallRetval
 
 
 class ProcessModel:
@@ -56,7 +57,6 @@ class ProcessModel:
         # Finish entry point process generation
         self.logger.info("Generate model processes for Init and Exit module functions")
         new_process = self.entry.entry_process(analysis)
-        additional_code = self.entry.code
         self.entry_process, additional_processes = new_process
         # Del unnecessary reference
         self.entry = None
@@ -76,25 +76,9 @@ class ProcessModel:
         self.__refine_processes()
 
         # Simplify processes then
-        instance_maps, generated_code = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
+        instance_maps, model = generate_instances(self.logger, self.conf, analysis, self, instance_maps)
 
-        # Another sanity check
-        for process in self.model_processes + self.event_processes + [self.entry_process]:
-            for action in process.actions.values():
-                if isinstance(action, Call) or isinstance(action, CallRetval):
-                    raise ValueError("Left unprepared action {!r} from process {!r} of category {!r}".
-                                     format(action.name, process.name, process.category))
-
-        # Prepare generated code
-        for file in additional_code:
-            if file not in generated_code:
-                generated_code[file] = {
-                    "definitions": additional_code[file]
-                }
-            else:
-                generated_code[file]["definitions"].extend(additional_code[file])
-
-        return instance_maps, generated_code
+        return instance_maps, model
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models
@@ -679,12 +663,12 @@ class ProcessModel:
             existing_process = [p for p in self.model_processes if p.name == match['function'].identifier]
             if len(existing_process) > 0:
                 return False
-            new = Process(match['function'].identifier)
+            new = AbstractProcess(match['function'].identifier)
 
             # Generate labels
             expressions = []
             for interface in match['parameters']:
-                new_label = Label(interface.short_identifier)
+                new_label = AbstractLabel(interface.short_identifier)
                 new_label.parameter = True
                 position = match['function'].param_interfaces.index(interface)
                 expressions.append(["%{}%".format(new_label.name), position])
@@ -843,14 +827,14 @@ class ProcessModel:
                 else:
                     if len(label.interfaces) > 0:
                         for interface in label.interfaces:
-                            new = Access(access)
+                            new = AbstractAccess(access)
                             new.label = label
 
                             # Add label access if necessary
                             label_access = "%{}%".format(label.name)
                             if label_access not in original_accesses:
                                 # Add also label itself
-                                laccess = Access(label_access)
+                                laccess = AbstractAccess(label_access)
                                 laccess.label = label
                                 laccess.interface = analysis.get_intf(interface)
                                 laccess.list_interface = [analysis.get_intf(interface)]
@@ -909,7 +893,7 @@ class ProcessModel:
 
                             accesses[access].append(new)
                     elif access not in accesses or len(accesses[access]) == 0:
-                        new = Access(access)
+                        new = AbstractAccess(access)
                         new.label = label
                         new.list_access = [label.name]
                         accesses[access].append(new)
@@ -917,7 +901,7 @@ class ProcessModel:
                         # Add also label itself
                         label_access = "%{}%".format(label.name)
                         if label_access not in original_accesses:
-                            laccess = Access(label_access)
+                            laccess = AbstractAccess(label_access)
                             laccess.label = label
                             laccess.list_access = [label.name]
                             accesses[laccess.expression] = [laccess]

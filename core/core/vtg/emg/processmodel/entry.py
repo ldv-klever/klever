@@ -27,7 +27,6 @@ class EntryProcessGenerator:
         self.__logger = logger
         self.__conf = conf
         self.__default_signals = dict()
-        self.code = {'environment model': []}
 
     def entry_process(self, analysis):
         """
@@ -76,7 +75,7 @@ class EntryProcessGenerator:
 
     def __generate_base_process(self, default_dispatches=False):
         self.__logger.debug("Generate main process")
-        ep = Process("main")
+        ep = AbstractProcess("main")
         ep.comment = "Main entry point function."
         ep.self_parallelism = False
         ep.category = "main"
@@ -110,7 +109,7 @@ class EntryProcessGenerator:
         self.__logger.debug("Main process is generated")
         return ep
 
-    def __generate_alias(self, name, file, int_retval=False):
+    def __generate_alias(self, process, name, file, int_retval=False):
         new_name = "ldv_emg_{}".format(name)
         code = [
             "{}(void)\n".format("int {}".format(new_name) if int_retval else "void {}".format(new_name)),
@@ -119,13 +118,9 @@ class EntryProcessGenerator:
             "}\n"
         ]
         # Add definition
-        if file not in self.code:
-            self.code[file] = code
-        else:
-            self.code[file].extend(["\n"] + code)
-
-        # Add extern declaration
-        self.code['environment model'].append('extern {} {}(void);\n'.format("int" if int_retval else "void", new_name))
+        process.add_definition(file, name, code)
+        process.add_declaration('environment model', name,
+                                'extern {} {}(void);\n'.format("int" if int_retval else "void", new_name))
 
         return new_name
 
@@ -149,7 +144,7 @@ class EntryProcessGenerator:
 
         # Generate init subprocess
         for filename, init_name in analysis.inits:
-            new_name = self.__generate_alias(init_name, filename, True)
+            new_name = self.__generate_alias(ep, init_name, filename, True)
             init_subprocess = Condition(init_name)
             init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
             init_subprocess.statements = [
@@ -172,7 +167,7 @@ class EntryProcessGenerator:
             ep.actions[exit_subprocess.name] = exit_subprocess
         else:
             for filename, exit_name in analysis.exits:
-                new_name = self.__generate_alias(exit_name, filename, False)
+                new_name = self.__generate_alias(ep, exit_name, filename, False)
                 exit_subprocess = Condition(exit_name)
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.statements = [

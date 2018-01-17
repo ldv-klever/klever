@@ -17,22 +17,23 @@
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
     check_necessary_conf_property
 from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, generate_regex_set
-from core.vtg.emg.processmodel.abstractprocess import AbstractLabel, AbstractProcess
+from core.vtg.emg.common.process import Receive, Dispatch, Condition, generate_regex_set, Label, Process
+from core.vtg.emg.processmodel.abstractprocess import Call, CallRetval, AbstractLabel, AbstractProcess
 
 
-def parse_event_specification(logger, conf, raw):
+def parse_event_specification(logger, conf, raw, abstract=True):
     """
     Parse event categories specification and create all existing Process objects.
 
     :param logger: logging object.
     :param conf: Configuration dictionary with options for intermediate model.
     :param raw: Dictionary with content of JSON file of a specification.
+    :param abstract: Mean that processes are final (true) or for drivers only (initial specifications).
     :return: [List of Process objects which correspond to kernel function models],
              [List of Process objects which correspond to processes with callback calls]
     """
-    env_processes = {}
-    models = {}
+    env_processes = dict()
+    models = dict()
 
     # Check necessary configuration options
     check_or_set_conf_property(conf, "process comment", default_value='Invocation scenario for {0!r} callbacks',
@@ -48,30 +49,56 @@ def parse_event_specification(logger, conf, raw):
             names = name_list.split(", ")
             for name in names:
                 logger.debug("Import process which models {!r}".format(name))
-                models[name] = __import_process(name, raw["kernel model"][name_list], conf)
+                models[name] = __import_process(name, raw["kernel model"][name_list], conf, abstract)
     else:
         logger.warning("Kernel model is not provided")
     if "environment processes" in raw:
         logger.info("Import processes from 'environment processes'")
         for name in raw["environment processes"]:
             logger.debug("Import environment process {}".format(name))
-            process = __import_process(name, raw["environment processes"][name], conf)
+            process = __import_process(name, raw["environment processes"][name], conf, abstract)
             env_processes[name] = process
     else:
         raise KeyError("Model cannot be generated without environment processes")
 
-    return models, env_processes
+    if "entry process" in raw:
+        logger.info("Import entry process")
+        entry_process = __import_process("entry", raw["entry process"], conf, abstract)
+    else:
+        entry_process = None
+
+    # Then check peers. This is becouse in generated processes there no peers set for manually written processes
+    if not abstract:
+        processes = list(models.values()) + list(env_processes.values()) + [entry_process]
+        process_map = {p.external_id: p for p in processes}
+        for process in processes:
+            for action in [process.actions[a] for a in process.actions if isinstance(process.actions[a], Receive) or
+                           isinstance(process.actions[a], Dispatch) and len(process.actions[a].peers) > 0]:
+                new_peers = []
+                for peer in action.peers:
+                    target = process_map[peer]
+                    new_peer = {'process': target, 'subprocess': target.actions[action.name]}
+                    new_peers.append(new_peer)
+                action.peers = new_peers
+
+    return models, env_processes, entry_process
 
 
-def __import_process(name, dic, conf):
-    process = AbstractProcess(name)
+def __import_process(name, dic, conf, abstract):
+    if abstract:
+        process = AbstractProcess(name)
+    else:
+        process = Process(name)
 
     if 'self parallelism' in dic:
         process.self_parallelism = False
 
     if 'labels' in dic:
         for label_name in dic['labels']:
-            label = AbstractLabel(label_name)
+            if abstract:
+                label = AbstractLabel(label_name)
+            else:
+                label = Label(label_name)
             process.labels[label_name] = label
 
             for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file', 'retval']:
@@ -113,6 +140,17 @@ def __import_process(name, dic, conf):
 
     if 'headers' in dic:
         process.headers = dic['headers']
+
+    # Extract definitions
+    if 'declarations' in dic:
+        process.declarations = dic['declarations']
+
+    # Extract declarations
+    if 'definitions' in dic:
+        process.declarations = dic['definitions']
+
+    if 'identifier' in dic:
+        process.external_id = dic["identifier"]
 
     for action_name in process.actions:
         regexes = generate_regex_set(action_name)
@@ -192,32 +230,14 @@ def __import_process(name, dic, conf):
         if 'process' in dic['actions'][action_name]:
             process.actions[action_name].process = dic['actions'][action_name]['process']
 
-    used_labels = set()
+        # Import peers
+        if 'peers' in dic['actions'][action_name]:
+            process.actions[action_name].peers = dic['actions'][action_name]['peers']
 
-    def extract_labels(expr):
-        for m in process.label_re.finditer(expr):
-            used_labels.add(m.group(1))
-
-    for action in process.actions.values():
-        if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
-            extract_labels(action.callback)
-        if isinstance(action, Call):
-            for param in action.parameters:
-                extract_labels(param)
-        if isinstance(action, Receive) or isinstance(action, Dispatch):
-            for param in action.parameters:
-                extract_labels(param)
-        if isinstance(action, CallRetval) and action.retlabel:
-            extract_labels(action.retlabel)
-        if isinstance(action, Condition):
-            for statement in action.statements:
-                extract_labels(statement)
-        if action.condition:
-            for statement in action.condition:
-                extract_labels(statement)
-
-    unused_labels = set(process.labels.keys()).difference(used_labels)
-    if len(unused_labels) > 0:
-        raise RuntimeError("Found unused labels in process {!r}: {}".format(process.name, ', '.join(unused_labels)))
+    if abstract:
+        unused_labels = process.unused_labels
+        if len(unused_labels) > 0:
+            raise RuntimeError("Found unused labels in process {!r}: {}".
+                               format(process.name, ', '.join(unused_labels)))
 
     return process

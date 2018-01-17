@@ -44,6 +44,57 @@ def _update_process_ast(obj):
     obj.__process_ast = parse_process(obj.process)
 
 
+def export_process(process):
+    def convert_label(label):
+        d = dict()
+        d['signature'] = label.prior_signature.to_string(label.name, typedef='complex_and_params')
+        if label.value:
+            d['value'] = label.value
+
+        return d
+
+    def convert_action(action):
+        d = dict()
+        if action.comment:
+            d['comment'] = action.comment
+        if action.condition:
+            d['condition'] = action.condition
+
+        if isinstance(action, Subprocess):
+            d['process'] = action.process
+        elif isinstance(action, Dispatch) or isinstance(action, Receive):
+            d['parameters'] = action.parameters
+
+            if len(action.peers) > 0:
+                d['peers'] = [p['process'].external_id for p in action.peers]
+
+            if isinstance(action, Dispatch) and action.broadcast:
+                d['broadcast'] = action.broadcast
+            elif isinstance(action, Receive) and action.replicative:
+                d['replicative'] = action.replicative
+        elif isinstance(action, Condition):
+            if action.statements:
+                d["statements"] = action.statements
+
+        return d
+
+    data = {
+        'identifier': process.external_id,
+        'comment': process.comment,
+        'process': process.process,
+        'labels': {l.name: convert_label(l) for l in process.labels.values()},
+        'actions': {a.name: convert_action(a) for a in process.actions.values()}
+    }
+    if len(process.headers) > 0:
+        data['headers'] = list(process.headers)
+    if len(process.declarations.keys()) > 0:
+        data['declarations'] = process.declarations
+    if len(process.definitions.keys()) > 0:
+        data['definitions'] = process.definitions
+
+    return data
+
+
 class Access:
     def __init__(self, expression):
         self.expression = expression
@@ -85,8 +136,8 @@ class Process:
         self.declarations = dict()
         self.definitions = dict()
         self.external_id = None
-        self.__process_ast = None
-        self.__accesses = dict()
+        self._process_ast = None
+        self._accesses = dict()
 
     @property
     def unmatched_receives(self):
@@ -100,35 +151,9 @@ class Process:
 
     @property
     def process_ast(self):
-        if not self.__process_ast:
-            self.__process_ast = parse_process(self.process)
-        return self.__process_ast
-
-    @property
-    def calls(self):
-        return [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Call)]
-
-    def add_label(self, name, declaration, value=None):
-        lb = Label(name)
-        lb.prior_signature = declaration
-        if value:
-            lb.value = value
-
-        self.labels[name] = lb
-        acc = Access('%{}%'.format(name))
-        acc.label = lb
-        acc.list_access = [lb.name]
-        self.__accesses[acc.expression] = [acc]
-        return lb
-
-    def add_condition(self, name, condition, statements, comment):
-        new = Condition(name)
-        self.actions[name] = new
-
-        new.condition = condition
-        new.statements = statements
-        new.comment = comment
-        return new
+        if not self._process_ast:
+            self._process_ast = parse_process(self.process)
+        return self._process_ast
 
     def insert_action(self, old, new, position):
         if not old or old not in self.actions:
@@ -190,50 +215,6 @@ class Process:
                     process.process = process.process.replace(old_match, new_match)
             process.update_process_ast()
 
-    def accesses(self, accesses=None, exclude=list(), no_labels=False):
-        if not accesses:
-            accss = dict()
-
-            if not self.__accesses or len(exclude) > 0 or no_labels:
-                # Collect all accesses across process subprocesses
-                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
-                    tp = type(action)
-                    if tp not in exclude:
-                        if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
-                            accss[action.callback] = []
-                        if isinstance(action, Call):
-                            for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = []
-                        if isinstance(action, Receive) or isinstance(action, Dispatch):
-                            for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = []
-                        if isinstance(action, CallRetval) and action.retlabel:
-                            accss[action.retlabel] = []
-                        if isinstance(action, Condition):
-                            for statement in action.statements:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
-                        if action.condition:
-                            for statement in action.condition:
-                                for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
-
-                # Add labels with interfaces
-                if not no_labels:
-                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
-                        access = '%{}%'.format(label.name)
-                        if access not in accss:
-                            accss[access] = []
-
-                if not self.__accesses and len(exclude) == 0 and not no_labels:
-                    self.__accesses = accss
-            else:
-                accss = self.__accesses
-
-            return accss
-        else:
-            self.__accesses = accesses
-
     def resolve_access(self, access):
         if isinstance(access, Label):
             string = '%{}%'.format(access.name)
@@ -241,10 +222,24 @@ class Process:
             string = access
         else:
             raise TypeError('Unsupported access token')
-        return self.__accesses[string]
+        return self._accesses[string]
 
     def update_process_ast(self):
         _update_process_ast(self)
+
+    def add_declaration(self, file, name, string):
+        if file not in self.declarations:
+            self.declarations[file] = dict()
+
+        if name not in self.declarations:
+            self.declarations[file][name] = string
+
+    def add_definition(self, file, name, strings):
+        if file not in self.definitions:
+            self.definitions[file] = dict()
+
+        if name not in self.definitions:
+            self.definitions[file][name] = strings
 
 
 class Action:
@@ -252,6 +247,7 @@ class Action:
     def __init__(self, name):
         self.name = name
         self.comment = None
+        self.condition = None
 
 
 class Subprocess(Action):
@@ -259,7 +255,6 @@ class Subprocess(Action):
     def __init__(self, name):
         super().__init__(name)
         self.process = None
-        self.condition = None
         self.__process_ast = None
 
     @property
@@ -276,7 +271,6 @@ class Dispatch(Action):
 
     def __init__(self, name):
         super().__init__(name)
-        self.condition = None
         self.parameters = []
         self.broadcast = False
         self.peers = []
@@ -287,31 +281,8 @@ class Receive(Action):
     def __init__(self, name):
         super().__init__(name)
         self.parameters = []
-        self.condition = None
         self.replicative = False
         self.peers = []
-
-
-class Call(Action):
-
-    def __init__(self, name):
-        super().__init__(name)
-        self.condition = None
-        self.callback = None
-        self.parameters = []
-        self.retlabel = None
-        self.pre_call = []
-        self.post_call = []
-
-
-class CallRetval(Action):
-
-    def __init__(self, name):
-        super().__init__(name)
-        self.parameters = []
-        self.callback = None
-        self.retlabel = None
-        self.condition = None
 
 
 class Condition(Action):
@@ -319,4 +290,3 @@ class Condition(Action):
     def __init__(self, name):
         super().__init__(name)
         self.statements = []
-        self.condition = None

@@ -464,7 +464,7 @@ class Function(Declaration):
         if not self.return_value.clean_declaration:
             return False
         for param in self.parameters:
-            if not isinstance(param) is not str and not param.clean_declaration:
+            if not isinstance(param, str) and not param.clean_declaration:
                 return False
         return True
 
@@ -559,7 +559,7 @@ class Structure(Declaration):
             name = '{' + \
                    ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope)
                                for field in sorted(self.fields.keys())]) + \
-                   '; ' if len(self.fields) > 0 else '') \
+                    '; ' if len(self.fields) > 0 else '') \
                    + '}'
         else:
             name = self.name

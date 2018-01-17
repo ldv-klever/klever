@@ -23,7 +23,7 @@ from core.vtg.emg.translator.fsa_translator.label_fsa_translator import LabelTra
 from core.vtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
 
 
-def translate_intermediate_model(logger, conf, avt, analysis, model, additional_code):
+def translate_intermediate_model(logger, conf, avt, analysis, model):
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf['translation options'], 'entry point', default_value='main', expected_type=str)
@@ -57,6 +57,29 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, additional_
 
         # Generate new group
         avt['environment model'] = entry_file_realpath
+
+    # First just merge all as is
+    additional_code = dict()
+    for process in model.model_processes + model.event_processes + [model.entry_process]:
+        for file in process.declarations:
+            if file not in process.declarations:
+                additional_code[file] = {'declarations': process.declarations[file], 'definitions': dict()}
+            else:
+                additional_code[file]['declarations'].update(process.declarations[file])
+        for file in process.definitions:
+            if file not in process.definitions:
+                additional_code[file] = {'definitions': process.definitions[file], 'declarations': dict()}
+            else:
+                additional_code[file]['definitions'].update(process.definitions[file])
+
+    # Then convert into proper format
+    for file in additional_code:
+        additional_code[file]['declarations'] = list(additional_code[file]['declarations'].values())
+
+        defin = additional_code[file]['definitions']
+        additional_code[file]['definitions'] = list()
+        for block in defin.values():
+            additional_code[file]['definitions'].extend(block)
 
     # Rename main file
     if 'environment model' in additional_code:
