@@ -40,14 +40,9 @@
         {% endif %}
         {% if changes.jobs %}
             <div class="ui green segment">
-                <h2 class="ui green header">{% trans 'New root jobs were uploaded' %}</h2>
-            </div>
-        {% endif %}
-        {% if changes.default_jobs %}
-            <div class="ui green segment">
                 <h2 class="ui green header">{% trans 'New preset jobs were uploaded' %}:</h2>
                 <ul>
-                    {% for j in changes.default_jobs %}
+                    {% for j in changes.jobs %}
                         <li><span style="color: #3fd148">{{ j.0 }}</span> ({{ j.1 }})</li>
                     {% endfor %}
                 </ul>

@@ -92,7 +92,6 @@ TITLES = {
     'identifier': _('Identifier'),
     'format': _('Format'),
     'version': _('Version'),
-    'type': _('Class'),
     'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
     'priority': _('Priority'),
@@ -464,15 +463,7 @@ def create_job(kwargs):
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         logger.error('The job author was not got')
         raise BridgeException()
-    newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
-    if 'parent' in kwargs:
-        newjob.parent = kwargs['parent']
-        newjob.type = kwargs['parent'].type
-    elif 'type' in kwargs:
-        newjob.type = kwargs['type']
-    else:
-        logger.error('The parent or the job class are required')
-        raise BridgeException()
+    newjob = Job(name=kwargs['name'], change_author=kwargs['author'], parent=kwargs.get('parent'))
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
@@ -584,8 +575,6 @@ def delete_versions(job, versions):
 
 
 def check_new_parent(job, parent):
-    if job.type != parent.type:
-        return False
     if job.parent == parent:
         return True
     while parent is not None:

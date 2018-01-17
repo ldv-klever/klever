@@ -1,8 +1,10 @@
 {% load i18n %}
+{% load staticfiles %}
 
-{% block reports_head_block %}<link href="/static/reports/css/reports.css" rel="stylesheet">{% endblock %}
+{% block reports_head_block %}<link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">{% endblock %}
 
-{% if component == 'Core' and type == '0' %}
+{# See reports.utils.get_report_data_type() for types #}
+{% if type == 'Core:testing' %}
     <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
     <table class="ui compact brown table">
         {% with test_stats=data|calculate_test_stats %}
@@ -58,7 +60,7 @@
             {% endfor %}
         </tbody>
     </table>
-{% elif component == 'Core' and type == '3' %}
+{% elif type == 'Core:validation' %}
     <h5 class="ui brown header">{% trans 'Validation results' %}</h5>
     <table class="ui compact brown table">
         {% with validation_stats=data|calculate_validation_stats %}
@@ -130,7 +132,7 @@
             {% endfor %}
         </tbody>
     </table>
-{% elif component == 'LKVOG' %}
+{% elif type == 'LKVOG:lines' %}
     <h5 class="ui brown header">{% trans 'Lines of code' %}</h5>
     <table class="ui compact brown table">
         <thead>

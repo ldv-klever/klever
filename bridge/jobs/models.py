@@ -19,7 +19,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
+from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
 
 JOBFILE_DIR = 'Job'
 
@@ -55,7 +55,7 @@ class JobBase(models.Model):
 
 class Job(JobBase):
     format = models.PositiveSmallIntegerField(default=FORMAT)
-    type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
+    # type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
     version = models.PositiveSmallIntegerField(default=1)
     change_date = models.DateTimeField(auto_now=True)
     identifier = models.CharField(max_length=255, unique=True, db_index=True)

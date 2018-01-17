@@ -115,7 +115,7 @@ def calculate_validation_stats(validation_results):
                 is_found_bug_before_fix = True
                 if result["before fix"]["comment"]:
                     validation_stats["excessive comments"] += 1
-            elif not result["before fix"]["comment"]:
+            elif 'comment' not in result["before fix"] or not result["before fix"]["comment"]:
                 validation_stats["missed comments"] += 1
 
         is_found_safe_after_fix = False
@@ -125,7 +125,7 @@ def calculate_validation_stats(validation_results):
                 is_found_safe_after_fix = True
                 if result["after fix"]["comment"]:
                     validation_stats["excessive comments"] += 1
-            elif not result["after fix"]["comment"]:
+            elif 'comment' not in result["after fix"] or not result["after fix"]["comment"]:
                 validation_stats["missed comments"] += 1
 
         if is_found_bug_before_fix:
@@ -187,10 +187,12 @@ def report_component(request, job_id, report_id):
         status = 4
 
     report_data = None
+    data_type = 0  # Unknown type
     if report.data:
         try:
             with report.data.file as fp:
                 report_data = json.loads(fp.read().decode('utf8'))
+                data_type = reports.utils.get_report_data_type(report.component.name, report_data)
         except Exception as e:
             logger.exception("Json parsing error: %s" % e, stack_info=True)
 
@@ -208,7 +210,8 @@ def report_component(request, job_id, report_id):
             'TableData': reports.utils.ReportChildrenTable(request.user, report, **children_add_data),
             'status': status,
             'unknown': unknown_href,
-            'data': report_data
+            'data': report_data,
+            'data_type': data_type
         }
     )
 

@@ -23,10 +23,10 @@ from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _, override
+from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import datetime, pytz
 
-from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
+from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
 from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
@@ -58,12 +58,6 @@ class KleverCoreArchiveGen:
         for data in self.stream.compress_string('format', str(self.job.format)):
             yield data
 
-        for job_class in JOB_CLASSES:
-            if job_class[0] == self.job.type:
-                with override('en'):
-                    for data in self.stream.compress_string('class', str(job_class[1])):
-                        yield data
-                break
         yield self.stream.close_stream()
 
     def __get_job_files(self):
@@ -94,7 +88,7 @@ class KleverCoreArchiveGen:
 class JobArchiveGenerator:
     def __init__(self, job):
         self.job = job
-        self.arcname = 'Job-%s-%s.zip' % (self.job.identifier[:10], self.job.type)
+        self.arcname = 'Job-%s.zip' % self.job.identifier[:10]
         self.arch_files = {}
         self.files_to_add = []
         self.stream = ZipStream()
@@ -147,9 +141,8 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
-            'type': self.job.type, 'status': self.job.status, 'files_map': self.arch_files,
-            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks,
-            'progress': self.__get_progress_data()
+            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
+            'weight': self.job.weight, 'safe_marks': self.job.safe_marks, 'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __get_progress_data(self):
@@ -434,7 +427,7 @@ class UploadJob(object):
         if not isinstance(jobdata, dict):
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
+        if any(x not in jobdata for x in ['format', 'status', 'files_map',
                                           'run_history', 'weight', 'safe_marks', 'progress']):
             raise BridgeException(_("The job archive was corrupted"))
         if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
@@ -444,12 +437,10 @@ class UploadJob(object):
         if 'identifier' in jobdata:
             if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
                 if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
-                    del jobdata['identifier']
-                    # raise BridgeException(_("The job with identifier specified in the archive already exists"))
+                    # del jobdata['identifier']
+                    raise BridgeException(_("The job with identifier specified in the archive already exists"))
             else:
                 del jobdata['identifier']
-        if jobdata['type'] != self.parent.type:
-            raise BridgeException(_("The job class does not equal to the parent class"))
         if jobdata['weight'] not in set(w[0] for w in JOB_WEIGHT):
             raise ValueError('Wrong job weight: %s' % jobdata['weight'])
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
@@ -495,7 +486,6 @@ class UploadJob(object):
                 'author': self.user,
                 'description': version_list[0]['description'],
                 'parent': self.parent,
-                'type': self.parent.type,
                 'global_role': version_list[0]['global_role'],
                 'filedata': version_list[0]['filedata'],
                 'comment': version_list[0]['comment'],
@@ -531,7 +521,6 @@ class UploadJob(object):
                     'author': self.user,
                     'description': version_data['description'],
                     'parent': self.parent,
-                    'type': self.parent.type,
                     'filedata': version_data['filedata'],
                     'global_role': version_data['global_role'],
                     'comment': version_data['comment']

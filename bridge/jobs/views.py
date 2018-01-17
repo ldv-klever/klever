@@ -35,7 +35,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT
+from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT, USER_ROLES
 from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
@@ -492,7 +492,11 @@ def save_job(request):
                 return JsonResponse({'error': _("The specified parent can't be set for this job")})
             job_kwargs['parent'] = parent
         elif job.parent is not None:
-            return JsonResponse({'error': _("The parent identifier is required for this job")})
+            if request.user.extended.role == USER_ROLES[2][0]:
+                # Just manager can change job parent to root
+                job_kwargs['parent'] = None
+            else:
+                return JsonResponse({'error': _("The parent identifier is required for this job")})
         if job.version != int(request.POST.get('last_version', 0)):
             return JsonResponse({'error': _("Your version is expired, please reload the page")})
         job_kwargs['job'] = job
