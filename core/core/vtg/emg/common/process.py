@@ -66,7 +66,11 @@ def export_process(process):
             d['parameters'] = action.parameters
 
             if len(action.peers) > 0:
-                d['peers'] = [p['process'].external_id for p in action.peers]
+                d['peers'] = list()
+                for p in action.peers:
+                    d['peers'].append(p['process'].external_id)
+                    if not p['process'].external_id:
+                        raise ValueError('Any peer must have an external identifier')
 
             if isinstance(action, Dispatch) and action.broadcast:
                 d['broadcast'] = action.broadcast
@@ -80,6 +84,7 @@ def export_process(process):
 
     data = {
         'identifier': process.external_id,
+        'category': process.category,
         'comment': process.comment,
         'process': process.process,
         'labels': {l.name: convert_label(l) for l in process.labels.values()},
@@ -214,6 +219,47 @@ class Process:
                     new_match = old_match.replace(name, new_name)
                     process.process = process.process.replace(old_match, new_match)
             process.update_process_ast()
+
+    def accesses(self, accesses=None, exclude=list(), no_labels=False):
+        if not accesses:
+            accss = dict()
+
+            if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
+                # Collect all accesses across process subprocesses
+                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
+                    tp = type(action)
+                    if tp not in exclude:
+                        if isinstance(action, Receive) or isinstance(action, Dispatch):
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if isinstance(action, Condition):
+                            for statement in action.statements:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+                        if action.condition:
+                            for statement in action.condition:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+
+                # Add labels with interfaces
+                if not no_labels:
+                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                        access = '%{}%'.format(label.name)
+                        if access not in accss or len(accss[access]) == 0:
+                            accss[access] = []
+                            new = Access(access)
+                            new.label = label
+                            new.list_access = [label.name]
+                            accss[access] = [new]
+
+                if not self._accesses and len(exclude) == 0 and not no_labels:
+                    self._accesses = accss
+            else:
+                accss = self._accesses
+
+            return accss
+        else:
+            self._accesses = accesses
 
     def resolve_access(self, access):
         if isinstance(access, Label):

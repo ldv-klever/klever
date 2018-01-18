@@ -544,7 +544,7 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
 
     def rename_process(inst):
         old_id = inst.identifier
-        inst.identifier = "{}_{}".format(inst.identifier, identifiers.__next__())
+        inst.identifier = "{}{}".format(inst.identifier, identifiers.__next__())
         if old_id in identifiers_map:
             identifiers_map[old_id].append(inst)
         else:
@@ -557,7 +557,9 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     instances_left = get_necessary_conf_property(conf, "max instances number")
 
     # Returning values
-    entry_fsa, model_fsa, callback_fsa = None, list(), list()
+    entry_fsa, model_fsa, callback_fsa = model.entry_process, list(), list()
+    identifiers_map[entry_fsa.identifier] = [entry_fsa]
+    __set_external_id(entry_fsa)
 
     # Determine how many instances is required for a model
     for process in model.event_processes:
@@ -581,11 +583,6 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
             __set_external_id(instance)
             model_fsa.append(instance)
 
-    # Generate state machine for init an exit
-    logger.info("Generate FSA for module initialization and exit functions")
-    entry_fsa = model.entry_process
-    __set_external_id(model.entry_process)
-
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
         for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
@@ -598,14 +595,14 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
                             "subprocess": instance.actions[peer['subprocess'].name]
                         }
                         new_peers.append(new_peer)
-                else:
-                    new_peers.append(peer)
+                # Do not add peers for deleted processes
+                # else:
+                #     new_peers.append(peer)
             action.peers = new_peers
 
     # According to new identifiers change signals peers
     for process in [entry_fsa] + model_fsa + callback_fsa:
         if get_conf_property(conf, "convert statics to globals", expected_type=bool):
-            # todo: provide a process
             _remove_statics(analysis, process)
 
     return entry_fsa, model_fsa, callback_fsa
@@ -856,7 +853,7 @@ def _remove_statics(analysis, process):
                             process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
                         else:
                             process.add_definition(implementation.file, name, func.define() + ["\n"])
-                            process.add_declaration(implementation.file, name, func.declare(extern=True))
+                            process.add_declaration('environment model', name, func.declare(extern=True)[0])
 
     return
 

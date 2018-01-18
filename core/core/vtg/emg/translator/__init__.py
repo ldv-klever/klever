@@ -62,12 +62,12 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
     additional_code = dict()
     for process in model.model_processes + model.event_processes + [model.entry_process]:
         for file in process.declarations:
-            if file not in process.declarations:
+            if file not in additional_code:
                 additional_code[file] = {'declarations': process.declarations[file], 'definitions': dict()}
             else:
                 additional_code[file]['declarations'].update(process.declarations[file])
         for file in process.definitions:
-            if file not in process.definitions:
+            if file not in additional_code:
                 additional_code[file] = {'definitions': process.definitions[file], 'declarations': dict()}
             else:
                 additional_code[file]['definitions'].update(process.definitions[file])

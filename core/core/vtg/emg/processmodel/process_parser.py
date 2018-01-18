@@ -76,10 +76,22 @@ def parse_event_specification(logger, conf, raw, abstract=True):
                            isinstance(process.actions[a], Dispatch) and len(process.actions[a].peers) > 0]:
                 new_peers = []
                 for peer in action.peers:
+                    if peer not in process_map:
+                        raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such process "
+                                       "in the model".format(process.external_id, action.name, peer))
                     target = process_map[peer]
                     new_peer = {'process': target, 'subprocess': target.actions[action.name]}
                     new_peers.append(new_peer)
                 action.peers = new_peers
+
+            # Set names
+            tokens = process.external_id.split('/')
+            if len(tokens) < 2:
+                raise ValueError('Cannot extract category/name/ prefix from process identifier {!r}'.
+                                 format(process.external_id))
+            else:
+                process.category = tokens[0]
+                process.name = tokens[1]
 
     return models, env_processes, entry_process
 
@@ -147,10 +159,13 @@ def __import_process(name, dic, conf, abstract):
 
     # Extract declarations
     if 'definitions' in dic:
-        process.declarations = dic['definitions']
+        process.definitions = dic['definitions']
 
     if 'identifier' in dic:
         process.external_id = dic["identifier"]
+
+    if 'category' in dic:
+        process.category = dic["category"]
 
     for action_name in process.actions:
         regexes = generate_regex_set(action_name)
@@ -239,5 +254,7 @@ def __import_process(name, dic, conf, abstract):
         if len(unused_labels) > 0:
             raise RuntimeError("Found unused labels in process {!r}: {}".
                                format(process.name, ', '.join(unused_labels)))
+    else:
+        process.accesses()
 
     return process
