@@ -26,7 +26,6 @@ from core.vtg.emg.common.interface import Resource, Container, Callback
 from core.vtg.emg.common.code import Variable, FunctionDefinition
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, export_process
 from core.vtg.emg.processmodel.abstractprocess import get_common_parameter, CallRetval, Call
-final_code = {'environment model': {"declarations": [], "definitions": []}}
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = dict()
@@ -242,9 +241,7 @@ def _simplify_process(logger, conf, analysis, process):
                     if ';' not in true_declaration:
                         true_declaration += ';'
                     true_declaration += '\n'
-
-                    if true_declaration not in final_code['environment model']['declarations']:
-                        final_code['environment model']['declarations'].append(true_declaration)
+                    process.add_declaration('environment model', implementation.value, true_declaration)
                 else:
                     logger.warning("There is no function or variable {!r} in module code".format(implementation.value))
             else:
