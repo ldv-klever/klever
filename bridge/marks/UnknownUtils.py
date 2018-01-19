@@ -162,7 +162,7 @@ class NewMark:
         for mr in mark.markreport_set.all().select_related('report'):
             if mr.report not in changes:
                 changes[mr.report] = {'kind': '=', 'problems': {}}
-        for mr in MarkUnknownReport.objects.filter(changes):
+        for mr in MarkUnknownReport.objects.filter(report__in=changes):
             if mr.problem_id not in changes[mr.report]['problems']:
                 changes[mr.report]['problems'][mr.problem_id] = [0, 0]
             changes[mr.report]['problems'][mr.problem_id][0] += 1
