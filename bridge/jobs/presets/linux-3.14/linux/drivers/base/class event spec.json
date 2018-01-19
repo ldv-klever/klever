@@ -1,0 +1,73 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "class_interface_register": {
+        "comment": "Register a class interface.",
+        "labels": {
+          "class": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "class.class"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register the class interface.",
+            "parameters": [
+              "%class%"
+            ]
+          },
+          "fail": {
+            "comment": "Fail to register a class interface.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "assign": {
+            "comment": "Get class argument.",
+            "statements": [
+              "%class% = $ARG1;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered a class interface.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "class_interface_unregister": {
+        "comment": "Unregister a class interface.",
+        "labels": {
+          "class": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "class.class"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "comment": "Deregister a class interface.",
+            "parameters": [
+              "%class%"
+            ]
+          },
+          "assign": {
+            "comment": "Get class argument.",
+            "statements": [
+              "%class% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {}
+  }
+}
