@@ -23,7 +23,6 @@ import consulate
 import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
-
 import utils.bridge as bridge
 
 
@@ -35,6 +34,7 @@ def set_status(st):
     }
     session.json_exchange("service/set_schedulers_status/", data)
     session.sign_out()
+
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
 with open(expect_file, encoding="utf8") as fh:
@@ -72,5 +72,3 @@ else:
 
 # Sign out
 exit(0)
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
