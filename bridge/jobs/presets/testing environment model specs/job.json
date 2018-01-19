@@ -109,6 +109,38 @@
 		"source": "linux-2.6.33.20",
         "external modules": "tests",
         "modules": [
+          "class_v.1"
+        ]
+      }
+    },
+    {
+      "specifications set": "Linux 3.14 (base)",
+      "Linux kernel": {
+		"source": "linux-3.14",
+        "external modules": "tests",
+        "modules": [
+          "class_v.1"
+        ]
+      }
+    },
+    {
+      "specifications set": "Linux 4.6.7",
+      "Linux kernel": {
+		"source": "linux-4.6.7",
+        "external modules": "tests",
+        "modules": [
+          "class_v.1"
+        ]
+      }
+    }
+  ],
+  "Sub-jobs~": [
+    {
+      "specifications set": "Linux 2.6.33",
+      "Linux kernel": {
+		"source": "linux-2.6.33.20",
+        "external modules": "tests",
+        "modules": [
           "block_device_operations_v.1",
           "class_v.1",
           "devm_threaded_irq_v.1",

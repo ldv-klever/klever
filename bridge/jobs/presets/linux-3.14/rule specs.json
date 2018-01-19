@@ -119,7 +119,9 @@
                   "Linux 2.6.33": {
                     "exclude": [
                       "linux/iio/iio.h",
-                      "linux/iio/triggered_buffer.h"
+                      "linux/iio/triggered_buffer.h",
+                      "target/target_core_base.h",
+                      "target/target_core_backend.h"
                     ]
                   },
                   "Linux 4.6.7": {
