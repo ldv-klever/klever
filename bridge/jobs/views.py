@@ -19,7 +19,6 @@ import os
 import json
 import mimetypes
 from datetime import datetime
-from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
 
@@ -604,7 +603,7 @@ def download_file(request, file_id):
     mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
     response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(source.file.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(source.name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
     return response
 
 
@@ -621,7 +620,7 @@ def download_job(request, job_id):
     generator = JobArchiveGenerator(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
@@ -639,7 +638,7 @@ def download_jobs(request):
 
     mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
+    response["Content-Disposition"] = 'attachment; filename="KleverJobs.zip"'
     return response
 
 
@@ -667,9 +666,6 @@ def upload_job(request, parent_id=None):
 
     if not jobs.utils.JobAccess(request.user).can_create():
         return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
-    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
-        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
-                                        "Please wait until it will be finished.")})
     if len(parent_id) == 0:
         return JsonResponse({'error': _("The parent identifier was not got")})
     parents = Job.objects.filter(identifier__startswith=parent_id)
@@ -744,7 +740,7 @@ def decide_job(request):
     generator = KleverCoreArchiveGen(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
@@ -983,7 +979,7 @@ def download_configuration(request, runhistory_id):
     mimetype = mimetypes.guess_type(file_name)[0]
     response = StreamingHttpResponse(FileWrapper(run_history.configuration.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(run_history.configuration.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(file_name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % file_name
     return response
 
 
@@ -1072,7 +1068,7 @@ def download_files_for_compet(request, job_id):
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
     return response
 
 
