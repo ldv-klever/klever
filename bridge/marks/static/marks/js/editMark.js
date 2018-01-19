@@ -51,24 +51,17 @@ $(document).ready(function () {
     });
 
     $('#save_mark_btn').click(function () {
-        var comment_input = $('#edit_mark_comment');
-        if (comment_input.val().length > 0) {
-            $.post(
-                marks_ajax_url + 'save_mark/',
-                {savedata: collect_markdata()},
-                function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else if ('cache_id' in data) {
-                        window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
-                    }
+        $.post(
+            marks_ajax_url + 'save_mark/',
+            {savedata: collect_markdata()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
                 }
-            );
-        }
-        else {
-            err_notify($('#error__comment_required').text());
-            comment_input.focus();
-        }
+                else if ('cache_id' in data) {
+                    window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
+                }
+            }
+        );
     });
 });

@@ -38,7 +38,6 @@ from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
-
 # List of available types of 'safe' column class.
 SAFES = [
     'missed_bug',
@@ -510,10 +509,7 @@ def update_job(kwargs):
         raise ValueError('The job is required')
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         raise ValueError('Change author is required')
-    if 'comment' in kwargs:
-        if len(kwargs['comment']) == 0:
-            raise ValueError('Change comment is required')
-    else:
+    if 'comment' not in kwargs:
         kwargs['comment'] = ''
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']

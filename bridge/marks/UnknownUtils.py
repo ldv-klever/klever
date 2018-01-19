@@ -96,9 +96,6 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
-
         if MarkUnknown.objects.filter(component=mark.component, problem_pattern=self._args['problem']) \
                 .exclude(id=mark.id).count() > 0:
             raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))

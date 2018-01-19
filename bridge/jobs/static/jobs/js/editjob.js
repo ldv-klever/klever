@@ -178,11 +178,6 @@ function set_actions_for_edit_form () {
         var job_coment = $('#job_comment');
         if (job_coment.length) {
             comment = job_coment.val();
-            if (comment.length === 0) {
-                err_notify($('#error__comment_required').text());
-                job_coment.focus();
-                return false;
-            }
         }
         if (!load_new_files()) {
             return false;

@@ -113,8 +113,6 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
         error_trace = None
         if 'error_trace' in self._args and isinstance(self._args['error_trace'], str):
             try:

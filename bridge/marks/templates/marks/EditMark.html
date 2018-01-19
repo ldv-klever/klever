@@ -50,6 +50,4 @@
         <button id="save_mark_btn" style="float:right" class="ui green button">{% trans 'Save' %}</button>
         <a href="{% url 'marks:mark' markdata.type 'view' mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
     </div>
-
-    <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
 {% endblock %}

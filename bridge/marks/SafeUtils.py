@@ -101,9 +101,6 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
-
         last_v = MarkSafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
