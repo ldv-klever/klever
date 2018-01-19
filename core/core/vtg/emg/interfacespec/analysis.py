@@ -158,8 +158,9 @@ def __extract_types(collection, analysis):
                                                      format(rn))
                                 new = called_function.declaration.parameters[index].\
                                     add_implementation(call[index], path, None, None, [], static)
-                                if len(intf.param_interfaces) > index and intf.param_interfaces[index]:
-                                    new.fixed_interface = intf.param_interfaces[index].identifier
+                                if len(called_function.param_interfaces) > index and \
+                                        called_function.param_interfaces[index]:
+                                    new.fixed_interface = called_function.param_interfaces[index].identifier
 
         # Remove dirty declarations
         collection.refine_interfaces()
