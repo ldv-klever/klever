@@ -60,8 +60,12 @@ def schedule_task(request):
     try:
         res = service.utils.ScheduleTask(request.session['job id'], request.POST['description'], archive)
     except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(e)})
+        error_msg = str(e)
+        if error_msg == 'ZIP error':
+            logger.info(error_msg)
+        else:
+            logger.exception(e)
+        return JsonResponse({'error': error_msg})
     return JsonResponse({'task id': res.task_id})
 
 
@@ -212,8 +216,12 @@ def upload_solution(request):
     try:
         service.utils.SaveSolution(request.POST['task id'], archive, request.POST['description'])
     except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(e)})
+        error_msg = str(e)
+        if error_msg == 'ZIP error':
+            logger.info(error_msg)
+        else:
+            logger.exception(e)
+        return JsonResponse({'error': error_msg})
     return JsonResponse({})
 
 

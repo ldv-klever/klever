@@ -41,19 +41,20 @@ class Session:
         :return:
         """
         logging.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(user, name))
-
         self.name = name
-        self.session = requests.Session()
-
-        # Get CSRF token via GET request.
-        self.__request('users/service_signin/')
-
         # Prepare data
-        parameters["username"] = user
-        parameters["password"] = password
+        self.__parameters = parameters
+        self.__parameters["username"] = user
+        self.__parameters["password"] = password
 
         # Sign in.
-        self.__request('users/service_signin/', 'POST', parameters)
+        self.__signin()
+
+    def __signin(self):
+        # Get CSRF token via GET request.
+        self.session = requests.Session()
+        self.__request('users/service_signin/')
+        self.__request('users/service_signin/', 'POST', self.__parameters)
         logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
@@ -91,10 +92,16 @@ class Session:
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     self.error = resp.json()['error']
                     resp.close()
-                    raise BridgeError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-
-                return resp
+                    if self.error == 'You are not signing in':
+                        logging.debug("Session has expired, relogging in")
+                        self.__signin()
+                        if data:
+                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+                    else:
+                        raise BridgeError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
+                else:
+                    return resp
             except requests.ConnectionError as err:
                 logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
@@ -181,4 +188,3 @@ class Session:
         logging.info('Finish session at {}'.format(self.name))
         self.__request('users/service_signout/', looping=False)
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
