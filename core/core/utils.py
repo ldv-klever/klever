@@ -27,7 +27,8 @@ import threading
 import time
 import queue
 import tempfile
-from benchexec.runexecutor import RunExecutor
+import shutil
+import resource
 
 
 class Cd:
@@ -120,13 +121,26 @@ class StreamQueue:
             self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False, filter_func=None):
+def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False, filter_func=None,
+            enforce_limitations=False):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
                                               ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
+    if enforce_limitations:
+        # todo: Get these limitations from some config
+        timelimit = 450
+        memlimit = 300000000
+
+        soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
+        soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
+        logger.debug('Got the following limitations: time={}s, memory={}B'.format(timelimit, memlimit))
+
     p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+    if enforce_limitations:
+        resource.prlimit(p.pid, resource.RLIMIT_CPU, [timelimit, hard_time])
+        resource.prlimit(p.pid, resource.RLIMIT_AS, [memlimit, hard_mem])
 
     out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 
@@ -171,23 +185,12 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
         return out_q.output
 
 
-def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
-    logger.debug('Execute:\n{!r}'.format(' '.join(args)))
-    executor = RunExecutor()
-    result = executor.execute_run(args=args,
-                                  output_filename="output.log",
-                                  walltimelimit=timelimit,
-                                  memlimit=memlimit,
-                                  maxLogfileSize=10000000)
-    exit_code = int(result["exitcode"]) % 255
-    if exit_code != 0:
-        os.rename("output.log", "problem desc.txt")
-        raise ValueError("Tool {!r} exited with non-zero exit code: {}".format(args[0], exit_code))
-    else:
-        with open("output.log") as fd:
-            output = fd.read()
-
-    return output
+def reliable_rmtree(logger, directory):
+    try:
+        shutil.rmtree(directory)
+    except OSError as error:
+        logger.warning("Cannot delete directory {!r}: {!r}".format(directory, error))
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def get_search_dirs(main_work_dir):
@@ -447,10 +450,12 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
+    logger.debug('{0} going to modify report id'.format(kind.capitalize()))
     with report_id.get_lock():
         cur_report_id = report_id.value
         report_id.value += 1
 
+    logger.debug('{0} prepare file archive'.format(kind.capitalize()))
     archives = []
     process_queue = [report_data]
     while process_queue:
@@ -460,6 +465,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
             process_queue.extend(elem)
         elif isinstance(elem, ReportFiles):
+            logger.debug('{0} going to pack report files to archive'.format(kind.capitalize()))
             elem.make_archive(directory=os.path.join(main_work_dir, 'reports'), prefix='{0}-'.format(cur_report_id))
 
             archives.append(elem.archive)

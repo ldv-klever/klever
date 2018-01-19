@@ -24,5 +24,3 @@ if os.path.isfile(expect_file):
     exit(0)
 else:
     exit(2)
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -850,6 +850,7 @@ def delete_marks(marks):
         for report in changes[m_id]:
             unsafes_changes[report] = changes[m_id][report]
     RecalculateTags(unsafes_changes)
+    update_confirmed_cache(list(unsafes_changes))
     return unsafes_changes
 
 
@@ -896,7 +897,7 @@ def like_association(author, report_id, mark_id, dislike):
 
 
 def update_confirmed_cache(unsafes):
-    unsafes = list(safe.id for safe in unsafes)
+    unsafes = list(unsafe.id for unsafe in unsafes)
     with_confirmed = set(r_id for r_id, in MarkUnsafeReport.objects.filter(
         report_id__in=unsafes, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0).values_list('report_id'))
     ReportUnsafe.objects.filter(id__in=unsafes).update(has_confirmed=False)

@@ -205,7 +205,7 @@ class FinishJobDecision:
             if len(self.error) > 1024:
                 logger.error("The job '%s' finished with large error: %s" % (self.job.identifier, self.error))
                 self.error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
-                self.status = JOB_STATUS[7][0]
+                self.status = JOB_STATUS[8][0]
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
@@ -361,7 +361,7 @@ class GetTasks:
             data['jobs'] = {'error': [], 'finished': []}
         if 'tasks' not in data:
             data['tasks'] = {'pending': [], 'processing': [], 'error': [], 'finished': []}
-        for x in ['error', 'finished']:
+        for x in ['error', 'finished', 'cancelled']:
             if x not in data['jobs']:
                 data['jobs'][x] = []
         for x in ['pending', 'processing', 'error', 'finished']:
@@ -386,7 +386,8 @@ class GetTasks:
                     self._data['job configurations'][progress.job.identifier]['task resource limits'] = \
                         self.__get_tasks_limits(progress.job_id)
                     self._data['jobs']['pending'].append(progress.job.identifier)
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0], fake=False)\
+                    .select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     FinishJobDecision(progress, JOB_STATUS[3][0])
                 elif progress.job.identifier in data['jobs']['error']:
@@ -394,8 +395,11 @@ class GetTasks:
                 else:
                     self._data['jobs']['processing'].append(progress.job.identifier)
                     self._data['jobs progress'][progress.job.identifier] = JobProgressData(progress.job).get()
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
-                self._data['jobs']['cancelled'].append(progress[0])
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).select_related('job'):
+                if progress.job.identifier in data['jobs']['cancelled']:
+                    change_job_status(progress.job, JOB_STATUS[7][0])
+                else:
+                    self._data['jobs']['cancelled'].append(progress.job.identifier)
 
         # Everything with tasks
         all_tasks = dict((x[0].lower(), []) for x in TASK_STATUS)
@@ -690,7 +694,7 @@ class SetSchedulersStatus:
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = 'Klever scheduler was disconnected'
-                change_job_status(progress.job, JOB_STATUS[7][0])
+                change_job_status(progress.job, JOB_STATUS[8][0])
             progress.save()
 
     def __is_not_used(self):

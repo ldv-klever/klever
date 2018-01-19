@@ -23,7 +23,6 @@ import os
 import copy
 import hashlib
 import time
-import shutil
 import core.components
 import core.utils
 import core.session
@@ -479,6 +478,8 @@ class VTG(core.components.Component):
                     with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
                               encoding='utf8') as fp:
                         verification_obj_desc = json.load(fp)
+                    if not self.conf['keep intermediate files']:
+                        os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
                     if len(self.rule_spec_descs) == 0:
                         self.logger.warning('Verification object {0} will not be verified since rule specifications'
                                             ' are not specified'.format(verification_obj_desc['id']))
@@ -533,11 +534,13 @@ class VTG(core.components.Component):
                             solved += 1
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
-                            (self.conf['keep intermediate files'] or solved == len(delete_ready[vobject])):
+                            (self.conf['keep intermediate files'] or
+                             (vobject in delete_ready and solved == len(delete_ready[vobject]))):
+                        self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
                                 deldir = os.path.join(vobject, rule)
-                                shutil.rmtree(deldir)
+                                core.utils.reliable_rmtree(self.logger, deldir)
                             del delete_ready[vobject]
                         del processing_status[vobject][rule_class]
 
@@ -762,6 +765,11 @@ class VTGW(core.components.Component):
         self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
     def join(self, timeout=None, stopped=False):
-        super(VTGW, self).join(timeout, stopped)
-        if not self.conf['keep intermediate files']:
-            self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
+        try:
+            ret = super(VTGW, self).join(timeout, stopped)
+        finally:
+            if not self.conf['keep intermediate files'] and not self.is_alive():
+                self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
+                                  format(self.verification_object['id'], self.rule_specification['id']))
+                self.mqs['delete dir'].put([self.verification_object['id'], self.rule_specification['id']])
+        return ret
