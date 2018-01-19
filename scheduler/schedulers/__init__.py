@@ -123,6 +123,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         transition_done = False
         logging.info("Start scheduler loop")
+        to_cancel = set()
         while True:
             try:
                 # Prepare scheduler state
@@ -152,13 +153,18 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     "finished": [job_id for job_id in self.__jobs if "status" in self.__jobs[job_id] and
                                  self.__jobs[job_id]["status"] == "FINISHED"],
                     "error": [job_id for job_id in self.__jobs if "status" in self.__jobs[job_id] and
-                              self.__jobs[job_id]["status"] == "ERROR"]
+                              self.__jobs[job_id]["status"] == "ERROR"],
+                    "cancelled": list(to_cancel)
                 }
-                logging.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs".
+                # Update
+                logging.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs and {} cancelled".
                              format(len(scheduler_state["jobs"]["pending"]),
                                     len(scheduler_state["jobs"]["processing"]),
                                     len(scheduler_state["jobs"]["finished"]),
-                                    len(scheduler_state["jobs"]["error"])))
+                                    len(scheduler_state["jobs"]["error"]),
+                                    len(to_cancel)))
+                if len(to_cancel) > 0:
+                    transition_done = True
 
                 # Add task errors
                 logging.debug("Add task {} error descriptions".format(len(scheduler_state["tasks"]["error"])))
@@ -177,9 +183,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Submit scheduler state and receive server state
                 if transition_done or self.__need_exchange:
                     transition_done = False
+                    to_cancel = set()
                     server_state = self.server.exchange(scheduler_state)
                     self.__last_exchange = int(time.time())
-
                     try:
                         # Ignore tasks which have been finished or cancelled
                         for task_id in [task_id for task_id in self.__tasks
@@ -313,6 +319,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         del self.__jobs[job_id]
                         if not transition_done:
                             transition_done = True
+
+                        if job_id in server_state["jobs"]["cancelled"]:
+                            to_cancel.add(job_id)
+
+                    # Add confirmation if necessary
+                    to_cancel.update(
+                        {j for j in server_state["jobs"]["cancelled"] if j not in to_cancel and
+                         j not in self.__jobs})
 
                     # Update jobs processing status
                     for job_id in server_state["jobs"]["processing"]:
