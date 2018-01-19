@@ -42,6 +42,10 @@ class ServiceError(Exception):
     pass
 
 
+class NotAnError(Exception):
+    pass
+
+
 class ScheduleTask:
     def __init__(self, job_id, description, archive):
         try:
@@ -66,8 +70,8 @@ class ScheduleTask:
         try:
             self.__check_archive(archive)
         except Exception as e:
-            logger.exception(e)
-            raise ServiceError('ZIP error')
+            logger.info(str(e))
+            raise NotAnError('ZIP error')
         self.task_id = self.__create_task(archive)
 
     def __create_task(self, archive):
@@ -553,14 +557,14 @@ class SaveSolution:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError('The task %s was not found' % task_id)
+            raise NotAnError('The task %s was not found' % task_id)
         if not Job.objects.filter(solvingprogress=self.task.progress_id, status=JOB_STATUS[2][0]).exists():
             raise ServiceError('The job is not processing')
         try:
             self.__check_archive(archive)
         except Exception as e:
-            logger.exception(e)
-            raise ServiceError('ZIP error')
+            logger.info(str(e))
+            raise NotAnError('ZIP error')
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):

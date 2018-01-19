@@ -60,13 +60,12 @@ def schedule_task(request):
         return JsonResponse({'error': 'The task archive was not got'})
     try:
         res = service.utils.ScheduleTask(request.session['job id'], request.POST['description'], archive)
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
-        error_msg = str(e)
-        if error_msg == 'ZIP error':
-            logger.info(error_msg)
-        else:
-            logger.exception(e)
-        return JsonResponse({'error': error_msg})
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({'task id': res.task_id})
 
 
@@ -216,13 +215,12 @@ def upload_solution(request):
         return JsonResponse({'error': 'The solution archive was not got'})
     try:
         service.utils.SaveSolution(request.POST['task id'], archive, request.POST['description'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
-        error_msg = str(e)
-        if error_msg == 'ZIP error':
-            logger.info(error_msg)
-        else:
-            logger.exception(e)
-        return JsonResponse({'error': error_msg})
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
