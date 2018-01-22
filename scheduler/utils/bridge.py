@@ -19,6 +19,7 @@ import logging
 import requests
 import time
 import zipfile
+import re
 
 
 class UnexpectedStatusCode(IOError):
@@ -146,6 +147,8 @@ class Session:
         :param archive: Path to save the archive.
         :return: None.
         """
+        cancelled_task = re.compile('The task \d+ was not found')
+
         while True:
             resp = None
             try:
@@ -157,6 +160,9 @@ class Session:
                     logging.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(1)
+                elif cancelled_task.match(self.error):
+                    logging.warning("Seems that the job was cancelled and we cannot upload results")
+                    break
                 else:
                     raise
             finally:
