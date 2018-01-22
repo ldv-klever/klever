@@ -35,20 +35,24 @@ class Session:
 
         self.logger = logger
         self.name = bridge['name']
-        self.session = requests.Session()
         self.error = None
+        self.__parameters = {
+            'username': bridge['user'],
+            'password': bridge['password'],
+            'job identifier': job_id
+        }
+        # Sign in.
+        self.__signin()
 
+    def __signin(self):
+        self.session = requests.Session()
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get initial value of CSRF token via useless GET request.
         self.__request('users/service_signin/')
 
         # Sign in.
-        self.__request('users/service_signin/', {
-            'username': bridge['user'],
-            'password': bridge['password'],
-            'job identifier': job_id
-        })
-        logger.debug('Session was created')
+        self.__request('users/service_signin/', self.__parameters)
+        self.logger.debug('Session was created')
 
     def __request(self, path_url, data=None, **kwargs):
         url = 'http://' + self.name + '/' + path_url
@@ -79,10 +83,16 @@ class Session:
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     self.error = resp.json()['error']
                     resp.close()
-                    raise BridgeError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-
-                return resp
+                    if self.error == 'You are not signing in':
+                        self.logger.debug("Session has expired, relogging in")
+                        self.__signin()
+                        if data:
+                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+                    else:
+                        raise BridgeError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
+                else:
+                    return resp
             except requests.ConnectionError:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(1)

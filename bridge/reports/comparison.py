@@ -23,7 +23,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS, COMPARE_VERDICT
+from bridge.vars import JOBS_COMPARE_ATTRS, COMPARE_VERDICT
 from bridge.utils import BridgeException
 
 from users.models import User
@@ -41,9 +41,7 @@ def can_compare(user, job1, job2):
         return False
     if job1.type != job2.type:
         return False
-    if not JobAccess(user, job1).can_view() or job1.status != JOB_STATUS[3][0]:
-        return False
-    if not JobAccess(user, job2).can_view() or job2.status != JOB_STATUS[3][0]:
+    if not JobAccess(user, job1).can_view() or not JobAccess(user, job2).can_view():
         return False
     return True
 

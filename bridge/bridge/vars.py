@@ -80,8 +80,9 @@ JOB_STATUS = (
     ('3', _('Solved')),
     ('4', _('Failed')),
     ('5', _('Corrupted')),
-    ('6', _('Cancelled')),
-    ('7', _('Terminated'))
+    ('6', _('Cancelling')),
+    ('7', _('Cancelled')),
+    ('8', _('Terminated'))
 )
 
 JOB_WEIGHT = (
@@ -193,7 +194,7 @@ MARKS_COMPARE_ATTRS = {
 }
 
 
-JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
+JOBS_COMPARE_ATTRS = ['Verification object', 'Rule specification']
 
 KLEVER_CORE_PARALLELISM = (
     ('sequential', _('Sequentially')),
