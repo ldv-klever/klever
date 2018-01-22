@@ -404,6 +404,11 @@
     "environment processes": {
       "usb_serial_scenario": {
         "comment": "Invoke USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -645,9 +650,80 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {},
+    "kernel model": {
+      "usb_serial_register": {
+        "comment": "Register USB serial callbacks.",
+        "labels": {
+          "usb_serial_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%usb_serial_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to register provided within 'usb_serial_driver' argument.",
+            "statements": [
+              "%usb_serial_driver% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail USB callbacks registration.",
+            "statements": [
+              "ldv_failed_usb_register_driver();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Registration of usb_serial_driver callbacks has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "usb_serial_deregister": {
+        "comment": "Deregister USB serial callbacks.",
+        "labels": {
+          "usb_serial_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%usb_serial_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
+            "statements": [
+              "%usb_serial_driver% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
     "environment processes": {
       "usb_serial_scenario": {
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "comment": "Invoke USB serial callbacks",
         "labels": {
           "usb_device_id": {

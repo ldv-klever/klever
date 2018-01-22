@@ -248,6 +248,10 @@
     },
     "environment processes": {
       "io_target_scenario": {
+        "headers": [
+          "target/target_core_base.h",
+          "target/target_core_backend.h"
+        ],
         "comment": "Invoke Linux-IO target callbacks.",
         "labels": {
           "target_backend_ops": {
