@@ -54,6 +54,9 @@ class ScheduleTask:
                 .get(job_id=job_id)
         except ObjectDoesNotExist:
             raise ServiceError('Solving progress of the job was not found')
+        if self.progress.job.status == JOB_STATUS[6][0]:
+            # Do not process cancelling jobs
+            return
         self.description = description
         try:
             priority = json.loads(self.description)['priority']
@@ -102,7 +105,7 @@ class GetTasksStatuses:
     def __get_tasks(self):
         tasks = Task.objects.filter(id__in=self._task_ids)
         if tasks.count() != len(set(self._task_ids)):
-            raise ServiceError('One of the tasks was not found')
+            raise NotAnError('One of the tasks was not found')
         return tasks
 
     def __check_jobs(self):
@@ -122,7 +125,7 @@ class GetSolution:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
@@ -142,7 +145,7 @@ class RemoveTask:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
@@ -163,7 +166,7 @@ class CancelTask:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
 
@@ -555,7 +558,7 @@ class GetTaskData:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError('The task %s was not found' % task_id)
+            raise NotAnError('The task %s was not found' % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
