@@ -456,7 +456,7 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
                               os.path.join(os.path.relpath(dirpath, solution_path), filename))
             os.fsync(zfp.fp)
 
-    server.submit_solution(identifier, decision_results, results_archive)
+    return server.submit_solution(identifier, decision_results, results_archive)
 
 
 def extract_cpu_cores_info():
