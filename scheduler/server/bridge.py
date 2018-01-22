@@ -57,7 +57,7 @@ class Server(server.AbstractServer):
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
-        self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
+        return self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
 
     def submit_solution(self, identifier, description, archive):
         """
@@ -67,13 +67,13 @@ class Server(server.AbstractServer):
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        self.session.push_archive("service/upload_solution/",
-                                  {
-                                      "task id": identifier,
-                                      "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
-                                                                indent=4)
-                                  },
-                                  archive)
+        return self.session.push_archive("service/upload_solution/",
+                                         {
+                                             "task id": identifier,
+                                             "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
+                                                                       indent=4)
+                                         },
+                                         archive)
 
     def submit_nodes(self, nodes, looping=True):
         """

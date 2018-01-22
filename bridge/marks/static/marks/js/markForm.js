@@ -82,7 +82,7 @@ window.collect_new_markdata = function() {
 
 
 window.collect_markdata = function() {
-    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true, autoconfirm=$('#autoconfirm').is(':checked'),
         mark_type = $('#mark_type').val(), mark_data, description = $('#mark_description').val();
 
     var tmp_div = $('<div>').html(description);
@@ -120,7 +120,8 @@ window.collect_markdata = function() {
             is_regexp: $('#is_regexp').is(':checked'),
             link: $('#unknown_link').val(),
             comment: $('#edit_mark_comment').val(),
-            description: description
+            description: description,
+            autoconfirm: autoconfirm
         };
     }
     else {
@@ -138,7 +139,8 @@ window.collect_markdata = function() {
             tags: get_tags_values(),
             comment: $('#edit_mark_comment').val(),
             description: description,
-            error_trace: error_trace
+            error_trace: error_trace,
+            autoconfirm: autoconfirm
         };
     }
 

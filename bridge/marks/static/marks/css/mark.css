@@ -30,3 +30,8 @@
     border-radius: 2px;
     padding: 2px;
 }
+
+#et_func1, #et_func2 {
+    cursor: pointer;
+    color: #7665cf;
+}

@@ -62,6 +62,9 @@ class NewMark:
         if 'tags' not in self._args or not isinstance(self._args['tags'], list):
             raise ValueError('Unsupported tags: %s' % self._args.get('tags'))
 
+        if 'autoconfirm' in self._args and not isinstance(self._args['autoconfirm'], bool):
+            raise ValueError('Wrong type: autoconfirm (%s)' % type(self._args['autoconfirm']))
+
         tags = set(int(t) for t in self._args['tags'])
         if len(tags) > 0:
             tags_in_db = {}
@@ -98,9 +101,6 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
-
         last_v = MarkSafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
@@ -124,8 +124,9 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
-            MarkSafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
-            SafeAssociationLike.objects.filter(association__mark=mark).delete()
+            if do_recalc or not self._args.get('autoconfirm', False):
+                MarkSafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+                SafeAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 changes = ConnectMarks([mark]).changes
             else:
@@ -827,11 +828,16 @@ class PopulateMarks:
                 raise BridgeException(_('Corrupted preset safe mark: wrong description'))
             if not isinstance(data['is_modifiable'], bool):
                 raise BridgeException(_('Corrupted preset safe mark: is_modifiable must be bool'))
-            identifier = unique_id()
-            new_marks.append(MarkSafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
-            ))
+            identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+            try:
+                MarkSafe.objects.get(identifier=identifier)
+            except ObjectDoesNotExist:
+                new_marks.append(MarkSafe(
+                    identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
+                    is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
+                ))
+            else:
+                raise Exception('Safe mark with specified identifier exists in the system')
             self._marktags[identifier] = self.__get_tags(data['tags'])
             self._markattrs[identifier] = data['attrs']
             self.total += 1

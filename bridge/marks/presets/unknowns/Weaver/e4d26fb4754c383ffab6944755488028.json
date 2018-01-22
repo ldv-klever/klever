@@ -1,0 +1,5 @@
+{
+  "pattern": "error: LDV: ../../aspectator/gcc/c-family/ldv-convert.c: 4338: tree node 'asm_expr' isn't supported",
+  "problem": "UnsupAsmExpr",
+  "link": "https://forge.ispras.ru/issues/7143"
+}

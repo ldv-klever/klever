@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+from difflib import unified_diff
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 
@@ -27,10 +29,36 @@ import marks.UnknownUtils as UnknownUtils
 
 from users.models import User
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import MarkUnsafe, MarkSafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, SafeTag, UnsafeTag
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
+    SafeTag, UnsafeTag, ConvertedTraces
 
 
-class MarkAccess(object):
+STATUS_COLOR = {
+    '0': '#D11919',
+    '1': '#FF8533',
+    '2': '#FF8533',
+    '3': '#00B800',
+}
+
+UNSAFE_COLOR = {
+    '0': '#A739CC',
+    '1': '#D11919',
+    '2': '#D11919',
+    '3': '#FF8533',
+    '4': '#D11919',
+    '5': '#000000',
+}
+
+SAFE_COLOR = {
+    '0': '#A739CC',
+    '1': '#FF8533',
+    '2': '#D11919',
+    '3': '#D11919',
+    '4': '#000000',
+}
+
+
+class MarkAccess:
 
     def __init__(self, user, mark=None, report=None):
         self.user = user
@@ -128,6 +156,11 @@ class MarkAccess(object):
             return True
         return False
 
+    def can_freeze(self):
+        if not isinstance(self.user, User):
+            return False
+        return self.user.extended.role == USER_ROLES[2][0]
+
 
 class TagsInfo:
     def __init__(self, mark_type, mark=None):
@@ -213,6 +246,107 @@ class NewMark:
             mark = res.change_mark(self._inst)
         self.changes = res.changes
         return mark
+
+
+class CompareMarkVersions:
+    def __init__(self, mark_id, mark_type, v_ids):
+        self.type = mark_type
+        self.v1, self.v2 = self.__get_versions(mark_id, v_ids)
+        self.verdict = self.__verdict_change()
+        self.status = self.__status_change()
+        self.tags = self.__tags_change()
+        self.et_func = self.__et_func_change()
+        self.et = self.__et_change()
+        self.attrs = self.__attr_change()
+        self.unknown_func = self.__unknown_func_change()
+        self.problem = self.__problem_change()
+
+    def __get_versions(self, mid, v_ids):
+        mark_table = {'safe': MarkSafeHistory, 'unsafe': MarkUnsafeHistory, 'unknown': MarkUnknownHistory}
+        if self.type not in mark_table:
+            raise BridgeException()
+        versions = mark_table[self.type].objects.filter(mark_id=mid, version__in=v_ids).order_by('change_date')
+        if versions.count() != 2:
+            raise BridgeException(_('The page is outdated, reload it please'))
+        return list(versions)
+
+    def __verdict_change(self):
+        if self.type == 'unknown' or self.v1.verdict == self.v2.verdict:
+            return None
+        if self.type == 'safe':
+            return [{'title': self.v1.get_verdict_display(), 'color': SAFE_COLOR[self.v1.verdict]},
+                    {'title': self.v2.get_verdict_display(), 'color': SAFE_COLOR[self.v2.verdict]}]
+        else:
+            return [{'title': self.v1.get_verdict_display(), 'color': UNSAFE_COLOR[self.v1.verdict]},
+                    {'title': self.v2.get_verdict_display(), 'color': UNSAFE_COLOR[self.v2.verdict]}]
+
+    def __status_change(self):
+        if self.v1.status == self.v2.status:
+            return None
+        return [{'title': self.v1.get_status_display(), 'color': STATUS_COLOR[self.v1.status]},
+                {'title': self.v2.get_status_display(), 'color': STATUS_COLOR[self.v2.status]}]
+
+    def __tags_change(self):
+        if self.type == 'unknown':
+            return None
+        tags1 = set(t for t, in self.v1.tags.values_list('tag__tag'))
+        tags2 = set(t for t, in self.v2.tags.values_list('tag__tag'))
+        if tags1 == tags2:
+            return None
+        return ['; '.join(sorted(tags1)), '; '.join(sorted(tags2))]
+
+    def __et_func_change(self):
+        if self.type != 'unsafe' or self.v1.function_id == self.v2.function_id:
+            return None
+        return [{
+            'compare_name': self.v1.function.name, 'compare_desc': self.v1.function.description,
+            'convert_name': self.v1.function.convert.name, 'convert_desc': self.v1.function.convert.description
+        }, {
+            'compare_name': self.v2.function.name, 'compare_desc': self.v2.function.description,
+            'convert_name': self.v2.function.convert.name, 'convert_desc': self.v2.function.convert.description
+        }]
+
+    def __et_change(self):
+        if self.type != 'unsafe' or self.v1.error_trace_id == self.v2.error_trace_id:
+            return None
+        diff_result = []
+        f1 = ConvertedTraces.objects.get(id=self.v1.error_trace_id)
+        f2 = ConvertedTraces.objects.get(id=self.v2.error_trace_id)
+        with f1.file as fp1, f2.file as fp2:
+            for line in unified_diff(fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n')):
+                diff_result.append(line)
+
+        return '\n'.join(diff_result)
+
+    def __attr_change(self):
+        if self.type == 'unknown':
+            return None
+        attrs1 = set(a_id for a_id, in self.v1.attrs.filter(is_compare=True).values_list('attr_id'))
+        attrs2 = set(a_id for a_id, in self.v2.attrs.filter(is_compare=True).values_list('attr_id'))
+        if attrs1 == attrs2:
+            return None
+        return [
+            list((a.attr.name.name, a.attr.value) for a in self.v1.attrs.filter(is_compare=True)
+                 .select_related('attr', 'attr__name').order_by('id')),
+            list((a.attr.name.name, a.attr.value) for a in self.v2.attrs.filter(is_compare=True)
+                 .select_related('attr', 'attr__name').order_by('id'))
+        ]
+
+    def __unknown_func_change(self):
+        if self.type != 'unknown':
+            return None
+        if self.v1.is_regexp == self.v2.is_regexp and self.v1.function == self.v2.function:
+            return None
+        return [{'is_regexp': self.v1.is_regexp, 'func': self.v1.function},
+                {'is_regexp': self.v2.is_regexp, 'func': self.v2.function}]
+
+    def __problem_change(self):
+        if self.type != 'unknown':
+            return None
+        if self.v1.problem_pattern == self.v2.problem_pattern and self.v1.link == self.v2.link:
+            return None
+        return [{'pattern': self.v1.problem_pattern, 'link': self.v1.link},
+                {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
 def delete_marks(user, marks_type, mark_ids):

@@ -38,8 +38,6 @@ from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
-READABLE = {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
-
 # List of available types of 'safe' column class.
 SAFES = [
     'missed_bug',
@@ -122,6 +120,11 @@ TITLES = {
     'subjobs:progress_sj': _('Solution progress'),
     'subjobs:expected_time_sj': _('Expected solution time'),
 }
+
+
+def is_readable(filename):
+    ext = os.path.splitext(filename)[1]
+    return len(ext) > 0 and ext[1:] in {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
 
 
 class JobAccess(object):
@@ -507,10 +510,7 @@ def update_job(kwargs):
         raise ValueError('The job is required')
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         raise ValueError('Change author is required')
-    if 'comment' in kwargs:
-        if len(kwargs['comment']) == 0:
-            raise ValueError('Change comment is required')
-    else:
+    if 'comment' not in kwargs:
         kwargs['comment'] = ''
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
@@ -573,15 +573,11 @@ def remove_jobs_by_id(user, job_ids):
 
 
 def delete_versions(job, versions):
-    access_versions = []
-    for v in versions:
-        v = int(v)
-        if v != 1 and v != job.version:
-            access_versions.append(v)
-    checked_versions = job.versions.filter(version__in=access_versions)
-    num_of_deleted = len(checked_versions)
+    versions = list(int(v) for v in versions)
+    if any(v in {1, job.version} for v in versions):
+        raise BridgeException(_("You don't have an access to remove one of the selected version"))
+    checked_versions = job.versions.filter(version__in=versions)
     checked_versions.delete()
-    return num_of_deleted
 
 
 def check_new_parent(job, parent):
@@ -658,30 +654,28 @@ class CompareFileSet(object):
         files2 = get_files(self.j2)
         for f1 in files1:
             if f1[0] not in list(x[0] for x in files2):
-                ext = os.path.splitext(f1[0])[1]
-                if len(ext) > 0 and ext[1:] in READABLE:
+                if is_readable(f1[0]):
                     self.data['unmatched1'].insert(0, [f1[0], f1[1]])
                 else:
                     self.data['unmatched1'].append([f1[0]])
             else:
                 for f2 in files2:
                     if f2[0] == f1[0]:
-                        ext = os.path.splitext(f1[0])[1]
+                        is_rdb = is_readable(f1[0])
                         if f2[1] == f1[1]:
-                            if len(ext) > 0 and ext[1:] in READABLE:
+                            if is_rdb:
                                 self.data['same'].insert(0, [f1[0], f1[1]])
                             else:
                                 self.data['same'].append([f1[0]])
                         else:
-                            if len(ext) > 0 and ext[1:] in READABLE:
+                            if is_rdb:
                                 self.data['diff'].insert(0, [f1[0], f1[1], f2[1]])
                             else:
                                 self.data['diff'].append([f1[0]])
                         break
         for f2 in files2:
             if f2[0] not in list(x[0] for x in files1):
-                ext = os.path.splitext(f2[0])[1]
-                if len(ext) > 0 and ext[1:] in READABLE:
+                if is_readable(f2[0]):
                     self.data['unmatched2'].insert(0, [f2[0], f2[1]])
                 else:
                     self.data['unmatched2'].append([f2[0]])
@@ -954,3 +948,75 @@ class StartDecisionData:
         elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
             raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
+
+
+class CompareJobVersions:
+    def __init__(self, v1, v2):
+        self.v1 = v1
+        self.v2 = v2
+        self.files_map = {}
+        self.roles = self.__user_roles()
+        self.paths, self.files = self.__compare_files()
+
+    def __user_roles(self):
+        set1 = set(uid for uid, in UserRole.objects.filter(job=self.v1).values_list('user_id'))
+        set2 = set(uid for uid, in UserRole.objects.filter(job=self.v2).values_list('user_id'))
+        if set1 != set2:
+            return [
+                UserRole.objects.filter(job=self.v1).order_by('user__last_name').select_related('user'),
+                UserRole.objects.filter(job=self.v2).order_by('user__last_name').select_related('user')
+            ]
+        return None
+
+    def __get_files(self, version):
+        self.__is_not_used()
+        tree = {}
+        for f in FileSystem.objects.filter(job=version).order_by('id'):
+            tree[f.id] = {'parent': f.parent_id, 'name': f.name, 'f_id': f.file_id, 'fs_id': f.id}
+        files = {}
+        for f_id in tree:
+            if tree[f_id]['f_id'] is None:
+                continue
+            parent = tree[f_id]['parent']
+            path_list = [tree[f_id]['name']]
+            while parent is not None:
+                path_list.insert(0, tree[parent]['name'])
+                parent = tree[parent]['parent']
+            files['/'.join(path_list)] = {
+                'f_id': tree[f_id]['f_id'],
+                'fs_id': tree[f_id]['fs_id'],
+                'name': tree[f_id]['name']
+            }
+        return files
+
+    def __compare_files(self):
+        files1 = self.__get_files(self.v1)
+        files2 = self.__get_files(self.v2)
+        changed_files = []
+        changed_paths = []
+        for fp1 in list(files1):
+            if fp1 in files2:
+                if files1[fp1]['f_id'] != files2[fp1]['f_id']:
+                    # The file was changed
+                    changed_files.append([is_readable(fp1), fp1, files1[fp1]['fs_id'], files2[fp1]['fs_id']])
+
+                # Files are not changed deleted here too
+                del files2[fp1]
+            else:
+                for fp2 in list(files2):
+                    if files2[fp2]['f_id'] == files1[fp1]['f_id']:
+                        # The file was moved
+                        changed_paths.append([files1[fp1]['fs_id'], files2[fp2]['fs_id'], fp1, fp2])
+                        del files2[fp2]
+                        break
+                else:
+                    # The file was deleted
+                    changed_paths.append([files1[fp1]['fs_id'], None, fp1, None])
+
+        # files2 contains now only created files (or moved+changed at the same time)
+        for fp2 in list(files2):
+            changed_paths.append([None, files2[fp2]['fs_id'], None, fp2])
+        return changed_paths, changed_files
+
+    def __is_not_used(self):
+        pass

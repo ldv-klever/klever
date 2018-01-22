@@ -42,6 +42,10 @@ class ServiceError(Exception):
     pass
 
 
+class NotAnError(Exception):
+    pass
+
+
 class ScheduleTask:
     def __init__(self, job_id, description, archive):
         try:
@@ -50,6 +54,9 @@ class ScheduleTask:
                 .get(job_id=job_id)
         except ObjectDoesNotExist:
             raise ServiceError('Solving progress of the job was not found')
+        if self.progress.job.status == JOB_STATUS[6][0]:
+            # Do not process cancelling jobs
+            return
         self.description = description
         try:
             priority = json.loads(self.description)['priority']
@@ -66,8 +73,8 @@ class ScheduleTask:
         try:
             self.__check_archive(archive)
         except Exception as e:
-            logger.exception(e)
-            raise ServiceError('ZIP error')
+            logger.info(str(e))
+            raise NotAnError('ZIP error')
         self.task_id = self.__create_task(archive)
 
     def __create_task(self, archive):
@@ -98,7 +105,7 @@ class GetTasksStatuses:
     def __get_tasks(self):
         tasks = Task.objects.filter(id__in=self._task_ids)
         if tasks.count() != len(set(self._task_ids)):
-            raise ServiceError('One of the tasks was not found')
+            raise NotAnError('One of the tasks was not found')
         return tasks
 
     def __check_jobs(self):
@@ -118,7 +125,7 @@ class GetSolution:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
@@ -138,7 +145,7 @@ class RemoveTask:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
@@ -159,7 +166,7 @@ class CancelTask:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError("The task '%s' was not found" % task_id)
+            raise NotAnError("The task '%s' was not found" % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
 
@@ -279,14 +286,12 @@ class FinishJobDecision:
                 raise ServiceError("The job didn't got full tasks progress data")
             else:
                 if jp.solved_ts + jp.failed_ts != jp.total_ts or jp.finish_ts is None:
-                    print(jp.solved_ts, jp.failed_ts, jp.total_ts, jp.finish_ts)
                     raise ServiceError("Tasks solving progress is not finished")
         if jp.start_sj is not None:
             if any(x is None for x in [jp.solved_sj, jp.failed_sj, jp.total_sj, jp.start_sj, jp.finish_sj]):
                 raise ServiceError("The job didn't got full subjobs progress data")
             else:
                 if jp.solved_sj + jp.failed_sj != jp.total_sj or jp.finish_sj is None:
-                    print(jp.solved_sj, jp.failed_sj, jp.total_sj, jp.finish_sj)
                     raise ServiceError("Subjobs solving progress is not finished")
 
 
@@ -551,7 +556,7 @@ class GetTaskData:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError('The task %s was not found' % task_id)
+            raise NotAnError('The task %s was not found' % task_id)
         if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
@@ -563,14 +568,14 @@ class SaveSolution:
         try:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            raise ServiceError('The task %s was not found' % task_id)
+            raise NotAnError('The task %s was not found' % task_id)
         if not Job.objects.filter(solvingprogress=self.task.progress_id, status=JOB_STATUS[2][0]).exists():
             raise ServiceError('The job is not processing')
         try:
             self.__check_archive(archive)
         except Exception as e:
-            logger.exception(e)
-            raise ServiceError('ZIP error')
+            logger.info(str(e))
+            raise NotAnError('ZIP error')
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):

@@ -1,6 +1,16 @@
-{% extends 'marks/base.html' %}
+{% extends 'base.html' %}
+
 {% load i18n %}
+{% load staticfiles %}
+
 {% block title %}{% trans 'Total expert evaluation changes' %}{% endblock %}
+
+{% block head_block %}
+    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    {% block mark_head_block %}{% endblock %}
+{% endblock %}
+
 {% block body_block %}
     <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ TableData.view.type }}" data-content="{{ TableData.view.viewtitle }}" data-position="bottom right" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
     <br>

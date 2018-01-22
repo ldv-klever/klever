@@ -75,6 +75,9 @@ class NewMark:
         if 'tags' not in self._args or not isinstance(self._args['tags'], list):
             raise ValueError('Unsupported tags: %s' % self._args.get('tags'))
 
+        if 'autoconfirm' in self._args and not isinstance(self._args['autoconfirm'], bool):
+            raise ValueError('Wrong type: autoconfirm (%s)' % type(self._args['autoconfirm']))
+
         tags = set(int(t) for t in self._args['tags'])
         if len(tags) > 0:
             tags_in_db = {}
@@ -110,8 +113,6 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
         error_trace = None
         if 'error_trace' in self._args and isinstance(self._args['error_trace'], str):
             try:
@@ -156,8 +157,9 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
-            MarkUnsafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
-            UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
+            if do_recalc or not self._args.get('autoconfirm', False):
+                MarkUnsafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+                UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 changes = ConnectMarks([mark]).changes
             else:
@@ -815,12 +817,17 @@ class PopulateMarks:
                 raise BridgeException(_('Corrupted preset unsafe mark: comparison function name is required'))
             if data['comparison'] not in self._functions:
                 raise BridgeException(_('Preset unsafe mark comparison fucntion is not supported'))
-            identifier = unique_id()
-            new_marks.append(MarkUnsafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
-                function_id=self._functions[data['comparison']]
-            ))
+            identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+            try:
+                MarkUnsafe.objects.get(identifier=identifier)
+            except ObjectDoesNotExist:
+                new_marks.append(MarkUnsafe(
+                    identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
+                    is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
+                    function_id=self._functions[data['comparison']]
+                ))
+            else:
+                raise Exception('Unsafe mark with specified identifier exists in the system')
             self._marks_data[identifier] = {
                 'f_id': self._functions[data['comparison']],
                 'tags': self.__get_tags(data['tags']),
