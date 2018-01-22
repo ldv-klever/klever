@@ -31,6 +31,9 @@ class BridgeError(IOError):
 
 
 class Session:
+
+    CANCELLED_STATUS = re.compile('The task \d+ was not found')
+
     def __init__(self, name, user, password, parameters=dict()):
         """
         Create http session between scheduler and Klever Bridge server.
@@ -118,8 +121,9 @@ class Session:
         :param endpoint: URL endpoint.
         :param data: Data to push in case of POST request.
         :param archive: Path to save the archive.
-        :return: None
+        :return: True
         """
+        ret = True
         while True:
             resp = None
             try:
@@ -134,9 +138,18 @@ class Session:
                     logging.debug('Could not download ZIP archive')
                 else:
                     break
+            except BridgeError:
+                if self.CANCELLED_STATUS.match(self.error):
+                    logging.warning("Seems that the job was cancelled and we cannot download data to start the task")
+                    ret = False
+                    break
+                else:
+                    raise
             finally:
                 if resp:
                     resp.close()
+
+        return ret
 
     def push_archive(self, endpoint, data, archive):
         """
@@ -147,7 +160,7 @@ class Session:
         :param archive: Path to save the archive.
         :return: None.
         """
-        cancelled_task = re.compile('The task \d+ was not found')
+        ret = True
 
         while True:
             resp = None
@@ -160,14 +173,17 @@ class Session:
                     logging.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(1)
-                elif cancelled_task.match(self.error):
+                elif self.CANCELLED_STATUS.match(self.error):
                     logging.warning("Seems that the job was cancelled and we cannot upload results")
+                    ret = False
                     break
                 else:
                     raise
             finally:
                 if resp:
                     resp.close()
+
+        return ret
 
     def json_exchange(self, endpoint, json_data, looping=True):
         """
