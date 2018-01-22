@@ -1,7 +1,7 @@
 {
   "Linux 3.14 (base)": {
     "kernel model": {
-      "__platform_driver_register": {
+      "platform_driver_register, __platform_driver_register": {
         "comment": "Register a driver for platform-level device.",
         "labels": {
           "platform_driver": {
