@@ -269,14 +269,15 @@ class SafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
             for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
                     if rep_id in data[self.view['order'][2]]:
                         reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
                     else:
-                        # We want reports without attribute to be at the end (with straight order)
-                        reports_ordered.append(('~', rep_id))
+                        end_reports.append(rep_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -294,6 +295,7 @@ class SafesTable:
                 if self.__has_tag(reports[rep_id]['tags']):
                     reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
+        reports_ordered += list(sorted(end_reports))
 
         for r_id in reports:
             tags_str = []
@@ -509,14 +511,15 @@ class UnsafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
             for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
                     if rep_id in data[self.view['order'][2]]:
                         reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
                     else:
-                        # We want reports without attribute to be at the end (with straight order)
-                        reports_ordered.append(('~', rep_id))
+                        end_reports.append(rep_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -534,6 +537,7 @@ class UnsafesTable:
                 if self.__has_tag(reports[rep_id]['tags']):
                     reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
+        reports_ordered += list(sorted(end_reports))
 
         for r_id in reports:
             tags_str = []
@@ -769,16 +773,19 @@ class UnknownsTable:
             data[aname][u_id] = aval
 
         ids_order_data = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
             for rep_id in reports:
                 if rep_id in data[self.view['order'][2]]:
                     ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
                 else:
-                    # We want reports without attribute to be at the end (with straight order)
-                    ids_order_data.append(('~', rep_id))
+                    end_reports.append(rep_id)
         elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
             for rep_id in reports:
-                if reports[rep_id][self.view['order'][1]] is not None:
+                if reports[rep_id][self.view['order'][1]] is None:
+                    end_reports.append(rep_id)
+                else:
                     ids_order_data.append((reports[rep_id][self.view['order'][1]], rep_id))
         else:
             for u_id in reports:
@@ -786,6 +793,7 @@ class UnknownsTable:
         report_ids = list(x[1] for x in sorted(ids_order_data))
         if 'order' in self.view and self.view['order'][0] == 'up':
             report_ids = list(reversed(report_ids))
+        report_ids += list(sorted(end_reports))
 
         cnt = 1
         values_data = []
