@@ -18,7 +18,6 @@
 import os
 import json
 import mimetypes
-from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
@@ -108,7 +107,7 @@ def download_solution(request):
     mimetype = mimetypes.guess_type(os.path.basename(res.solution.archname))[0]
     response = StreamingHttpResponse(FileWrapper(res.solution.archive, 8192), content_type=mimetype)
     response['Content-Length'] = len(res.solution.archive)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.solution.archname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % res.solution.archname
     return response
 
 
@@ -191,7 +190,7 @@ def download_task(request):
     mimetype = mimetypes.guess_type(os.path.basename(res.task.archname))[0]
     response = StreamingHttpResponse(FileWrapper(res.task.archive, 8192), content_type=mimetype)
     response['Content-Length'] = len(res.task.archive)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.task.archname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % res.task.archname
     return response
 
 

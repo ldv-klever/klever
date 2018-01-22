@@ -373,7 +373,7 @@ def download_mark(request, mark_type, mark_id):
     generator = MarkArchiveGenerator(mark)
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
     return response
 
 
@@ -697,7 +697,7 @@ def download_tags(request, tags_type):
     tags_file_name = 'Tags-%s.json' % tags_type
     mimetype = mimetypes.guess_type(os.path.basename(tags_file_name))[0]
     response = HttpResponse(content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % tags_file_name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % tags_file_name
     response.write(fp.read())
     return response
 
@@ -737,7 +737,7 @@ def download_all(request):
     generator = AllMarksGen()
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
     return response
 
 
