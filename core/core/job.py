@@ -498,6 +498,7 @@ class JCR(core.components.Component):
         self.logger.debug("Begin collecting coverage")
 
         total_coverage_infos = dict()
+        arcfiles = {}
         os.mkdir('total coverages')
 
         while True:
@@ -513,8 +514,10 @@ class JCR(core.components.Component):
             if 'coverage info file' in coverage_info:
                 if job_id not in total_coverage_infos:
                     total_coverage_infos[job_id] = dict()
+                    arcfiles[job_id] = dict()
                 rule_spec = coverage_info['rule specification']
                 total_coverage_infos[job_id].setdefault(rule_spec, {})
+                arcfiles[job_id].setdefault(rule_spec, {})
 
                 with open(coverage_info['coverage info file'], encoding='utf8') as fp:
                     loaded_coverage_info = json.load(fp)
@@ -524,9 +527,13 @@ class JCR(core.components.Component):
                     os.remove(os.path.join(self.conf['main working directory'],
                                            coverage_info['coverage info file']))
 
-                for file_name, coverage_info_element in loaded_coverage_info.items():
-                    total_coverage_infos[job_id][rule_spec].setdefault(file_name, [])
-                    total_coverage_infos[job_id][rule_spec][file_name] += coverage_info_element
+                #for file_name, coverage_info_element in loaded_coverage_info.items():
+                core.vrp.LCOV.add_to_coverage(total_coverage_infos[job_id][rule_spec], loaded_coverage_info)
+                for file in loaded_coverage_info.values():
+                    arcfiles[job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
+                    #total_coverage_infos[job_id][rule_spec].setdefault(file_name, [])
+                    #total_coverage_infos[job_id][rule_spec][file_name] += coverage_info_element
+                del loaded_coverage_info
             elif job_id in total_coverage_infos:
                 self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
 
@@ -550,6 +557,7 @@ class JCR(core.components.Component):
 
                     coverage_info_dumped_files.append(total_coverage_file)
 
+                    arcnames.update(arcfiles[job_id][rule_spec])
                     arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
 
                     total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
