@@ -17,7 +17,7 @@
 
 import re
 
-from core.vtg.emg.grammars.process import parse_process
+from core.vtg.emg.common.process.procParser import parse_process
 
 
 def generate_regex_set(subprocess_name):
@@ -112,12 +112,12 @@ class Label:
 
     def __init__(self, name):
         self.value = None
-        self.prior_signature = None
+        self.declaration = None
         self.name = name
 
     def compare_with(self, label):
-        if self.prior_signature and label.prior_signature:
-            my_signature = self.prior_signature
+        if self.declaration and label.prior_signature:
+            my_signature = self.declaration
             ret = my_signature.compare_signature(label.prior_signature)
             if not ret:
                 return 'different'
@@ -133,7 +133,7 @@ class Process:
     def __init__(self, name):
         self.name = name
         self.category = None
-        self.identifier = None
+        self.pretty_id = None
         self.comment = None
         self.labels = {}
         self.actions = {}
@@ -141,7 +141,7 @@ class Process:
         self.headers = list()
         self.declarations = dict()
         self.definitions = dict()
-        self.external_id = None
+        self.identifier = None
         self._process_ast = None
         self._accesses = dict()
 

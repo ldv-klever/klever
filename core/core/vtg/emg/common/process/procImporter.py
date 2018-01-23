@@ -14,66 +14,191 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
-    check_necessary_conf_property
-from core.vtg.emg.common.signature import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, Condition, generate_regex_set, Label, Process
-from core.vtg.emg.processmodel.abstractprocess import Call, CallRetval, AbstractLabel, AbstractProcess
+from core.vtg.emg.common import check_necessary_conf_property
+from core.vtg.emg.common.c.declaration import import_declaration
+from core.vtg.emg.common.process.process import Receive, Dispatch, generate_regex_set, Label, Process
 
 
-def parse_event_specification(logger, conf, raw, abstract=True):
-    """
-    Parse event categories specification and create all existing Process objects.
+class ProcessImporter:
+    
+    PROCESS_CONSTRUCTOR = Process
+    LABEL_CONSTRUCTOR = Label
+    REGEX_SET=generate_regex_set
+    LABEL_ATTRIBUTES = {
+        'value': None,
+        'declaration': None
+    }
+    PROCESS_ATTRIBUTES = {
+        'headers': None,
+        'declarations': None,
+        'definitions': None,
+        'identifier': None,
+        'category': None
+    }
+    ACTION_ATTRIBUTES = {
+        'comment': None,
+        'parameters': None,
+        'condition': None,
+        'statements': None,
+        'process': None,
+        'peers': None,
+        'pre-call': 'pre_call',
+        'post-call': 'post_call',
+    }
 
-    :param logger: logging object.
-    :param conf: Configuration dictionary with options for intermediate model.
-    :param raw: Dictionary with content of JSON file of a specification.
-    :param abstract: Mean that processes are final (true) or for drivers only (initial specifications).
-    :return: [List of Process objects which correspond to kernel function models],
-             [List of Process objects which correspond to processes with callback calls]
-    """
-    env_processes = dict()
-    models = dict()
+    def __init__(self, logger, conf):
+        self.logger = logger,
+        self.conf = conf
 
-    # Check necessary configuration options
-    check_or_set_conf_property(conf, "process comment", default_value='Invocation scenario for {0!r} callbacks',
-                               expected_type=str)
-    check_or_set_conf_property(conf, "callback comment", default_value='Invoke callback {0!r} from {1!r}.',
-                               expected_type=str)
-    check_necessary_conf_property(conf, "action comments", expected_type=dict)
+    def parse_event_specification(self, raw):
+        """
+        Parse event categories specification and create all existing Process objects.
+    
+        :param logger: logging object.
+        :param conf: Configuration dictionary with options for intermediate model.
+        :param raw: Dictionary with content of JSON file of a specification.
+        :param abstract: Mean that processes are final (true) or for drivers only (initial specifications).
+        :return: [List of Process objects which correspond to kernel function models],
+                 [List of Process objects which correspond to processes with callback calls]
+        """
+        env_processes = dict()
+        models = dict()
+    
+        # Check necessary configuration options
+        check_necessary_conf_property(self.conf, "action comments", expected_type=dict)
+    
+        self.logger.info("Import processes from provided event categories specification")
+        if "functions models" in raw:
+            self.logger.info("Import processes from 'kernel model'")
+            for name_list in raw["kernel model"]:
+                names = name_list.split(", ")
+                for name in names:
+                    self.logger.debug("Import process which models {!r}".format(name))
+                    models[name] = self._import_process(name, raw["kernel model"][name_list])
+        if "environment processes" in raw:
+            self.logger.info("Import processes from 'environment processes'")
+            for name in raw["environment processes"]:
+                self.logger.debug("Import environment process {}".format(name))
+                process = self._import_process(name, raw["environment processes"][name])
+                env_processes[name] = process
+        if "entry process" in raw:
+            self.logger.info("Import entry process")
+            entry_process = self._import_process("entry", raw["entry process"])
+        else:
+            entry_process = None
 
-    logger.info("Import processes from provided event categories specification")
-    if "kernel model" in raw:
-        logger.info("Import processes from 'kernel model'")
-        for name_list in raw["kernel model"]:
-            names = name_list.split(", ")
-            for name in names:
-                logger.debug("Import process which models {!r}".format(name))
-                models[name] = __import_process(name, raw["kernel model"][name_list], conf, abstract)
-    else:
-        logger.warning("Kernel model is not provided")
-    if "environment processes" in raw:
-        logger.info("Import processes from 'environment processes'")
-        for name in raw["environment processes"]:
-            logger.debug("Import environment process {}".format(name))
-            process = __import_process(name, raw["environment processes"][name], conf, abstract)
-            env_processes[name] = process
-    else:
-        raise KeyError("Model cannot be generated without environment processes")
+        self._establish_peers(models, env_processes, entry_process)
+        return models, env_processes, entry_process
 
-    if "entry process" in raw:
-        logger.info("Import entry process")
-        entry_process = __import_process("entry", raw["entry process"], conf, abstract)
-    else:
-        entry_process = None
+    def _import_process(self, name, dic):
+        process = self.PROCESS_CONSTRUCTOR(name)
 
-    # Then check peers. This is becouse in generated processes there no peers set for manually written processes
-    if not abstract:
+        if 'labels' in dic:
+            for label_name in dic['labels']:
+                label = self._import_label(label_name, dic['labels'][label_name])
+                process.labels[label_name] = label
+
+        # Import process
+        process_strings = []
+        if 'process' in dic:
+            process.process = dic['process']
+            process_strings.append(dic['process'])
+        else:
+            raise KeyError("Each process must have 'process' attribute, but {!r} misses it".format(name))
+
+        # Import comments
+        if 'comment' in dic:
+            process.comment = dic['comment']
+        else:
+            raise KeyError(
+                "You must specify manually 'comment' attribute within the description of {!r} kernel "
+                "function model process".format(name))
+
+        # Import subprocesses
+        if 'actions' in dic:
+            process_strings.extend([dic['actions'][n]['process'] for n in dic['actions']
+                                    if 'process' in dic['actions'][n]])
+
+            for action_name in dic['actions']:
+                action = self._import_action(self, name, dic['actions'][action_name])
+                process.actions[action_name] = action
+
+                if 'process' in dic['actions'][action_name]:
+                    process_strings.append(dic['actions'][action_name]['process'])
+
+        for att in self.PROCESS_ATTRIBUTES:
+            if att in dic:
+                if self.PROCESS_ATTRIBUTES[att]:
+                    attname = self.PROCESS_ATTRIBUTES[att]
+                else:
+                    attname = att
+                setattr(process, attname, dic[att])
+
+        unused_labels = process.unused_labels
+        if len(unused_labels) > 0:
+            raise RuntimeError("Found unused labels in process {!r}: {}".
+                               format(process.name, ', '.join(unused_labels)))
+        process.accesses()
+        return process
+
+    def _import_action(self, process_strings, name, dic):
+        act = None
+        for regex in self.REGEX_SET(name):
+            for string in process_strings:
+                if regex['regex'].search(string):
+                    act = self._action_checker(string, regex, name, dic)
+                    break
+        if not act:
+            raise ValueError("Action '{}' is not used in process description {!r}".
+                             format(name, name))
+
+        # Add comment if it is provided
+        for att in self.ACTION_ATTRIBUTES:
+            if att in dic[name]:
+                if self.ACTION_ATTRIBUTES[att]:
+                    attname = self.LABEL_ATTRIBUTES[att]
+                else:
+                    attname = att
+                setattr(act, attname, dic[att])
+        return act
+
+    def _import_label(self, name, dic):
+        label = self.LABEL_CONSTRUCTOR(name)
+
+        for att in self.LABEL_ATTRIBUTES:
+            if att in dic:
+                if self.LABEL_ATTRIBUTES[att]:
+                    attname = self.LABEL_ATTRIBUTES[att]
+                else:
+                    attname = att
+                setattr(label, attname, dic[att])
+
+        if label.declaration:
+            label.declaration = import_declaration(label.declaration)
+
+        return label
+
+    @staticmethod
+    def _action_checker(proces_string, regex, name, dic):
+        process_type = regex['type']
+        act = process_type(name)
+        if process_type is Receive:
+            if '!' in regex['regex'].search(proces_string).group(0):
+                act.replicative = True
+        elif process_type is Dispatch:
+            if '@' in regex['regex'].search(proces_string).group(0):
+                act.broadcast = True
+        return act
+
+    @staticmethod
+    def _establish_peers(models, env_processes, entry_process):
+        # Then check peers. This is becouse in generated processes there no peers set for manually written processes
         processes = list(models.values()) + list(env_processes.values()) + [entry_process]
         process_map = {p.external_id: p for p in processes}
         for process in processes:
-            for action in [process.actions[a] for a in process.actions if isinstance(process.actions[a], Receive) or
-                           isinstance(process.actions[a], Dispatch) and len(process.actions[a].peers) > 0]:
+            for action in [process.actions[a] for a in process.actions
+                           if isinstance(process.actions[a], Receive) or isinstance(process.actions[a], Dispatch) and
+                           len(process.actions[a].peers) > 0]:
                 new_peers = []
                 for peer in action.peers:
                     if peer not in process_map:
@@ -92,169 +217,3 @@ def parse_event_specification(logger, conf, raw, abstract=True):
             else:
                 process.category = tokens[0]
                 process.name = tokens[1]
-
-    return models, env_processes, entry_process
-
-
-def __import_process(name, dic, conf, abstract):
-    if abstract:
-        process = AbstractProcess(name)
-    else:
-        process = Process(name)
-
-    if 'self parallelism' in dic:
-        process.self_parallelism = False
-
-    if 'labels' in dic:
-        for label_name in dic['labels']:
-            if abstract:
-                label = AbstractLabel(label_name)
-            else:
-                label = Label(label_name)
-            process.labels[label_name] = label
-
-            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file', 'retval']:
-                if att in dic['labels'][label_name]:
-                    setattr(label, att, dic['labels'][label_name][att])
-
-            if 'interface' in dic['labels'][label_name]:
-                if isinstance(dic['labels'][label_name]['interface'], str):
-                    label.set_declaration(dic['labels'][label_name]['interface'], None)
-                elif isinstance(dic['labels'][label_name]['interface'], list):
-                    for string in dic['labels'][label_name]['interface']:
-                        label.set_declaration(string, None)
-                else:
-                    TypeError('Expect list or string with interface identifier')
-            if 'signature' in dic['labels'][label_name]:
-                label.prior_signature = import_declaration(dic['labels'][label_name]['signature'])
-
-    # Import process
-    process_strings = []
-    if 'process' in dic:
-        process.process = dic['process']
-
-        process_strings.append(dic['process'])
-
-    # Import comments
-    if 'comment' in dic:
-        process.comment = dic['comment']
-    else:
-        raise KeyError("You must specify manually 'comment' attribute within the description of {!r} kernel "
-                       "function model process".format(name))
-
-    # Import subprocesses
-    if 'actions' in dic:
-        for action_name in dic['actions']:
-            process.actions[action_name] = None
-
-            if 'process' in dic['actions'][action_name]:
-                process_strings.append(dic['actions'][action_name]['process'])
-
-    if 'headers' in dic:
-        process.headers = dic['headers']
-
-    # Extract definitions
-    if 'declarations' in dic:
-        process.declarations = dic['declarations']
-
-    # Extract declarations
-    if 'definitions' in dic:
-        process.definitions = dic['definitions']
-
-    if 'identifier' in dic:
-        process.external_id = dic["identifier"]
-
-    if 'category' in dic:
-        process.category = dic["category"]
-
-    for action_name in process.actions:
-        regexes = generate_regex_set(action_name)
-        matched = False
-
-        for regex in regexes:
-            for string in process_strings:
-                if regex['regex'].search(string):
-                    process_type = regex['type']
-                    if process_type is Dispatch and 'callback' in dic['actions'][action_name]:
-                        act = Call(action_name)
-                    elif process_type is Receive and 'callback' in dic['actions'][action_name]:
-                        act = CallRetval(action_name)
-                    elif process_type is Receive:
-                        act = process_type(action_name)
-                        if '!' in regex['regex'].search(string).group(0):
-                            act.replicative = True
-                    elif process_type is Dispatch:
-                        act = process_type(action_name)
-                        if '@' in regex['regex'].search(string).group(0):
-                            act.broadcast = True
-                    else:
-                        act = process_type(action_name)
-                    process.actions[action_name] = act
-                    matched = True
-                    break
-
-        if not matched:
-            raise ValueError("Action '{}' is not used in process description {!r}".
-                             format(action_name, name))
-
-        # Add comment if it is provided
-        if 'comment' in dic['actions'][action_name]:
-            process.actions[action_name].comment = dic['actions'][action_name]['comment']
-        elif not isinstance(act, Call):
-            comments_by_type = get_necessary_conf_property(conf, 'action comments')
-            tag = type(act).__name__.lower()
-            if tag not in comments_by_type or \
-               not (isinstance(comments_by_type[tag], str) or
-                    (isinstance(comments_by_type[tag], dict) and action_name in comments_by_type[tag])):
-                raise KeyError(
-                    "Cannot find comment for action {!r} of type {!r} at process {!r} description. You shoud either "
-                    "specify in the corresponding environment model specification the comment text manually or set "
-                    "the default comment text for all actions of the type {!r} at EMG plugin configuration properties "
-                    "within 'action comments' attribute.".
-                    format(action_name, tag, name, tag))
-
-        # Values from dictionary
-        if 'callback' in dic['actions'][action_name]:
-            process.actions[action_name].callback = dic['actions'][action_name]['callback']
-
-        # Add parameters
-        if 'parameters' in dic['actions'][action_name]:
-            process.actions[action_name].parameters = dic['actions'][action_name]['parameters']
-
-        # Add pre-callback operations
-        if 'pre-call' in dic['actions'][action_name]:
-            process.actions[action_name].pre_call = dic['actions'][action_name]['pre-call']
-
-        # Add post-callback operations
-        if 'post-call' in dic['actions'][action_name]:
-            process.actions[action_name].post_call = dic['actions'][action_name]['post-call']
-
-        # Add callback return value
-        if 'callback return value' in dic['actions'][action_name]:
-            process.actions[action_name].retlabel = dic['actions'][action_name]['callback return value']
-
-        # Import condition
-        if 'condition' in dic['actions'][action_name]:
-            process.actions[action_name].condition = dic['actions'][action_name]['condition']
-
-        # Import statements
-        if 'statements' in dic['actions'][action_name]:
-            process.actions[action_name].statements = dic['actions'][action_name]['statements']
-
-        # Import process
-        if 'process' in dic['actions'][action_name]:
-            process.actions[action_name].process = dic['actions'][action_name]['process']
-
-        # Import peers
-        if 'peers' in dic['actions'][action_name]:
-            process.actions[action_name].peers = dic['actions'][action_name]['peers']
-
-    if abstract:
-        unused_labels = process.unused_labels
-        if len(unused_labels) > 0:
-            raise RuntimeError("Found unused labels in process {!r}: {}".
-                               format(process.name, ', '.join(unused_labels)))
-    else:
-        process.accesses()
-
-    return process

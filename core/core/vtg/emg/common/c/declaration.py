@@ -18,7 +18,7 @@
 import copy
 import re
 
-from core.vtg.emg.grammars.signature import parse_signature
+from core.vtg.emg.common.c.declParser import parse_signature
 
 __type_collection = {}
 __noname_identifier = 0
@@ -297,7 +297,11 @@ class Declaration:
     def pretty_name(self):
         raise NotImplementedError
 
-    def common_initialization(self, ast):
+    @property
+    def clean_declaration(self):
+        return False
+
+    def __init__(self, ast):
         self._ast = ast
         self.implementations = {}
         self.path = None
@@ -378,7 +382,7 @@ class Declaration:
 class Primitive(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Primitive, self).__init__(ast)
 
     @property
     def clean_declaration(self):
@@ -399,7 +403,7 @@ class Primitive(Declaration):
 class Enum(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Enum, self).__init__(ast)
         self.enumerators = []
 
         if 'enumerators' in self._ast['specifiers']['type specifier']:
@@ -432,7 +436,7 @@ class Enum(Declaration):
 class Function(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Function, self).__init__(ast)
         self.return_value = None
         self.parameters = []
         self.ret_typedef = None
@@ -518,7 +522,7 @@ class Function(Declaration):
 class Structure(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Structure, self).__init__(ast)
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -573,7 +577,7 @@ class Structure(Declaration):
 class Union(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Union, self).__init__(ast)
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -625,7 +629,7 @@ class Union(Declaration):
 class Array(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Array, self).__init__(ast)
         self.element = None
 
         array = ast['declarator'][-1]['arrays'].pop()
@@ -666,7 +670,7 @@ class Array(Declaration):
 class Pointer(Declaration):
 
     def __init__(self, ast):
-        self.common_initialization(ast)
+        super(Pointer, self).__init__(ast)
 
         ast['declarator'][-1]['pointer'] -= 1
         ast = _reduce_level(ast)
@@ -690,14 +694,11 @@ class Pointer(Declaration):
 class InterfaceReference(Declaration):
 
     def __init__(self, ast):
+        # Superclass init intentionally missed
         self._ast = ast
         self._identifier = None
         self.parents = []
         self.typedef = None
-
-    @property
-    def clean_declaration(self):
-        return False
 
     @property
     def category(self):
@@ -730,13 +731,10 @@ class InterfaceReference(Declaration):
 class UndefinedReference(Declaration):
 
     def __init__(self, ast):
+        # Superclass init intentionally missed
         self._ast = ast
         self.parents = []
         self.typedef = None
-
-    @property
-    def clean_declaration(self):
-        return False
 
     @property
     def _identifier(self):

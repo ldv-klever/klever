@@ -20,9 +20,26 @@ import re
 
 from core.utils import unique_file_name
 from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.code import FunctionDefinition, Aspect
+from core.vtg.emg.common.code import FunctionDefinition
 from core.vtg.emg.common.signature import Pointer, Function, Primitive
 from core.vtg.emg.translator.fsa_translator.common import initialize_automaton_variables
+
+
+class Aspect(FunctionDefinition):
+
+    def __init__(self, name, declaration, aspect_type="after"):
+        self.name = name
+        self.declaration = declaration
+        self.aspect_type = aspect_type
+        self.body = []
+
+    def get_aspect(self):
+        lines = list()
+        lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
+                     " {\n")
+        lines.extend(['\t{}\n'.format(stm) for stm in self.body])
+        lines.append("}\n")
+        return lines
 
 
 class CModel:

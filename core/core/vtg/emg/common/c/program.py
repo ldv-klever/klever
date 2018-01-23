@@ -60,7 +60,7 @@ class Variable:
         return expr
 
 
-class FunctionDefinition:
+class Function:
 
     def __init__(self, name, file, signature=None, export=False, callback=False):
         self.name = name
@@ -90,23 +90,6 @@ class FunctionDefinition:
         declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params')
         lines = list()
         lines.append(declaration + " {\n")
-        lines.extend(['\t{}\n'.format(stm) for stm in self.body])
-        lines.append("}\n")
-        return lines
-
-
-class Aspect(FunctionDefinition):
-
-    def __init__(self, name, declaration, aspect_type="after"):
-        self.name = name
-        self.declaration = declaration
-        self.aspect_type = aspect_type
-        self.body = []
-
-    def get_aspect(self):
-        lines = list()
-        lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
-                     " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
         return lines
