@@ -47,8 +47,6 @@ class SA(core.vtg.plugins.Plugin):
         # TODO: Use template processor instead of predefined aspect file and target output files
         self.collection = None
         self.files = []
-        self.modules_functions = []
-        self.kernel_functions = []
         self.used_functions = set()
 
     def analyze_sources(self):
@@ -114,7 +112,6 @@ class SA(core.vtg.plugins.Plugin):
                                                            self.conf["template aspect"])
         self.logger.info("Found file with aspect file template {}".format(template_aspect_file))
 
-        # TODO: extract to common library (the same code as in core/vtg/tr/__init__.py).
         env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(os.path.dirname(template_aspect_file)),
             line_statement_prefix='//',
@@ -132,7 +129,9 @@ class SA(core.vtg.plugins.Plugin):
                                         for i in range(self.conf["max arguments number"])},
                 "arg_types": {i: ",".join(["$arg_type_str{}".format(j + 1) for j in range(i + 1)])
                               for i in range(self.conf["max arguments number"])},
-                "arg_vals": {i: ",".join(["$arg_value{}".format(j + 1) for j in range(i + 1)])
+                "arg_values": {i: ",".join(["$arg_value{}".format(j + 1) for j in range(i + 1)])
+                               for i in range(self.conf["max arguments number"])},
+                "arg_vals": {i: ",".join(["$arg_val{}".format(j + 1) for j in range(i + 1)])
                              for i in range(self.conf["max arguments number"])}
             }))
         self.logger.debug('Rendered template was stored into file {}'.format("requests.aspect"))
@@ -186,7 +185,7 @@ class SA(core.vtg.plugins.Plugin):
         all_args_re = "(?:\sarg\d+='[^']*')*"
         call_re = re.compile("^(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
-        short_re = re.compile("^(\w*)\n")
+        macro_re = re.compile("^(\w*)({})\n".format(all_args_re))
         typedef_declaration = re.compile("^declaration: typedef ([^\n]+);")
         file_re = re.compile("^path:\s'([^\s]*)'\n$")
         func_definition_files = [
@@ -230,12 +229,15 @@ class SA(core.vtg.plugins.Plugin):
         expand_file = "expand.txt"
         self.logger.info("Extract macro expansions from {}".format(expand_file))
         for path, line in import_content(expand_file):
-            if short_re.fullmatch(line):
-                name = short_re.fullmatch(line).group(1)
+            if macro_re.fullmatch(line):
+                name, args = macro_re.fullmatch(line).groups()
+                args = [arg[1] for arg in arg_re.findall(args)]
                 if not self.collection["macro expansions"][name][path]:
-                    self.collection["macro expansions"][name][path] = True
+                    self.collection["macro expansions"][name][path] = {"args": list()}
+                self.collection["macro expansions"][name][path]["args"].append(args)
             else:
-                raise ValueError("Cannot parse line '{}' in file {}".format(line, expand_file))
+                # todo: This is not critical but embarassing
+                self.logger.warning("Cannot parse line '{}' in file {}".format(line, expand_file))
 
         func_calls_file = "call-function.txt"
         self.logger.info("Extract function calls from {}".format(func_calls_file))
@@ -276,38 +278,6 @@ class SA(core.vtg.plugins.Plugin):
             self.collection["global variable initializations"], mentioned_values = parse_initializations(global_file)
             self.used_functions.update(mentioned_values.intersection(set(self.collection["functions"].keys())))
 
-        # todo: support non-standart kinds of initializations (issues #6571, #6558)
-        init_file = "init.txt"
-        self.logger.info("Extract initialization functions from {}".format(init_file))
-        for path, line in import_content(init_file):
-            if short_re.fullmatch(line):
-                func = short_re.fullmatch(line).group(1)
-                if not isinstance(self.collection["init"][path], str):
-                    self.collection["init"][path] = func
-                    self.used_functions.add(func)
-                    self.logger.debug("Extracted Init function {} in {}".format(func, path))
-                elif self.collection["init"][path] != func:
-                    raise ValueError("Module cannot contain two initialization functions but file {} contains".
-                                     format(path))
-            else:
-                raise ValueError("Cannot parse line '{}' in file {}".format(line, init_file))
-
-        exit_file = "exit.txt"
-        self.logger.debug("Extract exit functions from {}".format(exit_file))
-        for path, line in import_content(exit_file):
-            if short_re.fullmatch(line):
-                func = short_re.fullmatch(line).group(1)
-                if not self.collection["exit"][path]:
-                    self.collection["exit"][path] = func
-                    self.used_functions.add(func)
-                    self.logger.debug("Extracted Exit function {} in {}".format(func, path))
-                # todo: code below does not work properly
-                #else:
-                #    raise ValueError("Module cannot contain two exit functions but file {} contains".
-                #                     format(path))
-            else:
-                raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
-
         if not self.conf['keep intermediate files']:
             self.logger.info("Remove files with raw extracted data")
             for file in glob.glob("*.txt"):
@@ -345,10 +315,10 @@ class SA(core.vtg.plugins.Plugin):
         self._shrink_macro_expansions()
 
     def _shrink_macro_expansions(self):
-        expansions = list(self.collection["macro expansions"].keys())
-        for exp in expansions:
-            files = list(self.collection["macro expansions"][exp].keys())
-            if len(set(self.files).intersection(files)) == 0:
+        if "filter macros" in self.conf and isinstance(self.conf["filter macros"], list):
+            white_list = self.conf["filter macros"]
+            expansions = list(self.collection["macro expansions"].keys())
+            for exp in (e for e in expansions if e not in white_list):
                 del self.collection["macro expansions"][exp]
 
     main = analyze_sources
