@@ -274,12 +274,12 @@ class InterfaceCategoriesSpecification:
         self.__deleted_interfaces[identifier] = self._interfaces[identifier]
         del self._interfaces[identifier]
 
-    def collect_relevant_models(self, func):
+    def callstack_called_functions(self, func):
         """
-        Collects all kernel functions which can be called in a callstack of a provided module function.
+        Collects all functions which can be called in a callstack of a provided function.
 
-        :param func: Module function name string.
-        :return: List with kernel functions name strings.
+        :param func: Function name string.
+        :return: List with functions names that call the given one.
         """
         if func not in self.__function_calls_cache:
             level_counter = 0
@@ -309,44 +309,6 @@ class InterfaceCategoriesSpecification:
             relevant = self.__function_calls_cache[func]
 
         return sorted(relevant)
-
-    def find_relevant_function(self, parameter_interfaces):
-        """
-        Get a list of options of function parameters (interfaces) and tries to find a kernel function which would
-        has a prameter from each provided set in its parameters.
-
-        :param parameter_interfaces: List with lists of Interface objects.
-        :return: List with dictionaries:
-                 {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
-        """
-        matches = []
-        for func in self.source_functions:
-            for function_obj in self.get_source_functions(func):
-                if len(function_obj.called_at) > 0:
-                    match = {
-                        "function": function_obj,
-                        "parameters": []
-                    }
-                    if len(parameter_interfaces) > 0:
-                        # Match parameters
-                        params = []
-                        suits = 0
-                        for index in range(len(parameter_interfaces)):
-                            found = 0
-                            for param in (p for p in function_obj.param_interfaces[index:] if p):
-                                for option in parameter_interfaces[index]:
-                                    if option.identifier == param.identifier:
-                                        found = param
-                                        break
-                                if found:
-                                    break
-                            if found:
-                                suits += 1
-                                params.append(found)
-                        if suits == len(parameter_interfaces):
-                            match["parameters"] = params
-                            matches.append(match)
-        return matches
 
     @staticmethod
     def refined_name(call):

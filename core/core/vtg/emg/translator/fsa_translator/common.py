@@ -97,43 +97,6 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
                     automata_peers[automaton.identifier]["states"].add(state)
 
 
-def registration_intf_check(analysis, automata, model_fsa, function_call):
-    """
-    Tries to find relevant automata that can receive signals from model processes of those kernel functions which
-    can be called whithin the execution of a provided callback.
-
-    :param analysis: ModuleCategoriesSpecification object
-    :param model: ProcessModel object.
-    :param function_call: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
-    :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
-                                                                     'automaton': 'Automaton object'}
-    """
-    automata_peers = {}
-
-    name = analysis.callback_name(function_call)
-    if name:
-        # Caclulate relevant models
-        if name in analysis.modules_functions:
-            relevant_models = analysis.collect_relevant_models(name)
-
-            # Check relevant state machines for each model
-            for model in (m.process for m in model_fsa if m.process.name in relevant_models):
-                signals = [model.actions[name] for name in sorted(model.actions.keys())
-                           if (isinstance(model.actions[name], Receive) or
-                               isinstance(model.actions[name], Dispatch)) and
-                           len(model.actions[name].peers) > 0]
-
-                # Get all peers in total
-                peers = []
-                for signal in signals:
-                    peers.extend(signal.peers)
-
-                # Add relevant state machines
-                extract_relevant_automata(automata, automata_peers, peers)
-
-    return automata_peers
-
-
 def initialize_automaton_variables(conf, automaton):
     initializations = []
     for var in automaton.variables():
