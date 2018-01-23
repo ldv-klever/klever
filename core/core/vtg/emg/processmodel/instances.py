@@ -807,6 +807,9 @@ def _remove_statics(analysis, process):
                     if candidate:
                         declaration = candidate.declaration
                         function_flag = True
+                    else:
+                        # Seems that this is a variable without initialization
+                        declaration = implementation.declaration
 
                 # Determine name
                 name = analysis.refined_name(implementation.value)

@@ -190,7 +190,7 @@ def __import_entities(collection, analysis, entities):
                     rn = collection.refined_name(entity["description"]["value"])
                     val = rn if isinstance(rn, str) else entity["description"]["value"]
                     match = False
-                    static = False
+                    static = True
                     for variable in analysis["global variable initializations"]:
                         variable_name = extract_name(variable['declaration'])
                         if variable_name == val:

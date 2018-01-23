@@ -47,7 +47,8 @@ def _update_process_ast(obj):
 def export_process(process):
     def convert_label(label):
         d = dict()
-        d['signature'] = label.prior_signature.to_string(label.name, typedef='complex_and_params')
+        if label.prior_signature:
+            d['signature'] = label.prior_signature.to_string(label.name, typedef='complex_and_params')
         if label.value:
             d['value'] = label.value
 
