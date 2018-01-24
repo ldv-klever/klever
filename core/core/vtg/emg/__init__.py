@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import json
 import os
 
 import core.vtg.plugins
@@ -58,5 +57,3 @@ class EMG(core.vtg.plugins.Plugin):
         self.logger.info("An environment model has been generated successfully")
 
     main = generate_environment
-
-

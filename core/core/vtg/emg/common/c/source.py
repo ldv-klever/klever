@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re, json
+import re
+import json
 
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable
@@ -265,7 +266,6 @@ class Source:
 
         self.logger.info("Extract complete types definitions")
 
-        entities = []
         if 'global variable initializations' in source_analysis:
             self.logger.info("Import types from global variables initializations")
             for variable in source_analysis["global variable initializations"]:
