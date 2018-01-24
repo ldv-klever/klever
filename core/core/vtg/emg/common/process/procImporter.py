@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 from core.vtg.emg.common import check_necessary_conf_property
-from core.vtg.emg.common.c.declaration import import_declaration
-from core.vtg.emg.common.process.process import Receive, Dispatch, generate_regex_set, Label, Process
+from core.vtg.emg.common.c.types import import_declaration
+from core.vtg.emg.common.process.__init__ import Receive, Dispatch, generate_regex_set, Label, Process
 
 
 class ProcessImporter:

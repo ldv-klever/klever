@@ -17,54 +17,7 @@
 from core.vtg.emg.common.interface import SourceFunction
 from core.vtg.emg.common.signature import Structure, Union, Array, import_declaration, import_typedefs, extract_name, \
     check_null, is_static
-from core.vtg.emg.interfacespec.tarjan import calculate_load_order
-
-
-def import_code_analysis(collection, avt, analysis):
-    """
-    Perform main routin with import of interface categories specification and then results of source analysis.
-    After that object contains only relevant to environment generation interfaces and their implementations.
-
-    :param collection: InterfaceCategoriesSpecification object.
-    :param avt: Abstract verification task dictionary.
-    :param analysis: Dictionary with content of source analysis.
-    :return: None.
-    """
-    # Import typedefs if there are provided
-    if analysis and 'typedefs' in analysis:
-        import_typedefs(analysis['typedefs'])
-
-    collection.logger.info("Import modules init and exit functions")
-    __import_inits_exits(collection, analysis, avt)
-
-    collection.logger.info("Extract complete types definitions")
-    __extract_types(collection, analysis)
-
-
-def __import_inits_exits(collection, analysis, avt):
-    collection.logger.debug("Move module initilizations functions to the modules interface specification")
-    deps = {}
-    for module, dep in avt['deps'].items():
-        deps[module] = list(sorted(dep))
-    order = calculate_load_order(collection.logger, deps)
-    order_c_files = []
-    for module in order:
-        for module2 in avt['grps']:
-            if module2['id'] != module:
-                continue
-            order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
-    if "init" in analysis:
-        for module in (m for m in order_c_files if m in analysis["init"]):
-            collection.add_init(module, analysis['init'][module])
-    if len(collection.inits) == 0:
-        raise ValueError('There is no module initialization function provided')
-
-    collection.logger.debug("Move module exit functions to the modules interface specification")
-    if "exit" in analysis:
-        for module in (m for m in reversed(order_c_files) if m in analysis['exit']):
-            collection.add_exit(module, analysis['exit'][module])
-    if len(collection.exits) == 0:
-        collection.logger.warning('There is no module exit function provided')
+from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
 
 
 def __extract_types(collection, analysis):

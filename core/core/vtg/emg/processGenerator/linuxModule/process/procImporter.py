@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
-from core.vtg.emg.common.process.process import Receive, Dispatch, generate_regex_set
+from core.vtg.emg.common.process.__init__ import Receive, Dispatch, generate_regex_set
 from core.vtg.emg.common.process.procImporter import ProcessImporter
-from core.vtg.emg.processGenerator.linuxModule.abstractprocess import AbstractProcess, AbstractLabel, Call, CallRetval
+from core.vtg.emg.processGenerator.linuxModule.process.__init__ import AbstractProcess, AbstractLabel, Call, CallRetval
 
 
 class AbstractProcessImporter(ProcessImporter):

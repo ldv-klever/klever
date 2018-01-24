@@ -912,7 +912,7 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
     file.operations.open if implementations of the second one depends on implementations of the first one.
 
     Generated instance here is a just map from accesses and interfaces to particular implementations whish will be
-    provided to a copy of the Process object later in translator.
+    provided to a copy of the Process object later in modelTranslator.
     :param analysis: ModuleCategoriesSpecification object.
     :param process: Process object.
     :param resource_new_insts: Number of new instances allowed to generate for resources.

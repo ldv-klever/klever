@@ -22,7 +22,7 @@ from core.utils import unique_file_name
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.code import FunctionDefinition
 from core.vtg.emg.common.signature import Pointer, Function, Primitive
-from core.vtg.emg.translator.fsa_translator.common import initialize_automaton_variables
+from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
 
 
 class Aspect(FunctionDefinition):

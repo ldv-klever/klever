@@ -43,31 +43,36 @@
             "source analysis": {
               "callstack deep search": 3
             },
-            "intermediate model options": {
-              "generate insmod scenario": true,
-              "convert statics to globals": true,
-              "add registration guards": true,
-              "ignore missed callbacks": true,
-              "implicit callback calls": true,
-              "roles map file": "linux/emg/roles match.json",
-              "callback comment": "Invoke callback {0} from {1}.",
-              "action comments": {
-                "dispatch": {
-                  "register": "Register {} callbacks.",
-                  "instance_register": "Register {} callbacks.",
-                  "deregister": "Deregister {} callbacks.",
-                  "instance_deregister": "Deregister {} callbacks.",
-                  "irq_register": "Register {} interrupt handler.",
-                  "irq_deregister": "Deregister {} interrupt handler."
-                },
-                "receive": {
-                  "register": "Begin {} callbacks invocations scenario.",
-                  "instance_register": "Begin {} callbacks invocations scenario.",
-                  "deregister": "Finish {} callbacks invocations scenario.",
-                  "instance_deregister": "Finish {} callbacks invocations scenario."
+            "intermediate model options": [
+              {
+                "linuxInsmod": {}
+              },
+              {
+                "linuxModule": {
+                  "add registration guards": true,
+                  "ignore missed callbacks": true,
+                  "implicit callback calls": true,
+                  "roles map file": "linux/emg/roles match.json",
+                  "callback comment": "Invoke callback {0} from {1}.",
+                  "action comments": {
+                    "dispatch": {
+                      "register": "Register {} callbacks.",
+                      "instance_register": "Register {} callbacks.",
+                      "deregister": "Deregister {} callbacks.",
+                      "instance_deregister": "Deregister {} callbacks.",
+                      "irq_register": "Register {} interrupt handler.",
+                      "irq_deregister": "Deregister {} interrupt handler."
+                    },
+                    "receive": {
+                      "register": "Begin {} callbacks invocations scenario.",
+                      "instance_register": "Begin {} callbacks invocations scenario.",
+                      "deregister": "Finish {} callbacks invocations scenario.",
+                      "instance_deregister": "Finish {} callbacks invocations scenario."
+                    }
+                  }
                 }
               }
-            },
+            ],
             "translation options": {
               "dump automata graphs": false,
               "direct control functions calls": true,

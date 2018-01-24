@@ -23,14 +23,14 @@ from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, 
 from core.vtg.emg.common.signature import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
 from core.vtg.emg.common.code import FunctionDefinition
-from core.vtg.emg.translator.fsa_translator.common import action_model_comment, extract_relevant_automata
+from core.vtg.emg.modelTranslator.fsa_translator.common import action_model_comment, extract_relevant_automata
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
 
     def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
         """
-        Initialize new FSA translator object. During the initialization an enviornment model in form of finite state
+        Initialize new FSA modelTranslator object. During the initialization an enviornment model in form of finite state
         machines with process-like actions is translated to C code. Translation includes the following steps: each pair
         label-interface is translated in a separate variable, each action is translated in code blocks (aux functions
         can be additionally generated), for each automaton a control function is generated, control functions for event
@@ -315,7 +315,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 df_parameters.append(variable.name)
 
             # Generate blocks on each receive to another process
-            # You can implement your own translator with different implementations of the function
+            # You can implement your own modelTranslator with different implementations of the function
             pre, blocks, post = self._dispatch_blocks(state, automaton, function_parameters, automata_peers,
                                                       replicative)
             if len(blocks) > 0:
@@ -542,7 +542,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _relevant_checks(self, relevent_automata):
         """
         This function allows to add your own additional conditions before function calls and dispatches. The
-        implementation in your translator is required.
+        implementation in your modelTranslator is required.
 
         :param relevent_automata: {'Automaton identifier string': {'automaton': Automaton object,
                'states': set of State objects peered with the considered action}}
@@ -553,7 +553,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _join_cf_code(self, automaton):
         """
-        Generate statement to join control function thread if it is called in a separate thread. Depends on a translator
+        Generate statement to join control function thread if it is called in a separate thread. Depends on a modelTranslator
         implementation.
 
         :param automaton: Automaton object.
@@ -564,7 +564,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _call_cf_code(self, automaton, parameter='0'):
         """
-        Generate statement with control function call. Depends on a translator implementation.
+        Generate statement with control function call. Depends on a modelTranslator implementation.
 
         :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
@@ -576,7 +576,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers,
                          replicative):
         """
-        Generate parts of dispatch code blocks for your translator implementation.
+        Generate parts of dispatch code blocks for your modelTranslator implementation.
 
         :param state: State object.
         :param automaton: Automaton object.
@@ -592,7 +592,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _receive(self, state, automaton):
         """
-        Generate code block for receive action. Require more detailed implementation in your translator.
+        Generate code block for receive action. Require more detailed implementation in your modelTranslator.
 
         :param state: State object.
         :param automaton: Automaton object.
@@ -613,7 +613,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _compose_control_function(self, automaton):
         """
-        Generate body of a control function according to your translator implementation.
+        Generate body of a control function according to your modelTranslator implementation.
 
         :param automaton: Automaton object.
         :return: None

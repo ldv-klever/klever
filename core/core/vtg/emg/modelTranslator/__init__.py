@@ -17,13 +17,14 @@
 import os
 from core.utils import find_file_or_dir
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property
-from core.vtg.emg.translator.code import CModel
-from core.vtg.emg.translator.fsa import Automaton
-from core.vtg.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
-from core.vtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
+from core.vtg.emg.modelTranslator.code import CModel
+from core.vtg.emg.modelTranslator.fsa import Automaton
+from core.vtg.emg.modelTranslator.fsa_translator.label_fsa_translator import LabelTranslator
+from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import StateTranslator
 
 
 def translate_intermediate_model(logger, conf, avt, analysis, model):
+    model_processes, env_processes, entry_process
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf['translation options'], 'entry point', default_value='main', expected_type=str)
@@ -133,3 +134,74 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
                     }
                 )
 
+    def __get_specs(self, logger, directory):
+        """
+        todo: Update.
+        :param logger: Logger object.
+        :param directory: Provided directory with files.
+        :return: Dictionaries with interface categories specification and event categories specifications.
+        """
+        logger.info('Search for event and interface categories specifications in {}'.format(directory))
+        interface_specifications = list()
+        event_specifications = list()
+
+        # Find all json files
+        file_candidates = set()
+        for root, dirs, files in os.walk(directory):
+            # Check only full pathes to files
+            json_files = glob.glob('{}/*.json'.format(root))
+            file_candidates.update(json_files)
+
+        # Filter specifications
+        for file in sorted(file_candidates):
+            with open(file, encoding="utf8") as fh:
+                try:
+                    content = json.loads(fh.read())
+                except json.decoder.JSONDecodeError:
+                    raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
+
+            for tag in content:
+                if "categories" in content[tag] or "kernel functions" in content[tag]:
+                    logger.debug("Specification file {} is treated as interface categories specification".format(file))
+                    interface_specifications.append(content)
+                elif "environment processes" in content[tag] or "kernel model" in content[tag]:
+                    logger.debug("Specification file {} is treated as event categories specification".format(file))
+                    event_specifications.append(content)
+                else:
+                    logger.debug("File '{}' is not recognized as a EMG specification".format(file))
+                break
+
+        # Check presence of specifications
+        if len(interface_specifications) == 0:
+            raise FileNotFoundError("Environment model generator missed an interface categories specification")
+        elif len(event_specifications) == 0:
+            raise FileNotFoundError("Environment model generator missed an event categories specification")
+
+        # Merge specifications
+        interface_spec = self.__merge_spec_versions(interface_specifications,
+                                                    get_necessary_conf_property(self.conf, 'specifications set'))
+        self.__save_collection(logger, interface_spec, 'intf_spec.json')
+        event_categories_spec = self.__merge_spec_versions(event_specifications,
+                                                           get_necessary_conf_property(self.conf, 'specifications set'))
+        self.__save_collection(logger, event_categories_spec, 'event_spec.json')
+
+        # toso: search for module categories specification
+        return interface_spec, event_categories_spec
+
+    def __get_path(self, conf, prop):
+        if prop in conf:
+            spec_dir = core.utils.find_file_or_dir(self.logger,
+                                                   get_necessary_conf_property(self.conf, "main working directory"),
+                                                   get_necessary_conf_property(conf, prop))
+            return spec_dir
+        else:
+            return None
+
+    def __get_json_content(self, conf, prop):
+        file = self.__get_path(conf, prop)
+        if file:
+            with open(file, encoding="utf8") as fh:
+                content = json.loads(fh.read())
+            return content
+        else:
+            return None

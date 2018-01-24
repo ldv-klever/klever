@@ -14,10 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.interface import Container, Resource, Callback
-from core.vtg.emg.common.signature import Declaration, Function, Structure, Union, Array, Pointer, extracted_types
-from core.vtg.emg.interfacespec.specification import fulfill_function_interfaces
+from core.vtg.emg.common.c.types import Declaration, Function, Structure, Array, Pointer
+from core.vtg.emg.processGenerator.linuxModule.interface import Resource, Callback
+from core.vtg.emg.processGenerator.linuxModule.interface.specification import fulfill_function_interfaces
 
 
 def yield_categories(collection, conf):
@@ -32,13 +31,6 @@ def yield_categories(collection, conf):
     :return: None
     """
 
-    # Extract dependencies between containers and callbacks that are stored in containers
-    container_sets, container_callbacks = __distribute_container_types()
-
-    # Distribute sets of containers and create new categories if necessaary
-    if get_conf_property(conf, "generate artificial categories", bool):
-        __generate_new_categories(collection, container_sets, container_callbacks)
-
     # Add information about callbacks
     __populate_callbacks(collection)
 
@@ -47,126 +39,6 @@ def yield_categories(collection, conf):
 
     # Complement interface references
     __complement_interfaces(collection)
-
-    return
-
-
-def __distribute_container_types():
-    container_sets = list()
-    container_callbacks = dict()
-    processed = list()
-
-    def add_container(current_set, cont):
-        # Do nothing if it is processed
-        if cont in processed and cont not in current_set:
-            # Check presence in other sets
-            merged = False
-            for candidate_set in container_sets:
-                if cont in candidate_set:
-                    # Merge current and procerssed one collection
-                    candidate_set.extend(current_set)
-                    current_set = candidate_set
-                    merged = True
-                    break
-
-            # New extended containers set will be anyway added, so remove reduced it version from the collection
-            if merged:
-                container_sets.remove(current_set)
-            else:
-                current_set.append(cont)
-        elif cont not in current_set:
-            current_set.append(cont)
-
-        return current_set
-
-    def add_to_processing(current_set, queue, declaration):
-        # Just add a declaration to queue for further processing in the context of current set propcessing
-        if declaration not in queue and declaration not in current_set:
-            queue.append(declaration)
-
-    def add_callback(cont, fld, callback):
-        if cont.identifier not in container_callbacks:
-            container_callbacks[cont.identifier] = dict()
-        if fld not in container_callbacks[cont.identifier]:
-            container_callbacks[cont.identifier][fld] = callback
-
-    # All container types that has global variable implementations
-    containers = [tp for name, tp in extracted_types() if (isinstance(tp, Structure) or isinstance(tp, Array) or
-                                                           isinstance(tp, Union)) and
-                  len(tp.implementations) > 0]
-    while len(containers) > 0:
-        container = containers.pop()
-        to_process = [container]
-        current = list()
-        relevance = False
-
-        while len(to_process) > 0:
-            tp = to_process.pop()
-
-            if isinstance(tp, Union) or isinstance(tp, Structure):
-                for field in sorted(tp.fields.keys()):
-                    if isinstance(tp.fields[field], Pointer) and \
-                            (isinstance(tp.fields[field].points, Array) or
-                             isinstance(tp.fields[field].points, Structure)):
-                        add_to_processing(current, to_process, tp.fields[field].points)
-                    elif isinstance(tp.fields[field], Array) or isinstance(tp.fields[field], Structure):
-                        add_to_processing(current, to_process, tp.fields[field])
-                    elif isinstance(tp.fields[field], Pointer) and isinstance(tp.fields[field].points, Function):
-                        add_callback(tp, field, tp.fields[field])
-                        relevance = True
-            elif isinstance(tp, Array):
-                if isinstance(tp.element, Pointer) and (isinstance(tp.element.points, Array) or
-                                                        isinstance(tp.element.points, Structure)):
-                    add_to_processing(current, to_process, tp.element.points)
-                elif isinstance(tp.element, Array) or isinstance(tp.element, Structure):
-                    add_to_processing(current, to_process, tp.element)
-
-            # Check parents
-            for parent in tp.parents + tp.take_pointer.parents:
-                if isinstance(parent, Array) or isinstance(parent, Structure) or isinstance(parent, Union):
-                    add_to_processing(current, to_process, parent)
-
-            current = add_container(current, tp)
-
-        if len(current) > 0 and relevance:
-            for container in (c for c in current if c not in processed):
-                processed.append(container)
-                if container in containers:
-                    containers.remove(container)
-            container_sets.append(current)
-
-    return container_sets, container_callbacks
-
-
-def __generate_new_categories(collection, containers_set, callbacks_set):
-    # Match existing container with existing categories and remove them from the set
-    for cset in containers_set:
-        for container in list(cset):
-            if container.identifier in callbacks_set:
-                # Remove only if a container has been found
-                intfs = collection.resolve_interface(container, use_cache=False)
-                container_intfs = [i for i in intfs if isinstance(i, Container)]
-
-                if len(container_intfs) > 0:
-                    cset.remove(container)
-            else:
-                # Do not track containers without callbacks
-                cset.remove(container)
-
-    # Create new categories from rest containers with callbacks. Do not merge anythging to make heuristical categories
-    # simpler
-    for cset in containers_set:
-        for container in (c for c in cset if c.identifier in callbacks_set):
-            if container.pretty_name not in collection.categories:
-                category = container.pretty_name
-            else:
-                category = 'ldv_' + container.pretty_name
-
-            if category in collection.categories:
-                raise RuntimeError('Cannot find uniwue name for category {!r}'.format(category))
-            interface = Container(category, container.pretty_name)
-            interface.declaration = container
-            collection.set_intf(interface)
 
     return
 
