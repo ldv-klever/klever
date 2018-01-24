@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
+import re, json
 
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable
@@ -23,11 +23,13 @@ from core.vtg.emg.common.c.types import import_typedefs, import_declaration, ext
 
 class Source:
 
-    def __init__(self, logger, conf, avt, spec, analysis_data):
+    def __init__(self, logger, conf, analysis_file):
         """
         Setup initial attributes and get logger object.
 
         :param logger: logging object.
+        :param conf: Source code analysis configuration.
+        :param analysis_file: Name of the file with source analysis data.
         :param conf: Configuration properties dictionary.
         """
         self.logger = logger
@@ -37,7 +39,9 @@ class Source:
         self._macros = dict()
         self.__function_calls_cache = dict()
 
-        self.logger.info("Import results of source code analysis")
+        self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
+        with open(analysis_file, encoding="utf8") as fh:
+            analysis_data = json.loads(fh.read())
         self._import_code_analysis(analysis_data)
 
     @property

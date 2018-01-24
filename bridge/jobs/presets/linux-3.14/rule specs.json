@@ -40,7 +40,7 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
-            "interface categories options": {
+            "source analysis": {
               "callstack deep search": 3
             },
             "intermediate model options": {
