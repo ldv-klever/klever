@@ -595,7 +595,7 @@ def setup_parser():
     __parser = yacc.yacc(debug=0, write_tables=0)
 
 
-def parse_signature(string):
+def parse_declaration(string):
     global __parser
     global __lexer
 
