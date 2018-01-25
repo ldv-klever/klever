@@ -202,25 +202,6 @@ class LCOV:
     @staticmethod
     def get_coverage(merged_coverage_info):
 
-        # Combine line and function coverages of a file to a single one
-        #merged_coverage_info = {}
-        """
-        for file_name in list(coverage_info.keys()):
-            merged_coverage_info[file_name] = {
-                'total functions': coverage_info[file_name][0]['total functions'],
-                'covered lines': {},
-                'covered functions': {}
-            }
-
-            for coverage in coverage_info[file_name]:
-                for type in ('covered lines', 'covered functions'):
-                    for line, value in coverage[type].items():
-                        merged_coverage_info[file_name][type].setdefault(line, 0)
-                        merged_coverage_info[file_name][type][line] += value
-                    del coverage[type]
-            del coverage_info[file_name]
-        """
-
         # Map combined coverage to the required format
         line_coverage = {}
         function_coverage = {}

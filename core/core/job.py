@@ -527,12 +527,9 @@ class JCR(core.components.Component):
                     os.remove(os.path.join(self.conf['main working directory'],
                                            coverage_info['coverage info file']))
 
-                #for file_name, coverage_info_element in loaded_coverage_info.items():
                 core.vrp.LCOV.add_to_coverage(total_coverage_infos[job_id][rule_spec], loaded_coverage_info)
                 for file in loaded_coverage_info.values():
                     arcfiles[job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
-                    #total_coverage_infos[job_id][rule_spec].setdefault(file_name, [])
-                    #total_coverage_infos[job_id][rule_spec][file_name] += coverage_info_element
                 del loaded_coverage_info
             elif job_id in total_coverage_infos:
                 self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
