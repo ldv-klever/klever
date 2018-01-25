@@ -250,7 +250,7 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '0']
+            [False, True, True, False, True, False, True, True, '0']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
 
@@ -361,7 +361,7 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '1']
+            [False, True, True, False, True, False, True, True, '1']
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)

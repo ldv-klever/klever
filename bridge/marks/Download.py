@@ -98,6 +98,42 @@ class MarkArchiveGenerator:
         yield self.stream.close_stream()
 
 
+class PresetMarkFile:
+    def __init__(self, mark):
+        self._mark = mark
+        self.data = json.dumps(self.__get_mark_data(), indent=2, sort_keys=True).encode('utf8')
+        self.filename = "%s.json" % self._mark.identifier
+
+    def __get_mark_data(self):
+        if isinstance(self._mark, MarkUnknown):
+            data = {
+                'status': self._mark.status, 'pattern': self._mark.function,
+                'problem': self._mark.problem_pattern, 'is regexp': self._mark.is_regexp
+            }
+            if self._mark.link:
+                data['link'] = self._mark.link
+            if self._mark.description:
+                data['description'] = self._mark.description
+            return data
+
+        data = {
+            'status': self._mark.status, 'verdict': self._mark.verdict, 'is_modifiable': self._mark.is_modifiable,
+            'description': self._mark.description, 'attrs': [], 'tags': []
+        }
+        last_version = self._mark.versions.get(version=self._mark.version)
+        for a_name, a_val, is_compare in last_version.attrs.order_by('id')\
+                .values_list('attr__name__name', 'attr__value', 'is_compare'):
+            data['attrs'].append({'attr': a_name, 'value': a_val, 'is_compare': is_compare})
+        for t, in last_version.tags.order_by('id').values_list('tag__tag'):
+            data['tags'].append(t)
+
+        if isinstance(self._mark, MarkUnsafe):
+            data['comparison'] = last_version.function.name
+            with last_version.error_trace.file.file as fp:
+                data['error trace'] = json.loads(fp.read().decode('utf8'))
+        return data
+
+
 class AllMarksGen(object):
     def __init__(self):
         curr_time = now()

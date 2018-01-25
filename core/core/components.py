@@ -258,6 +258,14 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                         raise
                 # If all is OK
                 if not p.is_alive():
+                    # Make to be sure to execute join the last time
+                    try:
+                        p.join()
+                    except ComponentError:
+                        # Ignore or terminate the rest
+                        if not fail_tolerant:
+                            raise
+
                     # Just remove it
                     components.pop(i)
                     finished += 1

@@ -1,0 +1,6 @@
+{
+  "pattern": "dereferencing pointer to incomplete type",
+  "problem": "Incompl deref",
+  "link": "http://forge.ispras.ru/issues/7244",
+  "description": "EMG generates code with dereferencing a pointer to an incomplete type."
+}

@@ -1,0 +1,6 @@
+{
+  "pattern": "incompatible types when returning type",
+  "problem": "Incomp ret",
+  "link": "http://forge.ispras.ru/issues/7247",
+  "description": "EMG cannot generate a variable of suitable type to save callback return value."
+}

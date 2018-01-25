@@ -181,7 +181,7 @@ def run_consul(conf, work_dir, config_file):
     # Setup GUI
     if "setup GUI" in conf["client-controller"] and conf["client-controller"]["setup GUI"]:
         args.append("-ui-dir={}".
-                       format(os.path.join(os.path.dirname(conf["client-controller"]["consul"]), "dist")))
+                    format(os.path.join(os.path.dirname(conf["client-controller"]["consul"]), "dist")))
 
     # Add other commands
     if "consul additional opts" in conf["client-controller"]:
@@ -201,6 +201,3 @@ def run_consul(conf, work_dir, config_file):
     process = subprocess.Popen(args)
 
     process.wait()
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -155,7 +155,12 @@ def solve_task(logger, conf, server):
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     logger.debug("Download task")
-    server.pull_task(conf["identifier"], "task files.zip")
+    ret = server.pull_task(conf["identifier"], "task files.zip")
+    if not ret:
+        logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
+                    "so we have nothing to do there")
+        os._exit(1)
+
     with zipfile.ZipFile('task files.zip') as zfp:
         zfp.extractall()
 
@@ -203,10 +208,6 @@ def solve_job(logger, conf):
         logger.debug("Add CIL bin location to path {}".format(conf["client"]["cil location"]))
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
         logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
-
-    # Do it to make it possible to use runexec inside Klever
-    bench_exec_location = os.path.join(conf["client"]["benchexec location"])
-    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
 
     # Save Klever Core configuration to default configuration file
     with open("core.json", "w", encoding="utf8") as fh:

@@ -19,7 +19,6 @@ import os
 import json
 import mimetypes
 from datetime import datetime
-from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
 
@@ -323,7 +322,6 @@ def get_job_data(request):
 
 
 @login_required
-@unparallel_group([])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -390,14 +388,36 @@ def remove_versions(request):
 
     versions = json.loads(request.POST.get('versions', '[]'))
 
-    deleted_versions = jobs.utils.delete_versions(job, versions)
-    if deleted_versions > 0:
-        return JsonResponse({'message': _('Selected versions were successfully deleted')})
-    return JsonResponse({'error': _('Nothing to delete')})
+    try:
+        jobs.utils.delete_versions(job, versions)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'message': _('Selected versions were successfully deleted')})
 
 
 @login_required
-@unparallel_group([])
+def compare_versions(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST' or any(x not in request.POST for x in ['job_id', 'v1', 'v2']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    versions = JobHistory.objects.filter(
+        job_id=request.POST['job_id'], version__in=[int(request.POST['v1']), int(request.POST['v2'])]
+    ).order_by('change_date')
+    if versions.count() != 2:
+        return JsonResponse({'error': _('The page is outdated, reload it please')})
+    try:
+        return render(request, 'jobs/jobVCmp.html', {'data': jobs.utils.CompareJobVersions(*list(versions))})
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+
+@login_required
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -407,19 +427,20 @@ def get_job_versions(request):
     try:
         job = Job.objects.get(pk=job_id)
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _('The job was not found')})
+        return JsonResponse({'error': _('The job was not found')})
     job_versions = []
-    for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
-        title = '%s (%s): %s' % (
+    for j in job.versions.order_by('-version'):
+        title = '%s (%s)' % (
             j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S"),
-            j.change_author.get_full_name(), j.comment
+            j.change_author.get_full_name()
         )
+        if j.comment:
+            title += ': %s' % j.comment
         job_versions.append({'version': j.version, 'title': title})
     return render(request, 'jobs/viewVersions.html', {'versions': job_versions})
 
 
 @login_required
-@unparallel_group([])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -604,7 +625,7 @@ def download_file(request, file_id):
     mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
     response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(source.file.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(source.name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
     return response
 
 
@@ -621,7 +642,7 @@ def download_job(request, job_id):
     generator = JobArchiveGenerator(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
@@ -639,7 +660,7 @@ def download_jobs(request):
 
     mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
+    response["Content-Disposition"] = 'attachment; filename="KleverJobs.zip"'
     return response
 
 
@@ -667,9 +688,6 @@ def upload_job(request, parent_id=None):
 
     if not jobs.utils.JobAccess(request.user).can_create():
         return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
-    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
-        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
-                                        "Please wait until it will be finished.")})
     if len(parent_id) == 0:
         return JsonResponse({'error': _("The parent identifier was not got")})
     parents = Job.objects.filter(identifier__startswith=parent_id)
@@ -744,26 +762,50 @@ def decide_job(request):
     generator = KleverCoreArchiveGen(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
 @login_required
-@unparallel_group([])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        file_id = int(request.POST.get('file_id', 0))
-    except ValueError:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        source = jobs.utils.FileSystem.objects.get(pk=int(file_id))
+        if 'file_id' in request.POST:
+            jobfile = jobs.utils.FileSystem.objects.get(id=request.POST.get('file_id', 0)).file
+        else:
+            jobfile = jobs.utils.JobFile.objects.get(id=request.POST.get('jobfile_id', 0))
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _("The file was not found")})
-    return HttpResponse(source.file.file.read())
+        return JsonResponse({'error': _("The file was not found")})
+    return HttpResponse(jobfile.file.read())
+
+
+@login_required
+def get_files_diff(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    try:
+        f1 = jobs.utils.FileSystem.objects.get(id=request.POST.get('file1_id', 0))
+        f2 = jobs.utils.FileSystem.objects.get(id=request.POST.get('file2_id', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The file was not found")})
+
+    if not jobs.utils.is_readable(f1.file.file.name) or not jobs.utils.is_readable(f2.file.file.name):
+        return JsonResponse({'error': _('One of the files is not readable')})
+
+    diff_result = []
+    with f1.file.file as fp1, f2.file.file as fp2:
+        for line in unified_diff(
+                fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('name1', ''), tofile=request.POST.get('name2', '')
+        ):
+            diff_result.append(line)
+    return HttpResponse('\n'.join(diff_result))
 
 
 @login_required
@@ -917,7 +959,6 @@ def check_compare_access(request):
 
 
 @login_required
-@unparallel_group([])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -938,7 +979,6 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group([])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -953,6 +993,8 @@ def get_file_by_checksum(request):
             f = JobFile.objects.get(hash_sum=check_sums[0])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found')})
+        if not jobs.utils.is_readable(f.file.name):
+            return HttpResponse('<h3 class="ui red header">%s</h3>' % _('The file is not readable'))
         return HttpResponse(f.file.read())
     elif len(check_sums) == 2:
         try:
@@ -960,6 +1002,8 @@ def get_file_by_checksum(request):
             f2 = JobFile.objects.get(hash_sum=check_sums[1])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found')})
+        if not jobs.utils.is_readable(f1.file.name) or not jobs.utils.is_readable(f2.file.name):
+            return HttpResponse('<h3 class="ui red header">%s</h3>' % _('One of the files is not readable'))
         diff_result = []
         with f1.file as fp1, f2.file as fp2:
             for line in unified_diff(
@@ -972,7 +1016,6 @@ def get_file_by_checksum(request):
 
 
 @login_required
-@unparallel_group([])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -983,7 +1026,7 @@ def download_configuration(request, runhistory_id):
     mimetype = mimetypes.guess_type(file_name)[0]
     response = StreamingHttpResponse(FileWrapper(run_history.configuration.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(run_history.configuration.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(file_name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % file_name
     return response
 
 
@@ -1072,7 +1115,7 @@ def download_files_for_compet(request, job_id):
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
     return response
 
 
