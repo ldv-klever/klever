@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common.interface import Container, Resource, Callback, SourceFunction
-from core.vtg.emg.common.signature import Function, Structure, Array, Pointer, InterfaceReference, Primitive, \
-    import_declaration
+from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer, Resource, Callback,\
+    FunctionInterface
+from core.vtg.emg.common.c.types import Function, Structure, Array, Pointer, Primitive, import_declaration
 
 
 def import_interface_specification(collection, specification):
@@ -34,11 +34,7 @@ def import_interface_specification(collection, specification):
         collection.logger.debug("Found interface category {}".format(category))
         __import_category_interfaces(collection, category, specification["categories"][category])
 
-        # todo: check specifications and remove this
-        if 'extensible' in specification["categories"][category]:
-            raise KeyError("Extensible attribute is depricated. Found one in {!r}".format(category))
-
-    if "kernel functions" in specification:
+    if "functions models" in specification:
         collection.logger.info("Import kernel functions description")
         for intf in __import_kernel_interfaces(collection, "kernel functions", specification):
             collection.set_source_function(intf, None)
@@ -188,48 +184,63 @@ def fulfill_function_interfaces(collection, interface, category=None):
 
 
 def __import_category_interfaces(collection, category_name, description):
+    def get_clean_declaration(desc, i):
+        if "declaration" in desc:
+            decl = import_declaration(desc["declaration"])
+        else:
+            raise ValueError("Provide declaration for interface specification of '{}.{}'".format(category_name, i))
+        return decl
+
     # Import interfaces
     if "containers" in description:
-        for identifier in sorted(description['containers'].keys()):
-            __import_interfaces(collection, category_name, identifier, description["containers"][identifier], Container)
+        for identifier in description['containers'].keys():
+            declaration = get_clean_declaration(description['containers'][identifier], identifier)
+            if isinstance(declaration, Structure):
+                intf = StructureContainer(category_name, identifier)
+            elif isinstance(declaration, Array):
+                intf = ArrayContainer(category_name, identifier)
+            else:
+                raise ValueError("Container '{}.{}' should be either a structure or array"
+                                 .format(category_name, identifier))
+            intf.declaration(declaration)
+            __import_interfaces(collection, intf, description["containers"][identifier])
     if "resources" in description:
-        for identifier in sorted(description['resources'].keys()):
-            __import_interfaces(collection, category_name, identifier, description["resources"][identifier], Resource)
+        for identifier in description['resources'].keys():
+            declaration = get_clean_declaration(description['resources'][identifier], identifier)
+            intf = Resource(category_name, identifier)
+            intf.declaration(declaration)
+            __import_interfaces(collection, intf, description["resources"][identifier])
     if "callbacks" in description:
-        for identifier in sorted(description['callbacks'].keys()):
+        for identifier in description['callbacks'].keys():
             __import_interfaces(collection, category_name, identifier, description["callbacks"][identifier], Callback)
 
     if "containers" in description:
-        for identifier in sorted(description['containers'].keys()):
+        for identifier in description['containers'].keys():
             fi = "{}.{}".format(category_name, identifier)
             # Import field interfaces
             if "fields" in description['containers'][identifier]:
-                for field in sorted(description['containers'][identifier]["fields"].keys()):
+                for field in description['containers'][identifier]["fields"].keys():
                     f_signature = import_declaration(description['containers'][identifier]["fields"][field])
                     collection.get_intf(fi).field_interfaces[field] = collection.get_intf(f_signature.interface)
                     collection.get_intf(fi).declaration.fields[field] = f_signature
+            if 'element' in description['containers'][identifier]:
+                raise NotImplementedError('There is no support for Array Containers still')
 
     for callback in collection.callbacks(category_name):
         fulfill_function_interfaces(collection, callback)
 
 
-def __import_interfaces(collection, category_name, identifier, description, constructor):
+def __import_interfaces(collection, intf, description):
     if "{}.{}".format(category_name, identifier) not in collection.interfaces:
         interface = constructor(category_name, identifier, manually_specified=True)
         collection.set_intf(interface)
     else:
         raise ValueError('Interface {} is described twice'.format(identifier))
 
-    if "implemented in kernel" in description:
-        interface.implemented_in_kernel = description["implemented in kernel"]
-
     if "headers" in description:
         interface.header = description["headers"]
     elif "header" in description:
         interface.header = [description["header"]]
-
-    if "signature" in description:
-        interface.declaration = import_declaration(description["signature"])
 
     if "interrupt context" in description and description["interrupt context"]:
         interface.interrupt_context = True

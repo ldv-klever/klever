@@ -22,41 +22,31 @@ from core.vtg.emg.processGenerator.linuxModule.interface.specification import im
 from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories
 
 
-class InterfaceCategoriesSpecification:
-    """Implements parser of source analysis and representation of module interface categories specification."""
+class InterfaceCollection:
 
-    def __init__(self, logger, conf, avt, spec, analysis_data):
-        """
-        Setup initial attributes and get logger object.
-
-        :param logger: logging object.
-        :param conf: Configuration properties dictionary.
-        """
+    def __init__(self, logger, conf):
         self.logger = logger
-        self._conf = conf
+        self.conf = conf
         self._interfaces = dict()
         self._interface_cache = dict()
         self._containers_cache = dict()
         self.__deleted_interfaces = dict()
 
+    # todo: refactor
+    def fill_up_collection(self):
         self.logger.info("Analyze provided interface categories specification")
-        import_interface_specification(self, spec)
+        import_interface_specification(self)
 
         self.logger.info("Import results of source code analysis")
-        # todo: Fix this
         import_code_analysis(self, avt, analysis_data)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
-        yield_categories(self, self._conf)
+        yield_categories(self, self.conf)
 
         self.logger.info("Determine unrelevant to the checked code interfaces and remove them")
         self.__refine_categories()
 
         self.logger.info("Both specifications are imported and categories are merged")
-
-    ####################################################################################################################
-    # PUBLIC METHODS
-    ####################################################################################################################
 
     @property
     def interfaces(self):
@@ -141,6 +131,7 @@ class InterfaceCategoriesSpecification:
         self.__deleted_interfaces[identifier] = self._interfaces[identifier]
         del self._interfaces[identifier]
 
+    # todo: refactor
     def containers(self, category=None):
         """
         Return a list with deterministic order with all existing containers from a provided category or
@@ -187,6 +178,7 @@ class InterfaceCategoriesSpecification:
         """
         return [cb for cb in self.callbacks(category) if not cb.called]
 
+    # todo: refactor
     def select_containers(self, field, signature=None, category=None):
         """
         Search for containers with a declaration of type Structure and with a provided field. If a signature parameter
@@ -207,6 +199,7 @@ class InterfaceCategoriesSpecification:
                   (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
                 (not category or container.category == category)]
 
+    # todo: refactor
     def resolve_containers(self, declaration, category=None):
         """
         Tries to find containers from given category which contains an element or field of type according to
@@ -232,6 +225,7 @@ class InterfaceCategoriesSpecification:
         else:
             return self._containers_cache[declaration.identifier]['default']
 
+    # todo: refactor
     def resolve_interface(self, signature, category=None, use_cache=True):
         """
         Tries to find an interface which matches a type from a provided declaration from a given category.
@@ -274,6 +268,7 @@ class InterfaceCategoriesSpecification:
             intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
 
+    # todo: refactor
     def refine_interfaces(self):
         """
         Try to go through all existing interfaces and their types and try to refine declarations replacing interface

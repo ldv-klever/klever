@@ -95,6 +95,15 @@ def is_static(declaration):
         return False
 
 
+def reduce_level(ast):
+    if len(ast['declarator']) > 1 and \
+            ('pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] == 0) and \
+            ('arrays' not in ast['declarator'][-1] or len(ast['declarator'][-1]['arrays']) == 0) and \
+            'function arguments' not in ast['declarator'][-1]:
+        ast['declarator'].pop()
+    return ast
+
+
 def import_declaration(declaration, ast=None, track_typedef=False):
     global _type_collection
     global _typedefs
@@ -173,15 +182,6 @@ def import_declaration(declaration, ast=None, track_typedef=False):
         return ret
     else:
         return ret, typedef
-
-
-def _reduce_level(ast):
-    if len(ast['declarator']) > 1 and \
-            ('pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] == 0) and \
-            ('arrays' not in ast['declarator'][-1] or len(ast['declarator'][-1]['arrays']) == 0) and \
-            'function arguments' not in ast['declarator'][-1]:
-        ast['declarator'].pop()
-    return ast
 
 
 def _take_pointer(exp, tp):
@@ -518,7 +518,7 @@ class Array(Declaration):
 
         array = ast['declarator'][-1]['arrays'].pop()
         self.size = array['size']
-        ast = _reduce_level(ast)
+        ast = reduce_level(ast)
         self.element = import_declaration(None, ast)
         self.element.add_parent(self)
 
@@ -553,7 +553,7 @@ class Pointer(Declaration):
         super(Pointer, self).__init__(ast)
 
         ast['declarator'][-1]['pointer'] -= 1
-        ast = _reduce_level(ast)
+        ast = reduce_level(ast)
         self.points = import_declaration(None, ast)
         self.points.add_parent(self)
 
