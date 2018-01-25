@@ -559,8 +559,6 @@ class JCR(core.components.Component):
 
                     total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
                                                                         list(arcnames.keys()), arcnames)
-                    self.logger.debug("Going to arcnames")
-                    self.logger.debug("ARCNAMES" + "\n".join(arcnames.keys()))
 
                 core.utils.report(self.logger,
                                   'job coverage',

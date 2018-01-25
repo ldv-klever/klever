@@ -253,7 +253,6 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                     p.join(1.0 / len(components))
                 except ComponentError:
                     # Ignore or terminate the rest
-                    logger.exception('Catch worker exception')
                     if not fail_tolerant:
                         raise
                 # If all is OK
@@ -478,7 +477,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
             self.logger.exception('Catch exception')
         finally:
             # Clean dir if needed
-            self.logger.debug('Before clean {0}'.format(self.clean_dir))
             if self.clean_dir and not self.conf['keep intermediate files']:
                 self.logger.debug('Going to clean {0}'.format(os.path.abspath('.')))
                 for to_del in os.listdir('.'):
