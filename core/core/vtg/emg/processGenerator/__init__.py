@@ -1,5 +1,6 @@
 from core.vtg.emg.processGenerator import linuxInsmod, linuxModule, manualImporter
 
+
 def generate_processes(logger, conf, source, avt):
     raise NotImplementedError
 

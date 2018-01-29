@@ -268,51 +268,6 @@ class InterfaceCollection:
             intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
 
-    # todo: refactor
-    def refine_interfaces(self):
-        """
-        Try to go through all existing interfaces and their types and try to refine declarations replacing interface
-        references in declarations (called dirty declarations) with particular types. Clean declarations that obtained
-        after refinement cannot reference in declaration to other interfaces and thus such declarations fully correspond
-        C language without any extensions. References however are still present in attributes of Interface objects and
-        are not removed completely.
-
-        :return:
-        """
-
-        # Clean declarations if it is poissible
-        self.logger.debug('Clean all interface declarations from InterfaceReferences')
-        clean_flag = True
-
-        # Do refinements until nothing can be changed
-        # todo: do not provide interfaces to external modules
-        while clean_flag:
-            clean_flag = False
-
-            # Refine ordinary interfaces
-            kernel_interfaces = []
-            for name in self.source_functions:
-                functions = self.get_source_functions(name)
-                kernel_interfaces.extend(functions)
-            for interface in [self.get_intf(name) for name in self.interfaces] + kernel_interfaces:
-                if not interface.declaration.clean_declaration:
-                    refined = refine_declaration(self._interfaces, interface.declaration)
-
-                    if refined:
-                        interface.declaration = refined
-                        clean_flag = True
-
-        self.logger.debug("Restore field declarations in structure declarations")
-        for structure in [intf for intf in self.containers() if intf.declaration and
-                          isinstance(intf.declaration, Structure)]:
-            for field in [field for field in sorted(structure.declaration.fields.keys())
-                          if not structure.declaration.fields[field].clean_declaration]:
-                new_declaration = refine_declaration(self._interfaces, structure.declaration.fields[field])
-                if new_declaration:
-                    structure.declaration.fields[field] = new_declaration
-
-        return
-
     def __resolve_containers(self, target, category):
         return {container.identifier: container.contains(target) for container in self.containers(category)
                 if (isinstance(container.declaration, Structure) and len(container.contains(target)) > 0) or

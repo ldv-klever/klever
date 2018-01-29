@@ -398,7 +398,7 @@ class Function(Declaration):
                     expr = param.to_string(declarator, typedef=filtered_typedef_param(self.params_typedef[index]),
                                            scope=scope)
                     parameter_declarations.append(expr)
-            replacement = replacement + '(' + ', '.join(parameter_declarations) + ')'
+            replacement += '(' + ', '.join(parameter_declarations) + ')'
 
         if self.return_value:
             replacement = self.return_value.to_string(replacement, typedef=filtered_typedef_param(self.ret_typedef),

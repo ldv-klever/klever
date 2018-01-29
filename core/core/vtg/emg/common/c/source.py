@@ -323,3 +323,5 @@ class Source:
 
             if func not in source_analysis['functions'] or len(self._source_functions[func].keys()) == 0:
                 self.remove_source_function(func)
+
+        # todo: Import macros
