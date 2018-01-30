@@ -56,7 +56,7 @@ class ScheduleTask:
             raise ServiceError('Solving progress of the job was not found')
         if self.progress.job.status == JOB_STATUS[6][0]:
             # Do not process cancelling jobs
-            return
+            raise NotAnError('The job is cancelling')
         self.description = description
         try:
             priority = json.loads(self.description)['priority']
