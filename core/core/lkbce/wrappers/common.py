@@ -45,7 +45,8 @@ class Command:
             'opts discarding out file': ('-help',)
         },
         'objcopy': {
-            'opts requiring vals': ('-set-section-flags', '-rename-section', 'O'),
+            'opts requiring vals': ('-set-section-flags', '-rename-section', 'O', '-globalize-symbol',
+                                    '-localize-symbol'),
             'opts discarding in files': ('-version',),
             'opts discarding out file': ('-version',)
         }

@@ -195,7 +195,8 @@ sys.exit(Command(sys.argv).launch())
             # Check that module sets aren't intersect explicitly.
             for i, modules1 in enumerate(self.linux_kernel['modules']):
                 for j, modules2 in enumerate(self.linux_kernel['modules']):
-                    if i != j and modules1.startswith(modules2):
+                    if i != j and (modules1.startswith(modules2) and
+                                   (modules1 == modules2 or re.match(r'{}/'.format(modules2), modules1))):
                         raise ValueError(
                             'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 

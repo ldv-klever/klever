@@ -284,6 +284,8 @@ class LKVOG(core.components.Component):
                 else:
                     # This module hasn't specified. But it may be in subsystem
                     for subsystem in subsystems:
+                        if subsystem != 'all' and subsystem[-1] != '/':
+                            subsystem = subsystem + '/'
                         if self.module.startswith(subsystem) or \
                                 self.module.startswith(os.path.join('ext-modules', subsystem)) or \
                                         subsystem == 'all':
