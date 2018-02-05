@@ -2,27 +2,27 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "scsi_add_host_with_dma": {
-        "signature": "int scsi_add_host_with_dma(*%scsi_host_template.host%, $, $)",
+        "declaration": "int scsi_add_host_with_dma(*%scsi_host_template.host%, struct device *, struct device *)",
         "header": "scsi/scsi_host.h"
       },
       "scsi_add_host": {
-        "signature": "int scsi_add_host(*%scsi_host_template.host%, $)",
+        "declaration": "int scsi_add_host(*%scsi_host_template.host%, struct device *)",
         "header": "scsi/scsi_host.h"
       },
       "scsi_host_alloc": {
-        "signature": "*%scsi_host_template.host% scsi_host_alloc(*%scsi_host_template.scsi_host_template%, $)",
+        "declaration": "*%scsi_host_template.host% scsi_host_alloc(*%scsi_host_template.scsi_host_template%, int)",
         "header": "scsi/scsi_host.h"
       },
       "scsi_remove_host": {
-        "signature": "void scsi_remove_host(*%scsi_host_template.host%)",
+        "declaration": "void scsi_remove_host(*%scsi_host_template.host%)",
         "header": "scsi/scsi_host.h"
       },
       "scsi_register": {
-        "signature": "*%scsi_host_template.host% scsi_register(*%scsi_host_template.host%, $)",
+        "declaration": "*%scsi_host_template.host% scsi_register(*%scsi_host_template.host%, int)",
         "header": "scsi/scsi_host.h"
       },
       "scsi_unregister": {
-        "signature": "void scsi_unregister(*%scsi_host_template.host%)",
+        "declaration": "void scsi_unregister(*%scsi_host_template.host%)",
         "header": "scsi/scsi_host.h"
       }
     },
@@ -30,7 +30,7 @@
       "scsi_host_template": {
         "containers": {
           "scsi_host_template": {
-            "signature": "struct scsi_host_template ops",
+            "declaration": "struct scsi_host_template ops",
             "header": "scsi/scsi_host.h",
             "fields": {
               "detect": "%scsi_host_template.probe%",
@@ -38,7 +38,7 @@
             }
           },
           "host": {
-            "signature": "struct Scsi_Host host",
+            "declaration": "struct Scsi_Host host",
             "header": "scsi/scsi_host.h",
             "fields": {
               "hostt": "*%scsi_host_template.scsi_host_template%"
@@ -47,10 +47,10 @@
         },
         "callbacks": {
           "release": {
-            "signature": "int (* release)(*%scsi_host_template.host%)"
+            "declaration": "int (* release)(*%scsi_host_template.host%)"
           },
           "probe": {
-            "signature": "int (* probe)(*%scsi_host_template.host%)"
+            "declaration": "int (* probe)(*%scsi_host_template.host%)"
           }
         }
       }

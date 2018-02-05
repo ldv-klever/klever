@@ -33,16 +33,12 @@ class Interface:
         return self._declaration
 
     @declaration.setter
-    def declaration(self, declaration):
-        if not self.declaration.clean_declaration:
-            self._declaration = declaration
-
-    def _clean_declaration(self, declaration):
-        pass
+    def declaration(self, new_declaration):
+        self._declaration = new_declaration
 
     def add_implementation(self, value, declaration, path, base_container=None, base_value=None, sequence=None):
         new = Implementation(value, declaration, value, path, base_container, base_value, sequence)
-        mv = new.adjusted_value(value, self.declaration)
+        mv = new.adjusted_value(self.declaration)
         new.declaration = self.declaration
         new.value = mv
         if new.value not in self.implementations:
@@ -81,7 +77,7 @@ class StructureContainer(Container):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if self._clean_declaration(new_declaration) and not isinstance(new_declaration, Structure):
+        if not isinstance(new_declaration, Structure):
             raise ValueError("Structure container must have Container declaration but {!r} is provided".
                              format(str(type(new_declaration).__name__)))
         Interface.declaration.fset(self, new_declaration)
@@ -95,7 +91,7 @@ class ArrayContainer(Container):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if self._clean_declaration(new_declaration) and not isinstance(new_declaration, Array):
+        if not isinstance(new_declaration, Array):
             raise ValueError("Array container must have Container declaration but {!r} is provided".
                              format(str(type(new_declaration).__name__)))
         Interface.declaration.fset(self, new_declaration)
@@ -121,7 +117,7 @@ class FunctionInterface(Interface):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if self._clean_declaration(new_declaration) and not isinstance(new_declaration, Function):
+        if isinstance(new_declaration, Function):
             raise ValueError("FunctionINterface must have Function declaration but {!r} is provided".
                              format(str(type(new_declaration).__name__)))
         Interface.declaration.fset(self, new_declaration)
@@ -136,8 +132,7 @@ class Callback(FunctionInterface):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if self._clean_declaration(new_declaration) and not (isinstance(new_declaration, Pointer) and
-                                                             isinstance(new_declaration.points, Function)):
+        if not (isinstance(new_declaration, Pointer) and isinstance(new_declaration.points, Function)):
             raise ValueError("FunctionINterface must have Function Pointer declaration but {!r} is provided".
                              format(str(type(new_declaration).__name__)))
         Interface.declaration.fset(self, new_declaration)

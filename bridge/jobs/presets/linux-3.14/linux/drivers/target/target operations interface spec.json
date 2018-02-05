@@ -2,11 +2,11 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "transport_subsystem_register": {
-        "signature": "int transport_subsystem_register(*%se_subsystem.se_subsystem_api%)",
+        "declaration": "int transport_subsystem_register(*%se_subsystem.se_subsystem_api%)",
         "header": "target/target_core_backend.h"
       },
       "transport_subsystem_release": {
-        "signature": "void transport_subsystem_release(*%se_subsystem.se_subsystem_api%)",
+        "declaration": "void transport_subsystem_release(*%se_subsystem.se_subsystem_api%)",
         "header": "target/target_core_backend.h"
       }
     },
@@ -14,7 +14,7 @@
       "se_subsystem": {
         "containers": {
           "se_subsystem_api": {
-            "signature": "struct se_subsystem_api ops",
+            "declaration": "struct se_subsystem_api ops",
             "header": "target/target_core_backend.h",
             "fields": {
               "alloc_device": "%se_subsystem.alloc%",
@@ -26,24 +26,24 @@
         },
         "resources": {
           "se_device": {
-            "signature": "struct se_device *r"
+            "declaration": "struct se_device *r"
           },
           "se_hba": {
-            "signature": "struct se_hba *r"
+            "declaration": "struct se_hba *r"
           }
         },
         "callbacks": {
           "alloc": {
-            "signature": "%se_subsystem.se_device% (*alloc)(%se_subsystem.se_hba%, $)"
+            "declaration": "%se_subsystem.se_device% (*alloc)(%se_subsystem.se_hba%, const char *)"
           },
           "free": {
-            "signature": "void (*free)(%se_subsystem.se_device%)"
+            "declaration": "void (*free)(%se_subsystem.se_device%)"
           },
           "attach_hba": {
-            "signature": "int (*attach_hba)(%se_subsystem.se_hba%, $)"
+            "declaration": "int (*attach_hba)(%se_subsystem.se_hba%, u32)"
           },
           "detach_hba": {
-            "signature": "void (*detach_hba)(%se_subsystem.se_hba%)"
+            "declaration": "void (*detach_hba)(%se_subsystem.se_hba%)"
           }
         }
       }
@@ -52,11 +52,11 @@
   "Linux 4.6.7": {
     "functions models": {
       "transport_backend_register": {
-        "signature": "int transport_backend_register(*%target_backend.target_backend_ops%)",
+        "declaration": "int transport_backend_register(*%target_backend.target_backend_ops%)",
         "header": "target/target_core_backend.h"
       },
       "target_backend_unregister": {
-        "signature": "void target_backend_unregister(*%target_backend.target_backend_ops%)",
+        "declaration": "void target_backend_unregister(*%target_backend.target_backend_ops%)",
         "header": "target/target_core_backend.h"
       }
     },
@@ -64,7 +64,7 @@
       "target_backend": {
         "containers": {
           "target_backend_ops": {
-            "signature": "struct target_backend_ops ops",
+            "declaration": "struct target_backend_ops ops",
             "header": "target/target_core_backend.h",
             "fields": {
               "alloc_device": "%target_backend.alloc%",
@@ -76,24 +76,24 @@
         },
         "resources": {
           "se_device": {
-            "signature": "struct se_device *r"
+            "declaration": "struct se_device *r"
           },
           "se_hba": {
-            "signature": "struct se_hba *r"
+            "declaration": "struct se_hba *r"
           }
         },
         "callbacks": {
           "alloc": {
-            "signature": "%target_backend.se_device% (*alloc)(%target_backend.se_hba%, $)"
+            "declaration": "%target_backend.se_device% (*alloc)(%target_backend.se_hba%, const char *)"
           },
           "free": {
-            "signature": "void (*free)(%target_backend.se_device%)"
+            "declaration": "void (*free)(%target_backend.se_device%)"
           },
           "attach_hba": {
-            "signature": "int (*attach_hba)(%target_backend.se_hba%, $)"
+            "declaration": "int (*attach_hba)(%target_backend.se_hba%, u32)"
           },
           "detach_hba": {
-            "signature": "void (*detach_hba)(%target_backend.se_hba%)"
+            "declaration": "void (*detach_hba)(%target_backend.se_hba%)"
           }
         }
       }

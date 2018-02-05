@@ -58,7 +58,7 @@ def __populate_callbacks(collection):
                                    format(declaration.identifier, container.category))
 
             interface = Callback(container.category, identifier)
-            interface.declaration(declaration)
+            interface.declaration = declaration
             collection.set_intf(interface)
 
     return
@@ -97,7 +97,7 @@ def __populate_resources(collection):
                                    format(declaration.identifier, category))
 
             interface = Resource(category, identifier)
-            interface.declaration(declaration)
+            interface.declaration = declaration
             collection.set_intf(interface)
 
     return

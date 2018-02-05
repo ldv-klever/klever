@@ -73,7 +73,10 @@ class InterfaceCollection:
         :param identifier: Interface object identifier string.
         :return: Interface object.
         """
-        return self._interfaces[identifier]
+        if identifier in self._interfaces:
+            return self._interfaces[identifier]
+        else:
+            return None
 
     def set_intf(self, new_obj):
         """

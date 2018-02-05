@@ -2,11 +2,11 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "rtc_device_register": {
-        "signature": "*%rtc.rtc_device% rtc_device_register($, %rtc.device%, *%rtc.rtc_class_ops%, $)",
+        "declaration": "*%rtc.rtc_device% rtc_device_register(const char *name, %rtc.device%, *%rtc.rtc_class_ops%, struct module *owner)",
         "header": "linux/rtc.h"
       },
       "rtc_device_unregister": {
-        "signature": "void rtc_device_unregister(*%rtc.rtc_device%)",
+        "declaration": "void rtc_device_unregister(*%rtc.rtc_device%)",
         "header": "linux/rtc.h"
       }
     },
@@ -14,7 +14,7 @@
       "rtc": {
         "containers": {
           "rtc_class_ops": {
-            "signature": "struct rtc_class_ops ops",
+            "declaration": "struct rtc_class_ops ops",
             "header": "linux/rtc.h",
             "fields": {
               "open": "%rtc.probe%",
@@ -22,7 +22,7 @@
             }
           },
           "rtc_device": {
-            "signature": "struct rtc_device dev",
+            "declaration": "struct rtc_device dev",
             "header": "linux/rtc.h",
             "fields": {
               "ops": "*%rtc.rtc_class_ops%"
@@ -31,15 +31,15 @@
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%rtc.device%)"
+            "declaration": "int (*probe)(%rtc.device%)"
           },
           "release": {
-            "signature": "void (*release)(%rtc.device%)"
+            "declaration": "void (*release)(%rtc.device%)"
           }
         },
         "resources": {
           "device": {
-            "signature": "struct device *dev",
+            "declaration": "struct device *dev",
             "header": "linux/device.h",
             "implemented in kernel": true
           }

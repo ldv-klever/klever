@@ -5,7 +5,7 @@
       "pci": {
         "containers": {
           "pci_driver": {
-            "signature": "struct pci_driver driver",
+            "declaration": "struct pci_driver driver",
             "header": "linux/pci.h",
             "fields": {
               "probe": "%pci.probe%",
@@ -20,36 +20,36 @@
         },
         "resources": {
           "dev": {
-            "signature": "struct pci_dev *dev",
+            "declaration": "struct pci_dev *dev",
             "header": "linux/pci.h",
             "implemented in kernel": true
           },
           "pm_message": {
-            "signature": "pm_message_t state",
+            "declaration": "pm_message_t state",
             "header": "linux/pm.h"
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%pci.dev%, $)"
+            "declaration": "int (*probe)(%pci.dev%, const struct pci_device_id *id)"
           },
           "release": {
-            "signature": "void (*release)(%pci.dev%)"
+            "declaration": "void (*release)(%pci.dev%)"
           },
           "suspend": {
-            "signature": "int (*suspend)(%pci.dev%, %pci.pm_message%)"
+            "declaration": "int (*suspend)(%pci.dev%, %pci.pm_message%)"
           },
           "suspend_late": {
-            "signature": "int (*suspend_late)(%pci.dev%, %pci.pm_message%)"
+            "declaration": "int (*suspend_late)(%pci.dev%, %pci.pm_message%)"
           },
           "resume_early": {
-            "signature": "int (*resume_early)(%pci.dev%)"
+            "declaration": "int (*resume_early)(%pci.dev%)"
           },
           "resume": {
-            "signature": "int (*resume)(%pci.dev%)"
+            "declaration": "int (*resume)(%pci.dev%)"
           },
           "shutdown": {
-            "signature": "void (*shutdown)(%pci.dev%)"
+            "declaration": "void (*shutdown)(%pci.dev%)"
           }
         }
       }

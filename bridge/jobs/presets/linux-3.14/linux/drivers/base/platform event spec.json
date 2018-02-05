@@ -133,7 +133,7 @@
             "callback": true
           },
           "probed": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -364,7 +364,7 @@
             "callback": true
           },
           "probed": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "1"
           }
         },

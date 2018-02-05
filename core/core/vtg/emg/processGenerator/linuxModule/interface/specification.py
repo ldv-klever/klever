@@ -43,13 +43,13 @@ def import_interface_specification(collection, sa, specification):
                 else:
                     raise ValueError("Container '{}.{}' should be either a structure or array"
                                      .format(category, identifier))
-                intf.declaration(declaration)
+                intf.declaration = declaration
                 __import_interfaces(collection, intf, description["containers"][identifier])
         if "resources" in description:
             for identifier in description['resources'].keys():
                 declaration = get_clean_declaration(category, description['resources'][identifier], identifier)
                 intf = Resource(category, identifier)
-                intf.declaration(declaration)
+                intf.declaration = declaration
                 __import_interfaces(collection, intf, description["resources"][identifier])
         if "callbacks" in description:
             for identifier in description['callbacks'].keys():
@@ -57,7 +57,7 @@ def import_interface_specification(collection, sa, specification):
                 if "declaration" in description['callbacks'][identifier]:
                     d, _ = import_interface_declaration(collection, intf,
                                                         description['callbacks'][identifier]["declaration"])
-                    intf.declaration(d)
+                    intf.declaration = d
                 else:
                     raise ValueError("Provide declaration at the interface specification of '{}.{}'".
                                      format(category, identifier))
@@ -94,7 +94,7 @@ def import_interface_specification(collection, sa, specification):
             if "declaration" in specification["functions"][identifier]:
                 d, _ = import_interface_declaration(collection, interface,
                                                     specification["functions"][identifier]["declaration"])
-                interface.declaration(d)
+                interface.declaration = d
             else:
                 raise ValueError("Provide declaration of function {!r}".format(identifier))
 
@@ -105,7 +105,7 @@ def import_interface_declaration(collection, interface, declaration):
                 'identifier' in given_ast['specifiers']:
             n = given_ast['specifiers']['identifier']
             category = given_ast['specifiers']['category']
-            i = collection.get_interface("{}.{}".format(category, n))
+            i = collection.get_intf("{}.{}".format(category, n))
             d = i.declaration.to_string(declarator)
             return d, i
         else:

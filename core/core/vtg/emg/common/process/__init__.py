@@ -46,8 +46,8 @@ def _update_process_ast(obj):
 def export_process(process):
     def convert_label(label):
         d = dict()
-        if label.prior_signature:
-            d['signature'] = label.prior_signature.to_string(label.name, typedef='complex_and_params')
+        if label.declaration:
+            d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
         if label.value:
             d['value'] = label.value
 
@@ -115,9 +115,9 @@ class Label:
         self.name = name
 
     def compare_with(self, label):
-        if self.declaration and label.prior_signature:
+        if self.declaration and label.declaration:
             my_signature = self.declaration
-            ret = my_signature.compare_signature(label.prior_signature)
+            ret = my_signature.compare_signature(label.declaration)
             if not ret:
                 return 'different'
             else:

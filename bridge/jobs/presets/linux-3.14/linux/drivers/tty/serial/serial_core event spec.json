@@ -93,11 +93,11 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "uret": {
-            "signature": "unsigned int b",
+            "declaration": "unsigned int b",
             "value": "ldv_undef_int()"
           },
           "state": {
@@ -407,11 +407,11 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "uret": {
-            "signature": "unsigned int b",
+            "declaration": "unsigned int b",
             "value": "ldv_undef_int()"
           },
           "state": {

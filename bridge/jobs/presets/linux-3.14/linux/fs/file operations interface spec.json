@@ -2,23 +2,23 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "cdev_init": {
-        "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+        "declaration": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
         "header": "linux/cdev.h"
       },
       "misc_register": {
-        "signature": "int misc_register(*%file_operations.miscdevice%)",
+        "declaration": "int misc_register(*%file_operations.miscdevice%)",
         "header": "linux/miscdevice.h"
       },
       "cdev_del": {
-        "signature": "void cdev_del(*%file_operations.cdev%)",
+        "declaration": "void cdev_del(*%file_operations.cdev%)",
         "header": "linux/cdev.h"
       },
       "misc_deregister": {
-        "signature": "void misc_deregister(*%file_operations.miscdevice%)",
+        "declaration": "void misc_deregister(*%file_operations.miscdevice%)",
         "header": "linux/miscdevice.h"
       },
       "unregister_chrdev": {
-        "signature": "void unregister_chrdev($, $)",
+        "declaration": "void unregister_chrdev(unsigned int major, const char *name)",
         "header": "linux/fs.h"
       }
     },
@@ -26,7 +26,7 @@
       "file_operations": {
         "containers": {
           "file_operations": {
-            "signature": "struct file_operations ops",
+            "declaration": "struct file_operations ops",
             "header": "linux/fs.h",
             "fields": {
               "release": "%file_operations.release%",
@@ -35,14 +35,14 @@
             }
           },
           "cdev": {
-            "signature": "struct cdev cdev",
+            "declaration": "struct cdev cdev",
             "header": "linux/cdev.h",
             "fields": {
               "ops": "*%file_operations.file_operations%"
             }
           },
           "miscdevice": {
-            "signature": "struct miscdevice dev",
+            "declaration": "struct miscdevice dev",
             "header": "linux/miscdevice.h",
             "fields": {
               "fops": "*%file_operations.file_operations%"
@@ -51,24 +51,24 @@
         },
         "resources": {
           "file": {
-            "signature": "struct file *file"
+            "declaration": "struct file *file"
           },
           "inode": {
-            "signature": "struct inode *inode"
+            "declaration": "struct inode *inode"
           },
           "write_size": {
-            "signature": "size_t cnt"
+            "declaration": "size_t cnt"
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe) (%file_operations.inode%, %file_operations.file%)"
+            "declaration": "int (*probe) (%file_operations.inode%, %file_operations.file%)"
           },
           "release": {
-            "signature": "$ (*release) (%file_operations.inode%, %file_operations.file%)"
+            "declaration": "int (*release) (%file_operations.inode%, %file_operations.file%)"
           },
           "write": {
-            "signature": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
+            "declaration": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
           }
         }
       }

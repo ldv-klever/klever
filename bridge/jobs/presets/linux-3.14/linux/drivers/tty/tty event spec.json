@@ -92,7 +92,7 @@
             ]
           },
           "device": {
-            "signature": "struct device *"
+            "declaration": "struct device *"
           }
         },
         "process": "<alloc>.[register].<success> | <fail>",
@@ -202,7 +202,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "1"
           }
         },
@@ -573,7 +573,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "1"
           }
         },

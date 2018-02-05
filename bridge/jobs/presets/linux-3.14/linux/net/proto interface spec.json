@@ -2,19 +2,19 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "sock_register": {
-        "signature": "int sock_register(*%proto.family_ops%)",
+        "declaration": "int sock_register(*%proto.family_ops%)",
         "header": "linux/net.h"
       },
       "sock_unregister": {
-        "signature": "void sock_unregister(%proto.family%)",
+        "declaration": "void sock_unregister(%proto.family%)",
         "header": "linux/net.h"
       },
       "register_pppox_proto": {
-        "signature": "int register_pppox_proto(%proto.family%, *%proto.pppox_proto%)",
+        "declaration": "int register_pppox_proto(%proto.family%, *%proto.pppox_proto%)",
         "header": "linux/if_pppox.h"
       },
       "unregister_pppox_proto": {
-        "signature": "void unregister_pppox_proto(%proto.family%)",
+        "declaration": "void unregister_pppox_proto(%proto.family%)",
         "header": "linux/if_pppox.h"
       }
     },
@@ -22,7 +22,7 @@
       "proto": {
         "containers": {
           "proto_ops": {
-            "signature": "struct proto_ops ops",
+            "declaration": "struct proto_ops ops",
             "header": "linux/net.h",
             "fields": {
               "bind": "%proto.bind%",
@@ -30,7 +30,7 @@
             }
           },
           "family_ops": {
-            "signature": "struct net_proto_family a",
+            "declaration": "struct net_proto_family a",
             "header": "linux/net.h",
             "fields": {
               "family": "%proto.family%",
@@ -38,7 +38,7 @@
             }
           },
           "pppox_proto": {
-            "signature": "struct pppox_proto a",
+            "declaration": "struct pppox_proto a",
             "header": "linux/if_pppox.h",
             "fields": {
               "create": "%proto.proto_create%"
@@ -47,25 +47,25 @@
         },
         "resources": {
           "family": {
-            "signature": "int a"
+            "declaration": "int a"
           },
           "socket": {
-            "signature": "struct socket *socket",
+            "declaration": "struct socket *socket",
             "header": "linux/net.h"
           }
         },
         "callbacks": {
           "bind": {
-            "signature": "int (*bind)(%proto.socket%, $, $)"
+            "declaration": "int (*bind)(%proto.socket%, struct sockaddr *myaddr, int sockaddr_len)"
           },
           "release": {
-            "signature": "int (*release)(%proto.socket%)"
+            "declaration": "int (*release)(%proto.socket%)"
           },
           "family_create": {
-            "signature": "int (*family_create)(struct net *net, %proto.socket%, int protocol, int kern)"
+            "declaration": "int (*family_create)(struct net *net, %proto.socket%, int protocol, int kern)"
           },
           "proto_create": {
-            "signature": "int (*proto_create)(struct net *net, %proto.socket%)"
+            "declaration": "int (*proto_create)(struct net *net, %proto.socket%)"
           }
         }
       }

@@ -2,47 +2,47 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "alloc_tty_driver": {
-        "signature": "%tty.tty_driver% alloc_tty_driver($)",
+        "declaration": "%tty.tty_driver% alloc_tty_driver(unsigned int lines)",
         "header": "linux/tty_driver.h"
       },
       "__tty_alloc_driver": {
-        "signature": "%tty.tty_driver% __tty_alloc_driver($, $, $)",
+        "declaration": "%tty.tty_driver% __tty_alloc_driver(unsigned int lines, struct module *owner, unsigned long flags)",
         "header": "linux/tty_driver.h"
       },
       "tty_set_operations": {
-        "signature": "void tty_set_operations(%tty.tty_driver%, *%tty.tty_operations%)",
+        "declaration": "void tty_set_operations(%tty.tty_driver%, *%tty.tty_operations%)",
         "header": "linux/tty_driver.h"
       },
       "tty_register_driver": {
-        "signature": "int tty_register_driver(%tty.tty_driver%)",
+        "declaration": "int tty_register_driver(%tty.tty_driver%)",
         "header": "linux/tty.h"
       },
       "tty_port_init": {
-        "signature": "void tty_port_init(%tty.tty_port%)",
+        "declaration": "void tty_port_init(%tty.tty_port%)",
         "header": "linux/tty.h"
       },
       "tty_port_register_device": {
-        "signature": "struct device *tty_port_register_device(%tty.tty_port%, %tty.tty_driver%, $, $)",
+        "declaration": "struct device *tty_port_register_device(%tty.tty_port%, %tty.tty_driver%, unsigned index, struct device *device)",
         "header": "linux/tty.h"
       },
       "tty_unregister_device": {
-        "signature": "void tty_unregister_device(%tty.tty_driver%, $)",
+        "declaration": "void tty_unregister_device(%tty.tty_driver%, unsigned index)",
         "header": "linux/tty.h"
       },
       "tty_port_destroy": {
-        "signature": "void tty_port_destroy(%tty.tty_port%)",
+        "declaration": "void tty_port_destroy(%tty.tty_port%)",
         "header": "linux/tty.h"
       },
       "tty_port_put": {
-        "signature": "void tty_port_put(%tty.tty_port%)",
+        "declaration": "void tty_port_put(%tty.tty_port%)",
         "header": "linux/tty.h"
       },
       "tty_unregister_driver": {
-        "signature": "int tty_unregister_driver(%tty.tty_driver%)",
+        "declaration": "int tty_unregister_driver(%tty.tty_driver%)",
         "header": "linux/tty.h"
       },
       "put_tty_driver": {
-        "signature": "void put_tty_driver(%tty.tty_driver%)",
+        "declaration": "void put_tty_driver(%tty.tty_driver%)",
         "header": "linux/tty_driver.h"
       }
     },
@@ -50,7 +50,7 @@
       "tty": {
         "containers": {
           "tty_port_operations": {
-            "signature": "struct tty_port_operations ops",
+            "declaration": "struct tty_port_operations ops",
             "header": "linux/tty.h",
             "fields": {
               "shutdown": "%tty.port_shutdown%",
@@ -58,7 +58,7 @@
             }
           },
           "tty_operations": {
-            "signature": "struct tty_operations ops",
+            "declaration": "struct tty_operations ops",
             "header": "linux/tty_driver.h",
             "fields": {
               "lookup": "%tty.lookup%",
@@ -79,66 +79,66 @@
         },
         "callbacks": {
           "port_shutdown": {
-            "signature": "void (*port_shutdown)(%tty.tty_port%)"
+            "declaration": "void (*port_shutdown)(%tty.tty_port%)"
           },
           "port_activate": {
-            "signature": "int (*port_activate)(%tty.tty_port%, %tty.tty_struct%)"
+            "declaration": "int (*port_activate)(%tty.tty_port%, %tty.tty_struct%)"
           },
           "lookup": {
-            "signature": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, struct inode *inode, int idx)"
+            "declaration": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, struct inode *inode, int idx)"
           },
           "install": {
-            "signature": "int  (*install)(%tty.tty_driver%, %tty.tty_struct%)"
+            "declaration": "int  (*install)(%tty.tty_driver%, %tty.tty_struct%)"
           },
           "remove": {
-            "signature": "void (*remove)(%tty.tty_driver%, %tty.tty_struct%)"
+            "declaration": "void (*remove)(%tty.tty_driver%, %tty.tty_struct%)"
           },
           "open": {
-            "signature": "int  (*open)(%tty.tty_struct%, %tty.file%)"
+            "declaration": "int  (*open)(%tty.tty_struct%, %tty.file%)"
           },
           "close": {
-            "signature": "void (*close)(%tty.tty_struct%, %tty.file%)"
+            "declaration": "void (*close)(%tty.tty_struct%, %tty.file%)"
           },
           "shutdown": {
-            "signature": "void (*shutdown)(%tty.tty_struct%)"
+            "declaration": "void (*shutdown)(%tty.tty_struct%)"
           },
           "cleanup": {
-            "signature": "void (*cleanup)(%tty.tty_struct%)"
+            "declaration": "void (*cleanup)(%tty.tty_struct%)"
           },
           "set_termios": {
-            "signature": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
+            "declaration": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
           },
           "throttle": {
-            "signature": "void (*throttle)(%tty.tty_struct%)"
+            "declaration": "void (*throttle)(%tty.tty_struct%)"
           },
           "unthrottle": {
-            "signature": "void (*unthrottle)(%tty.tty_struct%)"
+            "declaration": "void (*unthrottle)(%tty.tty_struct%)"
           },
           "stop": {
-            "signature": "void (*stop)(%tty.tty_struct%)"
+            "declaration": "void (*stop)(%tty.tty_struct%)"
           },
           "start": {
-            "signature": "void (*start)(%tty.tty_struct%)"
+            "declaration": "void (*start)(%tty.tty_struct%)"
           },
           "set_termiox": {
-            "signature": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
+            "declaration": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
           }
         },
         "resources": {
           "tty_struct": {
-            "signature": "struct tty_struct *str",
+            "declaration": "struct tty_struct *str",
             "header": "linux/tty.h"
           },
           "tty_port": {
-            "signature": "struct tty_port *port",
+            "declaration": "struct tty_port *port",
             "header": "linux/tty.h"
           },
           "tty_driver": {
-            "signature": "struct tty_driver *driver",
+            "declaration": "struct tty_driver *driver",
             "--header": "linux/tty_driver.h"
           },
           "file": {
-            "signature": "struct file *port",
+            "declaration": "struct file *port",
             "header": "linux/fs.h"
           }
         }

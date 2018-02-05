@@ -5,7 +5,7 @@
       "pm": {
         "containers": {
           "dev_pm_ops": {
-            "signature": "struct dev_pm_ops",
+            "declaration": "struct dev_pm_ops",
             "header": "linux/pm.h",
             "fields": {
               "prepare": "%pm.prepare%",
@@ -36,79 +36,79 @@
         },
         "resources": {
           "device": {
-            "signature": "struct device *dev",
+            "declaration": "struct device *dev",
             "implemented in kernel": true
           }
         },
         "callbacks": {
           "prepare": {
-            "signature": "int (*prepare)(%pm.device%)"
+            "declaration": "int (*prepare)(%pm.device%)"
           },
           "complete": {
-            "signature": "void (*complete)(%pm.device%)"
+            "declaration": "void (*complete)(%pm.device%)"
           },
           "suspend": {
-            "signature": "int (*suspend)(%pm.device%)"
+            "declaration": "int (*suspend)(%pm.device%)"
           },
           "resume": {
-            "signature": "int (*resume)(%pm.device%)"
+            "declaration": "int (*resume)(%pm.device%)"
           },
           "freeze": {
-            "signature": "int (*freeze)(%pm.device%)"
+            "declaration": "int (*freeze)(%pm.device%)"
           },
           "thaw": {
-            "signature": "int (*thaw)(%pm.device%)"
+            "declaration": "int (*thaw)(%pm.device%)"
           },
           "poweroff": {
-            "signature": "int (*poweroff)(%pm.device%)"
+            "declaration": "int (*poweroff)(%pm.device%)"
           },
           "restore": {
-            "signature": "int (*restore)(%pm.device%)"
+            "declaration": "int (*restore)(%pm.device%)"
           },
           "suspend_late": {
-            "signature": "int (*suspend_late)(%pm.device%)"
+            "declaration": "int (*suspend_late)(%pm.device%)"
           },
           "resume_early": {
-            "signature": "int (*resume_early)(%pm.device%)"
+            "declaration": "int (*resume_early)(%pm.device%)"
           },
           "freeze_late": {
-            "signature": "int (*freeze_late)(%pm.device%)"
+            "declaration": "int (*freeze_late)(%pm.device%)"
           },
           "thaw_early": {
-            "signature": "int (*thaw_early)(%pm.device%)"
+            "declaration": "int (*thaw_early)(%pm.device%)"
           },
           "poweroff_late": {
-            "signature": "int (*poweroff_late)(%pm.device%)"
+            "declaration": "int (*poweroff_late)(%pm.device%)"
           },
           "restore_early": {
-            "signature": "int (*restore_early)(%pm.device%)"
+            "declaration": "int (*restore_early)(%pm.device%)"
           },
           "suspend_noirq": {
-            "signature": "int (*suspend_noirq)(%pm.device%)"
+            "declaration": "int (*suspend_noirq)(%pm.device%)"
           },
           "resume_noirq": {
-            "signature": "int (*resume_noirq)(%pm.device%)"
+            "declaration": "int (*resume_noirq)(%pm.device%)"
           },
           "freeze_noirq": {
-            "signature": "int (*freeze_noirq)(%pm.device%)"
+            "declaration": "int (*freeze_noirq)(%pm.device%)"
           },
           "thaw_noirq": {
-            "signature": "int (*thaw_noirq)(%pm.device%)"
+            "declaration": "int (*thaw_noirq)(%pm.device%)"
           },
           "poweroff_noirq": {
-            "signature": "int (*poweroff_noirq)(%pm.device%)"
+            "declaration": "int (*poweroff_noirq)(%pm.device%)"
           },
           "restore_noirq": {
-            "signature": "int (*restore_noirq)(%pm.device%)"
+            "declaration": "int (*restore_noirq)(%pm.device%)"
           },
           "runtime_suspend": {
-            "signature": "int (*runtime_suspend)(%pm.device%)"
+            "declaration": "int (*runtime_suspend)(%pm.device%)"
           },
           "runtime_resume": {
-            "signature": "int (*runtime_resume)(%pm.device%)"
+            "declaration": "int (*runtime_resume)(%pm.device%)"
           },
           "runtime_idle": {
-            "signature": "int (*runtime_idle)(%pm.device%)"
+            "declaration": "int (*runtime_idle)(%pm.device%)"
           }
         }
       }
@@ -120,7 +120,7 @@
       "pm": {
         "containers": {
           "dev_pm_ops": {
-            "signature": "struct dev_pm_ops",
+            "declaration": "struct dev_pm_ops",
             "header": "linux/pm.h",
             "fields": {
               "prepare": "%pm.prepare%",
@@ -145,61 +145,61 @@
         },
         "resources": {
           "device": {
-            "signature": "struct device *dev",
+            "declaration": "struct device *dev",
             "implemented in kernel": true
           }
         },
         "callbacks": {
           "prepare": {
-            "signature": "int (*prepare)(%pm.device%)"
+            "declaration": "int (*prepare)(%pm.device%)"
           },
           "complete": {
-            "signature": "void (*complete)(%pm.device%)"
+            "declaration": "void (*complete)(%pm.device%)"
           },
           "suspend": {
-            "signature": "int (*suspend)(%pm.device%)"
+            "declaration": "int (*suspend)(%pm.device%)"
           },
           "resume": {
-            "signature": "int (*resume)(%pm.device%)"
+            "declaration": "int (*resume)(%pm.device%)"
           },
           "freeze": {
-            "signature": "int (*freeze)(%pm.device%)"
+            "declaration": "int (*freeze)(%pm.device%)"
           },
           "thaw": {
-            "signature": "int (*thaw)(%pm.device%)"
+            "declaration": "int (*thaw)(%pm.device%)"
           },
           "poweroff": {
-            "signature": "int (*poweroff)(%pm.device%)"
+            "declaration": "int (*poweroff)(%pm.device%)"
           },
           "restore": {
-            "signature": "int (*restore)(%pm.device%)"
+            "declaration": "int (*restore)(%pm.device%)"
           },
           "suspend_noirq": {
-            "signature": "int (*suspend_noirq)(%pm.device%)"
+            "declaration": "int (*suspend_noirq)(%pm.device%)"
           },
           "resume_noirq": {
-            "signature": "int (*resume_noirq)(%pm.device%)"
+            "declaration": "int (*resume_noirq)(%pm.device%)"
           },
           "freeze_noirq": {
-            "signature": "int (*freeze_noirq)(%pm.device%)"
+            "declaration": "int (*freeze_noirq)(%pm.device%)"
           },
           "thaw_noirq": {
-            "signature": "int (*thaw_noirq)(%pm.device%)"
+            "declaration": "int (*thaw_noirq)(%pm.device%)"
           },
           "poweroff_noirq": {
-            "signature": "int (*poweroff_noirq)(%pm.device%)"
+            "declaration": "int (*poweroff_noirq)(%pm.device%)"
           },
           "restore_noirq": {
-            "signature": "int (*restore_noirq)(%pm.device%)"
+            "declaration": "int (*restore_noirq)(%pm.device%)"
           },
           "runtime_suspend": {
-            "signature": "int (*runtime_suspend)(%pm.device%)"
+            "declaration": "int (*runtime_suspend)(%pm.device%)"
           },
           "runtime_resume": {
-            "signature": "int (*runtime_resume)(%pm.device%)"
+            "declaration": "int (*runtime_resume)(%pm.device%)"
           },
           "runtime_idle": {
-            "signature": "int (*runtime_idle)(%pm.device%)"
+            "declaration": "int (*runtime_idle)(%pm.device%)"
           }
         }
       }

@@ -2,15 +2,15 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "usb_reset_device": {
-        "signature": "int usb_reset_device(%usb.usb_device%)",
+        "declaration": "int usb_reset_device(%usb.usb_device%)",
         "header": "linux/usb.h"
       },
       "usb_register_driver": {
-        "signature": "int usb_register_driver(*%usb.usb_driver%, $, $)",
+        "declaration": "int usb_register_driver(*%usb.usb_driver%, struct module *, const char *)",
         "header": "linux/usb.h"
       },
       "usb_deregister": {
-        "signature": "void usb_deregister(*%usb.usb_driver%)",
+        "declaration": "void usb_deregister(*%usb.usb_driver%)",
         "header": "linux/usb.h"
       }
     },
@@ -19,7 +19,7 @@
         "containers": {
           "usb_driver": {
             "header": "linux/usb.h",
-            "signature": "struct usb_driver driver",
+            "declaration": "struct usb_driver driver",
             "fields": {
               "probe": "%usb.probe%",
               "pre_reset": "%usb.pre%",
@@ -32,32 +32,32 @@
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
+            "declaration": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
           },
           "pre": {
-            "signature": "int (*pre) (%usb.usb_interface%)"
+            "declaration": "int (*pre) (%usb.usb_interface%)"
           },
           "post": {
-            "signature": "int (*post) (%usb.usb_interface%)"
+            "declaration": "int (*post) (%usb.usb_interface%)"
           },
           "release": {
-            "signature": "void (*release) (%usb.usb_interface%)"
+            "declaration": "void (*release) (%usb.usb_interface%)"
           },
           "suspend": {
-            "signature": "int (*suspend) (%usb.usb_interface%, $)"
+            "declaration": "int (*suspend) (%usb.usb_interface%, pm_message_t message)"
           },
           "resume": {
-            "signature": "int (*resume) (%usb.usb_interface%)"
+            "declaration": "int (*resume) (%usb.usb_interface%)"
           }
         },
         "resources": {
           "usb_interface": {
-            "signature": "struct usb_interface *usb_interface",
+            "declaration": "struct usb_interface *usb_interface",
             "header": "linux/usb.h",
             "implemented in kernel": true
           },
           "usb_device": {
-            "signature": "struct usb_device *usb_device",
+            "declaration": "struct usb_device *usb_device",
             "header": "linux/usb.h",
             "implemented in kernel": true
           }
