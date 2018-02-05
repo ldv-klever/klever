@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "functions models": {},
     "categories": {
       "v4l2_file_operations": {
         "containers": {

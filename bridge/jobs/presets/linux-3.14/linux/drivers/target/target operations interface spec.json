@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "transport_subsystem_register": {
         "signature": "int transport_subsystem_register(*%se_subsystem.se_subsystem_api%)",
         "header": "target/target_core_backend.h"
@@ -50,7 +50,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel functions": {
+    "functions models": {
       "transport_backend_register": {
         "signature": "int transport_backend_register(*%target_backend.target_backend_ops%)",
         "header": "target/target_core_backend.h"

@@ -14,20 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import os
 import re
 
 from core.utils import unique_file_name
 from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.code import FunctionDefinition
-from core.vtg.emg.common.signature import Pointer, Function, Primitive
+from core.vtg.emg.common.c import Function
+from core.vtg.emg.common.c.types import Pointer, Primitive
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
 
 
-class Aspect(FunctionDefinition):
+class Aspect(Function):
 
     def __init__(self, name, declaration, aspect_type="after"):
+        # Todo: Refactor this
         self.name = name
         self.declaration = declaration
         self.aspect_type = aspect_type
@@ -256,10 +256,10 @@ class CModel:
         functions = []
         if len(self.__external_allocated.keys()) > 0:
             for file in sorted([f for f in self.__external_allocated.keys() if len(self.__external_allocated[f]) > 0]):
-                func = FunctionDefinition('ldv_allocate_external_{}'.format(cnt),
-                                          file,
-                                          "void ldv_allocate_external_{}(void)".format(cnt),
-                                          True)
+                func = Function('ldv_allocate_external_{}'.format(cnt),
+                                "void ldv_allocate_external_{}(void)".format(cnt))
+                func.declaration_files.add(file)
+                func.definition_file = func
 
                 init = ["{} = {}();".format(var.name, 'external_allocated_data') for
                         var in self.__external_allocated[file]]
@@ -270,9 +270,10 @@ class CModel:
                 functions.append(func)
                 cnt += 1
 
-            gl_init = FunctionDefinition('ldv_initialize_external_data',
-                                         self.entry_file,
-                                         'void ldv_initialize_external_data(void)')
+            gl_init = Function('ldv_initialize_external_data',
+                               'void ldv_initialize_external_data(void)')
+            gl_init.declaration_files.add(self.entry_file)
+            gl_init.definition_file = self.entry_file
             init_body = ['{}();'.format(func.name) for func in functions]
             gl_init.body = init_body
             self.add_function_definition(self.entry_file, gl_init)

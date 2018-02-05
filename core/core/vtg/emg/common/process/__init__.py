@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import re
 
 from core.vtg.emg.common.process.procParser import parse_process

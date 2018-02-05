@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "i2c_register_driver": {
         "signature": "int i2c_register_driver($, *%i2c.i2c_driver%)",
         "header": "linux/i2c.h"

@@ -24,7 +24,7 @@ from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import Sta
 
 
 def translate_intermediate_model(logger, conf, avt, analysis, model):
-    model_processes, env_processes, entry_process
+    model_processes, env_processes, entry_process = model
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf['translation options'], 'entry point', default_value='main', expected_type=str)

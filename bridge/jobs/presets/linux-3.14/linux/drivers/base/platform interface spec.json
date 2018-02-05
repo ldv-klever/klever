@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "platform_driver_unregister": {
         "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
         "header": "linux/platform_device.h"
@@ -45,7 +45,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel functions": {
+    "functions models": {
       "platform_driver_unregister": {
         "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
         "header": "linux/platform_device.h"

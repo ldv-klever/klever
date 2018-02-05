@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "signature": "int usb_serial_register_drivers($, $, %usb_serial.usb_device_id%)",
         "headers": [
@@ -144,7 +144,7 @@
     }
   },
   "Linux 3.2": {
-    "kernel functions": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "signature": "int usb_serial_register_drivers($, $, %usb_serial.usb_device_id%)",
         "headers": [
@@ -251,7 +251,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel functions": {
+    "functions models": {
       "usb_serial_register": {
         "signature": "int usb_serial_register(*%usb_serial.usb_serial_driver%)",
         "headers": [

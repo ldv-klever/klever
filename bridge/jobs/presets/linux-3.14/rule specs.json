@@ -45,9 +45,6 @@
             },
             "intermediate model options": [
               {
-                "linuxInsmod": {}
-              },
-              {
                 "linuxModule": {
                   "add registration guards": true,
                   "ignore missed callbacks": true,
@@ -71,6 +68,12 @@
                     }
                   }
                 }
+              },
+              {
+                "linuxInsmod": {}
+              },
+              {
+                "manualImporter": {}
               }
             ],
             "translation options": {

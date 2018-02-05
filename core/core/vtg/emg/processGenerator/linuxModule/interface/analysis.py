@@ -17,7 +17,7 @@
 from core.vtg.emg.common.c.types import Structure, Union, Array, import_declaration, extract_name, check_null
 
 
-def __extract_types(collection, sa, raw):
+def extract_implementations(collection, sa, raw):
     entities = []
     # todo: this section below is slow enough
     if 'global variable initializations' in raw:

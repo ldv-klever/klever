@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "functions models": {},
     "categories": {
       "pm": {
         "containers": {
@@ -115,7 +115,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel functions": {},
+    "functions models": {},
     "categories": {
       "pm": {
         "containers": {

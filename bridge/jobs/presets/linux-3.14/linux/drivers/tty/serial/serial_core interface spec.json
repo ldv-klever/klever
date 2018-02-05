@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "uart_add_one_port": {
         "signature": "int uart_add_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
         "header": "linux/serial_core.h"

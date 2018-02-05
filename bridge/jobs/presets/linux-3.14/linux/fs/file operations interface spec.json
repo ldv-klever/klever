@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "cdev_init": {
         "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
         "header": "linux/cdev.h"

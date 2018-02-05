@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "ieee80211_alloc_hw": {
         "signature": "*%ieee80211.ieee80211_hw% ieee80211_alloc_hw($, *%ieee80211.ieee80211_ops%)",
         "header": "net/mac80211.h"

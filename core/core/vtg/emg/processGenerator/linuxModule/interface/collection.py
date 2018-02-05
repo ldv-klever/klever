@@ -15,9 +15,10 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.interface import Container, Resource, Callback
-from core.vtg.emg.common.signature import Structure, Array, Pointer, InterfaceReference, refine_declaration
-from core.vtg.emg.processGenerator.linuxModule.interface.analysis import import_code_analysis
+from core.vtg.emg.common.c.types import Pointer
+from core.vtg.emg.processGenerator.linuxModule.interface import Container, Resource, Callback, FunctionInterface, \
+    StructureContainer, ArrayContainer
+from core.vtg.emg.processGenerator.linuxModule.interface.analysis import extract_implementations
 from core.vtg.emg.processGenerator.linuxModule.interface.specification import import_interface_specification
 from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories
 
@@ -32,13 +33,12 @@ class InterfaceCollection:
         self._containers_cache = dict()
         self.__deleted_interfaces = dict()
 
-    # todo: refactor
-    def fill_up_collection(self):
+    def fill_up_collection(self, sa, analysis_data, interface_specification):
         self.logger.info("Analyze provided interface categories specification")
-        import_interface_specification(self)
+        import_interface_specification(self, sa, interface_specification)
 
         self.logger.info("Import results of source code analysis")
-        import_code_analysis(self, avt, analysis_data)
+        extract_implementations(self, sa, analysis_data)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
         yield_categories(self, self.conf)
@@ -131,7 +131,6 @@ class InterfaceCollection:
         self.__deleted_interfaces[identifier] = self._interfaces[identifier]
         del self._interfaces[identifier]
 
-    # todo: refactor
     def containers(self, category=None):
         """
         Return a list with deterministic order with all existing containers from a provided category or
@@ -168,6 +167,10 @@ class InterfaceCollection:
                 if isinstance(self.get_intf(name), Resource) and
                 (not category or self.get_intf(name).category == category)]
 
+    @property
+    def function_interfaces(self):
+        return [self.get_intf(i) for i in self.interfaces if isinstance(self.get_intf(i), FunctionInterface)]
+
     def uncalled_callbacks(self, category=None):
         """
         Returns a list with deterministic order which contains Callback from a given category or from all categories
@@ -178,28 +181,6 @@ class InterfaceCollection:
         """
         return [cb for cb in self.callbacks(category) if not cb.called]
 
-    # todo: refactor
-    def select_containers(self, field, signature=None, category=None):
-        """
-        Search for containers with a declaration of type Structure and with a provided field. If a signature parameter
-        is provided than those containers are chosen which additionaly has the field with the corresponding type.
-        Containers can be chosen from a provided categorty only.
-
-        :param field: Name of the structure field to match.
-        :param signature: Declaration object to match the field.
-        :param category: a category name string.
-        :return: List with Container objects.
-        """
-        return [container for container in self.containers(category)
-                if isinstance(container.declaration, Structure) and
-                ((field in container.field_interfaces and
-                  (not signature or container.field_interfaces[
-                      field].declaration.identifier == signature.identifier)) or
-                 (field in container.declaration.fields and
-                  (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
-                (not category or container.category == category)]
-
-    # todo: refactor
     def resolve_containers(self, declaration, category=None):
         """
         Tries to find containers from given category which contains an element or field of type according to
@@ -225,7 +206,6 @@ class InterfaceCollection:
         else:
             return self._containers_cache[declaration.identifier]['default']
 
-    # todo: refactor
     def resolve_interface(self, signature, category=None, use_cache=True):
         """
         Tries to find an interface which matches a type from a provided declaration from a given category.
@@ -236,19 +216,13 @@ class InterfaceCollection:
                           extracted or generated and no new types or interfaces will appear.
         :return: Returns list of Container objects.
         """
-        if isinstance(signature, InterfaceReference) and signature.interface in self.interfaces:
-            return [self.get_intf(signature.interface)]
-        elif isinstance(signature, InterfaceReference) and signature.interface not in self.interfaces:
-            raise KeyError('Cannot find description of interface {}'.format(signature.interface))
-        else:
-            if not (signature.identifier in self._interface_cache and use_cache):
-                interfaces = [self.get_intf(name) for name in self.interfaces
-                              if type(self.get_intf(name).declaration) is type(signature) and
-                              (self.get_intf(name).declaration.identifier == signature.identifier) and
-                              (not category or self.get_intf(name).category == category)]
-                self._interface_cache[signature.identifier] = interfaces
+        if not (signature.identifier in self._interface_cache and use_cache):
+            interfaces = [self.get_intf(name) for name in self.interfaces
+                          if self.get_intf(name).declaration and self.get_intf(name).declaration.compare(signature) and
+                          (not category or self.get_intf(name).category == category)]
+            self._interface_cache[signature.identifier] = interfaces
 
-            return self._interface_cache[signature.identifier]
+        return self._interface_cache[signature.identifier]
 
     def resolve_interface_weakly(self, signature, category=None, use_cache=True):
         """
@@ -264,22 +238,21 @@ class InterfaceCollection:
         intf = self.resolve_interface(signature, category, use_cache)
         if not intf and isinstance(signature, Pointer):
             intf = self.resolve_interface(signature.points, category, use_cache)
-        elif not intf and not isinstance(signature, Pointer) and signature.clean_declaration:
+        elif not intf and not isinstance(signature, Pointer):
             intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
 
     def __resolve_containers(self, target, category):
         return {container.identifier: container.contains(target) for container in self.containers(category)
-                if (isinstance(container.declaration, Structure) and len(container.contains(target)) > 0) or
-                (isinstance(container.declaration, Array) and container.contains(target))}
+                if container.contains(target)}
 
-    def __refine_categories(self):
-        def __check_category_relevance(function):
+    def __refine_categories(self, sa):
+        def __check_category_relevance(func):
             relevant = []
 
-            if function.rv_interface:
-                relevant.append(function.rv_interface)
-            for parameter in function.param_interfaces:
+            if func.rv_interface:
+                relevant.append(func.rv_interface)
+            for parameter in func.param_interfaces:
                 if parameter:
                     relevant.append(parameter)
 
@@ -292,13 +265,13 @@ class InterfaceCollection:
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
         # Add kernel function relevant interfaces
-        for name in (name for name in self.source_functions if self.get_source_function(name)):
-            intfs = __check_category_relevance(self.get_source_function(name))
+        for intf in (i for i in self.function_interfaces if i.short_identifier in sa.source_functions):
+            intfs = __check_category_relevance(intf)
             # Skip resources from kernel functions
             relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
 
         # Add all interfaces for non-container categories
-        for interface in set(relevant_interfaces):
+        for interface in relevant_interfaces:
             containers = self.containers(interface.category)
             if len(containers) == 0:
                 relevant_interfaces.update([self.get_intf(name) for name in self.interfaces
@@ -307,17 +280,17 @@ class InterfaceCollection:
         # Add callbacks and their resources
         for callback in self.callbacks():
             containers = self.resolve_containers(callback, callback.category)
-            if len(containers) > 0 and len(self.implementations(callback)) > 0:
+            if len(containers) > 0 and len(callback.implementations) > 0:
                 relevant_interfaces.add(callback)
                 relevant_interfaces.update(__check_category_relevance(callback))
-            elif len(containers) == 0 and len(self.implementations(callback)) > 0 and \
+            elif len(containers) == 0 and len(callback.implementations) > 0 and \
                     callback.category in {i.category for i in relevant_interfaces}:
                 relevant_interfaces.add(callback)
                 relevant_interfaces.update(__check_category_relevance(callback))
-            elif len(containers) > 0 and len(self.implementations(callback)) == 0:
+            elif len(containers) > 0 and len(callback.implementations) == 0:
                 for container in containers:
                     if self.get_intf(container) in relevant_interfaces and \
-                                    len(self.get_intf(container).declaration.implementations) == 0:
+                                    len(self.get_intf(container).implementations) == 0:
                         relevant_interfaces.add(callback)
                         relevant_interfaces.update(__check_category_relevance(callback))
                         break
@@ -327,11 +300,10 @@ class InterfaceCollection:
         while add_cnt != 0:
             add_cnt = 0
             for container in [cnt for cnt in self.containers() if cnt not in relevant_interfaces]:
-                if isinstance(container.declaration, Structure):
+                if isinstance(container, StructureContainer):
                     match = False
 
-                    for f_intf in [container.field_interfaces[name] for name
-                                   in sorted(container.field_interfaces.keys())]:
+                    for f_intf in [container.field_interfaces[name] for name in container.field_interfaces]:
                         if f_intf and f_intf in relevant_interfaces:
                             match = True
                             break
@@ -339,7 +311,7 @@ class InterfaceCollection:
                     if match:
                         relevant_interfaces.add(container)
                         add_cnt += 1
-                elif isinstance(container.declaration, Array):
+                elif isinstance(container, ArrayContainer):
                     if container.element_interface in relevant_interfaces:
                         relevant_interfaces.add(container)
                         add_cnt += 1

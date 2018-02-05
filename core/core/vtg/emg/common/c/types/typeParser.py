@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import ply.lex as lex
 import ply.yacc as yacc
 import re

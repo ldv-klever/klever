@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "alloc_tty_driver": {
         "signature": "%tty.tty_driver% alloc_tty_driver($)",
         "header": "linux/tty_driver.h"

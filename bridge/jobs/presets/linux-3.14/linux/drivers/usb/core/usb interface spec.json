@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "usb_reset_device": {
         "signature": "int usb_reset_device(%usb.usb_device%)",
         "header": "linux/usb.h"

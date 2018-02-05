@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "alloc_etherdev_mqs": {
         "signature": "*%net.net_device% alloc_etherdev_mqs($, $, $)",
         "header": "linux/etherdevice.h"
@@ -61,7 +61,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel functions": {
+    "functions models": {
       "alloc_etherdev_mqs": {
         "signature": "*%net.net_device% alloc_etherdev_mqs($, $, $)",
         "header": "linux/etherdevice.h"

@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 # todo: This file needs major refactoring
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, model_comment
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
-from core.vtg.emg.processmodel.abstractprocess import CallRetval, Call
+# todo: refactor
+#from core.vtg.emg.processmodel.abstractprocess import CallRetval, Call
 from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
-from core.vtg.emg.common.code import Variable, FunctionDefinition
+from core.vtg.emg.common.c import Variable, Function
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables, \
     control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
@@ -34,9 +34,10 @@ class StateTranslator(FSATranslator):
         self.__switchers_cache = dict()
 
         check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
-        self.__jump_types = set([t for t in [Dispatch, Receive, CallRetval, Call, Condition, Subprocess]
-                                 if t.__name__ not in
-                                 get_necessary_conf_property(conf, 'actions composition')])
+        # Todo: refactor
+        # self.__jump_types = set([t for t in [Dispatch, Receive, CallRetval, Call, Condition, Subprocess]
+        #                          if t.__name__ not in
+        #                          get_necessary_conf_property(conf, 'actions composition')])
 
         super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
 
@@ -322,7 +323,7 @@ class StateTranslator(FSATranslator):
 
         if export:
             name = 'ldv_switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
-            function = FunctionDefinition(name, self._cmodel.entry_file, 'void a(void)')
+            function = Function(name, self._cmodel.entry_file, 'void a(void)')
             function.body = code
             code = ['{}();'.format(name)]
 
@@ -339,7 +340,7 @@ class StateTranslator(FSATranslator):
 
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
-        function = FunctionDefinition(name, self._cmodel.entry_file, 'int f(void)', False)
+        function = Function(name, self._cmodel.entry_file, 'int f(void)', False)
 
         # Generate switch body
         code = list()

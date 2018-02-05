@@ -14,12 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import copy
 from operator import attrgetter
 
 from core.vtg.emg.common.process import Subprocess, Receive, Dispatch
-from core.vtg.emg.common.code import Variable
+from core.vtg.emg.common.c import Variable
 
 
 class FSA:

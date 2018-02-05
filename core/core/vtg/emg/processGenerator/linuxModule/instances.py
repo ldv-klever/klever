@@ -21,11 +21,11 @@ import json
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
-from core.vtg.emg.common.signature import Implementation, Structure, Primitive, Pointer, Array, Function
-from core.vtg.emg.common.interface import Resource, Container, Callback
-from core.vtg.emg.common.code import Variable, FunctionDefinition
+import core.vtg.emg.common.c as c
+from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, export_process
-from core.vtg.emg.processmodel.abstractprocess import get_common_parameter, CallRetval, Call
+from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
+from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = dict()
@@ -775,8 +775,8 @@ def _remove_statics(analysis, process):
             return None
 
     def create_definition(decl, nm, impl):
-        f = FunctionDefinition("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
-                               implementation.file, signature=decl, export=True)
+        f = c.Function("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
+                       implementation.file, signature=decl, export=True)
         # Generate call
         if not f.declaration.return_value or f.declaration.return_value.identifier == 'void':
             ret = ''
@@ -835,7 +835,7 @@ def _remove_statics(analysis, process):
                             elif not isinstance(declaration, Pointer):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
-                            var = Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                            var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
                                            implementation.file, declaration, export=True, scope='global')
                             var.value = implementation.adjusted_value(declaration)
                             _declarations[implementation.file][name] = var

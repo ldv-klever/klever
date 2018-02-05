@@ -1,6 +1,6 @@
 {
   "Linux 2.6.33": {
-    "kernel functions": {
+    "functions models": {
       "register_filesystem": {
         "signature": "int register_filesystem(*%super.file_system_type%)",
         "header": "linux/fs.h"

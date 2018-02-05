@@ -20,9 +20,9 @@ from operator import attrgetter
 import graphviz
 
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
-from core.vtg.emg.common.signature import import_declaration
+from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
-from core.vtg.emg.common.code import FunctionDefinition
+from core.vtg.emg.common.c import Function
 from core.vtg.emg.modelTranslator.fsa_translator.common import action_model_comment, extract_relevant_automata
 
 
@@ -341,7 +341,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         body.append('};')
 
                 if len(function_parameters) > 0:
-                    df = FunctionDefinition(
+                    df = Function(
                         "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                         self._cmodel.entry_file,
                         "void f({})".format(', '.
@@ -351,7 +351,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         False
                     )
                 else:
-                    df = FunctionDefinition(
+                    df = Function(
                         "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                         self._cmodel.entry_file,
                         "void f(void)",
@@ -525,14 +525,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 declaration = '{0} f({1})'.format(
                     function_obj.declaration.return_value.to_string('', typedef='complex_and_params'),
                     ', '.join(param_types))
-                cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
+                cf = Function(name, self._cmodel.entry_file, declaration, False)
             else:
                 name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)
                 if not get_necessary_conf_property(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:
                     declaration = 'void f(void *data)'
-                cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
+                cf = Function(name, self._cmodel.entry_file, declaration, False)
 
             self._control_functions[automaton.identifier] = cf
 

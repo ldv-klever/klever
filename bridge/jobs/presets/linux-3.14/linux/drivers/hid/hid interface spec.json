@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "hid_add_device": {
         "signature": "int hid_add_device(*%hid.hid_device%)",
         "header": "linux/hid.h"

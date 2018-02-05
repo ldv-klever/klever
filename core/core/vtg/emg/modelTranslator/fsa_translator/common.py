@@ -17,8 +17,7 @@
 import json
 
 from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.signature import Pointer, Primitive
-from core.vtg.emg.common.process import Receive, Dispatch
+from core.vtg.emg.common.c.types import Pointer, Primitive
 
 
 def model_comment(comment_type, text, other=None):

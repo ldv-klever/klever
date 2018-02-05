@@ -18,7 +18,7 @@
 import re
 
 from core.vtg.emg.common.process import Process, Label, Access, Condition, Dispatch, Receive, Action
-from core.vtg.emg.common.signature import Array, Structure, Pointer
+from core.vtg.emg.common.c.types import Array, Structure, Pointer
 
 
 def get_common_parameter(action, process, position):

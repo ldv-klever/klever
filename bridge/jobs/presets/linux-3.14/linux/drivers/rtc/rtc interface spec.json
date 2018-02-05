@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "rtc_device_register": {
         "signature": "*%rtc.rtc_device% rtc_device_register($, %rtc.device%, *%rtc.rtc_class_ops%, $)",
         "header": "linux/rtc.h"

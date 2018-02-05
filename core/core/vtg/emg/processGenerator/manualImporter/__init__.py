@@ -1,4 +1,25 @@
 def __generate_base_process(self, default_dispatches=False):
+    if get_conf_property(conf, "extra processes"):
+        self.logger.info('Looking for a file with additional processes {!r}'.
+                         format(get_necessary_conf_property(self.conf, "extra processes")))
+        with open(core.utils.find_file_or_dir(self.logger,
+                                              get_necessary_conf_property(self.conf, "main working directory"),
+                                              get_necessary_conf_property(self.conf, "extra processes")),
+                  encoding='utf8') as fp:
+            extra_processes = json.load(fp)
+
+        # Merge manually prepared processes with generated ones and provide the model to modelTranslator
+        # todo: how to replace main process
+        if extra_processes:
+            for category in extra_processes:
+                generated_processes[category].update(extra_processes[category])
+
+        # Parse this final model
+        model_processes, env_processes, entry_process = \
+            parse_event_specification(emg.logger,
+                                      get_necessary_conf_property(emg.conf, 'intermediate model options'),
+                                      generated_processes, abstract=False)
+
     self.__logger.debug("Generate main process")
     ep = AbstractProcess("main")
     ep.comment = "Main entry point function."

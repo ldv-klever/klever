@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "scsi_add_host_with_dma": {
         "signature": "int scsi_add_host_with_dma(*%scsi_host_template.host%, $, $)",
         "header": "scsi/scsi_host.h"

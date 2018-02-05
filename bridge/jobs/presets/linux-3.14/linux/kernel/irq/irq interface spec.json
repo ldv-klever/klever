@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "request_threaded_irq": {
         "signature": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
         "header": "linux/interrupt.h"

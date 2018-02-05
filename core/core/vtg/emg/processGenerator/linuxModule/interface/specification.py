@@ -20,17 +20,6 @@ from core.vtg.emg.common.c.types import Structure, Array, import_declaration, re
 
 
 def import_interface_specification(collection, sa, specification):
-    """
-    Starts specification import.
-
-    First it creates Interface objects for each container, resource and callback in specification and then imports
-    kernel functions matching their parameters with already imported interfaces.
-
-    :param collection: InterfaceCategoriesSpecification object.
-    :param specification: Dictionary with content of a JSON specification prepared manually.
-    :return: None
-    """
-
     def get_clean_declaration(c, desc, i):
         if "declaration" in desc:
             decl = import_declaration(desc["declaration"])

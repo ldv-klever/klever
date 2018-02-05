@@ -50,7 +50,7 @@ class EMG(core.vtg.plugins.Plugin):
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")
-        processes = generate_processes(self.logger, self.conf, sa, self.abstract_task_desc)
+        processes = generate_processes(self, sa)
 
         # Import additional aspect files
         translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, sa, processes)

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "seq_open_private": {
         "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
         "header": "linux/seq_file.h"

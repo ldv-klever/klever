@@ -95,9 +95,9 @@ class Source:
         :param path: Scope of the function.
         :return: None.
         """
-        if new_obj.identifier not in self._source_functions:
-            self._source_functions[new_obj.identifier] = dict()
-        self._source_functions[new_obj.identifier][path] = new_obj
+        if new_obj.name not in self._source_functions:
+            self._source_functions[new_obj.name] = dict()
+        self._source_functions[new_obj.name][path] = new_obj
 
     def remove_source_function(self, name):
         """
@@ -158,9 +158,9 @@ class Source:
         :param path: Scope.
         :return: None.
         """
-        if new_obj.identifier not in self._source_vars:
-            self._source_vars[new_obj.identifier] = dict()
-        self._source_vars[new_obj.identifier][path] = new_obj
+        if new_obj.name not in self._source_vars:
+            self._source_vars[new_obj.name] = dict()
+        self._source_vars[new_obj.name][path] = new_obj
 
     def remove_source_variable(self, name):
         """
@@ -261,10 +261,9 @@ class Source:
         :return: None.
         """
         # Import typedefs if there are provided
+        self.logger.info("Extract complete types definitions")
         if source_analysis and 'typedefs' in source_analysis:
             import_typedefs(source_analysis['typedefs'])
-
-        self.logger.info("Extract complete types definitions")
 
         if 'global variable initializations' in source_analysis:
             self.logger.info("Import types from global variables initializations")
@@ -312,7 +311,7 @@ class Source:
                             intf.add_call(name, path)
                     if "calls" in description:
                         for name in description["calls"]:
-                            intf.call_function(name, path)
+                            intf.call_in_function(name, path)
         else:
             self.logger.warning("There is no any functions in source analysis")
 
@@ -325,3 +324,4 @@ class Source:
                 self.remove_source_function(func)
 
         # todo: Import macros
+        return

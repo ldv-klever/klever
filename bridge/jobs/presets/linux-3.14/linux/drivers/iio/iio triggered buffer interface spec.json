@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "iio_triggered_buffer_setup": {
         "signature": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, $)",
         "header": "linux/iio/triggered_buffer.h"
