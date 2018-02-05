@@ -60,6 +60,7 @@ class LKVOG(core.components.Component):
         self.linux_kernel_verification_objs_gen = {}
         self.common_prj_attrs = {}
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
+        self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
         self.linux_kernel_module_info_mq = multiprocessing.Queue()
         self.linux_kernel_clusters_mq = multiprocessing.Queue()
         self.module = {}
@@ -258,6 +259,8 @@ class LKVOG(core.components.Component):
                 self.linux_kernel_module_info_mq.close()
                 break
 
+            self.module = os.path.normpath(self.module)
+
             self.logger.debug('Recieved module {0}'.format(self.module))
             cc_ready.add(self.module)
 
@@ -421,6 +424,9 @@ class LKVOG(core.components.Component):
         with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
             desc = json.load(fp)
 
+        desc['out file'] = os.path.normpath(desc['out file'])
+        desc['in files'] = [os.path.normpath(in_file) for in_file in desc['in files']]
+
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
                                                                                  '(output file is {0})'.format(
@@ -431,11 +437,13 @@ class LKVOG(core.components.Component):
         # Build map from Linux kernel build command output files to correpsonding descriptions.
         # If more than one build command has the same output file their descriptions are added as list in chronological
         # order (more early commands are processed more early and placed at the beginning of this list).
+        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
         if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
                                                                               desc['out file']] + [desc]
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
+        self.linux_kernel_build_cmd_out_file_desc_lock.release()
 
         # Firstly, we should allow modules, that specified by user (force modules)
         # Secondly, we should allow modules, that ends with .ko and doesn't specified by user
@@ -455,11 +463,13 @@ class LKVOG(core.components.Component):
 
         cc_full_desc_files = []
         # Get more older build commands more early if more than one build command has the same output file.
+        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
 
         # Remove got build command description from map. It is assumed that each build command output file can be used
         # as input file of another build command just once.
         self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
+        self.linux_kernel_build_cmd_out_file_desc_lock.release()
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
