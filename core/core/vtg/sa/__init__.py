@@ -291,8 +291,19 @@ class SA(core.vtg.plugins.Plugin):
     def _process_collection(self):
         self.logger.info("Process collection according to provided options")
 
+        # Remove useless macro expansions
+        self.logger.info("Remove useless macro-expansions from the collection")
+        self._shrink_macro_expansions()
+
         # Get functions with definitions
         self.logger.info("Determine functions which are relevant")
+        for macro in self.collection["macro expansions"]:
+            for path in self.collection["macro expansions"][macro]:
+                if "args" in self.collection["macro expansions"][macro][path]:
+                    for argset in self.collection["macro expansions"][macro][path]["args"]:
+                        for candidate in argset:
+                            self.used_functions.add(candidate)
+
         # Then go through call graph
         updated = True
         while updated:
@@ -305,14 +316,10 @@ class SA(core.vtg.plugins.Plugin):
                             if i not in self.used_functions:
                                 self.used_functions.add(i)
                                 updated = True
-        self.logger.info("There are {} relevant functions found? delete the rest".format(len(self.used_functions)))
+        self.logger.info("There are {} relevant functions found, delete the rest".format(len(self.used_functions)))
 
         for name in [n for n in self.collection['functions'] if n not in self.used_functions]:
             del self.collection['functions'][name]
-
-        # Remove useless macro expansions
-        self.logger.info("Remove useless macro-expansions from the collection")
-        self._shrink_macro_expansions()
 
     def _shrink_macro_expansions(self):
         if "filter macros" in self.conf and isinstance(self.conf["filter macros"], list):
