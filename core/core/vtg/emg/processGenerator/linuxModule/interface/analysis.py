@@ -38,7 +38,10 @@ def extract_implementations(collection, sa, raw):
                     "root sequence": [],
                     "type": var.declaration
                 }
-                intfs = collection.resolve_containers(var.declaration, )
+                intfs = collection.resolve_interface_weakly(var.declaration)
+                if len(intfs) > 1:
+                    raise ValueError("Does not expect description of several containers with declation {!r}".
+                                     format(variable['declaration']))
                 for i in intfs:
                     i.add_implementation(
                         variable_name,
@@ -48,6 +51,9 @@ def extract_implementations(collection, sa, raw):
                         None,
                         []
                     )
+
+                    # Actually we does not expect several declarations specific for containers
+                    entity['category'] = i.category
                 entities.append(entity)
     __import_entities(collection, entities)
 
@@ -69,13 +75,24 @@ def extract_implementations(collection, sa, raw):
 
 
 def __import_entities(collection, entities):
+    def determine_category(e, decl):
+        c = None
+        if 'category' in e:
+            c = e['category']
+        else:
+            resolved = collection.resolve_interface_weakly(decl)
+            if len(resolved) == 1:
+                c = resolved[0].category
+        return c
+
     while len(entities) > 0:
         entity = entities.pop()
         bt = entity["type"]
 
         if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
             if check_null(bt, entity["description"]["value"]):
-                intfs = collection.resolve_interface_weakly(entity["type"], use_cache=False)
+                category = entity["category"] if "category" in entity else None
+                intfs = collection.resolve_interface_weakly(entity["type"], category=category)
                 for intf in intfs:
                     intf.add_implementation(
                         entity["description"]["value"],
@@ -96,7 +113,6 @@ def __import_entities(collection, entities):
                     e_bt = bt.element
                     new_sequence = list(entity["root sequence"])
                     new_sequence.append(entry['index'])
-
                     new_desc = {
                         "type": e_bt,
                         "description": entry,
@@ -105,6 +121,10 @@ def __import_entities(collection, entities):
                         "root value": entity["root value"],
                         "root sequence": new_sequence
                     }
+
+                    category = determine_category(entity, e_bt)
+                    if category:
+                        new_desc["category"] = category
 
                     entities.append(new_desc)
             elif isinstance(bt, Structure) or isinstance(bt, Union):
@@ -132,6 +152,9 @@ def __import_entities(collection, entities):
                             "root value": new_root_value,
                             "root sequence": new_sequence
                         }
+                        category = determine_category(entity, e_bt)
+                        if category:
+                            new_desc["category"] = category
 
                         bt.fields[field] = e_bt
                         entities.append(new_desc)

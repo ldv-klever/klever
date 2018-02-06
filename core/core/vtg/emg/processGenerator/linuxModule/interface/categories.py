@@ -217,8 +217,7 @@ def __complement_interfaces(collection):
         fulfill_function_interfaces(collection, callback, callback.category)
 
     # Resolve kernel function parameters
-    for func in (collection.get_source_function(name) for name in collection.source_functions
-                 if collection.get_source_function(name)):
+    for func in collection.function_interfaces:
         fulfill_function_interfaces(collection, func)
 
     # todo: Remove dirty declarations in container references and add additional clean one
@@ -243,7 +242,6 @@ def __complement_interfaces(collection):
             if field in container.field_interfaces and isinstance(container.field_interfaces[field], Callback) and \
                     isinstance(container.declaration.fields[field], Pointer) and \
                     isinstance(container.declaration.fields[field].points, Function) and \
-                    container.declaration.fields[field].clean_declaration and \
                     isinstance(container.field_interfaces[field].declaration, Pointer) and \
                     isinstance(container.field_interfaces[field].declaration.points, Function):
                 # Track implementations from structures if types slightly differs and attached to structure variable

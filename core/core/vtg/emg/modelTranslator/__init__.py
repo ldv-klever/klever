@@ -161,7 +161,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
                     raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
             for tag in content:
-                if "categories" in content[tag] or "kernel functions" in content[tag]:
+                if "categories" in content[tag] or "functions models" in content[tag]:
                     logger.debug("Specification file {} is treated as interface categories specification".format(file))
                     interface_specifications.append(content)
                 elif "environment processes" in content[tag] or "kernel model" in content[tag]:

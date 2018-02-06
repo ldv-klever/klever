@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.c.types import Pointer
+from core.vtg.emg.common.c.types import Pointer, Primitive
 from core.vtg.emg.processGenerator.linuxModule.interface import Container, Resource, Callback, FunctionInterface, \
     StructureContainer, ArrayContainer
 from core.vtg.emg.processGenerator.linuxModule.interface.analysis import extract_implementations
@@ -44,9 +44,9 @@ class InterfaceCollection:
         yield_categories(self, self.conf)
 
         self.logger.info("Determine unrelevant to the checked code interfaces and remove them")
-        self.__refine_categories()
+        self.__refine_categories(sa)
 
-        self.logger.info("Both specifications are imported and categories are merged")
+        self.logger.info("Interface specifications are imported and categories are merged")
 
     @property
     def interfaces(self):
@@ -172,7 +172,8 @@ class InterfaceCollection:
 
     @property
     def function_interfaces(self):
-        return [self.get_intf(i) for i in self.interfaces if isinstance(self.get_intf(i), FunctionInterface)]
+        return [self.get_intf(i) for i in self.interfaces if isinstance(self.get_intf(i), FunctionInterface) and
+                self.get_intf(i).category == "functions models"]
 
     def uncalled_callbacks(self, category=None):
         """
@@ -220,9 +221,15 @@ class InterfaceCollection:
         :return: Returns list of Container objects.
         """
         if not (signature.identifier in self._interface_cache and use_cache):
-            interfaces = [self.get_intf(name) for name in self.interfaces
-                          if self.get_intf(name).declaration and self.get_intf(name).declaration.compare(signature) and
-                          (not category or self.get_intf(name).category == category)]
+            if signature.identifier == 'void' or signature.identifier == 'void *' or isinstance(signature, Primitive):
+                interfaces = []
+            else:
+                interfaces = [self.get_intf(name) for name in self.interfaces
+                              if self.get_intf(name).declaration and self.get_intf(name).declaration.compare(signature)
+                              and (not category or self.get_intf(name).category == category) and not
+                              (self.get_intf(name).declaration.identifier == 'void' or
+                               self.get_intf(name).declaration.identifier == 'void *' or
+                               isinstance(self.get_intf(name).declaration, Primitive))]
             self._interface_cache[signature.identifier] = interfaces
 
         return self._interface_cache[signature.identifier]
