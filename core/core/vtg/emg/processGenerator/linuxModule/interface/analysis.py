@@ -56,7 +56,7 @@ def extract_implementations(collection, sa, raw):
         for func in raw['functions']:
             for path in raw['functions'][func]:
                 description = raw['functions'][func][path]
-                source_func = collection.get_source_function(func, path)
+                source_func = sa.get_source_function(func, path)
                 if source_func and "calls" in description:
                     for name in description["calls"]:
                         called_function = collection.get_intf(name)

@@ -157,7 +157,7 @@ def import_declaration(declaration, ast=None, track_typedef=False):
             ret = Array(ast)
             if track_typedef and ret.element.typedef:
                 typedef = ret.element.typedef
-        elif 'pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] > 0:
+        elif 'pointer' in ast['declarator'][-1] and ast['declarator'][-1]['pointer'] > 0:
             ret = Pointer(ast)
             if track_typedef and ret.points.typedef:
                 typedef = ret.points.typedef
@@ -344,7 +344,7 @@ class Function(Declaration):
 
         if 'specifiers' in self._ast['return value type'] and \
                 'type specifier' in self._ast['return value type']['specifiers'] and \
-                self._ast['return value type']['specifiers']['type specifier']['class'] == 'Primitive' and \
+                self._ast['return value type']['specifiers']['type specifier']['class'] == 'primitive' and \
                 self._ast['return value type']['specifiers']['type specifier']['name'] == 'void':
             self.return_value = None
         else:
