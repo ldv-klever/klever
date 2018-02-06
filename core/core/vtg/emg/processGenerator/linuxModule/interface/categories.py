@@ -139,7 +139,7 @@ def fulfill_function_interfaces(collection, interface, category=None):
     # Check declaration type
     if isinstance(interface, Callback):
         declaration = interface.declaration.points
-    elif isinstance(interface.declaration, FunctionInterface):
+    elif isinstance(interface, FunctionInterface):
         declaration = interface.declaration
     else:
         raise TypeError('Expect pointer to function or function declaration but got {!r}'.

@@ -19,7 +19,7 @@ import re
 from core.vtg.emg.common.process.procParser import parse_process
 
 
-def generate_regex_set(subprocess_name):
+def generate_regex_set(self, subprocess_name):
     dispatch_template = '\[@?{}(?:\[[^)]+\])?\]'
     receive_template = '\(!?{}(?:\[[^)]+\])?\)'
     condition_template = '<{}(?:\[[^)]+\])?>'

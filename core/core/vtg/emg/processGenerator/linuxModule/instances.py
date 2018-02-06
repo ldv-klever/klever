@@ -54,9 +54,9 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
                                  format(action.name, process.name, process.category))
 
     # Convert
-    data["kernel model"] = dict()
+    data["functions models"] = dict()
     for process in model.model_processes:
-        data["kernel model"][process.external_id] = export_process(process)
+        data["functions models"][process.external_id] = export_process(process)
     data["environment processes"] = dict()
     for process in model.event_processes:
         data["environment processes"][process.external_id] = export_process(process)
@@ -571,9 +571,9 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
             callback_fsa.append(instance)
 
     # Generate automata for models
-    logger.info("Generate automata for kernel model processes")
+    logger.info("Generate automata for functions model processes")
     for process in model.model_processes:
-        logger.info("Generate FSA for kernel model process {}".format(process.name))
+        logger.info("Generate FSA for functions model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
             rename_process(instance)
@@ -746,7 +746,7 @@ def __get_relevant_expressions(process):
 
 def __set_external_id(process):
     expressions = __get_relevant_expressions(process)
-    if process.category == 'kernel models':
+    if process.category == 'functions models':
         process.external_id = "{}/{}".format(process.category, process.name)
     elif len(expressions) > 0:
         process.external_id = "{}/{}/{}".format(process.category, process.name, expressions[0])

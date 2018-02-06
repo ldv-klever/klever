@@ -279,6 +279,7 @@ class InterfaceCollection:
             intfs = __check_category_relevance(intf)
             # Skip resources from kernel functions
             relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
+            relevant_interfaces.add(intf)
 
         # Add all interfaces for non-container categories
         for interface in relevant_interfaces:

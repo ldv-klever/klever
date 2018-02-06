@@ -67,8 +67,8 @@ class AbstractProcessImporter(ProcessImporter):
                                format(process.name, ', '.join(unused_labels)))
         return process
 
-    def _import_action(self, process_strings, name, dic):
-        act = super(AbstractProcessImporter, self)._import_action(process_strings, name, dic)
+    def _import_action(self, name, process_strings, dic):
+        act = super(AbstractProcessImporter, self)._import_action(name, process_strings, dic)
 
         # Add comment if it is provided
         if 'comment' in dic[name]:

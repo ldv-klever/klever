@@ -86,7 +86,7 @@ def import_interface_specification(collection, sa, specification):
 
     if "functions models" in specification:
         collection.logger.info("Import functions description")
-        category = 'function models'
+        category = 'functions models'
         for identifier in (i for i in specification["functions models"].keys() if i in sa.source_functions):
             if "declaration" not in specification["functions models"][identifier]:
                 raise TypeError("Specify 'signature' for function {} at {}".format(identifier, category))
@@ -100,6 +100,7 @@ def import_interface_specification(collection, sa, specification):
                 interface.declaration = d
             else:
                 raise ValueError("Provide declaration of function {!r}".format(identifier))
+            __import_interfaces(collection, interface, specification[category][identifier])
 
 
 def import_interface_declaration(collection, interface, declaration):

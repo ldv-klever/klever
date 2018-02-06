@@ -164,7 +164,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
                 if "categories" in content[tag] or "functions models" in content[tag]:
                     logger.debug("Specification file {} is treated as interface categories specification".format(file))
                     interface_specifications.append(content)
-                elif "environment processes" in content[tag] or "kernel model" in content[tag]:
+                elif "environment processes" in content[tag] or "functions models" in content[tag]:
                     logger.debug("Specification file {} is treated as event categories specification".format(file))
                     event_specifications.append(content)
                 else:

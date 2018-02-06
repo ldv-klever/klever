@@ -23,7 +23,7 @@ class ProcessImporter:
     
     PROCESS_CONSTRUCTOR = Process
     LABEL_CONSTRUCTOR = Label
-    REGEX_SET=generate_regex_set
+    REGEX_SET = generate_regex_set
     LABEL_ATTRIBUTES = {
         'value': None,
         'declaration': None
@@ -47,7 +47,7 @@ class ProcessImporter:
     }
 
     def __init__(self, logger, conf):
-        self.logger = logger,
+        self.logger = logger
         self.conf = conf
 
     def parse_event_specification(self, raw):
@@ -70,11 +70,11 @@ class ProcessImporter:
         self.logger.info("Import processes from provided event categories specification")
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model'")
-            for name_list in raw["kernel model"]:
+            for name_list in raw["functions models"]:
                 names = name_list.split(", ")
                 for name in names:
                     self.logger.debug("Import process which models {!r}".format(name))
-                    models[name] = self._import_process(name, raw["kernel model"][name_list])
+                    models[name] = self._import_process(name, raw["functions models"][name_list])
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name in raw["environment processes"]:
@@ -120,7 +120,7 @@ class ProcessImporter:
                                     if 'process' in dic['actions'][n]])
 
             for action_name in dic['actions']:
-                action = self._import_action(self, name, dic['actions'][action_name])
+                action = self._import_action(name, process_strings, dic['actions'][action_name])
                 process.actions[action_name] = action
 
                 if 'process' in dic['actions'][action_name]:
@@ -141,7 +141,7 @@ class ProcessImporter:
         process.accesses()
         return process
 
-    def _import_action(self, process_strings, name, dic):
+    def _import_action(self, name, process_strings, dic):
         act = None
         for regex in self.REGEX_SET(name):
             for string in process_strings:
@@ -149,8 +149,7 @@ class ProcessImporter:
                     act = self._action_checker(string, regex, name, dic)
                     break
         if not act:
-            raise ValueError("Action '{}' is not used in process description {!r}".
-                             format(name, name))
+            raise ValueError("Action '{}' is not used in process description {!r}".format(name, name))
 
         # Add comment if it is provided
         for att in self.ACTION_ATTRIBUTES:

@@ -123,7 +123,7 @@ class ProcessModel:
                 if function_obj and len(function_obj.declaration_files) > 0:
                     self.logger.debug("Add model of function '{}' to an environment model".format(func))
                     new_process = self.__add_process(analysis, self.__abstr_model_processes[func], model=True)
-                    new_process.category = "kernel models"
+                    new_process.category = "functions models"
 
                     self.logger.debug("Assign label interfaces according to function parameters for added process {} "
                                       "with an identifier {}".format(new_process.name, new_process.identifier))
@@ -231,10 +231,10 @@ class ProcessModel:
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
         if not category:
-            new.category = 'kernel models'
+            new.category = 'functions models'
             if not new.comment:
                 raise KeyError("You must specify manually 'comment' attribute within the description of the following "
-                               "kernel model process description: {!r}.".format(new.name))
+                               "function model process description: {!r}.".format(new.name))
         else:
             new.category = category
             if not new.comment:

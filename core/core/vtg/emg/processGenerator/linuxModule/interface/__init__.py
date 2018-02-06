@@ -117,7 +117,7 @@ class FunctionInterface(Interface):
 
     @Interface.declaration.setter
     def declaration(self, new_declaration):
-        if isinstance(new_declaration, Function):
+        if not isinstance(new_declaration, Function):
             raise ValueError("FunctionINterface must have Function declaration but {!r} is provided".
                              format(str(type(new_declaration).__name__)))
         Interface.declaration.fset(self, new_declaration)
