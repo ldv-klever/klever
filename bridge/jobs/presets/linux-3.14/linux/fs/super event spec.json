@@ -1,6 +1,6 @@
 {
   "Linux 2.6.33": {
-    "kernel model": {
+    "functions models": {
       "get_sb_nodev, get_sb_single, get_sb_ns": {
         "comment": "Call fill_super implementation.",
         "labels": {

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {},
+    "functions models": {},
     "environment processes": {
       "factory_scenario": {
         "comment": "Register callbacks heuristically.",

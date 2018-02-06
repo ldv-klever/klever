@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "class_interface_register": {
         "comment": "Register a class interface.",
         "labels": {

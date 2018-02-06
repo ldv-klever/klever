@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "rtc_device_register": {
         "comment": "Register Real Time Clock device.",
         "labels": {

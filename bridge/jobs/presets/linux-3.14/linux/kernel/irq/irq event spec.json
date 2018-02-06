@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "request_threaded_irq": {
         "comment": "Allocate an interrupt line for a managed device.",
         "labels": {

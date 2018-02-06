@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "platform_driver_register, __platform_driver_register": {
         "comment": "Register a driver for platform-level device.",
         "labels": {
@@ -231,7 +231,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel model": {
+    "functions models": {
       "__platform_driver_register": {
         "comment": "Register a driver for platform-level device.",
         "labels": {

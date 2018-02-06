@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "comment": "Register USB serial callbacks.",
         "headers": [
@@ -333,7 +333,7 @@
     }
   },
   "Linux 3.2": {
-    "kernel model": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "comment": "Register USB serial callbacks.",
         "labels": {
@@ -650,7 +650,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {
+    "functions models": {
       "usb_serial_register": {
         "comment": "Register USB serial callbacks.",
         "labels": {

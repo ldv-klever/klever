@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "transport_subsystem_register": {
         "comment": "Register new target backend operations.",
         "labels": {
@@ -180,7 +180,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel model": {
+    "functions models": {
       "transport_backend_register": {
         "comment": "Register new target backend operations.",
         "labels": {

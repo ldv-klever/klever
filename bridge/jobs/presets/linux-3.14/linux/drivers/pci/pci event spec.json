@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "pci_register_driver, __pci_register_driver": {
         "comment": "Register PCI callbacks.",
         "labels": {

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "scsi_host_alloc": {
         "comment": "Allocate a new Scsi_Host and perform basic initialization.",
         "labels": {

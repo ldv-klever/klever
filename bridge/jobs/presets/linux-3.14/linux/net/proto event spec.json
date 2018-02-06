@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "sock_register": {
         "comment": "Add a socket protocol handler.",
         "labels": {

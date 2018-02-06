@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "iio_triggered_buffer_setup": {
         "comment": "Setup industrial I/O triggered buffer.",
         "labels": {

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "add_disk": {
         "comment": "Add partitioning information to kernel list.",
         "labels": {

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "ieee80211_alloc_hw": {
         "comment": "Allocate a new hardware device.",
         "headers": [
@@ -200,7 +200,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {
+    "functions models": {
       "ieee80211_alloc_hw": {
         "comment": "Allocate a new hardware device.",
         "labels": {

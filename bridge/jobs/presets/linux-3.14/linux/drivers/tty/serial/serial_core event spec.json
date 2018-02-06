@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "uart_add_one_port": {
         "comment": "Attach a driver-defined port structure.",
         "labels": {
@@ -314,7 +314,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {
+    "functions models": {
       "uart_add_one_port": {
         "comment": "Attach a driver-defined port structure.",
         "labels": {
