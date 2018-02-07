@@ -857,7 +857,7 @@ class TestReports(KleverTestCase):
         self.__upload_finish_verification_report(tool)
 
 
-class DecideJobs(object):
+class DecideJobs:
     def __init__(self, username, password, reports_data, with_full_coverage=False, with_progress=False):
         self.service = Client()
         self.username = username
@@ -867,9 +867,9 @@ class DecideJobs(object):
         self._progress = with_progress
         self.ids_in_use = []
         self._cmp_stack = []
-        self.__upload_reports()
+        self.__decide()
 
-    def __upload_reports(self):
+    def __decide(self):
         scheduler = Client()
         scheduler.post('/users/service_signin/', {
             'username': self.username, 'password': self.password, 'scheduler': SCHEDULER_TYPE[0][1]
@@ -893,6 +893,20 @@ class DecideJobs(object):
         scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
         scheduler.post('/users/service_signout/')
 
+    def __upload_reports(self, reports, archives):
+        archives_fp = []
+        try:
+            for a_name in archives:
+                archives_fp.append(open(os.path.join(ARCHIVE_PATH, a_name), mode='rb'))
+            if len(reports) == 1:
+                self.service.post('/reports/upload/', {'report': json.dumps(reports[0]), 'file': archives_fp})
+            else:
+                self.service.post('/reports/upload/', {'reports': json.dumps(reports), 'file': archives_fp})
+        except Exception:
+            for fp in archives_fp:
+                fp.close()
+            raise
+
     def __get_report_id(self, name):
         r_id = '/' + name
         while r_id in self.ids_in_use:
@@ -900,27 +914,44 @@ class DecideJobs(object):
         self.ids_in_use.append(r_id)
         return r_id
 
-    def __upload_start_report(self, name, parent, attrs=None, failed=False):
+    def __upload_start_report(self, name, parent, attrs=None, failed=False, finish=False):
         r_id = self.__get_report_id(name)
-        report = {'id': r_id, 'type': 'start', 'parent id': parent, 'name': name}
+        files = set()
+        reports = [{'id': r_id, 'type': 'start', 'parent id': parent, 'name': name}]
         if attrs is not None:
-            report['attrs'] = attrs
-        self.service.post('/reports/upload/', {'report': json.dumps(report)})
+            reports[0]['attrs'] = attrs
         self._cmp_stack.append(r_id)
+
         if failed:
-            self.__upload_unknown_report(r_id, 'unknown0.zip')
+            files.add('unknown0.zip')
+            reports.append({
+                'id': self.__get_report_id('unknown'), 'type': 'unknown', 'parent id': r_id,
+                'problem desc': 'unknown0.zip'
+            })
             while len(self._cmp_stack) > 0:
-                self.__upload_finish_report(self._cmp_stack[-1])
+                f_rep, logname = self.__get_finish_report(self._cmp_stack[-1])
+                files.add(logname)
+                reports.append(f_rep)
+            self.__upload_reports(reports, files)
             raise DecisionError('Component %s failed!' % name)
+
+        if finish:
+            f_rep, logname = self.__get_finish_report(r_id)
+            reports.append(f_rep)
+            files.add(logname)
+
+        self.__upload_reports(reports, files)
         return r_id
 
-    def __upload_finish_report(self, r_id):
+    def __get_finish_report(self, r_id):
         report = {'id': r_id, 'type': 'finish', 'resources': resources(), 'desc': 'Description text', 'log': 'log.zip'}
-        with open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': [fp]})
-
         if len(self._cmp_stack) > 0:
             self._cmp_stack.pop()
+        return report, 'log.zip'
+
+    def __upload_finish_report(self, r_id):
+        f_rep, logname = self.__get_finish_report(r_id)
+        self.__upload_reports([f_rep], [logname])
 
     def __upload_attrs_report(self, r_id, attrs):
         self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs})})
@@ -928,36 +959,7 @@ class DecideJobs(object):
     def __upload_data_report(self, r_id, data=None):
         if data is None:
             data = {"newdata": str(random.randint(0, 100))}
-        self.service.post('/reports/upload/', {
-            'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
-        })
-
-    def __upload_verification_report(self, name, parent, attrs=None, coverage=None, verifier_input=False, log=False):
-        r_id = self.__get_report_id(name)
-        if not isinstance(attrs, list):
-            attrs = []
-        report = {
-            'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name, 'attrs': attrs,
-            'resources': resources(), 'data': {'description': str(r_id)}
-        }
-
-        files = []
-        if coverage is not None:
-            files.append(open(os.path.join(ARCHIVE_PATH, coverage), mode='rb'))
-            report['coverage'] = coverage
-        if verifier_input:
-            files.append(open(os.path.join(ARCHIVE_PATH, 'verifier_input.zip'), mode='rb'))
-            report['input files of static verifiers'] = 'verifier_input.zip'
-        if log:
-            files.append(open(os.path.join(ARCHIVE_PATH, 'log.zip'), mode='rb'))
-            report['log'] = 'log.zip'
-        try:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': files})
-        except Exception:
-            for f in files:
-                f.close()
-            raise
-        return r_id
+        self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})})
 
     def __upload_progress(self, ts, sj=None, start=False, finish=False):
         if not self._progress:
@@ -981,36 +983,6 @@ class DecideJobs(object):
             })
         self.service.post('/service/update_progress/', {'progress': json.dumps(data)})
         time.sleep(2)
-
-    def __upload_finish_verification_report(self, r_id):
-        self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'verification finish'})})
-
-    def __upload_unknown_report(self, parent, archive):
-        r_id = self.__get_report_id('unknown')
-        with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': os.path.basename(fp.name)
-            }), 'file': fp})
-
-    def __upload_safe_report(self, parent, attrs, archive):
-        r_id = self.__get_report_id('safe')
-        with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': os.path.basename(fp.name), 'attrs': attrs
-            }), 'file': fp})
-
-    def __upload_empty_safe_report(self, parent, attrs):
-        self.service.post('/reports/upload/', {'report': json.dumps({
-            'id': self.__get_report_id('safe'), 'type': 'safe', 'parent id': parent, 'proof': None, 'attrs': attrs
-        })})
-
-    def __upload_unsafe_report(self, parent, attrs, archive):
-        r_id = self.__get_report_id('unsafe')
-        with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps({
-                'id': r_id, 'type': 'unsafe', 'parent id': parent, 'attrs': attrs,
-                'error trace': os.path.basename(fp.name)
-            }), 'file': fp})
 
     def __upload_job_coverage(self, r_id, coverage):
         report = {'id': r_id, 'type': 'job coverage', 'coverage': coverage}
@@ -1112,8 +1084,7 @@ class DecideJobs(object):
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
 
-        lkvog = self.__upload_start_report('LKVOG', sj, [LKVOG_ATTR])
-        self.__upload_finish_report(lkvog)
+        self.__upload_start_report('LKVOG', sj, [LKVOG_ATTR], finish=True)
 
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
@@ -1121,8 +1092,7 @@ class DecideJobs(object):
                 {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
-                cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
-                self.__upload_finish_report(cmp_id)
+                self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
 
@@ -1150,8 +1120,7 @@ class DecideJobs(object):
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
 
-        lkvog = self.__upload_start_report('LKVOG', '/', [LKVOG_ATTR])
-        self.__upload_finish_report(lkvog)
+        self.__upload_start_report('LKVOG', '/', [LKVOG_ATTR], finish=True)
 
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
@@ -1159,8 +1128,7 @@ class DecideJobs(object):
                 {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
-                cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
-                self.__upload_finish_report(cmp_id)
+                self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
             self.__upload_finish_report(vtgw)
         self.__upload_finish_report(vtg)
 
@@ -1187,17 +1155,48 @@ class DecideJobs(object):
         else:
             # coverage = 'partially_coverage.zip'
             coverage = None
-        tool = self.__upload_verification_report(
-            chunk['tool'], parent, coverage=coverage,
-            verifier_input=chunk.get('verifier_input', False), log=chunk.get('log', False)
-        )
+
+        verification = {
+            'id': self.__get_report_id(chunk['tool']), 'type': 'verification',
+            'parent id': parent, 'name': chunk['tool'], 'attrs': [],
+            'resources': resources(), 'data': {'description': str(chunk['tool'])}
+        }
+
+        files = []
+        if coverage is not None:
+            files.append(coverage)
+            verification['coverage'] = coverage
+        if chunk.get('verifier_input', False):
+            files.append('verifier_input.zip')
+            verification['input files of static verifiers'] = 'verifier_input.zip'
+        if chunk.get('log', False):
+            files.append('log.zip')
+            verification['log'] = 'log.zip'
+
+        reports = [verification]
         if 'safe' in chunk:
-            self.__upload_safe_report(tool, [], chunk['safe'])
+            files.append(chunk['safe'])
+            reports.append({
+                'id': self.__get_report_id('safe'), 'type': 'safe', 'parent id': verification['id'], 'attrs': [],
+                'proof': os.path.basename(chunk['safe'])
+            })
         elif 'unsafes' in chunk:
             cnt = 1
             for u in chunk['unsafes']:
-                self.__upload_unsafe_report(tool, [{'entry point': 'func_%s' % cnt}], u)
+                files.append(u)
+                reports.append({
+                    'id': self.__get_report_id('unsafe'), 'type': 'unsafe', 'parent id': verification['id'],
+                    'attrs': [{'entry point': 'func_%s' % cnt}], 'error trace': os.path.basename(u)
+                })
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:
-            self.__upload_unknown_report(tool, chunk['unknown'])
-        self.__upload_finish_verification_report(tool)
+            files.append(chunk['unknown'])
+            reports.append({
+                'id': self.__get_report_id('unknown'), 'type': 'unknown', 'parent id': verification['id'],
+                'problem desc': os.path.basename(chunk['unknown'])
+            })
+        reports.append({'id': verification['id'], 'type': 'verification finish'})
+        self.__upload_reports(reports, files)
+
+    def __is_not_used(self):
+        pass

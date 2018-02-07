@@ -575,18 +575,34 @@ def upload_report(request):
         })
     if job.status != JOB_STATUS[2][0]:
         return JsonResponse({'error': 'Reports can be uploaded only for processing jobs'})
-    try:
-        data = json.loads(request.POST.get('report', '{}'))
-    except Exception as e:
-        logger.exception("Json parsing error: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Can not parse json data'})
 
     archives = {}
     for f in request.FILES.getlist('file'):
         archives[f.name] = f
-    err = UploadReport(job, data, archives).error
-    if err is not None:
-        return JsonResponse({'error': err})
+
+    if 'report' in request.POST:
+        try:
+            data = json.loads(request.POST['report'])
+        except Exception as e:
+            logger.exception("Json parsing error: %s" % e, stack_info=True)
+            return JsonResponse({'error': 'Can not parse json data'})
+        err = UploadReport(job, data, archives).error
+        if err is not None:
+            return JsonResponse({'error': err})
+    elif 'reports' in request.POST:
+        try:
+            data = json.loads(request.POST['reports'])
+        except Exception as e:
+            logger.exception("Json parsing error: %s" % e, stack_info=True)
+            return JsonResponse({'error': 'Can not parse json data'})
+        if not isinstance(data, list):
+            return JsonResponse({'error': 'Wrong format of reports data'})
+        for d in data:
+            err = UploadReport(job, d, archives).error
+            if err is not None:
+                return JsonResponse({'error': err})
+    else:
+        return JsonResponse({'error': 'Report json data is required'})
     return JsonResponse({})
 
 
