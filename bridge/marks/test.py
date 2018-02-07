@@ -56,10 +56,7 @@ class TestMarks(KleverTestCase):
         self.client.post(reverse('population'))
         self.client.get(reverse('users:logout'))
         self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
-        try:
-            self.job = Job.objects.filter(~Q(parent=None)).first()
-        except IndexError:
-            self.job = Job.objects.all().first()
+        self.job = Job.objects.all().first()
         self.assertIsNotNone(self.job)
 
         run_conf = json.dumps([
@@ -68,7 +65,7 @@ class TestMarks(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '0']
+            [False, True, True, False, True, False, True, True, '0']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', SJC_1)
@@ -208,7 +205,7 @@ class TestMarks(KleverTestCase):
         compare_attrs = []
         for a in safe.attrs.all():
             attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name.name in MARKS_COMPARE_ATTRS[self.job.type]:
+            if a.attr.name.name in MARKS_COMPARE_ATTRS:
                 attr_data['is_compare'] = True
             compare_attrs.append(attr_data)
         response = self.client.post('/marks/ajax/save_mark/', {
@@ -669,7 +666,7 @@ class TestMarks(KleverTestCase):
         compare_attrs = []
         for a in unsafe.attrs.all():
             attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name.name in MARKS_COMPARE_ATTRS[self.job.type]:
+            if a.attr.name.name in MARKS_COMPARE_ATTRS:
                 attr_data['is_compare'] = True
             compare_attrs.append(attr_data)
         response = self.client.post('/marks/ajax/save_mark/', {

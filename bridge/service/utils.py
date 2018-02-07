@@ -273,14 +273,12 @@ class FinishJobDecision:
                 raise ServiceError("The job didn't got full tasks progress data")
             else:
                 if jp.solved_ts + jp.failed_ts != jp.total_ts or jp.finish_ts is None:
-                    print(jp.solved_ts, jp.failed_ts, jp.total_ts, jp.finish_ts)
                     raise ServiceError("Tasks solving progress is not finished")
         if jp.start_sj is not None:
             if any(x is None for x in [jp.solved_sj, jp.failed_sj, jp.total_sj, jp.start_sj, jp.finish_sj]):
                 raise ServiceError("The job didn't got full subjobs progress data")
             else:
                 if jp.solved_sj + jp.failed_sj != jp.total_sj or jp.finish_sj is None:
-                    print(jp.solved_sj, jp.failed_sj, jp.total_sj, jp.finish_sj)
                     raise ServiceError("Subjobs solving progress is not finished")
 
 

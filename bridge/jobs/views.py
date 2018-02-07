@@ -35,7 +35,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT
+from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT, USER_ROLES
 from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
@@ -51,7 +51,7 @@ from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen,\
-    UploadReportsWithoutDecision
+    UploadReportsWithoutDecision, JobsTreesGen, UploadTree
 
 
 @login_required
@@ -492,7 +492,11 @@ def save_job(request):
                 return JsonResponse({'error': _("The specified parent can't be set for this job")})
             job_kwargs['parent'] = parent
         elif job.parent is not None:
-            return JsonResponse({'error': _("The parent identifier is required for this job")})
+            if request.user.extended.role == USER_ROLES[2][0]:
+                # Just manager can change job parent to root
+                job_kwargs['parent'] = None
+            else:
+                return JsonResponse({'error': _("The parent identifier is required for this job")})
         if job.version != int(request.POST.get('last_version', 0)):
             return JsonResponse({'error': _("Your version is expired, please reload the page")})
         job_kwargs['job'] = job
@@ -645,6 +649,21 @@ def download_jobs(request):
 
 @login_required
 @unparallel_group([])
+def download_trees(request):
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return BridgeErrorResponse(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
+    if request.method != 'POST' or 'job_ids' not in request.POST:
+        return BridgeErrorResponse(301, back=reverse('jobs:tree'))
+    generator = JobsTreesGen(json.loads(request.POST['job_ids']))
+
+    mimetype = mimetypes.guess_type(os.path.basename('KleverJobsTree.zip'))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
+    return response
+
+
+@login_required
+@unparallel_group([])
 def check_access(request):
     activate(request.user.extended.language)
 
@@ -703,6 +722,38 @@ def upload_job(request, parent_id=None):
             )
     if len(errors) > 0:
         return JsonResponse({'errors': list(str(x) for x in errors)})
+    return JsonResponse({})
+
+
+@login_required
+@unparallel_group([Job])
+def upload_jobs_tree(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': str(_("You don't have an access to upload jobs tree"))})
+
+    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
+        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
+                                        "Please wait until it will be finished.")})
+    if 'parent_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    try:
+        jobs_dir = extract_archive(request.FILES['file'])
+    except Exception as e:
+        logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+        return JsonResponse({'error': _('Extraction of the archive with jobs tree has failed')})
+    try:
+        UploadTree(request.POST['parent_id'], request.user, jobs_dir.name)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': _('Creating jobs tree failed.')})
     return JsonResponse({})
 
 

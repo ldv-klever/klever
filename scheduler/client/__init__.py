@@ -204,10 +204,6 @@ def solve_job(logger, conf):
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
         logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
 
-    # Do it to make it possible to use runexec inside Klever
-    bench_exec_location = os.path.join(conf["client"]["benchexec location"])
-    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
-
     # Save Klever Core configuration to default configuration file
     with open("core.json", "w", encoding="utf8") as fh:
         json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)

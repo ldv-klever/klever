@@ -47,7 +47,7 @@ case "$1" in
         fi
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile  --chuid ${USER} \
             --group ${GROUP} --chdir ${WORKDIR} --exec ${DAEMON} \
-            -- --timeout 900 --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
+            -- --timeout 86400 --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
             --bind unix:media/gunicorn.sock bridge.wsgi:application
         then
             rc=0

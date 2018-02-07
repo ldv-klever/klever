@@ -27,7 +27,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.test import Client
 
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES, FORMAT
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
 from bridge.utils import KleverTestCase
 from bridge.populate import populate_users
 
@@ -250,7 +250,7 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '0']
+            [False, True, True, False, True, False, True, True, '0']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
 
@@ -361,7 +361,7 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, '1']
+            [False, True, True, False, True, False, True, True, '1']
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)
@@ -395,10 +395,9 @@ class TestReports(KleverTestCase):
 
     def test_comparison(self):
         try:
-            # Exclude jobs "Validation on commits" due to they need additional attribute for comparison: "Commit"
-            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[1][0]))[0]
+            job1 = Job.objects.filter(parent=None)[0]
         except IndexError:
-            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[1][0]))[0]
+            job1 = Job.objects.filter()[0]
 
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -695,41 +694,14 @@ class TestReports(KleverTestCase):
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
-        core_data1 = None
-        core_data2 = None
-        if self.job.type == JOB_CLASSES[0][0]:
-            core_data1 = {
-                'module1': {'ideal verdict': 'safe', 'verdict': 'unsafe', 'comment': 'This is comment for module1'},
-                'module2': {'ideal verdict': 'safe', 'verdict': 'safe'}
-            }
-            core_data2 = {
-                'module3': {'ideal verdict': 'unsafe', 'verdict': 'unsafe', 'comment': 'This is comment for module3'},
-                'module4': {'ideal verdict': 'unsafe', 'verdict': 'unknown'}
-            }
-        elif self.job.type == JOB_CLASSES[1][0]:
-            core_data1 = {
-                'module1': {
-                    'before fix': {'verdict': 'unsafe', 'comment': '1'},
-                    'after fix': {'verdict': 'unsafe', 'comment': '1'},
-                },
-                'module2': {
-                    'before fix': {'verdict': 'safe', 'comment': '1'},
-                    'after fix': {'verdict': 'unsafe', 'comment': '1'},
-                }
-            }
-            core_data2 = {
-                'module3': {
-                    'before fix': {'verdict': 'unsafe', 'comment': '1'},
-                    'after fix': {'verdict': 'safe', 'comment': '1'}
-                },
-                'module4': {
-                    'before fix': {'verdict': 'unsafe', 'comment': '1'},
-                    'after fix': {'verdict': 'unknown', 'comment': '1'}
-                }
-            }
-
-        self.__upload_data_report('/', core_data1)
-        self.__upload_data_report('/', core_data2)
+        self.__upload_data_report('/', {
+            'module1': {'ideal verdict': 'safe', 'verdict': 'unsafe', 'comment': 'This is comment for module1'},
+            'module2': {'ideal verdict': 'safe', 'verdict': 'safe'}
+        })
+        self.__upload_data_report('/', {
+            'module3': {'ideal verdict': 'unsafe', 'verdict': 'unsafe', 'comment': 'This is comment for module3'},
+            'module4': {'ideal verdict': 'unsafe', 'verdict': 'unknown'}
+        })
 
         core_coverage = {}
         if any('chunks' in chunk for chunk in reports_data):
@@ -887,7 +859,7 @@ class DecideJobs:
             self.service.post('/users/service_signin/', {
                 'username': self.username, 'password': self.password, 'job identifier': job_identifier
             })
-            self.__decide_job(job_identifier)
+            self.__decide_job()
             self.service.post('/users/service_signout/')
             sch_data['jobs']['finished'].append(job_identifier)
         scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
@@ -999,55 +971,37 @@ class DecideJobs:
             for fp in files:
                 fp.close()
 
-    def __decide_job(self, job_identifier):
+    def __decide_job(self):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
 
         self.__upload_progress([1, 0, 0, 1000], None, True, False)
 
-        core_data = None
-        job = Job.objects.get(identifier=job_identifier)
-        if job.type == JOB_CLASSES[0][0]:
-            core_data = {
-                'module1': {
-                    'ideal verdict': 'safe',
-                    'verdict': 'unsafe',
-                    'comment': 'This is comment for module1'
-                },
-                'module2': {
-                    'ideal verdict': 'safe',
-                    'verdict': 'safe'
-                },
-                'module3': {
-                    'ideal verdict': 'unsafe',
-                    'verdict': 'unsafe',
-                    'comment': 'This is comment for module3'
-                },
-                'module4': {
-                    'ideal verdict': 'unsafe',
-                    'verdict': 'unknown'
-                }
-            }
-        elif job.type == JOB_CLASSES[1][0]:
-            core_data = {
-                'module1': {
-                    'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 before fix'},
-                    'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 after fix'},
-                },
-                'module2': {
-                    'before fix': {'verdict': 'safe', 'comment': '1'},
-                    'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module2 after fix'},
-                },
-                'module3': {
-                    'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module3 before fix'},
-                    'after fix': {'verdict': 'safe', 'comment': '1'},
-                },
-                'module4': {
-                    'before fix': {'verdict': 'unsafe', 'comment': '1'},
-                    'after fix': {'verdict': 'unknown', 'comment': '1'},
-                }
-            }
+        core_data = {
+            'module1': {'ideal verdict': 'safe', 'verdict': 'unsafe', 'comment': 'This is comment for module1'},
+            'module2': {'ideal verdict': 'safe', 'verdict': 'safe'},
+            'module3': {'ideal verdict': 'unsafe', 'verdict': 'unsafe', 'comment': 'This is comment for module3'},
+            'module4': {'ideal verdict': 'unsafe', 'verdict': 'unknown'}
+        }
+        # core_data = {
+        #     'module1': {
+        #         'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 before fix'},
+        #         'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 after fix'},
+        #     },
+        #     'module2': {
+        #         'before fix': {'verdict': 'safe', 'comment': '1'},
+        #         'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module2 after fix'},
+        #     },
+        #     'module3': {
+        #         'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module3 before fix'},
+        #         'after fix': {'verdict': 'safe', 'comment': '1'},
+        #     },
+        #     'module4': {
+        #         'before fix': {'verdict': 'unsafe', 'comment': '1'},
+        #         'after fix': {'verdict': 'unknown', 'comment': '1'},
+        #     }
+        # }
 
         self.__upload_data_report('/', core_data)
 

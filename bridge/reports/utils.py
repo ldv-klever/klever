@@ -1118,3 +1118,15 @@ def report_attributes_with_parents(report):
 def remove_verification_files(job):
     for report in ReportComponent.objects.filter(root=job.reportroot, verification=True).exclude(verifier_input=''):
         report.verifier_input.delete()
+
+
+def get_report_data_type(component, data):
+    if component == 'Core' and isinstance(data, dict) and all(isinstance(res, dict) for res in data.values()):
+        if all(x in res for x in ['ideal verdict', 'verdict'] for res in data.values()):
+            return 'Core:testing'
+        elif all(x in res for x in ['before fix', 'after fix'] for res in data.values()) \
+                and all('verdict' in data[mod]['before fix'] and 'verdict' in data[mod]['after fix'] for mod in data):
+            return 'Core:validation'
+    elif component == 'LKVOG' and isinstance(data, dict):
+        return 'LKVOG:lines'
+    return 'Unknown'

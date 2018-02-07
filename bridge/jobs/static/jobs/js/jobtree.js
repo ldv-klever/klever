@@ -184,5 +184,23 @@ $(document).ready(function () {
         }
     });
 
+    $('#download_selected_trees').click(function (event) {
+        event.preventDefault();
+
+        $('#jobs_actions_menu').popup('hide');
+        var job_ids = [];
+        $('input[id^="job_checkbox__"]:checked').each(function () {
+            job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
+        });
+        if (job_ids.length) {
+            if (check_jobs_access(job_ids)) {
+                $.redirectPost(job_ajax_url + 'downloadtrees/', {job_ids: JSON.stringify(job_ids)});
+            }
+        }
+        else {
+            err_notify($('#error__no_jobs_to_download').text());
+        }
+    });
+
     $('#compare_reports_btn').click(compare_jobs);
 });
