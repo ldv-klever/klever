@@ -128,7 +128,7 @@ def __import_entities(collection, entities):
 
                     entities.append(new_desc)
             elif isinstance(bt, Structure) or isinstance(bt, Union):
-                for entry in sorted(entity["description"]['value'], key=lambda key: str(key['field'])):
+                for entry in entity["description"]['value']:
                     if not entity["root type"] and not entity["root value"]:
                         new_root_type = bt
                         new_root_value = entity["description"]["value"]

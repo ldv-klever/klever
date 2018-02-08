@@ -24,6 +24,7 @@ from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, g
 import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition, export_process
+from core.vtg.emg.common.process.procImporter import ProcessImporter
 from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
 from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call
 _declarations = {'environment model': list()}
@@ -31,23 +32,20 @@ _definitions = {'environment model': list()}
 _values_map = dict()
 
 
-def generate_instances(logger, conf, analysis, model, instance_maps):
-    entry_process, model_processes, callback_processes = _yield_instances(logger, conf, analysis, model, instance_maps)
+def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
+    # todo: write docs
+    model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
 
-    for process in [entry_process] + model_processes + callback_processes:
-        _simplify_process(logger, conf, analysis, process)
+    for process in model_processes + callback_processes:
+        _simplify_process(logger, conf, sa, interfaces, process)
 
     # Simplify first and set ids then dump
-    for process in [entry_process] + model_processes + callback_processes:
+    for process in model_processes + callback_processes:
         export_process(process)
-
-    model.entry_process = entry_process
-    model.model_processes = model_processes
-    model.event_processes = callback_processes
 
     # Another sanity check
     data = dict()
-    for process in model.model_processes + model.event_processes + [model.entry_process]:
+    for process in model_processes + callback_processes:
         for action in process.actions.values():
             if isinstance(action, Call) or isinstance(action, CallRetval):
                 raise ValueError("Left unprepared action {!r} from process {!r} of category {!r}".
@@ -55,21 +53,25 @@ def generate_instances(logger, conf, analysis, model, instance_maps):
 
     # Convert
     data["functions models"] = dict()
-    for process in model.model_processes:
-        data["functions models"][process.external_id] = export_process(process)
+    for process in model_processes:
+        data["functions models"][process.pretty_id] = export_process(process)
     data["environment processes"] = dict()
-    for process in model.event_processes:
-        data["environment processes"][process.external_id] = export_process(process)
-    data["entry process"] = export_process(entry_process)
+    for process in callback_processes:
+        data["environment processes"][process.pretty_id] = export_process(process)
     with open("simplified model.json", "w", encoding="utf8") as fh:
         fh.writelines(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
-
     logger.info("Finish generating simplified environment model for further translation")
 
-    return instance_maps, data
+    # Convert processes anyway
+    importer = ProcessImporter(logger, conf)
+    # This convert is maybe useless but guarantee that all processes belong to Process class
+    generated_triple = importer.parse_event_specification(data)
+
+    return instance_maps, generated_triple
 
 
-def _simplify_process(logger, conf, analysis, process):
+def _simplify_process(logger, conf, sa, interfaces, process):
+    # todo: write docs
     logger.debug("Simplify process {!r}".format(process.name))
     # Create maps
     label_map = dict()
@@ -103,7 +105,7 @@ def _simplify_process(logger, conf, analysis, process):
         elif len(simpl_access) == 1:
             access = simpl_access[0]
             declaration, value = get_declaration(label, access)
-            label.prior_signature = declaration
+            label.declaration = declaration
             label.value = value
             label_map[label.name][access.interface.identifier] = label
 
@@ -136,7 +138,7 @@ def _simplify_process(logger, conf, analysis, process):
                     implementation = process.get_implementation(access)
                     if implementation and implementation.value:
                         guards.append("{} == {}".format("$ARG{}".format(index + 1),
-                                                        implementation.adjusted_value(new_label.prior_signature)))
+                                                        implementation.adjusted_value(new_label.declaration)))
 
                 # Go through peers and set proper interfaces
                 for peer in action.peers:
@@ -168,7 +170,7 @@ def _simplify_process(logger, conf, analysis, process):
     param_identifiers = _yeild_identifier()
     action_identifiers = _yeild_identifier()
     for action in (a for a in list(process.actions.values()) if isinstance(a, Call)):
-        _convert_calls_to_conds(conf, analysis, process, label_map, action, action_identifiers, param_identifiers)
+        _convert_calls_to_conds(conf, sa, interfaces, process, label_map, action, action_identifiers, param_identifiers)
 
     # Process rest code
     def code_replacment(statments):
@@ -219,34 +221,35 @@ def _simplify_process(logger, conf, analysis, process):
     for access in process.allowed_implementations:
         for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
             implementation = process.allowed_implementations[access][intf]
+            for file in implementation.declaration_files:
+                if (file not in _values_map or (implementation.value not in _values_map[file])) \
+                        and not implementation.static:
+                    # Maybe it is a variable
+                    svar = sa.get_source_variable(implementation.value, file)
+                    true_declaration = svar.raw_declaration if svar and svar.raw_declaration else None
+                    if not svar:
+                        # Seems that it is a funciton
+                        sf = sa.get_source_function(implementation.value, file)
+                        if sf:
+                            true_declaration = sf.raw_declaration
 
-            if (implementation.file not in _values_map or
-                    (implementation.value not in _values_map[implementation.file])) and not implementation.is_static:
-                # Maybe it is a variable
-                true_declaration = analysis.get_global_var_declaration(implementation.value, implementation.file,
-                                                                       original=True)
-                if not true_declaration:
-                    # Seems that it is a funciton
-                    sf = analysis.get_source_function(implementation.value, implementation.file)
-                    if sf:
-                        true_declaration = sf.raw_declaration
-
-                # Check
-                if true_declaration:
-                    # Add declaration
-                    if re.compile('^\s*static\s+').match(true_declaration):
-                        true_declaration = true_declaration.replace('static', 'extern')
+                    # Check
+                    if true_declaration:
+                        # Add declaration
+                        if re.compile('^\s*static\s+').match(true_declaration):
+                            true_declaration = true_declaration.replace('static', 'extern')
+                        else:
+                            true_declaration = 'extern ' + true_declaration
+                        if ';' not in true_declaration:
+                            true_declaration += ';'
+                        true_declaration += '\n'
+                        process.add_declaration('environment model', implementation.value, true_declaration)
                     else:
-                        true_declaration = 'extern ' + true_declaration
-                    if ';' not in true_declaration:
-                        true_declaration += ';'
-                    true_declaration += '\n'
-                    process.add_declaration('environment model', implementation.value, true_declaration)
+                        logger.warning("There is no function or variable {!r} in module code".
+                                       format(implementation.value))
                 else:
-                    logger.warning("There is no function or variable {!r} in module code".format(implementation.value))
-            else:
-                logger.warning("Skip import if an implementation {!r} and it is {}".
-                               format(implementation.value, 'static' if implementation.is_static else 'not static'))
+                    logger.warning("Skip import if an implementation {!r} and it is {}".
+                                   format(implementation.value, 'static' if implementation.static else 'not static'))
 
     process.allowed_implementations = None
 
@@ -265,7 +268,8 @@ def _yeild_identifier():
         yield identifier_counter
 
 
-def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_identifiers, param_identifiers):
+def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
+    # todo: write docs
     the_last_added = None
 
     def ret_expression():
@@ -275,9 +279,9 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
         if call.retlabel:
             ret_access = process.resolve_access(call.retlabel)
         else:
-            ret_subprocess = [process.actions[n] for n in sorted(process.actions.keys())
-                              if isinstance(process.actions[n], CallRetval) and
-                              process.actions[n].callback == call.callback and process.actions[n].retlabel]
+            ret_subprocess = [process.actions[an] for an in process.actions.keys()
+                              if isinstance(process.actions[an], CallRetval) and
+                              process.actions[an].callback == call.callback and process.actions[an].retlabel]
             if ret_subprocess:
                 ret_access = process.resolve_access(ret_subprocess[0].retlabel)
 
@@ -344,7 +348,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
         if len(label_parameters) > 0:
             pre_stments = []
             post_stments = []
-            for label in sorted(list(set(label_parameters)), key=lambda lb: lb.name):
+            for label in list(set(label_parameters)):
                 pre_stments.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
                 post_stments.append('$FREE(%{}%);'.format(label.name))
 
@@ -364,7 +368,7 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
         return_expression = ret_expression()
 
         # Determine label params
-        external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
+        external_parameters = [external_parameters[i] for i in external_parameters.keys()]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
         if true_call:
@@ -424,14 +428,16 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
             signature = access.interface.declaration
             implementation = process.get_implementation(access)
 
-            if implementation and analysis.refined_name(implementation.value):
+            if implementation and sa.refined_name(implementation.value):
                 # Eplicit callback call by found function name
-                if implementation.file in _values_map and implementation.value in _values_map:
-                    true_call = '(' + _values_map[implementation.file][implementation.value] + ')'
-                invoke = analysis.refined_name(implementation.value)
+                if len(implementation.declaration_files) > 0:
+                    for file in implementation.declaration_files:
+                        if file in _values_map and implementation.value in _values_map:
+                            true_call = '(' + _values_map[file][implementation.value] + ')'
+                            break
+                invoke = sa.refined_name(implementation.value)
                 check = False
-            elif signature.clean_declaration and not isinstance(implementation, bool) and \
-                    get_necessary_conf_property(conf, 'implicit callback calls'):
+            elif not isinstance(implementation, bool) and get_necessary_conf_property(conf, 'implicit callback calls'):
                 # Call by pointer
                 invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
                 check = True
@@ -440,10 +446,10 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
                 # Avoid call if neither implementation and pointer call are known
                 invoke = None
         else:
-            signature = access.label.prior_signature
-            if access.label.value and analysis.refined_name(access.label.value):
+            signature = access.label.declaration
+            if access.label.value and sa.refined_name(access.label.value):
                 # Call function provided by an explicit name but with no interface
-                invoke = analysis.refined_name(access.label.value)
+                invoke = sa.refined_name(access.label.value)
                 check = False
             else:
                 if access.list_interface and len(access.list_interface) > 0 and\
@@ -464,10 +470,10 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
             structure_name = None
             if access.interface and implementation and len(implementation.sequence) > 0:
                 field = implementation.sequence[-1]
-                containers = analysis.resolve_containers(access.interface.declaration, access.interface.category)
+                containers = interfaces.resolve_containers(access.interface.declaration, access.interface.category)
                 if len(containers.keys()) > 0:
                     for name in (name for name in containers if field in containers[name]):
-                        structure = analysis.get_intf(name).declaration
+                        structure = interfaces.get_intf(name).declaration
                         # todo: this code does not take into account that implementation of callback and
                         #       implementation of the container should be connected.
                         if isinstance(structure, Structure):
@@ -523,17 +529,18 @@ def _convert_calls_to_conds(conf, analysis, process, label_map, call, action_ide
         n.statements = code
 
 
-def _yield_instances(logger, conf, analysis, model, instance_maps):
+def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     """
     Generate automata for all processes in an intermediate environment model.
 
     :param logger: logging initialized object.
     :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
-    :param analysis: ModuleCategoriesSpecification object.
+    :param sa: Source object.
+    :param interfaces: InterfaceCollection object.
     :param model: ProcessModel object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
            {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
-    :return: Entry point autmaton, list with model qutomata, list with callback automata.
+    :return: List with model qutomata, list with callback automata.
     """
     logger.info("Generate automata for processes with callback calls")
     identifiers = _yeild_identifier()
@@ -554,34 +561,32 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
     instances_left = get_necessary_conf_property(conf, "max instances number")
 
     # Returning values
-    entry_fsa, model_fsa, callback_fsa = model.entry_process, list(), list()
-    identifiers_map[entry_fsa.identifier] = [entry_fsa]
-    __set_external_id(entry_fsa)
+    model_fsa, callback_fsa = list(), list()
 
     # Determine how many instances is required for a model
     for process in model.event_processes:
-        base_list = _original_process_copies(logger, conf, analysis, process, instances_left)
-        base_list = _fulfill_label_maps(logger, conf, analysis, base_list, process, instance_maps, instances_left)
+        base_list = _original_process_copies(logger, conf, interfaces, process, instances_left)
+        base_list = _fulfill_label_maps(logger, conf, interfaces, base_list, process, instance_maps, instances_left)
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                     format(len(base_list), process.name, process.category))
 
         for instance in base_list:
             rename_process(instance)
-            __set_external_id(instance)
+            __set_pretty_id(instance)
             callback_fsa.append(instance)
 
     # Generate automata for models
     logger.info("Generate automata for functions model processes")
     for process in model.model_processes:
         logger.info("Generate FSA for functions model process {}".format(process.name))
-        processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
+        processes = _fulfill_label_maps(logger, conf, interfaces, [process], process, instance_maps, instances_left)
         for instance in processes:
             rename_process(instance)
-            __set_external_id(instance)
+            __set_pretty_id(instance)
             model_fsa.append(instance)
 
     # According to new identifiers change signals peers
-    for process in [entry_fsa] + model_fsa + callback_fsa:
+    for process in model_fsa + callback_fsa:
         for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
             new_peers = []
             for peer in action.peers:
@@ -598,20 +603,20 @@ def _yield_instances(logger, conf, analysis, model, instance_maps):
             action.peers = new_peers
 
     # According to new identifiers change signals peers
-    for process in [entry_fsa] + model_fsa + callback_fsa:
+    for process in model_fsa + callback_fsa:
         if get_conf_property(conf, "convert statics to globals", expected_type=bool):
-            _remove_statics(analysis, process)
+            _remove_statics(sa, process)
 
-    return entry_fsa, model_fsa, callback_fsa
+    return model_fsa, callback_fsa
 
 
-def _original_process_copies(logger, conf, analysis, process, instances_left):
+def _original_process_copies(logger, conf, interfaces, process, instances_left):
     """
     Generate process copies which would be used independently for instance creation.
 
     :param logger: logging initialized object.
     :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
-    :param analysis: ModuleCategoriesSpecification object.
+    :param interfaces: InterfaceCollection object.
     :param process: Process object.
     :param instances_left: Number of instances which EMG is still allowed to generate.
     :return: List of process copies.
@@ -626,10 +631,10 @@ def _original_process_copies(logger, conf, analysis, process, instances_left):
         # Determine nonimplemented containers
         logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
                      "category {}".format(process.name, process.category))
-        for label in [process.labels[name] for name in sorted(process.labels.keys())
+        for label in [process.labels[name] for name in process.labels.keys()
                       if len(process.labels[name].interfaces) > 0]:
             nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                          if len(analysis.implementations(analysis.get_intf(interface))) == 0]
+                                          if len(interfaces.get_intf(interface).implementations) == 0]
             if len(nonimplemented_intrerfaces) > 0:
                 undefined_labels.append(label)
 
@@ -646,14 +651,14 @@ def _original_process_copies(logger, conf, analysis, process, instances_left):
     return base_list
 
 
-def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_maps, instances_left):
+def _fulfill_label_maps(logger, conf, interfaces, instances, process, instance_maps, instances_left):
     """
     Generate instances and finally assign to each process its instance map which maps accesses to particular
     implementations of relevant interfaces.
 
     :param logger: logging initialized object.
     :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
-    :param analysis: ModuleCategoriesSpecification object.
+    :param interfaces: InterfaceCollection object.
     :param instances: List of Process objects.
     :param process: Process object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
@@ -674,7 +679,7 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
         cached_map = instance_maps[process.category][process.name]
     else:
         cached_map = None
-    maps, cached_map = _split_into_instances(analysis, process,
+    maps, cached_map = _split_into_instances(interfaces, process,
                                              get_necessary_conf_property(conf, "instances per resource implementation"),
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
@@ -694,7 +699,7 @@ def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_map
             for access in access_map:
                 for i in access_map[access]:
                     try:
-                        interface = analysis.get_intf(i)
+                        interface = interfaces.get_intf(i)
                         if interface and interface.header:
                             for header in interface.header:
                                 if header not in header_list:
@@ -744,14 +749,14 @@ def __get_relevant_expressions(process):
     return expressions
 
 
-def __set_external_id(process):
+def __set_pretty_id(process):
     expressions = __get_relevant_expressions(process)
     if process.category == 'functions models':
-        process.external_id = "{}/{}".format(process.category, process.name)
+        process.pretty_id = "{}/{}".format(process.category, process.name)
     elif len(expressions) > 0:
-        process.external_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
+        process.pretty_id = "{}/{}/{}".format(process.category, process.name, expressions[0])
     else:
-        process.external_id = "{}/{}/{}".format(process.category, process.name, process.identifier)
+        process.pretty_id = "{}/{}/{}".format(process.category, process.name, process.identifier)
 
 
 def __generate_model_comment(process):
@@ -763,20 +768,21 @@ def __generate_model_comment(process):
         process.comment = comment
 
 
-def _remove_statics(analysis, process):
+def _remove_statics(sa, process):
     # todo: write docstring
     identifiers = _yeild_identifier()
     access_map = process.allowed_implementations
 
-    def resolve_existing(nm, impl, collection):
-        if impl.file in collection and nm in collection[impl.file]:
-            return collection[impl.file][nm]
-        else:
-            return None
+    def resolve_existing(nm, f, collection):
+        if f in collection and nm in collection[f]:
+            return collection[f][nm]
+        return None
 
     def create_definition(decl, nm, impl):
         f = c.Function("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
-                       implementation.file, signature=decl, export=True)
+                       decl)
+        f.definition_file = list(implementation.declaration_files)
+
         # Generate call
         if not f.declaration.return_value or f.declaration.return_value.identifier == 'void':
             ret = ''
@@ -796,64 +802,69 @@ def _remove_statics(analysis, process):
     for access in access_map:
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
-            if implementation.is_static:
-                func = None
-                var = None
+            if implementation.static:
+                for file in implementation.declaration_files:
+                    func = None
+                    var = None
 
-                declaration = analysis.get_global_var_declaration(implementation.value, implementation.file)
-                function_flag = False
-                if not declaration:
-                    candidate = analysis.get_source_function(implementation.value, implementation.file)
-                    if candidate:
-                        declaration = candidate.declaration
-                        function_flag = True
-                    else:
-                        # Seems that this is a variable without initialization
-                        declaration = implementation.declaration
-
-                # Determine name
-                name = analysis.refined_name(implementation.value)
-
-                if declaration and (implementation.file not in _values_map or
-                                    name not in _values_map[implementation.file]):
-                    # Prepare dictionary
-                    for coll in (_definitions, _declarations):
-                        if implementation.file not in coll:
-                            coll[implementation.file] = dict()
-
-                    # Create new artificial variables and functions
-                    if function_flag:
-                        func = resolve_existing(name, implementation, _definitions)
-                        if not func:
-                            func = create_definition(declaration, name, implementation)
-                            _definitions[implementation.file][name] = func
-                    elif not function_flag and not isinstance(declaration, Primitive):
-                        var = resolve_existing(name, implementation, _declarations)
-                        if not var:
-                            if isinstance(declaration, Array):
-                                declaration = declaration.element.take_pointer
-                            elif not isinstance(declaration, Pointer):
-                                # Try to use pointer instead of the value
-                                declaration = declaration.take_pointer
-                            var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                           implementation.file, declaration, export=True, scope='global')
-                            var.value = implementation.adjusted_value(declaration)
-                            _declarations[implementation.file][name] = var
-
-                    if var or func:
-                        new_value = func.name if func else var.name
-                        if implementation.file not in _values_map:
-                            _values_map[implementation.file] = dict()
-                        _values_map[implementation.file][new_value] = implementation.value
-                        implementation.declaration = declaration
-                        implementation.value = new_value
-
-                        if var:
-                            process.add_declaration(implementation.file, name, var.declare_with_init() + ";\n")
-                            process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
+                    svar = sa.get_source_variable(implementation.value, file)
+                    function_flag = False
+                    if not svar:
+                        candidate = sa.get_source_function(implementation.value, file)
+                        if candidate:
+                            declaration = candidate.declaration
+                            function_flag = True
                         else:
-                            process.add_definition(implementation.file, name, func.define() + ["\n"])
-                            process.add_declaration('environment model', name, func.declare(extern=True)[0])
+                            # Seems that this is a variable without initialization
+                            declaration = implementation.declaration
+                    else:
+                        # Because this is a Variable
+                        declaration = svar.declaration
+
+                    # Determine name
+                    name = sa.refined_name(implementation.value)
+
+                    if declaration and (file not in _values_map or
+                                        name not in _values_map[file]):
+                        # Prepare dictionary
+                        for coll in (_definitions, _declarations):
+                            if file not in coll:
+                                coll[file] = dict()
+
+                        # Create new artificial variables and functions
+                        if function_flag:
+                            func = resolve_existing(name, implementation, _definitions)
+                            if not func:
+                                func = create_definition(declaration, name, implementation)
+                                _definitions[file][name] = func
+                        elif not function_flag and not isinstance(declaration, Primitive):
+                            var = resolve_existing(name, implementation, _declarations)
+                            if not var:
+                                if isinstance(declaration, Array):
+                                    declaration = declaration.element.take_pointer
+                                elif not isinstance(declaration, Pointer):
+                                    # Try to use pointer instead of the value
+                                    declaration = declaration.take_pointer
+                                var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                                 declaration)
+                                var.declaration_files.add(file)
+                                var.value = implementation.adjusted_value(declaration)
+                                _declarations[file][name] = var
+
+                        if var or func:
+                            new_value = func.name if func else var.name
+                            if file not in _values_map:
+                                _values_map[file] = dict()
+                            _values_map[file][new_value] = implementation.value
+                            implementation.declaration = declaration
+                            implementation.value = new_value
+
+                            if var:
+                                process.add_declaration(file, name, var.declare_with_init() + ";\n")
+                                process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
+                            else:
+                                process.add_definition(file, name, func.define() + ["\n"])
+                                process.add_declaration('environment model', name, func.declare(extern=True)[0])
 
     return
 
@@ -899,7 +910,7 @@ def _copy_process(process, instances_left):
     return inst
 
 
-def _split_into_instances(analysis, process, resource_new_insts, simplified_map=None):
+def _split_into_instances(interfaces, process, resource_new_insts, simplified_map=None):
     """
     Get a process and calculate instances to get automata with exactly one implementation per interface.
 
@@ -913,7 +924,7 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
 
     Generated instance here is a just map from accesses and interfaces to particular implementations whish will be
     provided to a copy of the Process object later in modelTranslator.
-    :param analysis: ModuleCategoriesSpecification object.
+    :param interfaces: InterfaceCollection object.
     :param process: Process object.
     :param resource_new_insts: Number of new instances allowed to generate for resources.
     :param simplified_map: {'Access.expression string'->'Interface.identifier string'->'value string'}
@@ -926,13 +937,13 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
 
     accesses = process.accesses()
     interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list = \
-        _extract_implementation_dependencies(analysis, access_map, accesses)
+        _extract_implementation_dependencies(access_map, accesses)
 
     # Generate access maps itself with base values only
     maps = []
     total_chosen_values = set()
     if len(final_options_list) > 0:
-        ivector = [0 for i in enumerate(final_options_list)]
+        ivector = [0 for _ in enumerate(final_options_list)]
 
         for _ in enumerate(interface_to_value[final_options_list[0]]):
             new_map = copy.deepcopy(access_map)
@@ -963,8 +974,8 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
             maps = [[access_map, set()]]
 
     # Then set the other values
-    for expression in sorted(access_map.keys()):
-        for interface in sorted(access_map[expression].keys()):
+    for expression in access_map.keys():
+        for interface in access_map[expression].keys():
             intf_additional_maps = []
             # If container has values which depends on another container add a map with unitialized value for the
             # container
@@ -1006,7 +1017,7 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
                         total_chosen_values.add(suits[0])
                     elif len(suits) > 1:
                         # There can be many useless resource implementations ...
-                        interface_obj = analysis.get_intf(interface)
+                        interface_obj = interfaces.get_intf(interface)
                         if isinstance(interface_obj, Resource) and resource_new_insts > 0:
                             suits = suits[0:resource_new_insts]
                         elif isinstance(interface_obj, Container):
@@ -1036,10 +1047,10 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
             instance_map = dict()
             used_values = set()
 
-            for expression in sorted(smap.keys()):
+            for expression in smap.keys():
                 instance_map[expression] = dict()
 
-                for interface in sorted(smap[expression].keys()):
+                for interface in smap[expression].keys():
                     if smap[expression][interface]:
                         instance_map[expression][interface] = value_to_implementation[smap[expression][interface]]
                         used_values.add(smap[expression][interface])
@@ -1055,9 +1066,9 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
         for smap, cv in maps:
             instance_desc = [dict(), list(cv)]
 
-            for expression in sorted(smap.keys()):
+            for expression in smap.keys():
                 instance_desc[0][expression] = dict()
-                for interface in sorted(smap[expression].keys()):
+                for interface in smap[expression].keys():
                     if smap[expression][interface]:
                         instance_desc[0][expression][interface] = smap[expression][interface].value
                     else:
@@ -1067,7 +1078,7 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
     return [m for m, cv in maps], simplified_map
 
 
-def _extract_implementation_dependencies(analysis, access_map, accesses):
+def _extract_implementation_dependencies(access_map, accesses):
     """
     This function performs the following operations:
     * Calculate relevant maps for choosing implementations for instances.
@@ -1076,7 +1087,6 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     * Reduces a number of container implementations trying to choose only that ones which together 'cover' all relevant
       child values to reduce number of instances with the same callbacks.
 
-    :param analysis: ModuleCategoriesSpecification object.
     :param access_map: Dictionary which is a prototype of an instance map used for process copying:
                        {'Access.expression string'->'Interface.identifier string'->'Implementation object/None'}.
     :param accesses: Process.accesses() dictionary:
@@ -1102,14 +1112,14 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     options_interfaces = set()
 
     # Collect dependencies between interfaces, implem,entations and containers
-    for access in sorted(accesses.keys()):
+    for access in accesses.keys():
         access_map[access] = {}
 
         for inst_access in [inst for inst in accesses[access] if inst.interface]:
             access_map[inst_access.expression][inst_access.interface.identifier] = None
             interface_to_expression[inst_access.interface.identifier] = access
 
-            implementations = analysis.implementations(inst_access.interface)
+            implementations = inst_access.interface.implementations
             interface_to_value[inst_access.interface.identifier] = {}
             for impl in implementations:
                 value_to_implementation[impl.value] = impl
@@ -1131,7 +1141,7 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     # Choose greedy minimal set of container implementations which cover all relevant child interface implementations
     # (callbacks, resources ...)
     containers_impacts = {}
-    for container_id in [container_id for container_id in sorted(list(options_interfaces))
+    for container_id in [container_id for container_id in list(options_interfaces)
                          if len([value for value in interface_to_value[container_id]
                                  if value in basevalue_to_value]) > 0]:
         # Collect all child values
@@ -1139,7 +1149,7 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
         summary_interfaces = set()
         original_options = set()
 
-        for value in [value for value in sorted(list(interface_to_value[container_id])) if value in basevalue_to_value]:
+        for value in [value for value in interface_to_value[container_id] if value in basevalue_to_value]:
             summary_values.update(basevalue_to_value[value])
             summary_interfaces.update(basevalue_to_interface[value])
             original_options.add(value)
@@ -1195,8 +1205,8 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
                                            'Implementation.base_value string'}
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}
     :return: Map from values to solutions (if so suitable found):
-             {'Value string'->[{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
-                               set{used values strings}]}
+             {'Value string'->[{'Access.expression string'->'Interface.identifier string'->
+                               'Implementation object/None'}, set{used values strings}]}
     """
     result_map = dict()
     added = []
@@ -1208,7 +1218,7 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
         if len(interface_to_value[interface][value]) > 0:
             suitable_map = None
             for mp, chosen_values in ((m, cv) for m, cv in maps if not m[expression][interface] and m not in added):
-                for e in (e for e in sorted(mp.keys()) if isinstance(mp[e], dict)):
+                for e in (e for e in mp.keys() if isinstance(mp[e], dict)):
                     same_container = \
                         [mp for i in mp[e] if i != interface and isinstance(mp[e][i], Implementation) and
                          mp[e][i].base_value and _from_same_container(v_implementation, mp[e][i])]
@@ -1252,7 +1262,7 @@ def _fulfil_map(expression, interface, value_map, reuse, value_to_implementation
         raise ValueError('Expect non-empty list of maps for instanciating from')
     first = reuse[0]
 
-    for value in sorted(value_map.keys()):
+    for value in value_map.keys():
         if value_map[value]:
             new = value_map[value]
         else:
@@ -1276,7 +1286,7 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
     :param value: Provided implementation of an interface.
     :param chosen_values: Set of already added values.
     :param total_chosen_values: Set of already added values from all instance maps.
-    :param interface_to_expression: Dictionary {'Interface.identifier string' -> 'Access.expression string'}.
+    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Access.expression string'}.
     :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
     :return: Set with all added values (a given one plus a container if so).
     """
@@ -1285,8 +1295,7 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
     chosen_values.add(value)
     total_chosen_values.add(value)
 
-    hidden_container_values = sorted([cv for cv in interface_to_value[interface][value]
-                                      if cv not in value_to_implementation])
+    hidden_container_values = [cv for cv in interface_to_value[interface][value] if cv not in value_to_implementation]
 
     if len(hidden_container_values) > 0:
         first_random = hidden_container_values.pop()

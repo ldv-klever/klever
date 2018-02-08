@@ -71,7 +71,7 @@ class AbstractProcessImporter(ProcessImporter):
         act = super(AbstractProcessImporter, self)._import_action(name, process_strings, dic)
 
         # Add comment if it is provided
-        if 'comment' in dic[name]:
+        if 'comment' in dic:
             act.comment = dic['comment']
         elif not isinstance(act, Call):
             comments_by_type = get_necessary_conf_property(self.conf, 'action comments')

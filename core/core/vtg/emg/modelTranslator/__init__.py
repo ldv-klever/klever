@@ -121,8 +121,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
     avt["entry points"] = [cmodel.entry_name]
     for grp in avt['grps']:
         logger.info('Add aspects to C files of group {!r}'.format(grp['id']))
-        for cc_extra_full_desc_file in sorted([f for f in grp['cc extra full desc files'] if 'in file' in f],
-                                              key=lambda f: f['in file']):
+        for cc_extra_full_desc_file in [f for f in grp['cc extra full desc files'] if 'in file' in f]:
             if cc_extra_full_desc_file["in file"] in addictions:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
@@ -153,7 +152,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model):
             file_candidates.update(json_files)
 
         # Filter specifications
-        for file in sorted(file_candidates):
+        for file in file_candidates:
             with open(file, encoding="utf8") as fh:
                 try:
                     content = json.loads(fh.read())

@@ -68,8 +68,8 @@ def export_process(process):
             if len(action.peers) > 0:
                 d['peers'] = list()
                 for p in action.peers:
-                    d['peers'].append(p['process'].external_id)
-                    if not p['process'].external_id:
+                    d['peers'].append(p['process'].pretty_id)
+                    if not p['process'].pretty_id:
                         raise ValueError('Any peer must have an external identifier')
 
             if isinstance(action, Dispatch) and action.broadcast:
@@ -83,7 +83,7 @@ def export_process(process):
         return d
 
     data = {
-        'identifier': process.external_id,
+        'identifier': process.pretty_id,
         'category': process.category,
         'comment': process.comment,
         'process': process.process,
@@ -146,13 +146,34 @@ class Process:
 
     @property
     def unmatched_receives(self):
-        return [self.actions[act] for act in sorted(self.actions.keys()) if isinstance(self.actions[act], Receive) and
+        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Receive) and
                 len(self.actions[act].peers) == 0]
 
     @property
     def unmatched_dispatches(self):
-        return [self.actions[act] for act in sorted(self.actions.keys()) if isinstance(self.actions[act], Dispatch) and
+        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Dispatch) and
                 len(self.actions[act].peers) == 0]
+
+    @property
+    def unused_labels(self):
+        used_labels = set()
+
+        def extract_labels(expr):
+            for m in self.label_re.finditer(expr):
+                used_labels.add(m.group(1))
+
+        for action in self.actions.values():
+            if isinstance(action, Receive) or isinstance(action, Dispatch):
+                for param in action.parameters:
+                    extract_labels(param)
+            if isinstance(action, Condition):
+                for statement in action.statements:
+                    extract_labels(statement)
+            if action.condition:
+                for statement in action.condition:
+                    extract_labels(statement)
+        unused_labels = set(self.labels.keys()).difference(used_labels)
+        return unused_labels
 
     @property
     def process_ast(self):
@@ -171,8 +192,8 @@ class Process:
         # Replace action entries
         processes = [self]
         processes.extend(
-            [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(old)
+            [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
+        regexes = generate_regex_set(None, old)
         for process in processes:
             for regex in regexes:
                 m = regex['regex'].search(process.process)
@@ -209,8 +230,8 @@ class Process:
         # Replace subprocess entries
         processes = [self]
         processes.extend(
-            [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Subprocess)])
-        regexes = generate_regex_set(name)
+            [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Subprocess)])
+        regexes = generate_regex_set(None, name)
         for process in processes:
             for regex in regexes:
                 if regex['regex'].search(process.process):
@@ -226,7 +247,7 @@ class Process:
 
             if len(self._accesses) == 0 or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
-                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
+                for action in [self.actions[name] for name in self.actions.keys()]:
                     tp = type(action)
                     if tp not in exclude:
                         if isinstance(action, Receive) or isinstance(action, Dispatch):
@@ -243,7 +264,7 @@ class Process:
 
                 # Add labels with interfaces
                 if not no_labels:
-                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                    for label in [self.labels[name] for name in self.labels.keys()]:
                         access = '%{}%'.format(label.name)
                         if access not in accss or len(accss[access]) == 0:
                             accss[access] = []

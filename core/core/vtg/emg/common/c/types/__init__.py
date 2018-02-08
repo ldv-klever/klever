@@ -439,17 +439,17 @@ class Structure(Declaration):
             return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
-        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target)]
+        return [field for field in self.fields.keys() if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
-        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
+        return [field for field in self.fields.keys() if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement, typedef='none', scope=None):
         if not self.name:
             name = '{' + \
                    ('; '.join([self.fields[field].to_string(field, typedef=typedef, scope=scope)
-                               for field in sorted(self.fields.keys())]) +
+                               for field in self.fields.keys()]) +
                     '; ' if len(self.fields) > 0 else '') \
                    + '}'
         else:
@@ -489,10 +489,10 @@ class Union(Declaration):
             return 'union_noname_{}'.format(key)
 
     def contains(self, target):
-        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target)]
+        return [field for field in self.fields.keys() if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
-        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
+        return [field for field in self.fields.keys() if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement, typedef='none', scope=None):

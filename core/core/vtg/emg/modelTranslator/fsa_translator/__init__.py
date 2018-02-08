@@ -163,7 +163,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             )
 
             # Add subself.process description
-            for subp in [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
+            for subp in [automaton.process.actions[name] for name in automaton.process.actions
                          if isinstance(automaton.process.actions[name], Subprocess)]:
                 graph.node(
                     subp.name,

@@ -288,7 +288,7 @@ def __merge_points(initial_states):
                                 split_points[split]['branch liveness'][node] -= 1
 
                     # Remove completely merged branches
-                    for split in sorted(out_value.keys()):
+                    for split in out_value.keys():
                         for predecessor in (p for p in st.predecessors
                                             if split in graph[p.identifier][st.identifier]):
                             if len(out_value[split].symmetric_difference(

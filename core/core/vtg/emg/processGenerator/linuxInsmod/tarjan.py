@@ -27,9 +27,9 @@ def calculate_load_order(logger, modules):
     """
     sorted_list = []
 
-    unmarked = list(sorted(list(modules)))
+    unmarked = sorted(list(modules))
     marked = {}
-    while(unmarked):
+    while unmarked:
         selected = unmarked.pop(0)
         if selected not in marked:
             __visit(logger, selected, marked, sorted_list, modules)

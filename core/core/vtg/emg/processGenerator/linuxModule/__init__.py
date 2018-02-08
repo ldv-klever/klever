@@ -22,14 +22,12 @@ import os
 import core.utils
 from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.vtg.emg.processGenerator.linuxModule.processes import ProcessModel
+from core.vtg.emg.processGenerator.linuxModule.instances import generate_instances
 from core.vtg.emg.processGenerator.linuxModule.interface.collection import InterfaceCollection
 from core.vtg.emg.processGenerator.linuxModule.process.procImporter import AbstractProcessImporter
 
 
 def generate_processes(emg, source, processes_triple, conf):
-    # Unpack processes
-    models, events, entry = processes_triple
-
     # Get instance maps if possible
     instance_maps = dict()
     if get_conf_property(emg.conf, "EMG instances"):
@@ -57,21 +55,31 @@ def generate_processes(emg, source, processes_triple, conf):
     emg.logger.info("Import event categories specification")
     parser = AbstractProcessImporter(emg.logger, conf)
     model_processes, env_processes, _ = parser.parse_event_specification(event_spec)
-    model = ProcessModel(emg.logger, conf, model_processes, env_processes,
-                         __get_json_content(emg.logger, conf, "roles map file"))
-    model.entry_process = entry
-    model.event_processes = events
-    model.model_processes = models
+    roles_file = core.utils.find_file_or_dir(emg.logger,
+                                             get_necessary_conf_property(emg.conf, "main working directory"),
+                                             get_necessary_conf_property(conf, "roles map file"))
+
+    # Now check that we have all necessary interface specifications
+    unspecified_functions = [func for func in model_processes
+                             if func in source.source_functions and
+                             func not in [i.short_identifier for i in interfaces.function_interfaces]]
+    if len(unspecified_functions) > 0:
+        raise RuntimeError("You need to specify interface specifications for the following function models: {}"
+                           .format(', '.join(unspecified_functions)))
+
+    with open(roles_file, encoding="utf8") as fh:
+        roles_map = json.loads(fh.read())
+    process_model = ProcessModel(emg.logger, conf, interfaces, model_processes, env_processes, roles_map)
 
     emg.logger.info("Generate processes from abstract ones")
-    instance_maps, generated_processes = model.prepare_event_model(interfaces, source, instance_maps)
+    instance_maps, new_triple = generate_instances(emg.logger, conf, source, interfaces, process_model, instance_maps)
 
     # Send data to the server
     emg.logger.info("Send data on generated instances to server")
     core.utils.report(emg.logger,
                       'data',
                       {
-                          'id': id,
+                          'id': emg.id,
                           'data': instance_maps
                       },
                       emg.mqs['report files'],
@@ -85,7 +93,11 @@ def generate_processes(emg, source, processes_triple, conf):
     with open(instance_map_file, "w", encoding="utf8") as fd:
         fd.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
-    return generated_processes
+    new_models, new_event_processess, _ = new_triple
+    new_triple = [processes_triple[0] + list(new_models.values()),
+                  processes_triple[1] + list(new_event_processess.values()),
+                  processes_triple[2]]
+    return new_triple
 
 
 def __get_specs(logger, conf, directory):
@@ -101,7 +113,7 @@ def __get_specs(logger, conf, directory):
         file_candidates.update(json_files)
 
     # Filter specifications
-    for file in sorted(file_candidates):
+    for file in file_candidates:
         with open(file, encoding="utf8") as fh:
             try:
                 content = json.loads(fh.read())

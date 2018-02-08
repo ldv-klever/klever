@@ -76,8 +76,8 @@ class AbstractAccess(Access):
     def access_with_label(self, label):
         # Increase use counter
 
-        if self.label and self.label.prior_signature and not self.interface:
-            target = self.label.prior_signature
+        if self.label and self.label.declaration and not self.interface:
+            target = self.label.declaration
         elif self.label and self.list_interface[-1].identifier in self.label.interfaces:
             target = self.label.get_declaration(self.list_interface[-1].identifier)
         else:
@@ -87,7 +87,7 @@ class AbstractAccess(Access):
         accesses = self.list_access[1:]
 
         if len(accesses) > 0:
-            candidate = label.prior_signature
+            candidate = label.declaration
             previous = None
             while candidate:
                 tmp = candidate
@@ -136,14 +136,14 @@ class AbstractLabel(Label):
 
     @property
     def interfaces(self):
-        return sorted(self.__signature_map.keys())
+        return list(self.__signature_map.keys())
 
     @property
     def declarations(self):
-        if self.prior_signature:
-            return [self.prior_signature]
+        if self.declaration:
+            return [self.declaration]
         else:
-            return sorted(self.__signature_map.values(), key=lambda d: d.identifier)
+            return list(self.__signature_map.values())
 
     def get_declaration(self, identifier):
         if identifier in self.__signature_map:
@@ -180,7 +180,7 @@ class AbstractProcess(Process):
 
     @property
     def unmatched_labels(self):
-        unmatched = [self.labels[label] for label in sorted(self.labels.keys())
+        unmatched = [self.labels[label] for label in self.labels.keys()
                      if not self.labels[label].interface and not self.labels[label].signature]
         return unmatched
 
@@ -214,19 +214,19 @@ class AbstractProcess(Process):
 
     @property
     def calls(self):
-        return [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Call)]
+        return [self.actions[name] for name in self.actions.keys() if isinstance(self.actions[name], Call)]
 
     @property
     def containers(self):
-        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].container]
+        return [self.labels[name] for name in self.labels.keys() if self.labels[name].container]
 
     @property
     def callbacks(self):
-        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].callback]
+        return [self.labels[name] for name in self.labels.keys() if self.labels[name].callback]
 
     @property
     def resources(self):
-        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].resource]
+        return [self.labels[name] for name in self.labels.keys() if self.labels[name].resource]
 
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
@@ -250,22 +250,22 @@ class AbstractProcess(Process):
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
-                if len(label1.interfaces) > 0 and not label2.prior_signature and \
+                if len(label1.interfaces) > 0 and not label2.declaration and \
                         not (label2.parameter or label2.retval):
                     for intf in label1.interfaces:
                         if label1.get_declaration(intf) and (intf not in label2.interfaces or
                                                              not label2.get_declaration(intf)):
                             label2.set_declaration(intf, label1.get_declaration(intf))
-                if len(label2.interfaces) > 0 and not label1.prior_signature and \
+                if len(label2.interfaces) > 0 and not label1.declaration and \
                         not (label1.parameter or label1.retval):
                     for intf in label2.interfaces:
                         if label2.get_declaration(intf) and (intf not in label1.interfaces or
                                                              not label1.get_declaration(intf)):
                             label1.set_declaration(intf, label2.get_declaration(intf))
-                if label1.prior_signature and not label2.prior_signature and len(label2.interfaces) == 0:
-                    label2.prior_signature = label1.prior_signature
-                if label2.prior_signature and not label1.prior_signature and len(label1.interfaces) == 0:
-                    label1.prior_signature = label2.prior_signature
+                if label1.declaration and not label2.declaration and len(label2.interfaces) == 0:
+                    label2.declaration = label1.declaration
+                if label2.declaration and not label1.declaration and len(label1.interfaces) == 0:
+                    label1.declaration = label2.declaration
 
             self.actions[signals[0]].peers.append(
             {
@@ -303,7 +303,7 @@ class AbstractProcess(Process):
 
             if not self._accesses or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
-                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
+                for action in [self.actions[name] for name in self.actions.keys()]:
                     tp = type(action)
                     if tp not in exclude:
                         if isinstance(action, Call) or isinstance(action, CallRetval) and action.callback:
@@ -327,7 +327,7 @@ class AbstractProcess(Process):
 
                 # Add labels with interfaces
                 if not no_labels:
-                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                    for label in [self.labels[name] for name in self.labels.keys()]:
                         access = '%{}%'.format(label.name)
                         if access not in accss:
                             accss[access] = []
@@ -352,8 +352,7 @@ class AbstractProcess(Process):
         if not interface:
             return self._accesses[string]
         else:
-            return [acc for acc in sorted(self._accesses[string], key=lambda acc: acc.interface.identifier)
-                    if acc.interface and acc.interface.identifier == interface][0]
+            return [acc for acc in self._accesses[string] if acc.interface and acc.interface.identifier == interface][0]
 
     def get_implementation(self, access):
         if access.interface:
@@ -387,7 +386,7 @@ class AbstractProcess(Process):
 
     def add_label(self, name, declaration, value=None):
         lb = AbstractLabel(name)
-        lb.prior_signature = declaration
+        lb.declaration = declaration
         if value:
             lb.value = value
 

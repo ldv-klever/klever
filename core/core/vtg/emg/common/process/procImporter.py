@@ -32,8 +32,8 @@ class ProcessImporter:
         'headers': None,
         'declarations': None,
         'definitions': None,
-        'identifier': None,
-        'category': None
+        'category': None,
+        'identifier': 'pretty_id'
     }
     ACTION_ATTRIBUTES = {
         'comment': None,
@@ -54,12 +54,10 @@ class ProcessImporter:
         """
         Parse event categories specification and create all existing Process objects.
     
-        :param logger: logging object.
-        :param conf: Configuration dictionary with options for intermediate model.
         :param raw: Dictionary with content of JSON file of a specification.
-        :param abstract: Mean that processes are final (true) or for drivers only (initial specifications).
-        :return: [List of Process objects which correspond to kernel function models],
-                 [List of Process objects which correspond to processes with callback calls]
+        :return: [List of Process objects which correspond to functions models],
+                 [List of Process objects which correspond to generic models],
+                 Entry Process object.
         """
         env_processes = dict()
         models = dict()
@@ -120,7 +118,7 @@ class ProcessImporter:
                                     if 'process' in dic['actions'][n]])
 
             for action_name in dic['actions']:
-                action = self._import_action(name, process_strings, dic['actions'][action_name])
+                action = self._import_action(action_name, process_strings, dic['actions'][action_name])
                 process.actions[action_name] = action
 
                 if 'process' in dic['actions'][action_name]:
@@ -149,13 +147,13 @@ class ProcessImporter:
                     act = self._action_checker(string, regex, name, dic)
                     break
         if not act:
-            raise ValueError("Action '{}' is not used in process description {!r}".format(name, name))
+            raise ValueError("Action '{!r}' is not used in process description {!r}".format(name, name))
 
         # Add comment if it is provided
         for att in self.ACTION_ATTRIBUTES:
-            if att in dic[name]:
+            if att in dic:
                 if self.ACTION_ATTRIBUTES[att]:
-                    attname = self.LABEL_ATTRIBUTES[att]
+                    attname = self.ACTION_ATTRIBUTES[att]
                 else:
                     attname = att
                 setattr(act, attname, dic[att])
@@ -192,8 +190,8 @@ class ProcessImporter:
     @staticmethod
     def _establish_peers(models, env_processes, entry_process):
         # Then check peers. This is becouse in generated processes there no peers set for manually written processes
-        processes = list(models.values()) + list(env_processes.values()) + [entry_process]
-        process_map = {p.external_id: p for p in processes}
+        processes = list(models.values()) + list(env_processes.values()) + ([entry_process] if entry_process else [])
+        process_map = {p.pretty_id: p for p in processes}
         for process in processes:
             for action in [process.actions[a] for a in process.actions
                            if isinstance(process.actions[a], Receive) or isinstance(process.actions[a], Dispatch) and
@@ -202,17 +200,17 @@ class ProcessImporter:
                 for peer in action.peers:
                     if peer not in process_map:
                         raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such process "
-                                       "in the model".format(process.external_id, action.name, peer))
+                                       "in the model".format(process.pretty_id, action.name, peer))
                     target = process_map[peer]
                     new_peer = {'process': target, 'subprocess': target.actions[action.name]}
                     new_peers.append(new_peer)
                 action.peers = new_peers
 
             # Set names
-            tokens = process.external_id.split('/')
+            tokens = process.pretty_id.split('/')
             if len(tokens) < 2:
                 raise ValueError('Cannot extract category/name/ prefix from process identifier {!r}'.
-                                 format(process.external_id))
+                                 format(process.pretty_id))
             else:
                 process.category = tokens[0]
                 process.name = tokens[1]

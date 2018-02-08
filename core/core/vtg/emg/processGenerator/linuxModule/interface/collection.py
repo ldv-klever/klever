@@ -55,7 +55,7 @@ class InterfaceCollection:
 
         :return: List of Interface object identifiers.
         """
-        return sorted(self._interfaces.keys())
+        return list(self._interfaces.keys())
 
     @property
     def categories(self):
@@ -64,7 +64,7 @@ class InterfaceCollection:
 
         :return: List of strings.
         """
-        return sorted(set([self.get_intf(interface).category for interface in self.interfaces]))
+        return list(set([self.get_intf(interface).category for interface in self.interfaces]))
 
     def get_intf(self, identifier):
         """

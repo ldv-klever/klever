@@ -168,7 +168,7 @@ class CModel:
 
                 for tp in self.types:
                     lines.append(tp.to_string('') + " {\n")
-                    for field in sorted(list(tp.fields.keys())):
+                    for field in list(tp.fields.keys()):
                         lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
                                                       scope={self.entry_file}))
                     lines.append("};\n")
@@ -190,19 +190,19 @@ class CModel:
             if file in self._function_declarations:
                 lines.append("\n")
                 lines.append("/* EMG Function declarations */\n")
-                for func in sorted(self._function_declarations[file].keys()):
+                for func in self._function_declarations[file].keys():
                     lines.extend(self._function_declarations[file][func])
 
             if file in self._variables_declarations:
                 lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
-                for variable in sorted(self._variables_declarations[file].keys()):
+                for variable in self._variables_declarations[file].keys():
                     lines.extend(self._variables_declarations[file][variable])
 
             if file in self._variables_initializations and len(self._variables_initializations[file]) > 0:
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
-                for variable in sorted(self._variables_initializations[file].keys()):
+                for variable in self._variables_initializations[file].keys():
                     lines.extend(self._variables_initializations[file][variable])
 
             if file in additional_lines and 'definitions' in additional_lines[file] and \
@@ -214,7 +214,7 @@ class CModel:
             if file in self._function_definitions and len(self._function_definitions[file]) > 0:
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
-                for func in sorted(self._function_definitions[file].keys()):
+                for func in self._function_definitions[file].keys():
                     lines.extend(self._function_definitions[file][func])
                     lines.append("\n")
 
@@ -348,7 +348,7 @@ class FunctionModels:
 
                 accesses = automaton.process.resolve_access('%{}%'.format(access))
                 for access in accesses:
-                    signature = access.label.prior_signature
+                    signature = access.label.declaration
                     if signature:
                         var = automaton.determine_variable(access.label)
                         if isinstance(var.declaration, Pointer):

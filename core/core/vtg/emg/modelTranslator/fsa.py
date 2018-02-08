@@ -414,7 +414,7 @@ class Automaton:
         variables = []
 
         # Generate variable for each label
-        for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
+        for label in [self.process.labels[name] for name in self.process.labels.keys()]:
             var = self.determine_variable(label, shadow_use=True)
             if var:
                 variables.append(self.determine_variable(label, shadow_use=True))
@@ -436,9 +436,9 @@ class Automaton:
                 self.__label_variables[label.name]["default"].use += 1
             return self.__label_variables[label.name]["default"]
         else:
-            if label.prior_signature:
+            if label.declaration:
                 var = Variable("ldv_{}_{}".format(self.identifier, label.name),
-                               None, label.prior_signature, export=True)
+                               None, label.declaration, export=True)
                 if label.value:
                     var.value = label.value
 

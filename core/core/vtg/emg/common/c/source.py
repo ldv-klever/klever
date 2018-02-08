@@ -52,7 +52,7 @@ class Source:
 
         :return: function names list.
         """
-        return sorted(self._source_functions.keys())
+        return list(self._source_functions.keys())
 
     def get_source_function(self, name, path=None):
         """
@@ -115,7 +115,7 @@ class Source:
 
         :return: Variable names list.
         """
-        return sorted(self._source_vars.keys())
+        return list(self._source_vars.keys())
 
     def get_source_variable(self, name, path=None):
         """

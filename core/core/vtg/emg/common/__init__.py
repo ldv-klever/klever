@@ -72,9 +72,9 @@ def check_necessary_conf_property(conf, name, expected_type=None):
     :return: True
     """
     if name not in conf:
-        raise KeyError("Expect configuration property '{}' to be set properly".format(name))
+        raise KeyError("Expect configuration property {!r} to be set properly".format(name))
     elif name in conf and expected_type and not isinstance(conf[name], expected_type):
-        raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
+        raise TypeError("Expect configuration property {!r} to be set with a {!r} value but it has type {!r}".
                         format(name, str(expected_type), str(type(conf[name]))))
     return True
 
