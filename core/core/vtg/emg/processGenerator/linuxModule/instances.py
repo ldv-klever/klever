@@ -221,35 +221,35 @@ def _simplify_process(logger, conf, sa, interfaces, process):
     for access in process.allowed_implementations:
         for intf in (i for i in process.allowed_implementations[access] if process.allowed_implementations[access][i]):
             implementation = process.allowed_implementations[access][intf]
-            for file in implementation.declaration_files:
-                if (file not in _values_map or (implementation.value not in _values_map[file])) \
-                        and not implementation.static:
-                    # Maybe it is a variable
-                    svar = sa.get_source_variable(implementation.value, file)
-                    true_declaration = svar.raw_declaration if svar and svar.raw_declaration else None
-                    if not svar:
-                        # Seems that it is a funciton
-                        sf = sa.get_source_function(implementation.value, file)
-                        if sf:
-                            true_declaration = sf.raw_declaration
+            file = implementation.initialization_file
+            if (file not in _values_map or (implementation.value not in _values_map[file])) \
+                    and not implementation.static:
+                # Maybe it is a variable
+                svar = sa.get_source_variable(implementation.value, file)
+                true_declaration = svar.raw_declaration if svar and svar.raw_declaration else None
+                if not svar:
+                    # Seems that it is a funciton
+                    sf = sa.get_source_function(implementation.value, file)
+                    if sf:
+                        true_declaration = sf.raw_declaration
 
-                    # Check
-                    if true_declaration:
-                        # Add declaration
-                        if re.compile('^\s*static\s+').match(true_declaration):
-                            true_declaration = true_declaration.replace('static', 'extern')
-                        else:
-                            true_declaration = 'extern ' + true_declaration
-                        if ';' not in true_declaration:
-                            true_declaration += ';'
-                        true_declaration += '\n'
-                        process.add_declaration('environment model', implementation.value, true_declaration)
+                # Check
+                if true_declaration:
+                    # Add declaration
+                    if re.compile('^\s*static\s+').match(true_declaration):
+                        true_declaration = true_declaration.replace('static', 'extern')
                     else:
-                        logger.warning("There is no function or variable {!r} in module code".
-                                       format(implementation.value))
+                        true_declaration = 'extern ' + true_declaration
+                    if ';' not in true_declaration:
+                        true_declaration += ';'
+                    true_declaration += '\n'
+                    process.add_declaration('environment model', implementation.value, true_declaration)
                 else:
-                    logger.warning("Skip import if an implementation {!r} and it is {}".
-                                   format(implementation.value, 'static' if implementation.static else 'not static'))
+                    logger.warning("There is no function or variable {!r} in module code".
+                                   format(implementation.value))
+            else:
+                logger.warning("Skip import if an implementation {!r} and it is {}".
+                               format(implementation.value, 'static' if implementation.static else 'not static'))
 
     process.allowed_implementations = None
 
@@ -429,12 +429,10 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             implementation = process.get_implementation(access)
 
             if implementation and sa.refined_name(implementation.value):
-                # Eplicit callback call by found function name
-                if len(implementation.declaration_files) > 0:
-                    for file in implementation.declaration_files:
-                        if file in _values_map and implementation.value in _values_map:
-                            true_call = '(' + _values_map[file][implementation.value] + ')'
-                            break
+                file = implementation.initialization_file
+                if file in _values_map and implementation.value in _values_map:
+                    true_call = '(' + _values_map[file][implementation.value] + ')'
+                    break
                 invoke = sa.refined_name(implementation.value)
                 check = False
             elif not isinstance(implementation, bool) and get_necessary_conf_property(conf, 'implicit callback calls'):
@@ -781,7 +779,7 @@ def _remove_statics(sa, process):
     def create_definition(decl, nm, impl):
         f = c.Function("ldv_emg_wrapper_{}_{}".format(nm, identifiers.__next__()),
                        decl)
-        f.definition_file = list(implementation.declaration_files)
+        f.definition_file = impl.initialization_file
 
         # Generate call
         if not f.declaration.return_value or f.declaration.return_value.identifier == 'void':

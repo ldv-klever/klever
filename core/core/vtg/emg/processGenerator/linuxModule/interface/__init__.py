@@ -143,7 +143,7 @@ class Implementation(Variable):
     def __init__(self, name, declaration, value, file, base_container=None, base_value=None, sequence=None):
         super(Implementation, self).__init__(name, declaration)
         self.value = value
-        self.declaration_files.add(file)
+        self.initialization_file = file
         self.base_container = base_container
         self.base_value = base_value
         self.sequence = sequence

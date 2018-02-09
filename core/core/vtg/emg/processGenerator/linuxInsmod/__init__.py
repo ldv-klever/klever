@@ -16,90 +16,86 @@
 #
 import collections
 
-from core.vtg.emg.common import model_comment
+from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Process, Receive, Condition
 from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
 
 
-def generate_processes(logger, conf, avt, sa, analysis_data, processes):
-    modelp, envp, entry = processes
+def generate_processes(emg, source, processes_triple, conf):
+    # Import Specifications
+    emg.logger.info("Generate an entry process on base of source analysis of provided Linux kernel files")
 
-    logger.info("Determine initialization and exit functions")
-    inits, exits = __import_inits_exits(avt, sa)
+    emg.logger.info("Determine initialization and exit functions")
+    inits, exits, kernel_initializations = __import_inits_exits(emg.abstract_task_desc, conf, source)
 
-    logger.info('Generate insmod scenario')
-    insmod = __generate_insmod_process(logger, inits, exits)
-    envp.append(insmod)
-    return [modelp, envp, entry]
+    emg.logger.info('Generate initializing scenario')
+    insmod = __generate_insmod_process(emg.logger, inits, exits, kernel_initializations)
+
+    triple = processes_triple[0], processes_triple[1], insmod
+    return triple
 
 
-def __import_inits_exits(collection, analysis, avt):
-    # todo: Do this as soon as you add data converted from the macros section in general sa object. Then you can just
-    # todo: filer these macros and use them as inits and exits. Also add new initialization functions. Use order from
-    # todo: configuration for them
-
-    def add_init(self, module, function_name):
-        """
-        Add Linux module initialization function.
-
-        :param module: Module kernel object name string.
-        :param function_name: Initialization function name string.
-        :return: None
-        """
-        if module in self._inits and function_name != self._inits[module]:
-            raise KeyError("Cannot set two initialization functions for a module {!r}".format(module))
-        elif module not in self._inits:
-            self._inits[module] = function_name
-
-    def add_exit(self, module, function_name):
-        """
-        Add Linux module exit function.
-
-        :param module: Linux module kernel object name string.
-        :param function_name: Function name string.
-        :return: None
-        """
-        if module in self._exits and function_name != self._exits[module]:
-            raise KeyError("Cannot set two exit functions for a module {!r}".format(module))
-        elif module not in self._exits:
-            self._exits[module] = function_name
-
+def __import_inits_exits(logger, conf, avt, source):
     _inits = collections.OrderedDict()
     _exits = collections.OrderedDict()
-
-
-    collection.logger.debug("Move module initilizations functions to the modules interface specification")
     deps = {}
     for module, dep in avt['deps'].items():
-        deps[module] = list(sorted(dep))
-    order = calculate_load_order(collection.logger, deps)
+        deps[module] = list(dep)
+    order = calculate_load_order(logger, deps)
     order_c_files = []
     for module in order:
         for module2 in avt['grps']:
             if module2['id'] != module:
                 continue
             order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
-    #todo: Change with the new source analysis
-    if "init" in analysis:
-        for module in (m for m in order_c_files if m in analysis["init"]):
-            collection.add_init(module, analysis['init'][module])
-    if len(collection.inits) == 0:
+
+    init = source.get_macro(get_necessary_conf_property(conf, 'init'))
+    if init:
+        parameters = dict()
+        for path in init.parameters:
+            if len(init.parameters[path]) > 1:
+                raise ValueError("Cannot set two initialization functions for a file {!r}".format(path))
+            elif len(init.parameters[path]) == 1:
+                parameters[path] = init.parameters[path][0][0]
+
+        for module in (m for m in order_c_files if m in parameters):
+            _inits[module] = parameters[module]
+    elif not get_conf_property(conf, 'kernel'):
         raise ValueError('There is no module initialization function provided')
 
-    collection.logger.debug("Move module exit functions to the modules interface specification")
-    if "exit" in analysis:
-        for module in (m for m in reversed(order_c_files) if m in analysis['exit']):
-            collection.add_exit(module, analysis['exit'][module])
-    if len(collection.exits) == 0:
-        collection.logger.warning('There is no module exit function provided')
+    exitt = source.get_macro(get_necessary_conf_property(conf, 'exit'))
+    if exitt:
+        parameters = dict()
+        for path in exitt.parameters:
+            if len(exitt.parameters[path]) > 1:
+                raise KeyError("Cannot set two exit functions for a file {!r}".format(path))
+            elif len(exitt.parameters[path]) == 1:
+                parameters[path] = exitt.parameters[path][0][0]
+
+        for module in (m for m in reversed(order_c_files) if m in parameters):
+            _exits[module] = parameters[module]
+    if not exitt and not get_conf_property(conf, 'kernel'):
+        logger.warning('There is no module exit function provided')
+
+    kernel_initializations = []
+    if get_conf_property(conf, 'kernel'):
+        for name in get_necessary_conf_property(conf, 'kernel_initialization'):
+            mc = source.get_macro(name)
+            same_list = []
+
+            for module in (m for m in order_c_files if m in mc.parameters):
+                for call in mc.parameters[module]:
+                    same_list.append((module, call[0]))
+            if len(same_list) > 0:
+                kernel_initializations.append((name, same_list))
 
     inits = [(module, _inits[module]) for module in _inits]
     exits = [(module, _exits[module]) for module in _exits]
-    return inits, exits
+    return inits, exits, kernel_initializations
 
 
-def __generate_insmod_process(logger, inits, exits):
+def __generate_insmod_process(logger, inits, exits, kernel_initializations):
     logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
     ep = Process("insmod")
     ep.comment = "Initialize or exit module."
@@ -114,21 +110,35 @@ def __generate_insmod_process(logger, inits, exits):
     ep.actions[insmod_register.name] = insmod_register
     ep.process = '(!{}).'.format(insmod_register.name)
 
-    if len(inits) == 0:
-        raise RuntimeError('Module does not have Init function')
+    if len(kernel_initializations) > 0:
+        # Generate kernel initializations
+        for name, calls in kernel_initializations:
+            ki_subprocess = Condition(name)
+            ki_subprocess.comment = 'Kernel initialization with functions from {!r}.'.format(name)
+            body = []
 
-    # Generate init subprocess
-    for filename, init_name in inits:
-        new_name = __generate_alias(ep, init_name, filename, True)
-        init_subprocess = Condition(init_name)
-        init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
-        init_subprocess.statements = [
-            model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
-            "%ret% = {}();".format(new_name),
-            "%ret% = ldv_post_init(%ret%);"
-        ]
-        logger.debug("Found init function {}".format(init_name))
-        ep.actions[init_subprocess.name] = init_subprocess
+            for filename, func_name in calls:
+                new_name = __generate_alias(ep, func_name, filename, True)
+                statements = [
+                    model_comment('callback', func_name, {'call': "{}();".format(func_name)}),
+                    "%ret% = {}();".format(new_name),
+                    "%ret% = ldv_post_init(%ret%);"
+                ]
+                body.extend(ki_subprocess)
+            ep.actions[ki_subprocess.name] = ki_subprocess
+    if len(inits) > 0:
+        # Generate init subprocess
+        for filename, init_name in inits:
+            new_name = __generate_alias(ep, init_name, filename, True)
+            init_subprocess = Condition(init_name)
+            init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
+            init_subprocess.statements = [
+                model_comment('callback', init_name, {'call': "{}();".format(init_name)}),
+                "%ret% = {}();".format(new_name),
+                "%ret% = ldv_post_init(%ret%);"
+            ]
+            logger.debug("Found init function {}".format(init_name))
+            ep.actions[init_subprocess.name] = init_subprocess
 
     # Add ret label
     ep.add_label('ret', import_declaration("int label"))

@@ -30,6 +30,7 @@ class Variable:
         self.value = None
         self.declaration_files = set()
         self.use = 0
+        self.initialization_file = None
 
         if not declaration:
             declaration = 'void f(void)'
@@ -89,11 +90,20 @@ class Function:
     def files_called_at(self):
         return self.called_at.keys()
 
-    def call_in_function(self, func, path):
-        if path not in self.calls:
-            self.calls[path] = {func}
+    def call_in_function(self, func, parameters):
+        """
+        Save information that this function calls in its body another function which is provided within parameters
+        alongside with arguments.
+
+        :param func: Name of the called function.
+        :param parameters: List of parameters. Currently all non-function pointers are None and for function pointers
+                           the value is a function name
+        :return:
+        """
+        if func not in self.calls:
+            self.calls = {func: [parameters]}
         else:
-            self.calls[path].add(func)
+            self.calls[func].append(parameters)
 
     def add_call(self, func, path):
         if path not in self.called_at:
@@ -116,3 +126,20 @@ class Function:
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
         return lines
+
+
+class Macro:
+
+    def __init__(self, name):
+        self.name = name
+        self.parameters = dict()
+
+    def add_parameters(self, path, parameters):
+        if path not in parameters:
+            self.parameters[path] = [parameters]
+        else:
+            self.parameters[path].append(parameters)
+
+
+
+

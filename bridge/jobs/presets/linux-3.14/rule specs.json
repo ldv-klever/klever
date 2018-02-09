@@ -70,7 +70,32 @@
                 }
               },
               {
-                "linuxInsmod": {}
+                "linuxInsmod": {
+                  "init": "module_init",
+                  "exit": "module_exit",
+                  "kernel_initialization": [
+                    "early_initcall",
+                    "pure_initcall",
+                    "core_initcall",
+                    "core_initcall_sync",
+                    "postcore_initcall",
+                    "postcore_initcall_sync",
+                    "arch_initcall",
+                    "arch_initcall_sync",
+                    "subsys_initcall",
+                    "subsys_initcall_sync",
+                    "fs_initcall",
+                    "fs_initcall_sync",
+                    "rootfs_initcall",
+                    "device_initcall",
+                    "device_initcall_sync",
+                    "late_initcall",
+                    "late_initcall_sync",
+                    "console_initcall",
+                    "security_initcall"
+                  ],
+                  "kernel": false
+                }
               },
               {
                 "manualImporter": {}

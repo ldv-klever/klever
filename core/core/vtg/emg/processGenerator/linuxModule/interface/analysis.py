@@ -17,23 +17,19 @@
 from core.vtg.emg.common.c.types import Structure, Union, Array, import_declaration, extract_name, check_null
 
 
-def extract_implementations(collection, sa, raw):
+def extract_implementations(collection, sa):
     entities = []
     # todo: this section below is slow enough
-    if 'global variable initializations' in raw:
-        collection.logger.info("Import values from global variables initializations")
-        for variable in raw["global variable initializations"]:
-            variable_name = extract_name(variable['declaration'])
-            if not variable_name:
-                raise ValueError('Global variable without a name')
-
-            var = sa.get_source_variable(variable_name, variable['path'])
+    collection.logger.info("Import values from global variables initializations")
+    for varname in sa.source_variables:
+        for var in sa.get_source_variables(varname):
             if var and (isinstance(var.declaration, Structure) or isinstance(var.declaration, Array) or
-                        isinstance(var.declaration, Union)):
+                        isinstance(var.declaration, Union)) and not isinstance(var.value, str):
+                # Here we rely on fact that any file should suit
                 entity = {
-                    "path": variable['path'],
-                    "description": variable,
-                    "root value": variable_name,
+                    "path": var.initialization_file,
+                    "description": var.value,
+                    "root value": varname,
                     "root type": None,
                     "root sequence": [],
                     "type": var.declaration
@@ -41,12 +37,12 @@ def extract_implementations(collection, sa, raw):
                 intfs = collection.resolve_interface_weakly(var.declaration)
                 if len(intfs) > 1:
                     raise ValueError("Does not expect description of several containers with declation {!r}".
-                                     format(variable['declaration']))
+                                     format(var.declaration))
                 for i in intfs:
                     i.add_implementation(
-                        variable_name,
+                        varname,
                         var.declaration,
-                        variable['path'],
+                        var.initialization_file,
                         None,
                         None,
                         []
@@ -57,21 +53,17 @@ def extract_implementations(collection, sa, raw):
                 entities.append(entity)
     __import_entities(collection, entities)
 
-    if 'functions' in raw:
-        collection.logger.info("Import source functions")
-        for func in raw['functions']:
-            for path in raw['functions'][func]:
-                description = raw['functions'][func][path]
-                source_func = sa.get_source_function(func, path)
-                if source_func and "calls" in description:
-                    for name in description["calls"]:
-                        called_function = collection.get_intf(name)
-                        if called_function:
-                            for indx, parameter in enumerate(called_function.param_interfaces):
-                                if parameter:
-                                    for call in (c[indx] for c in description["calls"][name] if c[indx]):
-                                        parameter.add_implementation(call, called_function.declaration.parameters[indx],
-                                                                     path, None, None, [])
+    collection.logger.info("Search for callbacks provided as parameters")
+    for funcname in sa.source_functions:
+        for func_obj in sa.get_source_functions(funcname):
+            for cf_name in func_obj.calls:
+                called_function = collection.get_intf(cf_name)
+                if called_function:
+                    for indx, parameter in enumerate(called_function.param_interfaces):
+                        if parameter:
+                            for call in (c[indx] for c in func_obj.calls[cf_name] if c[indx]):
+                                parameter.add_implementation(call, called_function.declaration.parameters[indx],
+                                                             func_obj.definition_file, None, None, [])
 
 
 def __import_entities(collection, entities):

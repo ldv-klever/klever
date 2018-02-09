@@ -33,12 +33,12 @@ class InterfaceCollection:
         self._containers_cache = dict()
         self.__deleted_interfaces = dict()
 
-    def fill_up_collection(self, sa, analysis_data, interface_specification):
+    def fill_up_collection(self, sa, interface_specification):
         self.logger.info("Analyze provided interface categories specification")
         import_interface_specification(self, sa, interface_specification)
 
         self.logger.info("Import results of source code analysis")
-        extract_implementations(self, sa, analysis_data)
+        extract_implementations(self, sa)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
         yield_categories(self, self.conf)

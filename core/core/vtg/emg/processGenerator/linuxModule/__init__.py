@@ -46,11 +46,7 @@ def generate_processes(emg, source, processes_triple, conf):
 
     emg.logger.info("Import interface categories specification")
     interfaces = InterfaceCollection(emg.logger, conf)
-    sa_file = os.path.join(get_necessary_conf_property(emg.conf, "main working directory"),
-                           emg.abstract_task_desc["source analysis"])
-    with open(sa_file, encoding="utf8") as fh:
-        analysis_data = json.loads(fh.read())
-    interfaces.fill_up_collection(source, analysis_data, interface_spec)
+    interfaces.fill_up_collection(source, interface_spec)
 
     emg.logger.info("Import event categories specification")
     parser = AbstractProcessImporter(emg.logger, conf)
