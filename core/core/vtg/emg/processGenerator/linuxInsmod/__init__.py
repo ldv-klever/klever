@@ -19,7 +19,7 @@ import collections
 from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Process, Receive, Condition
+from core.vtg.emg.common.process import Process, Condition
 from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
 
 
