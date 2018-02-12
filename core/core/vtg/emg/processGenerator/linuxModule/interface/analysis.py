@@ -28,7 +28,7 @@ def extract_implementations(collection, sa):
                 # Here we rely on fact that any file should suit
                 entity = {
                     "path": var.initialization_file,
-                    "description": var.value,
+                    "description": {'value': var.value},
                     "root value": varname,
                     "root type": None,
                     "root sequence": [],

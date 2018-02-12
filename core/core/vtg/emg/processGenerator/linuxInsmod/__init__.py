@@ -17,6 +17,7 @@
 import collections
 
 from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Process, Receive, Condition
 from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
@@ -27,7 +28,7 @@ def generate_processes(emg, source, processes_triple, conf):
     emg.logger.info("Generate an entry process on base of source analysis of provided Linux kernel files")
 
     emg.logger.info("Determine initialization and exit functions")
-    inits, exits, kernel_initializations = __import_inits_exits(emg.abstract_task_desc, conf, source)
+    inits, exits, kernel_initializations = __import_inits_exits(emg.logger, conf, emg.abstract_task_desc, source)
 
     emg.logger.info('Generate initializing scenario')
     insmod = __generate_insmod_process(emg.logger, inits, exits, kernel_initializations)
@@ -101,31 +102,37 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
     ep.comment = "Initialize or exit module."
     ep.self_parallelism = False
     ep.identifier = 0
-
-    # Add register
-    insmod_register = Receive('insmod_register')
-    insmod_register.replicative = True
-    insmod_register.comment = 'Trigger module initialization.'
-    insmod_register.parameters = []
-    ep.actions[insmod_register.name] = insmod_register
-    ep.process = '(!{}).'.format(insmod_register.name)
+    ep.process = ''
 
     if len(kernel_initializations) > 0:
+        body = [
+            "int ret;"
+        ]
+
         # Generate kernel initializations
         for name, calls in kernel_initializations:
-            ki_subprocess = Condition(name)
-            ki_subprocess.comment = 'Kernel initialization with functions from {!r}.'.format(name)
-            body = []
-
             for filename, func_name in calls:
                 new_name = __generate_alias(ep, func_name, filename, True)
                 statements = [
                     model_comment('callback', func_name, {'call': "{}();".format(func_name)}),
-                    "%ret% = {}();".format(new_name),
-                    "%ret% = ldv_post_init(%ret%);"
+                    "ret = {}();".format(new_name),
+                    "ret = ldv_post_init(ret);",
+                    "if (ret)",
+                    "\tgoto ldv_kernelinit_retlabel;"
                 ]
-                body.extend(ki_subprocess)
-            ep.actions[ki_subprocess.name] = ki_subprocess
+                body.extend(statements)
+        body.extend([
+            "ldv_kernel_init_retlabel:",
+            "return ret;"
+        ])
+        func = Function('ldv_kernel_init', 'void ldv_kernel_init(void)')
+        func.body = body
+        addon = func.define()
+        ep.definitions['environment model']['ldv_kernel_init'] = addon
+        ki_subprocess = ep.add_condition('kernel_initialization', [], ["%ret% = ldv_kernel_init();"],
+                                         'Kernel initialization stage.')
+        ki_success = ep.add_condition('kerninit_success', ["%ret% == 0"], [], "Kernel initialization is successful.")
+        ki_failed = ep.add_condition('kerninit_failed', ["%ret% != 0"], [], "Kernel initialization is unsuccessful.")
     if len(inits) > 0:
         # Generate init subprocess
         for filename, init_name in inits:
@@ -165,28 +172,32 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
     failed = ep.add_condition('init_failed', ["%ret% != 0"], [], "Failed to initialize the module.")
     ep.actions[failed.name] = failed
 
-    # Add deregister
-    insmod_deregister = Receive('insmod_deregister')
-    insmod_deregister.comment = 'Trigger module exit.'
-    insmod_deregister.parameters = []
-    ep.actions[insmod_deregister.name] = insmod_deregister
-
     # Add subprocesses finally
+    process = ''
     for i, pair in enumerate(inits):
-        ep.process += "<{0}>.(<init_failed>.".format(pair[1])
+        process += "<{0}>.(<init_failed>.".format(pair[1])
         for j, pair2 in enumerate(exits[::-1]):
             if pair2[0] == pair[0]:
                 break
         j = 1
         for _, exit_name in exits[:j - 1:-1]:
-            ep.process += "<{}>.".format(exit_name)
-        ep.process += "({})|<init_success>.".format(insmod_deregister.name)
+            process += "<{}>.".format(exit_name)
+        process += "|<init_success>."
 
     for _, exit_name in exits:
-        ep.process += "<{}>.".format(exit_name)
-    ep.process += "({})".format(insmod_deregister.name)
-    ep.process += ")" * len(inits)
-    logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
+        process += "<{}>.".format(exit_name)
+    process += ")" * len(inits)
+    final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
+                             "Check rule model state at the exit.")
+    if len(kernel_initializations) > 0 and len(inits) > 0:
+        ep.process += "<{}>.(<{}> | <{}>.(<{}>))".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
+    elif len(kernel_initializations) == 0 and len(inits) > 0:
+        ep.process += process
+    elif len(kernel_initializations) > 0 and len(inits) == 0:
+        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
+    else:
+        raise NotImplementedError("There is no both kernel initilization functions and module initialization functions")
+    ep.process += '.<{}>'.format(final.name)
     return ep
 
 
