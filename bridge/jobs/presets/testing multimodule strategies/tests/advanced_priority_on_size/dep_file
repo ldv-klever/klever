@@ -1,2 +1,2 @@
-extra/big_module.ko needs "export_err": extra/init.ko
-extra/small_module.ko needs "export_err": extra/init.ko
+extra/advanced_priority_on_size/big_module.ko needs "export_err": extra/advanced_priority_on_size/init.ko
+extra/advanced_priority_on_size/small_module.ko needs "export_err": extra/advanced_priority_on_size/init.ko

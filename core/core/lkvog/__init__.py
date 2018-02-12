@@ -145,6 +145,8 @@ class LKVOG(core.components.Component):
         strategy_name = self.conf['LKVOG strategy']['name']
 
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
+        if 'external modules' in self.conf['Linux kernel']:
+            subsystems = ['ext-modules/' + subsystem for subsystem in subsystems]
 
         self.linux_kernel_src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                                self.conf['Linux kernel']['source'])
