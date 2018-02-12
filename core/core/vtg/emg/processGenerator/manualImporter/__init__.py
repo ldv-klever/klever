@@ -1,56 +1,65 @@
-def __generate_base_process(self, default_dispatches=False):
-    if get_conf_property(conf, "extra processes"):
-        self.logger.info('Looking for a file with additional processes {!r}'.
-                         format(get_necessary_conf_property(self.conf, "extra processes")))
-        with open(core.utils.find_file_or_dir(self.logger,
-                                              get_necessary_conf_property(self.conf, "main working directory"),
-                                              get_necessary_conf_property(self.conf, "extra processes")),
-                  encoding='utf8') as fp:
-            extra_processes = json.load(fp)
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import json
 
-        # Merge manually prepared processes with generated ones and provide the model to modelTranslator
-        # todo: how to replace main process
-        if extra_processes:
-            for category in extra_processes:
-                generated_processes[category].update(extra_processes[category])
+import core.utils
+from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common.process import Receive, Dispatch
+from core.vtg.emg.common.process.procImporter import ProcessImporter
 
-        # Parse this final model
-        model_processes, env_processes, entry_process = \
-            parse_event_specification(emg.logger,
-                                      get_necessary_conf_property(emg.conf, 'intermediate model options'),
-                                      generated_processes, abstract=False)
 
-    self.__logger.debug("Generate main process")
-    ep = AbstractProcess("main")
-    ep.comment = "Main entry point function."
-    ep.self_parallelism = False
-    ep.category = "main"
-    ep.identifier = 0
+def generate_processes(emg, source, processes_triple, conf):
+    # Import Specifications
+    emg.logger.info("Import manually prepared process descriptions and add them to the generated processes")
+    # Import manual process
+    filename = get_necessary_conf_property(conf, "process descriptions files")
+    with open(core.utils.find_file_or_dir(emg.logger, get_necessary_conf_property(emg.conf, "main working directory"),
+                                          filename),
+              encoding='utf8') as fp:
+        descriptions = json.load(fp)
+    importer = ProcessImporter(emg.logger, emg.conf)
+    model_processes, env_processes, entry = importer.parse_event_specification(descriptions)
+    or_models, or_processes, or_entry = processes_triple
 
-    # Add register
-    init = ep.add_condition('init', [], ["ldv_initialize();"], "Initialize rule models.")
-    ep.process = '({}).'.format(init.name)
+    # Convert dispatches to the simple form for each process
+    for process in or_models + or_processes + ([or_entry] if or_entry else []):
+        for action in (a for a in process.actions if isinstance(a, Dispatch) or isinstance(a, Receive)):
+            if len(action.peers) > 0:
+                peers = list()
+                for p in action.peers:
+                    peers.append(p['process'].pretty_id)
+                    if not p['process'].pretty_id:
+                        raise ValueError('Any peer must have an external identifier')
+                action.peers = peers
 
-    # Add default dispatches
-    if default_dispatches:
-        # todo: insert there registration of initially present processes
-        expr = self.__generate_default_dispatches(ep)
-        if expr:
-            ep.process += "{}.".format(expr)
-    else:
-        # Add insmod signals
-        regd = Dispatch('insmod_register')
-        regd.comment = 'Start environment model scenarios.'
-        ep.actions[regd.name] = regd
-        derd = Dispatch('insmod_deregister')
-        derd.comment = 'Stop environment model scenarios.'
-        ep.actions[derd.name] = derd
-        ep.process += "[{}].[{}]".format(regd.name, derd.name)
+    # Decide on process replacements
+    if get_conf_property(conf, "enforce replacement"):
+        if or_entry and entry:
+            or_processes.append(or_entry)
+            or_entry = entry
 
-    # Generate final
-    final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
-                             "Check rule model state at the exit.")
-    ep.process += '.<{}>'.format(final.name)
+    # Replace rest processes
+    for collection, generated in ((or_models, model_processes), (or_processes, env_processes)):
+        for process in generated.values():
+            if process.pretty_id in (p.pretty_id for p in collection) and get_conf_property(conf, "enforce replacement"):
+                collection[[p.pretty_id for p in collection].index(process.pretty_id)] = process
+            elif process.pretty_id not in (p.pretty_id for p in collection):
+                collection.insert(0, process)
 
-    self.__logger.debug("Main process is generated")
-    return ep
+    importer.establish_peers(or_models, or_processes, or_entry, strict=True)
+
+    return or_models, or_processes, or_entry

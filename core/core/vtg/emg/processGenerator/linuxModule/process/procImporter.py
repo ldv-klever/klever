@@ -121,6 +121,6 @@ class AbstractProcessImporter(ProcessImporter):
         return act
 
     @staticmethod
-    def _establish_peers(models, env_processes, entry_process):
+    def establish_peers(models, env_processes, entry_process):
         # There is no need in this function there
         return

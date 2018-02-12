@@ -103,6 +103,7 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
     ep.self_parallelism = False
     ep.identifier = 0
     ep.process = ''
+    ep.pretty_id = 'linux/initialization'
 
     if len(kernel_initializations) > 0:
         body = [

@@ -61,10 +61,7 @@ class ProcessImporter:
         """
         env_processes = dict()
         models = dict()
-    
-        # Check necessary configuration options
-        check_necessary_conf_property(self.conf, "action comments", expected_type=dict)
-    
+
         self.logger.info("Import processes from provided event categories specification")
         if "functions models" in raw:
             self.logger.info("Import processes from 'kernel model'")
@@ -85,7 +82,7 @@ class ProcessImporter:
         else:
             entry_process = None
 
-        self._establish_peers(models, env_processes, entry_process)
+        self.establish_peers(list(models.values()), list(env_processes.values()), entry_process)
         return models, env_processes, entry_process
 
     def _import_process(self, name, dic):
@@ -188,9 +185,9 @@ class ProcessImporter:
         return act
 
     @staticmethod
-    def _establish_peers(models, env_processes, entry_process):
+    def establish_peers(models, env_processes, entry_process, strict=False):
         # Then check peers. This is becouse in generated processes there no peers set for manually written processes
-        processes = list(models.values()) + list(env_processes.values()) + ([entry_process] if entry_process else [])
+        processes = models + env_processes + ([entry_process] if entry_process else [])
         process_map = {p.pretty_id: p for p in processes}
         for process in processes:
             for action in [process.actions[a] for a in process.actions
@@ -198,12 +195,14 @@ class ProcessImporter:
                            len(process.actions[a].peers) > 0]:
                 new_peers = []
                 for peer in action.peers:
-                    if peer not in process_map:
-                        raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such process "
-                                       "in the model".format(process.pretty_id, action.name, peer))
-                    target = process_map[peer]
-                    new_peer = {'process': target, 'subprocess': target.actions[action.name]}
-                    new_peers.append(new_peer)
+                    if isinstance(peer, str):
+                        if peer in process_map:
+                            target = process_map[peer]
+                            new_peer = {'process': target, 'subprocess': target.actions[action.name]}
+                            new_peers.append(new_peer)
+                        elif strict:
+                            raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
+                                           "process in the model".format(process.pretty_id, action.name, peer))
                 action.peers = new_peers
 
             # Set names
