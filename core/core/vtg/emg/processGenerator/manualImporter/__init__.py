@@ -26,7 +26,7 @@ def generate_processes(emg, source, processes_triple, conf):
     # Import Specifications
     emg.logger.info("Import manually prepared process descriptions and add them to the generated processes")
     # Import manual process
-    filename = get_necessary_conf_property(conf, "process descriptions files")
+    filename = get_necessary_conf_property(conf, "process descriptions file")
     with open(core.utils.find_file_or_dir(emg.logger, get_necessary_conf_property(emg.conf, "main working directory"),
                                           filename),
               encoding='utf8') as fp:
