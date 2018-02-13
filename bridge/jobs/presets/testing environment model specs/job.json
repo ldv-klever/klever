@@ -109,18 +109,6 @@
 		"source": "linux-2.6.33.20",
         "external modules": "tests",
         "modules": [
-          "usb_driver_v.1"
-        ]
-      }
-    }
-  ],
-  "Sub-jobs~": [
-    {
-      "specifications set": "Linux 2.6.33",
-      "Linux kernel": {
-		"source": "linux-2.6.33.20",
-        "external modules": "tests",
-        "modules": [
           "block_device_operations_v.1",
           "class_v.1",
           "devm_threaded_irq_v.1",

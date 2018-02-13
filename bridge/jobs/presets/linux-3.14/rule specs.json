@@ -46,6 +46,7 @@
             "intermediate model options": [
               {
                 "linuxModule": {
+                  "convert statics to globals": true,
                   "add registration guards": true,
                   "ignore missed callbacks": true,
                   "implicit callback calls": true,
