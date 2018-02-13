@@ -801,68 +801,68 @@ def _remove_statics(sa, process):
         for interface in (i for i in access_map[access] if access_map[access][i]):
             implementation = access_map[access][interface]
             if implementation.static:
-                for file in implementation.declaration_files:
-                    func = None
-                    var = None
+                file = implementation.initialization_file
+                func = None
+                var = None
 
-                    svar = sa.get_source_variable(implementation.value, file)
-                    function_flag = False
-                    if not svar:
-                        candidate = sa.get_source_function(implementation.value, file)
-                        if candidate:
-                            declaration = candidate.declaration
-                            function_flag = True
-                        else:
-                            # Seems that this is a variable without initialization
-                            declaration = implementation.declaration
+                svar = sa.get_source_variable(implementation.value, file)
+                function_flag = False
+                if not svar:
+                    candidate = sa.get_source_function(implementation.value, file)
+                    if candidate:
+                        declaration = candidate.declaration
+                        function_flag = True
                     else:
-                        # Because this is a Variable
-                        declaration = svar.declaration
+                        # Seems that this is a variable without initialization
+                        declaration = implementation.declaration
+                else:
+                    # Because this is a Variable
+                    declaration = svar.declaration
 
-                    # Determine name
-                    name = sa.refined_name(implementation.value)
+                # Determine name
+                name = sa.refined_name(implementation.value)
 
-                    if declaration and (file not in _values_map or
-                                        name not in _values_map[file]):
-                        # Prepare dictionary
-                        for coll in (_definitions, _declarations):
-                            if file not in coll:
-                                coll[file] = dict()
+                if declaration and (file not in _values_map or
+                                    name not in _values_map[file]):
+                    # Prepare dictionary
+                    for coll in (_definitions, _declarations):
+                        if file not in coll:
+                            coll[file] = dict()
 
-                        # Create new artificial variables and functions
-                        if function_flag:
-                            func = resolve_existing(name, implementation, _definitions)
-                            if not func:
-                                func = create_definition(declaration, name, implementation)
-                                _definitions[file][name] = func
-                        elif not function_flag and not isinstance(declaration, Primitive):
-                            var = resolve_existing(name, implementation, _declarations)
-                            if not var:
-                                if isinstance(declaration, Array):
-                                    declaration = declaration.element.take_pointer
-                                elif not isinstance(declaration, Pointer):
-                                    # Try to use pointer instead of the value
-                                    declaration = declaration.take_pointer
-                                var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
-                                                 declaration)
-                                var.declaration_files.add(file)
-                                var.value = implementation.adjusted_value(declaration)
-                                _declarations[file][name] = var
+                    # Create new artificial variables and functions
+                    if function_flag:
+                        func = resolve_existing(name, implementation, _definitions)
+                        if not func:
+                            func = create_definition(declaration, name, implementation)
+                            _definitions[file][name] = func
+                    elif not function_flag and not isinstance(declaration, Primitive):
+                        var = resolve_existing(name, implementation, _declarations)
+                        if not var:
+                            if isinstance(declaration, Array):
+                                declaration = declaration.element.take_pointer
+                            elif not isinstance(declaration, Pointer):
+                                # Try to use pointer instead of the value
+                                declaration = declaration.take_pointer
+                            var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
+                                             declaration)
+                            var.declaration_files.add(file)
+                            var.value = implementation.adjusted_value(declaration)
+                            _declarations[file][name] = var
 
-                        if var or func:
-                            new_value = func.name if func else var.name
-                            if file not in _values_map:
-                                _values_map[file] = dict()
-                            _values_map[file][new_value] = implementation.value
-                            implementation.declaration = declaration
-                            implementation.value = new_value
+                    if var or func:
+                        new_value = func.name if func else var.name
+                        if file not in _values_map:
+                            _values_map[file] = dict()
+                        _values_map[file][new_value] = implementation.value
+                        implementation.declaration = declaration
+                        implementation.value = new_value
 
-                            if var:
-                                process.add_declaration(file, name, var.declare_with_init() + ";\n")
-                                process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
-                            else:
-                                process.add_definition(file, name, func.define() + ["\n"])
-                                process.add_declaration('environment model', name, func.declare(extern=True)[0])
+                        if var:
+                            process.add_declaration(file, name, var.declare_with_init() + ";\n")
+                            process.add_declaration('environment model', name, var.declare(extern=True) + ";\n")
+                        else:
+                            process.add_definition(file, name, func.define() + ["\n"])
+                            process.add_declaration('environment model', name, func.declare(extern=True)[0])
 
     return
 

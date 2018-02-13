@@ -341,7 +341,7 @@ class Action:
 class Subprocess(Action):
 
     def __init__(self, name):
-        super().__init__(name)
+        super(Subprocess, self).__init__(name)
         self.process = None
         self.__process_ast = None
 
@@ -358,7 +358,7 @@ class Subprocess(Action):
 class Dispatch(Action):
 
     def __init__(self, name):
-        super().__init__(name)
+        super(Dispatch, self).__init__(name)
         self.parameters = []
         self.broadcast = False
         self.peers = []
@@ -367,7 +367,7 @@ class Dispatch(Action):
 class Receive(Action):
 
     def __init__(self, name):
-        super().__init__(name)
+        super(Receive, self).__init__(name)
         self.parameters = []
         self.replicative = False
         self.peers = []
@@ -376,5 +376,5 @@ class Receive(Action):
 class Condition(Action):
 
     def __init__(self, name):
-        super().__init__(name)
+        super(Condition, self).__init__(name)
         self.statements = []

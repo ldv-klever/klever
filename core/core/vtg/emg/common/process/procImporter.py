@@ -14,9 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common import check_necessary_conf_property
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process.__init__ import Receive, Dispatch, generate_regex_set, Label, Process
+from core.vtg.emg.common.process import Receive, Dispatch, generate_regex_set, Label, Process
 
 
 class ProcessImporter:
@@ -82,7 +81,6 @@ class ProcessImporter:
         else:
             entry_process = None
 
-        self.establish_peers(list(models.values()), list(env_processes.values()), entry_process)
         return models, env_processes, entry_process
 
     def _import_process(self, name, dic):
@@ -200,6 +198,11 @@ class ProcessImporter:
                             target = process_map[peer]
                             new_peer = {'process': target, 'subprocess': target.actions[action.name]}
                             new_peers.append(new_peer)
+
+                            opposite_peers = [p['process'].pretty_id if isinstance(p, dict) else p
+                                              for p in target.actions[action.name].peers]
+                            if process.pretty_id not in opposite_peers:
+                                target.actions[action.name].peers.append({'process': process, 'subprocess': action})
                         elif strict:
                             raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
                                            "process in the model".format(process.pretty_id, action.name, peer))

@@ -24,9 +24,9 @@ from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import l
 
 class LabelTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__thread_variables = dict()
-        super(LabelTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
+        super(LabelTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         return list()
@@ -60,7 +60,7 @@ class LabelTranslator(FSATranslator):
                 sv = self.__thread_variable(automaton, 'array')
                 self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
                 return 'pthread_create_N({}, 0, {}, {});'.\
-                    format(sv.name,self._control_function(automaton).name, parameter)
+                    format(sv.name, self._control_function(automaton).name, parameter)
             else:
                 sv = self.__thread_variable(automaton, 'single')
                 self._cmodel.add_global_variable(sv, self._cmodel.entry_file, extern=True)
@@ -75,7 +75,7 @@ class LabelTranslator(FSATranslator):
         for name in (n for n in automata_peers if len(automata_peers[n]['states']) > 0):
             decl = self._get_cf_struct(automaton, function_parameters)
             cf_param = 'cf_arg_{}'.format(automata_peers[name]['automaton'].identifier)
-            vf_param_var = Variable(cf_param, None, decl.take_pointer, False, 'local')
+            vf_param_var = Variable(cf_param, decl.take_pointer)
             pre.append(vf_param_var.declare() + ';')
 
             if replicative:
@@ -93,7 +93,7 @@ class LabelTranslator(FSATranslator):
                             if automata_peers[name]['automaton'].process.self_parallelism and \
                                     get_necessary_conf_property(self._conf, 'self parallelism') and \
                                     get_conf_property(self._conf, 'pure pthread interface'):
-                                thread_vars = self.__thread_variable(automata_peers[name]['automaton'], type='pair')
+                                thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
                                 for v in thread_vars:
                                     # Expect that for this particular case the first argument is unset
                                     block.extend(['ret = {}'.format(call.format("& " + v.name)),
@@ -117,7 +117,7 @@ class LabelTranslator(FSATranslator):
                     if automata_peers[name]['automaton'].process.self_parallelism and \
                             get_necessary_conf_property(self._conf, 'self parallelism') and \
                             get_conf_property(self._conf, 'pure pthread interface'):
-                        thread_vars = self.__thread_variable(automata_peers[name]['automaton'], type='pair')
+                        thread_vars = self.__thread_variable(automata_peers[name]['automaton'], var_type='pair')
                         for v in thread_vars:
                             # Expect that for this particular case the first argument is unset
                             block.extend(['ret = {}'.format(call.format(v.name)),
@@ -161,7 +161,7 @@ class LabelTranslator(FSATranslator):
 
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
-                    var = Variable('data', None, decl.take_pointer, False, 'local')
+                    var = Variable('data', decl.take_pointer)
                     v_code.append('/* Received labels */')
                     v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')))
                     v_code.append('')
@@ -191,6 +191,7 @@ class LabelTranslator(FSATranslator):
 
         # Get function prototype
         cf = self._control_function(automaton)
+        cf.definition_file = self._cmodel.entry_file
 
         # Do process initialization
         model_flag = True
@@ -210,13 +211,13 @@ class LabelTranslator(FSATranslator):
                                                      self._cmodel.entry_file, extern=False)
 
         # Generate function body
-        label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
+        label_based_function(self._conf, self._source, automaton, cf, model_flag)
 
         # Add function to source code to print
-        self._cmodel.add_function_definition(self._cmodel.entry_file, cf)
+        self._cmodel.add_function_definition(cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            for file in self._analysis.get_source_function(automaton.process.name).declaration_files:
+            for file in self._source.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         return
 
@@ -245,20 +246,20 @@ class LabelTranslator(FSATranslator):
         """
         normalize_fsa(automaton, self._compose_action)
 
-    def __thread_variable(self, automaton, type='single'):
+    def __thread_variable(self, automaton, var_type='single'):
         if automaton.identifier not in self.__thread_variables:
             signature = 'pthread_t a'
-            if type == 'pair':
+            if var_type == 'pair':
                 thread_vars = []
                 for i in range(2):
-                    var = Variable('ldv_thread_{}_{}'.format(automaton.identifier, i), None, signature, True, 'global')
+                    var = Variable('ldv_thread_{}_{}'.format(automaton.identifier, i), signature)
                     var.use += 1
                     thread_vars.append(var)
                 ret = thread_vars
             else:
-                if type == 'array':
+                if var_type == 'array':
                     signature = 'pthread_t **a'
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, signature, True, 'global')
+                var = Variable('ldv_thread_{}'.format(automaton.identifier),  signature)
                 var.use += 1
                 ret = var
             self.__thread_variables[automaton.identifier] = ret

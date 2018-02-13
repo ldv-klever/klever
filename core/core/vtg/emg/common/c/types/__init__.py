@@ -342,14 +342,8 @@ class Function(Declaration):
         self.ret_typedef = None
         self.params_typedef = list()
 
-        if 'specifiers' in self._ast['return value type'] and \
-                'type specifier' in self._ast['return value type']['specifiers'] and \
-                self._ast['return value type']['specifiers']['type specifier']['class'] == 'primitive' and \
-                self._ast['return value type']['specifiers']['type specifier']['name'] == 'void':
-            self.return_value = None
-        else:
-            self.return_value, self.ret_typedef = import_declaration(None, self._ast['return value type'],
-                                                                     track_typedef=True)
+        self.return_value, self.ret_typedef = import_declaration(None, self._ast['return value type'],
+                                                                 track_typedef=True)
         for parameter in self._ast['declarator'][0]['function arguments']:
             if isinstance(parameter, str):
                 self.parameters.append(parameter)

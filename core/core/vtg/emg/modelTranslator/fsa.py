@@ -92,7 +92,7 @@ class FSA:
             return initial_states
 
         # Generate nodes for subprocesses first
-        for name in [name for name in sorted(process.actions.keys()) if isinstance(process.actions[name], Subprocess)]:
+        for name in [name for name in process.actions.keys() if isinstance(process.actions[name], Subprocess)]:
             # Make copy of the original AST to allow making changes there for more convinient exploration
             ast = copy.copy(process.actions[name].process_ast)
             generate_nodes(process, ast)
@@ -437,8 +437,7 @@ class Automaton:
             return self.__label_variables[label.name]["default"]
         else:
             if label.declaration:
-                var = Variable("ldv_{}_{}".format(self.identifier, label.name),
-                               None, label.declaration, export=True)
+                var = Variable("ldv_{}_{}".format(self.identifier, label.name), label.declaration)
                 if label.value:
                     var.value = label.value
 
@@ -450,4 +449,3 @@ class Automaton:
                 return self.__label_variables[label.name]["default"]
             else:
                 return None
-

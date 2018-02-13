@@ -28,19 +28,19 @@ from core.vtg.emg.modelTranslator.fsa_translator.common import action_model_comm
 
 class FSATranslator(metaclass=abc.ABCMeta):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
         """
-        Initialize new FSA modelTranslator object. During the initialization an enviornment model in form of finite state
-        machines with process-like actions is translated to C code. Translation includes the following steps: each pair
-        label-interface is translated in a separate variable, each action is translated in code blocks (aux functions
-        can be additionally generated), for each automaton a control function is generated, control functions for event
-        modeling are called in a specific entry point function and control functions for function modeling are called
-        insted of modelled functions. This class has an abstract methods to provide ability to implement different
-        translators.
+        Initialize new FSA modelTranslator object. During the initialization an enviornment model in form of finite
+        state machines with process-like actions is translated to C code. Translation includes the following steps:
+        each pair label-interface is translated in a separate variable, each action is translated in code blocks
+        (aux functions can be additionally generated), for each automaton a control function is generated, control
+        functions for event modeling are called in a specific entry point function and control functions for function
+        modeling are called insted of modelled functions. This class has an abstract methods to provide ability to
+        implement different translators.
 
         :param logger: logging object.
         :param conf: Configuration properties dictionary.
-        :param analysis: ModuleCategoriesSpecification object.
+        :param source: ModuleCategoriesSpecification object.
         :param cmodel: CModel object.
         :param entry_fsa: An entry point Automaton object.
         :param model_fsa: List with Automaton objects which correspond to function models.
@@ -51,7 +51,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._model_fsa = model_fsa
         self._event_fsa = event_fsa
         self._conf = conf
-        self._analysis = analysis
+        self._source = source
         self._logger = logger
         self._structures = dict()
         self._control_functions = dict()
@@ -63,7 +63,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
-        #implmnts = list()
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
@@ -90,8 +89,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 model_comment('KERNEL_MODEL', 'Perform the model code of the function {!r}'.
                               format(automaton.process.name))
             ]
-            # todo: Get this signature either explicitly or using short code analysis
-            function_obj = self._analysis.get_source_function(automaton.process.name)
+            function_obj = self._source.get_source_function(automaton.process.name)
             params = []
             for position, param in enumerate(function_obj.declaration.parameters):
                 if isinstance(param, str):
@@ -204,9 +202,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     def _prepare_control_functions(self):
         """
-        Generate code of all control functions for each automata. It expects that all actions are already transformed into
-        code blocks and control functions can be combined from such blocks. The implementation of the method depends
-        on configuration properties and chosen kind of an output environment model.
+        Generate code of all control functions for each automata. It expects that all actions are already transformed
+        into code blocks and control functions can be combined from such blocks. The implementation of the method
+        depends on configuration properties and chosen kind of an output environment model.
 
         :return: None
         """
@@ -343,26 +341,21 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 if len(function_parameters) > 0:
                     df = Function(
                         "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
-                        self._cmodel.entry_file,
                         "void f({})".format(', '.
                                             join([function_parameters[index].to_string('arg{}'.format(index),
                                                                                        typedef='complex_and_params')
-                                                  for index in range(len(function_parameters))])),
-                        False
-                    )
+                                                  for index in range(len(function_parameters))])))
                 else:
                     df = Function(
                         "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
-                        self._cmodel.entry_file,
-                        "void f(void)",
-                        False
-                    )
+                        "void f(void)")
+                df.definition_file = self._cmodel.entry_file
                 body.extend(post)
                 body.append('return;')
                 df.body.extend(body)
 
                 # Add function definition
-                self._cmodel.add_function_definition(self._cmodel.entry_file, df)
+                self._cmodel.add_function_definition(df)
 
                 code.extend([
                     '{}({});'.format(df.name, ', '.join(df_parameters))
@@ -509,7 +502,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
                 name = 'ldv_emg_{}'.format(automaton.process.name)
-                function_obj = self._analysis.get_source_function(automaton.process.name)
+                function_obj = self._source.get_source_function(automaton.process.name)
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
                     if isinstance(param, str):
@@ -525,14 +518,15 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 declaration = '{0} f({1})'.format(
                     function_obj.declaration.return_value.to_string('', typedef='complex_and_params'),
                     ', '.join(param_types))
-                cf = Function(name, self._cmodel.entry_file, declaration, False)
+                cf = Function(name, declaration)
             else:
                 name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)
                 if not get_necessary_conf_property(self._conf, "direct control functions calls"):
                     declaration = 'void *f(void *data)'
                 else:
                     declaration = 'void f(void *data)'
-                cf = Function(name, self._cmodel.entry_file, declaration, False)
+                cf = Function(name, declaration)
+            cf.definition_file = self._cmodel.entry_file
 
             self._control_functions[automaton.identifier] = cf
 
@@ -553,8 +547,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _join_cf_code(self, automaton):
         """
-        Generate statement to join control function thread if it is called in a separate thread. Depends on a modelTranslator
-        implementation.
+        Generate statement to join control function thread if it is called in a separate thread. Depends on a
+        modelTranslator implementation.
 
         :param automaton: Automaton object.
         :return: String expression.
@@ -695,4 +689,3 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         c, vc, grds, cmmnts = code_generator(state, automaton)
         compose_single_action(state, c, vc, grds, cmmnts)
-

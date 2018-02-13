@@ -27,13 +27,10 @@ from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automa
 class Aspect(Function):
 
     def __init__(self, name, declaration, aspect_type="after"):
-        # Todo: Refactor this
-        self.name = name
-        self.declaration = declaration
+        super(Aspect, self).__init__(name, declaration)
         self.aspect_type = aspect_type
-        self.body = []
 
-    def get_aspect(self):
+    def define(self):
         lines = list()
         lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
@@ -87,21 +84,16 @@ class CModel:
             elif headers[0] not in self._headers[file]:
                 self._headers[file].append(headers[0])
 
-    def add_function_definition(self, file, func):
-        if not file:
+    def add_function_definition(self, func):
+        if not func.definition_file:
             raise RuntimeError('Always expect file to place function definition')
-        if file not in self._function_definitions:
-            self._function_definitions[file] = dict()
+        if func.definition_file not in self._function_definitions:
+            self._function_definitions[func.definition_file] = dict()
         if self.entry_file not in self._function_definitions:
             self._function_definitions[self.entry_file] = dict()
 
-        if func.callback:
-            prefix = 'AUX_FUNC_CALLBACK'
-        else:
-            prefix = 'AUX_FUNC'
-        self._function_definitions[file][func.name] = \
-            ['/* {} {} */\n'.format(prefix, func.name)] + list(func.define())
-        self.add_function_declaration(file, func, extern=False)
+        self._function_definitions[func.definition_file][func.name] = func.define()
+        self.add_function_declaration(func.definition_file, func, extern=False)
 
     def add_function_declaration(self, file, func, extern=False):
         if file not in self._function_declarations:
@@ -130,8 +122,8 @@ class CModel:
         elif not extern:
             self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
             if variable.value and variable.file and \
-                    ((isinstance(variable.declaration) is Pointer and isinstance(variable.declaration.points, Function)) or
-                     isinstance(variable.declaration, Primitive)):
+                    ((isinstance(variable.declaration, Pointer) and isinstance(variable.declaration.points, Function))
+                     or isinstance(variable.declaration, Primitive)):
                 self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
             elif not variable.value and isinstance(variable.declaration, Pointer):
                 if file not in self.__external_allocated:
@@ -139,11 +131,12 @@ class CModel:
                 self.__external_allocated[file].append(variable)
 
     def text_processor(self, automaton, statement):
-        models = FunctionModels(self._logger, self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
+        models = FunctionModels(self._logger, self._conf, self.mem_function_map, self.free_function_map,
+                                self.irq_function_map)
         return models.text_processor(automaton, statement)
 
     def add_function_model(self, func, body):
-        new_aspect = Aspect(func.identifier, func)
+        new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
         for file in func.files_called_at:
             if file not in self._call_aspects:
@@ -224,7 +217,7 @@ class CModel:
             if file in self._call_aspects and len(self._call_aspects[file]) > 0:
                 lines.append("/* EMG kernel function models */\n")
                 for aspect in self._call_aspects[file]:
-                    lines.extend(aspect.get_aspect())
+                    lines.extend(aspect.define())
                     lines.append("\n")
 
             if file != self.entry_file:
@@ -241,13 +234,8 @@ class CModel:
         return addictions
 
     def compose_entry_point(self, given_body):
-        ep = FunctionDefinition(
-            self.entry_name,
-            self.entry_file,
-            "int {}(void)".format(self.entry_name),
-            False
-        )
-
+        ep = Function(self.entry_name, "int {}(void)".format(self.entry_name))
+        ep.definition_file = self.entry_file
         body = ['/* LDV {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
                 '"function": "{0}"'.format(self.entry_name) + '} */']
 
@@ -259,13 +247,13 @@ class CModel:
                 func = Function('ldv_allocate_external_{}'.format(cnt),
                                 "void ldv_allocate_external_{}(void)".format(cnt))
                 func.declaration_files.add(file)
-                func.definition_file = func
+                func.definition_file = file
 
                 init = ["{} = {}();".format(var.name, 'external_allocated_data') for
                         var in self.__external_allocated[file]]
                 func.body = init
 
-                self.add_function_definition(file, func)
+                self.add_function_definition(func)
                 self.add_function_declaration(self.entry_file, func, extern=True)
                 functions.append(func)
                 cnt += 1
@@ -276,7 +264,7 @@ class CModel:
             gl_init.definition_file = self.entry_file
             init_body = ['{}();'.format(func.name) for func in functions]
             gl_init.body = init_body
-            self.add_function_definition(self.entry_file, gl_init)
+            self.add_function_definition(gl_init)
             body.extend([
                 '/* Initialize external data */',
                 'ldv_initialize_external_data();'
@@ -288,7 +276,7 @@ class CModel:
                     ' "function": "{0}"'.format(self.entry_name) + '} */')
 
         ep.body = body
-        self.add_function_definition(self.entry_file, ep)
+        self.add_function_definition(ep)
 
         return body
 

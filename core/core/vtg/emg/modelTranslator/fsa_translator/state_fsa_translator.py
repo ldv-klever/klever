@@ -28,7 +28,7 @@ from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import l
 
 class StateTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
+    def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__state_variables = dict()
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
@@ -39,7 +39,7 @@ class StateTranslator(FSATranslator):
         #                          if t.__name__ not in
         #                          get_necessary_conf_property(conf, 'actions composition')])
 
-        super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
+        super(StateTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         checks = []
@@ -111,6 +111,7 @@ class StateTranslator(FSATranslator):
 
         # Get function prototype
         cf = self._control_function(automaton)
+        cf.definition_file = self._cmodel.entry_file
 
         # Do process initialization
         model_flag = True
@@ -166,13 +167,13 @@ class StateTranslator(FSATranslator):
                 self._cmodel.add_global_variable(self.__state_variable(automaton), file, extern=True)
         else:
             # Generate function body
-            label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
+            label_based_function(self._conf, self._source, automaton, cf, model_flag)
 
         # Add function to source code to print
-        self._cmodel.add_function_definition(self._cmodel.entry_file, cf)
+        self._cmodel.add_function_definition(cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
-            for file in self._analysis.get_source_function(automaton.process.name).declaration_files:
+            for file in self._source.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         else:
             for var in (v for v in automaton.variables() if v.scope != 'local'):
@@ -323,13 +324,14 @@ class StateTranslator(FSATranslator):
 
         if export:
             name = 'ldv_switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
-            function = Function(name, self._cmodel.entry_file, 'void a(void)')
-            function.body = code
+            func = Function(name, 'void a(void)')
+            func.definition_file = self._cmodel.entry_file
+            func.body = code
             code = ['{}();'.format(name)]
 
-            self._cmodel.add_function_definition(self._cmodel.entry_file, function)
+            self._cmodel.add_function_definition(func)
             for file in export:
-                self._cmodel.add_function_declaration(file, function, extern=True)
+                self._cmodel.add_function_declaration(file, func, extern=True)
 
         return code
 
@@ -340,7 +342,8 @@ class StateTranslator(FSATranslator):
 
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
-        function = Function(name, self._cmodel.entry_file, 'int f(void)', False)
+        func = Function(name, 'int f(void)')
+        func.definition_fil = self._cmodel.entry_file
 
         # Generate switch body
         code = list()
@@ -352,15 +355,15 @@ class StateTranslator(FSATranslator):
             code.append('\t}')
         code.append('\tdefault: ldv_assume(0);')
         code.append('}')
-        function.body.extend(code)
+        func.body.extend(code)
 
         # Add function
-        self._cmodel.add_function_definition(self._cmodel.entry_file, function)
+        self._cmodel.add_function_definition(func)
 
         invoke = '{}()'.format(name)
         self.__switchers_cache[key] = {
             'call': invoke,
-            'function':  function
+            'function':  func
         }
         return invoke
 

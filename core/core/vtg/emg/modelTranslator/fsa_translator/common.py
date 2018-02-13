@@ -73,6 +73,7 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     """
     Determine which automata can receive signals from the given instance or send signals to it.
 
+    :param automata: List with Automaton objects.
     :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                         'automaton': 'Automaton object'}
     :param peers: List of relevant Process objects: [{'process': 'Process obj',
@@ -127,5 +128,3 @@ def add_model_function(analysis, cmodel, automaton, model):
     files = model_relevant_files(analysis, cmodel, automaton)
     for file in files:
         cmodel.add_function_declaration(file, model, extern=True)
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -91,7 +91,7 @@ def normalize_fsa(automaton, composer):
       intermediate state which will has two (or more) predecessors and two (or more) successors to prevent such cross
       dependencies.
 
-    :param fsa: Automaton object.
+    :param automaton: Automaton object.
     :param composer: Method to compose new code blocks.
     :return: None.
     """
@@ -288,7 +288,7 @@ def __merge_points(initial_states):
                                 split_points[split]['branch liveness'][node] -= 1
 
                     # Remove completely merged branches
-                    for split in out_value.keys():
+                    for split in list(out_value.keys()):
                         for predecessor in (p for p in st.predecessors
                                             if split in graph[p.identifier][st.identifier]):
                             if len(out_value[split].symmetric_difference(

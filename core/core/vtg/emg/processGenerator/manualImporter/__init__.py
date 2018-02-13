@@ -37,19 +37,21 @@ def generate_processes(emg, source, processes_triple, conf):
 
     # Convert dispatches to the simple form for each process
     for process in or_models + or_processes + ([or_entry] if or_entry else []):
-        for action in (a for a in process.actions if isinstance(a, Dispatch) or isinstance(a, Receive)):
+        for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
             if len(action.peers) > 0:
                 peers = list()
                 for p in action.peers:
-                    peers.append(p['process'].pretty_id)
-                    if not p['process'].pretty_id:
-                        raise ValueError('Any peer must have an external identifier')
+                    if isinstance(p, dict):
+                        peers.append(p['process'].pretty_id)
+                        if not p['process'].pretty_id:
+                            raise ValueError('Any peer must have an external identifier')
+                    else:
+                        peers.append(p)
                 action.peers = peers
 
     # Decide on process replacements
     if get_conf_property(conf, "enforce replacement"):
         if or_entry and entry:
-            or_processes.append(or_entry)
             or_entry = entry
 
     # Replace rest processes

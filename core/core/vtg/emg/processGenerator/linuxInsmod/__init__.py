@@ -176,7 +176,7 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
     # Add subprocesses finally
     process = ''
     for i, pair in enumerate(inits):
-        process += "<{0}>.(<init_failed>.".format(pair[1])
+        process += "<{0}>.(<init_failed>".format(pair[1])
         for j, pair2 in enumerate(exits[::-1]):
             if pair2[0] == pair[0]:
                 break
@@ -187,31 +187,33 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
 
     for _, exit_name in exits:
         process += "<{}>.".format(exit_name)
-    process += ")" * len(inits)
     final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
                              "Check rule model state at the exit.")
+    process += '<{}>'.format(final.name)
+    process += ")" * len(inits)
+
     if len(kernel_initializations) > 0 and len(inits) > 0:
         ep.process += "<{}>.(<{}> | <{}>.(<{}>))".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
     elif len(kernel_initializations) == 0 and len(inits) > 0:
         ep.process += process
     elif len(kernel_initializations) > 0 and len(inits) == 0:
-        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
+        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process) + \
+                      '.<{}>'.format(final.name)
     else:
         raise NotImplementedError("There is no both kernel initilization functions and module initialization functions")
-    ep.process += '.<{}>'.format(final.name)
     return ep
 
 
 def __generate_alias(process, name, file, int_retval=False):
     new_name = "ldv_emg_{}".format(name)
     code = [
-        "{}(void)\n".format("int {}".format(new_name) if int_retval else "void {}".format(new_name)),
-        "{\n",
-        "\t{}();\n".format("return {}".format(name) if int_retval else name),
-        "}\n"
+        "{}();".format("return {}".format(name) if int_retval else name)
     ]
     # Add definition
-    process.add_definition(file, name, code)
+    func = Function(new_name,
+                    "{}(void)".format("int {}".format(new_name) if int_retval else "void {}".format(new_name)))
+    func.body = code
+    process.add_definition(file, name, func.define())
     process.add_declaration('environment model', name,
                             'extern {} {}(void);\n'.format("int" if int_retval else "void", new_name))
 

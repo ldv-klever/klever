@@ -121,7 +121,8 @@ class Function:
 
     def define(self):
         declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params')
-        lines = list()
+        prefix = '/* AUX_FUNC {} */\n'.format(self.name)
+        lines = [prefix]
         lines.append(declaration + " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
