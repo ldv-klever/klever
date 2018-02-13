@@ -63,27 +63,21 @@ class MarkArchiveGenerator:
                     version_data['link'] = markversion.link
             else:
                 version_data['attrs'] = []
-                version_data['tags'] = []
+                for aname, aval, compare in markversion.attrs.order_by('id')\
+                        .values_list('attr__name__name', 'attr__value', 'is_compare'):
+                    version_data['attrs'].append({'attr': aname, 'value': aval, 'is_compare': compare})
+
+                version_data['tags'] = list(tag for tag, in markversion.tags.values_list('tag__tag'))
                 version_data['verdict'] = markversion.verdict
+
                 if self.type == 'unsafe':
                     version_data['function'] = markversion.function.name
                     with markversion.error_trace.file.file as fp:
                         version_data['error_trace'] = fp.read().decode('utf8')
-                for tag in markversion.tags.all():
-                    version_data['tags'].append(tag.tag.tag)
-                for attr in markversion.attrs.order_by('id'):
-                    version_data['attrs'].append({
-                        'attr': attr.attr.name.name,
-                        'value': attr.attr.value,
-                        'is_compare': attr.is_compare
-                    })
+
             content = json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4)
             for data in self.stream.compress_string('version-%s' % markversion.version, content):
                 yield data
-            # if self.type == 'unsafe':
-            #     err_trace_file = os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name)
-            #     for data in self.stream.compress_file(err_trace_file, 'error_trace_%s' % str(markversion.version)):
-            #         yield data
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,

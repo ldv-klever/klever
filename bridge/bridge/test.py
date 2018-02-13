@@ -19,7 +19,7 @@ import os
 import json
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from bridge.populate import populate_users
 from bridge.utils import KleverTestCase

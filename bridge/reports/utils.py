@@ -24,8 +24,8 @@ from xml.dom import minidom
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
@@ -138,9 +138,9 @@ class ReportAttrsTable:
     def __self_data(self):
         columns = []
         values = []
-        for a_name, a_val in self.report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-            columns.append(a_name)
-            values.append(a_val)
+        for ra in self.report.attrs.order_by('id').select_related('attr', 'attr__name'):
+            columns.append(ra.attr.name.name)
+            values.append((ra.attr.value, ra.attr_id if ra.data is not None else None))
         return columns, values
 
 
@@ -925,6 +925,7 @@ class AttrData:
             self.__get_files(archive)
 
     def __get_files(self, archive):
+        archive.seek(0)
         try:
             files_dir = extract_archive(archive)
         except Exception as e:

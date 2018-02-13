@@ -21,10 +21,10 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, models
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 

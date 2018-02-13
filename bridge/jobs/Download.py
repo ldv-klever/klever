@@ -34,7 +34,7 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, ReportAttr, ComponentResource, CoverageArchive
+    Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile
 from service.models import SolvingProgress, JobProgress, Scheduler
 from jobs.utils import create_job, update_job, change_job_status, GetConfiguration, remove_jobs_by_id
 from reports.utils import AttrData
@@ -227,6 +227,13 @@ class JobArchiveGenerator:
                 os.path.join(settings.MEDIA_ROOT, archives[i]), os.path.join('Coverages', '%s.zip' % i)
             ))
 
+    def __add_attrs_files(self, archives):
+        for afile in AttrFile.objects.filter(root__job=self.job):
+            self.files_to_add.append((
+                os.path.join(settings.MEDIA_ROOT, report.log.name),
+                os.path.join('ReportComponent', 'log_%s.zip' % report.pk)
+            ))
+
 
 class JobsArchivesGen:
     def __init__(self, jobs):
@@ -304,7 +311,7 @@ class ResourcesCache:
         return res_data
 
 
-class ReportsData(object):
+class ReportsData:
     def __init__(self, job):
         self.computers = {}
         self.coverage = []
@@ -385,8 +392,15 @@ class ReportsData(object):
             report_index[unknown.pk] = i
             reports.append(self.__report_leaf_data(unknown))
             i += 1
-        for ra in ReportAttr.objects.filter(report__root=self.root).select_related('attr', 'attr__name').order_by('id'):
-            reports[report_index[ra.report_id]]['attrs'].append((ra.attr.name.name, ra.attr.value))
+        for ra in ReportAttr.objects.filter(report__root=self.root).select_related('attr', 'attr__name', 'data')\
+                .order_by('id'):
+            attr_data = {
+                'name': ra.attr.name.name, 'value': ra.attr.value,
+                'compare': ra.compare, 'associate': ra.associate
+            }
+            if ra.data is not None:
+                attr_data['data'] = [ra.data_id, ra.data.name]
+            reports[report_index[ra.report_id]]['attrs'].append()
         return reports
 
     def __get_coverage_data(self):

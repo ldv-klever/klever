@@ -19,11 +19,11 @@ import re
 import json
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Count
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS, COMPARE_VERDICT
+from bridge.vars import JOB_STATUS, COMPARE_VERDICT
 from bridge.utils import BridgeException
 
 from users.models import User
@@ -32,7 +32,7 @@ from reports.models import AttrName, Attr, ReportAttr, ReportSafe, ReportUnsafe,
     ReportComponentLeaf, CompareJobsInfo, CompareJobsCache
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
-from jobs.utils import JobAccess, CompareFileSet
+from jobs.utils import JobAccess
 from marks.tables import UNSAFE_COLOR, SAFE_COLOR
 
 
@@ -46,31 +46,19 @@ def can_compare(user, job1, job2):
     return True
 
 
-class ReportTree(object):
-    def __init__(self, job):
-        self.job = job
-        self._name_ids = self.__get_attr_names()
+class ReportTree:
+    def __init__(self, root, name_ids):
+        self._name_ids = name_ids
         self.attr_values = {}
         self._report_tree = {}
         self._leaves = {'u': set(), 's': set(), 'f': set()}
-        self.__get_tree()
+        self.__get_tree(root)
 
-    def __get_attr_names(self):
-        self.__is_not_used()
-        attr_ids = {}
-        for aname in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS):
-            attr_ids[aname.name] = aname.id
-        return list(attr_ids[name] for name in JOBS_COMPARE_ATTRS if name in attr_ids)
-
-    def __get_tree(self):
-        leaves_fields = {
-            'u': 'unsafe_id',
-            's': 'safe_id',
-            'f': 'unknown_id'
-        }
+    def __get_tree(self, root):
+        leaves_fields = {'u': 'unsafe_id', 's': 'safe_id', 'f': 'unknown_id'}
         only = list(leaves_fields.values())
         only.append('report__parent_id')
-        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job).select_related('report').only(*only):
+        for leaf in ReportComponentLeaf.objects.filter(report__root=root).select_related('report').only(*only):
             # There is often safes > unknowns > unsafes
             for l_type in 'sfu':
                 l_id = leaf.__getattribute__(leaves_fields[l_type])
@@ -126,18 +114,29 @@ class ReportTree(object):
                     verdict = COMPARE_VERDICT[3][0]
                 self.attr_values[attrs_id] = {'branches': [branch_ids], 'verdict': verdict}
 
-    def __is_not_used(self):
-        pass
-
 
 class CompareTree:
     def __init__(self, user, j1, j2):
         self.user = user
-        self.tree1 = ReportTree(j1)
-        self.tree2 = ReportTree(j2)
+        self._root1 = j1.reportroot
+        self._root2 = j2.reportroot
+
+        self._name_ids = self.__get_attr_names()
+        self.tree1 = ReportTree(self._root1, self._name_ids)
+        self.tree2 = ReportTree(self._root1, self._name_ids)
+
         self.attr_values = {}
         self.__compare_values()
-        self.__fill_cache(j1, j2)
+        self.__fill_cache()
+
+    def __get_attr_names(self):
+        names1 = set(aname for aname, in ReportAttr.objects.filter(report__root=self._root1, compare=True)
+                     .values_list('attr__name_id'))
+        names2 = set(aname for aname, in ReportAttr.objects.filter(report__root=self._root2, compare=True)
+                     .values_list('attr__name_id'))
+        if names1 != names2:
+            raise BridgeException(_("Jobs with different sets of attributes to compare can't be compared"))
+        return sorted(names1)
 
     def __compare_values(self):
         for a_id in self.tree1.attr_values:
@@ -159,10 +158,9 @@ class CompareTree:
                     'branches2': self.tree2.attr_values[a_id]['branches']
                 }
 
-    def __fill_cache(self, j1, j2):
+    def __fill_cache(self):
         info = CompareJobsInfo.objects.create(
-            user=self.user, root1=j1.reportroot, root2=j2.reportroot,
-            files_diff=json.dumps(CompareFileSet(j1, j2).data, ensure_ascii=False)
+            user=self.user, root1=self._root1, root2=self._root2, attr_names='|'.join(self._name_ids)
         )
         CompareJobsCache.objects.bulk_create(list(CompareJobsCache(
             info=info, attr_values=x,
@@ -204,22 +202,27 @@ class ComparisonTableData:
             self.data.append(row_data)
 
         all_attrs = {}
+        names_ids = list(int(x) for x in info.attr_names.split('|'))
+        for aname in AttrName.objects.filter(id__in=names_ids):
+            all_attrs[aname.id] = {'values': set(), 'name': aname.name}
+        if len(all_attrs) != len(names_ids):
+            raise BridgeException(_('The comparison cache was corrupted'))
+
         for compare in info.comparejobscache_set.all():
             attr_values = compare.attr_values.split('|')
-            if len(attr_values) != len(JOBS_COMPARE_ATTRS):
+            if len(attr_values) != len(names_ids):
                 raise BridgeException(_('The comparison cache was corrupted'))
             for i in range(len(attr_values)):
-                if JOBS_COMPARE_ATTRS[i] not in all_attrs:
-                    all_attrs[JOBS_COMPARE_ATTRS[i]] = []
                 if attr_values[i] == '-':
                     continue
-                if attr_values[i] not in all_attrs[JOBS_COMPARE_ATTRS[i]]:
-                    all_attrs[JOBS_COMPARE_ATTRS[i]].append(attr_values[i])
+                all_attrs[names_ids[i]]['values'].add(attr_values[i])
 
-        for a in JOBS_COMPARE_ATTRS:
-            values = list(Attr.objects.filter(id__in=all_attrs[a]).order_by('value').values_list('id', 'value'))
-            if a in all_attrs:
-                self.attrs.append({'name': a, 'values': values})
+        for an_id in names_ids:
+            values = []
+            if len(all_attrs[an_id]['values']) > 0:
+                values = list(Attr.objects.filter(id__in=all_attrs[an_id]['values'])
+                              .order_by('value').values_list('id', 'value'))
+            self.attrs.append({'name': all_attrs[an_id]['name'], 'values': values})
 
 
 class ComparisonData:
@@ -228,6 +231,7 @@ class ComparisonData:
             self.info = CompareJobsInfo.objects.get(pk=info_id)
         except ObjectDoesNotExist:
             raise BridgeException(_("The comparison cache was not found"))
+        self._attr_names = list(int(x) for x in self.info.attr_names.split('|'))
         self.v1 = self.v2 = None
         self.hide_attrs = hide_attrs
         self.hide_components = hide_components
@@ -400,67 +404,54 @@ class ComparisonData:
         return branch_data
 
     def __component_data(self, report_id, parent_id):
-        self.__is_not_used()
         report = ReportComponent.objects.get(pk=report_id)
         block = CompareBlock('c_%s' % report_id, 'c', report.component.name, 'comp_%s' % report.component_id)
         if parent_id is not None:
             block.parents.append('c_%s' % parent_id)
-        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
-            attr_data = {'name': a_name, 'value': a_val}
-            if attr_data['name'] in JOBS_COMPARE_ATTRS:
-                attr_data['color'] = '#8bb72c'
-            block.list.append(attr_data)
+        block.list = self.__get_attrs_list(report)
         block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
         return block
 
     def __unsafe_data(self, report_id, parent_id):
-        self.__is_not_used()
         report = ReportUnsafe.objects.get(pk=report_id)
         block = CompareBlock('u_%s' % report_id, 'u', _('Unsafe'), 'unsafe')
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]}
-        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
-            attr_data = {'name': a_name, 'value': a_val}
-            if attr_data['name'] in JOBS_COMPARE_ATTRS:
-                attr_data['color'] = '#8bb72c'
-            block.list.append(attr_data)
-        block.href = reverse('reports:unsafe', args=[report.pk])
+        block.list = self.__get_attrs_list(report)
+        block.href = reverse('reports:unsafe', args=[report.trace_id])
         return block
 
     def __safe_data(self, report_id, parent_id):
-        self.__is_not_used()
         report = ReportSafe.objects.get(pk=report_id)
         block = CompareBlock('s_%s' % report_id, 's', _('Safe'), 'safe')
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]}
-        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
-            attr_data = {'name': a_name, 'value': a_val}
-            if attr_data['name'] in JOBS_COMPARE_ATTRS:
-                attr_data['color'] = '#8bb72c'
-            block.list.append(attr_data)
+        block.list = self.__get_attrs_list(report)
         block.href = reverse('reports:safe', args=[report.pk])
         return block
 
     def __unknown_data(self, report_id, parent_id):
-        self.__is_not_used()
         report = ReportUnknown.objects.get(pk=report_id)
         block = CompareBlock('f_%s' % report_id, 'f', _('Unknown'), 'unknown-%s' % report.component.name)
         block.parents.append('c_%s' % parent_id)
         problems = list(x.problem.name for x in report.markreport_set.select_related('problem').order_by('id'))
         if len(problems) > 0:
-            block.add_info = {
-                'value': '; '.join(problems),
-                'color': '#c60806'
-            }
+            block.add_info = {'value': '; '.join(problems), 'color': '#c60806'}
         else:
             block.add_info = {'value': _('Without marks')}
-        for a_name, a_val in report.attrs.values_list('attr__name__name', 'attr__value').order_by('attr__name__name'):
-            attr_data = {'name': a_name, 'value': a_val}
-            if attr_data['name'] in JOBS_COMPARE_ATTRS:
-                attr_data['color'] = '#8bb72c'
-            block.list.append(attr_data)
+        block.list = self.__get_attrs_list(report)
         block.href = reverse('reports:unknown', args=[report.pk])
         return block
+
+    def __get_attrs_list(self, report):
+        attrs_list = []
+        for an_id, a_name, a_val in report.attrs.values_list('attr__name_id', 'attr__name__name', 'attr__value')\
+                .order_by('attr__name__name'):
+            attr_data = {'name': a_name, 'value': a_val}
+            if an_id in self._attr_names:
+                attr_data['color'] = '#8bb72c'
+            attrs_list.append(attr_data)
+        return attrs_list
 
     def __unsafe_mark_data(self, report_id):
         self.__is_not_used()
@@ -504,7 +495,7 @@ class ComparisonData:
         pass
 
 
-class CompareBlock(object):
+class CompareBlock:
     def __init__(self, block_id, block_type, title, block_class=None):
         self.id = block_id
         self.block_class = block_class if block_class is not None else self.id

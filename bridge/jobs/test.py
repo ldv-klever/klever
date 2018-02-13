@@ -19,8 +19,8 @@ import os
 import json
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.urls import reverse
 
 from bridge.vars import JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase

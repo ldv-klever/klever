@@ -17,7 +17,6 @@
 
 import os
 import re
-import json
 import hashlib
 
 from django.conf import settings
@@ -34,7 +33,7 @@ from bridge.utils import logger, BridgeException
 from users.notifications import Notify
 
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
-from reports.models import CompareJobsInfo, ReportComponent
+from reports.models import ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -123,7 +122,7 @@ TITLES = {
 }
 
 
-class JobAccess(object):
+class JobAccess:
 
     def __init__(self, user, job=None):
         self.user = user
@@ -612,7 +611,7 @@ def get_user_memory(user, bytes_val):
     return converted
 
 
-class CompareFileSet(object):
+class CompareFileSet:
     def __init__(self, job1, job2):
         self.j1 = job1
         self.j2 = job2
@@ -673,21 +672,6 @@ class CompareFileSet(object):
                     self.data['unmatched2'].insert(0, [f2[0], f2[1]])
                 else:
                     self.data['unmatched2'].append([f2[0]])
-
-
-class GetFilesComparison(object):
-    def __init__(self, user, job1, job2):
-        self.user = user
-        self.job1 = job1
-        self.job2 = job2
-        self.data = self.__get_info()
-
-    def __get_info(self):
-        try:
-            info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The comparison cache was not found'))
-        return json.loads(info.files_diff)
 
 
 def change_job_status(job, status):

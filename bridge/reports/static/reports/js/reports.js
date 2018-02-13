@@ -49,15 +49,37 @@ $(document).ready(function () {
 
     $('#file_content_modal').modal('setting', 'transition', 'fade');
     $('#show_component_log').click(function () {
+        var report_id = $('#report_pk').val();
         $.ajax({
-            url: '/reports/logcontent/' + $('#report_pk').val() + '/',
+            url: '/reports/logcontent/' + report_id + '/',
             type: 'GET',
             success: function (data) {
                 $('#file_content').text(data);
+                $('#download_file_href').attr('href', '/reports/log/' + report_id + '/');
                 $('#file_content_modal').modal('show');
                 $('#close_file_view').click(function () {
                     $('#file_content_modal').modal('hide');
                     $('#file_content').empty();
+                    $('#download_file_href').attr('href', '#');
+                });
+            }
+        });
+    });
+
+    $('.attr-data-href').click(function (event) {
+        event.preventDefault();
+        var attr_id = $(this).data('attr-id');
+        $.ajax({
+            url: '/reports/attrdata-content/' + attr_id + '/',
+            type: 'GET',
+            success: function (data) {
+                $('#file_content').text(data);
+                $('#download_file_href').attr('href', '/reports/attrdata/' + attr_id + '/');
+                $('#file_content_modal').modal('show');
+                $('#close_file_view').click(function () {
+                    $('#file_content_modal').modal('hide');
+                    $('#file_content').empty();
+                    $('#download_file_href').attr('href', '#');
                 });
             }
         });

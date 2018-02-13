@@ -17,17 +17,17 @@
 
 import json
 
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F, Count, Case, When
 from django.template import Template, Context, loader
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 from django.utils.timezone import now, timedelta
 
 from bridge.tableHead import Header
-from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE,\
-    SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
+    UNSAFE_VERDICTS
 from bridge.utils import unique_id, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -628,17 +628,13 @@ class MarkData:
             self.description = self.mark_version.description
 
     def __get_attributes(self, report):
-        values = []
         if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
-            values = list(
+            return list(
                 self.mark_version.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'is_compare')
             )
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
-            for a_name, a_val in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-                values.append((a_name, a_val, (a_name in MARKS_COMPARE_ATTRS)))
-        else:
-            return None
-        return values
+            return list(report.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'associate'))
+        return None
 
     def __unknown_info(self):
         if not isinstance(self.mark_version, MarkUnknownHistory):

@@ -67,7 +67,7 @@ class MarkUnsafeConvert(models.Model):
 
 
 class MarkUnsafeCompare(models.Model):
-    convert = models.ForeignKey(MarkUnsafeConvert)
+    convert = models.ForeignKey(MarkUnsafeConvert, models.CASCADE)
     name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 
@@ -81,10 +81,10 @@ class MarkUnsafeCompare(models.Model):
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name='+')
+    job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
+    author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
@@ -100,7 +100,7 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
+    author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     change_date = models.DateTimeField()
     comment = models.TextField()
@@ -119,7 +119,7 @@ class MarkSafe(Mark):
 
 
 class MarkSafeHistory(MarkHistory):
-    mark = models.ForeignKey(MarkSafe, related_name='versions')
+    mark = models.ForeignKey(MarkSafe, models.CASCADE, related_name='versions')
     verdict = models.CharField(max_length=1, choices=MARK_SAFE)
 
     class Meta:
@@ -127,8 +127,8 @@ class MarkSafeHistory(MarkHistory):
 
 
 class MarkSafeAttr(models.Model):
-    mark = models.ForeignKey(MarkSafeHistory, related_name='attrs')
-    attr = models.ForeignKey(Attr)
+    mark = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='attrs')
+    attr = models.ForeignKey(Attr, models.CASCADE)
     is_compare = models.BooleanField(default=True)
 
     class Meta:
@@ -136,18 +136,18 @@ class MarkSafeAttr(models.Model):
 
 
 class MarkSafeReport(models.Model):
-    mark = models.ForeignKey(MarkSafe, related_name='markreport_set')
-    report = models.ForeignKey(ReportSafe, related_name='markreport_set')
+    mark = models.ForeignKey(MarkSafe, models.CASCADE, related_name='markreport_set')
+    report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='markreport_set')
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
 
     class Meta:
         db_table = "cache_mark_safe_report"
 
 
 class SafeAssociationLike(models.Model):
-    association = models.ForeignKey(MarkSafeReport)
-    author = models.ForeignKey(User)
+    association = models.ForeignKey(MarkSafeReport, models.CASCADE)
+    author = models.ForeignKey(User, models.CASCADE)
     dislike = models.BooleanField(default=False)
 
     class Meta:
@@ -157,25 +157,25 @@ class SafeAssociationLike(models.Model):
 # Unsafes tables
 class MarkUnsafe(Mark):
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
-    function = models.ForeignKey(MarkUnsafeCompare)
+    function = models.ForeignKey(MarkUnsafeCompare, models.CASCADE)
 
     class Meta:
         db_table = 'mark_unsafe'
 
 
 class MarkUnsafeHistory(MarkHistory):
-    mark = models.ForeignKey(MarkUnsafe, related_name='versions')
+    mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='versions')
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
-    function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.ForeignKey(ConvertedTraces)
+    function = models.ForeignKey(MarkUnsafeCompare, models.CASCADE)
+    error_trace = models.ForeignKey(ConvertedTraces, models.CASCADE)
 
     class Meta:
         db_table = 'mark_unsafe_history'
 
 
 class MarkUnsafeAttr(models.Model):
-    mark = models.ForeignKey(MarkUnsafeHistory, related_name='attrs')
-    attr = models.ForeignKey(Attr)
+    mark = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='attrs')
+    attr = models.ForeignKey(Attr, models.CASCADE)
     is_compare = models.BooleanField(default=True)
 
     class Meta:
@@ -183,20 +183,20 @@ class MarkUnsafeAttr(models.Model):
 
 
 class MarkUnsafeReport(models.Model):
-    mark = models.ForeignKey(MarkUnsafe, related_name='markreport_set')
-    report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
+    mark = models.ForeignKey(MarkUnsafe, models.CASCADE, related_name='markreport_set')
+    report = models.ForeignKey(ReportUnsafe, models.CASCADE, related_name='markreport_set')
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
     result = models.FloatField()
     error = models.TextField(null=True)
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
 
 
 class UnsafeAssociationLike(models.Model):
-    association = models.ForeignKey(MarkUnsafeReport)
-    author = models.ForeignKey(User)
+    association = models.ForeignKey(MarkUnsafeReport, models.CASCADE)
+    author = models.ForeignKey(User, models.CASCADE)
     dislike = models.BooleanField(default=False)
 
     class Meta:
@@ -205,8 +205,8 @@ class UnsafeAssociationLike(models.Model):
 
 # Tags tables
 class SafeTag(models.Model):
-    author = models.ForeignKey(User)
-    parent = models.ForeignKey('self', null=True, related_name='children')
+    author = models.ForeignKey(User, models.CASCADE)
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
@@ -216,8 +216,8 @@ class SafeTag(models.Model):
 
 
 class UnsafeTag(models.Model):
-    author = models.ForeignKey(User)
-    parent = models.ForeignKey('self', null=True, related_name='children')
+    author = models.ForeignKey(User, models.CASCADE)
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
@@ -227,8 +227,8 @@ class UnsafeTag(models.Model):
 
 
 class ReportSafeTag(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='safe_tags')
-    tag = models.ForeignKey(SafeTag)
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='safe_tags')
+    tag = models.ForeignKey(SafeTag, models.CASCADE)
     number = models.IntegerField(default=0)
 
     def __str__(self):
@@ -239,8 +239,8 @@ class ReportSafeTag(models.Model):
 
 
 class ReportUnsafeTag(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='unsafe_tags')
-    tag = models.ForeignKey(UnsafeTag, related_name='+')
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='unsafe_tags')
+    tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
     number = models.IntegerField(default=0)
 
     def __str__(self):
@@ -251,8 +251,8 @@ class ReportUnsafeTag(models.Model):
 
 
 class MarkSafeTag(models.Model):
-    mark_version = models.ForeignKey(MarkSafeHistory, related_name='tags')
-    tag = models.ForeignKey(SafeTag, related_name='+')
+    mark_version = models.ForeignKey(MarkSafeHistory, models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.tag
@@ -262,8 +262,8 @@ class MarkSafeTag(models.Model):
 
 
 class MarkUnsafeTag(models.Model):
-    mark_version = models.ForeignKey(MarkUnsafeHistory, related_name='tags')
-    tag = models.ForeignKey(UnsafeTag, related_name='+')
+    mark_version = models.ForeignKey(MarkUnsafeHistory, models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(UnsafeTag, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.tag.tag
@@ -273,8 +273,8 @@ class MarkUnsafeTag(models.Model):
 
 
 class UnsafeReportTag(models.Model):
-    report = models.ForeignKey(ReportUnsafe, related_name='tags')
-    tag = models.ForeignKey(UnsafeTag)
+    report = models.ForeignKey(ReportUnsafe, models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(UnsafeTag, models.CASCADE)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -282,8 +282,8 @@ class UnsafeReportTag(models.Model):
 
 
 class SafeReportTag(models.Model):
-    report = models.ForeignKey(ReportSafe, related_name='tags')
-    tag = models.ForeignKey(SafeTag)
+    report = models.ForeignKey(ReportSafe, models.CASCADE, related_name='tags')
+    tag = models.ForeignKey(SafeTag, models.CASCADE)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -292,7 +292,7 @@ class SafeReportTag(models.Model):
 
 # For unknowns
 class MarkUnknown(Mark):
-    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    component = models.ForeignKey(Component, models.PROTECT)
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=15)
@@ -304,7 +304,7 @@ class MarkUnknown(Mark):
 
 
 class MarkUnknownHistory(MarkHistory):
-    mark = models.ForeignKey(MarkUnknown, related_name='versions')
+    mark = models.ForeignKey(MarkUnknown, models.CASCADE, related_name='versions')
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=100)
@@ -315,19 +315,19 @@ class MarkUnknownHistory(MarkHistory):
 
 
 class MarkUnknownReport(models.Model):
-    mark = models.ForeignKey(MarkUnknown, related_name='markreport_set')
-    report = models.ForeignKey(ReportUnknown, related_name='markreport_set')
-    problem = models.ForeignKey(UnknownProblem, on_delete=models.PROTECT)
+    mark = models.ForeignKey(MarkUnknown, models.CASCADE, related_name='markreport_set')
+    report = models.ForeignKey(ReportUnknown, models.CASCADE, related_name='markreport_set')
+    problem = models.ForeignKey(UnknownProblem, models.PROTECT)
     type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, models.SET_NULL, null=True)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'
 
 
 class UnknownAssociationLike(models.Model):
-    association = models.ForeignKey(MarkUnknownReport)
-    author = models.ForeignKey(User)
+    association = models.ForeignKey(MarkUnknownReport, models.CASCADE)
+    author = models.ForeignKey(User, models.CASCADE)
     dislike = models.BooleanField(default=False)
 
     class Meta:
@@ -335,9 +335,9 @@ class UnknownAssociationLike(models.Model):
 
 
 class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='mark_unknowns_cache')
-    component = models.ForeignKey(Component, related_name='+', on_delete=models.PROTECT)
-    problem = models.ForeignKey(UnknownProblem, null=True, on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='mark_unknowns_cache')
+    component = models.ForeignKey(Component, models.PROTECT, related_name='+')
+    problem = models.ForeignKey(UnknownProblem, models.PROTECT, null=True)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -345,7 +345,7 @@ class ComponentMarkUnknownProblem(models.Model):
 
 
 class MarkAssociationsChanges(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, models.CASCADE)
     identifier = models.CharField(max_length=255, unique=True)
     table_data = models.TextField()
 
@@ -354,17 +354,17 @@ class MarkAssociationsChanges(models.Model):
 
 
 class ErrorTraceConvertionCache(models.Model):
-    unsafe = models.ForeignKey(ReportUnsafe)
-    function = models.ForeignKey(MarkUnsafeConvert)
-    converted = models.ForeignKey(ConvertedTraces)
+    unsafe = models.ForeignKey(ReportUnsafe, models.CASCADE)
+    function = models.ForeignKey(MarkUnsafeConvert, models.CASCADE)
+    converted = models.ForeignKey(ConvertedTraces, models.CASCADE)
 
     class Meta:
         db_table = 'cache_error_trace_converted'
 
 
 class SafeTagAccess(models.Model):
-    user = models.ForeignKey(User)
-    tag = models.ForeignKey(SafeTag)
+    user = models.ForeignKey(User, models.CASCADE)
+    tag = models.ForeignKey(SafeTag, models.CASCADE)
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
 
@@ -373,8 +373,8 @@ class SafeTagAccess(models.Model):
 
 
 class UnsafeTagAccess(models.Model):
-    user = models.ForeignKey(User)
-    tag = models.ForeignKey(UnsafeTag)
+    user = models.ForeignKey(User, models.CASCADE)
+    tag = models.ForeignKey(UnsafeTag, models.CASCADE)
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
 

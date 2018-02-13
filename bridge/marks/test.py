@@ -19,15 +19,15 @@ import os
 import json
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.test import override_settings
+from django.urls import reverse
 
 from bridge.populate import populate_users
 from bridge.utils import KleverTestCase, ArchiveFileContent
-from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE,\
-    MARK_STATUS, MARK_TYPE, PROBLEM_DESC_FILE, ASSOCIATION_TYPE
+from bridge.vars import JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, MARK_TYPE,\
+    PROBLEM_DESC_FILE, ASSOCIATION_TYPE
 
 from users.models import User
 from jobs.models import Job
@@ -202,12 +202,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Save mark
-        compare_attrs = []
-        for a in safe.attrs.all():
-            attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name.name in MARKS_COMPARE_ATTRS:
-                attr_data['is_compare'] = True
-            compare_attrs.append(attr_data)
+        compare_attrs = list({'is_compare': associate, 'attr': a_name}
+                             for a_name, associate in safe.attrs.values_list('attr__name__name', 'associate'))
         response = self.client.post('/marks/ajax/save_mark/', {
             'savedata': json.dumps({
                 'report_id': safe.pk,
@@ -663,12 +659,8 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Save mark
-        compare_attrs = []
-        for a in unsafe.attrs.all():
-            attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name.name in MARKS_COMPARE_ATTRS:
-                attr_data['is_compare'] = True
-            compare_attrs.append(attr_data)
+        compare_attrs = list({'is_compare': associate, 'attr': a_name}
+                             for a_name, associate in unsafe.attrs.values_list('attr__name__name', 'associate'))
         response = self.client.post('/marks/ajax/save_mark/', {
             'savedata': json.dumps({
                 'compare_id': compare_f.pk,

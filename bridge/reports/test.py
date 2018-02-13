@@ -22,10 +22,10 @@ import time
 from io import BytesIO
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.test import Client
+from django.urls import reverse
 
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
 from bridge.utils import KleverTestCase
@@ -272,7 +272,7 @@ class TestReports(KleverTestCase):
 
         response = self.client.get(reverse('reports:unsafes', args=[main_report.pk]))
         if ReportUnsafe.objects.count() == 1:
-            self.assertRedirects(response, reverse('reports:unsafe', args=[ReportUnsafe.objects.first().id]))
+            self.assertRedirects(response, reverse('reports:unsafe', args=[ReportUnsafe.objects.first().trace_id]))
         else:
             self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:safes', args=[main_report.pk]))
@@ -291,9 +291,9 @@ class TestReports(KleverTestCase):
             self.assertEqual(response.status_code, 200)
 
         for unsafe in ReportUnsafe.objects.all():
-            response = self.client.get(reverse('reports:unsafe', args=[unsafe.pk]))
+            response = self.client.get(reverse('reports:unsafe', args=[unsafe.trace_id]))
             self.assertEqual(response.status_code, 200)
-            response = self.client.get(reverse('reports:etv', args=[unsafe.pk]))
+            response = self.client.get(reverse('reports:unsafe_fullscreen', args=[unsafe.trace_id]))
             self.assertEqual(response.status_code, 200)
 
         for report in ReportUnknown.objects.all():

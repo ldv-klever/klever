@@ -43,15 +43,12 @@ def get_coverage_dir(instance, filename):
 
 
 def get_attr_data_path(instance, filename):
-    curr_date = now()
-    return os.path.join(
-        'Reports', 'AttrData', 'Root-%s' % str(instance.root_id), str(curr_date.year), str(curr_date.month), filename
-    )
+    return os.path.join('Reports', 'AttrData', 'Root-%s' % str(instance.root_id), filename)
 
 
 class ReportRoot(models.Model):
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
-    job = models.OneToOneField(Job)
+    user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
+    job = models.OneToOneField(Job, models.CASCADE)
 
     class Meta:
         db_table = 'report_root'
@@ -72,7 +69,7 @@ class AttrName(models.Model):
 
 
 class Attr(models.Model):
-    name = models.ForeignKey(AttrName)
+    name = models.ForeignKey(AttrName, models.CASCADE)
     value = models.CharField(max_length=255)
 
     class Meta:
@@ -81,8 +78,8 @@ class Attr(models.Model):
 
 
 class Report(models.Model):
-    root = models.ForeignKey(ReportRoot)
-    parent = models.ForeignKey('self', null=True, related_name='+')
+    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
 
     class Meta:
@@ -90,7 +87,8 @@ class Report(models.Model):
 
 
 class AttrFile(models.Model):
-    root = models.ForeignKey(ReportRoot)
+    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    name = models.CharField(max_length=128)
     file = models.FileField(upload_to=get_attr_data_path)
 
     class Meta:
@@ -100,15 +98,15 @@ class AttrFile(models.Model):
 @receiver(pre_delete, sender=AttrFile)
 def attrfile_delete_signal(**kwargs):
     source = kwargs['instance']
-    source.archive.storage.delete(source.archive.path)
+    source.file.storage.delete(source.file.path)
 
 
 class ReportAttr(models.Model):
-    attr = models.ForeignKey(Attr)
-    report = models.ForeignKey(Report, related_name='attrs')
+    attr = models.ForeignKey(Attr, models.CASCADE)
+    report = models.ForeignKey(Report, models.CASCADE, related_name='attrs')
     compare = models.BooleanField(default=False)
     associate = models.BooleanField(default=False)
-    data = models.ForeignKey(AttrFile, null=True)
+    data = models.ForeignKey(AttrFile, models.CASCADE, null=True)
 
     class Meta:
         db_table = 'report_attrs'
@@ -132,8 +130,8 @@ class Component(models.Model):
 
 
 class ReportComponent(Report):
-    computer = models.ForeignKey(Computer)
-    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    computer = models.ForeignKey(Computer, models.CASCADE)
+    component = models.ForeignKey(Component, models.PROTECT)
     verification = models.BooleanField(default=False)
     cpu_time = models.BigIntegerField(null=True)
     wall_time = models.BigIntegerField(null=True)
@@ -170,7 +168,7 @@ def report_component_delete_signal(**kwargs):
 
 
 class CoverageArchive(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='coverages')
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='coverages')
     identifier = models.CharField(max_length=128, default='')
     archive = models.FileField(upload_to=get_coverage_arch_dir)
 
@@ -188,7 +186,7 @@ def coverage_archive_delete_signal(**kwargs):
 
 
 class ErrorTraceSource(models.Model):
-    root = models.ForeignKey(ReportRoot)
+    root = models.ForeignKey(ReportRoot, models.CASCADE)
     archive = models.FileField(upload_to='Unsafes/Sources/%Y/%m')
 
     def add_sources(self, fname, fp, save=False):
@@ -205,8 +203,9 @@ def source_delete_signal(**kwargs):
 
 
 class ReportUnsafe(Report):
+    trace_id = models.CharField(max_length=32, unique=True, db_index=True)
     error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
-    source = models.ForeignKey(ErrorTraceSource, null=True)
+    source = models.ForeignKey(ErrorTraceSource, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
     cpu_time = models.BigIntegerField()
     wall_time = models.BigIntegerField()
@@ -249,7 +248,7 @@ def safe_delete_signal(**kwargs):
 
 
 class ReportUnknown(Report):
-    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    component = models.ForeignKey(Component, models.PROTECT)
     problem_description = models.FileField(upload_to='Unknowns/%Y/%m')
     cpu_time = models.BigIntegerField(null=True)
     wall_time = models.BigIntegerField(null=True)
@@ -269,17 +268,17 @@ def unknown_delete_signal(**kwargs):
 
 
 class ReportComponentLeaf(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='leaves')
-    safe = models.ForeignKey(ReportSafe, null=True, related_name='leaves')
-    unsafe = models.ForeignKey(ReportUnsafe, null=True, related_name='leaves')
-    unknown = models.ForeignKey(ReportUnknown, null=True, related_name='leaves')
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='leaves')
+    safe = models.ForeignKey(ReportSafe, models.CASCADE, null=True, related_name='leaves')
+    unsafe = models.ForeignKey(ReportUnsafe, models.CASCADE, null=True, related_name='leaves')
+    unknown = models.ForeignKey(ReportUnknown, models.CASCADE, null=True, related_name='leaves')
 
     class Meta:
         db_table = 'cache_report_component_leaf'
 
 
 class Verdict(models.Model):
-    report = models.OneToOneField(ReportComponent)
+    report = models.OneToOneField(ReportComponent, models.CASCADE)
     unsafe = models.PositiveIntegerField(default=0)
     unsafe_bug = models.PositiveIntegerField(default=0)
     unsafe_target_bug = models.PositiveIntegerField(default=0)
@@ -300,8 +299,8 @@ class Verdict(models.Model):
 
 
 class ComponentResource(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='resources_cache')
-    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='resources_cache')
+    component = models.ForeignKey(Component, models.PROTECT, null=True)
     cpu_time = models.BigIntegerField(default=0)
     wall_time = models.BigIntegerField(default=0)
     memory = models.BigIntegerField(default=0)
@@ -311,8 +310,8 @@ class ComponentResource(models.Model):
 
 
 class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
-    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='unknowns_cache')
+    component = models.ForeignKey(Component, models.PROTECT)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -320,17 +319,17 @@ class ComponentUnknown(models.Model):
 
 
 class CompareJobsInfo(models.Model):
-    user = models.ForeignKey(User)
-    root1 = models.ForeignKey(ReportRoot, related_name='+')
-    root2 = models.ForeignKey(ReportRoot, related_name='+')
-    files_diff = models.TextField()
+    user = models.ForeignKey(User, models.CASCADE)
+    root1 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
+    root2 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
+    attr_names = models.CharField(max_length=64)
 
     class Meta:
         db_table = 'cache_report_jobs_compare_info'
 
 
 class CompareJobsCache(models.Model):
-    info = models.ForeignKey(CompareJobsInfo)
+    info = models.ForeignKey(CompareJobsInfo, models.CASCADE)
     attr_values = models.CharField(max_length=64, db_index=True)
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
@@ -343,8 +342,8 @@ class CompareJobsCache(models.Model):
 
 
 class ComponentInstances(models.Model):
-    report = models.ForeignKey(ReportComponent)
-    component = models.ForeignKey(Component)
+    report = models.ForeignKey(ReportComponent, models.CASCADE)
+    component = models.ForeignKey(Component, models.CASCADE)
     in_progress = models.PositiveIntegerField(default=0)
     total = models.PositiveIntegerField(default=0)
 
@@ -353,7 +352,7 @@ class ComponentInstances(models.Model):
 
 
 class CoverageFile(models.Model):
-    archive = models.ForeignKey(CoverageArchive)
+    archive = models.ForeignKey(CoverageArchive, models.CASCADE)
     name = models.CharField(max_length=1024)
     file = models.FileField(upload_to=get_coverage_dir, null=True)
     covered_lines = models.PositiveIntegerField(default=0)
@@ -382,16 +381,16 @@ class CoverageDataValue(models.Model):
 
 
 class CoverageData(models.Model):
-    covfile = models.ForeignKey(CoverageFile)
+    covfile = models.ForeignKey(CoverageFile, models.CASCADE)
     line = models.PositiveIntegerField()
-    data = models.ForeignKey(CoverageDataValue)
+    data = models.ForeignKey(CoverageDataValue, models.CASCADE)
 
     class Meta:
         db_table = 'cache_report_coverage_data'
 
 
 class CoverageDataStatistics(models.Model):
-    archive = models.ForeignKey(CoverageArchive)
+    archive = models.ForeignKey(CoverageArchive, models.CASCADE)
     name = models.CharField(max_length=128)
     data = models.FileField(upload_to='CoverageData')
 

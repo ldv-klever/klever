@@ -558,7 +558,7 @@ class GetSource:
         if file_name.startswith('/'):
             file_name = file_name[1:]
         try:
-            source_content = ArchiveFileContent(self.report, 'error_trace', file_name).content.decode('utf8')
+            source_content = ArchiveFileContent(self.report.source, 'archive', file_name).content.decode('utf8')
         except Exception as e:
             raise BridgeException(_("Error while extracting source from archive: %(error)s") % {'error': str(e)})
         cnt = 1

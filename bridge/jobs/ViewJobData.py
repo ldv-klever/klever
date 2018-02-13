@@ -16,8 +16,8 @@
 #
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES

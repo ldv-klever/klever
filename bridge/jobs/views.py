@@ -26,11 +26,11 @@ from wsgiref.util import FileWrapper
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
+from django.urls import reverse
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
@@ -976,10 +976,12 @@ def jobs_files_comparison(request, job1_id, job2_id):
         job2 = Job.objects.get(pk=job2_id)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(405)
-    if not can_compare(request.user, job1, job2):
+
+    if not jobs.utils.JobAccess(request.user, job1).can_view() \
+            or not jobs.utils.JobAccess(request.user, job2).can_view():
         return BridgeErrorResponse(507)
     try:
-        data = jobs.utils.GetFilesComparison(request.user, job1, job2).data
+        data = jobs.utils.CompareFileSet(job1, job2).data
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:

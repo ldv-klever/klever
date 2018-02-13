@@ -10,7 +10,8 @@
 {% block body_block %}
     <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ TableData.view.type }}" data-content="{{ TableData.view.viewtitle }}" data-position="bottom right" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
     <div class="ui mini basic icon buttons">
-        <button class="ui button violet note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
+        <button class="ui violet button note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
+        <button class="ui purple button note-popup" id="compare_files_btn" data-position="bottom left" data-content="{% trans 'Compare files' %}"><i class="ui columns icon"></i></button>
         <button class="ui olive button note-popup" id="download_selected_jobs" data-position="bottom left" data-content="{% trans 'Download selected jobs' %}"><i class="ui download icon"></i></button>
         {# Only managers can upload trees (USER_ROLES[2][0]) #}
         {% if user.extended.role == '2' %}

@@ -54,7 +54,7 @@
         </div>
         <div class="one wide column right aligned">
             {% if etv %}
-                <a class="ui icon basic mini button" href="{% url 'reports:etv' report.pk %}"><i class="maximize icon"></i></a>
+                <a class="ui icon basic mini button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="maximize icon"></i></a>
             {% endif %}
         </div>
     </div>

@@ -25,13 +25,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.timezone import now
 
-from bridge.vars import REPORT_ARCHIVE, JOB_WEIGHT, JOB_STATUS
-from bridge.utils import logger
+from bridge.vars import REPORT_ARCHIVE, JOB_WEIGHT, JOB_STATUS, USER_ROLES
+from bridge.utils import logger, unique_id
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
+from users.models import Extended
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
     CoverageArchive, ErrorTraceSource
@@ -41,6 +42,7 @@ from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts
 
 from reports.coverage import FillCoverageCache
+from reports.etv import GetETV
 
 
 AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
@@ -594,11 +596,16 @@ class UploadReport:
         self.__fill_leaf_data(report)
 
     def __create_unsafe_reports(self, identifier):
+        et_archs = {}
+        for arch_name in self.data['error traces']:
+            et_archs[arch_name] = self.archives[arch_name]
+        res = CheckErrorTraces(et_archs, self.archives[self.data['sources']])
+
         source = ErrorTraceSource(root=self.root)
         source.add_sources(REPORT_ARCHIVE['sources'], self.archives[self.data['sources']], True)
 
         cnt = 1
-        for et_arch in self.data['error traces']:
+        for arch_name in self.data['error traces']:
             try:
                 ReportUnsafe.objects.get(identifier=identifier + '/{0}'.format(cnt))
                 raise ValueError('the report with specified identifier already exists')
@@ -606,19 +613,20 @@ class UploadReport:
                 if self.parent.cpu_time is None:
                     raise ValueError('unsafe parent need to be verification report and must have cpu_time')
                 report = ReportUnsafe(
-                    identifier=identifier + '/{0}'.format(cnt), parent=self.parent, root=self.root, source=source,
+                    identifier=identifier + '/{0}'.format(cnt), parent=self.parent, root=self.root,
+                    trace_id=unique_id(), source=source,
                     cpu_time=self.parent.cpu_time, wall_time=self.parent.wall_time, memory=self.parent.memory
                 )
 
-            report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[et_arch], True)
+            report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[arch_name], True)
             if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.error_trace.name)):
                 report.delete()
                 raise CheckArchiveError('Report archive "error trace" was not saved')
 
-            self.__fill_leaf_data(report)
+            self.__fill_leaf_data(report, res.add_attrs.get(arch_name))
             cnt += 1
 
-    def __fill_leaf_data(self, leaf):
+    def __fill_leaf_data(self, leaf, add_attrs=None):
         parent_attrs = []
         for p in self._parents_branch:
             for ra in p.attrs.order_by('id').select_related('attr__name'):
@@ -630,6 +638,9 @@ class UploadReport:
 
         if 'attrs' in self.data:
             self.ordered_attrs += self.__save_attrs(leaf.id, self.data['attrs'])
+        if add_attrs is not None:
+            self.ordered_attrs += self.__save_attrs(leaf.id, add_attrs)
+
         if self.job.weight == JOB_WEIGHT[1][0]:
             self.__cut_leaf_parents_branch(leaf)
 
@@ -820,3 +831,41 @@ class CollapseReports:
 
         RecalculateLeaves([root])
         RecalculateVerdicts([root])
+
+
+class CheckErrorTraces:
+    def __init__(self, traces, sources):
+        self._traces = traces
+        self._sources = sources
+        self.add_attrs = {}
+        self.__check_traces()
+        self.__exit()
+
+    def __check_traces(self):
+        manager = Extended.objects.filter(role=USER_ROLES[2][0]).first()
+        if not manager:
+            raise ValueError("Can't check error traces without manager in the system")
+
+        files = self.__get_list_of_sources()
+        for tr_name in self._traces:
+            res = GetETV(self.__read_trace(tr_name), manager)
+
+            if 'attrs' in res.data:
+                self.add_attrs[tr_name] = res.data['attrs']
+            if 'files' not in res.data:
+                raise ValueError('Wrong format of error trace')
+            if any(x not in files for x in res.data['files']):
+                raise ValueError("Sources doesn't have needed source for error trace")
+
+    def __read_trace(self, trace_name):
+        with zipfile.ZipFile(self._traces[trace_name], mode='r') as zfp:
+            return zfp.read('error trace.json', 'r').decode('utf8')
+
+    def __get_list_of_sources(self):
+        with zipfile.ZipFile(self._sources, mode='r') as zfp:
+            return zfp.namelist()
+
+    def __exit(self):
+        for arch in self._traces:
+            self._traces[arch].seek(0)
+        self._sources.seek(0)

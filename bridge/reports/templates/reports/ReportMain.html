@@ -61,8 +61,14 @@
                     </thead>
                     <tbody>
                     <tr>
-                        {% for v in SelfAttrsData.values %}
-                            <td class="collapsing"><span>{{ v }}</span></td>
+                        {% for v, attr_id in SelfAttrsData.values %}
+                            <td class="collapsing">
+                                {% if attr_id %}
+                                    <a class="attr-data-href" href="#" data-attr-id="{{ attr_id }}">{{ v }}</a>
+                                {% else %}
+                                    <span>{{ v }}</span>
+                                {% endif %}
+                            </td>
                         {%  endfor %}
                     </tr>
                     </tbody>
@@ -202,7 +208,7 @@
     <div class="content">
         <div class="ui grid">
             <div class="eight wide column">
-                <a class="ui icon olive button" href="{% url 'reports:log' report.pk %}"><i class="download icon"></i></a>
+                <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
             </div>
             <div class="eight wide column right aligned">
                 <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>

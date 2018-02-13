@@ -182,10 +182,6 @@ TASK_STATUS = (
     ('CANCELLED', _('Cancelled'))
 )
 
-MARKS_COMPARE_ATTRS = ['Rule specification', 'Verification object']
-
-JOBS_COMPARE_ATTRS = ['Name', 'Verification object', 'Rule specification']
-
 KLEVER_CORE_PARALLELISM = (
     ('sequential', _('Sequentially')),
     ('slow', _('Slowly')),

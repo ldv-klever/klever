@@ -35,7 +35,7 @@ class Scheduler(models.Model):
 
 
 class VerificationTool(models.Model):
-    scheduler = models.ForeignKey(Scheduler)
+    scheduler = models.ForeignKey(Scheduler, models.CASCADE)
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
 
@@ -44,7 +44,7 @@ class VerificationTool(models.Model):
 
 
 class SchedulerUser(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, models.CASCADE)
     login = models.CharField(max_length=128)
     password = models.CharField(max_length=128)
 
@@ -76,10 +76,10 @@ class Workload(models.Model):
 
 
 class Node(models.Model):
-    config = models.ForeignKey(NodesConfiguration)
+    config = models.ForeignKey(NodesConfiguration, models.CASCADE)
     status = models.CharField(max_length=13, choices=NODE_STATUS)
     hostname = models.CharField(max_length=128)
-    workload = models.OneToOneField(Workload, null=True, on_delete=models.SET_NULL, related_name='+')
+    workload = models.OneToOneField(Workload, models.SET_NULL, null=True, related_name='+')
 
     class Meta:
         db_table = 'node'
@@ -93,9 +93,9 @@ def node_delete_signal(**kwargs):
 
 
 class SolvingProgress(models.Model):
-    job = models.OneToOneField(Job)
+    job = models.OneToOneField(Job, models.CASCADE)
     priority = models.CharField(max_length=6, choices=PRIORITY)
-    scheduler = models.ForeignKey(Scheduler)
+    scheduler = models.ForeignKey(Scheduler, models.CASCADE)
     start_date = models.DateTimeField(null=True)
     finish_date = models.DateTimeField(null=True)
     tasks_total = models.PositiveIntegerField(default=0)
@@ -126,7 +126,7 @@ def get_progress_configuration(**kwargs):
 
 
 class JobProgress(models.Model):
-    job = models.OneToOneField(Job)
+    job = models.OneToOneField(Job, models.CASCADE)
     total_sj = models.PositiveIntegerField(null=True)
     failed_sj = models.PositiveIntegerField(null=True)
     solved_sj = models.PositiveIntegerField(null=True)
@@ -145,7 +145,7 @@ class JobProgress(models.Model):
 
 
 class Task(models.Model):
-    progress = models.ForeignKey(SolvingProgress)
+    progress = models.ForeignKey(SolvingProgress, models.CASCADE)
     status = models.CharField(max_length=10, choices=TASK_STATUS, default='PENDING')
     error = models.CharField(max_length=1024, null=True)
     description = models.BinaryField()
@@ -169,7 +169,7 @@ def task_delete_signal(**kwargs):
 
 
 class Solution(models.Model):
-    task = models.OneToOneField(Task)
+    task = models.OneToOneField(Task, models.CASCADE)
     description = models.BinaryField()
     archname = models.CharField(max_length=256)
     archive = models.FileField(upload_to=FILE_DIR, null=False)

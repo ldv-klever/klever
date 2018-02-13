@@ -20,9 +20,9 @@ import json
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.test import Client
+from django.urls import reverse
 
 from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, NODE_STATUS
 from bridge.utils import KleverTestCase

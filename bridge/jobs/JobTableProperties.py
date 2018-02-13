@@ -16,9 +16,9 @@
 #
 
 from datetime import datetime
-from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Case, When, Count
 from django.template import Template, Context
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 

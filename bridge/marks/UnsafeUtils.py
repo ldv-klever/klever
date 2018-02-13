@@ -26,8 +26,8 @@ from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARKS_COMPARE_ATTRS,\
-    MARK_TYPE, ASSOCIATION_TYPE
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARK_TYPE,\
+    ASSOCIATION_TYPE
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
 
 from users.models import User
@@ -228,7 +228,8 @@ class NewMark:
         need_recalc = False
         new_attrs = []
         if isinstance(inst, ReportUnsafe):
-            for a_id, a_name in inst.attrs.order_by('id').values_list('attr_id', 'attr__name__name'):
+            for a_id, a_name, associate in inst.attrs.order_by('id')\
+                    .values_list('attr_id', 'attr__name__name', 'associate'):
                 if 'attrs' in self._args:
                     for a in self._args['attrs']:
                         if a['attr'] == a_name:
@@ -239,9 +240,7 @@ class NewMark:
                     else:
                         raise ValueError('Not enough attributes in args')
                 else:
-                    new_attrs.append(MarkUnsafeAttr(
-                        mark_id=markversion_id, attr_id=a_id, is_compare=(a_name in MARKS_COMPARE_ATTRS)
-                    ))
+                    new_attrs.append(MarkUnsafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=associate))
         elif isinstance(inst, MarkUnsafeHistory):
             for a_id, a_name, is_compare in inst.attrs.order_by('id')\
                     .values_list('attr_id', 'attr__name__name', 'is_compare'):

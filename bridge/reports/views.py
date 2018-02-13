@@ -16,15 +16,16 @@
 #
 
 import json
+import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
@@ -403,11 +404,11 @@ def unknowns_list(request, report_id):
 
 @login_required
 @unparallel_group([])
-def report_unsafe(request, report_id):
+def report_unsafe(request, trace_id):
     activate(request.user.extended.language)
 
     try:
-        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(trace_id=trace_id)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -534,11 +535,11 @@ def report_unknown(request, report_id):
 
 @login_required
 @unparallel_group([])
-def report_etv_full(request, report_id):
+def report_etv_full(request, trace_id):
     activate(request.user.extended.language)
 
     try:
-        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(trace_id=trace_id)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -612,6 +613,8 @@ def upload_report(request):
 @login_required
 @unparallel_group([])
 def get_component_log(request, report_id):
+    activate(request.user.extended.language)
+
     report_id = int(report_id)
     try:
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
@@ -640,6 +643,8 @@ def get_component_log(request, report_id):
 @login_required
 @unparallel_group([])
 def get_log_content(request, report_id):
+    activate(request.user.extended.language)
+
     report_id = int(report_id)
     try:
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
@@ -659,7 +664,7 @@ def get_log_content(request, report_id):
         return HttpResponse(str(_('Extraction of the component log from archive failed')))
 
     if len(content) > 10**5:
-        return HttpResponse(str(_('The component log is huge and can not be showed but you can download it')))
+        return HttpResponse(str(_('The component log is huge and can not be shown but you can download it')))
     return HttpResponse(content.decode('utf8'))
 
 
@@ -703,6 +708,9 @@ def fill_compare_cache(request):
         pass
     try:
         CompareTree(request.user, j1, j2)
+    except BridgeException as e:
+        logger.exception("Comparison of reports' trees failed")
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception("Comparison of reports' trees failed: %s" % e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -907,3 +915,52 @@ def get_coverage_src(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({'content': res.src_html, 'data': res.data_html, 'legend': res.legend})
+
+
+@login_required
+@unparallel_group([])
+def get_attr_data_file(request, attr_id):
+    activate(request.user.extended.language)
+
+    attr_id = int(attr_id)
+    try:
+        attr = reports.models.ReportAttr.objects.get(id=attr_id)
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+
+    if not JobAccess(request.user, attr.report.root.job).can_view():
+        return BridgeErrorResponse(400)
+
+    if not attr.data:
+        return BridgeErrorResponse(_("The attribute doesn't have data"))
+
+    content = BytesIO(attr.data.file.read())
+
+    mimetype = mimetypes.guess_type(attr.data.name)[0]
+    response = StreamingHttpResponse(FileWrapper(content, 8192), content_type=mimetype)
+    response['Content-Length'] = len(content)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(attr.data.name)
+    return response
+
+
+@login_required
+@unparallel_group([])
+def get_attr_data_content(request, attr_id):
+    activate(request.user.extended.language)
+
+    attr_id = int(attr_id)
+    try:
+        attr = reports.models.ReportAttr.objects.get(pk=int(attr_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+
+    if not JobAccess(request.user, attr.report.root.job).can_view():
+        return BridgeErrorResponse(400)
+
+    if not attr.data:
+        return BridgeErrorResponse(_("The attribute doesn't have data"))
+
+    content = attr.data.file.read()
+    if len(content) > 10**5:
+        return HttpResponse(str(_('The attribute data is huge and can not be shown but you can download it')))
+    return HttpResponse(content.decode('utf8'))

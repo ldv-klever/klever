@@ -108,7 +108,7 @@
                     </div>
                     <br><br>
                 {% endif %}
-                <a href="{% url 'reports:unsafe' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+                <a href="{% url 'reports:unsafe' report.trace_id %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
                 <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
             </div>
         </div>

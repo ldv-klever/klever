@@ -15,37 +15,39 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path
 from reports import views
 
 
 urlpatterns = [
-    url(r'^component/(?P<job_id>[0-9]+)/(?P<report_id>[0-9]+)/$', views.report_component, name='component'),
-    url('^log/(?P<report_id>[0-9]+)/$', views.get_component_log, name='log'),
-    url('^logcontent/(?P<report_id>[0-9]+)/$', views.get_log_content),
+    path('component/<int:job_id>/<int:report_id>/', views.report_component, name='component'),
+    path('log/<int:report_id>/', views.get_component_log, name='log'),
+    path('logcontent/<int:report_id>/', views.get_log_content),
+    path('attrdata/<int:attr_id>/', views.get_attr_data_file, name='attr_data'),
+    path('attrdata-content/<int:attr_id>/', views.get_attr_data_content),
 
-    url(r'^component/(?P<report_id>[0-9]+)/safes/$', views.safes_list, name='safes'),
-    url(r'^component/(?P<report_id>[0-9]+)/unsafes/$', views.unsafes_list, name='unsafes'),
-    url(r'^component/(?P<report_id>[0-9]+)/unknowns/$', views.unknowns_list, name='unknowns'),
+    path('component/<int:report_id>/safes/', views.safes_list, name='safes'),
+    path('component/<int:report_id>/unsafes/', views.unsafes_list, name='unsafes'),
+    path('component/<int:report_id>/unknowns/', views.unknowns_list, name='unknowns'),
 
-    url(r'^unsafe/(?P<report_id>[0-9]+)/$', views.report_unsafe, name='unsafe'),
-    url(r'^safe/(?P<report_id>[0-9]+)/$', views.report_safe, name='safe'),
-    url(r'^unknown/(?P<report_id>[0-9]+)/$', views.report_unknown, name='unknown'),
-    url(r'^unsafe/(?P<report_id>[0-9]+)/etv/$', views.report_etv_full, name='etv'),
+    path('unsafe/<slug:trace_id>/', views.report_unsafe, name='unsafe'),
+    path('safe/<int:report_id>/', views.report_safe, name='safe'),
+    path('unknown/<int:report_id>/', views.report_unknown, name='unknown'),
+    path('unsafe/<slug:trace_id>/fullscreen/', views.report_etv_full, name='unsafe_fullscreen'),
 
-    url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_comparison, name='comparison'),
-    url(r'^download-error-trace/(?P<report_id>[0-9]+)/$', views.download_error_trace, name='download_error_trace'),
+    path('comparison/<int:job1_id>/<int:job2_id>/', views.jobs_comparison, name='comparison'),
+    path('download-error-trace/<int:report_id>/', views.download_error_trace, name='download_error_trace'),
 
-    url(r'^upload/$', views.upload_report),
-    url(r'^ajax/get_source/$', views.get_source_code),
-    url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
-    url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
-    url(r'^ajax/clear_verification_files/$', views.clear_verification_files),
-    url(r'^component/(?P<report_id>[0-9]+)/download_verifier_input_files/$',
-        views.download_verifier_input_files, name='download_verifier_input_files'),
-    url(r'^component/(?P<archive_id>[0-9]+)/download_coverage/$', views.download_coverage, name='download_coverage'),
+    path('upload/', views.upload_report),
+    path('ajax/get_source/', views.get_source_code),
+    path('ajax/fill_compare_cache/', views.fill_compare_cache),
+    path('ajax/get_compare_jobs_data/', views.get_compare_jobs_data),
+    path('ajax/clear_verification_files/', views.clear_verification_files),
+    path('component/<int:report_id>/download_verifier_input_files/',
+         views.download_verifier_input_files, name='download_verifier_input_files'),
+    path('component/<int:archive_id>/download_coverage/', views.download_coverage, name='download_coverage'),
 
-    url(r'^coverage/(?P<report_id>[0-9]+)/$', views.coverage_page, name='coverage'),
-    url(r'^coverage-light/(?P<report_id>[0-9]+)/$', views.coverage_light_page, name='coverage_light'),
-    url(r'^ajax/get-coverage-src/$', views.get_coverage_src),
+    path('coverage/<int:report_id>/', views.coverage_page, name='coverage'),
+    path('coverage-light/<int:report_id>/', views.coverage_light_page, name='coverage_light'),
+    path('ajax/get-coverage-src/', views.get_coverage_src),
 ]

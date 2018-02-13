@@ -77,7 +77,7 @@ function check_jobs_access(jobs) {
     return status;
 }
 
-function compare_jobs() {
+function compare_reports() {
     var selected_jobs = [];
     $('input[id^="job_checkbox__"]:checked').each(function () {
         selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
@@ -120,6 +120,18 @@ function compare_jobs() {
         },
         'json'
     );
+}
+
+function compare_files() {
+    var selected_jobs = [];
+    $('input[id^="job_checkbox__"]:checked').each(function () {
+        selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
+    });
+    if (selected_jobs.length !== 2) {
+        err_notify($('#error__no_jobs_to_compare').text());
+        return false;
+    }
+    window.location.href = '/jobs/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
 }
 
 $(document).ready(function () {
@@ -202,5 +214,6 @@ $(document).ready(function () {
         }
     });
 
-    $('#compare_reports_btn').click(compare_jobs);
+    $('#compare_reports_btn').click(compare_reports);
+    $('#compare_files_btn').click(compare_files);
 });

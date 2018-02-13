@@ -16,9 +16,12 @@
 #
 
 import json
-from django.core.urlresolvers import reverse
+
+from django.urls import reverse
+
 from bridge.utils import KleverTestCase
 from bridge.vars import LANGUAGES, DATAFORMAT
+
 from users.models import User, Extended, Notifications
 from service.models import SchedulerUser
 
