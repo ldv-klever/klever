@@ -97,11 +97,6 @@
                   ],
                   "kernel": false
                 }
-              },
-              {
-                "manualImporter": {
-                  "enforce replacement": true
-                }
               }
             ],
             "translation options": {
