@@ -285,7 +285,7 @@ class InterfaceCollection:
             relevant_interfaces.add(intf)
 
         # Add all interfaces for non-container categories
-        for interface in relevant_interfaces:
+        for interface in set(relevant_interfaces):
             containers = self.containers(interface.category)
             if len(containers) == 0:
                 relevant_interfaces.update([self.get_intf(name) for name in self.interfaces

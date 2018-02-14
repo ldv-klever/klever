@@ -130,7 +130,10 @@ def import_interface_declaration(collection, interface, declaration):
                 n = given_ast['specifiers']['identifier']
                 category = given_ast['specifiers']['category']
                 i = collection.get_intf("{}.{}".format(category, n))
-                d = i.declaration.to_string(declarator)
+                if 'pointer' in given_ast['specifiers'] and given_ast['specifiers']['pointer']:
+                    d = i.declaration.take_pointer.to_string(declarator)
+                else:
+                    d = i.declaration.to_string(declarator)
                 return d, i
             else:
                 if check_function(given_ast):
@@ -175,7 +178,6 @@ def import_interface_declaration(collection, interface, declaration):
                 else:
                     raise NotImplementedError
 
-    # todo: Check which exceptions can be thrown here
     try:
         clean = import_declaration(declaration)
         return clean, None
