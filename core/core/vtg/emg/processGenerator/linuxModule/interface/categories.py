@@ -19,7 +19,7 @@ from core.vtg.emg.processGenerator.linuxModule.interface import Resource, Callba
     FunctionInterface
 
 
-def yield_categories(collection, conf):
+def yield_categories(collection):
     """
     Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
     interface specifications and global variables. All new categories and interfaces are added directly to the
@@ -31,9 +31,6 @@ def yield_categories(collection, conf):
     :return: None
     """
 
-    # Add information about callbacks
-    __populate_callbacks(collection)
-
     # Add resources
     __populate_resources(collection)
 
@@ -43,7 +40,7 @@ def yield_categories(collection, conf):
     return
 
 
-def __populate_callbacks(collection):
+def populate_callbacks(collection):
     for container in (c for c in collection.containers() if isinstance(c, StructureContainer)):
         for field in (f for f in container.declaration.fields if isinstance(container.declaration.fields[f], Pointer)
                       and isinstance(container.declaration.fields[f].points, Function)
@@ -60,6 +57,7 @@ def __populate_callbacks(collection):
             interface = Callback(container.category, identifier)
             interface.declaration = declaration
             collection.set_intf(interface)
+            container.field_interfaces[field] = interface
 
     return
 

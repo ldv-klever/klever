@@ -150,15 +150,9 @@ def import_interface_declaration(collection, interface, declaration):
                         else:
                             declarator += '(' + ', '.join(parameter_declarations) + ')'
 
-                        if 'specifiers' in given_ast['return value type'] and \
-                                'type specifier' in given_ast['return value type']['specifiers'] and \
-                                given_ast['return value type']['specifiers']['type specifier']['class'] == 'primitive' \
-                                and given_ast['return value type']['specifiers']['type specifier']['name'] == 'void':
-                            declarator = 'void {}'.format(declarator)
-                        else:
-                            declarator, i = check_ast(given_ast['return value type'], declarator, None)
-                            if iint and i:
-                                iint.rv_interface = i
+                        declarator, i = check_ast(given_ast['return value type'], declarator, None)
+                        if iint and i:
+                            iint.rv_interface = i
 
                         return declarator, None
 

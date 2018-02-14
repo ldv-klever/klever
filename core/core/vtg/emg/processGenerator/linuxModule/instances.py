@@ -66,7 +66,8 @@ def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     importer = ProcessImporter(logger, conf)
     # This convert is maybe useless but guarantee that all processes belong to Process class
     generated_triple = importer.parse_event_specification(data)
-
+    importer.establish_peers(list(generated_triple[0].values()), list(generated_triple[1].values()),
+                             generated_triple[2], True)
     return instance_maps, generated_triple
 
 
@@ -269,7 +270,6 @@ def _yeild_identifier():
 
 
 def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, action_identifiers, param_identifiers):
-    # todo: write docs
     the_last_added = None
 
     def ret_expression():
@@ -298,8 +298,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                     lbl = suits[0].label
                 return_expression = suits[0].access_with_label(lbl) + ' = '
             else:
-                raise RuntimeError("Cannot find a suitable label for return value of action '{}'".
-                                   format(call.name))
+                raise RuntimeError("Cannot find a suitable label for return value of action {!r}".format(call.name))
 
         return return_expression
 

@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 from core.vtg.emg.common.c.types import Structure, Union, Array, import_declaration, extract_name, check_null
+from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer
 
 
 def extract_implementations(collection, sa):
@@ -82,6 +83,21 @@ def __check_static(name, file, sa):
     return static
 
 
+def check_relevant_interface(collection, declaration, category, connector):
+    suits = collection.resolve_containers(declaration, category)
+    children = set()
+    if len(suits) > 0:
+        for suit in suits:
+            container = collection.get_intf(suit)
+            if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
+                    container.field_interfaces[connector]:
+                children.add(container.field_interfaces[connector].identifier)
+            elif isinstance(container, ArrayContainer):
+                children.add(container.element_interface.identifier)
+
+    return (collection.get_intf(i) for i in children)
+
+
 def __import_entities(collection, sa, entities):
     def determine_category(e, decl):
         c = None
@@ -100,7 +116,7 @@ def __import_entities(collection, sa, entities):
         if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
             if check_null(bt, entity["description"]["value"]):
                 category = entity["category"] if "category" in entity else None
-                intfs = collection.resolve_interface_weakly(entity["type"], category=category)
+                intfs = check_relevant_interface(collection, entity["type"], category, entity["root sequence"][-1])
                 for intf in intfs:
                     impl = intf.add_implementation(
                               entity["description"]["value"],

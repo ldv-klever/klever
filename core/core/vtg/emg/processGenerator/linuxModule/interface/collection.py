@@ -20,7 +20,7 @@ from core.vtg.emg.processGenerator.linuxModule.interface import Container, Resou
     StructureContainer, ArrayContainer
 from core.vtg.emg.processGenerator.linuxModule.interface.analysis import extract_implementations
 from core.vtg.emg.processGenerator.linuxModule.interface.specification import import_interface_specification
-from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories
+from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories, populate_callbacks
 
 
 class InterfaceCollection:
@@ -37,11 +37,14 @@ class InterfaceCollection:
         self.logger.info("Analyze provided interface categories specification")
         import_interface_specification(self, sa, interface_specification)
 
+        self.logger.info("Extract callbacks from structure variables initializations")
+        populate_callbacks(self)
+
         self.logger.info("Import results of source code analysis")
         extract_implementations(self, sa)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
-        yield_categories(self, self.conf)
+        yield_categories(self)
 
         self.logger.info("Determine unrelevant to the checked code interfaces and remove them")
         self.__refine_categories(sa)
@@ -301,7 +304,7 @@ class InterfaceCollection:
             elif len(containers) > 0 and len(callback.implementations) == 0:
                 for container in containers:
                     if self.get_intf(container) in relevant_interfaces and \
-                                    len(self.get_intf(container).implementations) == 0:
+                                    len(self.get_intf(container).implementations) > 0:
                         relevant_interfaces.add(callback)
                         relevant_interfaces.update(__check_category_relevance(callback))
                         break
