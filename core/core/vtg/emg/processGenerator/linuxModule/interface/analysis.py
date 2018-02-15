@@ -14,8 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.emg.common.c.types import Structure, Union, Array, import_declaration, extract_name, check_null
-from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer
+from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
+    check_null
+from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer, Callback
 
 
 def extract_implementations(collection, sa):
@@ -40,7 +41,7 @@ def extract_implementations(collection, sa):
                     raise ValueError("Does not expect description of several containers with declation {!r}".
                                      format(var.declaration))
                 for i in intfs:
-                    i.add_implementation(
+                    implementation = i.add_implementation(
                         varname,
                         var.declaration,
                         var.initialization_file,
@@ -48,7 +49,7 @@ def extract_implementations(collection, sa):
                         None,
                         []
                     )
-
+                    implementation.static = var.static
                     # Actually we does not expect several declarations specific for containers
                     entity['category'] = i.category
                 entities.append(entity)
@@ -58,11 +59,11 @@ def extract_implementations(collection, sa):
     for funcname in sa.source_functions:
         for func_obj in sa.get_source_functions(funcname):
             for cf_name in func_obj.calls:
-                called_function = collection.get_intf(cf_name)
+                called_function = collection.get_intf("functions models.{}".format(cf_name))
                 if called_function:
                     for indx, parameter in enumerate(called_function.param_interfaces):
                         if parameter:
-                            for call in (c[indx] for c in func_obj.calls[cf_name] if c[indx]):
+                            for call in (c[indx] for c in func_obj.calls[cf_name] if c[indx] and c[indx] != '0'):
                                 impl = parameter.add_implementation(call, called_function.declaration.parameters[indx],
                                                                     func_obj.definition_file, None, None, [])
                                 impl.static = __check_static(call, func_obj.definition_file, sa)
@@ -116,7 +117,27 @@ def __import_entities(collection, sa, entities):
         if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
             if check_null(bt, entity["description"]["value"]):
                 category = entity["category"] if "category" in entity else None
-                intfs = check_relevant_interface(collection, entity["type"], category, entity["root sequence"][-1])
+                intfs = list(check_relevant_interface(collection, entity["type"], category,
+                                                      entity["root sequence"][-1]))
+                if len(intfs) == 0 and isinstance(entity["type"], Pointer) and \
+                        isinstance(entity["type"].points, Function):
+                    containers = collection.resolve_interface_weakly(entity['parent type'], category)
+                    for container in (c for c in containers if isinstance(c, StructureContainer)):
+                        if "{}.{}".format(container.category, field) not in collection.interfaces:
+                            identifier = field
+                        elif "{}.{}".format(container.category, entity["type"].pretty_name) \
+                                not in collection.interfaces:
+                            identifier = entity["type"].pretty_name
+                        else:
+                            raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
+                                               format(entity["type"].identifier, container.category))
+                        interface = Callback(container.category, identifier)
+                        interface.declaration = entity["type"]
+                        collection.set_intf(interface)
+                        container.field_interfaces[field] = interface
+                        intfs.append(interface)
+                        break
+
                 for intf in intfs:
                     impl = intf.add_implementation(
                               entity["description"]["value"],
@@ -142,6 +163,7 @@ def __import_entities(collection, sa, entities):
                         "type": e_bt,
                         "description": entry,
                         "path": entity["path"],
+                        "parent type": bt,
                         "root type": new_root_type,
                         "root value": entity["root value"],
                         "root sequence": new_sequence
@@ -173,6 +195,7 @@ def __import_entities(collection, sa, entities):
                             "type": e_bt,
                             "description": entry,
                             "path": entity["path"],
+                            "parent type": bt,
                             "root type": new_root_type,
                             "root value": new_root_value,
                             "root sequence": new_sequence
@@ -187,4 +210,3 @@ def __import_entities(collection, sa, entities):
                 raise NotImplementedError
         else:
             raise TypeError('Expect list or string')
-

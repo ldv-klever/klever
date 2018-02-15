@@ -40,28 +40,6 @@ def yield_categories(collection):
     return
 
 
-def populate_callbacks(collection):
-    for container in (c for c in collection.containers() if isinstance(c, StructureContainer)):
-        for field in (f for f in container.declaration.fields if isinstance(container.declaration.fields[f], Pointer)
-                      and isinstance(container.declaration.fields[f].points, Function)
-                      and f not in container.field_interfaces):
-            declaration = container.declaration.fields[field]
-            if "{}.{}".format(container.category, field) not in collection.interfaces:
-                identifier = field
-            elif "{}.{}".format(container.category, declaration.pretty_name) not in collection.interfaces:
-                identifier = declaration.pretty_name
-            else:
-                raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
-                                   format(declaration.identifier, container.category))
-
-            interface = Callback(container.category, identifier)
-            interface.declaration = declaration
-            collection.set_intf(interface)
-            container.field_interfaces[field] = interface
-
-    return
-
-
 def __populate_resources(collection):
     # Iterate over categories
     for category in collection.categories:

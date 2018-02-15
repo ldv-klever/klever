@@ -12,6 +12,10 @@
       "platform_driver_register": {
         "declaration": "int platform_driver_register(*%platform.platform_driver%)",
         "header": "linux/platform_device.h"
+      },
+      "__platform_driver_register": {
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *)",
+        "header": "linux/platform_device.h"
       }
     },
     "categories": {

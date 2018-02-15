@@ -137,7 +137,10 @@ def _simplify_process(logger, conf, sa, interfaces, process):
                 if isinstance(action, Receive) and get_conf_property(conf, "add registration guards"):
                     access = process.resolve_access(new_expression)[0]
                     implementation = process.get_implementation(access)
-                    if implementation and implementation.value:
+                    if implementation and implementation.value and not \
+                            (isinstance(implementation.declaration, Function) or
+                             (isinstance(implementation.declaration, Pointer) and
+                              isinstance(implementation.declaration.points, Function))):
                         guards.append("{} == {}".format("$ARG{}".format(index + 1),
                                                         implementation.adjusted_value(new_label.declaration)))
 
@@ -788,7 +791,7 @@ def _remove_statics(sa, process):
 
         # Generate params
         params = ', '.join(["arg{}".format(i) for i in range(len(f.declaration.parameters))])
-        call = "{} ({})({});".format(ret, impl.value, params)
+        call = "{} {}({});".format(ret, sa.refined_name(implementation.value), params)
         f.body.append(call)
 
         return f
@@ -820,7 +823,6 @@ def _remove_statics(sa, process):
 
                 # Determine name
                 name = sa.refined_name(implementation.value)
-
                 if declaration and (file not in _values_map or
                                     name not in _values_map[file]):
                     # Prepare dictionary

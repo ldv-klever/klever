@@ -228,13 +228,10 @@ class Declaration:
 
     def compare(self, target):
         # Apply all transformations
-        a = import_declaration(self.to_string('a', typedef='all'))
-        b = import_declaration(target.to_string('a', typedef='all'))
-
-        if type(a) is type(b):
-            if a.identifier == b.identifier:
+        if type(self) is type(target):
+            if self.identifier == target.identifier:
                 return True
-            elif a.identifier == 'void *' or b.identifier == 'void *':
+            elif self.identifier == 'void *' or target.identifier == 'void *':
                 return True
         return False
 

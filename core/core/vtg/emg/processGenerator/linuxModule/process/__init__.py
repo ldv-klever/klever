@@ -281,15 +281,15 @@ class AbstractProcess(Process):
         ret = []
 
         # Match dispatches
-        for dispatch in self.unmatched_dispatches:
-            for receive in process.unmatched_receives:
+        for dispatch in self.dispatches:
+            for receive in process.receives:
                 match = self.__compare_signals(process, dispatch, receive)
                 if match:
                     ret.append([dispatch.name, receive.name])
 
         # Match receives
-        for receive in self.unmatched_receives:
-            for dispatch in process.unmatched_dispatches:
+        for receive in self.receives:
+            for dispatch in process.dispatches:
                 match = self.__compare_signals(process, receive, dispatch)
                 if match:
                     ret.append([receive.name, dispatch.name])

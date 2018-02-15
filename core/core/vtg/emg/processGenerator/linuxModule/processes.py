@@ -87,11 +87,9 @@ class ProcessModel:
                                         "model: {}. Disable option 'ignore missed callbacks' in intermediate model "
                                         "configuration properties if you would like to terminate.".
                                         format(category, names))
-
-                if len(new.unmatched_dispatches) > 0 or len(new.unmatched_receives) > 0:
-                    self.logger.info("Added process {!r} have unmatched signals, need to find factory or registration "
-                                     "and deregistration functions".format(new.name))
-                    self.__establish_signal_peers(interfaces, new)
+                self.logger.info("Added process {!r} have unmatched signals, need to find factory or registration "
+                                 "and deregistration functions".format(new.name))
+                self.__establish_signal_peers(interfaces, new)
             else:
                 self.logger.info("Ignore interface category {!r}, since it does not have callbacks to call".
                                  format(category))

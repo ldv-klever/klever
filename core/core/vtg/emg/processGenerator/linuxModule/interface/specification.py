@@ -143,7 +143,7 @@ def import_interface_declaration(collection, interface, declaration):
                             if isinstance(p, str):
                                 parameter_declarations.append(p)
                             else:
-                                expr, i = check_ast(p, '', None)
+                                expr, i = check_ast(p, 'a', None)
                                 if iint and i:
                                     iint.set_param_interface(index, i)
                                 parameter_declarations.append(expr)

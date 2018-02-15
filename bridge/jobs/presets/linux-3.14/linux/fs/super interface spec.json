@@ -8,6 +8,22 @@
       "unregister_filesystem": {
         "declaration": "int unregister_filesystem(*%super.file_system_type%)",
         "header": "linux/fs.h"
+      },
+      "get_sb_bdev": {
+        "declaration": "int get_sb_bdev(*%super.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_single": {
+        "declaration": "int get_sb_single(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_nodev": {
+        "declaration": "int get_sb_nodev(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_ns": {
+        "declaration": "int get_sb_ns(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
       }
     },
     "categories": {

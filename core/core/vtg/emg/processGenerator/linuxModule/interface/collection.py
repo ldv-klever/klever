@@ -20,7 +20,7 @@ from core.vtg.emg.processGenerator.linuxModule.interface import Container, Resou
     StructureContainer, ArrayContainer
 from core.vtg.emg.processGenerator.linuxModule.interface.analysis import extract_implementations
 from core.vtg.emg.processGenerator.linuxModule.interface.specification import import_interface_specification
-from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories, populate_callbacks
+from core.vtg.emg.processGenerator.linuxModule.interface.categories import yield_categories
 
 
 class InterfaceCollection:
@@ -36,9 +36,6 @@ class InterfaceCollection:
     def fill_up_collection(self, sa, interface_specification):
         self.logger.info("Analyze provided interface categories specification")
         import_interface_specification(self, sa, interface_specification)
-
-        self.logger.info("Extract callbacks from structure variables initializations")
-        populate_callbacks(self)
 
         self.logger.info("Import results of source code analysis")
         extract_implementations(self, sa)

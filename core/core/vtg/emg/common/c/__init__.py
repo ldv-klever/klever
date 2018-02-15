@@ -101,7 +101,7 @@ class Function:
         :return:
         """
         if func not in self.calls:
-            self.calls = {func: [parameters]}
+            self.calls[func] = [parameters]
         else:
             self.calls[func].append(parameters)
 

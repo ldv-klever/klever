@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from core.vtg.emg.common.signature import import_declaration, is_static
+from core.vtg.emg.common.c.types import import_declaration
 
 __grammar_tests = [
     "static int func(int, void (*)(void))",

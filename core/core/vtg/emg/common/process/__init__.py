@@ -155,6 +155,14 @@ class Process:
                 len(self.actions[act].peers) == 0]
 
     @property
+    def dispatches(self):
+        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Dispatch)]
+
+    @property
+    def receives(self):
+        return [self.actions[act] for act in self.actions.keys() if isinstance(self.actions[act], Receive)]
+
+    @property
     def unused_labels(self):
         used_labels = set()
 

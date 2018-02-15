@@ -303,7 +303,7 @@ class Source:
                     raise ValueError('Global variable without a name')
                 var = Variable(variable_name, variable['declaration'])
 
-                # Here we know, that if we met a variable in an another file then it is an another variable becaouse
+                # Here we know, that if we met a variable in an another file then it is an another variable because
                 # a program should contain a single global variable initialization
                 self.set_source_variable(var, variable['path'])
                 var.declaration_files.add(variable['path'])

@@ -1,7 +1,7 @@
 {
   "Linux 3.14 (base)": {
     "functions models": {
-      "alloc_netdev_mq, alloc_netdev_mqs, alloc_etherdev_mq, alloc_etherdev_mqs": {
+      "alloc_netdev_mqs, alloc_etherdev_mq, alloc_etherdev_mqs": {
         "comment": "Allocate and set up an ethernet device.",
         "labels": {
           "netdev": {

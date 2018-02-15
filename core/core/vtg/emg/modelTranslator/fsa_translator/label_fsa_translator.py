@@ -159,6 +159,7 @@ class LabelTranslator(FSATranslator):
                         cn = self._cmodel.text_processor(automaton, statement)
                         conditions.extend(cn)
 
+                # This should be before precondition because it may check values unpacked in this section
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
                     var = Variable('data', decl.take_pointer)

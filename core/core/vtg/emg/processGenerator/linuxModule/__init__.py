@@ -71,7 +71,7 @@ def generate_processes(emg, source, processes_triple, conf):
     instance_maps, new_triple = generate_instances(emg.logger, conf, source, interfaces, process_model, instance_maps)
 
     # Send data to the server
-    emg.logger.info("Send data on generated instances to server")
+    emg.logger.info("Send data about generated instances to the server")
     core.utils.report(emg.logger,
                       'data',
                       {
