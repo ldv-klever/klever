@@ -91,7 +91,7 @@ def check_relevant_interface(collection, declaration, category, connector):
         for suit in suits:
             container = collection.get_intf(suit)
             if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
-                    container.field_interfaces[connector]:
+                    container.field_interfaces[connector] is not None:
                 children.add(container.field_interfaces[connector].identifier)
             elif isinstance(container, ArrayContainer):
                 children.add(container.element_interface.identifier)
@@ -123,8 +123,8 @@ def __import_entities(collection, sa, entities):
                         isinstance(entity["type"].points, Function):
                     containers = collection.resolve_interface_weakly(entity['parent type'], category)
                     for container in (c for c in containers if isinstance(c, StructureContainer)):
-                        if "{}.{}".format(container.category, field) not in collection.interfaces:
-                            identifier = field
+                        if "{}.{}".format(container.category, entity["root sequence"][-1]) not in collection.interfaces:
+                            identifier = entity["root sequence"][-1]
                         elif "{}.{}".format(container.category, entity["type"].pretty_name) \
                                 not in collection.interfaces:
                             identifier = entity["type"].pretty_name
@@ -134,7 +134,7 @@ def __import_entities(collection, sa, entities):
                         interface = Callback(container.category, identifier)
                         interface.declaration = entity["type"]
                         collection.set_intf(interface)
-                        container.field_interfaces[field] = interface
+                        container.field_interfaces[entity["root sequence"][-1]] = interface
                         intfs.append(interface)
                         break
 

@@ -325,9 +325,8 @@ class Source:
                     else:
                         func_intf = Function(func, description['signature'])
                         func_intf.declaration_files.add(path)
-                        if 'definition' in description and description['definition']:
-                            func_intf.definition_file = path
-
+                    if 'definition' in description and description['definition']:
+                        func_intf.definition_file = path
                     if 'static' in description:
                         func_intf.static = description['static']
 
