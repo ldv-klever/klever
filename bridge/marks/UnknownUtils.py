@@ -403,7 +403,14 @@ class PopulateMarks:
                 raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 data = None
-                mark_identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+                identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+                try:
+                    MarkUnknown.objects.get(identifier=identifier)
+                    # The mark was already uploaded
+                    continue
+                except ObjectDoesNotExist:
+                    pass
+
                 with open(mark_settings, encoding='utf8') as fp:
                     try:
                         data = json.load(fp)
@@ -440,10 +447,9 @@ class PopulateMarks:
                 self.total += 1
                 try:
                     MarkUnknown.objects.get(component__name=component, problem_pattern=data['problem'])
-                    MarkUnknown.objects.get(identifier=mark_identifier)
                 except ObjectDoesNotExist:
                     mark = MarkUnknown.objects.create(
-                        identifier=mark_identifier, component=Component.objects.get_or_create(name=component)[0],
+                        identifier=identifier, component=Component.objects.get_or_create(name=component)[0],
                         author=manager, status=data['status'], is_modifiable=data['is_modifiable'],
                         function=data['pattern'], problem_pattern=data['problem'], description=data['description'],
                         type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None,

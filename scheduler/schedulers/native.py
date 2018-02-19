@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import concurrent.futures
 import json
 import logging
@@ -28,49 +27,18 @@ import schedulers.resource_scheduler
 import utils
 
 
-def executor(timeout, args):
-    """
-    Function just executes native scheduler client and waits until it terminates.
-
-    :param timeout: Check that tool will exit definetly within this period of time.
-    :param args: Native scheduler client execution command arguments.
-    :return: It exits with the exit code returned by a client.
-    """
-    # todo: implement proper logging here, since usage of logging lead to hanging of threads dont know why
-    ####### !!!! #######
-    # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
-    # This is because bug in logging library. After an attempt to start the client with logging in a separate
-    # process and then kill it and start it again logging will HANG and you WILL NOT able to start the client again.
-    # This is known bug in logging, so do not waste your time here until it is fixed.
-    ####### !!!! #######
-
-    # Kill handler
-    mypid = os.getpid()
-    with open('info.log', 'a') as lf:
-        print('Executor {!r}: establish signal handlers'.format(mypid), file=lf)
-        print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
-    ec = utils.execute(args, timeout=timeout)
-    with open('info.log', 'a') as lf:
-        print('Executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)), file=lf)
-
-    # Be sure that process will exit
-    if not isinstance(ec, int):
-        ec = 1
-    os._exit(int(ec))
-
-
 class Scheduler(schedulers.SchedulerExchange):
     """
     Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
-    __kv_url = None
-    __node_name = None
-    __cpu_cores = None
-    __pool = None
-    __job_conf_prototype = dict()
-    __reserved = {"jobs": {}, "tasks": {}}
-    __job_processes = dict()
-    __task_processes = dict()
+    _kv_url = None
+    _node_name = None
+    _cpu_cores = None
+    _pool = None
+    _job_conf_prototype = dict()
+    _reserved = {"jobs": {}, "tasks": {}}
+    _job_processes = dict()
+    _task_processes = dict()
     __cached_tools_data = None
     __cached_nodes_data = None
 
@@ -82,11 +50,11 @@ class Scheduler(schedulers.SchedulerExchange):
     def __init__(self, conf, work_dir):
         """Do native scheduler specific initialization"""
         super(Scheduler, self).__init__(conf, work_dir)
-        self.__kv_url = None
-        self.__job_conf_prototype = None
-        self.__pool = None
-        self.__client_bin = None
-        self.__manager = None
+        self._kv_url = None
+        self._job_conf_prototype = None
+        self._pool = None
+        self._client_bin = None
+        self._manager = None
         self.init_scheduler()
 
     def init_scheduler(self):
@@ -99,20 +67,20 @@ class Scheduler(schedulers.SchedulerExchange):
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''controller address'")
-        self.__kv_url = self.conf["scheduler"]["controller address"]
+        self._kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
         with open(self.conf["scheduler"]["job client configuration"], encoding="utf8") as fh:
-            self.__job_conf_prototype = json.loads(fh.read())
+            self._job_conf_prototype = json.loads(fh.read())
         # Try to get configuration just to be sure that it exists
-        self.__get_task_configuration()
+        self._get_task_configuration()
 
-        if "Klever Bridge" not in self.__job_conf_prototype:
+        if "Klever Bridge" not in self._job_conf_prototype:
             logging.debug("Add Klever Bridge settings to client job configuration")
-            self.__job_conf_prototype["Klever Bridge"] = self.conf["Klever Bridge"]
+            self._job_conf_prototype["Klever Bridge"] = self.conf["Klever Bridge"]
         else:
             logging.debug("Use provided in configuration prototype Klever Bridge settings for jobs")
-        if "common" not in self.__job_conf_prototype:
+        if "common" not in self._job_conf_prototype:
             logging.debug("Use the same 'common' options for jobs which is used for the scheduler")
         else:
             logging.debug("Use provided in configuration prototype 'common' settings for jobs")
@@ -122,20 +90,20 @@ class Scheduler(schedulers.SchedulerExchange):
             concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
         else:
             concurrent_jobs = 1
-        self.__manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
+        self._manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
 
         if "wait controller initialization" in self.conf["scheduler"]:
             wc = self.conf["scheduler"]["wait controller initialization"]
         else:
             wc = False
         self.update_nodes(wc)
-        nodes = self.__manager.active_nodes
+        nodes = self._manager.active_nodes
         if len(nodes) != 1:
             raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
         else:
-            self.__node_name = nodes[0]
-            data = self.__manager.node_info(self.__node_name)
-            self.__cpu_cores = data["CPU number"]
+            self._node_name = nodes[0]
+            data = self._manager.node_info(self._node_name)
+            self._cpu_cores = data["CPU number"]
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:
@@ -152,18 +120,18 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
-                max_processes = int(max_processes * self.__cpu_cores)
+                max_processes = int(max_processes * self._cpu_cores)
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
         logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
         if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
-            self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
+            self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
-            self.__pool = concurrent.futures.ThreadPoolExecutor(max_processes)
+            self._pool = concurrent.futures.ThreadPoolExecutor(max_processes)
 
         # Check client bin
-        self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
+        self._client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
     def schedule(self, pending_tasks, pending_jobs):
         """
@@ -176,7 +144,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
         # Use resource manager to determine which jobs or task we can run t the moment.
-        new_tasks, new_jobs = self.__manager.schedule(pending_tasks, pending_jobs)
+        new_tasks, new_jobs = self._manager.schedule(pending_tasks, pending_jobs)
         return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
     def prepare_task(self, identifier, description):
@@ -187,7 +155,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param description: Dictionary with task description.
         :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        self.__prepare_solution(identifier, description, mode='task')
+        self._prepare_solution(identifier, description, mode='task')
 
     def prepare_job(self, identifier, configuration):
         """
@@ -197,7 +165,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param configuration: Job configuration.
         :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
-        self.__prepare_solution(identifier, configuration, mode='job')
+        self._prepare_solution(identifier, configuration, mode='job')
 
     def solve_task(self, identifier, description, user, password):
         """
@@ -210,8 +178,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.debug("Start solution of task {!r}".format(identifier))
-        self.__manager.claim_resources(identifier, description, self.__node_name, job=False)
-        return self.__pool.submit(self.__execute, self.__task_processes[identifier])
+        self._manager.claim_resources(identifier, description, self._node_name, job=False)
+        return self._pool.submit(self._execute, self._task_processes[identifier])
 
     def solve_job(self, identifier, configuration):
         """
@@ -222,8 +190,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.debug("Start solution of job {!r}".format(identifier))
-        self.__manager.claim_resources(identifier, configuration, self.__node_name, job=True)
-        return self.__pool.submit(self.__execute, self.__job_processes[identifier])
+        self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
+        return self._pool.submit(self._execute, self._job_processes[identifier])
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
@@ -238,7 +206,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: status of the task after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
         """
-        return self.__check_solution(identifier, future, mode='task')
+        return self._check_solution(identifier, future, mode='task')
 
     def process_job_result(self, identifier, future):
         """
@@ -249,7 +217,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: status of the job after solution: FINISHED.
         :raise SchedulerException: in case of ERROR status.
         """
-        return self.__check_solution(identifier, future, mode='job')
+        return self._check_solution(identifier, future, mode='job')
 
     def cancel_job(self, identifier, future):
         """
@@ -260,7 +228,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self.__cancel_solution(identifier, future, mode='job')
+        return self._cancel_solution(identifier, future, mode='job')
 
     def cancel_task(self, identifier, future):
         """
@@ -271,7 +239,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self.__cancel_solution(identifier, future, mode='task')
+        return self._cancel_solution(identifier, future, mode='task')
 
     def terminate(self):
         """
@@ -286,7 +254,7 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).terminate()
 
         # Be sure that workers are killed
-        self.__pool.shutdown(wait=False)
+        self._pool.shutdown(wait=False)
 
     def update_nodes(self, wait_controller=False):
         """
@@ -296,18 +264,18 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return True if nothing has changes.
         """
         # Use resource mamanger to manage resources
-        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url, wait_controller)
+        cacnel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
         if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
             logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
                             "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
-        return self.__manager.submit_status(self.server)
+        return self._manager.submit_status(self.server)
 
     def update_tools(self):
         """
         Generate a dictionary with available verification tools and push it to the server.
         """
-        data = self.__get_task_configuration()
+        data = self._get_task_configuration()
         if not self.__cached_tools_data or str(data) != self.__cached_tools_data:
             self.__cached_tools_data = str(data)
             verification_tools = data['client']['verification tools']
@@ -315,7 +283,7 @@ class Scheduler(schedulers.SchedulerExchange):
             # Submit tools
             self.server.submit_tools(verification_tools)
 
-    def __prepare_solution(self, identifier, configuration, mode='task'):
+    def _prepare_solution(self, identifier, configuration, mode='task'):
         """
         Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
 
@@ -325,26 +293,26 @@ class Scheduler(schedulers.SchedulerExchange):
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        node_status = self.__manager.node_info(self.__node_name)
+        node_status = self._manager.node_info(self._node_name)
 
         if mode == 'task':
             subdir = 'tasks'
-            client_conf = self.__get_task_configuration()
-            self.__manager.check_resources(configuration, job=False)
+            client_conf = self._get_task_configuration()
+            self._manager.check_resources(configuration, job=False)
         else:
             subdir = 'jobs'
-            client_conf = self.__job_conf_prototype.copy()
-            self.__manager.check_resources(configuration, job=True)
+            client_conf = self._job_conf_prototype.copy()
+            self._manager.check_resources(configuration, job=True)
 
-        args = [self.__client_bin, mode]
+        args = [self._client_bin, mode]
 
-        self.__create_work_dir(subdir, identifier)
+        self._create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         client_conf["identifier"] = identifier
         work_dir = os.path.join(self.work_dir, subdir, identifier)
         file_name = os.path.join(work_dir, 'client.json')
         args.extend(['--file', file_name])
-        self.__reserved[subdir][identifier] = dict()
+        self._reserved[subdir][identifier] = dict()
 
         # Check disk space limitation
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
@@ -363,7 +331,7 @@ class Scheduler(schedulers.SchedulerExchange):
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
         else:
             timeout = None
-        process = multiprocessing.Process(None, executor, identifier, [timeout, args])
+        process = multiprocessing.Process(None, self._process_starter, identifier, [timeout, args])
 
         if mode == 'task':
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -387,26 +355,26 @@ class Scheduler(schedulers.SchedulerExchange):
                     'configuration {!r}'.format(client_conf['verifier']['name'], client_conf['verifier']['version'],
                                                 self.conf["scheduler"]["task client configuration"]))
 
-            self.__task_processes[identifier] = process
+            self._task_processes[identifier] = process
         else:
             klever_core_conf = configuration.copy()
             del klever_core_conf["resource limits"]
             klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             klever_core_conf["working directory"] = "klever-core-work-dir"
-            self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
+            self._reserved["jobs"][identifier]["configuration"] = klever_core_conf
             client_conf["common"]["working directory"] = work_dir
-            client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
+            client_conf["Klever Core conf"] = self._reserved["jobs"][identifier]["configuration"]
 
-            self.__job_processes[identifier] = process
+            self._job_processes[identifier] = process
 
         client_conf["resource limits"] = configuration["resource limits"]
         # Add particular cores
         if "resource limits" not in client_conf:
             client_conf["resource limits"] = {}
         client_conf["resource limits"]["CPU cores"] = \
-            self.__get_virtual_cores(int(node_status["available CPU number"]),
-                                     int(node_status["reserved CPU number"]),
-                                     int(configuration["resource limits"]["number of CPU cores"]))
+            self._get_virtual_cores(int(node_status["available CPU number"]),
+                                    int(node_status["reserved CPU number"]),
+                                    int(configuration["resource limits"]["number of CPU cores"]))
         if mode != "task":
             if len(client_conf["resource limits"]["CPU cores"]) == 0:
                 data = utils.extract_cpu_cores_info()
@@ -419,7 +387,7 @@ class Scheduler(schedulers.SchedulerExchange):
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def __check_solution(self, identifier, future, mode='task'):
+    def _check_solution(self, identifier, future, mode='task'):
         """
         Process results of the task or job solution.
 
@@ -429,9 +397,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        return self.__postprocess_solution(identifier, future, mode)
+        return self._postprocess_solution(identifier, future, mode)
 
-    def __cancel_solution(self, identifier, future, mode='task'):
+    def _cancel_solution(self, identifier, future, mode='task'):
         """
         Terminate process solving a process or a task, mark resources as released, clean working directory.
 
@@ -443,9 +411,9 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
-            process = self.__task_processes[identifier] if identifier in self.__task_processes else None
+            process = self._task_processes[identifier] if identifier in self._task_processes else None
         else:
-            process = self.__job_processes[identifier] if identifier in self.__job_processes else None
+            process = self._job_processes[identifier] if identifier in self._job_processes else None
         if process and process.pid:
             try:
                 os.kill(process.pid, signal.SIGTERM)
@@ -453,9 +421,9 @@ class Scheduler(schedulers.SchedulerExchange):
                 process.join()
             except Exception as err:
                 logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
-        return self.__postprocess_solution(identifier, future, mode)
+        return self._postprocess_solution(identifier, future, mode)
 
-    def __postprocess_solution(self, identifier, future, mode):
+    def _postprocess_solution(self, identifier, future, mode):
         """
         Mark resources as released, clean the working directory.
 
@@ -465,12 +433,12 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         if mode == 'task':
             subdir = 'tasks'
-            del self.__task_processes[identifier]
+            del self._task_processes[identifier]
         else:
             subdir = 'jobs'
-            del self.__job_processes[identifier]
+            del self._job_processes[identifier]
         # Mark resources as released
-        del self.__reserved[subdir][identifier]
+        del self._reserved[subdir][identifier]
 
         # Include logs into total scheduler logs
         work_dir = os.path.join(self.work_dir, subdir, identifier)
@@ -484,8 +452,8 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
-                self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False,
-                                                 reserved_space)
+                self._manager.release_resources(identifier, self._node_name, True if mode == 'job' else False,
+                                                reserved_space)
 
                 result = future.result()
                 logfile = "{}/client-log.log".format(work_dir)
@@ -526,7 +494,7 @@ class Scheduler(schedulers.SchedulerExchange):
         return "FINISHED"
 
     @staticmethod
-    def __execute(process):
+    def _execute(process):
         """
         Common implementation for running of a multiprocessing process and for waiting until it terminates.
 
@@ -557,7 +525,38 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
 
-    def __create_work_dir(self, entities, identifier):
+    @staticmethod
+    def _process_starter(timeout, args):
+        """
+        Function just executes native scheduler client and waits until it terminates.
+
+        :param timeout: Check that tool will exit definetly within this period of time.
+        :param args: Native scheduler client execution command arguments.
+        :return: It exits with the exit code returned by a client.
+        """
+        # todo: implement proper logging here, since usage of logging lead to hanging of threads dont know why
+        ####### !!!! #######
+        # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
+        # This is because bug in logging library. After an attempt to start the client with logging in a separate
+        # process and then kill it and start it again logging will HANG and you WILL NOT able to start the client again.
+        # This is known bug in logging, so do not waste your time here until it is fixed.
+        ####### !!!! #######
+
+        # Kill handler
+        mypid = os.getpid()
+        with open('info.log', 'a') as lf:
+            print('Executor {!r}: establish signal handlers'.format(mypid), file=lf)
+            print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
+        ec = utils.execute(args, timeout=timeout)
+        with open('info.log', 'a') as lf:
+            print('Executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)), file=lf)
+
+        # Be sure that process will exit
+        if not isinstance(ec, int):
+            ec = 1
+        os._exit(int(ec))
+
+    def _create_work_dir(self, entities, identifier):
         """
         Create the working directory for a job or a task.
 
@@ -571,7 +570,7 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             os.makedirs(work_dir.encode("utf8"), exist_ok=False)
 
-    def __get_task_configuration(self):
+    def _get_task_configuration(self):
         """
         Read the scheduler task configuration JSON file to keep it updated.
 
@@ -600,7 +599,7 @@ class Scheduler(schedulers.SchedulerExchange):
         return data
 
     @staticmethod
-    def __get_virtual_cores(available, reserved, required):
+    def _get_virtual_cores(available, reserved, required):
         # First get system info
         si = utils.extract_cpu_cores_info()
 
