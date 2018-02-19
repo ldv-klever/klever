@@ -308,66 +308,53 @@ class Population:
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
-# last_name and first_name are not required; username and password are required (for admin password is not required)z
+# last_name and first_name are not required; username and password are required. email can be set for admin.
 # Returns None if everything is OK, str (error text) in other cases.
 def populate_users(admin=None, manager=None, service=None):
+
+    def check_user_data(userdata):
+        if not isinstance(userdata, dict):
+            return '{0} data has wrong format'
+        if 'username' not in userdata or not isinstance(userdata['username'], str) or len(userdata['username']) == 0:
+            return '{0} username is required'
+        if 'password' not in userdata or not isinstance(userdata['password'], str) or len(userdata['password']) == 0:
+            return '{0} password is required'
+        if 'last_name' not in userdata:
+            userdata['last_name'] = 'Lastname'
+        if 'first_name' not in userdata:
+            userdata['first_name'] = 'Firstname'
+        try:
+            User.objects.get(username=userdata['username'])
+            return '{0} with specified username already exists'
+        except ObjectDoesNotExist:
+            return None
+
     if admin is not None:
-        if not isinstance(admin, dict):
-            return 'Wrong administrator format'
-        if 'username' not in admin or not isinstance(admin['username'], str):
-            return 'Administator username is required'
-        if 'last_name' not in admin:
-            admin['last_name'] = 'Lastname'
-        if 'first_name' not in manager:
-            admin['first_name'] = 'Firstname'
-        try:
-            user = User.objects.get(username=admin['username'])
-            user.first_name = admin['first_name']
-            user.last_name = admin['last_name']
-            user.save()
-            Extended.objects.create(user=user, role=USER_ROLES[1][0])
-        except ObjectDoesNotExist:
-            return 'Administrator with specified username does not exist'
+        res = check_user_data(admin)
+        if res is not None:
+            return res.format('Administrator')
+        user = User.objects.create_superuser(
+            username=admin['username'], email=admin.get('email', ''), password=admin['password'],
+            first_name=admin['first_name'], last_name=admin['last_name']
+        )
+        Extended.objects.create(user=user, role=USER_ROLES[1][0])
+
     if manager is not None:
-        if not isinstance(manager, dict):
-            return 'Wrong manager format'
-        if 'password' not in manager or not isinstance(manager['password'], str):
-            return 'Manager password is required'
-        if 'username' not in manager or not isinstance(manager['username'], str):
-            return 'Manager username is required'
-        if 'last_name' not in manager:
-            manager['last_name'] = 'Lastname'
-        if 'first_name' not in manager:
-            manager['first_name'] = 'Firstname'
-        try:
-            User.objects.get(username=manager['username'])
-            return 'Manager with specified username already exists'
-        except ObjectDoesNotExist:
-            newuser = User(
-                username=manager['username'], first_name=manager['first_name'], last_name=manager['last_name']
-            )
-            newuser.set_password(manager['password'])
-            newuser.save()
-            Extended.objects.create(user=newuser, role=USER_ROLES[2][0])
+        res = check_user_data(manager)
+        if res is not None:
+            return res.format('Manager')
+        user = User.objects.create_user(
+            username=manager['username'], password=manager['password'],
+            first_name=manager['first_name'], last_name=manager['last_name']
+        )
+        Extended.objects.create(user=user, role=USER_ROLES[2][0])
     if service is not None:
-        if not isinstance(service, dict):
-            return 'Wrong service format'
-        if 'password' not in service or not isinstance(service['password'], str):
-            return 'Service password is required'
-        if 'username' not in service or not isinstance(service['username'], str):
-            return 'Service username is required'
-        if 'last_name' not in service:
-            service['last_name'] = 'Lastname'
-        if 'first_name' not in service:
-            service['first_name'] = 'Firstname'
-        try:
-            User.objects.get(username=service['username'])
-            return 'Service with specified username already exists'
-        except ObjectDoesNotExist:
-            newuser = User(
-                username=service['username'], last_name=service['last_name'], first_name=service['first_name']
-            )
-            newuser.set_password(service['password'])
-            newuser.save()
-            Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
+        res = check_user_data(service)
+        if res is not None:
+            return res.format('Service user')
+        user = User.objects.create_user(
+            username=service['username'], password=service['password'],
+            first_name=service['first_name'], last_name=service['last_name']
+        )
+        Extended.objects.create(user=user, role=USER_ROLES[4][0])
     return None
