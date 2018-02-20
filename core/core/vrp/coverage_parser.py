@@ -16,6 +16,7 @@
 #
 import json
 import os
+import shutil
 
 import core.utils
 
@@ -29,13 +30,15 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness):
+    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness, coverage_id,
+                 coverage_info_dir):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
         self.shadow_src_dir = shadow_src_dir
         self.main_work_dir = main_work_dir
         self.completeness = completeness
+        self.coverage_info_dir = coverage_info_dir
 
         self.arcnames = {}
 
@@ -48,11 +51,13 @@ class LCOV:
             if self.completeness in ('full', 'partial', 'lightweight'):
                 self.coverage_info = self.parse()
 
-                with open('coverage info.json', 'w', encoding='utf-8') as fp:
+                with open(coverage_id, 'w', encoding='utf-8') as fp:
                     json.dump(self.coverage_info, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
+                coverage = {}
+                self.add_to_coverage(coverage, self.coverage_info)
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(LCOV.get_coverage(self.coverage_info), fp, ensure_ascii=True,
+                    json.dump(LCOV.get_coverage(coverage), fp, ensure_ascii=True,
                               sort_keys=True, indent=4)
         except Exception as e:
             self.logger.exception('Could not parse coverage')
@@ -121,6 +126,11 @@ class LCOV:
                         for dest, src in dir_map:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
+                                    copy_file_name = os.path.join(self.coverage_info_dir, os.path.relpath(file_name, src))
+                                    if not os.path.exists(os.path.dirname(copy_file_name)):
+                                        os.makedirs(os.path.dirname(copy_file_name))
+                                    shutil.copy(file_name, copy_file_name)
+                                    file_name = copy_file_name
                                     new_file_name = os.path.join(dest, os.path.basename(file_name))
                                 else:
                                     new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
@@ -175,40 +185,42 @@ class LCOV:
         return coverage_info
 
     @staticmethod
-    def get_coverage(coverage_info):
-
-        # Combine line and function coverages of a file to a single one
-        merged_coverage_info = {}
-        for file_name, coverages in coverage_info.items():
-            merged_coverage_info[file_name] = {
-                'total functions': coverages[0]['total functions'],
+    def add_to_coverage(merged_coverage_info, coverage_info):
+        for file_name in coverage_info:
+            merged_coverage_info.setdefault(file_name, {
+                'total functions': coverage_info[file_name][0]['total functions'],
                 'covered lines': {},
                 'covered functions': {}
-            }
+            })
 
-            for coverage in coverages:
+            for coverage in coverage_info[file_name]:
                 for type in ('covered lines', 'covered functions'):
                     for line, value in coverage[type].items():
                         merged_coverage_info[file_name][type].setdefault(line, 0)
                         merged_coverage_info[file_name][type][line] += value
+
+    @staticmethod
+    def get_coverage(merged_coverage_info):
 
         # Map combined coverage to the required format
         line_coverage = {}
         function_coverage = {}
         function_statistics = {}
 
-        for file_name, coverage in merged_coverage_info.items():
-            for line, value in coverage['covered lines'].items():
+        for file_name in list(merged_coverage_info.keys()):
+            for line, value in merged_coverage_info[file_name]['covered lines'].items():
                 line_coverage.setdefault(value, {})
                 line_coverage[value].setdefault(file_name, [])
                 line_coverage[value][file_name].append(int(line))
 
-            for line, value in coverage['covered functions'].items():
+            for line, value in merged_coverage_info[file_name]['covered functions'].items():
                 function_coverage.setdefault(value, {})
                 function_coverage[value].setdefault(file_name, [])
                 function_coverage[value][file_name].append(int(line))
 
-            function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
+            function_statistics[file_name] = [len(merged_coverage_info[file_name]['covered functions']),
+                                              merged_coverage_info[file_name]['total functions']]
+            del merged_coverage_info[file_name]
 
         # Merge contiguous covered lines into a range
         for key, value in line_coverage.items():

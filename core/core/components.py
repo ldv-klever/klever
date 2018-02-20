@@ -19,6 +19,7 @@ import glob
 import json
 import multiprocessing
 import os
+import shutil
 import signal
 import sys
 import time
@@ -363,6 +364,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.tasks_start_time = 0
         self.__pid = None
 
+        self.clean_dir = False
+        self.excluded_clean = []
+
     def start(self):
         # Component working directory will be created in parent process.
         if self.separate_from_parent and not os.path.isdir(self.work_dir):
@@ -472,6 +476,16 @@ class Component(multiprocessing.Process, CallbacksCaller):
             exception = True
             self.logger.exception('Catch exception')
         finally:
+            # Clean dir if needed
+            if self.clean_dir and not self.conf['keep intermediate files']:
+                self.logger.debug('Going to clean {0}'.format(os.path.abspath('.')))
+                for to_del in os.listdir('.'):
+                    if to_del in self.excluded_clean:
+                        continue
+                    if os.path.isfile(to_del) or os.path.islink(to_del):
+                        os.remove(to_del)
+                    elif os.path.isdir(to_del):
+                        shutil.rmtree(to_del)
             if stopped or exception:
                 # Treat component stopping as normal termination.
                 exit_code = os.EX_SOFTWARE if exception else os.EX_OK

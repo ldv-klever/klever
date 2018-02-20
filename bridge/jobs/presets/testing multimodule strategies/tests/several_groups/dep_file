@@ -1,2 +1,2 @@
-extra/init.ko needs "export_without_error": extra/library1.ko
-extra/init.ko needs "export_with_error": extra/library2.ko
+extra/several_groups/init.ko needs "export_without_error": extra/several_groups/library1.ko
+extra/several_groups/init.ko needs "export_with_error": extra/several_groups/library2.ko
