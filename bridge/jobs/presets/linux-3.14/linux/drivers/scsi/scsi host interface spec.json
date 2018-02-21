@@ -24,6 +24,10 @@
       "scsi_unregister": {
         "declaration": "void scsi_unregister(*%scsi_host_template.host%)",
         "header": "scsi/scsi_host.h"
+      },
+      "scsi_host_put": {
+        "declaration": "void scsi_host_put(*%scsi_host_template.host%)",
+        "header": "scsi/scsi_host.h"
       }
     },
     "categories": {

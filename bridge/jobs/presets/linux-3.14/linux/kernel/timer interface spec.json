@@ -40,7 +40,7 @@
         },
         "resources": {
           "data": {
-            "declaration": "unsigned long data"
+            "declaration": "long unsigned int data"
           }
         },
         "callbacks": {
