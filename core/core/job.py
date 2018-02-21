@@ -602,6 +602,7 @@ class JCR(core.components.Component):
                 })
 
         def after_launch_sub_job_components(context):
+            context.logger.debug('Put "{0}" job id for finish coverage'.format(context.id))
             context.mqs['rule specifications and coverage info files'].put({
                 'job id': context.id
             })
