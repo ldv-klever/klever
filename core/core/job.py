@@ -510,73 +510,74 @@ class JCR(core.components.Component):
                 break
 
             job_id = coverage_info['job id']
+            try:
+                self.logger.debug('Get coverage for job {!r}'.format(job_id))
+                if 'coverage info file' in coverage_info:
+                    if job_id not in total_coverage_infos:
+                        total_coverage_infos[job_id] = dict()
+                        arcfiles[job_id] = dict()
+                    rule_spec = coverage_info['rule specification']
+                    total_coverage_infos[job_id].setdefault(rule_spec, {})
+                    arcfiles[job_id].setdefault(rule_spec, {})
 
-            if 'coverage info file' in coverage_info:
-                if job_id not in total_coverage_infos:
-                    total_coverage_infos[job_id] = dict()
-                    arcfiles[job_id] = dict()
-                rule_spec = coverage_info['rule specification']
-                total_coverage_infos[job_id].setdefault(rule_spec, {})
-                arcfiles[job_id].setdefault(rule_spec, {})
+                    with open(coverage_info['coverage info file'], encoding='utf8') as fp:
+                        loaded_coverage_info = json.load(fp)
 
-                with open(coverage_info['coverage info file'], encoding='utf8') as fp:
-                    loaded_coverage_info = json.load(fp)
+                    # Clean if needed
+                    if not self.conf['keep intermediate files']:
+                        os.remove(os.path.join(self.conf['main working directory'],
+                                               coverage_info['coverage info file']))
 
-                # Clean if needed
-                if not self.conf['keep intermediate files']:
-                    os.remove(os.path.join(self.conf['main working directory'],
-                                           coverage_info['coverage info file']))
+                    core.vrp.LCOV.add_to_coverage(total_coverage_infos[job_id][rule_spec], loaded_coverage_info)
+                    for file in loaded_coverage_info.values():
+                        arcfiles[job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
+                    del loaded_coverage_info
+                elif job_id in total_coverage_infos:
+                    self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
 
-                core.vrp.LCOV.add_to_coverage(total_coverage_infos[job_id][rule_spec], loaded_coverage_info)
-                for file in loaded_coverage_info.values():
-                    arcfiles[job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
-                del loaded_coverage_info
-            elif job_id in total_coverage_infos:
-                self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
+                    total_coverages = dict()
+                    coverage_info_dumped_files = []
+                    for rule_spec, coverage_info in total_coverage_infos[job_id].items():
+                        total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', job_id),
+                                                          re.sub(r'/', '-', rule_spec))
+                        if not os.path.exists(total_coverage_dir):
+                            os.makedirs(total_coverage_dir)
 
-                total_coverages = dict()
-                coverage_info_dumped_files = []
-                for rule_spec, coverage_info in total_coverage_infos[job_id].items():
-                    total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', job_id),
-                                                      re.sub(r'/', '-', rule_spec))
-                    if not os.path.exists(total_coverage_dir):
-                        os.makedirs(total_coverage_dir)
+                        total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
+                        if os.path.isfile(total_coverage_file):
+                            raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
+                        arcnames = {total_coverage_file: 'coverage.json'}
 
-                    total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
-                    if os.path.isfile(total_coverage_file):
-                        raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
-                    arcnames = {total_coverage_file: 'coverage.json'}
+                        coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
 
-                    coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
+                        with open(total_coverage_file, 'w', encoding='utf8') as fp:
+                            json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
-                    with open(total_coverage_file, 'w', encoding='utf8') as fp:
-                        json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+                        coverage_info_dumped_files.append(total_coverage_file)
 
-                    coverage_info_dumped_files.append(total_coverage_file)
+                        arcnames.update(arcfiles[job_id][rule_spec])
+                        arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
 
-                    arcnames.update(arcfiles[job_id][rule_spec])
-                    arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
+                        total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
+                                                                            list(arcnames.keys()), arcnames)
 
-                    total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
-                                                                        list(arcnames.keys()), arcnames)
+                    core.utils.report(self.logger,
+                                      'job coverage',
+                                      {
+                                          'id': job_id,
+                                          'coverage': total_coverages
+                                      },
+                                      self.mqs['report files'],
+                                      self.vals['report id'],
+                                      self.conf['main working directory'],
+                                      os.path.join('total coverages', re.sub(r'/', '-', job_id)))
 
-                core.utils.report(self.logger,
-                                  'job coverage',
-                                  {
-                                      'id': job_id,
-                                      'coverage': total_coverages
-                                  },
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
-                                  self.conf['main working directory'],
-                                  os.path.join('total coverages', re.sub(r'/', '-', job_id)))
-
-                del total_coverage_infos[job_id]
-                # Clean files if needed
-                if not self.conf['keep intermediate files']:
-                    for coverage_file in coverage_info_dumped_files:
-                        os.remove(coverage_file)
-
+                    del total_coverage_infos[job_id]
+                    # Clean files if needed
+                    if not self.conf['keep intermediate files']:
+                        for coverage_file in coverage_info_dumped_files:
+                            os.remove(coverage_file)
+            finally:
                 self.vals['coverage_finished'][job_id] = True
 
         self.logger.info("Finish coverage reporting")
