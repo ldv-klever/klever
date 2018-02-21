@@ -49,6 +49,7 @@
                   "convert statics to globals": true,
                   "add registration guards": true,
                   "ignore missed callbacks": true,
+                  "delete unregistered processes": true,
                   "implicit callback calls": true,
                   "roles map file": "linux/emg/roles match.json",
                   "callback comment": "Invoke callback {0} from {1}.",

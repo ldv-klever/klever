@@ -17,7 +17,7 @@
 import copy
 import re
 
-from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
+from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.process import Dispatch, Receive
 from core.vtg.emg.processGenerator.linuxModule.interface import Interface, Callback, Container
 from core.vtg.emg.processGenerator.linuxModule.process import AbstractAccess, Call
@@ -57,7 +57,8 @@ class ProcessModel:
                 raise ValueError("Found process without category {!r}".format(process.name))
 
         # Refine processes
-        self.__refine_processes()
+        if get_conf_property(conf,"delete unregistered processes"):
+            self.__refine_processes()
 
     def __select_processes_and_models(self, interfaces):
         # Import necessary kernel models
@@ -429,7 +430,7 @@ class ProcessModel:
                             for container in interfaces.containers(category):
                                 intfs = self.__resolve_interface(interfaces, container, p_tail)
                                 if intfs:
-                                    self.__add_label_match(intfs, label_map, p_label, container.identifier)
+                                    self.__add_label_match(interfaces, label_map, p_label, container.identifier)
                                     pre_matched.add(intfs[-1].identifier)
 
                         labels.append([p_label, p_tail])
@@ -803,7 +804,7 @@ class ProcessModel:
                                     if pr['process'].identifier == process.identifier:
                                         indexes.append(index)
 
-                                for index in indexes:
+                                for index in reversed(indexes):
                                     del peer_action.peers[index]
 
             for p in delete:
