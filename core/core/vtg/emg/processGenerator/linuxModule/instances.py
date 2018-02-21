@@ -813,13 +813,16 @@ def _remove_statics(sa, process):
                     candidate = sa.get_source_function(implementation.value, file)
                     if candidate:
                         declaration = candidate.declaration
+                        value = candidate.name
                         function_flag = True
                     else:
                         # Seems that this is a variable without initialization
                         declaration = implementation.declaration
+                        value = implementation.value
                 else:
                     # Because this is a Variable
                     declaration = svar.declaration
+                    value = svar.name
 
                 # Determine name
                 name = sa.refined_name(implementation.value)
@@ -841,13 +844,15 @@ def _remove_statics(sa, process):
                         if not var:
                             if isinstance(declaration, Array):
                                 declaration = declaration.element.take_pointer
+                                value = '& ' + value
                             elif not isinstance(declaration, Pointer):
                                 # Try to use pointer instead of the value
                                 declaration = declaration.take_pointer
+                                value = '& ' + value
                             var = c.Variable("ldv_emg_alias_{}_{}".format(name, identifiers.__next__()),
                                              declaration)
                             var.declaration_files.add(file)
-                            var.value = implementation.adjusted_value(declaration)
+                            var.value = value
                             _declarations[file][name] = var
 
                     if var or func:

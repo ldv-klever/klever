@@ -139,13 +139,18 @@ def __import_entities(collection, sa, entities):
                         break
 
                 for intf in intfs:
+                    if isinstance(entity["type"], type(intf.declaration)) and \
+                            not intf.declaration.compare(entity["type"]):
+                        declar = intf.declaration
+                    else:
+                        declar = entity["type"]
                     impl = intf.add_implementation(
-                              entity["description"]["value"],
-                              entity["type"],
-                              entity['path'],
-                              entity["root type"],
-                              entity["root value"],
-                              entity["root sequence"])
+                        entity["description"]["value"],
+                        declar,
+                        entity['path'],
+                        entity["root type"],
+                        entity["root value"],
+                        entity["root sequence"])
                     impl.static = __check_static(entity["description"]["value"], entity['path'], sa)
 
         elif "value" in entity["description"] and isinstance(entity["description"]['value'], list):
