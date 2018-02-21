@@ -54,12 +54,13 @@ class Source:
         """
         return list(self._source_functions.keys())
 
-    def get_source_function(self, name, path=None):
+    def get_source_function(self, name, path=None, declaration=None):
         """
         Provides the function by a given name from the collection.
 
         :param name: Function name.
         :param path: Scope of the function.
+        :param declaration: Target function Declaration object.
         :return: Function object or None.
         """
         name = self.refined_name(name)
@@ -67,23 +68,27 @@ class Source:
             if path and path in self._source_functions[name]:
                 return self._source_functions[name][path]
             else:
-                functions = self.get_source_functions(name)
+                functions = self.get_source_functions(name, declaration=declaration)
                 if len(functions) == 1:
                     return functions[0]
+                elif len(functions) > 1:
+                    raise ValueError("There are several definitions of function {!r} in provided code you must specify "
+                                     "scope".format(name))
         return None
 
-    def get_source_functions(self, name):
+    def get_source_functions(self, name, declaration=None):
         """
         Provides all functions by a given name from the collection.
 
         :param name: Function name.
+        :param declaration: Target function Declaration object.
         :return: Pairs with the path and Function object.
         """
         name = self.refined_name(name)
         result = []
         if name and name in self._source_functions:
             for func in self._source_functions[name].values():
-                if func not in result:
+                if func not in result and (not declaration or (declaration and declaration.compare(func.declaration))):
                     result.append(func)
         return result
 
@@ -319,8 +324,8 @@ class Source:
                 for path in source_analysis['functions'][func]:
                     description = source_analysis['functions'][func][path]
                     declaration = import_declaration(description['signature'])
-                    func_intf = self.get_source_function(func)
-                    if func_intf and func_intf.declaration.compare(declaration) and not description['static']:
+                    func_intf = self.get_source_function(func, declaration=declaration)
+                    if func_intf and func_intf.declaration.compare(declaration):
                         func_intf.declaration_files.add(path)
                     else:
                         func_intf = Function(func, description['signature'])
@@ -345,10 +350,6 @@ class Source:
                         for name in description["calls"]:
                             for call in description["calls"][name]:
                                 func_obj.call_in_function(name, call)
-                                if path != func_obj.definition_file:
-                                    raise ValueError("Function {!r} cannot call function {!r} outside of its "
-                                                     "definition file {!r}: at {!r}".
-                                                     format(func, name, func_obj.definition_file, path))
         else:
             self.logger.warning("There is no any functions in source analysis")
 

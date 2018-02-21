@@ -502,7 +502,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
                 name = 'ldv_emg_{}'.format(automaton.process.name)
-                function_obj = self._source.get_source_function(automaton.process.name)
+                function_objs = self._source.get_source_functions(automaton.process.name)
+                if len(function_objs) == 0:
+                    raise ValueError("Unfortunately there is no function {!r} found by the source analysis".
+                                     format(automaton.process.name))
+                else:
+                    # We ignore there that fact that functions can have different scopes
+                    function_obj = function_objs[0]
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
                     if isinstance(param, str):

@@ -38,8 +38,8 @@ def extract_implementations(collection, sa):
                 }
                 intfs = collection.resolve_interface_weakly(var.declaration)
                 if len(intfs) > 1:
-                    raise ValueError("Does not expect description of several containers with declation {!r}".
-                                     format(var.declaration))
+                    collection.logger.info("There are several containers with declation {!r}".
+                                           format(var.declaration.to_string('a')))
                 for i in intfs:
                     implementation = i.add_implementation(
                         varname,
@@ -85,15 +85,26 @@ def __check_static(name, file, sa):
 
 
 def check_relevant_interface(collection, declaration, category, connector):
+    def strict_compare(d1, d2):
+        if d1.compare(d2):
+            if (d2.identifier == 'void *' or d1.identifier == 'void *') and not category:
+                return False
+            else:
+                return True
+        else:
+            return False
+
     suits = collection.resolve_containers(declaration, category)
     children = set()
     if len(suits) > 0:
         for suit in suits:
             container = collection.get_intf(suit)
             if isinstance(container, StructureContainer) and connector in container.field_interfaces and \
-                    container.field_interfaces[connector] is not None:
+                    container.field_interfaces[connector] is not None and \
+                    strict_compare(container.field_interfaces[connector].declaration, declaration):
                 children.add(container.field_interfaces[connector].identifier)
-            elif isinstance(container, ArrayContainer):
+            elif isinstance(container, ArrayContainer) and container.element_interface is not None and \
+                    strict_compare(container.element_interface.declaration, declaration):
                 children.add(container.element_interface.identifier)
 
     return (collection.get_intf(i) for i in children)
@@ -139,14 +150,9 @@ def __import_entities(collection, sa, entities):
                         break
 
                 for intf in intfs:
-                    if isinstance(entity["type"], type(intf.declaration)) and \
-                            not intf.declaration.compare(entity["type"]):
-                        declar = intf.declaration
-                    else:
-                        declar = entity["type"]
                     impl = intf.add_implementation(
                         entity["description"]["value"],
-                        declar,
+                        entity['type'],
                         entity['path'],
                         entity["root type"],
                         entity["root value"],
