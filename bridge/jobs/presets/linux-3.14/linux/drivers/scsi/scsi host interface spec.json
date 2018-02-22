@@ -54,7 +54,7 @@
             "declaration": "int (* release)(*%scsi_host_template.host%)"
           },
           "probe": {
-            "declaration": "int (* probe)(*%scsi_host_template.host%)"
+            "declaration": "int (* probe)(*%scsi_host_template.scsi_host_template%)"
           }
         }
       }
