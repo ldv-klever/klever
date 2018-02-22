@@ -197,6 +197,13 @@
               "scsi_host_template.host"
             ]
           },
+          "scsi_host_template": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ]
+          },
           "callback": {
             "callback": true
           },
@@ -205,7 +212,7 @@
             "value": "ldv_undef_int()"
           }
         },
-        "process": "(!register).{main}",
+        "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
             "comment": "Old style SCSI drivers initialization.",
@@ -214,6 +221,11 @@
           "call": {
             "comment": "Call mid-layer callbacks",
             "process": "[callback].{call} | [release].{main}"
+          },
+          "init": {
+            "statements": [
+              "%scsi_host_template% = %host%->hostt;"
+            ]
           },
           "register": {
             "parameters": [
@@ -246,7 +258,7 @@
             "comment": "Initialize the SCSI driver.",
             "callback": "%host.scsi_host_template.probe%",
             "parameters": [
-              "%host%"
+              "%scsi_host_template%"
             ],
             "pre-call": [
               "ldv_pre_probe();"
