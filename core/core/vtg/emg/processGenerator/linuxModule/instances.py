@@ -184,33 +184,28 @@ def _simplify_process(logger, conf, sa, interfaces, process):
         final = []
         for original_stm in statments:
             # Collect dublicates
-            stm_set = {original_stm}
-
-            while len(stm_set) > 0:
-                stm = stm_set.pop()
-
-                if access_re.finditer(stm):
-                    matched = False
-                    tmp = [stm]
-                    for match in access_re.finditer(stm):
-                        new_tmp = []
-                        expression = match.group(1)
-                        accesses = process.resolve_access(expression)
-                        for s in tmp:
-                            for acc in accesses:
-                                if acc.interface:
-                                    nl = label_map[acc.label.name][acc.list_interface[0].identifier]
-                                    s = acc.replace_with_label(s, nl)
-                                    new_tmp.append(s)
-                                    matched = True
-                        if len(new_tmp) != 0:
-                            tmp = new_tmp
-                    if not matched:
-                        final.append(stm)
-                    else:
-                        final.extend(tmp)
+            if access_re.finditer(original_stm):
+                matched = False
+                tmp = {original_stm}
+                for match in access_re.finditer(original_stm):
+                    new_tmp = set()
+                    expression = match.group(1)
+                    accesses = process.resolve_access(expression)
+                    for s in tmp:
+                        for acc in accesses:
+                            if acc.interface:
+                                nl = label_map[acc.label.name][acc.list_interface[0].identifier]
+                                s = acc.replace_with_label(s, nl)
+                                new_tmp.add(s)
+                                matched = True
+                    if len(new_tmp) != 0:
+                        tmp = new_tmp
+                if not matched:
+                    final.append(original_stm)
                 else:
-                    final.append(stm)
+                    final.extend(list(tmp))
+            else:
+                final.append(original_stm)
 
         return final
 
