@@ -437,22 +437,18 @@ class ProcessModel:
 
                     f_intfs = [pr for pr in func.param_interfaces if pr]
                     for pr, par in enumerate(f_intfs):
-                        matched = set([label[0] for label in labels
-                                       if label[0].name in label_map['matched labels'] and
+                        matched = set([label[0] for label in labels if label[0].name in label_map['matched labels'] and
                                        par.identifier in label_map['matched labels'][label[0].name]]) & \
                                   set([label[0] for label in labels])
                         if len(matched) == 0 and par.identifier not in pre_matched:
-                            if len(labels) == len(f_intfs):
-                                self.__add_label_match(interfaces, label_map, labels[pr][0], par.identifier)
+                            unmatched = [label[0] for label in labels
+                                         if label[0].name not in label_map['matched labels'] and len(label[1]) == 0]
+                            if len(unmatched) > 0:
+                                self.__add_label_match(interfaces, label_map, unmatched[0], par.identifier)
                             else:
-                                unmatched = [label[0] for label in labels
-                                             if label[0].name not in label_map['matched labels'] and len(label[1]) == 0]
-                                if len(unmatched) > 0:
-                                    self.__add_label_match(interfaces, label_map, unmatched[0], par.identifier)
-                                else:
-                                    rsrs = [label[0] for label in labels if label[0].resource]
-                                    if len(rsrs) > 0:
-                                        self.__add_label_match(interfaces, label_map, rsrs[-1], par.identifier)
+                                rsrs = [label[0] for label in labels if label[0].resource]
+                                if len(rsrs) > 0:
+                                    self.__add_label_match(interfaces, label_map, rsrs[0], par.identifier)
 
             # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
