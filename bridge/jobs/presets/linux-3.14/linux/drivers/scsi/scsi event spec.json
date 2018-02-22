@@ -223,6 +223,7 @@
             "process": "[callback].{call} | [release].{main}"
           },
           "init": {
+            "comment": "Extract Scsi_Host structure.",
             "statements": [
               "%scsi_host_template% = %host%->hostt;"
             ]
