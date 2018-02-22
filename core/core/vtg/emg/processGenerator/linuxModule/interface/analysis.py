@@ -64,9 +64,16 @@ def extract_implementations(collection, sa):
                     for indx, parameter in enumerate(called_function.param_interfaces):
                         if parameter:
                             for call in (c[indx] for c in func_obj.calls[cf_name] if c[indx] and c[indx] != '0'):
+                                call_obj = sa.get_source_function(call, func_obj.definition_file)
+                                if not call_obj:
+                                    call_obj = sa.get_source_function(
+                                        call, declaration=called_function.declaration.parameters[indx].points)
+                                if not call_obj:
+                                    raise ValueError("Cannot find function definition for function pointer {!r}".
+                                                     format(call))
                                 impl = parameter.add_implementation(call, called_function.declaration.parameters[indx],
-                                                                    func_obj.definition_file, None, None, [])
-                                impl.static = __check_static(call, func_obj.definition_file, sa)
+                                                                    call_obj.definition_file, None, None, [])
+                                impl.static = call_obj.static
 
 
 def __check_static(name, file, sa):
