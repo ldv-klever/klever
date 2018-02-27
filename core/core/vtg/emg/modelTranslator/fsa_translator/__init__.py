@@ -324,19 +324,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     for block in blocks:
                         body.extend(block)
                 else:
-                    if len(blocks) == 1:
-                        body.append('if (ldv_undef_int()) {')
-                        body.extend(['\t' + stm for stm in blocks[0]])
-                        body.append('}')
-                    else:
-                        body.append('switch (ldv_undef_int()) {')
-                        for index in range(len(blocks)):
-                            body.append('\tcase {}: '.format(index) + '{')
-                            body.extend(['\t\t' + stm for stm in blocks[index]])
-                            body.append('\t\tbreak;')
-                            body.append('\t};')
-                        body.append('\tdefault: ldv_assume(0);')
-                        body.append('};')
+                    body.append('switch (ldv_undef_int()) {')
+                    for index in range(len(blocks)):
+                        body.append('\tcase {}: '.format(index) + '{')
+                        body.extend(['\t\t' + stm for stm in blocks[index]])
+                        body.append('\t\tbreak;')
+                        body.append('\t};')
+                    body.append('\tdefault: ldv_assume(0);')
+                    body.append('};')
 
                 if len(function_parameters) > 0:
                     df = Function(

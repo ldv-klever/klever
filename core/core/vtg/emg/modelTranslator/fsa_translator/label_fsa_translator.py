@@ -18,6 +18,7 @@ from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.vtg.emg.common.process import Dispatch
 from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
 from core.vtg.emg.common.c import Variable
+from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.modelTranslator.fsa_translator.common import extract_relevant_automata
 from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
@@ -224,9 +225,18 @@ class LabelTranslator(FSATranslator):
 
     def _entry_point(self):
         self._logger.info("Finally generate an entry point function {!r}".format(self._cmodel.entry_name))
-        body = [
-            '{}(0);'.format(self._control_function(self._entry_fsa).name)
-        ]
+        if get_conf_property(self._conf, "self parallel model"):
+            self._control_function(self._entry_fsa).declaration = import_declaration("void *(*start_routine)(void *)")
+            name = self._control_function(self._entry_fsa).name
+            body = [
+                "pthread_t **thread;",
+                "pthread_create_N(thread, 0, {}, 0);".format(name),
+                "pthread_join_N(thread, {});".format(name)
+            ]
+        else:
+            body = [
+                '{}(0);'.format(self._control_function(self._entry_fsa).name)
+            ]
         return self._cmodel.compose_entry_point(body)
 
     def _normalize_model_fsa(self, automaton):
