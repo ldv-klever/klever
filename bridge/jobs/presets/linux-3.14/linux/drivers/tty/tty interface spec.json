@@ -17,33 +17,9 @@
         "declaration": "int tty_register_driver(%tty.tty_driver%)",
         "header": "linux/tty.h"
       },
-      "tty_port_init": {
-        "declaration": "void tty_port_init(%tty.tty_port%)",
-        "header": "linux/tty.h"
-      },
-      "tty_port_register_device": {
-        "declaration": "struct device *tty_port_register_device(%tty.tty_port%, %tty.tty_driver%, unsigned index, struct device *device)",
-        "header": "linux/tty.h"
-      },
-      "tty_unregister_device": {
-        "declaration": "void tty_unregister_device(%tty.tty_driver%, unsigned index)",
-        "header": "linux/tty.h"
-      },
-      "tty_port_destroy": {
-        "declaration": "void tty_port_destroy(%tty.tty_port%)",
-        "header": "linux/tty.h"
-      },
-      "tty_port_put": {
-        "declaration": "void tty_port_put(%tty.tty_port%)",
-        "header": "linux/tty.h"
-      },
       "tty_unregister_driver": {
         "declaration": "int tty_unregister_driver(%tty.tty_driver%)",
         "header": "linux/tty.h"
-      },
-      "put_tty_driver": {
-        "declaration": "void put_tty_driver(%tty.tty_driver%)",
-        "header": "linux/tty_driver.h"
       }
     },
     "categories": {

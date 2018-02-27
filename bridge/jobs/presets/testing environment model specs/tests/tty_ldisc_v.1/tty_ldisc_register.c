@@ -17,44 +17,59 @@
 
 #include <linux/module.h>
 #include <linux/tty.h>
-#include <linux/tty_driver.h>
+#include <linux/tty_ldisc.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
+#include <verifier/common.h>
 
-struct tty_driver *driver;
-struct tty_port port;
-struct device *device;
+int flip_a_coin;
+int disc;
 
-static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
+int ldv_open(struct tty_struct * tty)
 {
-	ldv_invoke_reached();
-	return 0;
+	int res;
+
+	ldv_invoke_callback();
+	res = ldv_undef_int();
+	if (!res)
+		ldv_probe_up();
+	return res;
 }
 
-static void ldv_shutdown(struct tty_port *tport)
+void ldv_close(struct tty_struct * tty)
 {
-	ldv_invoke_reached();
+	ldv_release_down();
+	ldv_invoke_callback();
 }
 
-static const struct tty_port_operations ldv_tty_port_ops = {
-	.activate = ldv_activate,
-	.shutdown = ldv_shutdown,
+static struct tty_ldisc_ops ldv_tty_ops = {
+	.open = ldv_open,
+	.close = ldv_close
 };
 
 static int __init ldv_init(void)
 {
-	int res;
+	int res = ldv_undef_int();
 
-	ldv_invoke_test();
-	tty_port_init(& port);
-	port.ops = & ldv_tty_port_ops;
-	res = tty_port_register_device(& port, driver, ldv_undef_int(), device);
+	flip_a_coin = ldv_undef_int();
+	disc = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		res = tty_register_ldisc(disc, & ldv_tty_ops);
+		if (res)
+			ldv_deregister();
+	}
 	return res;
 }
 
 static void __exit ldv_exit(void)
 {
-	tty_port_destroy(&port);
+	int ret;
+	if (flip_a_coin) {
+		ret = tty_unregister_ldisc(disc);
+		ldv_assume(!ret);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);
