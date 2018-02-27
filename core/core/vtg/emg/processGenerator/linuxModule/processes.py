@@ -19,7 +19,7 @@ import re
 
 from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.process import Dispatch, Receive
-from core.vtg.emg.processGenerator.linuxModule.interface import Interface, Callback, Container
+from core.vtg.emg.processGenerator.linuxModule.interface import Interface, Callback, Container, StructureContainer
 from core.vtg.emg.processGenerator.linuxModule.process import AbstractAccess, Call
 
 
@@ -451,7 +451,8 @@ class ProcessModel:
                                     self.__add_label_match(interfaces, label_map, rsrs[0], par.identifier)
 
             # After containers are matched try to match rest callbacks from category
-            matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
+            matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"] and
+                                  isinstance(cn, StructureContainer)]
             unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
