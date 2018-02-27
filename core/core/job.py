@@ -501,16 +501,16 @@ class JCR(core.components.Component):
         arcfiles = {}
         os.mkdir('total coverages')
 
-        while True:
-            coverage_info = self.mqs['rule specifications and coverage info files'].get()
+        try:
+            while True:
+                coverage_info = self.mqs['rule specifications and coverage info files'].get()
 
-            if coverage_info is None:
-                self.logger.debug('Rule specification coverage info files message queue was terminated')
-                self.mqs['rule specifications and coverage info files'].close()
-                break
+                if coverage_info is None:
+                    self.logger.debug('Rule specification coverage info files message queue was terminated')
+                    self.mqs['rule specifications and coverage info files'].close()
+                    break
 
-            job_id = coverage_info['job id']
-            try:
+                job_id = coverage_info['job id']
                 self.logger.debug('Get coverage for job {!r}'.format(job_id))
                 if 'coverage info file' in coverage_info:
                     if job_id not in total_coverage_infos:
@@ -577,7 +577,10 @@ class JCR(core.components.Component):
                     if not self.conf['keep intermediate files']:
                         for coverage_file in coverage_info_dumped_files:
                             os.remove(coverage_file)
-            finally:
+                    self.vals['coverage_finished'][job_id] = True
+        finally:
+            self.logger.debug("Allow finish all jobs")
+            for job_id in self.vals['coverage_finished'].keys():
                 self.vals['coverage_finished'][job_id] = True
 
         self.logger.info("Finish coverage reporting")
