@@ -184,12 +184,12 @@ def import_interface_declaration(collection, interface, declaration):
     except KeyError:
         try:
             ast = parse_declaration(declaration)
+            obj, intf = check_ast(ast, 'a', interface)
+            # Reimport to get proper object
+            declaration = import_declaration(obj)
         except Exception:
             raise ValueError("Cannot parse declaration: {}".format(declaration))
 
-        obj, intf = check_ast(ast, 'a', interface)
-        # Reimport to get proper object
-        declaration = import_declaration(obj)
         return declaration, intf
 
 
