@@ -24,11 +24,11 @@ from core.vtg.emg.processGenerator.linuxModule.process import AbstractAccess, Ca
 
 
 class ProcessModel:
-    def __init__(self, logger, conf, interfaces, models, processes, roles_map):
+    def __init__(self, logger, conf, interfaces, processes, roles_map):
         self.logger = logger
         self.conf = conf
-        self.__abstr_model_processes = models
-        self.__abstr_event_processes = processes
+        self.__abstr_model_processes = {p.name: p for p in processes.models.values()}
+        self.__abstr_event_processes = {p.name: p for p in processes.environment.values()}
         self.__roles_map = dict()
         self.__functions_map = dict()
         self.__default_dispatches = list()

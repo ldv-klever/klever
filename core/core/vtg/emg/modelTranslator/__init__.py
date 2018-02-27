@@ -23,9 +23,8 @@ from core.vtg.emg.modelTranslator.fsa_translator.label_fsa_translator import Lab
 from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import StateTranslator
 
 
-def translate_intermediate_model(logger, conf, avt, analysis, processes_triple):
-    model_processes, env_processes, entry_process = processes_triple
-    if not entry_process:
+def translate_intermediate_model(logger, conf, avt, analysis, processes):
+    if not processes.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
     # Prepare main configuration properties
@@ -40,6 +39,9 @@ def translate_intermediate_model(logger, conf, avt, analysis, processes_triple):
                                expected_type=list)
     check_or_set_conf_property(conf['translation options'], "additional headers", default_value=list(),
                                expected_type=list)
+
+    if get_conf_property(conf['translation options'], "debug output"):
+        processes.save_collection('environment processes.json')
 
     # Collect files
     files = set()
@@ -64,7 +66,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, processes_triple):
 
     # First just merge all as is
     additional_code = dict()
-    for process in model_processes + env_processes + [entry_process]:
+    for process in list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]:
         for file in process.declarations:
             if file not in additional_code:
                 additional_code[file] = {'declarations': process.declarations[file], 'definitions': dict()}
@@ -98,14 +100,14 @@ def translate_intermediate_model(logger, conf, avt, analysis, processes_triple):
     cmodel.add_headers(entry_file, get_necessary_conf_property(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
-    entry_fsa = Automaton(entry_process, 0)
+    entry_fsa = Automaton(processes.entry, 0)
     identifier_cnt = 1
     model_fsa = []
     main_fsa = []
-    for process in model_processes:
+    for process in processes.models.values():
         model_fsa.append(Automaton(process, identifier_cnt))
         identifier_cnt += 1
-    for process in env_processes:
+    for process in processes.environment.values():
         main_fsa.append(Automaton(process, identifier_cnt))
         identifier_cnt += 1
 

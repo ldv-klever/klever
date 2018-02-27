@@ -16,7 +16,7 @@
 #
 import re
 
-from core.vtg.emg.common.process.procParser import parse_process
+from core.vtg.emg.common.process.Parser import parse_process
 
 
 def generate_regex_set(self, subprocess_name):
@@ -41,63 +41,6 @@ def generate_regex_set(self, subprocess_name):
 
 def _update_process_ast(obj):
     obj.__process_ast = parse_process(obj.process)
-
-
-def export_process(process):
-    def convert_label(label):
-        d = dict()
-        if label.declaration:
-            d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
-        if label.value:
-            d['value'] = label.value
-
-        return d
-
-    def convert_action(action):
-        d = dict()
-        if action.comment:
-            d['comment'] = action.comment
-        if action.condition:
-            d['condition'] = action.condition
-
-        if isinstance(action, Subprocess):
-            d['process'] = action.process
-        elif isinstance(action, Dispatch) or isinstance(action, Receive):
-            d['parameters'] = action.parameters
-
-            if len(action.peers) > 0:
-                d['peers'] = list()
-                for p in action.peers:
-                    d['peers'].append(p['process'].pretty_id)
-                    if not p['process'].pretty_id:
-                        raise ValueError('Any peer must have an external identifier')
-
-            if isinstance(action, Dispatch) and action.broadcast:
-                d['broadcast'] = action.broadcast
-            elif isinstance(action, Receive) and action.replicative:
-                d['replicative'] = action.replicative
-        elif isinstance(action, Condition):
-            if action.statements:
-                d["statements"] = action.statements
-
-        return d
-
-    data = {
-        'identifier': process.pretty_id,
-        'category': process.category,
-        'comment': process.comment,
-        'process': process.process,
-        'labels': {l.name: convert_label(l) for l in process.labels.values()},
-        'actions': {a.name: convert_action(a) for a in process.actions.values()}
-    }
-    if len(process.headers) > 0:
-        data['headers'] = list(process.headers)
-    if len(process.declarations.keys()) > 0:
-        data['declarations'] = process.declarations
-    if len(process.definitions.keys()) > 0:
-        data['definitions'] = process.definitions
-
-    return data
 
 
 class Access:

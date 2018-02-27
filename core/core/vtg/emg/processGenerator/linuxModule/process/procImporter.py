@@ -16,11 +16,11 @@
 #
 from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
 from core.vtg.emg.common.process import Receive, Dispatch, generate_regex_set
-from core.vtg.emg.common.process.procImporter import ProcessImporter
+from core.vtg.emg.common.process.collection import ProcessCollection
 from core.vtg.emg.processGenerator.linuxModule.process import AbstractProcess, AbstractLabel, Call, CallRetval
 
 
-class AbstractProcessImporter(ProcessImporter):
+class AbstractProcessImporter(ProcessCollection):
     PROCESS_CONSTRUCTOR = AbstractProcess
     LABEL_CONSTRUCTOR = AbstractLabel
     REGEX_SET = generate_regex_set
@@ -120,7 +120,6 @@ class AbstractProcessImporter(ProcessImporter):
             act = process_type(name)
         return act
 
-    @staticmethod
-    def establish_peers(models, env_processes, entry_process):
-        # There is no need in this function there
-        return
+    def establish_peers(self, strict=None):
+        """There is no need in this method."""
+        raise NotImplementedError("You cannot establish peers of abstract processes")

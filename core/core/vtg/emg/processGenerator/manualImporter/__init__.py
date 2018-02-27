@@ -18,50 +18,42 @@ import json
 
 import core.utils
 from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
-from core.vtg.emg.common.process import Receive, Dispatch
-from core.vtg.emg.common.process.procImporter import ProcessImporter
+from core.vtg.emg.common.process.collection import ProcessCollection
 
 
-def generate_processes(emg, source, processes_triple, conf):
+def generate_processes(emg, source, processes, conf):
     # Import Specifications
-    emg.logger.info("Import manually prepared process descriptions and add them to the generated processes")
+    or_models = list(processes.models.values())
+    or_processes = list(processes.environment.values())
+    or_entry = processes.entry
+
     # Import manual process
     filename = get_necessary_conf_property(conf, "process descriptions file")
+    emg.logger.info("Import manually prepared processes descriptions from {!r} and add them to the model".
+                    format(filename))
     with open(core.utils.find_file_or_dir(emg.logger, get_necessary_conf_property(emg.conf, "main working directory"),
                                           filename),
               encoding='utf8') as fp:
         descriptions = json.load(fp)
-    importer = ProcessImporter(emg.logger, emg.conf)
-    model_processes, env_processes, entry = importer.parse_event_specification(descriptions)
-    or_models, or_processes, or_entry = processes_triple
-
-    # Convert dispatches to the simple form for each process
-    for process in or_models + or_processes + ([or_entry] if or_entry else []):
-        for action in (a for a in process.actions.values() if isinstance(a, Dispatch) or isinstance(a, Receive)):
-            if len(action.peers) > 0:
-                peers = list()
-                for p in action.peers:
-                    if isinstance(p, dict):
-                        peers.append(p['process'].pretty_id)
-                        if not p['process'].pretty_id:
-                            raise ValueError('Any peer must have an external identifier')
-                    else:
-                        peers.append(p)
-                action.peers = peers
+    manual_processes = ProcessCollection(emg.logger, emg.conf)
+    manual_processes.parse_event_specification(descriptions)
 
     # Decide on process replacements
-    if get_conf_property(conf, "enforce replacement"):
-        if or_entry and entry:
-            or_entry = entry
+    if manual_processes.entry:
+        if (get_conf_property(conf, "enforce replacement") and or_entry) or not or_entry:
+            or_entry = manual_processes.entry
 
     # Replace rest processes
-    for collection, generated in ((or_models, model_processes), (or_processes, env_processes)):
-        for process in generated.values():
-            if process.pretty_id in (p.pretty_id for p in collection) and get_conf_property(conf, "enforce replacement"):
+    for collection, manual in ((or_models, manual_processes.models.values()),
+                               (or_processes, manual_processes.environment.values())):
+        for process in manual:
+            if process.pretty_id in {p.pretty_id for p in collection} and \
+                    get_conf_property(conf, "enforce replacement"):
                 collection[[p.pretty_id for p in collection].index(process.pretty_id)] = process
-            elif process.pretty_id not in (p.pretty_id for p in collection):
+            elif process.pretty_id not in {p.pretty_id for p in collection}:
                 collection.insert(0, process)
 
-    importer.establish_peers(or_models, or_processes, or_entry, strict=True)
-
-    return or_models, or_processes, or_entry
+    processes.entry = or_entry
+    processes.models = {p.pretty_id: p for p in or_models}
+    processes.environment = {p.pretty_id: p for p in or_processes}
+    processes.establish_peers(strict=True)

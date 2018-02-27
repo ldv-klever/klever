@@ -16,6 +16,7 @@
 #
 import importlib
 from core.vtg.emg.common import get_necessary_conf_property
+from core.vtg.emg.common.process.collection import ProcessCollection
 
 
 def generate_processes(emg, source):
@@ -25,7 +26,7 @@ def generate_processes(emg, source):
     configurations = [list(e.values())[0] for e in get_necessary_conf_property(emg.conf, "intermediate model options")]
     generators = (importlib.import_module(name, 'core') for name in generator_names)
 
-    processes_triple = [], [], None
+    processes = ProcessCollection(emg.logger, emg.conf)
     for index, generator in enumerate(generators):
-        processes_triple = generator.generate_processes(emg, source, processes_triple, configurations[index])
-    return processes_triple
+        generator.generate_processes(emg, source, processes, configurations[index])
+    return processes

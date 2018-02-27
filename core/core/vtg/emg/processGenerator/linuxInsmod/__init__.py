@@ -23,18 +23,19 @@ from core.vtg.emg.common.process import Process, Condition
 from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_order
 
 
-def generate_processes(emg, source, processes_triple, conf):
+def generate_processes(emg, source, processes, conf):
     # Import Specifications
     emg.logger.info("Generate an entry process on base of source analysis of provided Linux kernel files")
+    if processes.entry:
+        raise ValueError('Do not expect any main process already attached to the model, reorder EMG generators in '
+                         'configuration to generate insmod process')
 
     emg.logger.info("Determine initialization and exit functions")
     inits, exits, kernel_initializations = __import_inits_exits(emg.logger, conf, emg.abstract_task_desc, source)
 
     emg.logger.info('Generate initializing scenario')
-    insmod = __generate_insmod_process(emg.logger, inits, exits, kernel_initializations)
-
-    triple = processes_triple[0], processes_triple[1], insmod
-    return triple
+    insmod = __generate_insmod_process(emg.logger, conf, inits, exits, kernel_initializations)
+    processes.entry = insmod
 
 
 def __import_inits_exits(logger, conf, avt, source):
@@ -96,7 +97,7 @@ def __import_inits_exits(logger, conf, avt, source):
     return inits, exits, kernel_initializations
 
 
-def __generate_insmod_process(logger, inits, exits, kernel_initializations):
+def __generate_insmod_process(logger, conf, inits, exits, kernel_initializations):
     logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
     ep = Process("insmod")
     ep.comment = "Initialize or exit module."
@@ -187,8 +188,13 @@ def __generate_insmod_process(logger, inits, exits, kernel_initializations):
 
     for _, exit_name in exits:
         process += "<{}>.".format(exit_name)
-    final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
-                             "Check rule model state at the exit.")
+
+    if get_conf_property(conf, "check final state"):
+        final_statments = ["ldv_check_final_state();"]
+    else:
+        final_statments = []
+    final_statments += ["ldv_assume(0);"]
+    final = ep.add_condition('final', [], final_statments, "Check rule model state at the exit if required.")
     process += '<{}>'.format(final.name)
     process += ")" * len(inits)
 

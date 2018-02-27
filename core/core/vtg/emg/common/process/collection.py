@@ -14,12 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
+
 from core.vtg.emg.common.c.types import import_declaration
-from core.vtg.emg.common.process import Receive, Dispatch, generate_regex_set, Label, Process
+from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition, generate_regex_set, Label, Process
 
 
-class ProcessImporter:
-    
+class ProcessCollection:
+
     PROCESS_CONSTRUCTOR = Process
     LABEL_CONSTRUCTOR = Label
     REGEX_SET = generate_regex_set
@@ -48,11 +50,14 @@ class ProcessImporter:
     def __init__(self, logger, conf):
         self.logger = logger
         self.conf = conf
+        self.entry = None
+        self.models = dict()
+        self.environment = dict()
 
     def parse_event_specification(self, raw):
         """
         Parse event categories specification and create all existing Process objects.
-    
+
         :param raw: Dictionary with content of JSON file of a specification.
         :return: [List of Process objects which correspond to functions models],
                  [List of Process objects which correspond to generic models],
@@ -75,13 +80,126 @@ class ProcessImporter:
                 self.logger.debug("Import environment process {}".format(name))
                 process = self._import_process(name, raw["environment processes"][name])
                 env_processes[name] = process
-        if "entry process" in raw:
-            self.logger.info("Import entry process")
-            entry_process = self._import_process("entry", raw["entry process"])
+        if "main process" in raw and isinstance(raw["main process"], dict):
+            self.logger.info("Import main process")
+            entry_process = self._import_process("entry", raw["main process"])
         else:
             entry_process = None
 
-        return models, env_processes, entry_process
+        self.models = models
+        self.environment = env_processes
+        self.entry = entry_process
+
+    def save_collection(self, filename=None):
+        data = dict()
+        data["functions models"] = {p.pretty_id: self._export_process(p) for p in self.models.values()}
+        data["environment processes"] = {p.pretty_id: self._export_process(p) for p in self.environment.values()}
+        data["main process"] = None if not self.entry else self._export_process(self.entry)
+        if filename:
+            with open(filename, "w", encoding="utf8") as fh:
+                fh.writelines(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
+        return data
+
+    def establish_peers(self, strict=False):
+        """
+        Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
+        replaces dispatches expressed by strings to object regerences as it is expected in translators.
+
+        :param strict: Raise exception if a peer process identifier is unknown or just ignore it.
+        :return: None
+        """
+        # Then check peers. This is becouse in generated processes there no peers set for manually written processes
+        processes = list(self.models.values()) + list(self.environment.values()) + ([self.entry] if self.entry else [])
+        process_map = {p.pretty_id: p for p in processes}
+        for process in processes:
+            for action in [process.actions[a] for a in process.actions
+                           if isinstance(process.actions[a], Receive) or isinstance(process.actions[a], Dispatch) and
+                           len(process.actions[a].peers) > 0]:
+                new_peers = []
+                for peer in action.peers:
+                    if isinstance(peer, str):
+                        if peer in process_map:
+                            target = process_map[peer]
+                            new_peer = {'process': target, 'subprocess': target.actions[action.name]}
+                            new_peers.append(new_peer)
+
+                            opposite_peers = [p['process'].pretty_id if isinstance(p, dict) else p
+                                              for p in target.actions[action.name].peers]
+                            if process.pretty_id not in opposite_peers:
+                                target.actions[action.name].peers.append({'process': process, 'subprocess': action})
+                        elif strict:
+                            raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
+                                           "process in the model".format(process.pretty_id, action.name, peer))
+                    else:
+                        new_peers.append(peer)
+
+                action.peers = new_peers
+
+            # Set names
+            tokens = process.pretty_id.split('/')
+            if len(tokens) < 2:
+                raise ValueError('Cannot extract category/name/ prefix from process identifier {!r}'.
+                                 format(process.pretty_id))
+            else:
+                process.category = tokens[0]
+                process.name = tokens[1]
+
+    @staticmethod
+    def _export_process(process):
+        def convert_label(label):
+            d = dict()
+            if label.declaration:
+                d['declaration'] = label.declaration.to_string(label.name, typedef='complex_and_params')
+            if label.value:
+                d['value'] = label.value
+
+            return d
+
+        def convert_action(action):
+            d = dict()
+            if action.comment:
+                d['comment'] = action.comment
+            if action.condition:
+                d['condition'] = action.condition
+
+            if isinstance(action, Subprocess):
+                d['process'] = action.process
+            elif isinstance(action, Dispatch) or isinstance(action, Receive):
+                d['parameters'] = action.parameters
+
+                if len(action.peers) > 0:
+                    d['peers'] = list()
+                    for p in action.peers:
+                        d['peers'].append(p['process'].pretty_id)
+                        if not p['process'].pretty_id:
+                            raise ValueError('Any peer must have an external identifier')
+
+                if isinstance(action, Dispatch) and action.broadcast:
+                    d['broadcast'] = action.broadcast
+                elif isinstance(action, Receive) and action.replicative:
+                    d['replicative'] = action.replicative
+            elif isinstance(action, Condition):
+                if action.statements:
+                    d["statements"] = action.statements
+
+            return d
+
+        data = {
+            'identifier': process.pretty_id,
+            'category': process.category,
+            'comment': process.comment,
+            'process': process.process,
+            'labels': {l.name: convert_label(l) for l in process.labels.values()},
+            'actions': {a.name: convert_action(a) for a in process.actions.values()}
+        }
+        if len(process.headers) > 0:
+            data['headers'] = list(process.headers)
+        if len(process.declarations.keys()) > 0:
+            data['declarations'] = process.declarations
+        if len(process.definitions.keys()) > 0:
+            data['definitions'] = process.definitions
+
+        return data
 
     def _import_process(self, name, dic):
         process = self.PROCESS_CONSTRUCTOR(name)
@@ -181,38 +299,3 @@ class ProcessImporter:
             if '@' in regex['regex'].search(proces_string).group(0):
                 act.broadcast = True
         return act
-
-    @staticmethod
-    def establish_peers(models, env_processes, entry_process, strict=False):
-        # Then check peers. This is becouse in generated processes there no peers set for manually written processes
-        processes = models + env_processes + ([entry_process] if entry_process else [])
-        process_map = {p.pretty_id: p for p in processes}
-        for process in processes:
-            for action in [process.actions[a] for a in process.actions
-                           if isinstance(process.actions[a], Receive) or isinstance(process.actions[a], Dispatch) and
-                           len(process.actions[a].peers) > 0]:
-                new_peers = []
-                for peer in action.peers:
-                    if isinstance(peer, str):
-                        if peer in process_map:
-                            target = process_map[peer]
-                            new_peer = {'process': target, 'subprocess': target.actions[action.name]}
-                            new_peers.append(new_peer)
-
-                            opposite_peers = [p['process'].pretty_id if isinstance(p, dict) else p
-                                              for p in target.actions[action.name].peers]
-                            if process.pretty_id not in opposite_peers:
-                                target.actions[action.name].peers.append({'process': process, 'subprocess': action})
-                        elif strict:
-                            raise KeyError("Process {!r} tries to send a signal {!r} to {!r} but there is no such "
-                                           "process in the model".format(process.pretty_id, action.name, peer))
-                action.peers = new_peers
-
-            # Set names
-            tokens = process.pretty_id.split('/')
-            if len(tokens) < 2:
-                raise ValueError('Cannot extract category/name/ prefix from process identifier {!r}'.
-                                 format(process.pretty_id))
-            else:
-                process.category = tokens[0]
-                process.name = tokens[1]

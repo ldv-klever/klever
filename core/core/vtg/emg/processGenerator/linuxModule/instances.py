@@ -23,8 +23,7 @@ from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, g
     model_comment
 import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
-from core.vtg.emg.common.process import Dispatch, Receive, Condition, export_process
-from core.vtg.emg.common.process.procImporter import ProcessImporter
+from core.vtg.emg.common.process import Dispatch, Receive, Condition
 from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
 from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call
 _declarations = {'environment model': list()}
@@ -35,40 +34,16 @@ _values_map = dict()
 def generate_instances(logger, conf, sa, interfaces, model, instance_maps):
     # todo: write docs
     model_processes, callback_processes = _yield_instances(logger, conf, sa, interfaces, model, instance_maps)
-
+    # Simplify first and set ids then dump
     for process in model_processes + callback_processes:
         _simplify_process(logger, conf, sa, interfaces, process)
 
-    # Simplify first and set ids then dump
-    for process in model_processes + callback_processes:
-        export_process(process)
+    model.environment = {p.pretty_id: p for p in callback_processes}
+    model.models = {p.pretty_id: p for p in model_processes}
+    filename = 'instances.json' if get_conf_property(conf, "dump instances") else None
+    data = model.save_collection(filename)
 
-    # Another sanity check
-    data = dict()
-    for process in model_processes + callback_processes:
-        for action in process.actions.values():
-            if isinstance(action, Call) or isinstance(action, CallRetval):
-                raise ValueError("Left unprepared action {!r} from process {!r} of category {!r}".
-                                 format(action.name, process.name, process.category))
-
-    # Convert
-    data["functions models"] = dict()
-    for process in model_processes:
-        data["functions models"][process.pretty_id] = export_process(process)
-    data["environment processes"] = dict()
-    for process in callback_processes:
-        data["environment processes"][process.pretty_id] = export_process(process)
-    with open("simplified model.json", "w", encoding="utf8") as fh:
-        fh.writelines(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
-    logger.info("Finish generating simplified environment model for further translation")
-
-    # Convert processes anyway
-    importer = ProcessImporter(logger, conf)
-    # This convert is maybe useless but guarantee that all processes belong to Process class
-    generated_triple = importer.parse_event_specification(data)
-    importer.establish_peers(list(generated_triple[0].values()), list(generated_triple[1].values()),
-                             generated_triple[2], True)
-    return instance_maps, generated_triple
+    return instance_maps, data
 
 
 def _simplify_process(logger, conf, sa, interfaces, process):
@@ -532,7 +507,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
     :param sa: Source object.
     :param interfaces: InterfaceCollection object.
-    :param model: ProcessModel object.
+    :param model: ProcessCollection object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
            {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
     :return: List with model qutomata, list with callback automata.
@@ -559,7 +534,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     model_fsa, callback_fsa = list(), list()
 
     # Determine how many instances is required for a model
-    for process in model.event_processes:
+    for process in model.environment.values():
         base_list = _original_process_copies(logger, conf, interfaces, process, instances_left)
         base_list = _fulfill_label_maps(logger, conf, interfaces, base_list, process, instance_maps, instances_left)
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
@@ -572,7 +547,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
 
     # Generate automata for models
     logger.info("Generate automata for functions model processes")
-    for process in model.model_processes:
+    for process in model.models.values():
         logger.info("Generate FSA for functions model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, interfaces, [process], process, instance_maps, instances_left)
         for instance in processes:

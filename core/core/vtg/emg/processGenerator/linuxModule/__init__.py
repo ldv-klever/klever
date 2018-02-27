@@ -27,7 +27,7 @@ from core.vtg.emg.processGenerator.linuxModule.interface.collection import Inter
 from core.vtg.emg.processGenerator.linuxModule.process.procImporter import AbstractProcessImporter
 
 
-def generate_processes(emg, source, processes_triple, conf):
+def generate_processes(emg, source, processes, conf):
     # Get instance maps if possible
     instance_maps = dict()
     if get_conf_property(emg.conf, "EMG instances"):
@@ -49,14 +49,14 @@ def generate_processes(emg, source, processes_triple, conf):
     interfaces.fill_up_collection(source, interface_spec)
 
     emg.logger.info("Import event categories specification")
-    parser = AbstractProcessImporter(emg.logger, conf)
-    model_processes, env_processes, _ = parser.parse_event_specification(event_spec)
+    abstract_processes = AbstractProcessImporter(emg.logger, conf)
+    abstract_processes.parse_event_specification(event_spec)
     roles_file = core.utils.find_file_or_dir(emg.logger,
                                              get_necessary_conf_property(emg.conf, "main working directory"),
                                              get_necessary_conf_property(conf, "roles map file"))
 
     # Now check that we have all necessary interface specifications
-    unspecified_functions = [func for func in model_processes
+    unspecified_functions = [func for func in abstract_processes.models
                              if func in source.source_functions and
                              func not in [i.short_identifier for i in interfaces.function_interfaces]]
     if len(unspecified_functions) > 0:
@@ -65,10 +65,12 @@ def generate_processes(emg, source, processes_triple, conf):
 
     with open(roles_file, encoding="utf8") as fh:
         roles_map = json.loads(fh.read())
-    process_model = ProcessModel(emg.logger, conf, interfaces, model_processes, env_processes, roles_map)
+    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes, roles_map)
+    abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
+    abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
 
     emg.logger.info("Generate processes from abstract ones")
-    instance_maps, new_triple = generate_instances(emg.logger, conf, source, interfaces, process_model, instance_maps)
+    instance_maps, data = generate_instances(emg.logger, conf, source, interfaces, abstract_processes, instance_maps)
 
     # Send data to the server
     emg.logger.info("Send data about generated instances to the server")
@@ -89,11 +91,8 @@ def generate_processes(emg, source, processes_triple, conf):
     with open(instance_map_file, "w", encoding="utf8") as fd:
         fd.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
-    new_models, new_event_processess, _ = new_triple
-    new_triple = [processes_triple[0] + list(new_models.values()),
-                  processes_triple[1] + list(new_event_processess.values()),
-                  processes_triple[2]]
-    return new_triple
+    processes.parse_event_specification(data)
+    processes.establish_peers()
 
 
 def __get_specs(logger, conf, directory):
