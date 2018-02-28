@@ -76,7 +76,7 @@ class FSATranslator:
             self._normalize_model_fsa(automaton)
 
         # Dump graphs
-        if get_conf_property(self._conf, 'dump automata graphs'):
+        if get_conf_property(self._conf, "debug output"):
             self._save_digraphs()
 
         # Start generation of control functions
@@ -138,16 +138,14 @@ class FSATranslator:
 
         # Dump separetly all automata
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
-            self._logger.debug("Generate graph for automaton based on process {} with category {}".
+            self._logger.debug("Generate graph for automaton based on process {!r} with category {!r}".
                                format(automaton.process.name, automaton.process.category))
-            dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
-                                         format(automaton.process.category, automaton.process.name,
-                                                automaton.identifier))
+            dg_file = "{}/{}.dot".format(directory, "{}_{}".format(automaton.process.pretty_id, automaton.identifier))
 
             graph = graphviz.Digraph(
                 name=str(automaton.identifier),
                 comment="Digraph for FSA {} based on self.process {} with category {}".
-                        format(automaton.identifier, automaton.process.name, automaton.process.category),
+                        format(automaton.identifier, automaton.process.pretty_id, automaton.process.category),
                 format="png"
             )
 
