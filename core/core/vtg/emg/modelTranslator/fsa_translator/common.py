@@ -83,16 +83,14 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     :return: None, since it modifies the first argument.
     """
     for peer in peers:
-        relevant_automata = [automaton for automaton in automata
-                             if automaton.process.identifier == peer["process"].identifier]
+        relevant_automata = [a for a in automata if a.process.pretty_id == peer["process"].pretty_id]
         for automaton in relevant_automata:
             if automaton.identifier not in automata_peers:
                 automata_peers[automaton.identifier] = {
                     "automaton": automaton,
                     "states": set()
                 }
-            for state in [node for node in automaton.fsa.states
-                          if node.action and node.action.name == peer["subprocess"].name]:
+            for state in [n for n in automaton.fsa.states if n.action and n.action.name == peer["subprocess"].name]:
                 if not sb_type or isinstance(state.action, sb_type):
                     automata_peers[automaton.identifier]["states"].add(state)
 

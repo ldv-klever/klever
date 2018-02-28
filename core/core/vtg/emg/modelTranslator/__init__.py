@@ -111,6 +111,17 @@ def translate_intermediate_model(logger, conf, avt, analysis, processes):
         main_fsa.append(Automaton(process, identifier_cnt))
         identifier_cnt += 1
 
+    # Set self parallel flag
+    sp_ids = get_conf_property(conf["translation options"], "not self parallel processes")
+    if sp_ids and isinstance(sp_ids, list):
+        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.pretty_id in sp_ids):
+            automaton.self_parallelism = False
+
+    sp_categories = get_conf_property(conf["translation options"], "not self parallel processes from categories")
+    if sp_categories and isinstance(sp_categories, list):
+        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.category in sp_categories):
+            automaton.self_parallelism = False
+
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
     if get_necessary_conf_property(conf['translation options'], "nested automata"):

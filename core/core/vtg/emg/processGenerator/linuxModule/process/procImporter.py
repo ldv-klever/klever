@@ -35,7 +35,6 @@ class AbstractProcessImporter(ProcessCollection):
         'declaration': None
     }
     PROCESS_ATTRIBUTES = {
-        'self parallelism': 'self_parallelism',
         'headers': None,
         'declarations': None,
         'definitions': None,

@@ -104,9 +104,6 @@ class CModel:
         self._function_declarations[file][func.name] = func.declare(extern=extern)
 
     def add_global_variable(self, variable, file, extern=False):
-        if variable.scope == 'local':
-            raise ValueError("Cannot print local variable {!r} as a global one".format(variable.scope))
-
         if not file and variable.file:
             file = variable.file
         elif not file:

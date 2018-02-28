@@ -399,6 +399,7 @@ class Automaton:
         # Set given values
         self.process = process
         self.identifier = identifier
+        self.self_parallelism = True
 
         # Generate FSA itself
         self.fsa = FSA(self.process)
