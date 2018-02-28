@@ -26,7 +26,7 @@ from core.vtg.emg.common.c import Function
 from core.vtg.emg.modelTranslator.fsa_translator.common import action_model_comment, extract_relevant_automata
 
 
-class FSATranslator(metaclass=abc.ABCMeta):
+class FSATranslator:
 
     def __init__(self, logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa):
         """
@@ -584,7 +584,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _receive(self, state, automaton):
         """
         Generate code block for receive action. Require more detailed implementation in your modelTranslator.

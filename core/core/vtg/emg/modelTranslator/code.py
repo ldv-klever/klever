@@ -103,7 +103,7 @@ class CModel:
             return
         self._function_declarations[file][func.name] = func.declare(extern=extern)
 
-    def add_global_variable(self, variable, file, extern=False):
+    def add_global_variable(self, variable, file, extern=False, initialize=True):
         if not file and variable.file:
             file = variable.file
         elif not file:
@@ -118,14 +118,15 @@ class CModel:
             self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
         elif not extern:
             self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
-            if variable.value and variable.file and \
-                    ((isinstance(variable.declaration, Pointer) and isinstance(variable.declaration.points, Function))
-                     or isinstance(variable.declaration, Primitive)):
-                self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
-            elif not variable.value and isinstance(variable.declaration, Pointer):
-                if file not in self.__external_allocated:
-                    self.__external_allocated[file] = []
-                self.__external_allocated[file].append(variable)
+            if initialize:
+                if variable.value and \
+                        ((isinstance(variable.declaration, Pointer) and isinstance(variable.declaration.points, Function))
+                         or isinstance(variable.declaration, Primitive)):
+                    self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
+                elif not variable.value and isinstance(variable.declaration, Pointer):
+                    if file not in self.__external_allocated:
+                        self.__external_allocated[file] = []
+                    self.__external_allocated[file].append(variable)
 
     def text_processor(self, automaton, statement):
         models = FunctionModels(self._logger, self._conf, self.mem_function_map, self.free_function_map,

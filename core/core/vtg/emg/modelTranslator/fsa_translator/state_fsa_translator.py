@@ -14,13 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# todo: This file needs major refactoring
-from core.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, model_comment
-from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
-# todo: refactor
-#from core.vtg.emg.processmodel.abstractprocess import CallRetval, Call
-from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
+from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, model_comment
 from core.vtg.emg.common.c import Variable, Function
+from core.vtg.emg.common.process import Dispatch, Receive, Condition, Subprocess
+from core.vtg.emg.modelTranslator.fsa_translator import FSATranslator
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables, \
     control_function_comment_begin, control_function_comment_end
 from core.vtg.emg.modelTranslator.fsa_translator.label_control_function import label_based_function, normalize_fsa
@@ -34,11 +31,8 @@ class StateTranslator(FSATranslator):
         self.__switchers_cache = dict()
 
         check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
-        # Todo: refactor
-        # self.__jump_types = set([t for t in [Dispatch, Receive, CallRetval, Call, Condition, Subprocess]
-        #                          if t.__name__ not in
-        #                          get_necessary_conf_property(conf, 'actions composition')])
-
+        self.__jump_types = set([t for t in [Dispatch, Receive, Condition, Subprocess]
+                                 if t.__name__ not in get_necessary_conf_property(conf, 'actions composition')])
         super(StateTranslator, self).__init__(logger, conf, source, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
@@ -52,14 +46,13 @@ class StateTranslator(FSATranslator):
                                   format(self.__state_variable(relevant_automata[name]["automaton"]).name, index))
         return checks
 
-    def _join_cf_code(self, file, automaton):
+    def _join_cf_code(self, automaton):
         raise NotImplementedError('State control functions are not designed to be run in separate threads')
 
-    def _call_cf_code(self, file, automaton, parameter='0'):
+    def _call_cf_code(self, automaton, parameter='0'):
         return "{}({});".format(self._control_function(automaton).name, parameter),
 
-    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
-                         replicative):
+    def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers, replicative):
         pre = []
         post = []
         blocks = []
@@ -75,23 +68,18 @@ class StateTranslator(FSATranslator):
                     for index in range(len(function_parameters)):
                         # Determine exression
                         receiver_access = automata_peers[name]['automaton'].process.\
-                            resolve_access(r_state.action.parameters[index], param_interfaces[index].identifier)
+                            resolve_access(r_state.action.parameters[index])[0]
 
                         # Determine var
-                        var = automata_peers[name]['automaton'].\
-                            determine_variable(receiver_access.label, param_interfaces[index].identifier)
-                        self._cmodel.add_global_variable(var, file, extern=True)
-
-                        receiver_expr = receiver_access.access_with_variable(var)
-                        block.append("{} = arg{};".format(receiver_expr, index))
+                        var = automata_peers[name]['automaton'].determine_variable(receiver_access.label)
+                        self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
+                        block.append("{} = arg{};".format(var.name, index))
 
                 # Update state
                 block.extend(['', "/* Switch state of the reciever */"])
-                block.extend(self.__switch_state_code(automata_peers[name]['automaton'],
-                                                      r_state,
-                                                      export=[file]))
+                block.extend(self.__switch_state_code(automata_peers[name]['automaton'], r_state))
                 self._cmodel.add_global_variable(self.__state_variable(automata_peers[name]['automaton']),
-                                                 file, extern=True)
+                                                 self._cmodel.entry_file, extern=True)
 
                 blocks.append(block)
                         
@@ -99,7 +87,6 @@ class StateTranslator(FSATranslator):
 
     def _receive(self, state, automaton):
         code, v_code, conditions, comments = super(StateTranslator, self)._receive(state, automaton)
-
         code.append("/* Automaton itself cannot perform a receive, look at a dispatcher's code */".
                     format(state.action.name))
 
@@ -147,42 +134,29 @@ class StateTranslator(FSATranslator):
                     tab -= 1
                     f_code.append('\t' * tab + '}')
 
-            # Add declaration of local functions
-            for var in (v for v in automaton.variables() if v.scope == 'local'):
-                # To declare and initialize
-                v_code.append(var.declare_with_init() + ";")
-
             # Add comments
             v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
                      v_code + \
                      [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
-            v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment, automaton.identifier))
+            v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.comment, automaton.identifier))
             f_code.append(control_function_comment_end(cf.name, automaton.process.category))
 
             # Add loop for nested case
             cf.body.extend(v_code + f_code)
-            self._cmodel.add_global_variable(self.__state_variable(automaton),
-                                             self._cmodel.entry_file, extern=False)
-            for file in self._cmodel.files:
-                self._cmodel.add_global_variable(self.__state_variable(automaton), file, extern=True)
+            self._cmodel.add_global_variable(self.__state_variable(automaton), self._cmodel.entry_file, extern=False,
+                                             initialize=True)
         else:
             # Generate function body
             label_based_function(self._conf, self._source, automaton, cf, model_flag)
 
         # Add function to source code to print
         self._cmodel.add_function_definition(cf)
-        self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:
             for file in self._source.get_source_function(automaton.process.name).declaration_files:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         else:
-            for var in (v for v in automaton.variables() if v.scope != 'local'):
-                # To declare and initialize
-                self._cmodel.add_global_variable(var, None)
-                # To allow useing it in dispatches
-                self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
-                # To add to the file with control function
-                self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
+            for var in automaton.variables():
+                self._cmodel.add_global_variable(var, self._cmodel.entry_file, initialize=False)
         return
 
     def _entry_point(self):
@@ -237,7 +211,7 @@ class StateTranslator(FSATranslator):
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
-            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  None, 'int a', True, 'global')
+            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  'int a')
             var.use += 1
             self.__state_variables[automaton.identifier] = var
 
@@ -302,7 +276,7 @@ class StateTranslator(FSATranslator):
 
         return found
 
-    def __switch_state_code(self, automaton, state, export=None):
+    def __switch_state_code(self, automaton, state):
         code = []
 
         successors = state.successors
@@ -322,17 +296,6 @@ class StateTranslator(FSATranslator):
             code.append('/* Reset automaton state */')
             code.extend(self.__set_initial_state(automaton))
 
-        if export:
-            name = 'ldv_switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
-            func = Function(name, 'void a(void)')
-            func.definition_file = self._cmodel.entry_file
-            func.body = code
-            code = ['{}();'.format(name)]
-
-            self._cmodel.add_function_definition(func)
-            for file in export:
-                self._cmodel.add_function_declaration(file, func, extern=True)
-
         return code
 
     def __state_switch(self, states):
@@ -343,7 +306,7 @@ class StateTranslator(FSATranslator):
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
         func = Function(name, 'int f(void)')
-        func.definition_fil = self._cmodel.entry_file
+        func.definition_file = self._cmodel.entry_file
 
         # Generate switch body
         code = list()
@@ -369,7 +332,7 @@ class StateTranslator(FSATranslator):
 
     def __set_initial_state(self, automaton):
         body = list()
-        body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+        body.append('/* Initialize initial state of automaton {!r} with process {!r} of category {!r} */'.
                     format(automaton.identifier, automaton.process.name, automaton.process.category))
 
         body.extend(initialize_automaton_variables(self._conf, automaton))
