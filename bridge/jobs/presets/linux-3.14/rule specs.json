@@ -46,6 +46,7 @@
             "intermediate model options": [
               {
                 "linuxModule": {
+                  "dump instances": false,
                   "convert statics to globals": true,
                   "add registration guards": true,
                   "ignore missed callbacks": true,
@@ -76,6 +77,7 @@
                 "linuxInsmod": {
                   "init": "module_init",
                   "exit": "module_exit",
+                  "check final state": true,
                   "kernel_initialization": [
                     "early_initcall",
                     "pure_initcall",
@@ -102,7 +104,10 @@
               }
             ],
             "translation options": {
-              "dump automata graphs": false,
+              "debug output": false,
+              "self parallel processes": false,
+              "self parallel model": false,
+              "always sequential processes": ["linux/initialization"],
               "direct control functions calls": true,
               "nested automata": true,
               "allocate with sizeof": true,
@@ -238,27 +243,91 @@
       "description": "Generic memory safety",
       "template": "Linux kernel modules",
       "EMG" : {
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "source analysis": {
+          "callstack deep search": 3
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": true,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "roles map file": "linux/emg/roles match.json",
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "check final state": true,
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "kernel": false
+            }
+          }
+        ],
         "translation options": {
-          "dump automata graphs": false,
+          "debug output": false,
+          "self parallel processes": false,
+          "self parallel model": false,
+          "always sequential processes": ["linux/initialization"],
           "direct control functions calls": true,
           "nested automata": true,
-          "no actions composition": ["Condition"],
-          "pointer initialization": {
-            "structures": true,
-            "arrays": true,
-            "functions": false,
-            "unions": false,
-            "primitives": false
-          },
-          "pointer free": {
-            "structures": true,
-            "arrays": true,
-            "functions": false,
-            "unions": false,
-            "primitives": false
-          },
           "allocate with sizeof": true,
-          "allocate external": true
+          "allocate external": true,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/thread.h"
+          ]
         }
       },
       "RSG": {"models": {"generic/memory.c": {}}},
@@ -598,31 +667,93 @@
       "description": "...",
       "template": "Linux kernel modules",
       "EMG": {
-         "translation options": {
-           "dump automata graphs": false,
-           "implicit callback calls": false,
-           "direct control functions calls": false,
-           "nested automata": true,
-           "no actions composition": ["Condition"],
-           "self parallelism": true,
-           "pure pthread interface": false,
-           "pointer initialization": {
-             "structures": true,
-             "arrays": true,
-             "functions": false,
-             "unions": false,
-             "primitives": false
-           },
-           "pointer free": {
-             "structures": true,
-             "arrays": true,
-             "functions": false,
-             "unions": false,
-             "primitives": false
-           },
-           "allocate with sizeof": true,
-           "allocate external": false
-         }
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "source analysis": {
+          "callstack deep search": 3
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": false,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "roles map file": "linux/emg/roles match.json",
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "check final state": true,
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "kernel": false
+            }
+          }
+        ],
+        "translation options": {
+          "debug output": false,
+          "self parallel processes": true,
+          "self parallel model": false,
+          "not self parallel processes": ["linux/initialization"],
+          "not self parallel processes from categories": ["usb"],
+          "direct control functions calls": false,
+          "nested automata": true,
+          "allocate with sizeof": true,
+          "allocate external": false,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/thread.h"
+          ]
+        }
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}}
