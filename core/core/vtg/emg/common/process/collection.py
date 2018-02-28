@@ -173,6 +173,8 @@ class ProcessCollection:
                         d['peers'].append(p['process'].pretty_id)
                         if not p['process'].pretty_id:
                             raise ValueError('Any peer must have an external identifier')
+                    # Remove dublicates
+                    d['peers'] = list(set(d['peers']))
 
                 if isinstance(action, Dispatch) and action.broadcast:
                     d['broadcast'] = action.broadcast
