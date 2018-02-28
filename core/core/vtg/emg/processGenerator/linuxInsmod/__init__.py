@@ -100,6 +100,7 @@ def __import_inits_exits(logger, conf, avt, source):
 def __generate_insmod_process(logger, conf, inits, exits, kernel_initializations):
     logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
     ep = Process("insmod")
+    ep.category = 'linux'
     ep.comment = "Initialize or exit module."
     ep.self_parallelism = False
     ep.identifier = 0
