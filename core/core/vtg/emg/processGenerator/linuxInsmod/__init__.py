@@ -34,7 +34,7 @@ def generate_processes(emg, source, processes, conf):
     inits, exits, kernel_initializations = __import_inits_exits(emg.logger, conf, emg.abstract_task_desc, source)
 
     emg.logger.info('Generate initializing scenario')
-    insmod = __generate_insmod_process(emg.logger, conf, inits, exits, kernel_initializations)
+    insmod = __generate_insmod_process(emg.logger, conf, source, inits, exits, kernel_initializations)
     processes.entry = insmod
 
 
@@ -82,13 +82,22 @@ def __import_inits_exits(logger, conf, avt, source):
 
     kernel_initializations = []
     if get_conf_property(conf, 'kernel'):
+        if get_necessary_conf_property(conf, "add functions as initialization"):
+            extra = get_necessary_conf_property(conf, "add functions as initialization")
+        else:
+            extra = dict()
+
         for name in get_necessary_conf_property(conf, 'kernel_initialization'):
             mc = source.get_macro(name)
-            same_list = []
 
-            for module in (m for m in order_c_files if m in mc.parameters):
-                for call in mc.parameters[module]:
-                    same_list.append((module, call[0]))
+            same_list = []
+            if mc:
+                for module in (m for m in order_c_files if m in mc.parameters):
+                    for call in mc.parameters[module]:
+                        same_list.append((module, call[0]))
+            if name in extra:
+                for func in (source.get_source_function(f) for f in extra[name] if source.get_source_function(f)):
+                    same_list.append((func.definition_file, func.name))
             if len(same_list) > 0:
                 kernel_initializations.append((name, same_list))
 
@@ -97,7 +106,7 @@ def __import_inits_exits(logger, conf, avt, source):
     return inits, exits, kernel_initializations
 
 
-def __generate_insmod_process(logger, conf, inits, exits, kernel_initializations):
+def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initializations):
     logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
     ep = Process("insmod")
     ep.category = 'linux'
@@ -111,27 +120,39 @@ def __generate_insmod_process(logger, conf, inits, exits, kernel_initializations
         body = [
             "int ret;"
         ]
+        label_name = 'ldv_kernel_initialization_exit'
 
         # Generate kernel initializations
         for name, calls in kernel_initializations:
             for filename, func_name in calls:
-                new_name = __generate_alias(ep, func_name, filename, True)
+                func = source.get_source_function(func_name, filename)
+                if func:
+                    retval = False if func.declaration.return_value.identifier == 'void' else True
+                else:
+                    raise RuntimeError("Cannot resolve function {!r} in file {!r}".format(name, filename))
+                new_name = __generate_alias(ep, func_name, filename, retval)
                 statements = [
                     model_comment('callback', func_name, {'call': "{}();".format(func_name)}),
-                    "ret = {}();".format(new_name),
-                    "ret = ldv_post_init(ret);",
-                    "if (ret)",
-                    "\tgoto ldv_kernelinit_retlabel;"
                 ]
+                if retval:
+                    statements.extend([
+                        "ret = {}();".format(new_name),
+                        "ret = ldv_post_init(ret);",
+                        "if (ret)",
+                        "\tgoto {};".format(label_name)
+                    ])
+                else:
+                    statements.append("{}();".format(new_name))
+
                 body.extend(statements)
         body.extend([
-            "ldv_kernel_init_retlabel:",
+            "{}:".format(label_name),
             "return ret;"
         ])
-        func = Function('ldv_kernel_init', 'void ldv_kernel_init(void)')
+        func = Function('ldv_kernel_init', 'int ldv_kernel_init(void)')
         func.body = body
         addon = func.define()
-        ep.definitions['environment model']['ldv_kernel_init'] = addon
+        ep.add_definition('environment model', 'ldv_kernel_init', addon)
         ki_subprocess = ep.add_condition('kernel_initialization', [], ["%ret% = ldv_kernel_init();"],
                                          'Kernel initialization stage.')
         ki_success = ep.add_condition('kerninit_success', ["%ret% == 0"], [], "Kernel initialization is successful.")
@@ -200,7 +221,7 @@ def __generate_insmod_process(logger, conf, inits, exits, kernel_initializations
     process += ")" * len(inits)
 
     if len(kernel_initializations) > 0 and len(inits) > 0:
-        ep.process += "<{}>.(<{}> | <{}>.(<{}>))".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
+        ep.process += "<{}>.(<{}> | <{}>.({}))".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
     elif len(kernel_initializations) == 0 and len(inits) > 0:
         ep.process += process
     elif len(kernel_initializations) > 0 and len(inits) == 0:
