@@ -308,7 +308,6 @@ class SA(core.vtg.plugins.Plugin):
         updated = True
         while updated:
             updated = False
-
             for func in list(self.used_functions):
                 for path in self.collection["functions"][func]:
                     if "calls" in self.collection["functions"][func][path]:
@@ -318,7 +317,13 @@ class SA(core.vtg.plugins.Plugin):
                                 updated = True
         self.logger.info("There are {} relevant functions found, delete the rest".format(len(self.used_functions)))
 
-        for name in [n for n in self.collection['functions'] if n not in self.used_functions]:
+        removal_list = [n for n in self.collection['functions'] if n not in self.used_functions]
+        if "remove only inline functions" in self.conf and self.conf["remove only inline functions"]:
+            removal_list = [n for n in removal_list if
+                            any(True for p in self.collection['functions'][n]
+                                if 'inline' in self.collection['functions'][n][p]["signature"] and
+                                self.collection['functions'][n][p]["static"])]
+        for name in removal_list:
             del self.collection['functions'][name]
 
     def _shrink_macro_expansions(self):
