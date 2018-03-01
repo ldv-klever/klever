@@ -80,6 +80,18 @@ def check_necessary_conf_property(conf, name, expected_type=None):
 
 
 def model_comment(comment_type, text, other=None):
+    """
+    Print model comment in the form accepted by the Klever error trace parser from VRP. This simple comment contains
+    short json to parse.
+
+    For example:
+    /* LDV {"action": "REGISTER", "type": "DISPATCH_BEGIN", "comment": "Register TTY callbacks."} */
+
+    :param comment_type: Comment type string.
+    :param text: Sentence string with a comment itself.
+    :param other: An existing dictionary to which the comment and type should be added
+    :return: Final coment string (look at the example above).
+    """
     if other and isinstance(other, dict):
         comment = other
     else:
