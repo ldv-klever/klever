@@ -74,30 +74,11 @@
             "ext-modules/usb_serial_driver_v.1/usb_serial_invoke.ko",
             "ext-modules/usb_serial_driver_v.2/usb_serial_invoke.ko",
             "ext-modules/workqueue_v.1/flush_delayed_work_invoke.ko",
-            "ext-modules/workqueue_v.1/flush_scheduled_work_invoke.ko",
             "ext-modules/workqueue_v.1/flush_work_invoke.ko",
-            "ext-modules/workqueue_v.1/flush_workqueue_invoke.ko",
             "ext-modules/workqueue_v.1/queue_delayed_work_invoke.ko",
             "ext-modules/workqueue_v.1/queue_delayed_work_on_invoke.ko",
             "ext-modules/workqueue_v.1/queue_work_invoke.ko",
-            "ext-modules/workqueue_v.1/queue_work_on_invoke.ko",
-            "ext-modules/workqueue_v.1/schedule_delayed_work_invoke.ko",
-            "ext-modules/workqueue_v.1/schedule_delayed_work_on_invoke.ko",
-            "ext-modules/workqueue_v.1/schedule_work_invoke.ko",
-            "ext-modules/workqueue_v.1/schedule_work_on_invoke.ko",
-            "ext-modules/workqueue_v.2/drain_workqueue_invoke.ko",
-            "ext-modules/workqueue_v.2/flush_delayed_work_invoke.ko",
-            "ext-modules/workqueue_v.2/flush_scheduled_work_invoke.ko",
-            "ext-modules/workqueue_v.2/flush_work_invoke.ko",
-            "ext-modules/workqueue_v.2/flush_workqueue_invoke.ko",
-            "ext-modules/workqueue_v.2/queue_delayed_work_invoke.ko",
-            "ext-modules/workqueue_v.2/queue_delayed_work_on_invoke.ko",
-            "ext-modules/workqueue_v.2/queue_work_invoke.ko",
-            "ext-modules/workqueue_v.2/queue_work_on_invoke.ko",
-            "ext-modules/workqueue_v.2/schedule_delayed_work_invoke.ko",
-            "ext-modules/workqueue_v.2/schedule_delayed_work_on_invoke.ko",
-            "ext-modules/workqueue_v.2/schedule_work_invoke.ko",
-            "ext-modules/workqueue_v.2/schedule_work_on_invoke.ko"
+            "ext-modules/workqueue_v.1/queue_work_on_invoke.ko"
           ]
         }
       ]
@@ -199,8 +180,7 @@
   "To support": [
       "timer_v.1",
       "timer_v.2",
-      "workqueue_v.1",
-      "workqueue_v.2"
+      "workqueue_v.1"
   ],
   "Default": [
     {
