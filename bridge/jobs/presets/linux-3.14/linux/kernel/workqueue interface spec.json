@@ -1,57 +1,56 @@
 {
-	"Linux 3.14 (base)": {
-		"kernel functions": {
-			"queue_work": {
-				"signature": "static inline bool queue_work(struct workqueue_struct*, *%workqueue.work_struct%)",
-				"header": "linux/workqueue.h"
-			},
-			"flush_work": {
-				"signature": "bool flush_work(*%workqueue.work_struct%)",
-				"header": "linux/workqueue.h"
-			},
-			"flush_delayed_work": {
-				"signature": "bool flush_delayed_work(*%workqueue.delayed_work%)",
-				"header": "linux/workqueue.h"
-			},
-			"queue_delayed_work_on": {
-				"signature": "bool queue_delayed_work_on(int cpu, struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
-				"header": "linux/workqueue.h"
-			},
-			"queue_delayed_work": {
-				"signature": "static inline bool queue_delayed_work(struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
-				"header": "linux/workqueue.h"
-			},
-			"queue_work_on": {
-				"signature": "bool queue_work_on(int cpu, struct workqueue_struct*, *%workqueue.work_struct%)",
-				"header": "linux/workqueue.h"
-			}
-		},
-		"categories": {
-			"workqueue": {
-				"containers": {
-					"work_struct": {
-						"signature": "struct work_struct work",
-						"header": "linux/workqueue.h",
-						"fields": {
-							"func": "%workqueue.func%"
-						}
-					},
-					"delayed_work": {
-						"signature": "struct delayed_work dwork",
-						"header": "linux/workqueue.h",
-						"fields": {
-							"work": "%workqueue.work_struct%"
-						}
-					}
-				},
-				"callbacks": {
-					"func": {
-						"signature": "void (*func)(*%workqueue.work_struct%)",
-						"interrupt context": false
-					}
-				}
-			}
-		}
-
-	}
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "queue_work": {
+        "declaration": "static inline bool queue_work(struct workqueue_struct*, *%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "flush_work": {
+        "declaration": "bool flush_work(*%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "flush_delayed_work": {
+        "declaration": "bool flush_delayed_work(*%workqueue.delayed_work%)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_delayed_work_on": {
+        "declaration": "bool queue_delayed_work_on(int cpu, struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_delayed_work": {
+        "declaration": "static inline bool queue_delayed_work(struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_work_on": {
+        "declaration": "bool queue_work_on(int cpu, struct workqueue_struct*, *%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      }
+    },
+    "categories": {
+      "workqueue": {
+        "containers": {
+          "work_struct": {
+            "declaration": "struct work_struct work",
+            "header": "linux/workqueue.h",
+            "fields": {
+              "func": "%workqueue.func%"
+            }
+          },
+          "delayed_work": {
+            "declaration": "struct delayed_work dwork",
+            "header": "linux/workqueue.h",
+            "fields": {
+              "work": "%workqueue.work_struct%"
+            }
+          }
+        },
+        "callbacks": {
+          "func": {
+            "declaration": "void (*func)(*%workqueue.work_struct%)",
+            "interrupt context": false
+          }
+        }
+      }
+    }
+  }
 }
