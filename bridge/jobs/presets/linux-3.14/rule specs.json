@@ -144,7 +144,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "ldv-bam:25793"
+              "version": "ldv-bam:26347"
             },
             "result processing": {
               "coverage": "lightweight"
