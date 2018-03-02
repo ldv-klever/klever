@@ -20,6 +20,8 @@ from core.vtg.emg.common.c.types import import_declaration, Declaration
 
 
 class Variable:
+    """The class represents a C variable."""
+
     name_re = re.compile("\(?\*?%s\)?")
 
     def __init__(self, name, declaration):
@@ -43,6 +45,11 @@ class Variable:
             raise ValueError("Attempt to add variable {!r} without signature".format(name))
 
     def declare_with_init(self):
+        """
+        Return a string with the variable initialization.
+
+        :return: String.
+        """
         # Get declaration
         declaration = self.declare(extern=False)
 
@@ -53,6 +60,13 @@ class Variable:
         return declaration
 
     def declare(self, extern=False):
+        """
+        Returns a string with the variable declaration.
+
+        :param extern: Add an 'extern' prefix if True.
+        :return: Declartion string.
+        """
+
         # Generate declaration
         expr = self.declaration.to_string(self.name, typedef='complex_and_params')
 
@@ -64,6 +78,7 @@ class Variable:
 
 
 class Function:
+    """The class represents a C function."""
 
     def __init__(self, name, declaration=None):
         self.name = name
@@ -88,17 +103,21 @@ class Function:
 
     @property
     def files_called_at(self):
+        """
+        Provide a list of file names where the function has been called.
+
+        :return: A list with file names.
+        """
         return self.called_at.keys()
 
     def call_in_function(self, func, parameters):
         """
-        Save information that this function calls in its body another function which is provided within parameters
-        alongside with arguments.
+        Save information that the function calls in her body an another provided function with given arguments.
 
         :param func: Name of the called function.
         :param parameters: List of parameters. Currently all non-function pointers are None and for function pointers
-                           the value is a function name
-        :return:
+                           the value is a explicit function name.
+        :return: None
         """
         if func not in self.calls:
             self.calls[func] = [parameters]
@@ -106,12 +125,25 @@ class Function:
             self.calls[func].append(parameters)
 
     def add_call(self, func, path):
+        """
+        Add information that the function is called in the function privided as a parameter.
+
+        :param func: Function that calls this one.
+        :param path: File where it is happened.
+        :return: None.
+        """
         if path not in self.called_at:
             self.called_at[path] = {func}
         else:
             self.called_at[path].add(func)
 
     def declare(self, extern=False):
+        """
+        Provide a string with the declaration of this function.
+
+        :param extern: Add the 'extern' prefix.
+        :return: Declaration string.
+        """
         declaration = self.declaration.to_string(self.name, typedef='complex_and_params')
         declaration += ';'
 
@@ -120,6 +152,11 @@ class Function:
         return [declaration + "\n"]
 
     def define(self):
+        """
+        Provide a list of strings with the definition of the function.
+
+        :return: List of strings.
+        """
         declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params')
         prefix = '/* AUX_FUNC {} */\n'.format(self.name)
         lines = [prefix]
@@ -130,17 +167,21 @@ class Function:
 
 
 class Macro:
+    """The class represents a macro."""
 
     def __init__(self, name):
         self.name = name
         self.parameters = dict()
 
     def add_parameters(self, path, parameters):
+        """
+        Add informtion that this macro was used with the given parameters in the given file.
+
+        :param path: File where the macro was used.
+        :param parameters: List of parameter strings.
+        :return: None.
+        """
         if path not in parameters:
             self.parameters[path] = [parameters]
         else:
             self.parameters[path].append(parameters)
-
-
-
-

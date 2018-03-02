@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 from core.vtg.emg.common.c.types import Structure, Union, Array, Pointer, Function, import_declaration, extract_name, \
-    check_null
+    is_not_null_function
 from core.vtg.emg.processGenerator.linuxModule.interface import StructureContainer, ArrayContainer, Callback
 
 
@@ -133,7 +133,7 @@ def __import_entities(collection, sa, entities):
         bt = entity["type"]
 
         if "value" in entity["description"] and isinstance(entity["description"]['value'], str):
-            if check_null(bt, entity["description"]["value"]):
+            if is_not_null_function(bt, entity["description"]["value"]):
                 category = entity["category"] if "category" in entity else None
                 intfs = list(check_relevant_interface(collection, entity["type"], category,
                                                       entity["root sequence"][-1]))

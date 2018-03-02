@@ -17,12 +17,15 @@
 import re
 import json
 
-from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
 from core.vtg.emg.common.c.types import import_typedefs, import_declaration, extract_name, is_static
 
 
 class Source:
+    """
+    Representation of a collection with the data collected by a source code analysis. The collection contains
+    information about functions, variable initializations, a functions call graph, macros.
+    """
 
     def __init__(self, logger, conf, analysis_file):
         """
@@ -48,7 +51,7 @@ class Source:
     @property
     def source_functions(self):
         """
-        Return sorted list of function names.
+        Return a list of function names.
 
         :return: function names list.
         """
@@ -59,8 +62,8 @@ class Source:
         Provides the function by a given name from the collection.
 
         :param name: Function name.
-        :param path: Scope of the function.
-        :param declaration: Target function Declaration object.
+        :param path: File where the function should be declared or defined.
+        :param declaration: Declaration object representing the function of interest.
         :return: Function object or None.
         """
         name = self.refined_name(name)
@@ -78,11 +81,11 @@ class Source:
 
     def get_source_functions(self, name, declaration=None):
         """
-        Provides all functions by a given name from the collection.
+        Provides all functions found by a given name from the collection.
 
         :param name: Function name.
-        :param declaration: Target function Declaration object.
-        :return: Pairs with the path and Function object.
+        :param declaration: Declaration object representing the function of interest.
+        :return: List with Function objects.
         """
         name = self.refined_name(name)
         result = []
@@ -97,7 +100,7 @@ class Source:
         Replace an Function object in the collection.
 
         :param new_obj: Function object.
-        :param path: Scope of the function.
+        :param path: File where the function should be declared or defined.
         :return: None.
         """
         if new_obj.name not in self._source_functions:
@@ -113,46 +116,10 @@ class Source:
         """
         del self._source_functions[name]
 
-    def callstack_called_functions(self, func):
-        """
-        Collects all functions which can be called in a callstack of a provided function.
-
-        :param func: Function name string.
-        :return: List with functions names that call the given one.
-        """
-        if func not in self.__function_calls_cache:
-            level_counter = 0
-            max_level = None
-
-            if get_conf_property(self._conf, 'callstack deep search', int):
-                max_level = get_conf_property(self._conf, 'callstack deep search', int)
-
-            # Simple BFS with deep counting from the given function
-            relevant = set()
-            level_functions = {func}
-            processed = set()
-            while len(level_functions) > 0 and (not max_level or level_counter < max_level):
-                next_level = set()
-
-                for fn in level_functions:
-                    # kernel functions + modules functions
-                    kfs, mfs = self.__functions_called_in(fn, processed)
-                    next_level.update(mfs)
-                    relevant.update(kfs)
-
-                level_functions = next_level
-                level_counter += 1
-
-            self.__function_calls_cache[func] = relevant
-        else:
-            relevant = self.__function_calls_cache[func]
-
-        return sorted(relevant)
-
     @property
     def source_variables(self):
         """
-        Return sorted list of global variables.
+        Return list of global variables.
 
         :return: Variable names list.
         """
@@ -160,10 +127,10 @@ class Source:
 
     def get_source_variable(self, name, path=None):
         """
-        Provides a gloabal variable by a given name from the collection.
+        Provides a gloabal variable by a given name and scope file from the collection.
 
         :param name: Variable name.
-        :param path: Scope of the variable.
+        :param path: File with the variable declaration or initialization.
         :return: Variable object or None.
         """
         name = self.refined_name(name)
@@ -181,7 +148,7 @@ class Source:
         Provides all global variables by a given name from the collection.
 
         :param name: Variable name.
-        :return: Pairs with the path and Variable object.
+        :return: List with Variable objects.
         """
         name = self.refined_name(name)
         result = []
@@ -196,7 +163,7 @@ class Source:
         Replace an object in global variables collection.
 
         :param new_obj: Variable object.
-        :param path: Scope.
+        :param path: File with the variable declaration or initialization.
         :return: None.
         """
         if new_obj.name not in self._source_vars:
@@ -248,8 +215,8 @@ class Source:
         Resolve function name from simple expressions which contains explicit function name like '& myfunc', '(myfunc)',
         '(& myfunc)' or 'myfunc'.
 
-        :param call: Expression string.
-        :return: Function name string.
+        :param call: An expression string.
+        :return: Extracted function name string.
         """
         name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
         if name_re.fullmatch(call):
@@ -257,42 +224,11 @@ class Source:
         else:
             return None
 
-    def __functions_called_in(self, path, name):
-        if not (path in self.__function_calls_cache and name in self.__function_calls_cache[path]):
-            fs = dict()
-            processing = [[path, name]]
-            processed = dict()
-            while len(processing) > 0:
-                p, n = processing.pop()
-                func = self.get_source_function(n, p)
-                if func:
-                    for cp in func.calls:
-                        for called in (f for f in func.calls[cp] if not (cp in processed and f in processed[cp])):
-                            if cp in self.__function_calls_cache and called in self.__function_calls_cache[cp]:
-                                for ccp in self.__function_calls_cache[cp][called]:
-                                    if ccp not in fs:
-                                        fs[ccp] = self.__function_calls_cache[cp][called][ccp]
-                                    else:
-                                        fs[ccp].update(self.__function_calls_cache[cp][called][ccp])
-                                    processed[ccp].update(self.__function_calls_cache[cp][called][ccp])
-                            else:
-                                processing.append([cp, called])
-                            if cp not in processed:
-                                processed[cp] = {called}
-                            else:
-                                processed[cp].add(called)
-
-                            fs[cp].add(called)
-
-            self.__function_calls_cache[path][name] = fs
-
-        return self.__function_calls_cache[path][name]
-
     def _import_code_analysis(self, source_analysis):
         """
         Read global variables, functions and macros to fill up the collection.
 
-        :param source_analysis: Dictionary with content of source analysis.
+        :param source_analysis: Dictionary with the content of source analysis.
         :return: None.
         """
         # Import typedefs if there are provided

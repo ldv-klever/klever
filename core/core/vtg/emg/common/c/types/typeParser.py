@@ -587,6 +587,11 @@ def direct_declarator_processing(p):
 
 
 def setup_parser():
+    """
+    Setup the parser.
+
+    :return: None
+    """
     global __parser
     global __lexer
 
@@ -595,6 +600,12 @@ def setup_parser():
 
 
 def parse_declaration(string):
+    """
+    Parse the given C declaration string with the possible interface extensions.
+
+    :param string: C declaration string.
+    :return: Obtained abstract syntax tree.
+    """
     global __parser
     global __lexer
 

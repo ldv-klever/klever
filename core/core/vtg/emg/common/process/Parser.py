@@ -257,6 +257,11 @@ def p_subprocess(p):
 
 
 def setup_parser():
+    """
+    Setup the parser.
+
+    :return: None
+    """
     global __parser
     global __lexer
 
@@ -265,6 +270,12 @@ def setup_parser():
 
 
 def parse_process(string):
+    """
+    Main parsing method. It gets a raw string in DSL and returns an abstract syntax tree.
+
+    :param string: Process description in DSL.
+    :return: Abstract syntax tree.
+    """
     global __parser
     global __lexer
 

@@ -24,29 +24,36 @@ _noname_identifier = 0
 _typedefs = {}
 
 
-def extracted_types():
-    for name in _type_collection:
-        yield name, _type_collection[name]
-
-
-def new_identifier():
+def _new_identifier():
     global _noname_identifier
 
     _noname_identifier += 1
     return _noname_identifier
 
 
-def check_null(declaration, value):
+def is_not_null_function(declaration, value):
+    """
+    Check that the value for given function or function pointer is not Null. For other types it returns false.
+
+    :param declaration: Declaration
+    :param value: Value string.
+    :return: False if it is a function or function pointer and the value is null and False otherwise.
+    """
     check = re.compile('[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
-    if (isinstance(declaration, Function) or (isinstance(declaration, Pointer) and
-                                              isinstance(declaration.points, Function))) and \
-            check.fullmatch(value):
+    if (isinstance(declaration, Function) or
+       (isinstance(declaration, Pointer) and isinstance(declaration.points, Function))) and check.fullmatch(value):
         return False
     else:
         return True
 
 
 def extract_name(declaration):
+    """
+    Extract name from the declarator of the declaration.
+
+    :param declaration: Declaration string.
+    :return: Declarator string or None if there is no declarator.
+    """
     try:
         ast = parse_declaration(declaration)
     except Exception:
@@ -60,6 +67,12 @@ def extract_name(declaration):
 
 
 def import_typedefs(tds):
+    """
+    Get collection from source analysis with typedefs and import them into collection.
+
+    :param tds: Raw dictionary from SA: {'file': [typedef definitions]}
+    :return: None
+    """
     global _typedefs
     global _type_collection
 
@@ -80,10 +93,14 @@ def import_typedefs(tds):
         if tp in _typedefs:
             _typedefs[tp][1].add('common')
 
-    return
-
 
 def is_static(declaration):
+    """
+    Check that given declaration is static.
+
+    :param declaration: Declaration string.
+    :return: True if it static and False otherwise.
+    """
     def check(a):
         return 'specifiers' in a and 'specifiers' in a['specifiers'] and 'static' in a['specifiers']['specifiers']
 
@@ -95,6 +112,13 @@ def is_static(declaration):
 
 
 def reduce_level(ast):
+    """
+    The function removes from the abstract syntax tree a declaration current level (pointer or array). For instance it
+    makes from AST of 'int *a' it makes AST for 'int a'.
+
+    :param ast: Current abstract syntax tree.
+    :return: Abstract syntax tree for the pointer or an array element type.
+    """
     if len(ast['declarator']) > 1 and \
             ('pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] == 0) and \
             ('arrays' not in ast['declarator'][-1] or len(ast['declarator'][-1]['arrays']) == 0) and \
@@ -104,6 +128,15 @@ def reduce_level(ast):
 
 
 def import_declaration(declaration, ast=None, track_typedef=False):
+    """
+    Import into the declaration collection a new declaration. The function either get an existing object from a cache
+    or creates a new object for the given declaration.
+
+    :param declaration: Declaration string.
+    :param ast: Corresponding abstract syntax tree if it is known.
+    :param track_typedef: Specify flag that at parsing the declaration it is allowed to match typedefs.
+    :return: Declaration object.
+    """
     global _type_collection
     global _typedefs
     typedef = None
@@ -204,6 +237,7 @@ def _add_parent(declaration, parent):
 
 
 class Declaration:
+    """Base type to represent C declarations."""
 
     def __init__(self, ast):
         self._ast = ast
@@ -212,21 +246,50 @@ class Declaration:
 
     @property
     def take_pointer(self):
+        """
+        Return a Declaration object which corresponds to the pointer to this type.
+
+        :return: Declaration object.
+        """
         pointer_declaration = self.to_string('a', True)
         return import_declaration(pointer_declaration)
 
     @property
     def identifier(self):
-        return self.to_string(replacement='')
+        """
+        Identifier of the declaration. Identifier is a declaration string without a declarator and with all known
+        typdefs resolved into basic types.
+
+        :return: String.
+        """
+        return self.to_string(declarator='')
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. It is not implemented for the base type.
+
+        :return: String.
+        """
         raise NotImplementedError
 
     def add_parent(self, parent):
+        """
+        Specify that the given declaration object contains this one (in terms of structure fields or array alements).
+
+        :param parent: Declaration object.
+        :return: None.
+        """
         _add_parent(self, parent)
 
     def compare(self, target):
+        """
+        Compare this and given declaration. If they correspond to the same C declaration then return True. For void
+        pointers the function returns True for any pointer.
+
+        :param target: Declaration object.
+        :return: True if declarations are equal.
+        """
         # Apply all transformations
         if type(self) is type(target):
             if self.identifier == target.identifier:
@@ -236,6 +299,13 @@ class Declaration:
         return False
 
     def pointer_alias(self, alias):
+        """
+        Compare this type with the given one and return None or declaration object which is a pointer to the another
+        one in this pair.
+
+        :param alias: Declaration object.
+        :return: Declaration object.
+        """
         if isinstance(self, Pointer) and self.points.compare(alias):
             return self
         elif isinstance(alias, Pointer) and self.compare(alias.points):
@@ -244,6 +314,11 @@ class Declaration:
         return None
 
     def nameless_type(self):
+        """
+        Return True if this declaration has no named type (for structures, unions).
+
+        :return: Bool.
+        """
         queue = [self]
         ret = True
 
@@ -260,10 +335,20 @@ class Declaration:
 
         return ret
 
-    def to_string(self, replacement='', pointer=False, typedef='none', scope=None):
+    def to_string(self, declarator='', pointer=False, typedef='none', scope=None):
+        """
+        Print declaration as a string with the given declarator.
+
+        :param declarator: Declarator string.
+        :param pointer: Return pointer to this type.
+        :param typedef: Insert typedefs: 'none' - no typedefs, 'all' - all possible, 'complex_and_params' -
+                        for function parameters.
+        :param scope: File with the declaration to check visible typedefs.
+        :return: String.
+        """
         global _typedefs
         if pointer:
-            replacement = _take_pointer(replacement, type(self))
+            declarator = _take_pointer(declarator, type(self))
 
         if isinstance(typedef, set) or isinstance(typedef, str):
             if self.typedef and (
@@ -274,9 +359,9 @@ class Declaration:
                      )) and \
                     (not scope or (self.typedef in _typedefs and
                                    len(_typedefs[self.typedef][1] & scope) > 0)):
-                return "{} {}".format(self.typedef, replacement)
+                return "{} {}".format(self.typedef, declarator)
             else:
-                return self._to_string(replacement, typedef=typedef, scope=scope)
+                return self._to_string(declarator, typedef=typedef, scope=scope)
         else:
             raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
@@ -285,12 +370,19 @@ class Declaration:
 
 
 class Primitive(Declaration):
+    """Class represents base build-in (non-complex) types (string, int) and complex typedef types."""
 
     def __init__(self, ast):
         super(Primitive, self).__init__(ast)
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. For primitives it is a type itself with added
+        specifiers like 'unsigned_int'.
+
+        :return: String.
+        """
         pn = self._ast['specifiers']['type specifier']['name']
         return pn.replace(' ', '_')
 
@@ -302,6 +394,7 @@ class Primitive(Declaration):
 
 
 class Enum(Declaration):
+    """The class represents Enum types."""
 
     def __init__(self, ast):
         super(Enum, self).__init__(ast)
@@ -312,10 +405,20 @@ class Enum(Declaration):
 
     @property
     def name(self):
+        """
+        Return name of the Enum.
+
+        :return: String
+        """
         return self._ast['specifiers']['type specifier']['name']
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. An example for the Enum 'enum_myenum'.
+
+        :return: String.
+        """
         return 'enum_{}'.format(self.name)
 
     def _to_string(self, replacement, typedef='none', scope=None):
@@ -331,6 +434,7 @@ class Enum(Declaration):
 
 
 class Function(Declaration):
+    """The class represents Function types."""
 
     def __init__(self, ast):
         super(Function, self).__init__(ast)
@@ -356,9 +460,15 @@ class Function(Declaration):
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. For function it prints just an expression with
+        a unique numerical identifier like 'func_543'.
+
+        :return: String.
+        """
         global _type_collection
 
-        key = new_identifier()
+        key = _new_identifier()
         return 'func_{}'.format(key)
 
     def _to_string(self, replacement, typedef='none', scope=None, with_args=False):
@@ -398,10 +508,21 @@ class Function(Declaration):
         return replacement
 
     def define_with_args(self, replacement, typedef='none', scope=None):
+        """
+        Prints function dewclaration with arguments given with declarators. As argument declarators it prints
+        expressions like 'arg1', 'arg2', ....
+
+        :param replacement: Function name or any other declarator.
+        :param typedef: Insert typedefs: 'none' - no typedefs, 'all' - all possible, 'complex_and_params' -
+                        for function parameters.
+        :param scope: File with the declaration to check visible typedefs.
+        :return: String.
+        """
         return self._to_string(replacement, typedef, scope, with_args=True)
 
 
 class Structure(Declaration):
+    """THe class represents Structure types."""
 
     def __init__(self, ast):
         super(Structure, self).__init__(ast)
@@ -417,22 +538,46 @@ class Structure(Declaration):
 
     @property
     def name(self):
+        """
+        Return structure name.
+
+        :return: String.
+        """
         return self._ast['specifiers']['type specifier']['name']
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. Prints a name based on the structure name like
+        'struct_usb_driver' or for nameless structures also numerical identifier like 'struct_noname_343'.
+
+        :return: String.
+        """
         if self.name:
             return 'struct_{}'.format(self.name)
         else:
             global _type_collection
 
-            key = new_identifier()
+            key = _new_identifier()
             return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
+        """
+        Check True if target declaration is used for one of structure fields and False otherwise.
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         return [field for field in self.fields.keys() if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
+        """
+        Check True if target declaration is used for one of structure fields and False otherwise. In this function
+        comparison with argument types also accepts pointer to the type of the interest and arrays.
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         return [field for field in self.fields.keys() if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
@@ -453,6 +598,7 @@ class Structure(Declaration):
 
 
 class Union(Declaration):
+    """The class represents union types."""
 
     def __init__(self, ast):
         super(Union, self).__init__(ast)
@@ -467,22 +613,46 @@ class Union(Declaration):
 
     @property
     def name(self):
+        """
+        Return union name.
+
+        :return: String.
+        """
         return self._ast['specifiers']['type specifier']['name']
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. Prints a name based on the union name like
+        'union_my_union' or for nameless unions also numerical identifier like 'union_3454'.
+
+        :return: String.
+        """
         if self._ast['specifiers']['type specifier']['name']:
             return 'union_{}'.format(self.name)
         else:
             global _type_collection
 
-            key = new_identifier()
+            key = _new_identifier()
             return 'union_noname_{}'.format(key)
 
     def contains(self, target):
+        """
+        Check True if target declaration is used for one of union fields and False otherwise.
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         return [field for field in self.fields.keys() if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
+        """
+        Check True if target declaration is used for one of union fields and False otherwise. In this function
+        comparison with argument types also accepts pointer to the type of the interest and arrays.
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         return [field for field in self.fields.keys() if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
@@ -501,6 +671,7 @@ class Union(Declaration):
 
 
 class Array(Declaration):
+    """The class represent array types."""
 
     def __init__(self, ast):
         super(Array, self).__init__(ast)
@@ -514,15 +685,34 @@ class Array(Declaration):
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. Prints a name based on the pretty name of
+        the element type. For instance for 'int []' it is 'int_array'.
+
+        :return: String.
+        """
         return '{}_array'.format(self.element.pretty_name)
 
     def contains(self, target):
+        """
+        Check True if target declaration is used as the array element type.
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         if self.element.compare(target):
             return True
         else:
             return False
 
     def weak_contains(self, target):
+        """
+        Check True if target declaration is used as the array element type. The comparison also accepts pointers and
+        arrays (arrays of arrays).
+
+        :param target: Declaration type.
+        :return: Bool.
+        """
         if self.element.compare(target) or self.element.pointer_alias(target):
             return True
         else:
@@ -538,6 +728,7 @@ class Array(Declaration):
 
 
 class Pointer(Declaration):
+    """The class represents pointers."""
 
     def __init__(self, ast):
         super(Pointer, self).__init__(ast)
@@ -554,4 +745,10 @@ class Pointer(Declaration):
 
     @property
     def pretty_name(self):
+        """
+        This is an identifier string which can be used in variable names. Prints a name based on the type to which this
+        type points. For instance for 'int *' it is 'int_ptr'.
+
+        :return: String.
+        """
         return '{}_ptr'.format(self.points.pretty_name)

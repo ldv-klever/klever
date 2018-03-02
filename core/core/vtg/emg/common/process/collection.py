@@ -21,6 +21,12 @@ from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition
 
 
 class ProcessCollection:
+    """
+    This class represents collection of processes for an environment model generation. Also it contains methods to
+    import or export processes in the JSON format. The collection contains function models processes, generic
+    environment model processes that acts as soon as they receives replicative signals and a main process.
+
+    """
 
     PROCESS_CONSTRUCTOR = Process
     LABEL_CONSTRUCTOR = Label
@@ -56,12 +62,10 @@ class ProcessCollection:
 
     def parse_event_specification(self, raw):
         """
-        Parse event categories specification and create all existing Process objects.
+        Parse process descriptions and create corresponding objects to populate the collection.
 
-        :param raw: Dictionary with content of JSON file of a specification.
-        :return: [List of Process objects which correspond to functions models],
-                 [List of Process objects which correspond to generic models],
-                 Entry Process object.
+        :param raw: Dictionary with content of JSON file.
+        :return: None
         """
         env_processes = dict()
         models = dict()
@@ -91,6 +95,12 @@ class ProcessCollection:
         self.entry = entry_process
 
     def save_collection(self, filename=None):
+        """
+        Export the collection to the file.
+
+        :param filename: File to save process descriptions in the JSON format.
+        :return: Return a dictionary that can easily be saved as a JSON file.
+        """
         data = dict()
         data["functions models"] = {p.pretty_id: self._export_process(p) for p in self.models.values()}
         data["environment processes"] = {p.pretty_id: self._export_process(p) for p in self.environment.values()}
@@ -103,9 +113,9 @@ class ProcessCollection:
     def establish_peers(self, strict=False):
         """
         Get processes and guarantee that all peers are correctly set for both receivers and dispatchers. The function
-        replaces dispatches expressed by strings to object regerences as it is expected in translators.
+        replaces dispatches expressed by strings to object references as it is expected in translators.
 
-        :param strict: Raise exception if a peer process identifier is unknown or just ignore it.
+        :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
         # Then check peers. This is becouse in generated processes there no peers set for manually written processes
