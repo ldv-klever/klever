@@ -35,7 +35,6 @@ static int __init ldv_init(void)
 	if (!queue)
 		return -ENOMEM;
 	INIT_WORK(&work, ldv_handler);
-	queue_work(queue, &work);
 
 	flush_work(&work);
 	return 0;

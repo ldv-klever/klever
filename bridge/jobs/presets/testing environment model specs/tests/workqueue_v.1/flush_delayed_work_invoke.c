@@ -38,7 +38,6 @@ static int __init ldv_init(void)
 		return -ENOMEM;
 
 	INIT_DELAYED_WORK(&work, ldv_handler);
-	queue_delayed_work(queue, &work, delay);
 
 	if (flip_a_coin)
 		flush_delayed_work(&work);
