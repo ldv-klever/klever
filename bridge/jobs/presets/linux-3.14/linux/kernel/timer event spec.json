@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "mod_timer, mod_timer_pinned, mod_timer_pending": {
         "comment": "Modify a timer's timeout.",
         "labels": {

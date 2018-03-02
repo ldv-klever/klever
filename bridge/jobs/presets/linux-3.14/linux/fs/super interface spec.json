@@ -1,12 +1,28 @@
 {
   "Linux 2.6.33": {
-    "kernel functions": {
+    "functions models": {
       "register_filesystem": {
-        "signature": "int register_filesystem(*%super.file_system_type%)",
+        "declaration": "int register_filesystem(*%super.file_system_type%)",
         "header": "linux/fs.h"
       },
       "unregister_filesystem": {
-        "signature": "int unregister_filesystem(*%super.file_system_type%)",
+        "declaration": "int unregister_filesystem(*%super.file_system_type%)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_bdev": {
+        "declaration": "int get_sb_bdev(*%super.file_system_type%, int flags, const char *dev_name, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_single": {
+        "declaration": "int get_sb_single(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_nodev": {
+        "declaration": "int get_sb_nodev(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
+        "header": "linux/fs.h"
+      },
+      "get_sb_ns": {
+        "declaration": "int get_sb_ns(*%super.file_system_type%, int flags, void *data, int (*fill_super)(struct super_block *, void *, int), struct vfsmount *mnt)",
         "header": "linux/fs.h"
       }
     },
@@ -14,7 +30,7 @@
       "super": {
         "containers": {
           "file_system_type": {
-            "signature": "struct file_system_type ops",
+            "declaration": "struct file_system_type ops",
             "header": "linux/fs.h",
             "fields": {
               "kill_sb": "%super.release%",
@@ -22,7 +38,7 @@
             }
           },
           "super_block": {
-            "signature": "struct super_block ops",
+            "declaration": "struct super_block ops",
             "header": "linux/fs.h",
             "fields": {
               "s_op": "*%super.super_operations%",
@@ -30,7 +46,7 @@
             }
           },
           "super_operations": {
-            "signature": "struct super_operations ops",
+            "declaration": "struct super_operations ops",
             "header": "linux/fs.h",
             "fields": {
               "put_super": "%super.put%"
@@ -39,19 +55,19 @@
         },
         "resources": {
           "inode": {
-            "signature": "struct inode *i",
+            "declaration": "struct inode *i",
             "header": "linux/fs.h"
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe) (*%super.file_system_type%, $, $, $, $)"
+            "declaration": "int (*probe) (*%super.file_system_type%, int, const char *, void *, struct vfsmount *)"
           },
           "release": {
-            "signature": "void (*kill_sb) (*%super.super_block%)"
+            "declaration": "void (*kill_sb) (*%super.super_block%)"
           },
           "put": {
-            "signature": "void (*put_super) (*%super.super_block%)"
+            "declaration": "void (*put_super) (*%super.super_block%)"
           }
         }
       }

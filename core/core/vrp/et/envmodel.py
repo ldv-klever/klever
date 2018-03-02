@@ -67,21 +67,21 @@ def _collect_action_diaposons(error_trace):
             data[file][error_trace.emg_comments[file][line]['function']]['end'] = line
 
         # Deterine actions and allowed intervals
-        for function in data[file]:
+        for func in data[file]:
             inside_action = False
-            for line in range(data[file][function]['begin'], data[file][function]['end']):
+            for line in range(data[file][func]['begin'], data[file][func]['end']):
                 if not inside_action and line in error_trace.emg_comments[file] and \
                                 error_trace.emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
-                    data[file][function]['actions'].append({'begin': line,
-                                                            'comment': error_trace.emg_comments[file][line]['comment'],
-                                                            'type': error_trace.emg_comments[file][line]['type']})
+                    data[file][func]['actions'].append({'begin': line,
+                                                        'comment': error_trace.emg_comments[file][line]['comment'],
+                                                        'type': error_trace.emg_comments[file][line]['type']})
                     if 'callback' in error_trace.emg_comments[file][line] and \
                             error_trace.emg_comments[file][line]['callback']:
-                        data[file][function]['actions'][-1]['callback'] = True
+                        data[file][func]['actions'][-1]['callback'] = True
                     inside_action = True
                 elif inside_action and line in error_trace.emg_comments[file] and \
                         error_trace.emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
-                    data[file][function]['actions'][-1]['end'] = line
+                    data[file][func]['actions'][-1]['end'] = line
                     inside_action = False
 
     return data, main_data, main

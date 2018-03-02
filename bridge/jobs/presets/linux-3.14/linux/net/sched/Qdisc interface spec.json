@@ -1,11 +1,11 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "functions models": {},
     "categories": {
       "Qdisc": {
         "containers": {
           "Qdisc_ops": {
-            "signature": "struct Qdisc_ops ops",
+            "declaration": "struct Qdisc_ops ops",
             "header": "net/sch_generic.h",
             "fields": {
               "init": "%Qdisc.probe%",
@@ -15,15 +15,15 @@
         },
         "resources": {
           "Qdisc": {
-            "signature": "struct Qdisc *disc"
+            "declaration": "struct Qdisc *disc"
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%Qdisc.Qdisc%, $)"
+            "declaration": "int (*probe)(%Qdisc.Qdisc%, struct nlattr *arg)"
           },
           "release": {
-            "signature": "void (*release)(%Qdisc.Qdisc%)"
+            "declaration": "void (*release)(%Qdisc.Qdisc%)"
           }
         }
       }

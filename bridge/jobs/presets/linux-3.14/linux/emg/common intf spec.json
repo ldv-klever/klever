@@ -1,12 +1,12 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "functions models": {},
     "kernel macro-functions": {},
     "categories": {
       "device_driver": {
         "containers": {
           "device_driver": {
-            "signature": "struct device_driver driver",
+            "declaration": "struct device_driver driver",
             "header": "linux/device.h"
           }
         }

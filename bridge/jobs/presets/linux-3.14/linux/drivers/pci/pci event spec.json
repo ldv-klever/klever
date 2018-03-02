@@ -1,6 +1,71 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {},
+    "functions models": {
+      "pci_register_driver, __pci_register_driver": {
+        "comment": "Register PCI callbacks.",
+        "labels": {
+          "pci_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "pci.pci_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%pci_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to register provided within 'pci_driver' argument.",
+            "statements": [
+              "%pci_driver% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail PCI callbacks registration.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Registration of pci_driver callbacks has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "pci_unregister_driver": {
+        "comment": "Deregister PCI callbacks.",
+        "labels": {
+          "pci_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "pci.pci_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%pci_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to deregister provided within 'pci_driver' argument.",
+            "statements": [
+              "%pci_driver% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
     "environment processes": {
       "pci_scenario": {
         "comment": "Invoke PCI driver callbacks.",
@@ -15,7 +80,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },

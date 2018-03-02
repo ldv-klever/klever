@@ -1,12 +1,12 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "uart_add_one_port": {
-        "signature": "int uart_add_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
+        "declaration": "int uart_add_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
         "header": "linux/serial_core.h"
       },
       "uart_remove_one_port": {
-        "signature": "int uart_remove_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
+        "declaration": "int uart_remove_one_port(%serial_core.uart_driver%, *%serial_core.uart_port%)",
         "header": "linux/serial_core.h"
       }
     },
@@ -14,7 +14,7 @@
       "serial_core": {
         "containers": {
           "uart_ops": {
-            "signature": "struct uart_ops ops",
+            "declaration": "struct uart_ops ops",
             "header": "linux/serial_core.h",
             "fields": {
               "pm": "%serial_core.pm%",
@@ -33,7 +33,7 @@
             }
           },
           "uart_port": {
-            "signature": "struct uart_port port",
+            "declaration": "struct uart_port port",
             "header": "linux/serial_core.h",
             "fields": {
               "ops": "*%serial_core.uart_ops%"
@@ -42,55 +42,55 @@
         },
         "callbacks": {
           "pm": {
-            "signature": "void (*pm)(*%serial_core.uart_port%, %serial_core.state%, %serial_core.oldstate%)"
+            "declaration": "void (*pm)(*%serial_core.uart_port%, %serial_core.state%, %serial_core.oldstate%)"
           },
           "startup": {
-            "signature": "int (*startup)(*%serial_core.uart_port%)"
+            "declaration": "int (*startup)(*%serial_core.uart_port%)"
           },
           "set_termios": {
-            "signature": "void (*set_termios)(*%serial_core.uart_port%, struct ktermios *new, struct ktermios *old)"
+            "declaration": "void (*set_termios)(*%serial_core.uart_port%, struct ktermios *new, struct ktermios *old)"
           },
           "get_mctrl": {
-            "signature": "unsigned int (*get_mctrl)(*%serial_core.uart_port%)"
+            "declaration": "unsigned int (*get_mctrl)(*%serial_core.uart_port%)"
           },
           "set_mctrl": {
-            "signature": "void (*set_mctrl)(*%serial_core.uart_port%, unsigned int mctrl)"
+            "declaration": "void (*set_mctrl)(*%serial_core.uart_port%, unsigned int mctrl)"
           },
           "stop_rx": {
-            "signature": "void (*stop_rx)(*%serial_core.uart_port%)"
+            "declaration": "void (*stop_rx)(*%serial_core.uart_port%)"
           },
           "stop_tx": {
-            "signature": "void (*stop_tx)(*%serial_core.uart_port%)"
+            "declaration": "void (*stop_tx)(*%serial_core.uart_port%)"
           },
           "start_tx": {
-            "signature": "void (*start_tx)(*%serial_core.uart_port%)"
+            "declaration": "void (*start_tx)(*%serial_core.uart_port%)"
           },
           "throttle": {
-            "signature": "void (*throttle)(*%serial_core.uart_port%)"
+            "declaration": "void (*throttle)(*%serial_core.uart_port%)"
           },
           "unthrottle": {
-            "signature": "void (*unthrottle)(*%serial_core.uart_port%)"
+            "declaration": "void (*unthrottle)(*%serial_core.uart_port%)"
           },
           "send_xchar": {
-            "signature": "void (*send_xchar)(*%serial_core.uart_port%, char ch)"
+            "declaration": "void (*send_xchar)(*%serial_core.uart_port%, char ch)"
           },
           "shutdown": {
-            "signature": "void (*shutdown)(*%serial_core.uart_port%)"
+            "declaration": "void (*shutdown)(*%serial_core.uart_port%)"
           },
           "verify_port": {
-            "signature": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
+            "declaration": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
           }
         },
         "resources": {
           "uart_driver": {
-            "signature": "struct uart_driver *driver",
+            "declaration": "struct uart_driver *driver",
             "header": "linux/serial_core.h"
           },
           "state": {
-            "signature": "unsigned int state"
+            "declaration": "unsigned int state"
           },
           "oldstate": {
-            "signature": "unsigned int oldstate"
+            "declaration": "unsigned int oldstate"
           }
         }
       }

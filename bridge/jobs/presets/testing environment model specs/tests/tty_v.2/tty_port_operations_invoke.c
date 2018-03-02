@@ -24,23 +24,6 @@
 struct tty_driver *driver;
 struct tty_port port;
 struct device *device;
-unsigned int lines;
-unsigned indx;
-
-int ldv_open(struct tty_struct * tty, struct file * filp)
-{
-	return 0;
-}
-
-void ldv_close(struct tty_struct * tty, struct file * filp)
-{
-	/* pass */
-}
-
-static struct tty_operations ldv_tty_ops = {
-	.open = ldv_open,
-	.close = ldv_close
-};
 
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
@@ -63,29 +46,15 @@ static int __init ldv_init(void)
 	int res;
 
 	ldv_invoke_test();
-	driver = alloc_tty_driver(lines);
-	if (driver) {
-		tty_set_operations(driver, &ldv_tty_ops);
-		res = tty_register_driver(driver);
-		if (res) {
-			put_tty_driver(driver);
-			return res;
-		}
-		else {
-			tty_port_init(& port);
-			port.ops = & ldv_tty_port_ops;
-			tty_port_register_device(& port, driver, ldv_undef_int(), device);
-		}
-	}
-	return 0;
+	tty_port_init(& port);
+	port.ops = & ldv_tty_port_ops;
+	res = tty_port_register_device(& port, driver, ldv_undef_int(), device);
+	return res;
 }
 
 static void __exit ldv_exit(void)
 {
-	tty_unregister_device(driver, indx);
 	tty_port_destroy(&port);
-	tty_unregister_driver(driver);
-	put_tty_driver(driver);
 }
 
 module_init(ldv_init);

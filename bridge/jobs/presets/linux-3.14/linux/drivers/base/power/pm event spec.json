@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {},
+    "functions models": {},
     "environment processes": {
       "pm_ops_scenario": {
         "comment": "Invoke power management callbacks.",
@@ -198,7 +198,7 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {},
+    "functions models": {},
     "environment processes": {
       "pm_ops_scenario": {
         "comment": "Invoke power management callbacks.",

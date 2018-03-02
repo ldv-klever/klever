@@ -1,12 +1,12 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "i2c_register_driver": {
-        "signature": "int i2c_register_driver($, *%i2c.i2c_driver%)",
+        "declaration": "int i2c_register_driver(struct module *owner, *%i2c.i2c_driver%)",
         "header": "linux/i2c.h"
       },
       "i2c_del_driver": {
-        "signature": "void i2c_del_driver(*%i2c.i2c_driver%)",
+        "declaration": "void i2c_del_driver(*%i2c.i2c_driver%)",
         "header": "linux/i2c.h"
       }
     },
@@ -14,7 +14,7 @@
       "i2c": {
         "containers": {
           "i2c_driver": {
-            "signature": "struct i2c_driver driver",
+            "declaration": "struct i2c_driver driver",
             "header": "linux/i2c.h",
             "fields": {
               "remove": "%i2c.release%"
@@ -23,12 +23,12 @@
         },
         "resources": {
           "client": {
-            "signature": "struct i2c_client *client"
+            "declaration": "struct i2c_client *client"
           }
         },
         "callbacks": {
           "release": {
-            "signature": "int (*release)(%i2c.client%)"
+            "declaration": "int (*release)(%i2c.client%)"
           }
         }
       }

@@ -1,28 +1,28 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "mod_timer": {
-        "signature": "int mod_timer(*%timer.timer_list%, $)",
+        "declaration": "int mod_timer(*%timer.timer_list%, unsigned long expires)",
         "header": "linux/timer.h"
       },
       "mod_timer_pinned": {
-        "signature": "int mod_timer_pinned(*%timer.timer_list%, $)",
+        "declaration": "int mod_timer_pinned(*%timer.timer_list%, unsigned long expires)",
         "header": "linux/timer.h"
       },
       "mod_timer_pending": {
-        "signature": "int mod_timer_pending(*%timer.timer_list%, $)",
+        "declaration": "int mod_timer_pending(*%timer.timer_list%, unsigned long expires)",
         "header": "linux/timer.h"
       },
       "del_timer": {
-        "signature": "int del_timer(*%timer.timer_list%)",
+        "declaration": "int del_timer(*%timer.timer_list%)",
         "header": "linux/timer.h"
       },
       "del_timer_sync": {
-        "signature": "int del_timer_sync(*%timer.timer_list%)",
+        "declaration": "int del_timer_sync(*%timer.timer_list%)",
         "header": "linux/timer.h"
       },
       "try_to_del_timer_sync": {
-        "signature": "int try_to_del_timer_sync(*%timer.timer_list%)",
+        "declaration": "int try_to_del_timer_sync(*%timer.timer_list%)",
         "header": "linux/timer.h"
       }
     },
@@ -30,7 +30,7 @@
       "timer": {
         "containers": {
           "timer_list": {
-            "signature": "struct timer_list list",
+            "declaration": "struct timer_list list",
             "header": "linux/timer.h",
             "fields": {
               "data": "%timer.data%",
@@ -40,12 +40,12 @@
         },
         "resources": {
           "data": {
-            "signature": "unsigned long data"
+            "declaration": "long unsigned int data"
           }
         },
         "callbacks": {
           "handler": {
-            "signature": "void (*handler)(%timer.data%)",
+            "declaration": "void (*handler)(%timer.data%)",
             "interrupt context": true
           }
         }

@@ -20,122 +20,49 @@ around: define(likely(x)) { (x) }
 around: define(unlikely(x)) { (x) }
 
 info: execution(static $ $(void)) {
-	$fprintf<"$env<CWD>/static-execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/static-execution.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: execution(static $ $(..)) {
-	$fprintf<"$env<CWD>/static-execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/static-execution.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: execution($ $(void)) {
-	$fprintf<"$env<CWD>/execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/execution.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: execution($ $(..)) {
-	$fprintf<"$env<CWD>/execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/execution.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: declare_func(static $ $(void)) {
-	$fprintf<"$env<CWD>/static-declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/static-declare_func.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: declare_func(static $ $(..)) {
-	$fprintf<"$env<CWD>/static-declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/static-declare_func.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: declare_func($ $(void)) {
-	$fprintf<"$env<CWD>/declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
+	$fprintf<"$env<CWD>/declare_func.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 info: declare_func($ $(..)) {
-	$fprintf<"$env<CWD>/declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
-}
-
-around: define(__EXPORT_SYMBOL(sym, sec))
-{
-}
-
-/* info: expand(__EXPORT_SYMBOL(sym, sec)) {
-	$fprintf<"$env<CWD>/exported-symbols.txt","%s %s\n",$path,$arg_val1>
-}*/
-
-info: expand(module_init(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(early_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(pure_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(core_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(core_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(postcore_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(postcore_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(arch_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(arch_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(subsys_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(subsys_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(fs_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(fs_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(rootfs_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(device_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(device_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(late_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(late_initcall_sync(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(console_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-info: expand(security_initcall(arg)){
-	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
-}
-
-info: expand(module_exit(arg)){
-	$fprintf<"$env<CWD>/exit.txt","%s %s\n",$path,$arg_val1>
+	$fprintf<"$env<CWD>/declare_func.txt","%s signature='%s'\n",$func_name,$signature>
 }
 
 // for i in range(max_args_num)
 info: expand($({{ arg_patterns[i] }})) {
-	$fprintf<"$env<CWD>/expand.txt","%s %s\n",$path,$macro_name>
+	$fprintf<"$env<CWD>/expand.txt","%s {{ arg_printf_patterns[i] }}\n",$macro_name,{{ arg_vals[i] }}>
 }
 // endfor
 
 info: call( $ $(void)) {
-	$fprintf<"$env<CWD>/call-function.txt","%s %s %s %s\n",$func_context_path,$env<CC_IN_FILE>,$func_context_name,$func_name>
+	$fprintf<"$env<CWD>/call-function.txt","%s %s\n",$func_context_name,$func_name>
 }
 // for i in range(max_args_num)
 info: call($ $({{ arg_patterns[i] }})) {
-	$fprintf<"$env<CWD>/call-function.txt","%s %s %s %s {{ arg_printf_patterns[i] }}\n",$func_context_path,$env<CC_IN_FILE>,$func_context_name,$func_name,{{ arg_vals[i] }}>
+	$fprintf<"$env<CWD>/call-function.txt","%s %s {{ arg_printf_patterns[i] }}\n",$func_context_name,$func_name,{{ arg_values[i] }}>
 }
 // endfor
 
@@ -145,5 +72,5 @@ info: init_global($ $){
 }
 
 info: introduce($ $) {
-	$fprintf<"$env<CWD>/typedefs.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
+	$fprintf<"$env<CWD>/typedefs.txt","declaration: %s\n",$signature>
 }

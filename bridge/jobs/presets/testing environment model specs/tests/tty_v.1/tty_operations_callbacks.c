@@ -23,26 +23,18 @@
 
 int flip_a_coin;
 struct tty_driver *driver;
-struct tty_port port;
 struct device *device;
 unsigned int lines;
 unsigned indx;
 
 int ldv_open(struct tty_struct * tty, struct file * filp)
 {
-	int res;
-
-	ldv_invoke_callback();
-	res = ldv_undef_int();
-	if (!res)
-		ldv_probe_up();
-	return res;
+	return 0;
 }
 
 void ldv_close(struct tty_struct * tty, struct file * filp)
 {
-	ldv_release_down();
-	ldv_invoke_callback();
+	/* pass */
 }
 
 static struct tty_operations ldv_tty_ops = {
@@ -50,26 +42,9 @@ static struct tty_operations ldv_tty_ops = {
 	.close = ldv_close
 };
 
-static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
-{
-	/* pass */
-	return 0;
-}
-
-static void ldv_shutdown(struct tty_port *tport)
-{
-	/* pass */
-}
-
-static const struct tty_port_operations ldv_tty_port_ops = {
-	.activate = ldv_activate,
-	.shutdown = ldv_shutdown,
-};
-
 static int __init ldv_init(void)
 {
 	int res = ldv_undef_int();
-
 	flip_a_coin = ldv_undef_int();
 	if (flip_a_coin) {
 		driver = alloc_tty_driver(lines);
@@ -80,11 +55,6 @@ static int __init ldv_init(void)
 			if (res) {
 				put_tty_driver(driver);
 				ldv_deregister();
-				return res;
-			}
-			else {
-				tty_port_init(& port);
-				port.ops = & ldv_tty_port_ops;
 			}
 		}
 	}
@@ -95,7 +65,6 @@ static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
 		tty_unregister_device(driver, indx);
-		tty_port_put(&port);
 		tty_unregister_driver(driver);
 		put_tty_driver(driver);
 		ldv_deregister();
@@ -104,3 +73,4 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
+

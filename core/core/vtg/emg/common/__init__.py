@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
 
 
 def get_conf_property(conf, name, expected_type=None):
@@ -26,7 +27,7 @@ def get_conf_property(conf, name, expected_type=None):
     :return: Configuration property value.
     """
     if name in conf:
-        if expected_type and type(conf[name]) is not expected_type:
+        if expected_type and not isinstance(conf[name], expected_type):
             raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
                             format(name, str(expected_type), str(type(conf[name]))))
         return conf[name]
@@ -71,8 +72,34 @@ def check_necessary_conf_property(conf, name, expected_type=None):
     :return: True
     """
     if name not in conf:
-        raise KeyError("Expect configuration property '{}' to be set properly".format(name))
-    elif name in conf and expected_type and type(conf[name]) is not expected_type:
-        raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
+        raise KeyError("Expect configuration property {!r} to be set properly".format(name))
+    elif name in conf and expected_type and not isinstance(conf[name], expected_type):
+        raise TypeError("Expect configuration property {!r} to be set with a {!r} value but it has type {!r}".
                         format(name, str(expected_type), str(type(conf[name]))))
     return True
+
+
+def model_comment(comment_type, text, other=None):
+    """
+    Print model comment in the form accepted by the Klever error trace parser from VRP. This simple comment contains
+    short json to parse.
+
+    For example:
+    /* LDV {"action": "REGISTER", "type": "DISPATCH_BEGIN", "comment": "Register TTY callbacks."} */
+
+    :param comment_type: Comment type string.
+    :param text: Sentence string with a comment itself.
+    :param other: An existing dictionary to which the comment and type should be added
+    :return: Final coment string (look at the example above).
+    """
+    if other and isinstance(other, dict):
+        comment = other
+    else:
+        comment = dict()
+
+    comment['type'] = comment_type.upper()
+    if text:
+        comment['comment'] = text
+
+    string = json.dumps(comment)
+    return "/* LDV {} */".format(string)

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "sock_register": {
         "comment": "Add a socket protocol handler.",
         "labels": {
@@ -23,7 +23,7 @@
             "resource": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -127,7 +127,7 @@
             "resource": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -228,7 +228,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "socket": {
