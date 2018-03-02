@@ -83,110 +83,92 @@
         }
       ]
   },
+  "Sub-jobs~": [
+    {
+      "specifications set": "Linux 2.6.33",
+      "Linux kernel": {
+  		"source": "linux-2.6.33.20",
+        "external modules": "tests",
+        "modules": [
+          "workqueue_v.1"
+        ]
+      },
+      "rule specifications": ["linux:emg:test:fp"]
+    }
+  ],
   "Sub-jobs": [
     {
       "specifications set": "Linux 2.6.33",
       "Linux kernel": {
-		"source": "linux-2.6.33.20",
+  		"source": "linux-2.6.33.20",
         "external modules": "tests",
         "modules": [
-          "block_device_operations_v.1",
-          "class_v.1",
-          "devm_threaded_irq_v.1",
-          "ethtool_ops_v.1",
-          "file_operations_v.1",
-          "get_sb_v.1",
-          "hid_v.1",
-          "ieee80211_ops_v.1",
-          "irq_v.1",
-          "net_device_ops_v.1",
-          "pci_driver_v.1",
-          "platform_driver_v.1",
-          "proto_v.1",
-          "rtc_class_ops_v.1",
-          "scsi_host_template_v.1",
-          "seq_operations_v.1",
-          "serial_core_v.1",
-          "super_block_v.1",
-          "tty_v.1",
-          "usb_driver_v.1",
-          "usb_serial_driver_v.1"
+          "block_device_operations_v.1"
         ]
       }
     },
     {
       "specifications set": "Linux 3.14 (base)",
       "Linux kernel": {
-		"source": "linux-3.14",
+  		"source": "linux-3.14",
         "external modules": "tests",
         "modules": [
-          "block_device_operations_v.1",
-          "class_v.1",
-          "devm_threaded_irq_v.1",
-          "ethtool_ops_v.1",
-          "file_operations_v.1",
-          "hid_v.1",
-          "ieee80211_ops_v.1",
-          "iio_triggered_buffer_v.1",
-          "irq_v.2",
-          "net_device_ops_v.1",
-          "pci_driver_v.1",
-          "percpu_irq_v.1",
-          "platform_driver_v.1",
-          "proto_v.1",
-          "rtc_class_ops_v.1",
-          "scsi_host_template_v.1",
-          "seq_operations_v.1",
-          "serial_core_v.1",
-          "se_subsystem_api_v.1",
-          "tty_v.2",
-          "usb_driver_v.1",
-          "usb_serial_driver_v.2"
+          "block_device_operations_v.1"
         ]
       }
     },
     {
       "specifications set": "Linux 4.6.7",
       "Linux kernel": {
-		"source": "linux-4.6.7",
+  		"source": "linux-4.6.7",
         "external modules": "tests",
         "modules": [
-          "block_device_operations_v.1",
-          "class_v.1",
-          "devm_threaded_irq_v.1",
-          "ethtool_ops_v.2",
-          "file_operations_v.1",
-          "hid_v.1",
-          "ieee80211_ops_v.1",
-          "iio_triggered_buffer_v.1",
-          "irq_v.2",
-          "net_device_ops_v.2",
-          "pci_driver_v.1",
-          "percpu_irq_v.1",
-          "platform_driver_v.1",
-          "proto_v.2",
-          "rtc_class_ops_v.1",
-          "scsi_host_template_v.1",
-          "seq_operations_v.1",
-          "serial_core_v.1",
-          "target_backend_v1",
-          "tty_v.2",
-          "usb_driver_v.1",
-          "usb_serial_driver_v.2"
+          "block_device_operations_v.1"
         ]
       }
+    },
+    {
+      "specifications set": "Linux 2.6.33",
+      "Linux kernel": {
+  		"source": "linux-2.6.33.20",
+        "external modules": "tests",
+        "modules": [
+          "timer_v.1",
+          "workqueue_v.1"
+        ]
+      },
+      "rule specifications": ["linux:emg:test:fp"]
+    },
+    {
+      "specifications set": "Linux 3.14 (base)",
+      "Linux kernel": {
+		  "source": "linux-3.14",
+        "external modules": "tests",
+        "modules": [
+          "timer_v.1",
+          "workqueue_v.1"
+        ]
+      },
+      "rule specifications": ["linux:emg:test:fp"]
+    },
+    {
+      "specifications set": "Linux 4.6.7",
+      "Linux kernel": {
+	  	"source": "linux-4.6.7",
+        "external modules": "tests",
+        "modules": [
+          "timer_v.2",
+          "workqueue_v.1"
+        ]
+      },
+      "rule specifications": ["linux:emg:test:fp"]
     }
-  ],
-  "To support": [
-      "timer_v.1",
-      "timer_v.2",
-      "workqueue_v.1"
   ],
   "Default": [
     {
       "specifications set": "Linux 3.14 (base)",
       "Linux kernel": {
-		"source": "linux-3.14",
+	  	"source": "linux-3.14",
         "external modules": "tests",
         "modules": [
           "atmdev_ops_v.1",
