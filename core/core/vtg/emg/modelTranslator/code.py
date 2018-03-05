@@ -25,12 +25,21 @@ from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automa
 
 
 class Aspect(Function):
+    """
+    Representation of the aspect file pointcuts for source functions which calls should be modified or replaced by
+    models. This is an aspect-oriented extension of the C language which is supported by CIF.
+    """
 
     def __init__(self, name, declaration, aspect_type="after"):
         super(Aspect, self).__init__(name, declaration)
         self.aspect_type = aspect_type
 
     def define(self):
+        """
+        Print description of the replacement that should be made to the source funtion calls.
+
+        :return: List of strings.
+        """
         lines = list()
         lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
@@ -40,6 +49,7 @@ class Aspect(Function):
 
 
 class CModel:
+    """Representation of the environment model in the C language (with extensions)."""
 
     mem_function_map = {
         "ALLOC": "ldv_xmalloc",
@@ -73,6 +83,13 @@ class CModel:
         self.__external_allocated = dict()
 
     def add_headers(self, file, headers):
+        """
+        Add headers include directives to the particular file.
+
+        :param file: C file.
+        :param headers: List of header files.
+        :return: None.
+        """
         if file not in self._headers:
             self._headers[file] = headers
         else:
@@ -85,6 +102,12 @@ class CModel:
                 self._headers[file].append(headers[0])
 
     def add_function_definition(self, func):
+        """
+        Add a function definition to the main environment model file.
+
+        :param func: Function object.
+        :return: None.
+        """
         if not func.definition_file:
             raise RuntimeError('Always expect file to place function definition')
         if func.definition_file not in self._function_definitions:
@@ -96,6 +119,14 @@ class CModel:
         self.add_function_declaration(func.definition_file, func, extern=False)
 
     def add_function_declaration(self, file, func, extern=False):
+        """
+        Add a function declaration to the file.
+
+        :param file: File name.
+        :param func: Function object.
+        :param extern: Add it as an extern function.
+        :return: None.
+        """
         if file not in self._function_declarations:
             self._function_declarations[file] = dict()
 
@@ -104,6 +135,15 @@ class CModel:
         self._function_declarations[file][func.name] = func.declare(extern=extern)
 
     def add_global_variable(self, variable, file, extern=False, initialize=True):
+        """
+        Add a global variable declararation or/and initalization to the target file.
+
+        :param variable: Variable object.
+        :param file: File name.
+        :param extern: Add it as an extern variable.
+        :param initialize: Add also the global variable initialization.
+        :return: None.
+        """
         if not file and variable.file:
             file = variable.file
         elif not file:
@@ -129,11 +169,25 @@ class CModel:
                     self.__external_allocated[file].append(variable)
 
     def text_processor(self, automaton, statement):
+        """
+        Analyze given C code statement and replace all found EMG extensions with the clean C code.
+
+        :param automaton: Automaton object.
+        :param statement: Statement string.
+        :return: Refined C statements list.
+        """
         models = FunctionModels(self._logger, self._conf, self.mem_function_map, self.free_function_map,
                                 self.irq_function_map)
         return models.text_processor(automaton, statement)
 
     def add_function_model(self, func, body):
+        """
+        Add function model to the environment model.
+
+        :param func: Function object to model.
+        :param body: List of C statements which should replace function calls.
+        :return: None.
+        """
         new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
         for file in func.files_called_at:
@@ -142,6 +196,14 @@ class CModel:
             self._call_aspects[file].append(new_aspect)
 
     def print_source_code(self, additional_lines):
+        """
+        Generate an environment model as a C code. The code is distributed across aspect addictions for original
+        source files and the main environment model C code.
+
+        :param additional_lines: Dictionary with the user-defined C code:
+                                 {'file name': {'definitions': [...], 'declarations': []}}
+        :return: Dictionary {'file': Path to generated file with the Code}
+        """
         aspect_dir = "aspects"
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
@@ -232,6 +294,12 @@ class CModel:
         return addictions
 
     def compose_entry_point(self, given_body):
+        """
+        Generate an entry point function for the environment model.
+
+        :param given_body: Body of the main function provided by a translator.
+        :return: List of C statements of the generated function body.
+        """
         ep = Function(self.entry_name, "int {}(void)".format(self.entry_name))
         ep.definition_file = self.entry_file
         body = ['/* LDV {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
@@ -280,6 +348,7 @@ class CModel:
 
 
 class FunctionModels:
+    """Class represent common C extensions for simplifying environmen model C code generation."""
 
     mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
     simple_function_template = "\$({})\("
@@ -298,14 +367,14 @@ class FunctionModels:
         self.signature = None
         self.ualloc_flag = None
 
-    def init_pointer(self, signature):
-        if get_conf_property(self._conf, 'allocate with sizeof'):
-            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"],
-                                           signature.points.to_string('', typedef='complex_and_params'))
-        else:
-            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], '0')
-
     def text_processor(self, automaton, statement):
+        """
+        Analyze given C code statement and replace all found EMG extensions with the clean C code.
+
+        :param automaton: Automaton object.
+        :param statement: C statement string.
+        :return: New statements list.
+        """
         # Replace function names
         stms = []
         matched = False

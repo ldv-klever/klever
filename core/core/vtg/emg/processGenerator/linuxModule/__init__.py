@@ -28,6 +28,17 @@ from core.vtg.emg.processGenerator.linuxModule.process.procImporter import Abstr
 
 
 def generate_processes(emg, source, processes, conf):
+    """
+    This generator generates processes for verifying Linux kernel modules and some parts of the Linux kernel itself.
+     For instance, it adds function models for kernel functions and calls callbacks in the environment model.
+     It uses interface categories specifications and event categories specifications to generate the model.
+
+    :param emg: EMG Plugin object.
+    :param source: Source collection object.
+    :param processes: ProcessCollection object.
+    :param conf: Configuration dictionary of this generator.
+    :return: None.
+    """
     # Get instance maps if possible
     instance_maps = dict()
     if get_conf_property(emg.conf, "EMG instances"):

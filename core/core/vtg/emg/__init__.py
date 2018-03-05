@@ -28,7 +28,9 @@ from core.vtg.emg.modelTranslator import translate_intermediate_model
 
 class EMG(core.vtg.plugins.Plugin):
     """
-    EMG plugin for environment model generation.
+    EMG plugin for environment model generation. The plugin generates an environment model on the base of manually
+    written specifications using various generators and translators. Generated environment model contains C files and
+    aspect files for merging with the original sources. As input, the plugin requires also results of source analysis.
     """
     depend_on_rule = False
 
@@ -36,7 +38,7 @@ class EMG(core.vtg.plugins.Plugin):
         """
         Main function of EMG plugin.
 
-        Plugin generates an environment model for the verification task. The model contains a set of aspect files.
+        Plugin generates an environment model for the verification task.
 
         :return: None
         """

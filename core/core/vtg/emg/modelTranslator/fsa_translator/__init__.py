@@ -38,9 +38,9 @@ class FSATranslator:
         modeling are called insted of modelled functions. This class has an abstract methods to provide ability to
         implement different translators.
 
-        :param logger: logging object.
+        :param logger: Logger object.
         :param conf: Configuration properties dictionary.
-        :param source: ModuleCategoriesSpecification object.
+        :param source: Source collection object.
         :param cmodel: CModel object.
         :param entry_fsa: An entry point Automaton object.
         :param model_fsa: List with Automaton objects which correspond to function models.

@@ -21,6 +21,15 @@ from core.vtg.emg.common.c.types import Pointer, Primitive
 
 
 def model_comment(comment_type, text, other=None):
+    """
+    Print a model comment. This is a base function for some functions implemented below but sometimes it is necessary to
+    use it directly.
+
+    :param comment_type: Comment type string.
+    :param text: Comment text.
+    :param other: Additional existing dictionary with some data.
+    :return: String with the model comment.
+    """
     if other and isinstance(other, dict):
         comment = other
     else:
@@ -35,6 +44,15 @@ def model_comment(comment_type, text, other=None):
 
 
 def action_model_comment(action, text, begin=None, callback=False):
+    """
+    Model comment for identifying an action.
+
+    :param action: Action object.
+    :param text: Action comment string.
+    :param begin: True if this is a comment before the action and False otherwise.
+    :param callback: If this action contains callback call.
+    :return: Model comment string.
+    """
     if action:
         type_comment = type(action).__name__.upper()
         if begin is True:
@@ -54,6 +72,14 @@ def action_model_comment(action, text, begin=None, callback=False):
 
 
 def control_function_comment_begin(function_name, comment, identifier=None):
+    """
+    Compose a comment at the beginning of a control function.
+
+    :param function_name: Control function name.
+    :param comment: Comment text.
+    :param identifier: Thread identifier if necessary.
+    :return: Model comment string.
+    """
     data = {'function': function_name}
     if identifier:
         data['thread'] = identifier
@@ -63,6 +89,13 @@ def control_function_comment_begin(function_name, comment, identifier=None):
 
 
 def control_function_comment_end(function_name, name):
+    """
+    Compose a comment at the end of a control function.
+
+    :param function_name: Control function name.
+    :param name: Process or Automaton name.
+    :return: Model comment string.
+    """
     data = {'function': function_name}
     return model_comment('CONTROL_FUNCTION_END',
                          "End of control function based on process {!r}".format(name),
@@ -96,6 +129,14 @@ def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
 
 
 def initialize_automaton_variables(conf, automaton):
+    """
+    Initalize automaton variables with either external allocated function calls or some known explicit values. Print
+    the code of such initialization.
+
+    :param conf: Translator configuration dictionary.
+    :param automaton: Automaton object.
+    :return: List of C variables initializations.
+    """
     initializations = []
     for var in automaton.variables():
         if isinstance(var.declaration, Pointer) and get_conf_property(conf, 'allocate external'):
@@ -110,19 +151,3 @@ def initialize_automaton_variables(conf, automaton):
     return initializations
 
 
-def model_relevant_files(analysis, cmodel, automaton):
-    files = set()
-    # Add declarations to files with explicit calls
-    kf = analysis.get_source_function(automaton.process.name)
-    files.update(kf.files_called_at)
-    # Then check where we added relevant headers that may contain calls potentially
-    if kf.header and len(kf.header) > 0:
-        for header in (h for h in kf.header if h in cmodel.extra_headers):
-            files.update(cmodel.extra_headers[header])
-    return files
-
-
-def add_model_function(analysis, cmodel, automaton, model):
-    files = model_relevant_files(analysis, cmodel, automaton)
-    for file in files:
-        cmodel.add_function_declaration(file, model, extern=True)
