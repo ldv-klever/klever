@@ -154,6 +154,9 @@ class Session:
         else:
             self.__request('/jobs/ajax/fast_run_decision/', {'job_id': resp.json()['id']})
 
+    def download_all_marks(self, archive):
+        return self.__download_archive('/marks/download-all/', None, archive)
+
     def sign_out(self):
         self.__request('/users/service_signout/')
 
