@@ -498,15 +498,10 @@ def save_job(request):
         if not jobs.utils.JobAccess(request.user, job).can_edit():
             return JsonResponse({'error': _("You don't have an access to edit this job")})
         if parent_identifier is not None and len(parent_identifier) > 0:
-            parents = Job.objects.filter(identifier__startswith=parent_identifier)
-            if len(parents) == 0:
-                return JsonResponse({'error': _('The job parent was not found')})
-            elif len(parents) > 1:
-                return JsonResponse({
-                    'error': _('Several parents match the specified identifier, '
-                               'please increase the length of the parent identifier')
-                })
-            parent = parents[0]
+            try:
+                parent = jobs.utils.get_job_by_identifier(parent_identifier)
+            except BridgeException as e:
+                return JsonResponse({'error': str(e)})
             if job.parent is None:
                 return JsonResponse({'error': _("Parent can't be specified for root jobs")})
             if not jobs.utils.check_new_parent(job, parent):
@@ -688,14 +683,14 @@ def upload_job(request, parent_id=None):
 
     if not jobs.utils.JobAccess(request.user).can_create():
         return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
+
     if len(parent_id) == 0:
         return JsonResponse({'error': _("The parent identifier was not got")})
-    parents = Job.objects.filter(identifier__startswith=parent_id)
-    if len(parents) == 0:
-        return JsonResponse({'error': _("The parent with the specified identifier was not found")})
-    elif len(parents) > 1:
-        return JsonResponse({'error': _("Too many jobs starts with the specified identifier")})
-    parent = parents[0]
+    try:
+        parent = jobs.utils.get_job_by_identifier(parent_id)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+
     errors = []
     for f in request.FILES.getlist('file'):
         try:
@@ -1163,6 +1158,116 @@ def upload_reports(request):
         return JsonResponse({'error': _("You don't have an access to upload reports for this job")})
     try:
         UploadReportsWithoutDecision(job, request.user, reports_dir.name)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@login_required
+def get_job_id(request):
+    if request.method != 'POST' or 'identifier' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = jobs.utils.get_job_by_identifier(request.POST['identifier'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'id': job.id})
+
+
+@login_required
+def get_job_progress_json(request):
+    if request.method != 'POST' or 'identifier' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = jobs.utils.get_job_by_identifier(request.POST['identifier'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    try:
+        progress = job.jobprogress
+        solving = job.solvingprogress
+    except ObjectDoesNotExist:
+        return JsonResponse({'data': json.dumps({'status': job.status})})
+
+    return JsonResponse({'data': json.dumps({
+        'status': job.status,
+        'subjobs': {
+            'total': progress.total_sj, 'failed': progress.failed_sj, 'solved': progress.solved_sj,
+            'expected_time': progress.expected_time_sj, 'gag_text': progress.gag_text_sj,
+            'start': progress.start_sj.timestamp() if progress.start_sj else None,
+            'finish': progress.finish_sj.timestamp() if progress.finish_sj else None
+        },
+        'tasks': {
+            'total': progress.total_ts, 'failed': progress.failed_ts, 'solved': progress.solved_ts,
+            'expected_time': progress.expected_time_ts, 'gag_text': progress.gag_text_ts,
+            'start': progress.start_ts.timestamp() if progress.start_ts else None,
+            'finish': progress.finish_ts.timestamp() if progress.finish_ts else None
+        },
+        'start_date': solving.start_date.timestamp() if solving.start_date else None,
+        'finish_date': solving.finish_date.timestamp() if solving.finish_date else None
+    }, indent=2, sort_keys=True, ensure_ascii=False)})
+
+
+@login_required
+def get_job_decision_results(request):
+    if request.method != 'POST' or 'identifier' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        res = jobs.utils.GetJobDecisionResults(jobs.utils.get_job_by_identifier(request.POST['identifier']))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'data': json.dumps({
+        'name': res.job.name, 'status': res.job.status,
+        'start_date': res.start_date.timestamp() if res.start_date else None,
+        'finish_date': res.finish_date.timestamp() if res.finish_date else None,
+        'verdicts': res.verdicts, 'resources': res.resources,
+        'safes': res.safes, 'unsafes': res.unsafes, 'unknowns': res.unknowns
+    }, indent=2, sort_keys=True, ensure_ascii=False)})
+
+
+@login_required
+def save_job_copy(request):
+    if request.method != 'POST' or 'identifier' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        res = jobs.utils.save_job_copy(request.user, jobs.utils.get_job_by_identifier(request.POST['identifier']))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'identifier': res})
+
+
+@login_required
+def copy_job_version(request):
+    if request.method != 'POST' or 'identifier' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        jobs.utils.copy_job_version(request.user, jobs.utils.get_job_by_identifier(request.POST['identifier']))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@login_required
+def replace_job_file(request):
+    if request.method != 'POST' or 'identifier' not in request.POST \
+            or 'name' not in request.POST or len(request.FILES) == 0:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        jobs.utils.ReplaceJobFile(
+            jobs.utils.get_job_by_identifier(request.POST['identifier']),
+            request.POST['name'], request.FILES['file']
+        )
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
