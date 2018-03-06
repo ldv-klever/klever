@@ -1,0 +1,828 @@
+{
+  "templates": {
+    "Empty": {
+      "description": "...",
+      "plugins": ["Weaver"]
+    },
+    "Linux kernel modules": {
+      "description": "...",
+      "plugins": [
+        {
+          "SA": {
+            "template aspect": "linux/emg/source_analysis.aspect.tmpl",
+            "max arguments number": 30,
+            "remove only inline functions": true,
+            "keep macros": [
+              "module_init",
+              "early_initcall",
+              "pure_initcall",
+              "core_initcall",
+              "core_initcall_sync",
+              "postcore_initcall",
+              "postcore_initcall_sync",
+              "arch_initcall",
+              "arch_initcall_sync",
+              "subsys_initcall",
+              "subsys_initcall_sync",
+              "fs_initcall",
+              "fs_initcall_sync",
+              "rootfs_initcall",
+              "device_initcall",
+              "device_initcall_sync",
+              "late_initcall",
+              "late_initcall_sync",
+              "console_initcall",
+              "security_initcall",
+              "module_exit",
+              "EXPORT_SYMBOL"
+            ]
+          }
+        },
+        {
+          "EMG": {
+            "specifications directory": "linux/",
+            "entry point": "main",
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [
+              {
+                "linuxModule": {
+                  "dump instances": false,
+                  "convert statics to globals": true,
+                  "add registration guards": true,
+                  "ignore missed callbacks": true,
+                  "delete unregistered processes": true,
+                  "implicit callback calls": true,
+                  "generate new resource interfaces": false,
+                  "roles map file": "linux/emg/roles match.json",
+                  "callback comment": "Invoke callback {0} from {1}.",
+                  "action comments": {
+                    "dispatch": {
+                      "register": "Register {} callbacks.",
+                      "instance_register": "Register {} callbacks.",
+                      "deregister": "Deregister {} callbacks.",
+                      "instance_deregister": "Deregister {} callbacks.",
+                      "irq_register": "Register {} interrupt handler.",
+                      "irq_deregister": "Deregister {} interrupt handler."
+                    },
+                    "receive": {
+                      "register": "Begin {} callbacks invocations scenario.",
+                      "instance_register": "Begin {} callbacks invocations scenario.",
+                      "deregister": "Finish {} callbacks invocations scenario.",
+                      "instance_deregister": "Finish {} callbacks invocations scenario."
+                    }
+                  }
+                }
+              },
+              {
+                "linuxInsmod": {
+                  "init": "module_init",
+                  "exit": "module_exit",
+                  "check final state": false,
+                  "add functions as initialization": {
+                    "console_initcall": ["console_init"],
+                    "fs_initcall": ["tty_init"]
+                  },
+                  "kernel_initialization": [
+                    "early_initcall",
+                    "pure_initcall",
+                    "core_initcall",
+                    "core_initcall_sync",
+                    "postcore_initcall",
+                    "postcore_initcall_sync",
+                    "arch_initcall",
+                    "arch_initcall_sync",
+                    "subsys_initcall",
+                    "subsys_initcall_sync",
+                    "fs_initcall",
+                    "fs_initcall_sync",
+                    "rootfs_initcall",
+                    "device_initcall",
+                    "device_initcall_sync",
+                    "late_initcall",
+                    "late_initcall_sync",
+                    "console_initcall",
+                    "security_initcall"
+                  ],
+                  "kernel": true
+                }
+              }
+            ],
+            "translation options": {
+              "debug output": false,
+              "self parallel processes": false,
+              "self parallel model": false,
+              "always sequential processes": ["linux/initialization"],
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": false,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "additional headers": [
+                "linux/ldv/common.h",
+                "linux/ldv/err.h",
+                "verifier/common.h",
+                "verifier/gcc.h",
+                "verifier/nondet.h",
+                "verifier/memory.h",
+                "verifier/thread.h"
+              ]
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "common models": {
+              "linux/drivers/base/dd.c": {"headers": ["linux/device.h"]},
+              "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
+              "linux/mm/kzalloc.c": {},
+              "linux/err.c": {},
+              "linux/ldv/common.c": {
+                "headers": {
+                  "Linux 3.14 (base)": [
+                    "linux/user_namespace.h",
+                    "linux/tty.h",
+                    "linux/tty_driver.h",
+                    "linux/usb.h",
+                    "linux/usb/serial.h",
+                    "linux/platform_device.h",
+                    "linux/netdevice.h",
+                    "linux/net.h",
+                    "linux/timer.h",
+                    "linux/interrupt.h",
+                    "linux/seq_file.h",
+                    "linux/i2c.h",
+                    "linux/mod_devicetable.h",
+                    "linux/device.h",
+                    "linux/pm.h",
+                    "linux/fs.h",
+                    "linux/rtnetlink.h",
+                    "net/mac80211.h",
+                    "linux/iio/iio.h",
+                    "linux/iio/triggered_buffer.h",
+                    "linux/cdev.h",
+                    "linux/miscdevice.h",
+                    "linux/pci.h",
+                    "linux/rtc.h",
+                    "scsi/scsi_host.h",
+                    "linux/pagemap.h",
+                    "linux/poll.h",
+                    "linux/blkdev.h",
+                    "target/target_core_base.h",
+                    "target/target_core_backend.h"
+                  ],
+                  "Linux 3.5": {
+                    "exclude": ["linux/iio/triggered_buffer.h"]
+                  },
+                  "Linux 3.2": {
+                    "exclude": [
+                      "linux/iio/iio.h",
+                      "linux/iio/triggered_buffer.h"
+                    ]
+                  },
+                  "Linux 2.6.33": {
+                    "exclude": [
+                      "linux/iio/iio.h",
+                      "linux/iio/triggered_buffer.h",
+                      "target/target_core_base.h",
+                      "target/target_core_backend.h"
+                    ]
+                  },
+                  "Linux 4.6.7": {
+                    "exclude": [
+                      "linux/poll.h"
+                    ]
+                  }
+                }
+              },
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/memory.c": {}
+            }
+          }
+        },
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "ldv-bam:25793"
+            },
+            "result processing": {
+              "coverage": "full"
+            }
+          }
+        }
+      ]
+    },
+    "Argument signatures for Linux kernel modules": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "plugins": [
+        "SA",
+        "EMG",
+        {
+          "ASE": {"algorithm": "COMPLEX_ID"}
+        },
+        "TR",
+        "RSG",
+        "Weaver",
+        "FVTP"
+      ]
+    }
+  },
+  "rule specifications": {
+    "empty": {
+      "description": "...",
+      "template": "Empty"
+    },
+    "test": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"ldv-test.c": {"bug kinds": []}}}
+    },
+    "generic:memory": {
+      "description": "Generic memory safety",
+      "template": "Linux kernel modules",
+      "EMG" : {
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "source analysis": {
+          "callstack deep search": 3
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": true,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "roles map file": "linux/emg/roles match.json",
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "check final state": false,
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "add functions as initialization": {
+                "console_initcall": ["console_init"],
+                "fs_initcall": ["tty_init"]
+              },
+              "kernel": false
+            }
+          },
+          {
+            "manualImporter": {
+              "enforce replacement": true,
+              "process descriptions file": "manual models.json"
+            }
+          }
+        ],
+        "translation options": {
+          "debug output": true,
+          "self parallel processes": false,
+          "self parallel model": false,
+          "always sequential processes": ["linux/initialization"],
+          "direct control functions calls": true,
+          "nested automata": true,
+          "allocate with sizeof": true,
+          "allocate external": true,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/user_namespace.h",
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/memlist.h",
+            "verifier/thread.h"
+          ]
+        }
+      },
+      "RSG": {"models": {"generic/memory.c": {}}},
+      "FVTP": {
+        "verifier profile": "memory checking Linux64",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "smg_witness_for_ldv:26089"
+        }
+      }
+    },
+    "linux:empty": {
+      "description": "...",
+      "template": "Linux kernel modules"
+    },
+    "linux:emg:test": {
+      "description": "Rule specification intended for testing environment model specifications and generator",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
+    },
+    "linux:alloc:irq": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/alloc/irq.c": {"bug kinds": [
+          "linux:alloc:irq::wrong flags",
+          "linux:alloc:irq::nonatomic"
+        ]}
+      }}
+    },
+    "linux:alloc:spinlock": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/kernel/locking/spinlock.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/kernel/locking/spinlock.c.tmpl": {},
+        "linux/kernel/locking/spinlock.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {
+        "$linux/kernel/locking/spinlock.c": {"sets model": "flag"},
+        "linux/alloc/spinlock.c": {"bug kinds": [
+          "linux:alloc:spinlock::wrong flags",
+          "linux:alloc:spinlock::nonatomic"
+        ]}
+      }}
+    },
+    "linux:alloc:usb lock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/alloc/usb lock.c": {"bug kinds": [
+        "linux:alloc:usb lock::wrong flags",
+        "linux:alloc:usb lock::nonatomic"
+      ]}}}
+    },
+    "linux:arch:io": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/arch/io.c": {"bug kinds": [
+        "linux:arch:io::less initial decrement",
+        "linux:arch:io::more initial at exit"
+      ]}}}
+    },
+    "linux:block:genhd": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/block/genhd.c": {"bug kinds": [
+        "linux:block:genhd::double allocation",
+        "linux:block:genhd::use before allocation",
+        "linux:block:genhd::delete before add",
+        "linux:block:genhd::free before allocation",
+        "linux:block:genhd::more initial at exit"
+      ]}}}
+    },
+    "linux:block:queue": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/block/queue.c": {"bug kinds": [
+        "linux:block:queue::double allocation",
+        "linux:block:queue::use before allocation",
+        "linux:block:queue::more initial at exit"
+      ]}}}
+    },
+    "linux:block:request": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/block/request.c": {"bug kinds": [
+        "linux:block:request::double get",
+        "linux:block:request::double put",
+        "linux:block:request::get at exit"
+      ]}}}
+    },
+    "linux:drivers:base:class": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/drivers/base/class.c": {"bug kinds": [
+        "linux:drivers:base:class::double registration",
+        "linux:drivers:base:class::double deregistration",
+        "linux:drivers:base:class::registered at exit"
+      ]}}}
+    },
+    "linux:drivers:base:dma-mapping": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/drivers/base/dma-mapping.c": { "bug kinds": [
+        "linux:drivers:base:dma-mapping::check before map",
+        "linux:drivers:base:dma-mapping::unchecked",
+        "linux:drivers:base:dma-mapping::unchecked at exit"
+      ]}}}
+    },
+    "linux:drivers:clk1": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/drivers/clk1.request.aspect": {}}},
+      "TR": {"templates": [
+        "linux/drivers/clk1.c.tmpl",
+        "linux/drivers/clk1.aspect.tmpl"
+      ]},
+      "RSG": {"models": {"$linux/drivers/clk1.c": {"bug kinds": ["linux:drivers:clk1::more at exit"]}}}
+    },
+    "linux:drivers:clk2": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/drivers/clk2.request.aspect": {}}},
+      "TR": {"templates": [
+        "linux/drivers/clk2.c.tmpl",
+        "linux/drivers/clk2.aspect.tmpl"
+      ]},
+      "RSG": {"models": {"$linux/drivers/clk2.c": {"bug kinds": ["linux:drivers:clk2::less initial decrement"]}}}
+    },
+    "linux:fs:sysfs": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/fs/sysfs.c": {"bug kinds": [
+        "linux:fs:sysfs::less initial decrement",
+        "linux:fs:sysfs::more initial at exit"
+      ]}}}
+    },
+    "linux:kernel:locking:mutex": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/kernel/locking/mutex.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/kernel/locking/mutex.c.tmpl": {},
+        "linux/kernel/locking/mutex.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/kernel/locking/mutex.c": {
+          "bug kinds": [
+            "linux:kernel:locking:mutex::one thread:double lock",
+            "linux:kernel:locking:mutex::one thread:double lock try",
+            "linux:kernel:locking:mutex::one thread:double unlock",
+            "linux:kernel:locking:mutex::one thread:locked at exit"
+          ],
+          "sets model": "flag"
+      }}}
+    },
+    "linux:kernel:locking:rwlock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/locking/rwlock.c": {"bug kinds": [
+        "linux:kernel:locking:rwlock::read lock on write lock",
+        "linux:kernel:locking:rwlock::more read unlocks",
+        "linux:kernel:locking:rwlock::read lock at exit",
+        "linux:kernel:locking:rwlock::double write lock",
+        "linux:kernel:locking:rwlock::double write unlock",
+        "linux:kernel:locking:rwlock::write lock at exit"
+      ]}}}
+    },
+    "linux:kernel:locking:spinlock": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/kernel/locking/spinlock.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/kernel/locking/spinlock.c.tmpl": {},
+        "linux/kernel/locking/spinlock.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/kernel/locking/spinlock.c": {
+        "bug kinds": [
+          "linux:kernel:locking:spinlock::one thread:double lock",
+          "linux:kernel:locking:spinlock::one thread:double lock try",
+          "linux:kernel:locking:spinlock::one thread:double unlock",
+          "linux:kernel:locking:spinlock::one thread:locked at exit"
+        ],
+        "sets model": "flag"
+      }}}
+    },
+    "linux:kernel:rcu:update:lock bh": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/rcu/update/lock bh.c": {"bug kinds": [
+        "linux:kernel:rcu:update:lock bh::more unlocks",
+        "linux:kernel:rcu:update:lock bh::locked at read section",
+        "linux:kernel:rcu:update:lock bh::locked at exit"
+      ]}}}
+    },
+    "linux:kernel:rcu:update:lock sched": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/rcu/update/lock sched.c": {"bug kinds": [
+        "linux:kernel:rcu:update:lock sched::more unlocks",
+        "linux:kernel:rcu:update:lock sched::locked at read section",
+        "linux:kernel:rcu:update:lock sched::locked at exit"
+      ]}}}
+    },
+    "linux:kernel:rcu:update:lock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {"bug kinds": [
+        "linux:kernel:rcu:update:lock::more unlocks",
+        "linux:kernel:rcu:update:lock::locked at read section",
+        "linux:kernel:rcu:update:lock::locked at exit"
+      ]}}}
+    },
+    "linux:kernel:rcu:srcu": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/rcu/srcu.c": {"bug kinds": [
+        "linux:kernel:rcu:srcu::more unlocks",
+        "linux:kernel:rcu:srcu::locked at read section",
+        "linux:kernel:rcu:srcu::locked at exit"
+      ]}}}
+    },
+    "linux:kernel:sched:completion": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/kernel/sched/completion.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/kernel/sched/completion.c.tmpl": {},
+        "linux/kernel/sched/completion.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/kernel/sched/completion.c": {
+          "bug kinds": [
+            "linux:kernel:sched:completion::double init",
+            "linux:kernel:sched:completion::wait without init"
+          ]
+      }}}
+    },
+    "linux:kernel:module": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/module.c": {"bug kinds": [
+          "linux:kernel:module::less initial decrement",
+          "linux:kernel:module::more initial at exit"
+      ]}}}
+    },
+    "linux:lib:find_bit": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/lib/find_bit.c": {"bug kinds": ["linux:lib:find_bit::offset out of range"]}}}
+    },
+    "linux:lib:idr": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/lib/idr.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/lib/idr.c.tmpl": {},
+        "linux/lib/idr.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/lib/idr.c": {
+          "bug kinds": [
+            "linux:lib:idr::double init",
+            "linux:lib:idr::not initialized",
+            "linux:lib:idr::destroyed before usage",
+            "linux:lib:idr::more at exit"
+          ]
+      }}}
+    },
+    "linux:net:register": {
+      "description": "Error handling for netdev in probe()",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/net/register.c": {"bug kinds": ["linux:net:register::wrong return value"]}}}
+    },
+    "linux:net:rtnetlink": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/net/rtnetlink.c": { "bug kinds": [
+        "linux:net:rtnetlink::double lock",
+        "linux:net:rtnetlink::lock on exit",
+        "linux:net:rtnetlink::double unlock"
+      ]}}}
+    },
+    "linux:net:sock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/net/sock.c": { "bug kinds": [
+        "linux:net:sock::all locked sockets must be released",
+        "linux:net:sock::double release"
+      ]}}}
+    },
+    "linux:usb:coherent": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/usb/coherent.c": {"bug kinds":[
+        "linux:usb:coherent::less initial decrement",
+        "linux:usb:coherent::more initial at exit"
+      ]}}}
+    },
+    "linux:usb:dev": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {
+          "linux/arch/atomic.c": {},
+          "linux/usb/dev.c": {"bug kinds": [
+            "linux:usb:dev::unincremented counter decrement",
+            "linux:usb:dev::less initial decrement",
+            "linux:usb:dev::more initial at exit",
+            "linux:usb:dev::probe failed"
+          ]}
+        }
+      }
+    },
+    "linux:usb:gadget": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/usb/gadget.c": {"bug kinds": [
+        "linux:usb:gadget::class registration with usb gadget",
+        "linux:usb:gadget::class deregistration with usb gadget",
+        "linux:usb:gadget::chrdev registration with usb gadget",
+        "linux:usb:gadget::chrdev deregistration with usb gadget",
+        "linux:usb:gadget::double usb gadget registration",
+        "linux:usb:gadget::double usb gadget deregistration",
+        "linux:usb:gadget::usb gadget registered at exit"
+      ]}}}
+    },
+    "linux:usb:register": {
+      "description": "Error handling for usb register in probe()",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/usb/register.c": {"bug kinds": ["linux:usb:register::wrong return value"]}}}
+    },
+    "linux:usb:urb": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/usb/urb.c": {"bug kinds": [
+        "linux:usb:urb::less initial decrement",
+        "linux:usb:urb::more initial at exit"
+      ]}}}
+    },
+    "sync:race": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "EMG": {
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "source analysis": {
+          "callstack deep search": 3
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": false,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "roles map file": "linux/emg/roles match.json",
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "check final state": true,
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "kernel": false
+            }
+          }
+        ],
+        "translation options": {
+          "debug output": false,
+          "self parallel processes": true,
+          "self parallel model": false,
+          "not self parallel processes": ["linux/initialization"],
+          "not self parallel processes from categories": ["usb"],
+          "direct control functions calls": false,
+          "nested automata": true,
+          "allocate with sizeof": true,
+          "allocate external": false,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/thread.h"
+          ]
+        }
+      },
+      "RSG": {
+        "models": {"sync/races.c": {"bug kinds": []}}
+      },
+      "FVTP": {
+        "verifier profile": "race checking",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "CPALockator:25964"
+        },
+        "result processing": {
+          "expect several witnesses": true
+        }
+      }
+    }
+  },
+  "rule specifications staging": {
+    "linux:alloc": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
+        "linux:alloc::more at exit",
+        "linux:alloc::less at exit"
+      ]}}}
+    },
+    "linux:fs:char_dev": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/fs/char_dev.c": {"bug kinds": [
+        "linux:fs:char_dev::double registration",
+        "linux:fs:char_dev::double deregistration",
+        "linux:fs:char_dev::registered at exit"
+      ]}}}
+    },
+    "linux:mmc:sdio_func": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/mmc/sdio_func.c": {
+        "bug kinds": [
+          "linux:mmc:sdio_func::wrong params",
+          "linux:mmc:sdio_func::double claim",
+          "linux:mmc:sdio_func::release without claim",
+          "linux:mmc:sdio_func::unreleased at exit"
+        ],
+        "headers": [
+          "linux/mmc/sdio_func.h",
+          "linux/mmc/host.h",
+          "linux/mmc/card.h"
+        ]
+      }}}
+    }
+  }
+}
