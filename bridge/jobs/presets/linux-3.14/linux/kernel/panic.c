@@ -15,19 +15,10 @@
  * limitations under the License.
  */
 
-#ifndef __LINUX_LDV_ERR_H
-#define __LINUX_LDV_ERR_H
+#include <linux/ldv/panic.h>
+#include <verifier/common.h>
 
-/* Pointers greater then this number correspond to errors. We can't use
- * original value defined in linux/err.h ((unsigned long)-4095) since it is
- * too hard for verifiers.
- */
-#define LDV_PTR_MAX ((unsigned int)-1)
-
-long ldv_is_err(const void *ptr);
-long ldv_is_err_or_null(const void *ptr);
-void *ldv_err_ptr(long error);
-long ldv_ptr_err(const void *ptr);
-void ldv_panic(void);
-
-#endif /* __LINUX_LDV_ERR_H */
+void ldv_panic(void)
+{
+    ldv_assume(0);
+}
