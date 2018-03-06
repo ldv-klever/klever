@@ -1,3 +1,3 @@
-extra/external1.ko needs "bad_export": extra/init.ko
-extra/external2.ko needs "bad_export": extra/init.ko
-extra/dummy_module.ko needs "dummy_function": extra/external2.ko
+extra/advanced_priority_on_export/external1.ko needs "bad_export": extra/advanced_priority_on_export/init.ko
+extra/advanced_priority_on_export/external2.ko needs "bad_export": extra/advanced_priority_on_export/init.ko
+extra/advanced_priority_on_export/dummy_module.ko needs "dummy_function": extra/advanced_priority_on_export/external2.ko

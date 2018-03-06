@@ -336,6 +336,8 @@ class VTG(core.components.Component):
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs), VTGWL]
         self.launch_subcomponents(False, *subcomponents)
 
+        self.clean_dir = True
+
         self.mqs['pending tasks'].put(None)
         self.mqs['pending tasks'].close()
 
