@@ -19,6 +19,8 @@ import json
 import multiprocessing
 import os
 import re
+import shutil
+import filecmp
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
@@ -27,6 +29,9 @@ from core.lkvog.strategies import strategies_list
 from core.lkvog.strategies import strategy_utils
 import core.components
 import core.utils
+
+#TODO: move to lkvog
+import core.lkbce.utils
 
 
 @core.components.before_callback
@@ -37,6 +42,7 @@ def __launch_sub_job_components(context):
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
+    context.mqs['model headers'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
@@ -54,8 +60,23 @@ def __get_all_linux_kernel_build_cmd_descs(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
     context.mqs['Linux kernel build cmd desc files'].put(None)
 
+@core.components.after_callback
+def __set_model_headers(context):
+    context.mqs['model headers'].put(context.model_headers)
+
 
 class LKVOG(core.components.Component):
+
+    ARCH_OPTS = {
+        'arm': {
+            'ARCH': 'arm',
+            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
+        },
+        'x86_64': {
+            'ARCH': 'x86_64'
+        }
+    }
+
     def generate_linux_kernel_verification_objects(self):
         self.linux_kernel_verification_objs_gen = {}
         self.common_prj_attrs = {}
@@ -72,6 +93,8 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
 
+        self.build_linux_kernel()
+
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
         core.utils.report(self.logger,
@@ -86,6 +109,188 @@ class LKVOG(core.components.Component):
         self.launch_subcomponents(True,
                                   ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
+
+    def build_linux_kernel(self):
+        if self.conf.get('build base', False):
+            return
+
+        self.linux_kernel = {}
+        self.linux_kernel['src'] = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                               self.conf['Linux kernel']['source'])
+        self.linux_kernel['modules'] = self.conf['Linux kernel']['modules']
+
+        self.clade_root = self.conf['clade_root'] #TODO
+        self.path_to_clade = os.path.join(self.clade_root, 'bin/clade_run')
+        self.path_to_libinterceptor = os.path.join(self.clade_root, 'build/libinterceptor.so')
+        self.work_dir_clade = 'clade_work_dir' #TODO
+        if os.path.isdir(self.work_dir_clade):
+            shutil.rmtree(self.work_dir_clade)
+
+        # Use specific architecture and crosscompiler
+        arch = ["{}={}".format(k, self.ARCH_OPTS[self.conf['Linux kernel']['architecture']][k]) for k in
+                self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]]
+        #TODO: cross compile?
+
+        try:
+            self.linux_kernel['conf'] = core.utils.find_file_or_dir(self.logger,
+                                                                         self.conf['main working directory'],
+                                                                         self.conf['Linux kernel']['configuration'])
+            self.linux_kernel['conf file'] = self.linux_kernel['conf']
+        except FileNotFoundError:
+            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
+            self.linux_kernel['conf file'] = '.config'
+
+        self.model_headers = self.mqs['model headers'].get()
+        self.get_linux_kernel_conf()
+        # TODO: external config file?
+        clade_conf = {
+            'commands': [['make', module, '-j', '8', 'KCONFIG_CONFIG=' + self.linux_kernel['conf file']] + arch
+                         for module in self.conf['Linux kernel']['modules']],
+            'extensions': [
+                {
+                    'WorkSrcTreeFetcher':
+                        {
+                            "allow local source directories use": self.conf['allow local source directories use']
+                        }
+                },
+                {
+                    'CanonicalWorkSrcTreeMaker':
+                        {
+                        }
+                },
+                {
+                    'Cleaner':
+                        {
+                            "commands": ["mrproper"],
+                            "custom_dirs": ["ext-modules"]
+                        }
+                },
+                {
+                    'AttrMaker':
+                        {
+                            "attrs":
+                                {
+                                    "version": ["make", "-s", "kernelversion"]
+                                }
+                        }
+                },
+                {
+                    'LinuxKernelConfigurer':
+                        {
+                            "config": self.linux_kernel['conf'],
+                            "arch": arch
+                        }
+                },
+                {
+                    'CCOptsExtractor':
+                        {
+                            'intercept_commands': True,
+                            'internal_extensions': [
+                                {'CC': {}}
+                            ],
+                            "command": ["make", 'scripts/mod/empty.ko', '-j8'] + arch
+                                        + ["KCONFIG_CONFIG=" + os.path.basename(self.linux_kernel['conf file'])],
+                            "file": 'scripts/mod/empty.c'
+                        }
+                },
+                {
+                    'MultiDefault':
+                        {
+                            'intercept_commands': True,
+                            'internal_extensions': [
+                                {'Dump': {}},
+                                {'CC': {}},
+                                {'LD': {}},
+                                {'MV': {}}
+                            ]
+                        }
+                }
+            ]
+        }
+
+        self.run_clade(clade_conf)
+
+        #TODO: Extract files more accurately
+        d = os.path.join(self.work_dir_clade, 'CCOptsExtractor', 'CC')
+        for file in os.listdir(d):
+            with open(os.path.join(d, file)) as fp:
+                j = json.load(fp)
+                if j['in'] and j['in'][0] == 'scripts/mod/empty.c':
+                    self.model_cc_opts = j['opts']
+
+        #TODO: Extract files more accurately
+        files = []
+        for d in ('CC', 'LD', 'MV'):
+            for file in os.listdir(os.path.join(self.work_dir_clade, 'MultiDefault', d)):
+                files.append((file, d))
+        files = sorted(files)
+        files = (os.path.join('MultiDefault', d, file) for file, d in files)
+
+        for file in files:
+            self.mqs['Linux kernel build cmd desc files'].put(file)
+        self.mqs['Linux kernel build cmd desc files'].put(None)
+
+        #TODO extract to function?
+        self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
+        self.mqs['shadow src tree'].put(self.shadow_src_tree)
+
+        self.copy_model_headers()
+        self.fixup_model_cc_opts()
+        self.mqs['model CC opts'].put(self.model_cc_opts)
+
+
+        with open(os.path.join(self.work_dir_clade, 'AttrMaker', 'attrs.json'), 'r', encoding='utf8') as fp:
+            attrs = json.load(fp)
+        #TODO: arch, conf
+        attrs = [{'Linux kernel': attrs}]
+
+        self.mqs['Linux kernel attrs'].put(attrs)
+
+        #raise NotImplementedError("123")
+
+    def run_clade(self, conf):
+        conf.update({
+            'server_host': 'localhost',
+            'server_port': 0,
+            'server_address': '',
+            'project_dir': self.linux_kernel['src'],
+            'stoarge_dir': None,
+            'work_dir': self.work_dir_clade,
+            'work_dir_reuse': False,
+            'libinterceptor': self.path_to_libinterceptor,
+            })
+
+        clade_config_path = 'clade_conf.json'
+        with open(clade_config_path, 'w', encoding='utf8') as fp:
+            json.dump(conf, fp, indent=4, sort_keys=True)
+
+        env = dict(os.environ)
+        env['PYTHONPATH'] = self.clade_root
+        env['PATH'] = '/home/alexey/klever/addons/cif-54e8a24/:' + env['PATH']
+
+        core.utils.execute(self.logger,
+                           tuple(['python3.5', self.path_to_clade, '--config', clade_config_path]),
+                                  env,
+                                  collect_all_stdout=True)
+
+    def get_linux_kernel_conf(self):
+        self.logger.info('Get Linux kernel configuration')
+
+        # Linux kernel configuration can be specified by means of configuration file or configuration target.
+        try:
+            self.linux_kernel['conf file'] = core.utils.find_file_or_dir(self.logger,
+                                                                         self.conf['main working directory'],
+                                                                         self.conf['Linux kernel']['configuration'])
+            self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
+            # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
+            with open(self.linux_kernel['conf file'], 'rb') as fp:
+                self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
+            self.logger.debug('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.linux_kernel['conf']))
+        except FileNotFoundError:
+            self.logger.debug(
+                'Linux kernel configuration target is "{0}"'.format(self.conf['Linux kernel']['configuration']))
+            # Use configuration target name as value of Linux kernel:Configuration attribute.
+            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
 
     def send_loc_report(self):
         core.utils.report(self.logger,
@@ -405,12 +610,65 @@ class LKVOG(core.components.Component):
 
             self.process_linux_kernel_build_cmd_desc(desc_file)
 
-    def process_linux_kernel_build_cmd_desc(self, desc_file):
-        with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
-            desc = json.load(fp)
+    def copy_deps(self, desc):
+        # Dependencies can be obtained just for CC commands taking normal C files as input.
+        if desc['type'] != 'CC' or re.search(r'\.S$', desc['in files'][0], re.IGNORECASE):
+            return
 
-        desc['out file'] = os.path.normpath(desc['out file'])
-        desc['in files'] = [os.path.normpath(in_file) for in_file in desc['in files']]
+        #deps = core.lkbce.utils.get_deps_from_gcc_deps_file(deps_file)
+        deps = desc['deps'].keys()
+
+        # There are several kinds of dependencies:
+        # - each non-absolute file path represents dependency relative to current working directory (Linux kernel
+        #   working source tree is assumed) - they all should be copied;
+        # - each absolute file path that starts with current working directory is the same as above;
+        # - other absolute file paths represent either system or compiler specific headers that aren't touched by
+        #   build process and can be used later as is.
+        for dep in deps:
+            #if os.path.isabs(dep) and os.path.commonprefix((os.getcwd(), dep)) != os.getcwd():
+            if os.path.isabs(dep) and os.path.commonprefix((desc['cwd'], dep)) != desc['cwd']:
+                continue
+            if not os.path.isabs(dep):
+                dep = os.path.join(desc['cwd'], dep)
+
+            dest_dep = os.path.join(
+                                    os.path.relpath(dep, desc['cwd']))
+            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
+            self.logger.debug("Copy dep '{0}'".format(dep))
+            with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
+                if os.path.getsize(dest_dep):
+                    if filecmp.cmp(dep, dest_dep):
+                        continue
+                    # Just version in "include/generated/compile.h" changes, all other content remain the same.
+                    elif not dep == 'include/generated/compile.h':
+                        raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
+                else:
+                    shutil.copy2(dep, dest_dep)
+
+    def process_linux_kernel_build_cmd_desc(self, desc_file):
+        #TODO: Extract files more accurately
+        with open(os.path.join(self.work_dir_clade, desc_file), encoding='utf8') as fp:
+        #with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
+            desc = json.load(fp)
+        if not desc['out']:
+            return
+        #TODO refactor all?
+        desc['in files'] = desc['in']
+        desc['out file'] = desc['out']
+        with open(os.path.join(self.work_dir_clade, desc_file), 'w', encoding='utf8') as fp:
+            json.dump(desc, fp)
+
+        #TODO type commands
+        if 'CC' in desc_file:
+            desc['type'] = 'CC'
+        elif 'LD' in desc_file:
+            desc['type'] = 'LD'
+        elif 'MV' in desc_file:
+            desc['type'] = 'MV'
+
+        #TODO full desc file
+        desc['full desc file'] = os.path.relpath(os.path.join(self.work_dir_clade, desc_file), self.conf['main working directory'])
+        self.copy_deps(desc)
 
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
@@ -469,12 +727,16 @@ class LKVOG(core.components.Component):
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
         for cc_full_desc_file in cc_full_desc_files:
+            #TODO extract files more accurately
             with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
+            #with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
                 cc_full_desc = json.load(fp)
             for file in cc_full_desc['in files']:
                 # Simple file's line counter
-                with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
-                          encoding='utf8', errors='ignore') as fp:
+                #TODO extact files more accurately
+                with open(file) as fp:
+                #with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
+                          #encoding='utf8', errors='ignore') as fp:
                     loc += sum(1 for _ in fp)
         return loc
 
@@ -511,6 +773,88 @@ class LKVOG(core.components.Component):
 
             dependencies.append((second_module, func, first_module))
         return dependencies
+
+    def copy_model_headers(self):
+        self.logger.info('Copy model headers')
+
+        linux_kernel_work_src_tree = os.path.realpath(self.linux_kernel['src']) #self.linux_kernel['work src tree'])
+
+        os.makedirs('model-headers'.encode('utf8'))
+
+
+        for c_file, headers in self.model_headers.items():
+            self.logger.debug('Copy headers of model with C file "{0}"'.format(c_file))
+
+            model_headers_c_file = os.path.join('model-headers', os.path.basename(c_file))
+
+            with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
+                for header in headers:
+                    fp.write('#include <{0}>\n'.format(header))
+
+            model_headers_deps_file = model_headers_c_file + '.d'
+
+            # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
+            # "-nostdinc" option and system stdarg.h couldn't be used.
+            stdout = core.utils.execute(self.logger,
+                                        ('aspectator', '-print-file-name=include'),
+                                        collect_all_stdout=True)
+
+            core.utils.execute(self.logger,
+                               tuple(
+                                   ['aspectator'] +
+                                   self.model_cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   # Overwrite common options for dumping dependencies. Unfortunately normal "-MF" and
+                                   # even "-MD" doesn't work perhaps non recommended "-Wp" is used originally.
+                                   ['-Wp,-MD,{0}'.format(os.path.relpath(model_headers_deps_file,
+                                                                         linux_kernel_work_src_tree))] +
+                                   # Suppress both preprocessing and compilation - just get dependencies.
+                                   ['-M'] +
+                                   [os.path.relpath(model_headers_c_file, linux_kernel_work_src_tree)]
+                               ),
+                               cwd=self.linux_kernel['src'])
+
+            deps = core.lkbce.utils.get_deps_from_gcc_deps_file(model_headers_deps_file)
+
+            # Like in Command.copy_deps() in lkbce/wrappers/common.py but much more simpler.
+            for dep in deps:
+                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) !=
+                        linux_kernel_work_src_tree) or dep.endswith('.c'):
+                    continue
+
+                dest_dep = os.path.relpath(dep, linux_kernel_work_src_tree) if os.path.isabs(dep) else dep
+
+                if not os.path.isfile(dest_dep):
+                    self.logger.debug('Copy model header "{0}"'.format(dep))
+                    os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
+                    shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
+
+    def fixup_model_cc_opts(self):
+        # After model headers were copied we should do the same replacement as for CC options of dumped build commands
+        # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
+        self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['src']) + '/'), '', opt)
+                              for opt in self.model_cc_opts]
+
+    def __get_builtin_modules(self):
+        for dir in os.listdir(self.linux_kernel['work src tree']):
+            # Skip dirs that doesn't contain Makefile or Kconfig file
+            if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], dir)) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Makefile')) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Kconfig')):
+                # Run script that creates 'modules.builtin' file
+                core.utils.execute(self.logger, ['make', '-f', os.path.join('scripts', 'Makefile.modbuiltin'),
+                                                 'obj={0}'.format(dir), 'srctree=.'],
+                                   cwd=self.linux_kernel['work src tree'])
+
+        # Just walk through the dirs and process 'modules.builtin' files
+        result_modules = set()
+        for dir, dirs, files in os.walk(self.linux_kernel['work src tree']):
+            if os.path.samefile(self.linux_kernel['work src tree'], dir):
+                continue
+            if 'modules.builtin' in files:
+                with open(os.path.join(dir, 'modules.builtin'), 'r', encoding='utf-8') as fp:
+                    for line in fp:
+                        result_modules.add(line[len('kernel/'):-1])
+        return result_modules
 
     def __build_dependencies(self):
         reverse_provided = {}

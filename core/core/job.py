@@ -591,7 +591,7 @@ class Job(core.components.Component):
         'Validation on commits in Linux kernel Git repositories'
     ]
     JOB_CLASS_COMPONENTS = [
-        'LKBCE',
+        #'LKBCE',
         'LKVOG',
         'VTG',
         'VRP'
