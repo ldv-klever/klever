@@ -1,0 +1,183 @@
+{
+    "environment processes": {},
+    "functions models": {
+        "functions models/__tty_alloc_driver": {
+            "actions": {
+                "alloc": {
+                    "comment": "Allocate memory for tty_driver structure.",
+                    "statements": [
+                        "%tty_driver% = $ALLOC(%tty_driver%);",
+                        "ldv_save_pointer(%tty_driver%);"
+                    ]
+                },
+                "fail": {
+                    "comment": "Failed to allocate memory for tty_driver structure.",
+                    "statements": [
+                        "return ERR_PTR(-ENOMEM);"
+                    ]
+                },
+                "success": {
+                    "comment": "Successfully allocated memory for tty_driver structure.",
+                    "statements": [
+                        "return %tty_driver%;"
+                    ]
+                }
+            },
+            "category": "functions models",
+            "comment": "Allocate tty driver.",
+            "headers": [
+                "linux/tty.h"
+            ],
+            "identifier": "functions models/__tty_alloc_driver",
+            "labels": {
+                "tty_driver": {
+                    "declaration": "struct tty_driver *tty_driver"
+                }
+            },
+            "process": "<alloc>.<success> | <fail>"
+        },
+        "functions models/seq_open": {
+            "actions": {
+                "assign": {
+                    "comment": "Alloc memory for sequential file structure and initialize it.",
+                    "statements": [
+                        "%seq_file% = $ALLOC(%seq_file%);",
+                        "ldv_save_pointer(%seq_file%);",
+                        "%ops% = $ARG2;",
+                        "%file%->private_data = %seq_file%;"
+                    ]
+                },
+                "register": {
+                    "comment": "Register {} callbacks.",
+                    "parameters": [
+                        "%seq_file%",
+                        "%ops%"
+                    ],
+                    "peers": [
+                        "seq_operations/traverse_kernel_items_scenario/tty_ldiscs_seq_ops"
+                    ]
+                }
+            },
+            "category": "functions models",
+            "comment": "Initialize sequential file. (Relevant to 'tty_ldiscs_seq_ops')",
+            "headers": [
+                "linux/seq_file.h",
+                "linux/fs.h"
+            ],
+            "identifier": "functions models/seq_open",
+            "labels": {
+                "file": {
+                    "declaration": "struct file *file"
+                },
+                "ops": {
+                    "declaration": "struct seq_operations *ops",
+                    "value": "ldv_emg_alias_tty_ldiscs_seq_ops_2"
+                },
+                "seq_file": {
+                    "declaration": "struct seq_file *seq_file"
+                }
+            },
+            "process": "<assign>.[register]"
+        },
+        "functions models/seq_open_private": {
+            "actions": {
+                "assign": {
+                    "comment": "Alloc memory for sequential file structure and initialize it.",
+                    "statements": [
+                        "%seq_file% = $ALLOC(%seq_file%);",
+                        "ldv_save_pointer(%seq_file%);",
+                        "%ops% = $ARG2;",
+                        "%file%->private_data = %seq_file%;"
+                    ]
+                },
+                "register": {
+                    "comment": "Register {} callbacks.",
+                    "parameters": [
+                        "%seq_file%",
+                        "%ops%"
+                    ],
+                    "peers": [
+                        "seq_operations/traverse_kernel_items_scenario/tty_ldiscs_seq_ops"
+                    ]
+                }
+            },
+            "category": "functions models",
+            "comment": "Initialize sequential file. (Relevant to 'tty_ldiscs_seq_ops')",
+            "declarations": {
+                "drivers/tty/tty_ldisc.c": {
+                    "tty_ldiscs_seq_ops": "struct seq_operations *ldv_emg_alias_tty_ldiscs_seq_ops_2 = & tty_ldiscs_seq_ops;\n"
+                },
+                "environment model": {
+                    "tty_ldiscs_seq_ops": "extern struct seq_operations *ldv_emg_alias_tty_ldiscs_seq_ops_2;\n"
+                }
+            },
+            "headers": [
+                "linux/seq_file.h",
+                "linux/fs.h"
+            ],
+            "identifier": "functions models/seq_open_private",
+            "labels": {
+                "file": {
+                    "declaration": "struct file *file"
+                },
+                "ops": {
+                    "declaration": "struct seq_operations *ops",
+                    "value": "ldv_emg_alias_tty_ldiscs_seq_ops_2"
+                },
+                "seq_file": {
+                    "declaration": "struct seq_file *seq_file"
+                }
+            },
+            "process": "<assign>.[register]"
+        },
+        "functions models/tty_port_register_device": {
+            "actions": {
+                "alloc": {
+                    "comment": "Allocate memory for device structure and get port and tty driver structures.",
+                    "statements": [
+                        "%device% = $ALLOC(%device%);",
+                        "ldv_save_pointer(%device%);",
+                        "%tty_port% = $ARG1;",
+                        "%tty_port_operations% = %tty_port%->ops;"
+                    ]
+                },
+                "fail": {
+                    "comment": "Failed to register a new tty device.",
+                    "statements": [
+                        "return ERR_PTR(-ENOMEM);"
+                    ]
+                },
+                "register": {
+                    "comment": "Stub instead of the 'register' signal.",
+                    "statements": [
+                        "/* Skip signal 'register' as it has no peers */"
+                    ]
+                },
+                "success": {
+                    "comment": "Successfully registered a new tty device.",
+                    "statements": [
+                        "return %device%;"
+                    ]
+                }
+            },
+            "category": "functions models",
+            "comment": "Register new tty device.",
+            "headers": [
+                "linux/tty.h"
+            ],
+            "identifier": "functions models/tty_port_register_device",
+            "labels": {
+                "device": {
+                    "declaration": "struct device *device"
+                },
+                "tty_port": {
+                    "declaration": "struct tty_port *tty_port"
+                },
+                "tty_port_operations": {
+                    "declaration": "struct tty_port_operations *tty_port_operations"
+                }
+            },
+            "process": "<alloc>.<register>.<success> | <fail>"
+        }
+    }
+}
