@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
@@ -23,11 +24,10 @@ from utils import Session
 
 
 parser = argparse.ArgumentParser(description='Job upload.')
-parser.add_argument('identifier', nargs='?', help='Job identifier')
-parser.add_argument('--config', required=True, type=open, help='Server configuration file in json format')
-parser.add_argument('--host', help='Server host, set it if you want to override server config')
-parser.add_argument('--username', help='Your username, set it if you want to override server config')
-parser.add_argument('--password', help='Your password, set it if you want to override server config')
+parser.add_argument('identifier', help='Job identifier')
+parser.add_argument('--host', required=True, help='Server host')
+parser.add_argument('--username', required=True, help='Your username')
+parser.add_argument('--password', required=True, help='Your password')
 parser.add_argument('--copy', action='store_true', help='Set it if you want to create job copy before decision start')
 parser.add_argument(
     '--replacement', help='Json file name or string with data what files should be replaced before job start'
@@ -36,22 +36,13 @@ parser.add_argument('--rundata', type=open, help='Json filename, set it if you w
 
 args = parser.parse_args()
 
-conf = json.load(args.config)
-if not isinstance(conf, dict):
-    raise ValueError("Server configuration must be a dictionary")
-
-session = Session(
-    args.host or conf.get('host'),
-    args.username or conf.get('username'),
-    args.password or conf.get('password')
-)
+session = Session(args.host, args.username, args.password)
 
 job_id = args.identifier
 
 if args.copy:
     job_id = session.copy_job(args.identifier)
 elif args.replacement:
-    # Just creates new version of existing job if need replacement of files
     session.copy_job_version(args.identifier)
 
 # Replace files before start

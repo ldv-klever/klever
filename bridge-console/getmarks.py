@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
@@ -15,30 +16,20 @@
 # limitations under the License.
 #
 
-import json
 import argparse
 
 from utils import Session
 
 
-parser = argparse.ArgumentParser(description='Job with specified identifier download.')
-parser.add_argument('--config', help='Server configuration file in json format', required=True, type=open)
-parser.add_argument('--host', help='Server host, set it if you want to override server config')
-parser.add_argument('--username', help='Your username, set it if you want to override server config')
-parser.add_argument('--password', help='Your password, set it if you want to override server config')
+parser = argparse.ArgumentParser(description='All marks download.')
+parser.add_argument('--host', required=True, help='Server host')
+parser.add_argument('--username', required=True, help='Your username')
+parser.add_argument('--password', required=True, help='Your password')
 parser.add_argument('-o', '--out', help='Downloaded archive name')
 
 args = parser.parse_args()
 
-conf = json.load(args.config)
-if not isinstance(conf, dict):
-    raise ValueError("Server configuration must be a dictionary")
-
-session = Session(
-    args.host or conf.get('host'),
-    args.username or conf.get('username'),
-    args.password or conf.get('password')
-)
+session = Session(args.host, args.username, args.password)
 
 arch = session.download_all_marks(args.out)
 session.sign_out()
