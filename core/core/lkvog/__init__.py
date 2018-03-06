@@ -265,7 +265,6 @@ class LKVOG(core.components.Component):
 
         env = dict(os.environ)
         env['PYTHONPATH'] = clade_root
-        env['PATH'] = '/home/alexey/klever/addons/cif-54e8a24/:' + env['PATH']
 
         core.utils.execute(self.logger, tuple(['clade_run', '--config', clade_config_path]), env)
 
