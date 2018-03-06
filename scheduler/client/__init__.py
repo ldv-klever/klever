@@ -197,6 +197,12 @@ def solve_job(logger, conf):
     :return: RunExec exit code.
     """
 
+    # Add Clade path
+    if "Clade location" in conf["client"]:
+        logger.debug("Add Clade bin location to path {}".format(conf["client"]["cif location"]))
+        os.environ["PATH"] = "{}:{}".format(conf["client"]["Clade location"], os.environ["PATH"])
+        logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
+
     # Add CIF path
     if "cif location" in conf["client"]:
         logger.debug("Add CIF bin location to path {}".format(conf["client"]["cif location"]))

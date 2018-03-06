@@ -119,9 +119,6 @@ class LKVOG(core.components.Component):
                                                                self.conf['Linux kernel']['source'])
         self.linux_kernel['modules'] = self.conf['Linux kernel']['modules']
 
-        self.clade_root = self.conf['clade_root'] #TODO
-        self.path_to_clade = os.path.join(self.clade_root, 'bin/clade_run')
-        self.path_to_libinterceptor = os.path.join(self.clade_root, 'build/libinterceptor.so')
         self.work_dir_clade = 'clade_work_dir' #TODO
         if os.path.isdir(self.work_dir_clade):
             shutil.rmtree(self.work_dir_clade)
@@ -249,6 +246,8 @@ class LKVOG(core.components.Component):
         #raise NotImplementedError("123")
 
     def run_clade(self, conf):
+        clade_root = os.path.join(os.path.dirname(shutil.which('clade_run')), os.pardir)
+
         conf.update({
             'server_host': 'localhost',
             'server_port': 0,
@@ -257,21 +256,18 @@ class LKVOG(core.components.Component):
             'stoarge_dir': None,
             'work_dir': self.work_dir_clade,
             'work_dir_reuse': False,
-            'libinterceptor': self.path_to_libinterceptor,
-            })
+            'libinterceptor': os.path.join(clade_root, 'build/libinterceptor.so'),
+        })
 
         clade_config_path = 'clade_conf.json'
         with open(clade_config_path, 'w', encoding='utf8') as fp:
             json.dump(conf, fp, indent=4, sort_keys=True)
 
         env = dict(os.environ)
-        env['PYTHONPATH'] = self.clade_root
+        env['PYTHONPATH'] = clade_root
         env['PATH'] = '/home/alexey/klever/addons/cif-54e8a24/:' + env['PATH']
 
-        core.utils.execute(self.logger,
-                           tuple(['python3.5', self.path_to_clade, '--config', clade_config_path]),
-                                  env,
-                                  collect_all_stdout=True)
+        core.utils.execute(self.logger, tuple(['clade_run', '--config', clade_config_path]), env)
 
     def get_linux_kernel_conf(self):
         self.logger.info('Get Linux kernel configuration')
