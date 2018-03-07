@@ -37,7 +37,7 @@
       ]
     },
     "CPAchecker SMG memory checking": {
-      "description": "CPAchecker with BAM for reachability checking",
+      "description": "CPAchecker with SMG for memory errors checking",
       "inherit": "CPAchecker common",
       "safety properties": [
           "CHECK( init({entry_point}()), LTL(G valid-free) )",
