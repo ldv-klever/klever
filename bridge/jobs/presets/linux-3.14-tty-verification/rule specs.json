@@ -140,6 +140,7 @@
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
               "linux/mm/kzalloc.c": {},
               "linux/err.c": {},
+              "linux/kernel/panic.c": {},
               "linux/ldv/common.c": {
                 "headers": {
                   "Linux 3.14 (base)": [
@@ -317,12 +318,6 @@
               },
               "kernel": false
             }
-          },
-          {
-            "manualImporter": {
-              "enforce replacement": true,
-              "process descriptions file": "manual models.json"
-            }
           }
         ],
         "translation options": {
@@ -340,11 +335,11 @@
             "linux/user_namespace.h",
             "linux/ldv/common.h",
             "linux/ldv/err.h",
+            "linux/ldv/panic.h",
             "verifier/common.h",
             "verifier/gcc.h",
             "verifier/nondet.h",
             "verifier/memory.h",
-            "verifier/memlist.h",
             "verifier/thread.h"
           ]
         }
