@@ -17,7 +17,6 @@
 
 import copy
 import re
-import json
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment

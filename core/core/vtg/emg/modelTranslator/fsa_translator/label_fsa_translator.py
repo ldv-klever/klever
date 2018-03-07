@@ -145,19 +145,21 @@ class LabelTranslator(FSATranslator):
                 param_expressions = []
 
                 if len(state.action.parameters) > 0:
-                    for index in range(len(state.action.parameters)):
-                        receiver_access = automaton.process.resolve_access(state.action.parameters[index])[0]
+                    for index, param in enumerate(state.action.parameters):
+                        receiver_access = automaton.process.resolve_access(param)[0]
                         var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
                         param_expressions.append(var.name)
-                        if state.action.condition:
-                            for ind, statement in enumerate(state.action.condition):
-                                state.action.condition[ind] = statement.replace('$ARG{}'.format(index + 1), var.name)
 
                 if state.action.condition and len(state.action.condition) > 0:
                     # Arguments comparison is not supported in label-based model
                     for statement in state.action.condition:
-                        cn = self._cmodel.text_processor(automaton, statement)
+                        # Replace first $ARG expressions
+                        s = statement
+                        for index, _ in enumerate(param_expressions):
+                            replacement = 'data->arg{}'.format(index)
+                            s = s.replace("$ARG{}".format(index + 1), replacement)
+                        cn = self._cmodel.text_processor(automaton, s)
                         conditions.extend(cn)
 
                 # This should be before precondition because it may check values unpacked in this section
