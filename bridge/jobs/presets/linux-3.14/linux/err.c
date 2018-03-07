@@ -39,8 +39,3 @@ long ldv_is_err_or_null(const void *ptr)
 {
 	return !ptr || ldv_is_err((unsigned long)ptr);
 }
-
-void ldv_panic(void)
-{
-    ldv_assume(0);
-}
