@@ -16,21 +16,13 @@
 # limitations under the License.
 #
 
-import argparse
+from utils import get_args_parser, Session
 
-from utils import Session
-
-
-parser = argparse.ArgumentParser(description='Obtaining solution progress in json format.')
+parser = get_args_parser('Obtaining solution progress in json format.')
 parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('--host', required=True, help='Server host')
-parser.add_argument('--username', required=True, help='Your username')
-parser.add_argument('--password', required=True, help='Your password')
 parser.add_argument('-o', '--out', help='Where to store json data', default='progress.json')
-
 args = parser.parse_args()
 
-session = Session(args.host, args.username, args.password)
-session.job_progress(args.identifier, args.out)
-session.sign_out()
-print('Progress data were successfully saved to {0}'.format(args.out))
+with Session(args) as session:
+    session.job_progress(args.identifier, args.out)
+print('\nProgress data were successfully saved to {0}'.format(args.out))

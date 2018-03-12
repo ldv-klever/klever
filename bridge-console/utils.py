@@ -15,9 +15,14 @@
 # limitations under the License.
 #
 
+import argparse
+import getpass
 import re
 import requests
+import sys
 import zipfile
+
+PROMPT = 'Password: '
 
 
 class UnexpectedStatusCode(IOError):
@@ -28,18 +33,48 @@ class BridgeError(IOError):
     pass
 
 
+def get_password(password):
+    if password is not None and len(password) > 0:
+        return password
+    if sys.stdin.isatty():
+        return getpass.getpass(PROMPT)
+    else:
+        print(PROMPT, end='', flush=True)
+        return sys.stdin.readline().rstrip()
+
+
+def get_args_parser(desc):
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--host', required=True, help='Server host')
+    parser.add_argument('--username', required=True, help='Your username')
+    parser.add_argument('--password', help='Your password')
+    return parser
+
+
 class Session:
-    def __init__(self, host, username, password):
-        self._host = self.__check_host(host)
+    def __init__(self, args):
+        self._args = args
+        self._host = self.__check_host(args.host)
 
-        if username is None:
+        if args.username is None:
             raise ValueError("Username wasn't got")
+        self._username = args.username
 
-        if password is None:
+        self._password = get_password(args.password)
+        if self._password is None:
             raise ValueError("Password wasn't got")
 
-        self._parameters = {'username': username, 'password': password}
-        self.__signin()
+    def __enter__(self):
+        self.session = requests.Session()
+        # Get initial value of CSRF token via useless GET request
+        self.__request('/users/service_signin/')
+
+        # Sign in
+        self.__request('/users/service_signin/', {'username': self._username, 'password': self._password})
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__request('/users/service_signout/')
 
     def __check_host(self, host):
         self.__is_not_used()
@@ -51,14 +86,6 @@ class Session:
         if host.endswith('/'):
             host = host[:-1]
         return host
-
-    def __signin(self):
-        self.session = requests.Session()
-        # Get initial value of CSRF token via useless GET request
-        self.__request('/users/service_signin/')
-
-        # Sign in
-        self.__request('/users/service_signin/', self._parameters)
 
     def __request(self, path_url, data=None, **kwargs):
         url = self._host + path_url
@@ -122,6 +149,13 @@ class Session:
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
 
+    def upload_reports(self, identifier, archive):
+        resp = self.__request('/jobs/ajax/get_job_id/', {'identifier': identifier})
+        self.__request(
+            '/jobs/ajax/upload_reports/', {'job_id': resp.json()['id']},
+            files=[('archive', open(archive, 'rb', buffering=0))], stream=True
+        )
+
     def job_progress(self, identifier, filename):
         resp = self.__request('/jobs/ajax/get_job_progress_json/', {'identifier': identifier})
         with open(filename, mode='w', encoding='utf8') as fp:
@@ -156,9 +190,6 @@ class Session:
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)
-
-    def sign_out(self):
-        self.__request('/users/service_signout/')
 
     def __is_not_used(self):
         pass

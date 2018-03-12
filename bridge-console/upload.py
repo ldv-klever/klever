@@ -17,24 +17,17 @@
 #
 
 import os
-import argparse
 
-from utils import Session
+from utils import get_args_parser, Session
 
-
-parser = argparse.ArgumentParser(description='Job upload.')
+parser = get_args_parser('Job upload.')
 parser.add_argument('parent', help='Parent identifier where new job will be saved')
-parser.add_argument('--host', required=True, help='Server host')
-parser.add_argument('--username', required=True, help='Your username')
-parser.add_argument('--password', required=True, help='Your password')
 parser.add_argument('--archive', help='Uploaded archive name', required=True)
-
 args = parser.parse_args()
 
 if not os.path.exists(args.archive):
     raise ValueError('Uploaded archive was not found')
 
-session = Session(args.host, args.username, args.password)
-session.upload_job(args.parent, args.archive)
-session.sign_out()
-print('The job archive was successfully uploaded')
+with Session(args) as session:
+    session.upload_job(args.parent, args.archive)
+print('\nThe job archive was successfully uploaded')

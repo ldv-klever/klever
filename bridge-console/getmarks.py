@@ -16,21 +16,12 @@
 # limitations under the License.
 #
 
-import argparse
+from utils import get_args_parser, Session
 
-from utils import Session
-
-
-parser = argparse.ArgumentParser(description='All marks download.')
-parser.add_argument('--host', required=True, help='Server host')
-parser.add_argument('--username', required=True, help='Your username')
-parser.add_argument('--password', required=True, help='Your password')
+parser = get_args_parser('All marks download.')
 parser.add_argument('-o', '--out', help='Downloaded archive name')
-
 args = parser.parse_args()
 
-session = Session(args.host, args.username, args.password)
-
-arch = session.download_all_marks(args.out)
-session.sign_out()
-print('Marks archive was successfully saved to {0}'.format(arch))
+with Session(args) as session:
+    arch = session.download_all_marks(args.out)
+print('\nMarks archive was successfully saved to {0}'.format(arch))

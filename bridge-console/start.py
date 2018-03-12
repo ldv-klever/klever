@@ -18,42 +18,33 @@
 
 import os
 import json
-import argparse
 
-from utils import Session
+from utils import get_args_parser, Session
 
-
-parser = argparse.ArgumentParser(description='Job upload.')
+parser = get_args_parser('Job decision start.')
 parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('--host', required=True, help='Server host')
-parser.add_argument('--username', required=True, help='Your username')
-parser.add_argument('--password', required=True, help='Your password')
 parser.add_argument('--copy', action='store_true', help='Set it if you want to create job copy before decision start')
 parser.add_argument(
     '--replacement', help='Json file name or string with data what files should be replaced before job start'
 )
 parser.add_argument('--rundata', type=open, help='Json filename, set it if you want to specify decision start data')
-
 args = parser.parse_args()
 
-session = Session(args.host, args.username, args.password)
+with Session(args) as session:
+    job_id = args.identifier
+    if args.copy:
+        job_id = session.copy_job(args.identifier)
+    elif args.replacement:
+        session.copy_job_version(args.identifier)
 
-job_id = args.identifier
+    # Replace files before start
+    if args.replacement:
+        if os.path.exists(args.replacement):
+            with open(args.replacement, mode='r', encoding='utf8') as fp:
+                new_files = json.load(fp)
+        else:
+            new_files = json.loads(args.replacement)
+        session.replace_files(job_id, new_files)
 
-if args.copy:
-    job_id = session.copy_job(args.identifier)
-elif args.replacement:
-    session.copy_job_version(args.identifier)
-
-# Replace files before start
-if args.replacement:
-    if os.path.exists(args.replacement):
-        with open(args.replacement, mode='r', encoding='utf8') as fp:
-            new_files = json.load(fp)
-    else:
-        new_files = json.loads(args.replacement)
-    session.replace_files(job_id, new_files)
-
-session.start_job_decision(job_id, args.rundata)
-session.sign_out()
-print('The job was started: %s' % job_id)
+    session.start_job_decision(job_id, args.rundata)
+print('\nThe job was started: %s' % job_id)

@@ -16,13 +16,18 @@
 # limitations under the License.
 #
 
+import os
+
 from utils import get_args_parser, Session
 
-parser = get_args_parser('Job with specified identifier download.')
+parser = get_args_parser('Reports upload.')
 parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('-o', '--out', help='Downloaded archive name')
+parser.add_argument('--archive', help='Uploaded archive name', required=True)
 args = parser.parse_args()
 
+if not os.path.exists(args.archive):
+    raise ValueError('Uploaded archive was not found')
+
 with Session(args) as session:
-    arch = session.download_job(args.identifier, args.out)
-print('\nJob archive was successfully saved to {0}'.format(arch))
+    session.upload_reports(args.identifier, args.archive)
+print('\nReports were successfully uploaded')
