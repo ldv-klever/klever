@@ -3,11 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/bridge.iml" filepath="$PROJECT_DIR$/.idea/bridge.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../bridge-console/.idea/bridge-console.iml" filepath="$PROJECT_DIR$/../bridge-console/.idea/bridge-console.iml" />
       <module fileurl="file://$PROJECT_DIR$/../core/.idea/core.iml" filepath="$PROJECT_DIR$/../core/.idea/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/../deploys/.idea/deploys.iml" filepath="$PROJECT_DIR$/../deploys/.idea/deploys.iml" />
       <module fileurl="file://$PROJECT_DIR$/../docs/.idea/docs.iml" filepath="$PROJECT_DIR$/../docs/.idea/docs.iml" />
       <module fileurl="file://$PROJECT_DIR$/../scheduler/.idea/scheduler.iml" filepath="$PROJECT_DIR$/../scheduler/.idea/scheduler.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../bridge-console/.idea/bridge-console.iml" filepath="$PROJECT_DIR$/../bridge-console/.idea/bridge-console.iml" />
     </modules>
   </component>
 </project>
