@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/bridge-console.iml" filepath="$PROJECT_DIR$/.idea/bridge-console.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../utils/.idea/utils.iml" filepath="$PROJECT_DIR$/../utils/.idea/utils.iml" />
     </modules>
   </component>
 </project>
