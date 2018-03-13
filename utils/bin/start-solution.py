@@ -21,13 +21,14 @@ import json
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Job decision start.')
-parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('--copy', action='store_true', help='Set it if you want to create job copy before decision start')
-parser.add_argument(
-    '--replacement', help='Json file name or string with data what files should be replaced before job start'
-)
-parser.add_argument('--rundata', type=open, help='Json filename, set it if you want to specify decision start data')
+parser = get_args_parser('Start solution of verification job.')
+parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('--copy', action='store_true',
+                    help='Set it if you would like to copy verification job before starting solution.')
+parser.add_argument('--replacement',
+                    help='JSON file name or string with data what files should be replaced before starting solution.')
+parser.add_argument('--rundata', type=open,
+                    help='JSON file name. Set it if you would like to start solution with specific settings.')
 args = parser.parse_args()
 
 with Session(args) as session:
@@ -47,4 +48,5 @@ with Session(args) as session:
         session.replace_files(job_id, new_files)
 
     session.start_job_decision(job_id, args.rundata)
-print('\nThe job was started: %s' % job_id)
+
+print('Solution of verification job "{0}" was successfully started'.format(args.identifier))

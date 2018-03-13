@@ -18,11 +18,11 @@
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Obtaining solution results in json format.')
-parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('-o', '--out', help='Where to store json data', default='results.json')
+parser = get_args_parser('Download ZIP archive of all expert marks.')
+parser.add_argument('-o', '--out', help='ZIP archive name.')
 args = parser.parse_args()
 
 with Session(args) as session:
-    session.decision_results(args.identifier, args.out)
-print('\nDecision results were successfully saved to {0}'.format(args.out))
+    arch = session.download_all_marks(args.out)
+
+print('ZIP archive with all expert marks was successfully downloaded to "{0}"'.format(arch))

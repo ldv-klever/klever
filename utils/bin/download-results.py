@@ -18,11 +18,13 @@
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Job with specified identifier download.')
-parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('-o', '--out', help='Downloaded archive name')
+parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
+parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
 args = parser.parse_args()
 
 with Session(args) as session:
-    arch = session.download_job(args.identifier, args.out)
-print('\nJob archive was successfully saved to {0}'.format(arch))
+    session.decision_results(args.identifier, args.out)
+
+print('JSON file with verification results of verificaiton job "{0}" was successfully downloaded to "{1}"'
+      .format(args.identifier, args.out))

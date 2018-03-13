@@ -20,14 +20,16 @@ import os
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Job upload.')
-parser.add_argument('parent', help='Parent identifier where new job will be saved')
-parser.add_argument('--archive', help='Uploaded archive name', required=True)
+parser = get_args_parser('Upload ZIP archive of verification job to parent verification job.')
+parser.add_argument('parent-identifier', help='Parent verification job identifier.')
+parser.add_argument('--archive', help='ZIP archive name.', required=True)
 args = parser.parse_args()
 
 if not os.path.exists(args.archive):
-    raise ValueError('Uploaded archive was not found')
+    raise FileNotFoundError('ZIP archive of verification job "{0}" does not exist'.format(args.archive))
 
 with Session(args) as session:
-    session.upload_job(args.parent, args.archive)
-print('\nThe job archive was successfully uploaded')
+    session.upload_job(args.parent_identifier, args.archive)
+
+print('ZIP archive of verification job "{0}" was successfully uploaded for parent verification job "{1}"'
+      .format(args.archive, args.parent_identifier))

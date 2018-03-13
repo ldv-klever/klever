@@ -18,11 +18,12 @@
 
 from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Obtaining solution progress in json format.')
-parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('-o', '--out', help='Where to store json data', default='progress.json')
+parser = get_args_parser('Download ZIP archive of verificaiton job.')
+parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('-o', '--out', help='ZIP archive name.')
 args = parser.parse_args()
 
 with Session(args) as session:
-    session.job_progress(args.identifier, args.out)
-print('\nProgress data were successfully saved to {0}'.format(args.out))
+    arch = session.download_job(args.identifier, args.out)
+
+print('ZIP archive with verification job "{0}" was successfully downloaded to "{1}"'.format(args.identifier, arch))
