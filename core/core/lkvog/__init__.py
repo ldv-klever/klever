@@ -36,18 +36,12 @@ import core.lkbce.utils
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
-    context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd desc files'] = multiprocessing.Queue()
     context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
     context.mqs['model headers'] = multiprocessing.Queue()
-
-
-@core.components.after_callback
-def __set_linux_kernel_attrs(context):
-    context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
 @core.components.after_callback
@@ -66,20 +60,9 @@ def __set_model_headers(context):
 
 
 class LKVOG(core.components.Component):
-
-    ARCH_OPTS = {
-        'arm': {
-            'ARCH': 'arm',
-            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
-        },
-        'x86_64': {
-            'ARCH': 'x86_64'
-        }
-    }
-
     def generate_linux_kernel_verification_objects(self):
-        self.linux_kernel_verification_objs_gen = {}
-        self.common_prj_attrs = {}
+        self.clade_base = None
+        self.clade = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_module_info_mq = multiprocessing.Queue()
         self.linux_kernel_clusters_mq = multiprocessing.Queue()
@@ -93,199 +76,92 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
 
-        self.build_linux_kernel()
+        if self.conf['Linux kernel'].get('Clade base'):
+            self.clade_base = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                          self.conf['Linux kernel']['Clade base'])
+        else:
+            self.build_linux_kernel()
 
-        self.extract_linux_kernel_verification_objs_gen_attrs()
+        with open(os.path.join(self.clade_base, 'clade.json')) as fp:
+            self.clade = json.load(fp)
+
         self.set_common_prj_attrs()
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.linux_kernel_verification_objs_gen['attrs']
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
+
+        raise Exception
+
         self.launch_subcomponents(True,
                                   ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
     def build_linux_kernel(self):
-        if self.conf.get('build base', False):
-            return
-
-        self.linux_kernel = {}
-        self.linux_kernel['src'] = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                               self.conf['Linux kernel']['source'])
-        self.linux_kernel['modules'] = self.conf['Linux kernel']['modules']
-
-        self.work_dir_clade = 'clade_work_dir' #TODO
-        if os.path.isdir(self.work_dir_clade):
-            shutil.rmtree(self.work_dir_clade)
-
-        # Use specific architecture and crosscompiler
-        arch = ["{}={}".format(k, self.ARCH_OPTS[self.conf['Linux kernel']['architecture']][k]) for k in
-                self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]]
-        #TODO: cross compile?
+        try:
+            src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                           self.conf['Linux kernel']['source'])
+        except FileNotFoundError:
+            # Linux kernel source code is not provided in form of file or directory.
+            src = self.conf['Linux kernel']['source']
 
         try:
-            self.linux_kernel['conf'] = core.utils.find_file_or_dir(self.logger,
-                                                                         self.conf['main working directory'],
-                                                                         self.conf['Linux kernel']['configuration'])
-            self.linux_kernel['conf file'] = self.linux_kernel['conf']
+            conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                            self.conf['Linux kernel']['configuration'])
         except FileNotFoundError:
-            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
-            self.linux_kernel['conf file'] = '.config'
+            # Linux kernel configuration is not provided in form of file.
+            conf = self.conf['Linux kernel']['configuration']
 
-        self.model_headers = self.mqs['model headers'].get()
-        self.get_linux_kernel_conf()
-        # TODO: external config file?
+        arch = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
+
+        build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
+
+        # self.model_headers = self.mqs['model headers'].get()
+
         clade_conf = {
-            'commands': [['make', module, '-j', '8', 'KCONFIG_CONFIG=' + self.linux_kernel['conf file']] + arch
-                         for module in self.conf['Linux kernel']['modules']],
+            'work_dir': 'clade',
             'extensions': [
                 {
-                    'WorkSrcTreeFetcher':
-                        {
-                            "allow local source directories use": self.conf['allow local source directories use']
-                        }
+                    'name': 'FetchWorkSrcTree',
+                    'use original source tree': self.conf['allow local source directories use'],
+                    'src': src,
+                    'work_src_tree': 'linux'
+                },
+                {'name': 'MakeCanonicalWorkSrcTree'},
+                # TODO: make in parallel since it helps much!
+                {'name': 'CleanLinuxKernelWorkSrcTree'},
+                {
+                    'name': 'Execute',
+                    'command': ['make', '-j', build_jobs, '-s', 'kernelversion'],
+                    'stdout': 'Linux kernel version'
                 },
                 {
-                    'CanonicalWorkSrcTreeMaker':
-                        {
-                        }
+                    'name': 'ConfigureLinuxKernel',
+                    'jobs': build_jobs,
+                    'architecture': arch,
+                    'configuration': conf,
                 },
                 {
-                    'Cleaner':
-                        {
-                            "commands": ["mrproper"],
-                            "custom_dirs": ["ext-modules"]
-                        }
-                },
-                {
-                    'AttrMaker':
-                        {
-                            "attrs":
-                                {
-                                    "version": ["make", "-s", "kernelversion"]
-                                }
-                        }
-                },
-                {
-                    'LinuxKernelConfigurer':
-                        {
-                            "config": self.linux_kernel['conf'],
-                            "arch": arch
-                        }
-                },
-                {
-                    'CCOptsExtractor':
-                        {
-                            'intercept_commands': True,
-                            'internal_extensions': [
-                                {'CC': {}}
-                            ],
-                            "command": ["make", 'scripts/mod/empty.ko', '-j8'] + arch
-                                        + ["KCONFIG_CONFIG=" + os.path.basename(self.linux_kernel['conf file'])],
-                            "file": 'scripts/mod/empty.c'
-                        }
-                },
-                {
-                    'MultiDefault':
-                        {
-                            'intercept_commands': True,
-                            'internal_extensions': [
-                                {'Dump': {}},
-                                {'CC': {}},
-                                {'LD': {}},
-                                {'MV': {}}
-                            ]
-                        }
+                    'name': 'BuildLinuxKernel',
+                    'jobs': build_jobs,
+                    'architecture': arch,
+                    'configuration': conf,
+                    # TODO: indeed LKVOG strategies should set these parameters as well as some other ones.
+                    'kernel': False,
+                    'modules': self.conf['Linux kernel']['modules'],
+                    'intercept_commands': True,
+                    'internal_extensions': ['CommandGraph'],
+                    'CC.with_system_header_files': False
                 }
             ]
         }
 
-        self.run_clade(clade_conf)
+        with open('clade.json', 'w', encoding='utf8') as fp:
+            json.dump(clade_conf, fp, indent=4, sort_keys=True)
 
-        #TODO: Extract files more accurately
-        d = os.path.join(self.work_dir_clade, 'CCOptsExtractor', 'CC')
-        for file in os.listdir(d):
-            with open(os.path.join(d, file)) as fp:
-                j = json.load(fp)
-                if j['in'] and j['in'][0] == 'scripts/mod/empty.c':
-                    self.model_cc_opts = j['opts']
+        core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
 
-        #TODO: Extract files more accurately
-        files = []
-        for d in ('CC', 'LD', 'MV'):
-            for file in os.listdir(os.path.join(self.work_dir_clade, 'MultiDefault', d)):
-                files.append((file, d))
-        files = sorted(files)
-        files = (os.path.join('MultiDefault', d, file) for file, d in files)
+        self.clade_base = 'clade'
 
-        for file in files:
-            self.mqs['Linux kernel build cmd desc files'].put(file)
-        self.mqs['Linux kernel build cmd desc files'].put(None)
-
-        #TODO extract to function?
-        self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
-        self.mqs['shadow src tree'].put(self.shadow_src_tree)
-
-        self.copy_model_headers()
-        self.fixup_model_cc_opts()
-        self.mqs['model CC opts'].put(self.model_cc_opts)
-
-
-        with open(os.path.join(self.work_dir_clade, 'AttrMaker', 'attrs.json'), 'r', encoding='utf8') as fp:
-            attrs = json.load(fp)
-        #TODO: arch, conf
-        attrs = [{'Linux kernel': attrs}]
-
-        self.mqs['Linux kernel attrs'].put(attrs)
-
-        #raise NotImplementedError("123")
-
-    def run_clade(self, conf):
-        clade_root = os.path.join(os.path.dirname(shutil.which('clade_run')), os.pardir)
-
-        conf.update({
-            'server_host': 'localhost',
-            'server_port': 0,
-            'server_address': '',
-            'project_dir': self.linux_kernel['src'],
-            'stoarge_dir': None,
-            'work_dir': self.work_dir_clade,
-            'work_dir_reuse': False,
-            'libinterceptor': os.path.join(clade_root, 'build/libinterceptor.so'),
-        })
-
-        clade_config_path = 'clade_conf.json'
-        with open(clade_config_path, 'w', encoding='utf8') as fp:
-            json.dump(conf, fp, indent=4, sort_keys=True)
-
-        env = dict(os.environ)
-        env['PYTHONPATH'] = clade_root
-
-        core.utils.execute(self.logger, tuple(['clade_run', '--config', clade_config_path]), env)
-
-    def get_linux_kernel_conf(self):
-        self.logger.info('Get Linux kernel configuration')
-
-        # Linux kernel configuration can be specified by means of configuration file or configuration target.
-        try:
-            self.linux_kernel['conf file'] = core.utils.find_file_or_dir(self.logger,
-                                                                         self.conf['main working directory'],
-                                                                         self.conf['Linux kernel']['configuration'])
-            self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
-            # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
-            with open(self.linux_kernel['conf file'], 'rb') as fp:
-                self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
-            self.logger.debug('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.linux_kernel['conf']))
-        except FileNotFoundError:
-            self.logger.debug(
-                'Linux kernel configuration target is "{0}"'.format(self.conf['Linux kernel']['configuration']))
-            # Use configuration target name as value of Linux kernel:Configuration attribute.
-            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
+        # self.copy_model_headers()
+        # self.fixup_model_cc_opts()
+        # self.mqs['model CC opts'].put(self.model_cc_opts)
 
     def send_loc_report(self):
         core.utils.report(self.logger,
@@ -302,15 +178,26 @@ class LKVOG(core.components.Component):
 
     def set_common_prj_attrs(self):
         self.logger.info('Set common project atributes')
-        self.common_prj_attrs = self.linux_kernel_verification_objs_gen['attrs']
 
-    def extract_linux_kernel_verification_objs_gen_attrs(self):
-        self.logger.info('Extract Linux kernel verification objects generation strategy atributes')
+        self.common_prj_attrs = [
+            {'Linux kernel': [
+                {'version': self.clade['Linux kernel version']},
+                {'architecture': self.clade['Linux kernel architecture']},
+                {'configuration': self.clade['Linux kernel configuration']}
+            ]},
+            {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
+        ]
 
-        self.linux_kernel_verification_objs_gen['attrs'] = self.mqs['Linux kernel attrs'].get()
-        self.mqs['Linux kernel attrs'].close()
-        self.linux_kernel_verification_objs_gen['attrs'].extend(
-            [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
+
 
     def get_modules_from_deps(self, subsystem, deps):
         # Extract all modules in subsystem from dependencies.
