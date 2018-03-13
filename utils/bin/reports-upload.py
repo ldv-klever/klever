@@ -18,10 +18,10 @@
 
 import os
 
-from utils import get_args_parser, Session
+from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Job upload.')
-parser.add_argument('parent', help='Parent identifier where new job will be saved')
+parser = get_args_parser('Reports upload.')
+parser.add_argument('identifier', help='Job identifier')
 parser.add_argument('--archive', help='Uploaded archive name', required=True)
 args = parser.parse_args()
 
@@ -29,5 +29,5 @@ if not os.path.exists(args.archive):
     raise ValueError('Uploaded archive was not found')
 
 with Session(args) as session:
-    session.upload_job(args.parent, args.archive)
-print('\nThe job archive was successfully uploaded')
+    session.upload_reports(args.identifier, args.archive)
+print('\nReports were successfully uploaded')

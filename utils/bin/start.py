@@ -19,7 +19,7 @@
 import os
 import json
 
-from utils import get_args_parser, Session
+from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Job decision start.')
 parser.add_argument('identifier', help='Job identifier')

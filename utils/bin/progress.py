@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from utils import get_args_parser, Session
+from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Obtaining solution progress in json format.')
 parser.add_argument('identifier', help='Job identifier')

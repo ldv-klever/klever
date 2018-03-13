@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-from utils import get_args_parser, Session
+from utils.utils import get_args_parser, Session
 
-parser = get_args_parser('Obtaining solution results in json format.')
+parser = get_args_parser('Job with specified identifier download.')
 parser.add_argument('identifier', help='Job identifier')
-parser.add_argument('-o', '--out', help='Where to store json data', default='results.json')
+parser.add_argument('-o', '--out', help='Downloaded archive name')
 args = parser.parse_args()
 
 with Session(args) as session:
-    session.decision_results(args.identifier, args.out)
-print('\nDecision results were successfully saved to {0}'.format(args.out))
+    arch = session.download_job(args.identifier, args.out)
+print('\nJob archive was successfully saved to {0}'.format(arch))

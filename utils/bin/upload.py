@@ -16,12 +16,18 @@
 # limitations under the License.
 #
 
-from utils import get_args_parser, Session
+import os
 
-parser = get_args_parser('All marks download.')
-parser.add_argument('-o', '--out', help='Downloaded archive name')
+from utils.utils import get_args_parser, Session
+
+parser = get_args_parser('Job upload.')
+parser.add_argument('parent', help='Parent identifier where new job will be saved')
+parser.add_argument('--archive', help='Uploaded archive name', required=True)
 args = parser.parse_args()
 
+if not os.path.exists(args.archive):
+    raise ValueError('Uploaded archive was not found')
+
 with Session(args) as session:
-    arch = session.download_all_marks(args.out)
-print('\nMarks archive was successfully saved to {0}'.format(arch))
+    session.upload_job(args.parent, args.archive)
+print('\nThe job archive was successfully uploaded')
