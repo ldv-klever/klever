@@ -135,58 +135,65 @@ class Session:
         resp.close()
         return archive
 
-    def download_job(self, identifier, archive):
-        if len(identifier) == 0:
-            raise ValueError('The job identifier is not set')
-        resp = self.__request('/jobs/ajax/get_job_id/', {'identifier': identifier})
-        return self.__download_archive('/jobs/ajax/downloadjob/{0}/'.format(resp.json()['id']), None, archive)
+    def __get_job_id(self, job):
+        if len(job) == 0:
+            raise ValueError('The job identifier or its name is not set')
+        resp = self.__request('/jobs/ajax/get_job_id/', {'job': job})
+        return resp.json()['id']
 
-    def upload_job(self, parent_id, archive):
-        if len(parent_id) == 0:
-            raise ValueError('The parent identifier is not set')
-        self.__request(
-            '/jobs/ajax/upload_job/{0}/'.format(parent_id), {},
+    def download_job(self, job, archive):
+        return self.__download_archive('/jobs/ajax/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
+
+    def upload_job(self, parent, archive):
+        if len(parent) == 0:
+            raise ValueError('The parent identifier or its name is not set')
+        resp = self.__request('/jobs/ajax/get_job_identifier/', {'job': parent})
+        resp = self.__request(
+            '/jobs/ajax/upload_job/{0}/'.format(resp.json()['identifier']), {},
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
+        if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
+            error = resp.json()['errors'][0]
+            resp.close()
+            raise BridgeError('Got error "{0}" while uploading job'.format(error))
 
-    def upload_reports(self, identifier, archive):
-        resp = self.__request('/jobs/ajax/get_job_id/', {'identifier': identifier})
+    def upload_reports(self, job, archive):
         self.__request(
-            '/jobs/ajax/upload_reports/', {'job_id': resp.json()['id']},
+            '/jobs/ajax/upload_reports/', {'job_id': self.__get_job_id(job)},
             files=[('archive', open(archive, 'rb', buffering=0))], stream=True
         )
 
-    def job_progress(self, identifier, filename):
-        resp = self.__request('/jobs/ajax/get_job_progress_json/', {'identifier': identifier})
+    def job_progress(self, job, filename):
+        resp = self.__request('/jobs/ajax/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
-    def decision_results(self, identifier, filename):
-        resp = self.__request('/jobs/ajax/get_job_decision_results/', {'identifier': identifier})
+    def decision_results(self, job, filename):
+        resp = self.__request('/jobs/ajax/get_job_decision_results/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
-    def copy_job(self, identifier):
-        resp = self.__request('/jobs/ajax/save_job_copy/', {'identifier': identifier})
+    def copy_job(self, job):
+        resp = self.__request('/jobs/ajax/save_job_copy/{0}/'.format(self.__get_job_id(job)))
         return resp.json()['identifier']
 
-    def copy_job_version(self, identifier):
-        self.__request('/jobs/ajax/copy_job_version/', {'identifier': identifier})
+    def copy_job_version(self, job):
+        self.__request('/jobs/ajax/copy_job_version/{0}/'.format(self.__get_job_id(job)))
 
-    def replace_files(self, identifier, new_files):
+    def replace_files(self, job, new_files):
         for f_name in new_files:
             with open(new_files[f_name], mode='rb', buffering=0) as fp:
                 self.__request(
-                    '/jobs/ajax/replace_job_file/', {'identifier': identifier, 'name': f_name},
-                    files=[('file', fp)], stream=True
+                    '/jobs/ajax/replace_job_file/{0}/'.format(self.__get_job_id(job)),
+                    {'name': f_name}, files=[('file', fp)], stream=True
                 )
 
-    def start_job_decision(self, identifier, data_fp):
-        resp = self.__request('/jobs/ajax/get_job_id/', {'identifier': identifier})
+    def start_job_decision(self, job, data_fp):
+        job_id = self.__get_job_id(job)
         if data_fp:
-            self.__request('/jobs/ajax/run_decision/', {'job_id': resp.json()['id'], 'data': data_fp.read()})
+            self.__request('/jobs/ajax/run_decision/', {'job_id': job_id, 'data': data_fp.read()})
         else:
-            self.__request('/jobs/ajax/fast_run_decision/', {'job_id': resp.json()['id']})
+            self.__request('/jobs/ajax/fast_run_decision/', {'job_id': job_id})
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)

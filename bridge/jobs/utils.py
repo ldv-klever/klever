@@ -242,6 +242,19 @@ def get_job_by_identifier(identifier):
     return found_jobs[0]
 
 
+def get_job_by_name_or_id(name_or_id):
+    try:
+        return Job.objects.get(name=name_or_id)
+    except ObjectDoesNotExist:
+        found_jobs = Job.objects.filter(identifier__startswith=name_or_id)
+        if len(found_jobs) == 0:
+            raise BridgeException(_('The job with specified identifier or name was not found'))
+        elif len(found_jobs) > 1:
+            raise BridgeException(_('Several jobs match the specified identifier, '
+                                    'please increase the length of the job identifier'))
+        return found_jobs[0]
+
+
 class FileData:
     def __init__(self, job):
         self.filedata = []
@@ -361,8 +374,12 @@ class SaveFileData:
 
 
 class ReplaceJobFile:
-    def __init__(self, job, name, file):
-        self._job = job
+    def __init__(self, job_id, name, file):
+        try:
+            self._job = Job.objects.get(id=job_id)
+        except ObjectDoesNotExist:
+            raise BridgeException(_('The job was not found'))
+
         self._file_to_replace = self.__get_file(name)
         self.__replace_file(file)
 
@@ -492,7 +509,7 @@ def role_info(job, user):
 
 def create_version(job, kwargs):
     new_version = JobHistory(
-        job=job, parent=job.parent, version=job.version, name=job.name,
+        job=job, parent=job.parent, version=job.version,
         change_author=job.change_author, change_date=job.change_date,
         comment=kwargs.get('comment', ''), description=kwargs.get('description', '')
     )
@@ -513,6 +530,13 @@ def create_job(kwargs):
     if 'name' not in kwargs or len(kwargs['name']) == 0:
         logger.error('The job name was not got')
         raise BridgeException()
+    try:
+        Job.objects.get(name=kwargs['name'])
+    except ObjectDoesNotExist:
+        pass
+    else:
+        raise BridgeException(_('The job name is already used'))
+
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         logger.error('The job author was not got')
         raise BridgeException()
@@ -563,6 +587,13 @@ def update_job(kwargs):
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
     if 'name' in kwargs and len(kwargs['name']) > 0:
+        try:
+            job = Job.objects.get(name=kwargs['name'])
+        except ObjectDoesNotExist:
+            pass
+        else:
+            if job.id != kwargs['job'].id:
+                raise BridgeException(_('The job name is already used'))
         kwargs['job'].name = kwargs['name']
     kwargs['job'].change_author = kwargs['author']
     kwargs['job'].version += 1
@@ -573,11 +604,11 @@ def update_job(kwargs):
     if 'filedata' in kwargs:
         try:
             SaveFileData(kwargs['filedata'], newversion)
-        except Exception as e:
+        except Exception:
             newversion.delete()
             kwargs['job'].version -= 1
             kwargs['job'].save()
-            raise e
+            raise
     if 'absolute_url' in kwargs:
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
@@ -590,14 +621,19 @@ def update_job(kwargs):
             logger.exception("Can't notify users: %s" % e)
 
 
-def copy_job_version(user, job):
+def copy_job_version(user, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The job was not found'))
+
     last_version = JobHistory.objects.get(job=job, version=job.version)
     job.change_author = user
     job.version += 1
     job.save()
 
     new_version = JobHistory.objects.create(
-        job=job, parent=job.parent, version=job.version, name=job.name,
+        job=job, parent=job.parent, version=job.version,
         change_author=user, change_date=job.change_date, comment='',
         description=last_version.description, global_role=last_version.global_role
     )
@@ -620,16 +656,30 @@ def copy_job_version(user, job):
     return new_version
 
 
-def save_job_copy(user, job):
+def save_job_copy(user, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The job was not found'))
+
     last_version = JobHistory.objects.get(job=job, version=job.version)
+
+    cnt = 1
+    while True:
+        job_name = "%s #COPY-%s" % (job.name, cnt)
+        try:
+            Job.objects.get(name=job_name)
+        except ObjectDoesNotExist:
+            break
+        cnt += 1
 
     newjob = Job.objects.create(
         identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),
-        name=job.name, change_author=user, parent=job, type=job.type, safe_marks=job.safe_marks
+        name=job_name, change_author=user, parent=job, type=job.type, safe_marks=job.safe_marks
     )
 
     new_version = JobHistory.objects.create(
-        job=newjob, parent=newjob.parent, version=newjob.version, name=newjob.name,
+        job=newjob, parent=newjob.parent, version=newjob.version,
         change_author=user, change_date=newjob.change_date, comment='',
         description=last_version.description, global_role=last_version.global_role
     )
@@ -649,7 +699,7 @@ def save_job_copy(user, job):
         job.version -= 1
         job.save()
         raise
-    return newjob.identifier
+    return newjob
 
 
 def remove_jobs_by_id(user, job_ids):
@@ -1133,15 +1183,18 @@ class CompareJobVersions:
 
 
 class GetJobDecisionResults:
-    def __init__(self, job):
-        self.job = job
+    def __init__(self, job_id):
+        try:
+            self.job = Job.objects.get(id=job_id)
+        except ObjectDoesNotExist:
+            raise BridgeException(_('The job was not found'))
         try:
             self.start_date = self.job.solvingprogress.start_date
             self.finish_date = self.job.solvingprogress.finish_date
         except ObjectDoesNotExist:
             raise BridgeException('The job was not solved')
         try:
-            self._report = ReportComponent.objects.get(root__job=job, parent=None)
+            self._report = ReportComponent.objects.get(root__job=self.job, parent=None)
         except ObjectDoesNotExist:
             raise BridgeException('The job was not solved')
 

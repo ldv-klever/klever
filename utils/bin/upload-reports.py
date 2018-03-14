@@ -21,7 +21,7 @@ import os
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Upload ZIP archive with reports for verificaiton job.')
-parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('--archive', help='ZIP archive name.', required=True)
 args = parser.parse_args()
 
@@ -29,7 +29,7 @@ if not os.path.exists(args.archive):
     raise FileNotFoundError('ZIP archive with reports "{0}" does not exist'.format(args.archive))
 
 with Session(args) as session:
-    session.upload_reports(args.identifier, args.archive)
+    session.upload_reports(args.job, args.archive)
 
 print('ZIP archive with reports "{0}" was successfully uploaded for verificaiton job "{1}"'
-      .format(args.archive, args.identifier))
+      .format(args.archive, args.job))

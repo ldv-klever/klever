@@ -181,7 +181,17 @@ class Population:
                 Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
             except ObjectDoesNotExist:
                 with override(settings.DEFAULT_LANGUAGE):
+
                     args['name'] = JOB_CLASSES[i][1]
+                    cnt = 1
+                    while True:
+                        try:
+                            Job.objects.get(name=args['name'])
+                        except ObjectDoesNotExist:
+                            break
+                        cnt += 1
+                        args['name'] = "%s #%s" % (JOB_CLASSES[i][1], cnt)
+
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
                     args['type'] = JOB_CLASSES[i][0]
                     create_job(args)
@@ -215,10 +225,21 @@ class Population:
                 raise BridgeException(
                     "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
                 )
+
+            job_name = job_settings['name']
+            cnt = 1
+            while True:
+                try:
+                    Job.objects.get(name=job_name)
+                except ObjectDoesNotExist:
+                    break
+                cnt += 1
+                job_name = "%s #%s" % (job_settings['name'], cnt)
+
             job = create_job({
                 'author': self.manager,
                 'global_role': '1',
-                'name': job_settings['name'],
+                'name': job_name,
                 'description': job_settings['description'],
                 'parent': parent,
                 'filedata': self.__get_filedata(jobdir)

@@ -516,6 +516,8 @@ def save_job(request):
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
         try:
             jobs.utils.update_job(job_kwargs)
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
         except Exception as e:
             logger.exception(str(e), stack_info=True)
             return JsonResponse({'error': _('Updating the job failed')})
@@ -1168,23 +1170,32 @@ def upload_reports(request):
 
 @login_required
 def get_job_id(request):
-    if request.method != 'POST' or 'identifier' not in request.POST:
+    if request.method != 'POST' or 'job' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        job = jobs.utils.get_job_by_identifier(request.POST['identifier'])
+        job = jobs.utils.get_job_by_name_or_id(request.POST['job'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     return JsonResponse({'id': job.id})
 
 
 @login_required
-def get_job_progress_json(request):
-    if request.method != 'POST' or 'identifier' not in request.POST:
+def get_job_identifier(request):
+    if request.method != 'POST' or 'job' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        job = jobs.utils.get_job_by_identifier(request.POST['identifier'])
+        job = jobs.utils.get_job_by_name_or_id(request.POST['job'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
+    return JsonResponse({'identifier': job.identifier})
+
+
+@login_required
+def get_job_progress_json(request, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
     try:
         progress = job.jobprogress
         solving = job.solvingprogress
@@ -1211,11 +1222,9 @@ def get_job_progress_json(request):
 
 
 @login_required
-def get_job_decision_results(request):
-    if request.method != 'POST' or 'identifier' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+def get_job_decision_results(request, job_id):
     try:
-        res = jobs.utils.GetJobDecisionResults(jobs.utils.get_job_by_identifier(request.POST['identifier']))
+        res = jobs.utils.GetJobDecisionResults(job_id)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
@@ -1231,25 +1240,21 @@ def get_job_decision_results(request):
 
 
 @login_required
-def save_job_copy(request):
-    if request.method != 'POST' or 'identifier' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+def save_job_copy(request, job_id):
     try:
-        res = jobs.utils.save_job_copy(request.user, jobs.utils.get_job_by_identifier(request.POST['identifier']))
+        job = jobs.utils.save_job_copy(request.user, job_id)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'identifier': res})
+    return JsonResponse({'identifier': job.identifier, 'id': job.id})
 
 
 @login_required
-def copy_job_version(request):
-    if request.method != 'POST' or 'identifier' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+def copy_job_version(request, job_id):
     try:
-        jobs.utils.copy_job_version(request.user, jobs.utils.get_job_by_identifier(request.POST['identifier']))
+        jobs.utils.copy_job_version(request.user, job_id)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
@@ -1259,15 +1264,11 @@ def copy_job_version(request):
 
 
 @login_required
-def replace_job_file(request):
-    if request.method != 'POST' or 'identifier' not in request.POST \
-            or 'name' not in request.POST or len(request.FILES) == 0:
+def replace_job_file(request, job_id):
+    if request.method != 'POST' or 'name' not in request.POST or len(request.FILES) == 0:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        jobs.utils.ReplaceJobFile(
-            jobs.utils.get_job_by_identifier(request.POST['identifier']),
-            request.POST['name'], request.FILES['file']
-        )
+        jobs.utils.ReplaceJobFile(job_id, request.POST['name'], request.FILES['file'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

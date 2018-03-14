@@ -19,12 +19,12 @@
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Download JSON file with verification results of verificaiton job.')
-parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('-o', '--out', help='JSON file name.', default='results.json')
 args = parser.parse_args()
 
 with Session(args) as session:
-    session.decision_results(args.identifier, args.out)
+    session.decision_results(args.job, args.out)
 
 print('JSON file with verification results of verificaiton job "{0}" was successfully downloaded to "{1}"'
-      .format(args.identifier, args.out))
+      .format(args.job, args.out))

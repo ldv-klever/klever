@@ -19,11 +19,11 @@
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Download ZIP archive of verificaiton job.')
-parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('-o', '--out', help='ZIP archive name.')
 args = parser.parse_args()
 
 with Session(args) as session:
-    arch = session.download_job(args.identifier, args.out)
+    arch = session.download_job(args.job, args.out)
 
-print('ZIP archive with verification job "{0}" was successfully downloaded to "{1}"'.format(args.identifier, arch))
+print('ZIP archive with verification job "{0}" was successfully downloaded to "{1}"'.format(args.job, arch))

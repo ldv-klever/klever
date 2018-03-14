@@ -22,7 +22,7 @@ import json
 from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Start solution of verification job.')
-parser.add_argument('identifier', help='Verification job identifier.')
+parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('--copy', action='store_true',
                     help='Set it if you would like to copy verification job before starting solution.')
 parser.add_argument('--replacement',
@@ -32,11 +32,11 @@ parser.add_argument('--rundata', type=open,
 args = parser.parse_args()
 
 with Session(args) as session:
-    job_id = args.identifier
+    job_id_or_name = args.job
     if args.copy:
-        job_id = session.copy_job(args.identifier)
+        job_id_or_name = session.copy_job(args.job)
     elif args.replacement:
-        session.copy_job_version(args.identifier)
+        session.copy_job_version(args.job)
 
     # Replace files before start
     if args.replacement:
@@ -45,8 +45,8 @@ with Session(args) as session:
                 new_files = json.load(fp)
         else:
             new_files = json.loads(args.replacement)
-        session.replace_files(job_id, new_files)
+        session.replace_files(job_id_or_name, new_files)
 
-    session.start_job_decision(job_id, args.rundata)
+    session.start_job_decision(job_id_or_name, args.rundata)
 
-print('Solution of verification job "{0}" was successfully started'.format(args.identifier))
+print('Solution of verification job "{0}" was successfully started'.format(job_id_or_name))
