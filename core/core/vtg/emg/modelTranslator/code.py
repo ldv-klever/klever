@@ -190,7 +190,10 @@ class CModel:
         """
         new_aspect = Aspect(func.name, func.declaration)
         new_aspect.body = body
-        for file in func.files_called_at:
+        files = set()
+        files.update(func.files_called_at)
+        files.update(func.declaration_files)
+        for file in files:
             if file not in self._call_aspects:
                 self._call_aspects[file] = list()
             self._call_aspects[file].append(new_aspect)
