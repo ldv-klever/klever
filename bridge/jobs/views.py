@@ -360,8 +360,9 @@ def edit_job(request):
         parent_identifier = job_version.parent.identifier
 
     return render(request, 'jobs/editJob.html', {
+        'job_name': job.name,
         'parent_id': parent_identifier,
-        'job': job_version,
+        'job_version': job_version,
         'job_id': job_id,
         'roles': jobs.utils.role_info(job_version, request.user),
         'job_roles': JOB_ROLES,
