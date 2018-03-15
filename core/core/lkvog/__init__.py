@@ -20,6 +20,7 @@ import multiprocessing
 import os
 import re
 import shutil
+import tarfile
 import filecmp
 
 from core.lkvog.strategies import scotch
@@ -112,6 +113,8 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
+        ext_modules = self.prepare_ext_modules()
+
         # self.model_headers = self.mqs['model headers'].get()
 
         clade_conf = {
@@ -145,6 +148,7 @@ class LKVOG(core.components.Component):
                     # TODO: indeed LKVOG strategies should set these parameters as well as some other ones.
                     'kernel': False,
                     'modules': self.conf['Linux kernel']['modules'],
+                    'external modules': ext_modules,
                     'intercept_commands': True,
                     'internal_extensions': ['CommandGraph'],
                     'CC.with_system_header_files': False
@@ -162,6 +166,74 @@ class LKVOG(core.components.Component):
         # self.copy_model_headers()
         # self.fixup_model_cc_opts()
         # self.mqs['model CC opts'].put(self.model_cc_opts)
+
+    def prepare_ext_modules(self):
+        if 'external modules' not in self.conf['Linux kernel']:
+            return None
+
+        work_src_tree = 'ext-modules'
+
+        self.logger.info(
+            'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
+            .format(self.conf['Linux kernel']['external modules'], work_src_tree))
+
+        src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                          self.conf['Linux kernel']['external modules'])
+
+        if os.path.isdir(src):
+            self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
+            shutil.copytree(src, work_src_tree, symlinks=True)
+        elif os.path.isfile(src):
+            self.logger.debug('External Linux kernel modules source code is provided in form of archive')
+            with tarfile.open(src, encoding='utf8') as TarFile:
+                TarFile.extractall(work_src_tree)
+
+        self.logger.info('Make canonical working source tree of external Linux kernel modules')
+        work_src_tree_root = None
+        for dirpath, dirnames, filenames in os.walk(work_src_tree):
+            ismakefile = False
+            for filename in filenames:
+                if filename == 'Makefile':
+                    ismakefile = True
+                    break
+
+            # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
+            # exist.
+            if self.conf['generate makefiles']:
+                if not work_src_tree_root:
+                    work_src_tree_root = dirpath
+
+                if not ismakefile:
+                    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='utf-8') as fp:
+                        fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
+                                 .format('$(filter %/, $(wildcard $(src)/*/))'))
+                        fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+                        # Specify additional directory to search for model headers. We assume that this directory is
+                        # preserved as is at least during solving a given job. So, we treat headers from it as system
+                        # ones, i.e. headers that aren't copied when .
+                        fp.write('ccflags-y += -isystem ' + os.path.abspath(os.path.dirname(
+                            core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['rule specifications DB']))))
+            elif ismakefile:
+                work_src_tree_root = dirpath
+                break
+
+        if not work_src_tree_root:
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+        elif not os.path.samefile(work_src_tree_root, work_src_tree):
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
+            for path in os.listdir(work_src_tree_root):
+                shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
+            trash_dir = work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, work_src_tree):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            shutil.rmtree(os.path.realpath(trash_dir))
+
+        return work_src_tree
 
     def send_loc_report(self):
         core.utils.report(self.logger,
