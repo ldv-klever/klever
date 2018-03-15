@@ -808,6 +808,14 @@ class PopulateMarks:
         presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
         new_marks = []
         for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
+            identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+            try:
+                MarkSafe.objects.get(identifier=identifier)
+                # The mark was already uploaded
+                continue
+            except ObjectDoesNotExist:
+                pass
+
             with open(mark_settings, encoding='utf8') as fp:
                 data = json.load(fp)
             if not isinstance(data, dict):
@@ -828,16 +836,11 @@ class PopulateMarks:
                 raise BridgeException(_('Corrupted preset safe mark: wrong description'))
             if not isinstance(data['is_modifiable'], bool):
                 raise BridgeException(_('Corrupted preset safe mark: is_modifiable must be bool'))
-            identifier = os.path.splitext(os.path.basename(mark_settings))[0]
-            try:
-                MarkSafe.objects.get(identifier=identifier)
-            except ObjectDoesNotExist:
-                new_marks.append(MarkSafe(
-                    identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                    is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
-                ))
-            else:
-                raise Exception('Safe mark with specified identifier exists in the system')
+
+            new_marks.append(MarkSafe(
+                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
+                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
+            ))
             self._marktags[identifier] = self.__get_tags(data['tags'])
             self._markattrs[identifier] = data['attrs']
             self.total += 1

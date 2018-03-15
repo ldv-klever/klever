@@ -20,7 +20,7 @@
         <div class="ui violet segment">
             <label for="job_title"><strong>{% trans 'Title' %}</strong></label>
             <div class="ui input fluid">
-                <input class="ui fluid" id="job_title" type="text" value="{{ job.name }}">
+                <input class="ui fluid" id="job_title" type="text" value="{{ job_name }}">
             </div>
             {% if job_id %}
                 <br>
@@ -40,7 +40,7 @@
                 <br><br>
             {% endif %}
             <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
-            <textarea id="job_description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
+            <textarea id="job_description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job_version.description }}</textarea>
         </div>
     {% if not job_id %}
         </div>

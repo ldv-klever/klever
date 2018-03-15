@@ -64,6 +64,7 @@ class LKVOG(core.components.Component):
         self.clade_base = None
         self.clade = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
+        self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
         self.linux_kernel_module_info_mq = multiprocessing.Queue()
         self.linux_kernel_clusters_mq = multiprocessing.Queue()
         self.module = {}
@@ -85,7 +86,10 @@ class LKVOG(core.components.Component):
         with open(os.path.join(self.clade_base, 'clade.json')) as fp:
             self.clade = json.load(fp)
 
-        self.set_common_prj_attrs()
+        # These dirs are excluded from cleaning by lkvog
+        self.dynamic_excluded_clean = multiprocessing.Manager().list()
+
+        self.extract_linux_kernel_verification_objs_gen_attrs()
 
         raise Exception
 
@@ -163,6 +167,10 @@ class LKVOG(core.components.Component):
         # self.fixup_model_cc_opts()
         # self.mqs['model CC opts'].put(self.model_cc_opts)
 
+        self.clean_dir = True
+        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
+        self.logger.debug("Excluded {0}".format(self.excluded_clean))
+
     def send_loc_report(self):
         core.utils.report(self.logger,
                           'data',
@@ -224,6 +232,8 @@ class LKVOG(core.components.Component):
         strategy_name = self.conf['LKVOG strategy']['name']
 
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
+        if 'external modules' in self.conf['Linux kernel']:
+            subsystems = ['ext-modules/' + subsystem for subsystem in subsystems]
 
         self.linux_kernel_src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                                self.conf['Linux kernel']['source'])
@@ -363,6 +373,8 @@ class LKVOG(core.components.Component):
                 else:
                     # This module hasn't specified. But it may be in subsystem
                     for subsystem in subsystems:
+                        if subsystem != 'all' and subsystem[-1] != '/':
+                            subsystem = subsystem + '/'
                         if self.module.startswith(subsystem) or \
                                 self.module.startswith(os.path.join('ext-modules', subsystem)) or \
                                         subsystem == 'all':
@@ -438,6 +450,13 @@ class LKVOG(core.components.Component):
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
             self.module, self.verification_obj_desc_file))
         os.makedirs(os.path.dirname(self.verification_obj_desc_file).encode('utf8'), exist_ok=True)
+
+        # Add dir to exlcuded from cleaning by lkvog
+        root_dir_id = self.verification_obj_desc_file.split('/')[0]
+        if root_dir_id not in self.dynamic_excluded_clean:
+            self.logger.debug("Add excl {0}".format(root_dir_id))
+            self.dynamic_excluded_clean.append(root_dir_id)
+
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -562,11 +581,13 @@ class LKVOG(core.components.Component):
         # Build map from Linux kernel build command output files to correpsonding descriptions.
         # If more than one build command has the same output file their descriptions are added as list in chronological
         # order (more early commands are processed more early and placed at the beginning of this list).
+        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
         if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
                                                                               desc['out file']] + [desc]
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
+        self.linux_kernel_build_cmd_out_file_desc_lock.release()
 
         # Firstly, we should allow modules, that specified by user (force modules)
         # Secondly, we should allow modules, that ends with .ko and doesn't specified by user
@@ -586,11 +607,13 @@ class LKVOG(core.components.Component):
 
         cc_full_desc_files = []
         # Get more older build commands more early if more than one build command has the same output file.
+        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
 
         # Remove got build command description from map. It is assumed that each build command output file can be used
         # as input file of another build command just once.
         self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
+        self.linux_kernel_build_cmd_out_file_desc_lock.release()
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
