@@ -20,6 +20,14 @@
       "unregister_chrdev": {
         "declaration": "void unregister_chrdev(unsigned int major, const char *name)",
         "header": "linux/fs.h"
+      },
+      "debugfs_create_file": {
+        "declaration": "struct dentry *debugfs_create_file(const char *name, umode_t mode, struct dentry *parent, void *data, *%file_operations.file_operations%)",
+        "header": "linux/debugfs.h"
+      },
+      "debugfs_remove": {
+        "declaration": "void debugfs_remove(struct dentry *dentry)",
+        "header": "linux/debugfs.h"
       }
     },
     "categories": {
