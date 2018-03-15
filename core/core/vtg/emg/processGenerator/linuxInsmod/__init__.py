@@ -216,7 +216,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
                 break
         j = 1
         for _, exit_name in exits[:j - 1:-1]:
-            process += "<{}>.".format(exit_name)
+            process += ".<{}>".format(exit_name)
         process += "|<init_success>."
 
     for _, exit_name in exits:

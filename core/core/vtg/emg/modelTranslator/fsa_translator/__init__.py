@@ -110,6 +110,9 @@ class FSATranslator:
                 ret_expression = 'return '
                 arguments = params
 
+            if len(arguments) > 0 and '...' == arguments[-1]:
+                arguments = arguments[:-1]
+
             invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(arguments))
             aspect_code.append(invoke)
 
