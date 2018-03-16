@@ -119,6 +119,8 @@ class LKVOG(core.components.Component):
 
         clade_conf = {
             'work_dir': 'clade',
+            'internal_extensions': ['CommandGraph'],
+            'CC.with_system_header_files': False,
             'extensions': [
                 {
                     'name': 'FetchWorkSrcTree',
@@ -132,7 +134,8 @@ class LKVOG(core.components.Component):
                 {
                     'name': 'Execute',
                     'command': ['make', '-j', build_jobs, '-s', 'kernelversion'],
-                    'stdout': 'Linux kernel version'
+                    'save_output': True,
+                    'output_key': 'Linux kernel version'
                 },
                 {
                     'name': 'ConfigureLinuxKernel',
@@ -150,8 +153,6 @@ class LKVOG(core.components.Component):
                     'modules': self.conf['Linux kernel']['modules'],
                     'external modules': ext_modules,
                     'intercept_commands': True,
-                    'internal_extensions': ['CommandGraph'],
-                    'CC.with_system_header_files': False
                 }
             ]
         }
@@ -253,7 +254,7 @@ class LKVOG(core.components.Component):
 
         self.common_prj_attrs = [
             {'Linux kernel': [
-                {'version': self.clade['Linux kernel version']},
+                {'version': self.clade['Linux kernel version'][0]},
                 {'architecture': self.clade['Linux kernel architecture']},
                 {'configuration': self.clade['Linux kernel configuration']}
             ]},
