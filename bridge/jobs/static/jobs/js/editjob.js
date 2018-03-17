@@ -15,15 +15,6 @@
  * limitations under the License.
  */
 
-var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
-
-function isFileReadable(name) {
-    var found = name.lastIndexOf('.') + 1,
-        extension = (found > 0 ? name.substr(found) : "");
-    return ($.inArray(extension, readable_extensions) !== -1);
-}
-
-
 function check_filename(str) {
     if (str.length > 0) {
         if (isASCII(str) || str.length < 30) {
@@ -187,11 +178,6 @@ function set_actions_for_edit_form () {
         var job_coment = $('#job_comment');
         if (job_coment.length) {
             comment = job_coment.val();
-            if (comment.length === 0) {
-                err_notify($('#error__comment_required').text());
-                job_coment.focus();
-                return false;
-            }
         }
         if (!load_new_files()) {
             return false;
@@ -411,18 +397,19 @@ function set_action_on_file_click () {
                 data: {file_id: $(this).parent().attr('id').split('__').pop()},
                 type: 'POST',
                 success: function (data) {
-                    try {
-                        JSON.stringify(data);
-                        JSON.stringify(data);
-                        err_notify(data.message);
-                    } catch (e) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else {
                         close_fileview_btn.unbind();
-                        close_fileview_btn.click(function () {
+                        close_fileview_btn.click(function (event) {
+                            event.preventDefault();
                             $('#file_content_modal').modal('hide');
                             $('#file_content').empty();
                         });
                         download_file_btn.unbind();
-                        download_file_btn.click(function () {
+                        download_file_btn.click(function(event) {
+                            event.preventDefault();
                             $('#file_content_modal').modal('hide');
                             window.location.replace(href);
                         });
@@ -753,52 +740,6 @@ function set_actions_for_file_form() {
     return false;
 }
 
-
-function set_actions_for_versions_delete() {
-    $('.ui.checkbox').checkbox();
-
-    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false})
-        .modal('attach events', '#show_remove_versions_modal', 'show');
-    $('#cancel_edit_job_btn').click(function () {
-        window.location.replace('');
-    });
-    $('#reload_page__versions').click(function () {
-        window.location.replace('');
-    });
-    $('#cancel_remove_versions').click(function () {
-        $('#remove_versions_popup').modal('hide');
-    });
-
-    $('#delete_versions_btn').click(function () {
-        $('#remove_versions_popup').modal('hide');
-        var checked_versions = [];
-        $('input[id^="checkbox_version__"]').each(function () {
-            if ($(this).is(':checked')) {
-                checked_versions.push($(this).attr('id').replace('checkbox_version__', ''));
-            }
-        });
-        $.post(
-            job_ajax_url + 'remove_versions/',
-            {job_id: $('#job_pk').val(), versions: JSON.stringify(checked_versions)},
-            function (data) {
-                data.error ? err_notify(data.error) : success_notify(data.message);
-                var global_parent = $('#versions_rows');
-                $.each(checked_versions, function (i, val) {
-                    var version_line = $("#checkbox_version__" + val).closest('.version-line');
-                    if (version_line.length) {
-                        version_line.remove();
-                    }
-
-                });
-                if (global_parent && global_parent.children().first().children().length == 0) {
-                    $('#versions_to_delete').hide();
-                    $('#no_versions_to_delete').show();
-                }
-            },
-            'json'
-        );
-    });
-}
 function activate_download_for_compet() {
     var dfc_modal = $('#dfc_modal');
     $('#dfc_modal_show').popup();
@@ -1020,21 +961,7 @@ $(document).ready(function () {
         window.location.replace(job_ajax_url + 'downloadjob/' + $('#job_pk').val());
     });
 
-    $('#edit_versions').click(function () {
-        $.post(
-            job_ajax_url + 'getversions/',
-            {job_id: $('#job_pk').val()},
-            function (data) {
-                try {
-                    JSON.stringify(data);
-                    err_notify(data.message);
-                } catch (e) {
-                    $('#edit_job_div').html(data);
-                    set_actions_for_versions_delete();
-                }
-            }
-        );
-    });
+    $('#view_versions').click(get_versions);
 
     $('#stop_job_btn').click(function () {
         $.post(

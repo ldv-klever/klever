@@ -74,6 +74,9 @@ class NewMark:
         if 'link' not in self._args or len(self._args['link']) == 0:
             self._args['link'] = None
 
+        if 'autoconfirm' in self._args and not isinstance(self._args['autoconfirm'], bool):
+            raise ValueError('Wrong type: autoconfirm (%s)' % type(self._args['autoconfirm']))
+
     def create_mark(self, report):
         if MarkUnknown.objects.filter(component=report.component, problem_pattern=self._args['problem']).count() > 0:
             raise BridgeException(_('Could not create a new mark since the similar mark exists already'))
@@ -93,14 +96,12 @@ class NewMark:
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
-        if len(self._args['comment']) == 0:
-            raise BridgeException(_('Change comment is required'))
-
         if MarkUnknown.objects.filter(component=mark.component, problem_pattern=self._args['problem']) \
                 .exclude(id=mark.id).count() > 0:
             raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
 
-        do_recalc = (self._args['function'] != mark.function or self._args['problem'] != mark.problem_pattern)
+        do_recalc = (self._args['function'] != mark.function or self._args['problem'] != mark.problem_pattern
+                     or self._args['is_regexp'] != mark.is_regexp)
 
         mark.author = self._user
         mark.status = self._args['status']
@@ -115,8 +116,9 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
-            MarkUnknownReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
-            UnknownAssociationLike.objects.filter(association__mark=mark).delete()
+            if do_recalc or not self._args.get('autoconfirm', False):
+                MarkUnknownReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+                UnknownAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 self.changes = ConnectMark(mark).changes
             else:
@@ -155,7 +157,14 @@ class NewMark:
         self.__is_not_used()
         changes = {}
         for mr in mark.markreport_set.all().select_related('report'):
-            changes[mr.report] = {'kind': '='}
+            if mr.report not in changes:
+                changes[mr.report] = {'kind': '=', 'problems': {}}
+        for mr in MarkUnknownReport.objects.filter(report__in=changes):
+            if mr.problem_id not in changes[mr.report]['problems']:
+                changes[mr.report]['problems'][mr.problem_id] = [0, 0]
+            changes[mr.report]['problems'][mr.problem_id][0] += 1
+            changes[mr.report]['problems'][mr.problem_id][1] += 1
+
         return changes
 
     def __create_version(self, mark):
@@ -177,8 +186,17 @@ class ConnectMark:
         self.__connect_unknown_mark()
 
     def __connect_unknown_mark(self):
-        for mark_unknown in self.mark.markreport_set.all():
-            self.changes[mark_unknown.report] = {'kind': '-'}
+        for mr in self.mark.markreport_set.all():
+            if mr.report not in self.changes:
+                self.changes[mr.report] = {'kind': '-', 'problems': {}}
+
+        for mr in MarkUnknownReport.objects.filter(report__in=self.changes):
+            if mr.problem_id not in self.changes[mr.report]['problems']:
+                self.changes[mr.report]['problems'][mr.problem_id] = [0, 0]
+            self.changes[mr.report]['problems'][mr.problem_id][0] += 1
+            if mr.mark_id != self.mark.id:
+                self.changes[mr.report]['problems'][mr.problem_id][1] += 1
+
         self.mark.markreport_set.all().delete()
         new_markreports = []
         problems = {}
@@ -208,7 +226,12 @@ class ConnectMark:
             if unknown in self.changes:
                 self.changes[unknown]['kind'] = '='
             else:
-                self.changes[unknown] = {'kind': '+'}
+                self.changes[unknown] = {'kind': '+', 'problems': {}}
+
+            if problems[problem].id not in self.changes[unknown]['problems']:
+                self.changes[unknown]['problems'][problems[problem].id] = [0, 0]
+            self.changes[unknown]['problems'][problems[problem].id][1] += 1
+
         MarkUnknownReport.objects.bulk_create(new_markreports)
         update_unknowns_cache(list(self.changes))
 
@@ -380,6 +403,14 @@ class PopulateMarks:
                 raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 data = None
+                identifier = os.path.splitext(os.path.basename(mark_settings))[0]
+                try:
+                    MarkUnknown.objects.get(identifier=identifier)
+                    # The mark was already uploaded
+                    continue
+                except ObjectDoesNotExist:
+                    pass
+
                 with open(mark_settings, encoding='utf8') as fp:
                     try:
                         data = json.load(fp)
@@ -418,7 +449,7 @@ class PopulateMarks:
                     MarkUnknown.objects.get(component__name=component, problem_pattern=data['problem'])
                 except ObjectDoesNotExist:
                     mark = MarkUnknown.objects.create(
-                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                        identifier=identifier, component=Component.objects.get_or_create(name=component)[0],
                         author=manager, status=data['status'], is_modifiable=data['is_modifiable'],
                         function=data['pattern'], problem_pattern=data['problem'], description=data['description'],
                         type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None,

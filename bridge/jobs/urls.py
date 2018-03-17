@@ -35,6 +35,7 @@ urlpatterns = [
     path('ajax/share_view/', views.share_view),
     path('ajax/preferable_view/', views.preferable_view),
     path('ajax/check_view_name/', views.check_view_name),
+
     path('ajax/removejobs/', views.remove_jobs),
     path('ajax/editjob/', views.edit_job),
     path('ajax/savejob/', views.save_job),
@@ -47,8 +48,10 @@ urlpatterns = [
     path('ajax/upload_job/<parent_id>/', views.upload_job),
     path('ajax/upload_jobs_tree/', views.upload_jobs_tree),
     path('ajax/getfilecontent/', views.getfilecontent),
+    path('ajax/get_files_diff/', views.get_files_diff),
     path('ajax/getversions/', views.get_job_versions),
     path('ajax/remove_versions/', views.remove_versions),
+    path('ajax/compare_versions/', views.compare_versions),
     path('ajax/stop_decision/', views.stop_decision),
     path('ajax/run_decision/', views.run_decision),
     path('ajax/fast_run_decision/', views.fast_run_decision),
@@ -61,6 +64,13 @@ urlpatterns = [
     path('ajax/do_job_has_children/', views.do_job_has_children),
     path('ajax/enable_safe_marks/', views.enable_safe_marks),
     path('ajax/upload_reports/', views.upload_reports),
+    path('ajax/get_job_id/$', views.get_job_id),
+    path('ajax/get_job_identifier/$', views.get_job_identifier),
+    path('ajax/get_job_progress_json/<int:job_id>/', views.get_job_progress_json),
+    path('ajax/get_job_decision_results/<int:job_id>/', views.get_job_decision_results),
+    path('ajax/save_job_copy/<int:job_id>/', views.save_job_copy),
+    path('ajax/copy_job_version/<int:job_id>/', views.copy_job_version),
+    path('ajax/replace_job_file/<int:job_id>/', views.replace_job_file),
 
     # For Klever Core
     path('decide_job/', views.decide_job),

@@ -23,7 +23,7 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_STATUS, COMPARE_VERDICT
+from bridge.vars import COMPARE_VERDICT
 from bridge.utils import BridgeException
 
 from users.models import User
@@ -33,15 +33,13 @@ from reports.models import AttrName, Attr, ReportAttr, ReportSafe, ReportUnsafe,
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
 from jobs.utils import JobAccess
-from marks.tables import UNSAFE_COLOR, SAFE_COLOR
+from marks.utils import UNSAFE_COLOR, SAFE_COLOR
 
 
 def can_compare(user, job1, job2):
     if not isinstance(job1, Job) or not isinstance(job2, Job) or not isinstance(user, User):
         return False
-    if not JobAccess(user, job1).can_view() or job1.status != JOB_STATUS[3][0]:
-        return False
-    if not JobAccess(user, job2).can_view() or job2.status != JOB_STATUS[3][0]:
+    if not JobAccess(user, job1).can_view() or not JobAccess(user, job2).can_view():
         return False
     return True
 
@@ -461,7 +459,7 @@ class ComparisonData:
             block = CompareBlock('um_%s' % mark.mark_id, 'm', _('Unsafes mark'))
             block.parents.append('u_%s' % report_id)
             block.add_info = {'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:view_mark', args=['unsafe', mark.mark_id])
+            block.href = reverse('marks:mark', args=['unsafe', 'view', mark.mark_id])
             for t in mark.mark.versions.order_by('-version').first().tags.all():
                 block.list.append({'name': None, 'value': t.tag.tag})
             blocks.append(block)
@@ -474,7 +472,7 @@ class ComparisonData:
             block = CompareBlock('sm_%s' % mark.mark_id, 'm', _('Safes mark'))
             block.parents.append('s_%s' % report_id)
             block.add_info = {'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:view_mark', args=['safe', mark.mark_id])
+            block.href = reverse('marks:mark', args=['safe', 'view', mark.mark_id])
             for t in mark.mark.versions.order_by('-version').first().tags.all():
                 block.list.append({'name': None, 'value': t.tag.tag})
             blocks.append(block)
@@ -487,7 +485,7 @@ class ComparisonData:
             block = CompareBlock("fm_%s" % mark.mark_id, 'm', _('Unknowns mark'))
             block.parents.append('f_%s' % report_id)
             block.add_info = {'value': mark.problem.name}
-            block.href = reverse('marks:view_mark', args=['unknown', mark.mark_id])
+            block.href = reverse('marks:mark', args=['unknown', 'view', mark.mark_id])
             blocks.append(block)
         return blocks
 

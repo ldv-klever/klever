@@ -1,0 +1,4 @@
+{
+  "pattern": "Stop since some other component(s) likely failed",
+  "problem": "Stopped"
+}

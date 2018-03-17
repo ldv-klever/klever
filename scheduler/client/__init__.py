@@ -155,7 +155,12 @@ def solve_task(logger, conf, server):
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     logger.debug("Download task")
-    server.pull_task(conf["identifier"], "task files.zip")
+    ret = server.pull_task(conf["identifier"], "task files.zip")
+    if not ret:
+        logger.info("Seems that the task data cannot be downloaded because of a respected reason, "
+                    "so we have nothing to do there")
+        os._exit(1)
+
     with zipfile.ZipFile('task files.zip') as zfp:
         zfp.extractall()
 

@@ -1,0 +1,6 @@
+{
+  "pattern": "has incomplete type",
+  "problem": "Incompl arg",
+  "link": "http://forge.ispras.ru/issues/7244",
+  "description": "EMG generates a parameter of incomplete type for a callback."
+}

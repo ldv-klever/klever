@@ -75,8 +75,9 @@ JOB_STATUS = (
     ('3', _('Solved')),
     ('4', _('Failed')),
     ('5', _('Corrupted')),
-    ('6', _('Cancelled')),
-    ('7', _('Terminated'))
+    ('6', _('Cancelling')),
+    ('7', _('Cancelled')),
+    ('8', _('Terminated'))
 )
 
 JOB_WEIGHT = (

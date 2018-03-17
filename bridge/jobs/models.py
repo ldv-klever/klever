@@ -45,15 +45,9 @@ def jobfile_delete_signal(**kwargs):
         pass
 
 
-class JobBase(models.Model):
-    name = models.CharField(max_length=150)
+class Job(models.Model):
+    name = models.CharField(max_length=150, unique=True, db_index=True)
     change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
-
-    class Meta:
-        abstract = True
-
-
-class Job(JobBase):
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
     change_date = models.DateTimeField(auto_now=True)
@@ -81,8 +75,9 @@ class RunHistory(models.Model):
         db_table = 'job_run_history'
 
 
-class JobHistory(JobBase):
+class JobHistory(models.Model):
     job = models.ForeignKey(Job, models.CASCADE, related_name='versions')
+    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
     version = models.PositiveSmallIntegerField()
     change_date = models.DateTimeField()
     comment = models.CharField(max_length=255, default='')

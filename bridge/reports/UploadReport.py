@@ -71,7 +71,7 @@ class UploadReport:
             self.root = self.__get_root_report()
             self.__upload()
         except CheckArchiveError as e:
-            logger.exception(e)
+            logger.info(str(e))
             self.error = 'ZIP error'
         except Exception as e:
             logger.exception('Uploading report failed: %s' % str(e), stack_info=True)

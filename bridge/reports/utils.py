@@ -28,18 +28,18 @@ from django.db.models import Q, Count, Case, When
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES, ASSOCIATION_TYPE
 from bridge.tableHead import Header
 from bridge.utils import logger, extract_archive
 from bridge.ZipGenerator import ZipStream
 
-from reports.models import ReportRoot, ReportComponent, AttrFile, Attr, AttrName, ReportAttr,\
-    ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
+from reports.models import ReportComponent, AttrFile, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
+    ReportRoot
+from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag, MarkUnknownReport
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
-from marks.tables import SAFE_COLOR, UNSAFE_COLOR
+from marks.utils import SAFE_COLOR, UNSAFE_COLOR
 
 
 REP_MARK_TITLES = {
@@ -55,7 +55,8 @@ REP_MARK_TITLES = {
     'verifiers': _('Verifiers'),
     'verifiers:cpu': _('CPU time'),
     'verifiers:wall': _('Wall time'),
-    'verifiers:memory': _('RAM')
+    'verifiers:memory': _('RAM'),
+    'problems': _('Problems')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -269,10 +270,15 @@ class SafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
+            for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
-                    reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    if rep_id in data[self.view['order'][2]]:
+                        reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    else:
+                        end_reports.append(rep_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -286,11 +292,11 @@ class SafesTable:
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
         else:
-            for attr in data:
-                for rep_id in data[attr]:
-                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
-                        reports_ordered.append(rep_id)
+            for rep_id in reports:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
+        reports_ordered += list(sorted(end_reports))
 
         for r_id in reports:
             tags_str = []
@@ -506,12 +512,15 @@ class UnsafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
+            for rep_id in reports:
                 if self.__has_tag(reports[rep_id]['tags']):
-                    reports_ordered.append(
-                        (data[self.view['order'][2]][rep_id], rep_id)
-                    )
+                    if rep_id in data[self.view['order'][2]]:
+                        reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+                    else:
+                        end_reports.append(rep_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -525,11 +534,11 @@ class UnsafesTable:
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
         else:
-            for attr in data:
-                for rep_id in data[attr]:
-                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
-                        reports_ordered.append(rep_id)
+            for rep_id in reports:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(rep_id)
             reports_ordered = sorted(reports_ordered)
+        reports_ordered += list(sorted(end_reports))
 
         for r_id in reports:
             tags_str = []
@@ -621,6 +630,9 @@ class UnsafesTable:
 
 
 class UnknownsTable:
+    columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_set = set(columns_list)
+
     def __init__(self, user, report, view=None, view_id=None, page=1, component=None, problem=None, attr=None):
         self.user = user
         self.report = report
@@ -640,7 +652,7 @@ class UnknownsTable:
     def __selected(self):
         columns = []
         for col in self.view['columns']:
-            if col not in {'marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'}:
+            if col not in self.columns_set:
                 return []
             if ':' in col:
                 col_title = get_column_title(col)
@@ -652,7 +664,7 @@ class UnknownsTable:
     def __available(self):
         self.__is_not_used()
         columns = []
-        for col in ['marks_number', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']:
+        for col in self.columns_list:
             if ':' in col:
                 col_title = get_column_title(col)
             else:
@@ -661,7 +673,7 @@ class UnknownsTable:
         return columns
 
     def __unknowns_data(self):
-        columns = ['component']
+        columns = ['number']
         columns.extend(self.view['columns'])
 
         data = {}
@@ -733,6 +745,27 @@ class UnknownsTable:
                 'parent_memory': leaf['unknown__memory'],
             }
 
+        if 'problems' in self.view['columns']:
+            for r_id, problem, link in MarkUnknownReport.objects.filter(report_id__in=reports)\
+                    .exclude(type=ASSOCIATION_TYPE[2][0]).values_list('report_id', 'problem__name', 'mark__link'):
+                if 'problems' not in reports[r_id]:
+                    reports[r_id]['problems'] = set()
+                reports[r_id]['problems'].add((problem, link))
+            for r_id in list(reports):
+                if 'problems' in reports[r_id]:
+                    problems = []
+                    has_problem = False
+                    for p, l in sorted(reports[r_id]['problems']):
+                        if 'problem' in self.view and self.view['problem'][0] == p:
+                            has_problem = True
+                        problems.append('<a href="{0}">{1}</a>'.format(l, p) if l else p)
+                    if 'problem' in self.view and not has_problem:
+                        del reports[r_id]
+                    else:
+                        reports[r_id]['problems'] = '; '.join(problems)
+                elif 'problem' in self.view:
+                    del reports[r_id]
+
         for u_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports).order_by('id') \
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if aname not in data:
@@ -741,12 +774,19 @@ class UnknownsTable:
             data[aname][u_id] = aval
 
         ids_order_data = []
+        # We want reports without ordering parameter to be at the end (with any order direction)
+        end_reports = []
         if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
-            for rep_id in data[self.view['order'][2]]:
-                ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
+            for rep_id in reports:
+                if rep_id in data[self.view['order'][2]]:
+                    ids_order_data.append((data[self.view['order'][2]][rep_id], rep_id))
+                else:
+                    end_reports.append(rep_id)
         elif 'order' in self.view and self.view['order'][1] in {'parent_cpu', 'parent_wall', 'parent_memory'}:
             for rep_id in reports:
-                if reports[rep_id][self.view['order'][1]] is not None:
+                if reports[rep_id][self.view['order'][1]] is None:
+                    end_reports.append(rep_id)
+                else:
                     ids_order_data.append((reports[rep_id][self.view['order'][1]], rep_id))
         else:
             for u_id in reports:
@@ -754,22 +794,31 @@ class UnknownsTable:
         report_ids = list(x[1] for x in sorted(ids_order_data))
         if 'order' in self.view and self.view['order'][0] == 'up':
             report_ids = list(reversed(report_ids))
+        report_ids += list(sorted(end_reports))
 
+        cnt = 1
         values_data = []
         for rep_id in report_ids:
             values_row = []
             for col in columns:
                 val = '-'
                 href = None
+                is_html = False
                 if col in data and rep_id in data[col]:
                     val = data[col][rep_id]
                     if not self.__filter_attr(col, val):
                         break
+                elif col == 'number':
+                    val = cnt
+                    href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'component':
                     val = reports[rep_id]['component']
-                    href = reverse('reports:unknown', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
+                elif col == 'problems':
+                    if 'problems' in reports[rep_id]:
+                        val = reports[rep_id]['problems']
+                        is_html = True
                 elif col == 'verifiers:cpu':
                     if reports[rep_id]['parent_cpu'] is not None:
                         val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
@@ -779,8 +828,9 @@ class UnknownsTable:
                 elif col == 'verifiers:memory':
                     if reports[rep_id]['parent_memory'] is not None:
                         val = get_user_memory(self.user, reports[rep_id]['parent_memory'])
-                values_row.append({'value': val, 'href': href})
+                values_row.append({'value': val, 'href': href, 'html': is_html})
             else:
+                cnt += 1
                 values_data.append(values_row)
         return columns, values_data
 

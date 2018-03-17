@@ -18,7 +18,6 @@
 import os
 import json
 import mimetypes
-from urllib.parse import quote
 from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
@@ -60,6 +59,9 @@ def schedule_task(request):
         return JsonResponse({'error': 'The task archive was not got'})
     try:
         res = service.utils.ScheduleTask(request.session['job id'], request.POST['description'], archive)
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -78,6 +80,9 @@ def get_tasks_statuses(request):
         return JsonResponse({'error': 'Tasks identifiers are not specified'})
     try:
         res = service.utils.GetTasksStatuses(request.POST['tasks'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -97,6 +102,9 @@ def download_solution(request):
 
     try:
         res = service.utils.GetSolution(request.POST['task id'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -105,7 +113,7 @@ def download_solution(request):
     mimetype = mimetypes.guess_type(os.path.basename(res.solution.archname))[0]
     response = StreamingHttpResponse(FileWrapper(res.solution.archive, 8192), content_type=mimetype)
     response['Content-Length'] = len(res.solution.archive)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.solution.archname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % res.solution.archname
     return response
 
 
@@ -121,6 +129,9 @@ def remove_task(request):
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
         service.utils.RemoveTask(request.POST['task id'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -139,6 +150,9 @@ def cancel_task(request):
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
         service.utils.CancelTask(request.POST['task id'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         return JsonResponse({'error': str(e)})
     return JsonResponse({})
@@ -181,6 +195,9 @@ def download_task(request):
 
     try:
         res = service.utils.GetTaskData(request.POST['task id'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -188,7 +205,7 @@ def download_task(request):
     mimetype = mimetypes.guess_type(os.path.basename(res.task.archname))[0]
     response = StreamingHttpResponse(FileWrapper(res.task.archive, 8192), content_type=mimetype)
     response['Content-Length'] = len(res.task.archive)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.task.archname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % res.task.archname
     return response
 
 
@@ -212,6 +229,9 @@ def upload_solution(request):
         return JsonResponse({'error': 'The solution archive was not got'})
     try:
         service.utils.SaveSolution(request.POST['task id'], archive, request.POST['description'])
+    except service.utils.NotAnError as e:
+        logger.info(str(e))
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})

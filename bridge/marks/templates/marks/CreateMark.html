@@ -1,11 +1,19 @@
-{% extends 'marks/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Create mark' %}{% endblock %}
 
+{% block head_block %}
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/createMark.js' %}"></script>
+{% endblock %}
+
 {% block body_block %}
-{% if type == 'unsafe' %}
+{% if markdata.type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
         <div class="ui grid">
             <div class="ten wide column">
@@ -40,7 +48,7 @@
                     </div>
                 </div>
                 <input id="report_pk" type="hidden" value="{{ report.pk }}">
-                <input id="report_type" type="hidden" value="{{ type }}">
+                <input id="report_type" type="hidden" value="{{ markdata.type }}">
             </div>
             <div class="six wide column">
                 <div></div>
@@ -74,7 +82,7 @@
                 </div>
                 <div class="ui pink segment">
                     <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    {% include 'marks/MarkTags.html' with tags=markdata.tags.table available=markdata.tags.available selected=markdata.tags.selected %}
                 </div>
                 <div class="ui styled accordion fluid">
                     <div class="title">
@@ -101,7 +109,7 @@
                     </div>
                 </div>
                 <br>
-                {% if can_freeze %}
+                {% if access.can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" checked>
                         <label for="is_modifiable">{% trans 'Editable' %}</label>
@@ -113,7 +121,7 @@
             </div>
         </div>
     </form>
-{% elif type == 'safe' %}
+{% elif markdata.type == 'safe' %}
     <form autocomplete="off" onsubmit="return false">
         <div class="ui grid">
             <div class="four wide column">
@@ -127,7 +135,7 @@
                         <br>
                     {% endfor %}
                     <input id="report_pk" type="hidden" value="{{ report.pk }}">
-                    <input id="report_type" type="hidden" value="{{ type }}">
+                    <input id="report_type" type="hidden" value="{{ markdata.type }}">
                     <h4 class="ui green header">{% trans 'Status' %}</h4>
                     {% for s in markdata.statuses %}
                         <div class="ui radio checkbox">
@@ -141,7 +149,7 @@
             <div class="seven wide column">
                 <div class="ui pink segment">
                     <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    {% include 'marks/MarkTags.html' with tags=markdata.tags.table available=markdata.tags.available selected=markdata.tags.selected %}
                 </div>
                 <br>
                 <div class="ui styled accordion fluid">
@@ -180,7 +188,7 @@
             </div>
         </div>
         <br>
-        {% if can_freeze %}
+        {% if access.can_freeze %}
             <div class="ui toggle checkbox">
                 <input type="checkbox" id="is_modifiable" checked>
                 <label>{% trans 'Editable' %}</label>
@@ -190,11 +198,11 @@
         <a href="{% url 'reports:safe' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
         <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
     </form>
-{% elif type == 'unknown' %}
+{% elif markdata.type == 'unknown' %}
     <form autocomplete="off" onsubmit="return false">
         <h1 class="header ui violet">{{ report.component.name }}</h1>
         <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
+        <input id="report_type" type="hidden" value="{{ markdata.type }}">
         <div class="ui grid">
             <div class="eight wide column">
                 <div class="ui red segment">
@@ -252,7 +260,7 @@
                     </div>
                 </div>
 
-                {% if can_freeze %}
+                {% if access.can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" checked>
                         <label>{% trans 'Editable' %}</label>

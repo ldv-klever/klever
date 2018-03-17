@@ -209,7 +209,8 @@ class ViewJobData:
             unknowns_sorted[comp] = problems_sorted
 
         if 'hidden' not in self.view or 'unknowns_nomark' not in self.view['hidden']:
-            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters)):
+            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters))\
+                    .select_related('component'):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
@@ -221,7 +222,7 @@ class ViewJobData:
                 })
 
         if 'hidden' not in self.view or 'unknowns_total' not in self.view['hidden']:
-            for cmup in self.report.unknowns_cache.filter(**components_filters):
+            for cmup in self.report.unknowns_cache.filter(**components_filters).select_related('component'):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({

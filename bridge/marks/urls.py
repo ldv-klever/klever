@@ -21,11 +21,14 @@ from marks import views
 
 urlpatterns = [
     re_path(r'^(?P<mark_type>unsafe|safe|unknown)/create/(?P<report_id>[0-9]+)/$', views.create_mark, name='create_mark'),
-    re_path(r'^(?P<mark_type>unsafe|safe|unknown)/edit/(?P<mark_id>[0-9]+)/$', views.edit_mark, name='edit_mark'),
-    re_path(r'^(?P<mark_type>unsafe|safe|unknown)/view/(?P<mark_id>[0-9]+)/$', views.view_mark, name='view_mark'),
+    re_path(r'^(?P<mtype>unsafe|safe|unknown)/(?P<action>view|edit)/(?P<mark_id>[0-9]+)/$', views.mark_page, name='mark'),
+    re_path(r'^(?P<mtype>unsafe|safe|unknown)/versions/(?P<mark_id>[0-9]+)/$', views.mark_versions, name='versions'),
+
     re_path(r'^(?P<marks_type>unsafe|safe|unknown)/$', views.mark_list, name='mark_list'),
     re_path(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
             views.download_mark, name='download_mark'),
+    re_path(r'^download-preset/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
+        views.download_preset_mark, name='download_preset_mark'),
     path('association_changes/<slug:association_id>/', views.association_changes),
     re_path(r'^tags/(?P<tags_type>unsafe|safe)/$', views.show_tags, name='tags'),
     re_path(r'^tags/download/(?P<tags_type>unsafe|safe)/$', views.download_tags, name='download_tags'),
@@ -39,8 +42,8 @@ urlpatterns = [
     path('ajax/check-unknown-mark/', views.check_unknown_mark),
 
     path('ajax/get_mark_version_data/', views.get_mark_version_data),
-    path('ajax/getversions/', views.get_mark_versions),
     path('ajax/remove_versions/', views.remove_versions),
+    path('ajax/compare_versions/', views.compare_versions),
 
     path('ajax/get_tag_data/', views.get_tag_data),
     path('ajax/save_tag/', views.save_tag),

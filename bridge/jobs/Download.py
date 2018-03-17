@@ -43,7 +43,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 7
+ARCHIVE_FORMAT = 9
 
 
 class KleverCoreArchiveGen:
@@ -135,7 +135,6 @@ class JobArchiveGenerator:
         return json.dumps({
             'filedata': filedata,
             'description': job_v.description,
-            'name': job_v.name,
             'global_role': job_v.global_role,
             'comment': job_v.comment,
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
@@ -143,8 +142,9 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
-            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
-            'weight': self.job.weight, 'safe_marks': self.job.safe_marks, 'progress': self.__get_progress_data()
+            'status': self.job.status, 'files_map': self.arch_files, 'name': self.job.name,
+            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks,
+            'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __get_progress_data(self):
@@ -577,7 +577,7 @@ class UploadJob:
         if not isinstance(jobdata, dict):
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
-        if any(x not in jobdata for x in ['format', 'status', 'files_map',
+        if any(x not in jobdata for x in ['format', 'name', 'status', 'files_map',
                                           'run_history', 'weight', 'safe_marks', 'progress']):
             raise BridgeException(_("The job archive was corrupted"))
         if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
@@ -606,8 +606,7 @@ class UploadJob:
         if len(versions_data) == 0:
             raise ValueError("There are no job's versions in the archive")
         for version in versions_data:
-            if any(x not in versions_data[version] for x in
-                   ['name', 'description', 'comment', 'global_role', 'filedata']):
+            if any(x not in versions_data[version] for x in ['description', 'comment', 'global_role', 'filedata']):
                 raise ValueError("The job version data is corrupted")
 
         # Update versions' files data
@@ -631,7 +630,7 @@ class UploadJob:
         # Creating the job
         try:
             job = create_job({
-                'name': version_list[0]['name'],
+                'name': jobdata['name'],
                 'identifier': jobdata.get('identifier'),
                 'author': self.user,
                 'description': version_list[0]['description'],
@@ -667,7 +666,6 @@ class UploadJob:
             try:
                 update_job({
                     'job': job,
-                    'name': version_data['name'],
                     'author': self.user,
                     'description': version_data['description'],
                     'parent': self.parent,

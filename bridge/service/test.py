@@ -658,7 +658,7 @@ class TestService(KleverTestCase):
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[1][0]).status, SCHEDULER_STATUS[0][0])
 
         # Status is terminated because scheduler is disconnected
-        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[7][0])
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[8][0])
 
         # Check that scheduler does not get any tasks or jobs
         sch_data = {

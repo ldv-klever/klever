@@ -217,7 +217,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Safes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:view_mark', args=['safe', act.mark_id]),
+            'href': reverse('marks:mark', args=['safe', 'view', act.mark_id]),
         })
     for act in MarkUnsafeHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -238,7 +238,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unsafes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:view_mark', args=['unsafe', act.mark_id])
+            'href': reverse('marks:mark', args=['unsafe', 'view', act.mark_id])
         })
     for act in MarkUnknownHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -259,7 +259,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unknowns mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:view_mark', args=['unknown', act.mark_id])
+            'href': reverse('marks:mark', args=['unknown', 'view', act.mark_id])
         })
     return render(request, 'users/showProfile.html', {
         'target': target,

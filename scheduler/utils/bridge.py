@@ -19,6 +19,7 @@ import logging
 import requests
 import time
 import zipfile
+import re
 
 
 class UnexpectedStatusCode(IOError):
@@ -30,6 +31,9 @@ class BridgeError(IOError):
 
 
 class Session:
+
+    CANCELLED_STATUS = re.compile('The task \d+ was not found')
+
     def __init__(self, name, user, password, parameters=dict()):
         """
         Create http session between scheduler and Klever Bridge server.
@@ -41,19 +45,20 @@ class Session:
         :return:
         """
         logging.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(user, name))
-
         self.name = name
-        self.session = requests.Session()
-
-        # Get CSRF token via GET request.
-        self.__request('users/service_signin/')
-
         # Prepare data
-        parameters["username"] = user
-        parameters["password"] = password
+        self.__parameters = parameters
+        self.__parameters["username"] = user
+        self.__parameters["password"] = password
 
         # Sign in.
-        self.__request('users/service_signin/', 'POST', parameters)
+        self.__signin()
+
+    def __signin(self):
+        # Get CSRF token via GET request.
+        self.session = requests.Session()
+        self.__request('users/service_signin/')
+        self.__request('users/service_signin/', 'POST', self.__parameters)
         logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
@@ -91,10 +96,16 @@ class Session:
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     self.error = resp.json()['error']
                     resp.close()
-                    raise BridgeError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-
-                return resp
+                    if self.error == 'You are not signing in':
+                        logging.debug("Session has expired, relogging in")
+                        self.__signin()
+                        if data:
+                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+                    else:
+                        raise BridgeError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
+                else:
+                    return resp
             except requests.ConnectionError as err:
                 logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
@@ -110,8 +121,9 @@ class Session:
         :param endpoint: URL endpoint.
         :param data: Data to push in case of POST request.
         :param archive: Path to save the archive.
-        :return: None
+        :return: True
         """
+        ret = True
         while True:
             resp = None
             try:
@@ -126,9 +138,18 @@ class Session:
                     logging.debug('Could not download ZIP archive')
                 else:
                     break
+            except BridgeError:
+                if self.CANCELLED_STATUS.match(self.error):
+                    logging.warning("Seems that the job was cancelled and we cannot download data to start the task")
+                    ret = False
+                    break
+                else:
+                    raise
             finally:
                 if resp:
                     resp.close()
+
+        return ret
 
     def push_archive(self, endpoint, data, archive):
         """
@@ -139,6 +160,8 @@ class Session:
         :param archive: Path to save the archive.
         :return: None.
         """
+        ret = True
+
         while True:
             resp = None
             try:
@@ -150,11 +173,17 @@ class Session:
                     logging.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(1)
+                elif self.CANCELLED_STATUS.match(self.error):
+                    logging.warning("Seems that the job was cancelled and we cannot upload results")
+                    ret = False
+                    break
                 else:
                     raise
             finally:
                 if resp:
                     resp.close()
+
+        return ret
 
     def json_exchange(self, endpoint, json_data, looping=True):
         """
@@ -181,4 +210,3 @@ class Session:
         logging.info('Finish session at {}'.format(self.name))
         self.__request('users/service_signout/', looping=False)
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

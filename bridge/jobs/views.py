@@ -19,7 +19,6 @@ import os
 import json
 import mimetypes
 from datetime import datetime
-from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
 
@@ -323,7 +322,6 @@ def get_job_data(request):
 
 
 @login_required
-@unparallel_group([])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -362,8 +360,9 @@ def edit_job(request):
         parent_identifier = job_version.parent.identifier
 
     return render(request, 'jobs/editJob.html', {
+        'job_name': job.name,
         'parent_id': parent_identifier,
-        'job': job_version,
+        'job_version': job_version,
         'job_id': job_id,
         'roles': jobs.utils.role_info(job_version, request.user),
         'job_roles': JOB_ROLES,
@@ -390,14 +389,36 @@ def remove_versions(request):
 
     versions = json.loads(request.POST.get('versions', '[]'))
 
-    deleted_versions = jobs.utils.delete_versions(job, versions)
-    if deleted_versions > 0:
-        return JsonResponse({'message': _('Selected versions were successfully deleted')})
-    return JsonResponse({'error': _('Nothing to delete')})
+    try:
+        jobs.utils.delete_versions(job, versions)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'message': _('Selected versions were successfully deleted')})
 
 
 @login_required
-@unparallel_group([])
+def compare_versions(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST' or any(x not in request.POST for x in ['job_id', 'v1', 'v2']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    versions = JobHistory.objects.filter(
+        job_id=request.POST['job_id'], version__in=[int(request.POST['v1']), int(request.POST['v2'])]
+    ).order_by('change_date')
+    if versions.count() != 2:
+        return JsonResponse({'error': _('The page is outdated, reload it please')})
+    try:
+        return render(request, 'jobs/jobVCmp.html', {'data': jobs.utils.CompareJobVersions(*list(versions))})
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+
+@login_required
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -407,19 +428,20 @@ def get_job_versions(request):
     try:
         job = Job.objects.get(pk=job_id)
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _('The job was not found')})
+        return JsonResponse({'error': _('The job was not found')})
     job_versions = []
-    for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
-        title = '%s (%s): %s' % (
+    for j in job.versions.order_by('-version'):
+        title = '%s (%s)' % (
             j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S"),
-            j.change_author.get_full_name(), j.comment
+            j.change_author.get_full_name()
         )
+        if j.comment:
+            title += ': %s' % j.comment
         job_versions.append({'version': j.version, 'title': title})
     return render(request, 'jobs/viewVersions.html', {'versions': job_versions})
 
 
 @login_required
-@unparallel_group([])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -477,15 +499,10 @@ def save_job(request):
         if not jobs.utils.JobAccess(request.user, job).can_edit():
             return JsonResponse({'error': _("You don't have an access to edit this job")})
         if parent_identifier is not None and len(parent_identifier) > 0:
-            parents = Job.objects.filter(identifier__startswith=parent_identifier)
-            if len(parents) == 0:
-                return JsonResponse({'error': _('The job parent was not found')})
-            elif len(parents) > 1:
-                return JsonResponse({
-                    'error': _('Several parents match the specified identifier, '
-                               'please increase the length of the parent identifier')
-                })
-            parent = parents[0]
+            try:
+                parent = jobs.utils.get_job_by_identifier(parent_identifier)
+            except BridgeException as e:
+                return JsonResponse({'error': str(e)})
             if job.parent is None:
                 return JsonResponse({'error': _("Parent can't be specified for root jobs")})
             if not jobs.utils.check_new_parent(job, parent):
@@ -504,6 +521,8 @@ def save_job(request):
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
         try:
             jobs.utils.update_job(job_kwargs)
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
         except Exception as e:
             logger.exception(str(e), stack_info=True)
             return JsonResponse({'error': _('Updating the job failed')})
@@ -608,7 +627,7 @@ def download_file(request, file_id):
     mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
     response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(source.file.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(source.name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
     return response
 
 
@@ -625,7 +644,7 @@ def download_job(request, job_id):
     generator = JobArchiveGenerator(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
@@ -643,7 +662,7 @@ def download_jobs(request):
 
     mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
+    response["Content-Disposition"] = 'attachment; filename="KleverJobs.zip"'
     return response
 
 
@@ -686,17 +705,14 @@ def upload_job(request, parent_id=None):
 
     if not jobs.utils.JobAccess(request.user).can_create():
         return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
-    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
-        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
-                                        "Please wait until it will be finished.")})
+
     if len(parent_id) == 0:
         return JsonResponse({'error': _("The parent identifier was not got")})
-    parents = Job.objects.filter(identifier__startswith=parent_id)
-    if len(parents) == 0:
-        return JsonResponse({'error': _("The parent with the specified identifier was not found")})
-    elif len(parents) > 1:
-        return JsonResponse({'error': _("Too many jobs starts with the specified identifier")})
-    parent = parents[0]
+    try:
+        parent = jobs.utils.get_job_by_identifier(parent_id)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+
     errors = []
     for f in request.FILES.getlist('file'):
         try:
@@ -795,26 +811,50 @@ def decide_job(request):
     generator = KleverCoreArchiveGen(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.arcname
     return response
 
 
 @login_required
-@unparallel_group([])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        file_id = int(request.POST.get('file_id', 0))
-    except ValueError:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        source = jobs.utils.FileSystem.objects.get(pk=int(file_id))
+        if 'file_id' in request.POST:
+            jobfile = jobs.utils.FileSystem.objects.get(id=request.POST.get('file_id', 0)).file
+        else:
+            jobfile = jobs.utils.JobFile.objects.get(id=request.POST.get('jobfile_id', 0))
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _("The file was not found")})
-    return HttpResponse(source.file.file.read())
+        return JsonResponse({'error': _("The file was not found")})
+    return HttpResponse(jobfile.file.read())
+
+
+@login_required
+def get_files_diff(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    try:
+        f1 = jobs.utils.FileSystem.objects.get(id=request.POST.get('file1_id', 0))
+        f2 = jobs.utils.FileSystem.objects.get(id=request.POST.get('file2_id', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The file was not found")})
+
+    if not jobs.utils.is_readable(f1.file.file.name) or not jobs.utils.is_readable(f2.file.file.name):
+        return JsonResponse({'error': _('One of the files is not readable')})
+
+    diff_result = []
+    with f1.file.file as fp1, f2.file.file as fp2:
+        for line in unified_diff(
+                fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('name1', ''), tofile=request.POST.get('name2', '')
+        ):
+            diff_result.append(line)
+    return HttpResponse('\n'.join(diff_result))
 
 
 @login_required
@@ -968,7 +1008,6 @@ def check_compare_access(request):
 
 
 @login_required
-@unparallel_group([])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -991,7 +1030,6 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group([])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -1006,6 +1044,8 @@ def get_file_by_checksum(request):
             f = JobFile.objects.get(hash_sum=check_sums[0])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found')})
+        if not jobs.utils.is_readable(f.file.name):
+            return HttpResponse('<h3 class="ui red header">%s</h3>' % _('The file is not readable'))
         return HttpResponse(f.file.read())
     elif len(check_sums) == 2:
         try:
@@ -1013,6 +1053,8 @@ def get_file_by_checksum(request):
             f2 = JobFile.objects.get(hash_sum=check_sums[1])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found')})
+        if not jobs.utils.is_readable(f1.file.name) or not jobs.utils.is_readable(f2.file.name):
+            return HttpResponse('<h3 class="ui red header">%s</h3>' % _('One of the files is not readable'))
         diff_result = []
         with f1.file as fp1, f2.file as fp2:
             for line in unified_diff(
@@ -1025,7 +1067,6 @@ def get_file_by_checksum(request):
 
 
 @login_required
-@unparallel_group([])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -1036,7 +1077,7 @@ def download_configuration(request, runhistory_id):
     mimetype = mimetypes.guess_type(file_name)[0]
     response = StreamingHttpResponse(FileWrapper(run_history.configuration.file, 8192), content_type=mimetype)
     response['Content-Length'] = len(run_history.configuration.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(file_name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % file_name
     return response
 
 
@@ -1125,7 +1166,7 @@ def download_files_for_compet(request, job_id):
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
+    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
     return response
 
 
@@ -1173,6 +1214,115 @@ def upload_reports(request):
         return JsonResponse({'error': _("You don't have an access to upload reports for this job")})
     try:
         UploadReportsWithoutDecision(job, request.user, reports_dir.name)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@login_required
+def get_job_id(request):
+    if request.method != 'POST' or 'job' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = jobs.utils.get_job_by_name_or_id(request.POST['job'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'id': job.id})
+
+
+@login_required
+def get_job_identifier(request):
+    if request.method != 'POST' or 'job' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = jobs.utils.get_job_by_name_or_id(request.POST['job'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'identifier': job.identifier})
+
+
+@login_required
+def get_job_progress_json(request, job_id):
+    try:
+        job = Job.objects.get(id=job_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    try:
+        progress = job.jobprogress
+        solving = job.solvingprogress
+    except ObjectDoesNotExist:
+        return JsonResponse({'data': json.dumps({'status': job.status})})
+
+    return JsonResponse({'data': json.dumps({
+        'status': job.status,
+        'subjobs': {
+            'total': progress.total_sj, 'failed': progress.failed_sj, 'solved': progress.solved_sj,
+            'expected_time': progress.expected_time_sj, 'gag_text': progress.gag_text_sj,
+            'start': progress.start_sj.timestamp() if progress.start_sj else None,
+            'finish': progress.finish_sj.timestamp() if progress.finish_sj else None
+        },
+        'tasks': {
+            'total': progress.total_ts, 'failed': progress.failed_ts, 'solved': progress.solved_ts,
+            'expected_time': progress.expected_time_ts, 'gag_text': progress.gag_text_ts,
+            'start': progress.start_ts.timestamp() if progress.start_ts else None,
+            'finish': progress.finish_ts.timestamp() if progress.finish_ts else None
+        },
+        'start_date': solving.start_date.timestamp() if solving.start_date else None,
+        'finish_date': solving.finish_date.timestamp() if solving.finish_date else None
+    }, indent=2, sort_keys=True, ensure_ascii=False)})
+
+
+@login_required
+def get_job_decision_results(request, job_id):
+    try:
+        res = jobs.utils.GetJobDecisionResults(job_id)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'data': json.dumps({
+        'name': res.job.name, 'status': res.job.status,
+        'start_date': res.start_date.timestamp() if res.start_date else None,
+        'finish_date': res.finish_date.timestamp() if res.finish_date else None,
+        'verdicts': res.verdicts, 'resources': res.resources,
+        'safes': res.safes, 'unsafes': res.unsafes, 'unknowns': res.unknowns
+    }, indent=2, sort_keys=True, ensure_ascii=False)})
+
+
+@login_required
+def save_job_copy(request, job_id):
+    try:
+        job = jobs.utils.save_job_copy(request.user, job_id)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'identifier': job.identifier, 'id': job.id})
+
+
+@login_required
+def copy_job_version(request, job_id):
+    try:
+        jobs.utils.copy_job_version(request.user, job_id)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@login_required
+def replace_job_file(request, job_id):
+    if request.method != 'POST' or 'name' not in request.POST or len(request.FILES) == 0:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        jobs.utils.ReplaceJobFile(job_id, request.POST['name'], request.FILES['file'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

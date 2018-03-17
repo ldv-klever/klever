@@ -1,160 +1,53 @@
-{% extends 'marks/base.html' %}
+{% extends 'marks/Mark.html' %}
 
 {% load i18n %}
 
-{% load tz %}
+{% load staticfiles %}
 
-{% load humanize %}
+{% block mark_head_block %}
+    <script type="text/javascript" src="{% static 'marks/js/editMark.js' %}"></script>
+{% endblock %}
 
-{% block title %}{% if type == 'unsafe' %}{% trans 'Unsafes mark' %}{% else %}{% trans 'Safes mark' %}{% endif %}{% endblock %}
+{% block edit_mark_block %}
+    {% if versions|length %}
+        <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
+        <select id="mark_version_selector" class="ui dropdown fluid">
+            {% for mv in versions %}
+                <option value="{{ mv.version }}">{{ mv.title }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
+    <div class="ui divider"></div>
 
-{% block body_block %}
-    <form autocomplete="off" onsubmit="return false">
-        <div class="ui grid">
-            <div class="seven wide column">
-                <div class="ui small icon buttons top attached">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
-                    <button id="edit_mark_versions" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
-                    {% if can_delete %}
-                        <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
-                    {% endif %}
-                </div>
-                <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
-                <input id="mark_type" type="hidden" value="{{ type }}">
-                {% if report_id %}
-                    <input id="report_id" type="hidden" value="{{ report_id }}">
-                {% endif %}
-                <table class="ui selectable compact inverted violet table attached">
-                    <thead>
-                        <tr>
-                            <th class="center aligned" colspan="2">
-                                {% if type == 'unsafe' %}
-                                    <span class="ui header" style="color: #ffa223;">{% trans 'Unsafes mark' %}</span>
-                                {% else %}
-                                    <span class="ui header" style="color: #87ff8d;">{% trans 'Safes mark' %}</span>
-                                {% endif %}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <th class="right aligned">{% trans 'Identifier' %}</th>
-                            <td>{{ mark.identifier }}</td>
-                        </tr>
-                        <tr>
-                            <th class="right aligned">{% trans 'Format' %}</th>
-                            <td>{{ mark.format }}</td>
-                        </tr>
-                        <tr>
-                            <th class="right aligned">{% trans 'Source' %}</th>
-                            <td>{{ mark.get_type_display }}</td>
-                        </tr>
-                        {% if first_version.author %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Author' %}</th>
-                                <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.get_full_name }}</a></td>
-                            </tr>
-                        {% endif %}
-                        <tr>
-                            <th class="right aligned">{% trans 'Last change' %}</th>
-                            <td>
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
-                                {% if version.author %}
-                                    (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.get_full_name }}</a>)
-                                {% endif %}
-                                {% if version.comment|length %}
-                                    <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small></p>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                {% if reports.values|length %}
-                <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
-                <div style="overflow-x:auto;">
-                    <table class="ui compact teal selectable celled table alternate-color" style="width:auto;">
-                        <thead>
-                            {% for column_row in reports.header %}
-                                <tr>
-                                {% for coldata in column_row %}
-                                    <th class="collapsing" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
-                        <tbody>
-                            {% for row_data in reports.values %}
-                                <tr>
-                                    {% for v in row_data %}
-                                        <td class="collapsing">
-                                            {% if v.href %}
-                                                <a href="{{ v.href }}">{{ v.value }}</a>
-                                            {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="note-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
-                                            {% endif %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                            {%  endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                    <h4 class="header ui teal">{% trans 'List of associated leaf reports is empty' %}</h4>
-                {% endif %}
-            </div>
-            <div id="div_for_version_list" class="nine wide column">
-                {% if versions|length %}
-                    <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
-                    <select id="mark_version_selector" class="ui dropdown fluid">
-                        {% for mv in versions %}
-                            <option value="{{ mv.version }}">{{ mv.title }}</option>
-                        {% endfor %}
-                    </select>
-                {% endif %}
-                <div class="ui divider"></div>
-                <div id="mark_data_div">
-                    {% include 'marks/MarkAddData.html' with markdata=markdata tags=tags %}
-                </div>
-                <br>
-                {% if can_freeze %}
-                    <div class="ui toggle checkbox">
-                        <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
-                        <label for="is_modifiable">{% trans 'Editable' %}</label>
-                    </div>
-                {% endif %}
-                <br><br>
-                <label for="edit_mark_comment"></label>
-                <div class="ui action input fluid">
-                    <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
-                    <button id="save_mark_btn" style="float:right" class="ui green button">{% trans 'Save' %}</button>
-                    <a href="{% url 'marks:view_mark' type mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
-                </div>
+    <div id="mark_data_div">
+        {% if markdata.type == 'unknown' %}
+            {% include 'marks/MarkUnknownData.html' with markdata=markdata %}
+        {% else %}
+            {% include 'marks/MarkAddData.html' with markdata=markdata tags=markdata.tags %}
+        {% endif %}
+    </div>
+    <br>
+    <div class="ui grid">
+    {% if access.can_freeze %}
+        <div class="seven wide column">
+            <div class="ui toggle checkbox">
+                <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
+                <label for="is_modifiable">{% trans 'Editable' %}</label>
             </div>
         </div>
-    </form>
-    <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
-    <div id="remove_marks_popup" class="ui basic modal">
-        <div class="ui icon header">
-            <i class="warning sign icon"></i>
-            {% trans 'Are you sure' %}?
-        </div>
-        <div class="content">
-            <div class="ui center aligned grid">
-                <p>{% trans 'The action is irreversible' %}!</p>
+    {% endif %}
+        <div class="nine wide column">
+            <div class="ui toggle checkbox">
+                <input type="checkbox" id="autoconfirm">
+                <label for="autoconfirm">{% trans "Preserve confirmations of associations if possible" %}</label>
             </div>
         </div>
-        <div class="actions">
-            <div class="ui center aligned grid">
-                <button id="cancel_remove_marks" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <button id="confirm_remove_mark" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
-            </div>
-        </div>
+    </div>
+    <br>
+    <label for="edit_mark_comment"></label>
+    <div class="ui action input fluid">
+        <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
+        <button id="save_mark_btn" style="float:right" class="ui green button">{% trans 'Save' %}</button>
+        <a href="{% url 'marks:mark' markdata.type 'view' mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
     </div>
 {% endblock %}

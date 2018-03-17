@@ -431,6 +431,13 @@ window.update_colors = function (table) {
     });
 };
 
+window.isFileReadable = function(name) {
+    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
+    var found = name.lastIndexOf('.') + 1,
+        extension = (found > 0 ? name.substr(found) : "");
+    return ($.inArray(extension, readable_extensions) !== -1);
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
