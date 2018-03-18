@@ -339,7 +339,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         return_expression = ret_expression()
 
         # Determine label params
-        external_parameters = [external_parameters[i] for i in external_parameters.keys()]
+        external_parameters = [external_parameters[i] for i in sorted(list(external_parameters.keys()))]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
         if true_call:
