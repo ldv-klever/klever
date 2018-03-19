@@ -384,6 +384,10 @@ class Scheduler(schedulers.SchedulerExchange):
                 client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
                     len(client_conf["resource limits"]["CPU cores"])
 
+            # Save Klever Core configuration to default configuration file
+            with open(os.path.join(work_dir, "core.json"), "w", encoding="utf8") as fh:
+                json.dump(client_conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
+
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
