@@ -36,7 +36,7 @@ class Manual(AbstractStrategy):
                                                                                              value))
                 self.groups[key].append([re.subn('.ko$', '.o', module)[0] for module in module_list])
 
-    def divide(self, module_name):
+    def _divide(self, module_name):
         ret = []
 
         if module_name == 'all':
@@ -79,3 +79,11 @@ class Manual(AbstractStrategy):
                 ret.append(Graph([Module(module_name)]))
 
         return ret
+
+    def get_to_build(self, modules):
+        ret = set()
+        for groups in self.groups.value():
+            for group in groups:
+                ret.update(group)
+
+        return ret, False

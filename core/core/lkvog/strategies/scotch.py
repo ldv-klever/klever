@@ -35,11 +35,12 @@ class Scotch(AbstractStrategy):
         self.balance_tolerance = params.get('balance tolerance', 0.05)
         self.clusters = set()
 
+    def _set_dependencies(self, deps, sizes):
         self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
 
-        for pred, _, module in strategy_params['module_deps_function']:
+        for pred, _, module in deps:
             self.module_deps.setdefault(module, [])
             self.module_deps[module].append(pred)
 
@@ -156,7 +157,7 @@ class Scotch(AbstractStrategy):
 
         self.logger.info("Number of clusters is {0}".format(len(self.clusters)))
 
-    def divide(self, module_name):
+    def _divide(self, module_name):
         if module_name == "all":
             return self.clusters
         elif not module_name.endswith('.o'):
@@ -178,3 +179,13 @@ class Scotch(AbstractStrategy):
             ret_clusters = [Graph([Module(module_name)])]
 
         return ret_clusters
+
+    def get_to_build(self, modules):
+        if self.is_deps is None:
+            return [], True
+        else:
+            self._divide_all()
+            return self._collect_to_build(modules), False
+
+    def need_dependencies(self):
+        return True

@@ -15,9 +15,46 @@
 # limitations under the License.
 #
 
+from core.lkvog.strategies.strategy_utils import Graph, Module
+
+
 class AbstractStrategy:
     def __init__(self, logger):
         self.logger = logger
+        self.graphs = None
+        self.is_deps = False
 
     def divide(self, module):
+        if self.graphs is not None:
+            return self.graphs.get(module, [Graph(Module(module))])
+        else:
+            return self._divide(module)
+
+    def set_dependencies(self, deps, sizes):
+        self.is_deps = True
+        self._set_dependencies(deps, sizes)
+
+    def _set_depndencies(self, deps, sizes):
         pass
+
+    def _divide(self, module):
+        raise NotImplementedError
+
+    def get_to_build(self, modules):
+        """
+        Returns list of modules to build and whether to build all
+        """
+        return modules, False
+
+    def _collect_to_build(self, modules):
+        to_build = set()
+        self.graphs = {}
+        for module in modules:
+            self.graphs[module] = self._divide(module)
+            for module in self.graphs[module].modules:
+                to_build.add(module.name)
+
+        return to_build
+
+    def need_dependencies(self):
+        return False

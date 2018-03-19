@@ -24,7 +24,4 @@ class SeparateModules(AbstractStrategy):
         super().__init__(logger)
 
     def divide(self, module_name):
-        if module_name.endswith('.o'):
-            return [Graph([Module(module_name)])]
-        else:
-            return []
+        return [Graph([Module(module_name)])]

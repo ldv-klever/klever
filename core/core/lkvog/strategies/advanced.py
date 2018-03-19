@@ -26,14 +26,13 @@ class Advanced(AbstractStrategy):
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
         module_sizes = strategy_params.get('module_sizes', {})
-        deps = strategy_params['module_deps_function']
 
         # Going to read params
         self.logger = logger
         self.koef = params.get('cluster size', 5)
         self.max_g_for_m = params.get('max group for module', 5)
         self.minimize_groups_for_module = params.get('minimize groups for module', True)
-        self.priority_on_module_size = params.get('priority on module size', True) and bool(module_sizes)
+        self.priority_on_module_size = params.get('priority on module size', True)
 
         self.user_deps = {}
         for module, dep_modules in params.get('user deps', {}).items():
@@ -53,15 +52,19 @@ class Advanced(AbstractStrategy):
             params.get('priority on calls', self.division_type != 'Library')
         self.maximize_subsystems = params.get('maximize subsystems', True)
 
+    def _set_dependencies(self, deps, sizes):
         # Creating modules dict
+        if sizes is None:
+            self.priority_on_module_size = False
+
         self.modules = {}
         for succ, _, module in sorted(deps):
             self.modules.setdefault(module, Module(module))
             self.modules.setdefault(succ, Module(succ))
             self.modules[module].add_successor(self.modules[succ])
 
-            self.modules[module].size = module_sizes.get(module, 0)
-            self.modules[succ].size = module_sizes.get(succ, 0)
+            self.modules[module].size = sizes.get(module, 0)
+            self.modules[succ].size = sizes.get(succ, 0)
 
         # Creating export/call functions
         self.not_checked_export_f = {}
@@ -408,3 +411,13 @@ class Advanced(AbstractStrategy):
             print('Not checked all export', main_module.id, len(self.not_checked_export_f[main_module]))
 
         return ret
+
+    def get_to_build(self, modules):
+        if self.is_deps is None:
+            return [], True
+        else:
+            self._divide_all()
+            return self._collect_to_build(modules), False
+
+    def need_dependencies(self):
+        return True

@@ -28,15 +28,16 @@ class Closure(AbstractStrategy):
         self.modules = {}
         self.checked_clusters = set()
 
+    def _set_depndencies(self, deps, sizes):
         self.logger.info('Calculate graph of all dependencies between modules')
-        for pred, _, module in sorted(strategy_params['module_deps_function']):
+        for pred, _, module in sorted(deps):
             if pred not in self.modules:
                 self.modules[pred] = Module(pred)
             if module not in self.modules:
                 self.modules[module] = Module(module)
             self.modules[module].add_predecessor(self.modules[pred])
 
-    def divide(self, module_name):
+    def _divide(self, module_name):
         """
         Auxiliary function for preparation groups of modules with
         its dependencies taking into account size restrictions of
@@ -182,3 +183,13 @@ class Closure(AbstractStrategy):
         self.logger.info("The nuber of clusters is {0}".format(len(ret)))
 
         return ret
+
+    def get_to_build(self, modules):
+        if self.is_deps is None:
+            return [], True
+        else:
+            self._divide_all()
+            return self._collect_to_build(modules), False
+
+    def need_dependencies(self):
+        return True

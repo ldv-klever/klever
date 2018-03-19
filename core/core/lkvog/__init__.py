@@ -27,6 +27,9 @@ from core.lkvog.strategies import closure
 from core.lkvog.strategies import advanced
 from core.lkvog.strategies import strategies_list
 from core.lkvog.strategies import strategy_utils
+
+from core.lkvog.module_extractors import module_extractors_list
+
 import core.components
 import core.utils
 
@@ -77,25 +80,30 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
 
+        # These dirs are excluded from cleaning by lkvog
+        self.dynamic_excluded_clean = multiprocessing.Manager().list()
+
         if self.conf['Linux kernel'].get('Clade base'):
             self.clade_base = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                           self.conf['Linux kernel']['Clade base'])
         else:
             self.build_linux_kernel()
 
+        self.set_shadow_src_tree()
+
         with open(os.path.join(self.clade_base, 'clade.json')) as fp:
             self.clade = json.load(fp)
 
-        # These dirs are excluded from cleaning by lkvog
-        self.dynamic_excluded_clean = multiprocessing.Manager().list()
+        #self.extract_linux_kernel_verification_objs_gen_attrs()
 
-        self.extract_linux_kernel_verification_objs_gen_attrs()
+        #raise Exception
 
-        raise Exception
+        #self.launch_subcomponents(True,
+        #                          ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
+        #                          ('AVODG', self.generate_all_verification_obj_descs))
 
-        self.launch_subcomponents(True,
-                                  ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
-                                  ('AVODG', self.generate_all_verification_obj_descs))
+    def set_shadow_src_tree(self):
+        self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
 
     def build_linux_kernel(self):
         try:
@@ -116,7 +124,19 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        # self.model_headers = self.mqs['model headers'].get()
+        strategy_name = self.conf['LKVOG strategy']['name']
+        if strategy_name not in strategies_list:
+            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
+
+        self.dependencies = self._parse_linux_kernel_mod_function_deps()
+        self.sizes = self._parse_sizes_from_file()
+        strategy_params = {'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                                    strategy_name))}
+        self.strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
+        if self.dependencies:
+            self.strategy.set_dependencies(self.dependencies, self.sizes)
+        to_build, is_build_all = self.strategy.get_to_build(self.conf['Linux kernel']['modules'])
+        self.model_headers = self.mqs['model headers'].get()
 
         clade_conf = {
             'work_dir': 'clade',
@@ -148,7 +168,7 @@ class LKVOG(core.components.Component):
                     'configuration': conf,
                     # TODO: indeed LKVOG strategies should set these parameters as well as some other ones.
                     'kernel': False,
-                    'modules': self.conf['Linux kernel']['modules'],
+                    'modules': to_build if not is_build_all else ["all"],
                     'intercept_commands': True,
                     'internal_extensions': ['CommandGraph'],
                     'CC.with_system_header_files': False
@@ -163,13 +183,55 @@ class LKVOG(core.components.Component):
 
         self.clade_base = 'clade'
 
-        # self.copy_model_headers()
-        # self.fixup_model_cc_opts()
-        # self.mqs['model CC opts'].put(self.model_cc_opts)
+        self.module_extractor = module_extractors_list[self.conf['Module extractor']['name']](self.logger,
+                                                                                              os.path.join(os.path.abspath('.'),
+                                                                                                           self.conf['Module extractor']['clade']))
+        self.modules = self.module_extractor.divide(self.get_build_graph())
+        self.model_cc_opts = self.module_extractor.get_cc_opts()
+
+        if self.sizes is None:
+            self.sizes = self._get_sizes()
+        if self.dependencies is None and self.strategy.need_dependencies():
+            self.dependencies = self._get_dependencies()
+            self.strategy.set_dependencies(self.dependencies, self.sizes)
+
+        modules_in_clusters = set()
+
+        for module in self.conf['Linux kernel']['modules']:
+            clusters = self.strategy.divide(module)
+            self.all_clusters.update(clusters)
+            for cluster in clusters:
+                # Draw graph if need it
+                if self.conf['LKVOG strategy'].get('draw graphs'):
+                    cluster.draw('.')
+                modules_in_clusters.update([module.id for module in cluster.modules])
+
+        for cluster in self.all_clusters:
+            self.logger.debug("Going to verify cluster")
+            self.cluster = cluster
+            self.generate_verification_obj_desc()
+
+        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
+        for module in self.modules:
+            if module not in modules_in_clusters:
+                for subsystem in subsystems:
+                    if subsystem.startswith(module):
+                        self.cluster = strategy_utils.Graph([strategy_utils.Module])
+                        self.generate_verification_obj_desc()
+                        break
+
+        self.copy_model_headers()
+        self.fixup_model_cc_opts()
+        self.mqs['model CC opts'].put(self.model_cc_opts)
 
         self.clean_dir = True
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
+
+    def get_build_graph(self):
+        # TODO getting from clade interface
+        with open(os.path.join(self.clade_base, 'BuildLinuxKernel', 'CommandGraph', 'command_graph.json')) as fp:
+            return json.load(fp)
 
     def send_loc_report(self):
         core.utils.report(self.logger,
@@ -206,6 +268,9 @@ class LKVOG(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
+    def _get_sizes(self):
+        #TODO implement me
+        return None
 
     def get_modules_from_deps(self, subsystem, deps):
         # Extract all modules in subsystem from dependencies.
@@ -226,78 +291,22 @@ class LKVOG(core.components.Component):
         else:
             return False
 
+    """
     def generate_all_verification_obj_descs(self):
         self.logger.info('Generate all verification object decriptions')
-
-        strategy_name = self.conf['LKVOG strategy']['name']
 
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
         if 'external modules' in self.conf['Linux kernel']:
             subsystems = ['ext-modules/' + subsystem for subsystem in subsystems]
 
-        self.linux_kernel_src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                               self.conf['Linux kernel']['source'])
-
-        if 'all' in self.conf['Linux kernel']['modules'] and not len(self.conf['Linux kernel']['modules']) == 1:
-            raise ValueError('You can not specify "all" modules together with some other modules')
-
-        module_deps_function = {}
-        module_sizes = {}
-
-        # If user specify files for multimodule analysis, then get them
-        if 'module dependencies file' in self.conf['Linux kernel']:
-            module_deps_function = self.mqs['Linux kernel module dependencies'].get()
-        if 'module sizes file' in self.conf['Linux kernel']:
-            module_sizes = self.mqs['Linux kernel module sizes'].get()
-
-        to_build = None
-        # Else, we should build all kernel if multimodule strategy is non-trivial
-        if 'module dependencies file' not in self.conf['Linux kernel']:
-            if strategy_name == 'separate modules':
-                to_build = {'build kernel': False,
-                            'modules': self.conf['Linux kernel']['modules']}
-            elif strategy_name != 'manual':
-                if 'external modules' not in self.conf['Linux kernel']:
-                    to_build = {'build kernel': True,
-                                'modules': []}
-
-                else:
-                    to_build = {'build kernel': True,
-                                'modules': self.conf['Linux kernel']['modules']}
-
-        if to_build:
-            self.mqs['Linux kernel modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].close()
-
-            if to_build['build kernel']:
-                module_deps_function = self.mqs['Linux kernel module dependencies'].get()
-                module_sizes = self.mqs['Linux kernel module sizes'].get()
-
-        self.mqs['Linux kernel module dependencies'].close()
-        self.mqs['Linux kernel module sizes'].close()
-
-        if strategy_name not in strategies_list:
-            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
-
-        # Getting strategy
-        strategy_params = {'module_deps_function': module_deps_function,
-                           'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                                    strategy_name)),
-                           'module_sizes': module_sizes}
-        strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
-
         # Make clusters for each module by the strategy
         build_modules = set()
         self.logger.debug("Initial list of modules to be built: {0}".format(self.conf['Linux kernel']['modules']))
-        for kernel_module in self.conf['Linux kernel']['modules']:
-            kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] \
-                else 'ext-modules/' + kernel_module
+        for module in self.conf['Linux kernel']['modules']:
             # Should replace .ko extension to .o
             kernel_module = re.sub('\.ko$', '.o', kernel_module)
 
-            self.logger.debug('Use strategy for {0} module'.format(kernel_module))
-            clusters = strategy.divide(kernel_module)
+            clusters = strategy.divide(module)
             self.all_clusters.update(clusters)
             for cluster in clusters:
                 # Draw graph if need it
@@ -315,25 +324,9 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
-        # If user specified files for multimodule analysis of strategy is manual,
-        # then we should put modules that will be built
-        if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
-            if 'all' in self.conf['Linux kernel']['modules']:
-                to_build = {'build kernel': False,
-                            'modules': ('all',)}
-                self.mqs['Linux kernel modules'].put({'build kernel': False,
-                                                      'modules': ('all',)})
-            else:
-                prefix = 'ext-modules/'
-                modules_to_build = [re.sub(r'\.o$', '.ko', module) for module in build_modules] + subsystems
-                to_build = {'build kernel': False, 'modules':
-                            [m if not m.startswith(prefix) else m[len(prefix):] for m in modules_to_build]}
-            self.mqs['Linux kernel modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].close()
-        else:
-            self.mqs['Linux kernel module dependencies'].close()
-        self.logger.info('Generate all Linux kernel verification object decriptions')
+        if self.dependencies is None:
+            self.dependencies = None #TODO: get from mqs
+            self.strategy.set_dependencies(self.dependencies)
 
         self.all_clusters = set([cluster for cluster in self.all_clusters
                                  if 'all' not in [module.id for module in cluster.modules]])
@@ -399,6 +392,7 @@ class LKVOG(core.components.Component):
 
         self.logger.info('The total number of verification object descriptions is "{0}"'.format(
             self.verification_obj_desc_num))
+    """
 
     def generate_verification_obj_desc(self):
         self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
@@ -417,7 +411,7 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['deps'] = {}
         self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
-            cc_full_desc_files = self.__find_cc_full_desc_files(module.id)
+            cc_full_desc_files = self.modules[module.id]
             self.verification_obj_desc['grps'].append({'id': module.id,
                                                        'cc full desc files': cc_full_desc_files})
             self.verification_obj_desc['deps'][module.id] = \
@@ -463,6 +457,7 @@ class LKVOG(core.components.Component):
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
 
+    """
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
@@ -510,6 +505,7 @@ class LKVOG(core.components.Component):
                 break
 
             self.process_linux_kernel_build_cmd_desc(desc_file)
+    """
 
     def copy_deps(self, desc):
         # Dependencies can be obtained just for CC commands taking normal C files as input.
@@ -546,6 +542,7 @@ class LKVOG(core.components.Component):
                 else:
                     shutil.copy2(dep, dest_dep)
 
+    """
     def process_linux_kernel_build_cmd_desc(self, desc_file):
         #TODO: Extract files more accurately
         with open(os.path.join(self.work_dir_clade, desc_file), encoding='utf8') as fp:
@@ -628,15 +625,18 @@ class LKVOG(core.components.Component):
         self.cc_full_descs_files[out_file] = cc_full_desc_files
         
         return cc_full_desc_files
+    """
 
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
+        return loc
+        # TODO: get from clade
         for cc_full_desc_file in cc_full_desc_files:
             #TODO extract files more accurately
             with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
             #with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
                 cc_full_desc = json.load(fp)
-            for file in cc_full_desc['in files']:
+            for file in cc_full_desc['in']:
                 # Simple file's line counter
                 #TODO extact files more accurately
                 with open(file) as fp:
@@ -645,44 +645,59 @@ class LKVOG(core.components.Component):
                     loc += sum(1 for _ in fp)
         return loc
 
-    def parse_linux_kernel_mod_function_deps(self, lines):
-        dependencies = []
-        for line in lines:
+    def _parse_linux_kernel_mod_function_deps(self):
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            deps_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                    self.conf['Linux kernel']['module dependencies file'])
+            dependencies = []
+            with open(deps_file, encoding='utf-8') as fp:
+                for line in fp:
 
-            # Remove newline symbols
-            if line[-1] == '\n':
-                line = line[:-1]
+                    # Remove newline symbols
+                    if line[-1] == '\n':
+                        line = line[:-1]
 
-            line = re.subn(r'\.ko', '.o', line)[0]
-            splts = line.split(' ')
+                    line = re.subn(r'\.ko', '.o', line)[0]
+                    splts = line.split(' ')
 
-            # Format is 'first_modules needs "func": second_module'
-            first_module = splts[0]
-            second_module = splts[3]
-            func = splts[2]
+                    # Format is 'first_modules needs "func": second_module'
+                    first_module = splts[0]
+                    second_module = splts[3]
+                    func = splts[2]
 
-            # Remove quotes and semicolon around function
-            func = func[1:-2]
+                    # Remove quotes and semicolon around function
+                    func = func[1:-2]
 
-            KERNEL_PREFIX = 'kernel/'
-            EXTRA_PREFIX = 'extra/'
-            EXT_PREFIX = 'ext-modules/'
+                    KERNEL_PREFIX = 'kernel/'
+                    EXTRA_PREFIX = 'extra/'
+                    EXT_PREFIX = 'ext-modules/'
 
-            # Remove 'kernel/' and useless path prefix
-            first_module, second_module = (m if not m.startswith(KERNEL_PREFIX) else m[len(KERNEL_PREFIX):]
-                                           for m in (first_module, second_module))
+                    # Remove 'kernel/' and useless path prefix
+                    first_module, second_module = (m if not m.startswith(KERNEL_PREFIX) else m[len(KERNEL_PREFIX):]
+                                                for m in (first_module, second_module))
 
-            # Replace 'extra/' and remove useless path prefix
-            first_module, second_module = (m if not m.startswith(EXTRA_PREFIX) else EXT_PREFIX + m[len(EXTRA_PREFIX):]
-                                           for m in (first_module, second_module))
+                    # Replace 'extra/' and remove useless path prefix
+                    first_module, second_module = (m if not m.startswith(EXTRA_PREFIX) else EXT_PREFIX + m[len(EXTRA_PREFIX):]
+                                                for m in (first_module, second_module))
 
-            dependencies.append((second_module, func, first_module))
-        return dependencies
+                    dependencies.append((second_module, func, first_module))
+            return dependencies
+        else:
+            return None
+
+    def _parse_sizes_from_file(self):
+        if 'module sizes file' in self.conf['Linux kernel']:
+            sizes_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                     self.conf['Linux kernel']['module sizes file'])
+            with open(sizes_file, encoding='utf8') as fp:
+                return json.load(fp)
+        else:
+            return None
 
     def copy_model_headers(self):
         self.logger.info('Copy model headers')
 
-        linux_kernel_work_src_tree = os.path.realpath(self.linux_kernel['src']) #self.linux_kernel['work src tree'])
+        linux_kernel_work_src_tree = os.path.realpath(self.conf['Linux kernel']['source']) #self.linux_kernel['work src tree'])
 
         os.makedirs('model-headers'.encode('utf8'))
 
