@@ -301,7 +301,7 @@ class InterfaceCollection:
             elif len(containers) > 0 and len(callback.implementations) == 0:
                 for container in containers:
                     if self.get_intf(container) in relevant_interfaces and \
-                                    len(self.get_intf(container).implementations) > 0:
+                                    len(self.get_intf(container).implementations) == 0:
                         relevant_interfaces.add(callback)
                         relevant_interfaces.update(__check_category_relevance(callback))
                         break
