@@ -20,6 +20,15 @@ from core.vtg.emg.common.process.collection import ProcessCollection
 
 
 def generate_processes(emg, source):
+    """
+    This is the main function for generating processes of the environment model in the intermediate representation.
+    From the configuration, the function reads the list of generators names and runs them one by one to obtain a final
+    set of processes before translation them into C code.
+
+    :param emg: EMG plugin object.
+    :param source: Source collection object.
+    :return: ProcessCollection object.
+    """
     # In a specific order start proess generators
     generator_names = ('.vtg.emg.processGenerator.{}'.format(e) for e in
                        [list(e.keys())[0] for e in get_necessary_conf_property(emg.conf, "intermediate model options")])

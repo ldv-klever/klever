@@ -24,6 +24,17 @@ from core.vtg.emg.processGenerator.linuxInsmod.tarjan import calculate_load_orde
 
 
 def generate_processes(emg, source, processes, conf):
+    """
+    This generator generates processes for verifying Linux kernel modules. It generates the main process which calls
+    module and kernel initialization functions and then modules exit functions.
+
+    :param emg: EMG Plugin object.
+    :param source: Source collection object.
+    :param processes: ProcessCollection object.
+    :param conf: Configuration dictionary of this generator.
+    :return: None
+    """
+
     # Import Specifications
     emg.logger.info("Generate an entry process on base of source analysis of provided Linux kernel files")
     if processes.entry:

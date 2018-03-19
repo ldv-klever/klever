@@ -23,7 +23,19 @@ from core.vtg.emg.modelTranslator.fsa_translator.label_fsa_translator import Lab
 from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import StateTranslator
 
 
-def translate_intermediate_model(logger, conf, avt, analysis, processes):
+def translate_intermediate_model(logger, conf, avt, source, processes):
+    """
+    This is the main translator function. It generates automata first for all given processes of the environment model
+    and then give them to particular translator chosen by the user defined configuration. At the end it triggers
+    code printing and adds necessary information to the (abstract) verification task description.
+
+    :param logger: Logger object.
+    :param conf: Configuration dictionary for the whole EMG.
+    :param avt: Verification task dictionary.
+    :param source: Source object.
+    :param processes: ProcessCollection object.
+    :return: None.
+    """
     if not processes.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
@@ -125,9 +137,9 @@ def translate_intermediate_model(logger, conf, avt, analysis, processes):
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
     if get_necessary_conf_property(conf['translation options'], "nested automata"):
-        LabelTranslator(logger, conf['translation options'], analysis, cmodel, entry_fsa, model_fsa, main_fsa)
+        LabelTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
     else:
-        StateTranslator(logger, conf['translation options'], analysis, cmodel, entry_fsa, model_fsa, main_fsa)
+        StateTranslator(logger, conf['translation options'], source, cmodel, entry_fsa, model_fsa, main_fsa)
 
     logger.info("Print generated source code")
     addictions = cmodel.print_source_code(additional_code)

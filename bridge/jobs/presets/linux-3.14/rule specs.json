@@ -139,6 +139,7 @@
               "linux/ldv/common.c": {
                 "headers": {
                   "Linux 3.14 (base)": [
+                    "linux/user_namespace.h",
                     "linux/tty.h",
                     "linux/tty_driver.h",
                     "linux/usb.h",
@@ -322,6 +323,7 @@
           "environment model file": "environment_model.c",
           "code additional aspects": [],
           "additional headers": [
+            "linux/user_namespace.h",
             "linux/ldv/common.h",
             "linux/ldv/err.h",
             "verifier/common.h",

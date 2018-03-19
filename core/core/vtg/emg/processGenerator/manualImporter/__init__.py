@@ -22,6 +22,18 @@ from core.vtg.emg.common.process.collection import ProcessCollection
 
 
 def generate_processes(emg, source, processes, conf):
+    """
+    This generator reads a manually prepared environment model description and some of them just adds to the already
+    generated model and some generated processes with the same names it replaces by new manually prepared one. A user
+    can just get an automatically generated model by setting option for a translator and modify it to rerun EMG next
+    time to make it generate the model with desired properties without modifying any specifications.
+
+    :param emg: EMG Plugin object.
+    :param source: Source collection object.
+    :param processes: ProcessCollection object.
+    :param conf: Configuration dictionary of this generator.
+    :return: None.
+    """
     # Import Specifications
     or_models = list(processes.models.values())
     or_processes = list(processes.environment.values())

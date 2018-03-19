@@ -39,3 +39,8 @@ around: execution(static inline long IS_ERR_OR_NULL(..))
 {
 	return ldv_is_err_or_null($arg1);
 }
+
+around: call(void panic(..))
+{
+    ldv_panic();
+}
