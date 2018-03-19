@@ -20,6 +20,7 @@ import multiprocessing
 import os
 import re
 import shutil
+import tarfile
 import filecmp
 
 from core.lkvog.strategies import scotch
@@ -83,11 +84,14 @@ class LKVOG(core.components.Component):
         # These dirs are excluded from cleaning by lkvog
         self.dynamic_excluded_clean = multiprocessing.Manager().list()
 
+        self.prepare_strategy()
         if self.conf['Linux kernel'].get('Clade base'):
             self.clade_base = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                           self.conf['Linux kernel']['Clade base'])
         else:
             self.build_linux_kernel()
+
+        self.prepare_modules()
 
         self.set_shadow_src_tree()
 
@@ -96,7 +100,11 @@ class LKVOG(core.components.Component):
 
         #self.extract_linux_kernel_verification_objs_gen_attrs()
 
-        #raise Exception
+        raise Exception
+
+        self.clean_dir = True
+        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
+        self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
         #self.launch_subcomponents(True,
         #                          ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
@@ -104,6 +112,19 @@ class LKVOG(core.components.Component):
 
     def set_shadow_src_tree(self):
         self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
+
+    def prepare_strategy(self):
+        strategy_name = self.conf['LKVOG strategy']['name']
+        if strategy_name not in strategies_list:
+            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
+
+        self.dependencies = self._parse_linux_kernel_mod_function_deps()
+        self.sizes = self._parse_sizes_from_file()
+        strategy_params = {'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                                    strategy_name))}
+        self.strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
+        if self.dependencies:
+            self.strategy.set_dependencies(self.dependencies, self.sizes)
 
     def build_linux_kernel(self):
         try:
@@ -124,22 +145,14 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        strategy_name = self.conf['LKVOG strategy']['name']
-        if strategy_name not in strategies_list:
-            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
-
-        self.dependencies = self._parse_linux_kernel_mod_function_deps()
-        self.sizes = self._parse_sizes_from_file()
-        strategy_params = {'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                                    strategy_name))}
-        self.strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
-        if self.dependencies:
-            self.strategy.set_dependencies(self.dependencies, self.sizes)
         to_build, is_build_all = self.strategy.get_to_build(self.conf['Linux kernel']['modules'])
         self.model_headers = self.mqs['model headers'].get()
+        ext_modules = self.prepare_ext_modules()
 
         clade_conf = {
             'work_dir': 'clade',
+            'internal_extensions': ['CommandGraph'],
+            'CC.with_system_header_files': False,
             'extensions': [
                 {
                     'name': 'FetchWorkSrcTree',
@@ -153,7 +166,8 @@ class LKVOG(core.components.Component):
                 {
                     'name': 'Execute',
                     'command': ['make', '-j', build_jobs, '-s', 'kernelversion'],
-                    'stdout': 'Linux kernel version'
+                    'save_output': True,
+                    'output_key': 'Linux kernel version'
                 },
                 {
                     'name': 'ConfigureLinuxKernel',
@@ -169,9 +183,8 @@ class LKVOG(core.components.Component):
                     # TODO: indeed LKVOG strategies should set these parameters as well as some other ones.
                     'kernel': False,
                     'modules': to_build if not is_build_all else ["all"],
+                    'external modules': ext_modules,
                     'intercept_commands': True,
-                    'internal_extensions': ['CommandGraph'],
-                    'CC.with_system_header_files': False
                 }
             ]
         }
@@ -183,6 +196,8 @@ class LKVOG(core.components.Component):
 
         self.clade_base = 'clade'
 
+
+    def prepare_modules(self):
         self.module_extractor = module_extractors_list[self.conf['Module extractor']['name']](self.logger,
                                                                                               os.path.join(os.path.abspath('.'),
                                                                                                            self.conf['Module extractor']['clade']))
@@ -220,18 +235,82 @@ class LKVOG(core.components.Component):
                         self.generate_verification_obj_desc()
                         break
 
-        self.copy_model_headers()
-        self.fixup_model_cc_opts()
-        self.mqs['model CC opts'].put(self.model_cc_opts)
-
-        self.clean_dir = True
-        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
-        self.logger.debug("Excluded {0}".format(self.excluded_clean))
+        #self.copy_model_headers()
+        #self.fixup_model_cc_opts()
+        #self.mqs['model CC opts'].put(self.model_cc_opts)
 
     def get_build_graph(self):
         # TODO getting from clade interface
-        with open(os.path.join(self.clade_base, 'BuildLinuxKernel', 'CommandGraph', 'command_graph.json')) as fp:
+        with open(os.path.join(self.clade_base, 'CommandGraph', 'command_graph.json')) as fp:
             return json.load(fp)
+
+    def prepare_ext_modules(self):
+        if 'external modules' not in self.conf['Linux kernel']:
+            return None
+
+        work_src_tree = 'ext-modules'
+
+        self.logger.info(
+            'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
+            .format(self.conf['Linux kernel']['external modules'], work_src_tree))
+
+        src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                          self.conf['Linux kernel']['external modules'])
+
+        if os.path.isdir(src):
+            self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
+            shutil.copytree(src, work_src_tree, symlinks=True)
+        elif os.path.isfile(src):
+            self.logger.debug('External Linux kernel modules source code is provided in form of archive')
+            with tarfile.open(src, encoding='utf8') as TarFile:
+                TarFile.extractall(work_src_tree)
+
+        self.logger.info('Make canonical working source tree of external Linux kernel modules')
+        work_src_tree_root = None
+        for dirpath, dirnames, filenames in os.walk(work_src_tree):
+            ismakefile = False
+            for filename in filenames:
+                if filename == 'Makefile':
+                    ismakefile = True
+                    break
+
+            # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
+            # exist.
+            if self.conf['generate makefiles']:
+                if not work_src_tree_root:
+                    work_src_tree_root = dirpath
+
+                if not ismakefile:
+                    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='utf-8') as fp:
+                        fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
+                                 .format('$(filter %/, $(wildcard $(src)/*/))'))
+                        fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+                        # Specify additional directory to search for model headers. We assume that this directory is
+                        # preserved as is at least during solving a given job. So, we treat headers from it as system
+                        # ones, i.e. headers that aren't copied when .
+                        fp.write('ccflags-y += -isystem ' + os.path.abspath(os.path.dirname(
+                            core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['rule specifications DB']))))
+            elif ismakefile:
+                work_src_tree_root = dirpath
+                break
+
+        if not work_src_tree_root:
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+        elif not os.path.samefile(work_src_tree_root, work_src_tree):
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
+            for path in os.listdir(work_src_tree_root):
+                shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
+            trash_dir = work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, work_src_tree):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            shutil.rmtree(os.path.realpath(trash_dir))
+
+        return work_src_tree
 
     def send_loc_report(self):
         core.utils.report(self.logger,
@@ -251,7 +330,7 @@ class LKVOG(core.components.Component):
 
         self.common_prj_attrs = [
             {'Linux kernel': [
-                {'version': self.clade['Linux kernel version']},
+                {'version': self.clade['Linux kernel version'][0]},
                 {'architecture': self.clade['Linux kernel architecture']},
                 {'configuration': self.clade['Linux kernel configuration']}
             ]},

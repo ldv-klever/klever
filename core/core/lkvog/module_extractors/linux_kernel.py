@@ -59,7 +59,7 @@ class LinuxKernel:
         return {module_id: desc_files}
 
     def _get_desc_path(self, id, type_desc):
-        return os.path.join(self.clade_dir, 'BuildLinuxKernel', type_desc, '{0}.json'.format(id))
+        return os.path.join(self.clade_dir, type_desc, '{0}.json'.format(id))
 
     def _get_full_desc(self, id, type_desc):
         with open(self._get_desc_path(id, type_desc)) as fp:
