@@ -82,7 +82,8 @@
                   "check final state": false,
                   "add functions as initialization": {
                     "console_initcall": ["console_init"],
-                    "fs_initcall": ["tty_init"]
+                    "fs_initcall": ["tty_init"],
+                    "pure_initcall": ["random_int_secret_init"]
                   },
                   "kernel_initialization": [
                     "early_initcall",
@@ -314,7 +315,8 @@
               ],
               "add functions as initialization": {
                 "console_initcall": ["console_init"],
-                "fs_initcall": ["tty_init"]
+                "fs_initcall": ["tty_init"],
+                "pure_initcall": ["random_int_secret_init"]
               },
               "kernel": false
             }
