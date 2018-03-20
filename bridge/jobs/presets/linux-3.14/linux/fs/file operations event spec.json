@@ -223,6 +223,45 @@
           }
         }
       },
+      "register_chrdev": {
+        "comment": "Create and register a cdev occupying a range of minors.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register provided file_operations callbacks.",
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "statements": [
+              "%file_operations% = $ARG3;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to register the cdev.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered the cdev.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
       "unregister_chrdev": {
         "comment": "Unregister and destroy a cdev.",
         "labels": {

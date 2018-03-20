@@ -17,6 +17,10 @@
         "declaration": "void misc_deregister(*%file_operations.miscdevice%)",
         "header": "linux/miscdevice.h"
       },
+      "register_chrdev": {
+        "declaration": "int register_chrdev(unsigned int major, const char *name, *%file_operations.file_operations%)",
+        "header": "linux/fs.h"
+      },
       "unregister_chrdev": {
         "declaration": "void unregister_chrdev(unsigned int major, const char *name)",
         "header": "linux/fs.h"
