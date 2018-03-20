@@ -331,7 +331,6 @@ class FSATranslator:
                         body.extend(['\t\t' + stm for stm in blocks[index]])
                         body.append('\t\tbreak;')
                         body.append('\t};')
-                    body.append('\tdefault: ldv_assume(0);')
                     body.append('};')
 
                 if len(function_parameters) > 0:
