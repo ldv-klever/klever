@@ -370,6 +370,9 @@ class Process:
         :param strings: Strings with the definition.
         :return: None.
         """
+        if file is None:
+            raise ValueError("You have to give file name to add definition of function {!r}".format(name))
+
         if file not in self.definitions:
             self.definitions[file] = dict()
 

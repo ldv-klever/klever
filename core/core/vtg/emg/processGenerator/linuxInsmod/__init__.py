@@ -108,7 +108,17 @@ def __import_inits_exits(logger, conf, avt, source):
                         same_list.append((module, call[0]))
             if name in extra:
                 for func in (source.get_source_function(f) for f in extra[name] if source.get_source_function(f)):
-                    same_list.append((func.definition_file, func.name))
+                    if func.definition_file:
+                        file = func.definition_file
+                    elif len(func.declaration_files) > 0:
+                        file = list(func.declaration_files)[0]
+                    else:
+                        file = None
+
+                    if file:
+                        same_list.append((file, func.name))
+                    else:
+                        logger.warning("Cannot find file to place alias for {!r}".format(func.name))
             if len(same_list) > 0:
                 kernel_initializations.append((name, same_list))
 
