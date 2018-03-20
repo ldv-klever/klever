@@ -4,42 +4,23 @@ import shutil
 
 
 class LinuxKernel:
-    def __init__(self, logger, conf):
+    def __init__(self, logger, clade, conf):
         self.logger = logger
-        self.clade_dir = conf #conf['clade']
-        self.model_cc_opts = None
+        self.clade = clade
 
-    def divide(self, build_graph):
+    def divide(self):
         modules = {}
+
+        cmd_graph = self.clade.get_command_graph()
+        build_graph = cmd_graph.load()
 
         for id, desc in build_graph.items():
             if desc['type'] == 'LD':
                 full_desc = self._get_full_desc(id, desc['type'])
                 if full_desc['out'].endswith('.ko'):
                     modules.update(self._create_module(id, build_graph))
-            elif desc['type'] == 'CC':
-                full_desc = self._get_full_desc(id, desc['type'])
-                if full_desc['in'] and full_desc['in'][0] == 'scripts/mod/empty.c':
-                    self.model_cc_opts = full_desc['opts']
-                    self.model_cc_opts = [cc_opt for cc_opt in self.model_cc_opts if cc_opt != '-mpreferred-stack-boundary=3']
-                    self._copy_deps(full_desc)
 
         return modules
-
-    def get_cc_opts(self):
-        return self.model_cc_opts
-
-    def _copy_deps(self, full_desc):
-        cwd = full_desc['cwd']
-        for dep in full_desc['deps']:
-            if os.path.isabs(dep) and not dep.startswith(cwd):
-                continue
-            if os.path.isabs(dep):
-                dep = os.path.relpath(dep, cwd)
-            os.makedirs(os.path.dirname(dep).encode('utf8'), exist_ok=True)
-
-            #TODO: Get src file from clade interface
-            shutil.copy2(os.path.join(cwd, dep), dep)
 
     def _create_module(self, id, build_graph):
         desc = self._get_full_desc(id, build_graph[id]['type'])
@@ -53,15 +34,17 @@ class LinuxKernel:
             if current_type == 'CC':
                 desc = self._get_full_desc(current, current_type)
                 if not desc['in'][0].endswith('.S'):
-                    desc_files.append(self._get_desc_path(current, current_type))
+                    desc_files.append(current)
+                    #desc_files.append(self._get_desc_path(current, current_type))
             process.extend(build_graph[current]['using'])
 
         return {module_id: desc_files}
 
-    def _get_desc_path(self, id, type_desc):
-        return os.path.join(self.clade_dir, type_desc, '{0}.json'.format(id))
-
     def _get_full_desc(self, id, type_desc):
-        with open(self._get_desc_path(id, type_desc)) as fp:
-            return json.load(fp)
+        desc = None
+        if type_desc == 'CC':
+            desc = self.clade.get_cc()
+        elif type_desc == 'LD':
+            desc = self.clade.get_ld()
+        return desc.load_json_by_id(id)
 

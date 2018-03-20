@@ -37,6 +37,8 @@ import core.utils
 #TODO: move to lkvog
 import core.lkbce.utils
 
+from clade import Clade
+
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
@@ -67,6 +69,7 @@ class LKVOG(core.components.Component):
     def generate_linux_kernel_verification_objects(self):
         self.clade_base = None
         self.clade = None
+        self.clade_info = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
         self.linux_kernel_module_info_mq = multiprocessing.Queue()
@@ -91,12 +94,15 @@ class LKVOG(core.components.Component):
         else:
             self.build_linux_kernel()
 
+        self.clade = Clade()
+        self.clade.set_work_dir(self.clade_base)
         self.prepare_modules()
 
         self.set_shadow_src_tree()
 
+        #TODO: Get from clade interface
         with open(os.path.join(self.clade_base, 'clade.json')) as fp:
-            self.clade = json.load(fp)
+            self.clade_info = json.load(fp)
 
         #self.extract_linux_kernel_verification_objs_gen_attrs()
 
@@ -198,11 +204,14 @@ class LKVOG(core.components.Component):
 
 
     def prepare_modules(self):
-        self.module_extractor = module_extractors_list[self.conf['Module extractor']['name']](self.logger,
-                                                                                              os.path.join(os.path.abspath('.'),
-                                                                                                           self.conf['Module extractor']['clade']))
-        self.modules = self.module_extractor.divide(self.get_build_graph())
-        self.model_cc_opts = self.module_extractor.get_cc_opts()
+        module_extractor_name = self.conf['Module extractor']['name']
+        if module_extractor_name not in module_extractors_list:
+            raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
+        self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
+                                                                              self.clade,
+                                                                              os.path.join(os.path.abspath('.'),
+                                                                                           self.conf['Module extractor']['clade']))
+        self.modules = self.module_extractor.divide()
 
         if self.sizes is None:
             self.sizes = self._get_sizes()
@@ -238,11 +247,6 @@ class LKVOG(core.components.Component):
         #self.copy_model_headers()
         #self.fixup_model_cc_opts()
         #self.mqs['model CC opts'].put(self.model_cc_opts)
-
-    def get_build_graph(self):
-        # TODO getting from clade interface
-        with open(os.path.join(self.clade_base, 'CommandGraph', 'command_graph.json')) as fp:
-            return json.load(fp)
 
     def prepare_ext_modules(self):
         if 'external modules' not in self.conf['Linux kernel']:
@@ -330,9 +334,9 @@ class LKVOG(core.components.Component):
 
         self.common_prj_attrs = [
             {'Linux kernel': [
-                {'version': self.clade['Linux kernel version'][0]},
-                {'architecture': self.clade['Linux kernel architecture']},
-                {'configuration': self.clade['Linux kernel configuration']}
+                {'version': self.clade_info['Linux kernel version'][0]},
+                {'architecture': self.clade_info['Linux kernel architecture']},
+                {'configuration': self.clade_info['Linux kernel configuration']}
             ]},
             {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
         ]
@@ -369,109 +373,6 @@ class LKVOG(core.components.Component):
                 return True
         else:
             return False
-
-    """
-    def generate_all_verification_obj_descs(self):
-        self.logger.info('Generate all verification object decriptions')
-
-        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
-        if 'external modules' in self.conf['Linux kernel']:
-            subsystems = ['ext-modules/' + subsystem for subsystem in subsystems]
-
-        # Make clusters for each module by the strategy
-        build_modules = set()
-        self.logger.debug("Initial list of modules to be built: {0}".format(self.conf['Linux kernel']['modules']))
-        for module in self.conf['Linux kernel']['modules']:
-            # Should replace .ko extension to .o
-            kernel_module = re.sub('\.ko$', '.o', kernel_module)
-
-            clusters = strategy.divide(module)
-            self.all_clusters.update(clusters)
-            for cluster in clusters:
-                # Draw graph if need it
-                if self.conf['LKVOG strategy'].get('draw graphs', False):
-                    cluster.draw(".")
-                # Build list of modules that will build
-                for cluster_module in cluster.modules:
-                    for subsystem in subsystems:
-                        if cluster_module.id.startswith(subsystem):
-                            break
-                    else:
-                        build_modules.add(cluster_module.id)
-
-                    self.checked_modules.add(cluster_module.id)
-
-        self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
-
-        if self.dependencies is None:
-            self.dependencies = None #TODO: get from mqs
-            self.strategy.set_dependencies(self.dependencies)
-
-        self.all_clusters = set([cluster for cluster in self.all_clusters
-                                 if 'all' not in [module.id for module in cluster.modules]])
-
-        # Process incoming modules
-        cc_ready = set()
-        while True:
-            self.module = self.linux_kernel_module_info_mq.get()
-
-            if self.module is None:
-                self.logger.debug('Linux kernel module names message queue was terminated')
-                self.linux_kernel_module_info_mq.close()
-                break
-
-            self.module = os.path.normpath(self.module)
-
-            self.logger.debug('Recieved module {0}'.format(self.module))
-            cc_ready.add(self.module)
-
-            if self.module not in self.all_modules:
-                # This modules is not checked
-                module_clusters = []
-                if self.module in self.checked_modules:
-                    # This module is specified
-                    self.all_modules.add(self.module)
-                    # Find clusters for that module
-                    for cluster in self.all_clusters:
-                        if self.module in [module.id for module in cluster.modules]:
-                            for cluster_module in cluster.modules:
-                                if cluster_module.id not in cc_ready:
-                                    break
-                            else:
-                                module_clusters.append(cluster)
-                    # Remove clusters that will be checked.
-                    self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
-                                                   self.all_clusters))
-                else:
-                    # This module hasn't specified. But it may be in subsystem
-                    for subsystem in subsystems:
-                        if subsystem != 'all' and subsystem[-1] != '/':
-                            subsystem = subsystem + '/'
-                        if self.module.startswith(subsystem) or \
-                                self.module.startswith(os.path.join('ext-modules', subsystem)) or \
-                                        subsystem == 'all':
-                            self.all_modules.add(self.module)
-                            self.checked_modules.add(strategy_utils.Module(self.module))
-                            module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module)]))
-
-                # Generator verification object for that cluster
-                for cluster in module_clusters:
-                    self.cluster = cluster
-                    self.generate_verification_obj_desc()
-
-        # If we hasn't built all, should show error
-        if self.all_clusters:
-            not_builded = set()
-            for cluster in self.all_clusters:
-                not_builded |= set([module.id for module in cluster.modules]) - self.all_modules
-            raise RuntimeError('Can not build following modules: {0}'.format(not_builded))
-
-        # Generate lines of code
-        self.send_loc_report()
-
-        self.logger.info('The total number of verification object descriptions is "{0}"'.format(
-            self.verification_obj_desc_num))
-    """
 
     def generate_verification_obj_desc(self):
         self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
@@ -536,56 +437,6 @@ class LKVOG(core.components.Component):
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
 
-    """
-    def process_all_linux_kernel_build_cmd_descs(self):
-        self.logger.info('Process all Linux kernel build command decriptions')
-
-        self.list_modules = set()
-
-        # If user specified files for multimodule analysis, read them
-        if 'module dependencies file' in self.conf['Linux kernel']:
-            deps_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                     self.conf['Linux kernel']['module dependencies file'])
-            with open(deps_file, encoding='utf-8') as fp:
-                dependencies = self.parse_linux_kernel_mod_function_deps(fp)
-                self.mqs['Linux kernel module dependencies'].put(dependencies)
-                self.mqs['Linux kernel module dependencies'].close()
-
-        if 'module sizes file' in self.conf['Linux kernel']:
-            sizes_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                     self.conf['Linux kernel']['module sizes file'])
-            with open(sizes_file, encoding='utf8') as fp:
-                self.mqs['Linux kernel module sizes'].put(json.load(fp))
-                self.mqs['Linux kernel module sizes'].close()
-
-        # Get build info
-        to_build = self.mqs['Linux kernel additional modules'].get()
-        # Get user-specified (and extracted from multimodule analysis) modules to be built
-        self.force_modules = set((m.replace('.ko', '.o') for m in to_build['modules']))
-
-        while True:
-            desc_file = self.mqs['Linux kernel build cmd desc files'].get()
-
-            if desc_file is None:
-                self.logger.debug('Linux kernel build command descriptions message queue was terminated')
-                self.mqs['Linux kernel build cmd desc files'].close()
-                self.logger.info('Terminate Linux kernel module names message queue')
-
-                # If user didn't provide files for multimodule analysis and he uses multimodule strategy,
-                # we should provide these dependencies
-                if 'module dependencies file' not in self.conf['Linux kernel'] and to_build['build kernel']:
-                    self.mqs['Linux kernel module dependencies'].put(self.__build_dependencies())
-                    self.mqs['Linux kernel module dependencies'].close()
-                if 'module sizes file' not in self.conf['Linux kernel'] and to_build['build kernel']:
-                    self.mqs['Linux kernel module sizes'].put(self.__get_module_sizes())
-                    self.mqs['Linux kernel module sizes'].close()
-
-                self.linux_kernel_module_info_mq.put(None)
-                break
-
-            self.process_linux_kernel_build_cmd_desc(desc_file)
-    """
-
     def copy_deps(self, desc):
         # Dependencies can be obtained just for CC commands taking normal C files as input.
         if desc['type'] != 'CC' or re.search(r'\.S$', desc['in files'][0], re.IGNORECASE):
@@ -620,91 +471,6 @@ class LKVOG(core.components.Component):
                         raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
                 else:
                     shutil.copy2(dep, dest_dep)
-
-    """
-    def process_linux_kernel_build_cmd_desc(self, desc_file):
-        #TODO: Extract files more accurately
-        with open(os.path.join(self.work_dir_clade, desc_file), encoding='utf8') as fp:
-        #with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
-            desc = json.load(fp)
-        if not desc['out']:
-            return
-        #TODO refactor all?
-        desc['in files'] = desc['in']
-        desc['out file'] = desc['out']
-        with open(os.path.join(self.work_dir_clade, desc_file), 'w', encoding='utf8') as fp:
-            json.dump(desc, fp)
-
-        #TODO type commands
-        if 'CC' in desc_file:
-            desc['type'] = 'CC'
-        elif 'LD' in desc_file:
-            desc['type'] = 'LD'
-        elif 'MV' in desc_file:
-            desc['type'] = 'MV'
-
-        #TODO full desc file
-        desc['full desc file'] = os.path.relpath(os.path.join(self.work_dir_clade, desc_file), self.conf['main working directory'])
-        self.copy_deps(desc)
-
-        self.logger.info(
-            'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
-                                                                                 '(output file is {0})'.format(
-                                                                                     '"{0}"'.format(desc['out file'])
-                                                                                     if desc['out file']
-                                                                                     else 'not specified')))
-
-        # Build map from Linux kernel build command output files to correpsonding descriptions.
-        # If more than one build command has the same output file their descriptions are added as list in chronological
-        # order (more early commands are processed more early and placed at the beginning of this list).
-        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
-        if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
-                                                                              desc['out file']] + [desc]
-        else:
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
-        self.linux_kernel_build_cmd_out_file_desc_lock.release()
-
-        # Firstly, we should allow modules, that specified by user (force modules)
-        # Secondly, we should allow modules, that ends with .ko and doesn't specified by user
-        if (desc['type'] == 'LD' and desc['out file'].endswith('.ko')
-            and desc['out file'].replace('.ko', '.o') not in self.force_modules) \
-                or (desc['out file'].endswith('.o')
-                    and desc['out file'].replace('ext-modules/', '') in self.force_modules):
-            self.list_modules.add(desc['out file'])
-            self.linux_kernel_module_info_mq.put(desc['out file'].replace('.ko', '.o'))
-
-    def __find_cc_full_desc_files(self, out_file):
-        self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
-
-        if out_file in self.cc_full_descs_files:
-            self.logger.debug('CC full description files for "{0}" were already found'.format(out_file))
-            return self.cc_full_descs_files[out_file]
-
-        cc_full_desc_files = []
-        # Get more older build commands more early if more than one build command has the same output file.
-        self.linux_kernel_build_cmd_out_file_desc_lock.acquire()
-        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
-
-        # Remove got build command description from map. It is assumed that each build command output file can be used
-        # as input file of another build command just once.
-        self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
-        self.linux_kernel_build_cmd_out_file_desc_lock.release()
-
-        if out_file_desc:
-            if out_file_desc['type'] == 'CC':
-                # Do not include assembler files into verification objects since we have no means to instrument and to
-                # analyse them.
-                if not re.search(r'\.S$', out_file_desc['in files'][0], re.IGNORECASE):
-                    cc_full_desc_files.append(out_file_desc['full desc file'])
-            else:
-                for in_file in out_file_desc['in files']:
-                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
-
-        self.cc_full_descs_files[out_file] = cc_full_desc_files
-        
-        return cc_full_desc_files
-    """
 
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
