@@ -61,6 +61,13 @@ urlpatterns = [
     url(r'^ajax/do_job_has_children/$', views.do_job_has_children),
     url(r'^ajax/enable_safe_marks/$', views.enable_safe_marks),
     url(r'^ajax/upload_reports/$', views.upload_reports),
+    url(r'^ajax/get_job_id/$', views.get_job_id),
+    url(r'^ajax/get_job_identifier/$', views.get_job_identifier),
+    url(r'^ajax/get_job_progress_json/(?P<job_id>[0-9]+)/$', views.get_job_progress_json),
+    url(r'^ajax/get_job_decision_results/(?P<job_id>[0-9]+)/$', views.get_job_decision_results),
+    url(r'^ajax/save_job_copy/(?P<job_id>[0-9]+)/$', views.save_job_copy),
+    url(r'^ajax/copy_job_version/(?P<job_id>[0-9]+)/$', views.copy_job_version),
+    url(r'^ajax/replace_job_file/(?P<job_id>[0-9]+)/$', views.replace_job_file),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),
