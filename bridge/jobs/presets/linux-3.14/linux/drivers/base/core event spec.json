@@ -1,0 +1,144 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "device_create_file": {
+        "comment": "Create sysfs attribute file for device.",
+        "labels": {
+          "device": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device"
+            ]
+          },
+          "devattr": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device_attribute"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register attribute callbacks.",
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to create sysfs attribute file for device.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "assign": {
+            "comment": "Get attribute and device.",
+            "statements": [
+              "%device% = $ARG1;",
+              "%devattr% = $ARG2;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully created a attribute file for device.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "device_remove_file": {
+        "comment": "Remove sysfs attribute file.",
+        "labels": {
+          "device": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device"
+            ]
+          },
+          "devattr": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device_attribute"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "comment": "Deregister attribute callbacks.",
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          },
+          "assign": {
+            "comment": "Get attribute and device.",
+            "statements": [
+              "%device% = $ARG1;",
+              "%devattr% = $ARG2;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "devattr_instance": {
+        "comment": "Invoke attribute callbacks.",
+        "labels": {
+          "device": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device"
+            ]
+          },
+          "devattr": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "devattr.device_attribute"
+            ]
+          }
+        },
+        "process": "(!register).{main}",
+        "actions": {
+          "main": {
+            "comment": "Call devattr callbacks randomly.",
+            "process": "([show] | [store]).{main} | (deregister)"
+          },
+          "register": {
+            "comment": "Register attribute callbacks.",
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%devattr% == $ARG2"
+            ],
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          },
+          "show": {
+            "comment": "Call devattr show callback.",
+            "callback": "%devattr.show%",
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          },
+          "store": {
+            "comment": "Call devattr store callback.",
+            "callback": "%devattr.store%",
+            "parameters": [
+              "%device%", "%devattr%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
