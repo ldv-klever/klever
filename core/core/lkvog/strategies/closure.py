@@ -28,7 +28,7 @@ class Closure(AbstractStrategy):
         self.modules = {}
         self.checked_clusters = set()
 
-    def _set_depndencies(self, deps, sizes):
+    def _set_dependencies(self, deps, sizes):
         self.logger.info('Calculate graph of all dependencies between modules')
         for pred, _, module in sorted(deps):
             if pred not in self.modules:
@@ -50,7 +50,7 @@ class Closure(AbstractStrategy):
             for module in [module for module in self.modules.values() if not module.successors]:
                 clusters.extend(self.divide(module.id))
             return clusters
-        elif not module_name.endswith('.o'):
+        elif not module_name.endswith('.ko'):
             # This is subsystem
             for module in sorted(self.modules.keys()):
                 if module.startswith(module_name):
@@ -188,7 +188,6 @@ class Closure(AbstractStrategy):
         if self.is_deps is None:
             return [], True
         else:
-            self._divide_all()
             return self._collect_to_build(modules), False
 
     def need_dependencies(self):

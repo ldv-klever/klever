@@ -202,7 +202,6 @@ class LKVOG(core.components.Component):
 
         self.clade_base = 'clade'
 
-
     def prepare_modules(self):
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
@@ -502,7 +501,7 @@ class LKVOG(core.components.Component):
                     if line[-1] == '\n':
                         line = line[:-1]
 
-                    line = re.subn(r'\.ko', '.o', line)[0]
+                    #line = re.subn(r'\.ko', '.o', line)[0]
                     splts = line.split(' ')
 
                     # Format is 'first_modules needs "func": second_module'

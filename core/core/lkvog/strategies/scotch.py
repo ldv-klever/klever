@@ -34,6 +34,7 @@ class Scotch(AbstractStrategy):
         self.task_size = params['cluster size']
         self.balance_tolerance = params.get('balance tolerance', 0.05)
         self.clusters = set()
+        self.work_dir = strategy_params['work dir']
 
     def _set_dependencies(self, deps, sizes):
         self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
@@ -45,13 +46,13 @@ class Scotch(AbstractStrategy):
             self.module_deps[module].append(pred)
 
         # Clean working directory
-        if not os.path.isdir(strategy_params['work dir']):
-            os.mkdir(strategy_params['work dir'])
+        if not os.path.isdir(self.work_dir):
+            os.mkdir(self.work_dir)
         else:
             # Clear scotch directory
-            file_list = os.listdir(strategy_params['work dir'])
+            file_list = os.listdir(self.work_dir)
             for file_name in file_list:
-                os.remove(os.path.join(strategy_params['work dir'], file_name))
+                os.remove(os.path.join(self.work_dir, file_name))
 
         all_dep_modules = set()
         count_e = 0
@@ -165,7 +166,7 @@ class Scotch(AbstractStrategy):
             ret = []
             for cluster in self.clusters:
                 for module in cluster.modules:
-                    if module.startswith(module_name):
+                    if module.id.startswith(module_name):
                         ret.append(cluster)
                         break
             return ret
@@ -184,7 +185,6 @@ class Scotch(AbstractStrategy):
         if self.is_deps is None:
             return [], True
         else:
-            self._divide_all()
             return self._collect_to_build(modules), False
 
     def need_dependencies(self):

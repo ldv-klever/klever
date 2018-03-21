@@ -36,6 +36,12 @@ class Module:
     def __hash__(self):
         return hash(self.id)
 
+    def __str__(self):
+        return str(self.id)
+
+    def __repr__(self):
+        return str(self)
+
     def add_predecessor(self, predecessor):
         if predecessor and predecessor not in self.predecessors:
             self.predecessors.append(predecessor)
@@ -80,6 +86,12 @@ class Cluster:
     def __hash__(self):
         return hash(frozenset(self.modules))
 
+    def __str__(self):
+        return str(self.modules)
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def md5_hash(self):
         return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()[:12]
@@ -97,6 +109,12 @@ class Graph:
 
     def __hash__(self):
         return hash(frozenset(self.modules))
+
+    def __str__(self):
+        return str(self.modules)
+
+    def __repr__(self):
+        return str(self)
 
     def draw(self, dir):
         g = Digraph(name=str(self.root.id),

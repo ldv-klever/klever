@@ -26,15 +26,14 @@ class Manual(AbstractStrategy):
         super().__init__(logger)
         self.groups = {}
         for key, value in params.get('groups', {}).items():
-            key = re.subn('.ko$', '.o', key)[0]
             self.groups[key] = []
             for module_list in value:
                 if not isinstance(module_list, tuple) \
                         and not isinstance(module_list, list):
                     raise ValueError('You should specify a list of lists for modules for manual strategy\n'
-                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key.replace('.o', '.ko'),
+                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
                                                                                              value))
-                self.groups[key].append([re.subn('.ko$', '.o', module)[0] for module in module_list])
+                self.groups[key].append(module_list)
 
     def _divide(self, module_name):
         ret = []
@@ -43,7 +42,7 @@ class Manual(AbstractStrategy):
             for module in self.groups.keys():
                 ret.extend(self.divide(module))
             return ret
-        elif not module_name.endswith('.o'):
+        elif not module_name.endswith('.ko'):
             # This is subsystem
             for module in self.groups.keys():
                 if module.startswith(module_name):
@@ -82,8 +81,8 @@ class Manual(AbstractStrategy):
 
     def get_to_build(self, modules):
         ret = set()
-        for groups in self.groups.value():
+        for groups in self.groups.values():
             for group in groups:
                 ret.update(group)
 
-        return ret, False
+        return list(ret), False

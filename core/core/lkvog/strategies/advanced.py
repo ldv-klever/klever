@@ -56,6 +56,7 @@ class Advanced(AbstractStrategy):
         # Creating modules dict
         if sizes is None:
             self.priority_on_module_size = False
+            sizes = {}
 
         self.modules = {}
         for succ, _, module in sorted(deps):
@@ -284,7 +285,7 @@ class Advanced(AbstractStrategy):
         self.not_checked_call_f = {k: set(v) for k, v in self.not_checked_call_f_backup.items()}
         self.not_checked_export_f = {k: set(v) for k, v in self.not_checked_export_f_backup.items()}
 
-    def divide(self, module_name):
+    def _divide(self, module_name):
         self.clean()
 
         if module_name == 'all':
@@ -292,7 +293,7 @@ class Advanced(AbstractStrategy):
             for module in sorted(self.modules.keys()):
                 ret.update(self.divide(module))
             return ret
-        elif not module_name.endswith('.o'):
+        elif not module_name.endswith('.ko'):
             # This is subsystem
             ret = set()
             for module in sorted(self.modules.keys()):
@@ -416,7 +417,6 @@ class Advanced(AbstractStrategy):
         if self.is_deps is None:
             return [], True
         else:
-            self._divide_all()
             return self._collect_to_build(modules), False
 
     def need_dependencies(self):

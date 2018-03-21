@@ -25,8 +25,9 @@ class AbstractStrategy:
         self.is_deps = False
 
     def divide(self, module):
+        self.logger.debug("Graph is '{0}'".format(str(self.graphs)))
         if self.graphs is not None:
-            return self.graphs.get(module, [Graph(Module(module))])
+            return self.graphs.get(module, [Graph([Module(module)])])
         else:
             return self._divide(module)
 
@@ -34,7 +35,7 @@ class AbstractStrategy:
         self.is_deps = True
         self._set_dependencies(deps, sizes)
 
-    def _set_depndencies(self, deps, sizes):
+    def _set_dependencies(self, deps, sizes):
         pass
 
     def _divide(self, module):
@@ -51,10 +52,11 @@ class AbstractStrategy:
         self.graphs = {}
         for module in modules:
             self.graphs[module] = self._divide(module)
-            for module in self.graphs[module].modules:
-                to_build.add(module.name)
+            for graph in self.graphs[module]:
+                for module in graph.modules:
+                    to_build.add(module.id)
 
-        return to_build
+        return list(to_build)
 
     def need_dependencies(self):
         return False
