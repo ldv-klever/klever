@@ -152,7 +152,7 @@ class LKVOG(core.components.Component):
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
         to_build, is_build_all = self.strategy.get_to_build(self.conf['Linux kernel']['modules'])
-        self.model_headers = self.mqs['model headers'].get()
+
         ext_modules = self.prepare_ext_modules()
 
         clade_conf = {
@@ -191,6 +191,7 @@ class LKVOG(core.components.Component):
                     'kernel': False,
                     'modules': to_build if not is_build_all else ["all"],
                     'external modules': ext_modules,
+                    'model headers': self.mqs['model headers'].get(),
                     'intercept_commands': True,
                 }
             ]
