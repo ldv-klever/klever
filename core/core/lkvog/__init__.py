@@ -161,6 +161,18 @@ class LKVOG(core.components.Component):
             'storage_dir': os.path.join('clade', 'storage'),
             'internal_extensions': ['CommandGraph'],
             'CC.with_system_header_files': False,
+            'Common.filter_in': [
+                '-',
+                '/dev/null',
+                'scripts/(?!mod/empty\\.c)',
+                'kernel/.*?bounds.*?',
+                'arch/x86/tools/relocs',
+                'arch/x86/kernel/asm-offsets.c'
+            ],
+            'Common.filter_out': [
+                '/dev/null',
+                '.*?\\.cmd$'
+            ],
             'extensions': [
                 {
                     'name': 'FetchWorkSrcTree',
