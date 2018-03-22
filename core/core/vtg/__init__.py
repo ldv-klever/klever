@@ -552,7 +552,8 @@ class VTG(core.components.Component):
                     # Verification object is lastly processed
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
-                    del delete_ready[vobject]
+                    if vobject in delete_ready:
+                        del delete_ready[vobject]
 
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
