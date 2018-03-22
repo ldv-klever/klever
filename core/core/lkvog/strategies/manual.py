@@ -79,7 +79,7 @@ class Manual(AbstractStrategy):
 
         return ret
 
-    def get_to_build(self, modules):
+    def get_modules_to_build(self, modules):
         ret = set()
         for groups in self.groups.values():
             for group in groups:

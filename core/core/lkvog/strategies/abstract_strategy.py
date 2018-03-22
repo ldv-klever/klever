@@ -41,13 +41,13 @@ class AbstractStrategy:
     def _divide(self, module):
         raise NotImplementedError
 
-    def get_to_build(self, modules):
+    def get_modules_to_build(self, modules):
         """
         Returns list of modules to build and whether to build all
         """
         return modules, False
 
-    def _collect_to_build(self, modules):
+    def _collect_modules_to_build(self, modules):
         to_build = set()
         self.graphs = {}
         for module in modules:
