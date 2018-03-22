@@ -135,14 +135,14 @@ class LKVOG(core.components.Component):
     def build_linux_kernel(self):
         try:
             src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                           self.conf['Linux kernel']['source'])
+                                              self.conf['Linux kernel']['source'])
         except FileNotFoundError:
             # Linux kernel source code is not provided in form of file or directory.
             src = self.conf['Linux kernel']['source']
 
         try:
             conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                            self.conf['Linux kernel']['configuration'])
+                                               self.conf['Linux kernel']['configuration'])
         except FileNotFoundError:
             # Linux kernel configuration is not provided in form of file.
             conf = self.conf['Linux kernel']['configuration']
@@ -157,6 +157,7 @@ class LKVOG(core.components.Component):
 
         clade_conf = {
             'work_dir': 'clade',
+            'storage_dir': os.path.join('clade', 'storage'),
             'internal_extensions': ['CommandGraph'],
             'CC.with_system_header_files': False,
             'extensions': [
