@@ -5,47 +5,41 @@
     "architecture": "x86_64",
     "modules": [
       "drivers/tty/cyclades.ko",
-      "drivers/tty/ipwireless/ipwireless.ko",
-      "drivers/tty/isicom.ko",
-      "drivers/tty/moxa.ko",
-      "drivers/tty/mxser.ko",
       "drivers/tty/n_gsm.ko",
-      "drivers/tty/n_hdlc.ko",
-      "drivers/tty/n_r3964.ko",
-      "drivers/tty/n_tracerouter.ko",
-      "drivers/tty/n_tracesink.ko",
-      "drivers/tty/nozomi.ko",
+      "drivers/tty/moxa.ko",
+      "drivers/tty/isicom.ko",
       "drivers/tty/rocket.ko",
-      "drivers/tty/serial/8250/8250.ko",
-      "drivers/tty/serial/8250/8250_dw.ko",
-      "drivers/tty/serial/8250/8250_pci.ko",
-      "drivers/tty/serial/altera_jtaguart.ko",
-      "drivers/tty/serial/altera_uart.ko",
-      "drivers/tty/serial/arc_uart.ko",
-      "drivers/tty/serial/clps711x.ko",
-      "drivers/tty/serial/fsl_lpuart.ko",
-      "drivers/tty/serial/ifx6x60.ko",
+      "drivers/tty/nozomi.ko",
       "drivers/tty/serial/kgdboc.ko",
-      "drivers/tty/serial/mfd.ko",
-      "drivers/tty/serial/pch_uart.ko",
-      "drivers/tty/serial/rp2.ko",
-      "drivers/tty/serial/sccnxp.ko",
-      "drivers/tty/serial/serial_core.ko",
-      "drivers/tty/serial/sh-sci.ko",
-      "drivers/tty/serial/st-asc.ko",
-      "drivers/tty/serial/timbuart.ko",
-      "drivers/tty/serial/uartlite.ko",
-      "drivers/tty/synclink.ko",
-      "drivers/tty/synclink_gt.ko",
-      "drivers/tty/synclinkmp.ko"
+      "drivers/tty/serial/altera_uart.ko",
+      "drivers/tty/ipwireless/ipwireless.ko",
+      "drivers/pps/clients/pps-ldisc.ko",
+      "drivers/usb/serial/f81232.ko",
+      "drivers/usb/serial/kobil_sct.ko",
+      "samples/kobject/kobject-example.ko"
     ]
   },
   "LKVOG strategy": {
     "name": "manual",
     "groups": {
-      "drivers/tty/cyclades.ko": [
+      "samples/kobject/kobject-example.ko": [
         [
           "drivers/tty/n_tty.o",
+          "drivers/tty/pty.o",
+          "drivers/tty/sysrq.o",
+          "drivers/tty/tty_audit.o",
+          "drivers/tty/tty_buffer.o",
+          "drivers/tty/tty_io.o",
+          "drivers/tty/tty_ioctl.o",
+          "drivers/tty/tty_ldisc.o",
+          "drivers/tty/tty_ldsem.o",
+          "drivers/tty/tty_mutex.o",
+          "drivers/tty/tty_port.o",
+          "samples/kobject/kobject-example.ko"
+        ]
+      ],
+      "drivers/tty/cyclades.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -57,75 +51,9 @@
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
           "drivers/tty/cyclades.ko"
-        ]
-      ],
-      "drivers/tty/ipwireless/ipwireless.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/ipwireless/ipwireless.ko"
-        ]
-      ],
-      "drivers/tty/isicom.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/isicom.ko"
-        ]
-      ],
-      "drivers/tty/moxa.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/moxa.ko"
-        ]
-      ],
-      "drivers/tty/mxser.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/mxser.ko"
-        ]
-      ],
-      "drivers/tty/n_gsm.ko": [
-        [
-          "drivers/tty/n_tty.o",
+      ]],
+      "drivers/tty/n_gsm.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -137,11 +65,9 @@
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
           "drivers/tty/n_gsm.ko"
-        ]
-      ],
-      "drivers/tty/n_hdlc.ko": [
-        [
-          "drivers/tty/n_tty.o",
+      ]],
+      "drivers/tty/moxa.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -152,12 +78,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/n_hdlc.ko"
-        ]
-      ],
-      "drivers/tty/n_r3964.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/tty/moxa.ko"
+      ]],
+      "drivers/tty/isicom.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -168,252 +92,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/n_r3964.ko"
-        ]
-      ],
-      "drivers/tty/n_tracerouter.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/n_tracerouter.ko"
-        ]
-      ],
-      "drivers/tty/n_tracesink.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/n_tracesink.ko"
-        ]
-      ],
-      "drivers/tty/nozomi.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/nozomi.ko"
-        ]
-      ],
-      "drivers/tty/rocket.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/rocket.ko"
-        ]
-      ],
-      "drivers/tty/serial/8250/8250.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/8250/8250.ko"
-        ]
-      ],
-      "drivers/tty/serial/8250/8250_dw.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/8250/8250_dw.ko"
-        ]
-      ],
-      "drivers/tty/serial/8250/8250_pci.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/8250/8250_pci.ko"
-        ]
-      ],
-      "drivers/tty/serial/8250/serial_cs.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/8250/serial_cs.ko"
-        ]
-      ],
-      "drivers/tty/serial/altera_jtaguart.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/altera_jtaguart.ko"
-        ]
-      ],
-      "drivers/tty/serial/altera_uart.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/altera_uart.ko"
-        ]
-      ],
-      "drivers/tty/serial/arc_uart.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/arc_uart.ko"
-        ]
-      ],
-      "drivers/tty/serial/clps711x.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/clps711x.ko"
-        ]
-      ],
-      "drivers/tty/serial/fsl_lpuart.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/fsl_lpuart.ko"
-        ]
-      ],
-      "drivers/tty/serial/ifx6x60.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/ifx6x60.ko"
-        ]
-      ],
-      "drivers/tty/serial/jsm/jsm.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/jsm/jsm.ko"
-        ]
-      ],
-      "drivers/tty/serial/kgdboc.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/tty/isicom.ko"
+      ]],
+      "drivers/tty/serial/kgdboc.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -425,11 +107,9 @@
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
           "drivers/tty/serial/kgdboc.ko"
-        ]
-      ],
-      "drivers/tty/serial/max3100.ko": [
-        [
-          "drivers/tty/n_tty.o",
+      ]],
+      "drivers/tty/serial/altera_uart.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -440,12 +120,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/max3100.ko"
-        ]
-      ],
-      "drivers/tty/serial/mfd.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/tty/serial/altera_uart.ko"
+      ]],
+      "drivers/tty/ipwireless/ipwireless.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -456,12 +134,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/mfd.ko"
-        ]
-      ],
-      "drivers/tty/serial/mrst_max3110.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/tty/ipwireless/ipwireless.ko"
+      ]],
+      "drivers/pps/clients/pps-ldisc.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -472,12 +148,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/mrst_max3110.ko"
-        ]
-      ],
-      "drivers/tty/serial/pch_uart.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/pps/clients/pps-ldisc.ko"
+      ]],
+      "drivers/tty/rocket.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -488,12 +162,23 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/pch_uart.ko"
-        ]
-      ],
-      "drivers/tty/serial/rp2.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/tty/rocket.ko"
+      ]],
+      "drivers/tty/nozomi.ko": [[
+        "drivers/tty/pty.o",
+        "drivers/tty/sysrq.o",
+        "drivers/tty/tty_audit.o",
+        "drivers/tty/tty_buffer.o",
+        "drivers/tty/tty_io.o",
+        "drivers/tty/tty_ioctl.o",
+        "drivers/tty/tty_ldisc.o",
+        "drivers/tty/tty_ldsem.o",
+        "drivers/tty/tty_mutex.o",
+        "drivers/tty/tty_port.o",
+        "drivers/tty/nozomi.ko"
+      ]],
+      "drivers/usb/serial/f81232.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -504,12 +189,10 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/rp2.ko"
-        ]
-      ],
-      "drivers/tty/serial/sccnxp.ko": [
-        [
-          "drivers/tty/n_tty.o",
+          "drivers/usb/serial/f81232.ko"
+      ]],
+      "drivers/usb/serial/kobil_sct.ko": [[
+        "drivers/tty/n_tty.o",
           "drivers/tty/pty.o",
           "drivers/tty/sysrq.o",
           "drivers/tty/tty_audit.o",
@@ -520,137 +203,8 @@
           "drivers/tty/tty_ldsem.o",
           "drivers/tty/tty_mutex.o",
           "drivers/tty/tty_port.o",
-          "drivers/tty/serial/sccnxp.ko"
-        ]
-      ],
-      "drivers/tty/serial/serial_core.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/serial_core.ko"
-        ]
-      ],
-      "drivers/tty/serial/sh-sci.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/sh-sci.ko"
-        ]
-      ],
-      "drivers/tty/serial/st-asc.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/st-asc.ko"
-        ]
-      ],
-      "drivers/tty/serial/timbuart.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/timbuart.ko"
-        ]
-      ],
-      "drivers/tty/serial/uartlite.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/serial/uartlite.ko"
-        ]
-      ],
-      "drivers/tty/synclink.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/synclink.ko"
-        ]
-      ],
-      "drivers/tty/synclink_gt.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/synclink_gt.ko"
-        ]
-      ],
-      "drivers/tty/synclinkmp.ko": [
-        [
-          "drivers/tty/n_tty.o",
-          "drivers/tty/pty.o",
-          "drivers/tty/sysrq.o",
-          "drivers/tty/tty_audit.o",
-          "drivers/tty/tty_buffer.o",
-          "drivers/tty/tty_io.o",
-          "drivers/tty/tty_ioctl.o",
-          "drivers/tty/tty_ldisc.o",
-          "drivers/tty/tty_ldsem.o",
-          "drivers/tty/tty_mutex.o",
-          "drivers/tty/tty_port.o",
-          "drivers/tty/synclinkmp.ko"
-        ]
-      ]
+          "drivers/usb/serial/kobil_sct.ko"
+      ]]
     }
   },
   "maximum verification object size": 30000,
