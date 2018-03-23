@@ -151,15 +151,19 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        modules_to_build, is_build_all_modules = \
-            self.strategy.get_modules_to_build(self.conf['Linux kernel']['modules'])
+        if 'all' in self.conf['Linux kernel']['modules']:
+            is_build_all_modules = True
+            modules_to_build = []
+        else:
+            modules_to_build, is_build_all_modules = \
+                self.strategy.get_modules_to_build(self.conf['Linux kernel']['modules'])
 
         ext_modules = self.prepare_ext_modules()
 
         clade_conf = {
             'work_dir': 'clade',
             'storage_dir': os.path.join('clade', 'storage'),
-            'internal_extensions': ['CommandGraph'],
+            'internal_extensions': ['CommandGraph', 'Callgraph'],
             'CC.with_system_header_files': False,
             'Common.filter_in': [
                 '-',
@@ -236,6 +240,8 @@ class LKVOG(core.components.Component):
         modules_in_clusters = set()
 
         for module in self.conf['Linux kernel']['modules']:
+            if module == 'all':
+                continue
             clusters = self.strategy.divide(module)
             self.all_clusters.update(clusters)
             for cluster in clusters:
@@ -252,11 +258,16 @@ class LKVOG(core.components.Component):
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
         for module in self.modules:
             if module not in modules_in_clusters:
-                for subsystem in subsystems:
-                    if subsystem.startswith(module):
-                        self.cluster = strategy_utils.Graph([strategy_utils.Module])
+                if 'all' in self.conf['Linux kernel']['modules']:
+                    for cluster in self.strategy.divide(module):
+                        self.cluster = cluster
                         self.generate_verification_obj_desc()
-                        break
+                else:
+                    for subsystem in subsystems:
+                        if subsystem.startswith(module):
+                            self.cluster = strategy_utils.Graph([strategy_utils.Module(module)])
+                            self.generate_verification_obj_desc()
+                            break
 
         #self.copy_model_headers()
         #self.fixup_model_cc_opts()
@@ -405,7 +416,7 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['deps'] = {}
         self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
-            cc_full_desc_files = self.modules[module.id]
+            cc_full_desc_files = self.modules[module.id]['desc files']
             self.verification_obj_desc['grps'].append({'id': module.id,
                                                        'cc full desc files': cc_full_desc_files})
             self.verification_obj_desc['deps'][module.id] = \
@@ -485,6 +496,30 @@ class LKVOG(core.components.Component):
                         raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
                 else:
                     shutil.copy2(dep, dest_dep)
+
+    def _get_dependencies(self):
+        module_by_file = {}
+        for module in self.modules:
+            for file in self.modules[module]['in files']:
+                module_by_file[file] = module
+
+        call_graph = self.clade.get_callgraph()
+        call_graph_dict = call_graph.load_callgraph()
+        dependencies = []
+        for func in call_graph_dict:
+            file = list(call_graph_dict[func].keys())[0]
+            module = module_by_file.get(file)
+            if not module:
+                continue
+            for called_func in call_graph_dict[func][file].get('calls', []):
+                called_file = list(call_graph_dict[func][file]['calls'][called_func].keys())[0]
+                called_module = module_by_file.get(called_file)
+                if not called_module:
+                    continue
+                if module != called_module:
+                    dependencies.append((module, called_func, called_module))
+
+        return dependencies
 
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0

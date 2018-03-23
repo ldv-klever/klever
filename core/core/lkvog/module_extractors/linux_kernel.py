@@ -27,6 +27,7 @@ class LinuxKernel:
         module_id = desc['out']
         desc_files = []
         process = build_graph[id]['using'][:]
+        in_files = []
         while process:
             current = process.pop(0)
             current_type = build_graph[current]['type']
@@ -35,10 +36,16 @@ class LinuxKernel:
                 desc = self._get_full_desc(current, current_type)
                 if not desc['in'][0].endswith('.S'):
                     desc_files.append(current)
-                    #desc_files.append(self._get_desc_path(current, current_type))
+                in_files.extend([os.path.join(desc['cwd'], file) for file in desc['in']])
+
             process.extend(build_graph[current]['using'])
 
-        return {module_id: desc_files}
+        return {
+            module_id:  {
+                    'desc files': desc_files,
+                    'in files': in_files
+            }
+        }
 
     def _get_full_desc(self, id, type_desc):
         desc = None

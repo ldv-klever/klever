@@ -23,5 +23,5 @@ class SeparateModules(AbstractStrategy):
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
 
-    def divide(self, module_name):
+    def _divide(self, module_name):
         return [Graph([Module(module_name)])]

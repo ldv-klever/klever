@@ -25,7 +25,6 @@ class AbstractStrategy:
         self.is_deps = False
 
     def divide(self, module):
-        self.logger.debug("Graph is '{0}'".format(str(self.graphs)))
         if self.graphs is not None:
             return self.graphs.get(module, [Graph([Module(module)])])
         else:
