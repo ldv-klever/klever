@@ -185,7 +185,7 @@ class Closure(AbstractStrategy):
         return ret
 
     def get_modules_to_build(self, modules):
-        if self.is_deps is None:
+        if not self.is_deps:
             return [], True
         else:
             return self._collect_to_build(modules), False

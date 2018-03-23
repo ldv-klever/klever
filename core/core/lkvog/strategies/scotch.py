@@ -181,11 +181,11 @@ class Scotch(AbstractStrategy):
 
         return ret_clusters
 
-    def get_to_build(self, modules):
-        if self.is_deps is None:
+    def get_modules_to_build(self, modules):
+        if not self.is_deps:
             return [], True
         else:
-            return self._collect_to_build(modules), False
+            return self._collect_modules_to_build(modules), False
 
     def need_dependencies(self):
         return True

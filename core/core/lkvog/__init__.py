@@ -250,24 +250,22 @@ class LKVOG(core.components.Component):
                     cluster.draw('.')
                 modules_in_clusters.update([module.id for module in cluster.modules])
 
-        for cluster in self.all_clusters:
-            self.logger.debug("Going to verify cluster")
-            self.cluster = cluster
-            self.generate_verification_obj_desc()
-
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
         for module in self.modules:
             if module not in modules_in_clusters:
                 if 'all' in self.conf['Linux kernel']['modules']:
-                    for cluster in self.strategy.divide(module):
-                        self.cluster = cluster
-                        self.generate_verification_obj_desc()
+                    self.all_clusters.update(self.strategy.divide(module))
                 else:
                     for subsystem in subsystems:
                         if subsystem.startswith(module):
-                            self.cluster = strategy_utils.Graph([strategy_utils.Module(module)])
-                            self.generate_verification_obj_desc()
+                            self.all_clusters.update(strategy_utils.Graph([strategy_utils.Module(module)]))
                             break
+
+        for cluster in self.all_clusters:
+            self.logger.debug("Going to verify cluster")
+            self.cluster = cluster
+            self.module = cluster.root.id
+            self.generate_verification_obj_desc()
 
         #self.copy_model_headers()
         #self.fixup_model_cc_opts()
