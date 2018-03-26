@@ -318,7 +318,7 @@
                 "fs_initcall": ["tty_init"],
                 "pure_initcall": ["random_int_secret_init"]
               },
-              "kernel": false
+              "kernel": true
             }
           }
         ],
