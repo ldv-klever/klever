@@ -456,10 +456,14 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Generate comment
             comment = call.comment.format(field, structure_name)
             conditions = call.condition if call.condition and len(call.condition) > 0 else list()
-            if check:
-                conditions.append(invoke)
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
+
+            # Generate if wrapper around code invoke
+            # Note, that it is a bad idea to add condition to the conditions since it might prevent execution of all
+            # next code after the translation since we do not know is this action influence branch chose or it does not
+            if check:
+                code = ["if ({}) ".format(invoke) + "{"] + ['\t' + stm for stm in code] + ["}"]
 
             # Insert new action and replace this one
             new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
