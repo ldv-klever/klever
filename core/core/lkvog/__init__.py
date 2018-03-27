@@ -92,7 +92,11 @@ class LKVOG(core.components.Component):
             self.clade_base = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                           self.conf['Linux kernel']['Clade base'])
         else:
-            self.build_linux_kernel()
+            # Prepare Linux kernel working source tree and extract build commands exclusively but just with other
+            # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
+            # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
+            with self.locks['build']:
+                self.build_linux_kernel()
 
         self.clade = Clade()
         self.clade.set_work_dir(self.clade_base)
