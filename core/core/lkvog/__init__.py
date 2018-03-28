@@ -117,7 +117,7 @@ class LKVOG(core.components.Component):
 
         self.set_common_prj_attrs()
 
-        self.prepare_modules()
+        self.generate_all_verification_obj_descs()
 
         self.set_shadow_src_tree()
 
@@ -229,7 +229,7 @@ class LKVOG(core.components.Component):
 
         core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
 
-    def prepare_modules(self):
+    def generate_all_verification_obj_descs(self):
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
