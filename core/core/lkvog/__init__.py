@@ -136,15 +136,9 @@ class LKVOG(core.components.Component):
 
         self.set_shadow_src_tree()
 
-        raise Exception
-
         self.clean_dir = True
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
-
-        #self.launch_subcomponents(True,
-        #                          ('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
-        #                          ('AVODG', self.generate_all_verification_obj_descs))
 
     def set_shadow_src_tree(self):
         self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
