@@ -143,6 +143,7 @@ class LKVOG(core.components.Component):
             'internal_extensions': ['CommandGraph', 'Callgraph'],
             'CC.with_system_header_files': False,
             'CommandGraph.as_picture': True,
+            'Common.filter': ['.*?\\.tmp$'],
             'Common.filter_in': [
                 '-',
                 '/dev/null',
