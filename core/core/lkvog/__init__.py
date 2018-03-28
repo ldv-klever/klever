@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import tarfile
-import filecmp
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
@@ -33,9 +32,6 @@ from core.lkvog.module_extractors import module_extractors_list
 
 import core.components
 import core.utils
-
-#TODO: move to lkvog
-import core.lkbce.utils
 
 from clade import Clade
 
