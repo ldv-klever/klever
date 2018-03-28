@@ -123,6 +123,7 @@ class PW(core.components.Component):
                 "start subjobs solution": True,
             }
 
+        delay = 1
         while True:
             # Drain queue to wait for the whole tasks in background
             core.utils.drain_queue(task_messages, self.mqs['finished and failed tasks'])
@@ -220,7 +221,12 @@ class PW(core.components.Component):
             if (not self.job_mode and self.subjobs_progress == 100) or \
                     (self.job_mode and self.tasks_progress == 100):
                 break
-            time.sleep(10)
+
+            # Wait for 1, 2, 3, ..., 10, 10, 10, ... seconds.
+            time.sleep(delay)
+            if delay < 10:
+                delay += 1
+
         self.logger.info("Finish progress calculation")
 
     main = watch_progress
