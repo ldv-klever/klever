@@ -38,17 +38,11 @@ def __launch_sub_job_components(context):
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
-    context.mqs['model CC opts'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
 def __set_shadow_src_tree(context):
     context.mqs['shadow src tree'].put(context.shadow_src_tree)
-
-
-@core.components.after_callback
-def __fixup_model_cc_opts(context):
-    context.mqs['model CC opts'].put(context.model_cc_opts)
 
 
 @core.components.after_callback
@@ -318,7 +312,6 @@ class VTG(core.components.Component):
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_headers()
         self.__get_shadow_src_tree()
-        self.__get_model_cc_opts()
 
         core.utils.report(self.logger,
                           'attrs',
@@ -399,13 +392,6 @@ class VTG(core.components.Component):
         self.mqs['shadow src tree'].close()
 
         self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
-
-    def __get_model_cc_opts(self):
-        self.logger.info('Get model CC options')
-
-        self.conf['model CC opts'] = self.mqs['model CC opts'].get()
-
-        self.mqs['model CC opts'].close()
 
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')

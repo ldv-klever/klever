@@ -296,10 +296,6 @@ class LKVOG(core.components.Component):
             self.module = cluster.root.id
             self.generate_verification_obj_desc()
 
-        #self.copy_model_headers()
-        #self.fixup_model_cc_opts()
-        #self.mqs['model CC opts'].put(self.model_cc_opts)
-
     def prepare_ext_modules(self):
         if 'external modules' not in self.conf['Linux kernel']:
             return None
@@ -491,41 +487,6 @@ class LKVOG(core.components.Component):
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
 
-    def copy_deps(self, desc):
-        # Dependencies can be obtained just for CC commands taking normal C files as input.
-        if desc['type'] != 'CC' or re.search(r'\.S$', desc['in files'][0], re.IGNORECASE):
-            return
-
-        #deps = core.lkbce.utils.get_deps_from_gcc_deps_file(deps_file)
-        deps = desc['deps'].keys()
-
-        # There are several kinds of dependencies:
-        # - each non-absolute file path represents dependency relative to current working directory (Linux kernel
-        #   working source tree is assumed) - they all should be copied;
-        # - each absolute file path that starts with current working directory is the same as above;
-        # - other absolute file paths represent either system or compiler specific headers that aren't touched by
-        #   build process and can be used later as is.
-        for dep in deps:
-            #if os.path.isabs(dep) and os.path.commonprefix((os.getcwd(), dep)) != os.getcwd():
-            if os.path.isabs(dep) and os.path.commonprefix((desc['cwd'], dep)) != desc['cwd']:
-                continue
-            if not os.path.isabs(dep):
-                dep = os.path.join(desc['cwd'], dep)
-
-            dest_dep = os.path.join(
-                                    os.path.relpath(dep, desc['cwd']))
-            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
-            self.logger.debug("Copy dep '{0}'".format(dep))
-            with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
-                if os.path.getsize(dest_dep):
-                    if filecmp.cmp(dep, dest_dep):
-                        continue
-                    # Just version in "include/generated/compile.h" changes, all other content remain the same.
-                    elif not dep == 'include/generated/compile.h':
-                        raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
-                else:
-                    shutil.copy2(dep, dest_dep)
-
     def _get_dependencies(self):
         module_by_file = {}
         for module in self.modules:
@@ -616,66 +577,6 @@ class LKVOG(core.components.Component):
                 return json.load(fp)
         else:
             return None
-
-    def copy_model_headers(self):
-        self.logger.info('Copy model headers')
-
-        linux_kernel_work_src_tree = os.path.realpath(self.conf['Linux kernel']['source']) #self.linux_kernel['work src tree'])
-
-        os.makedirs('model-headers'.encode('utf8'))
-
-
-        for c_file, headers in self.model_headers.items():
-            self.logger.debug('Copy headers of model with C file "{0}"'.format(c_file))
-
-            model_headers_c_file = os.path.join('model-headers', os.path.basename(c_file))
-
-            with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
-                for header in headers:
-                    fp.write('#include <{0}>\n'.format(header))
-
-            model_headers_deps_file = model_headers_c_file + '.d'
-
-            # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
-            # "-nostdinc" option and system stdarg.h couldn't be used.
-            stdout = core.utils.execute(self.logger,
-                                        ('aspectator', '-print-file-name=include'),
-                                        collect_all_stdout=True)
-
-            core.utils.execute(self.logger,
-                               tuple(
-                                   ['aspectator'] +
-                                   self.model_cc_opts + ['-isystem{0}'.format(stdout[0])] +
-                                   # Overwrite common options for dumping dependencies. Unfortunately normal "-MF" and
-                                   # even "-MD" doesn't work perhaps non recommended "-Wp" is used originally.
-                                   ['-Wp,-MD,{0}'.format(os.path.relpath(model_headers_deps_file,
-                                                                         linux_kernel_work_src_tree))] +
-                                   # Suppress both preprocessing and compilation - just get dependencies.
-                                   ['-M'] +
-                                   [os.path.relpath(model_headers_c_file, linux_kernel_work_src_tree)]
-                               ),
-                               cwd=self.linux_kernel['src'])
-
-            deps = core.lkbce.utils.get_deps_from_gcc_deps_file(model_headers_deps_file)
-
-            # Like in Command.copy_deps() in lkbce/wrappers/common.py but much more simpler.
-            for dep in deps:
-                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) !=
-                        linux_kernel_work_src_tree) or dep.endswith('.c'):
-                    continue
-
-                dest_dep = os.path.relpath(dep, linux_kernel_work_src_tree) if os.path.isabs(dep) else dep
-
-                if not os.path.isfile(dest_dep):
-                    self.logger.debug('Copy model header "{0}"'.format(dep))
-                    os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
-                    shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
-
-    def fixup_model_cc_opts(self):
-        # After model headers were copied we should do the same replacement as for CC options of dumped build commands
-        # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
-        self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['src']) + '/'), '', opt)
-                              for opt in self.model_cc_opts]
 
     def __get_builtin_modules(self):
         for dir in os.listdir(self.linux_kernel['work src tree']):
