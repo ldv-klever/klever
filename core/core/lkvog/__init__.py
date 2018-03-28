@@ -52,8 +52,6 @@ def __set_model_headers(context):
 
 class LKVOG(core.components.Component):
     def generate_linux_kernel_verification_objects(self):
-        self.clade_base = None
-        self.clade_storage = None
         self.clade = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
@@ -74,38 +72,7 @@ class LKVOG(core.components.Component):
 
         self.prepare_strategy()
 
-        # Run Clade without caching its results when configuration misses Clade base. Otherwise either use cached Clade
-        # base (if corresponding directory exists and non empty) or run it and cache its results.
-        is_clade_base_cached = False
-        if self.conf['Linux kernel'].get('Clade base'):
-            if 'KLEVER_WORK_DIR' not in os.environ:
-                raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
-
-            self.clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade',
-                                           self.conf['Linux kernel']['Clade base'])
-
-            if os.path.exists(self.clade_base):
-                if not os.path.isdir(self.clade_base):
-                    raise FileExistsError('Clade base "{0}" is not a directory'.format(self.clade_base))
-
-                if os.listdir(self.clade_base):
-                    is_clade_base_cached = True
-        else:
-            # Clade will output results into this subdirectory within LKVOG working directory.
-            self.clade_base = 'clade'
-
-        # When configuration does not specify Clade storage take if from or place it within Clade base. Otherwise
-        # use specified Clade storage.
-        if self.conf['Linux kernel'].get('Clade storage'):
-            if 'KLEVER_WORK_DIR' not in os.environ:
-                raise KeyError('Do not specify Clade storage when environment variable KLEVER_WORK_DIR is not set')
-
-            self.clade_storage = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', 'storage',
-                                              self.conf['Linux kernel']['Clade storage'])
-        else:
-            self.clade_storage = os.path.join(self.clade_base, 'storage')
-
-        if not is_clade_base_cached:
+        if not self.conf['Clade']['is base cached']:
             # Prepare Linux kernel working source tree and extract build commands exclusively but just with other
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
@@ -113,7 +80,7 @@ class LKVOG(core.components.Component):
                 self.build_linux_kernel()
 
         self.clade = Clade()
-        self.clade.set_work_dir(self.clade_base, self.clade_storage)
+        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
         self.set_common_prj_attrs()
 
@@ -170,9 +137,9 @@ class LKVOG(core.components.Component):
         ext_modules = self.prepare_ext_modules()
 
         clade_conf = {
-            'work_dir': self.clade_base,
+            'work_dir': self.conf['Clade']['base'],
             'remove_existing_work_dir': True,
-            'storage_dir': self.clade_storage,
+            'storage_dir': self.conf['Clade']['storage'],
             'internal_extensions': ['CommandGraph', 'Callgraph'],
             'CC.with_system_header_files': False,
             'Common.filter_in': [

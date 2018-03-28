@@ -637,8 +637,50 @@ class Job(core.components.Component):
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
+        # Configure Clade here since many Core components need appropriate options to be set.
+        self.__configure_clade()
+
         self.components = []
         self.component_processes = []
+
+    def __configure_clade(self):
+        # LKVOG will run Clade without caching its results when configuration misses Clade base. Otherwise it will
+        # either use cached Clade base (if corresponding directory exists and non empty) or run it and cache its
+        # results.
+        clade_conf = self.common_components_conf['Clade'] if 'Clade' in self.common_components_conf else {}
+        clade_conf['is base cached'] = False
+        if clade_conf.get('base'):
+            if 'KLEVER_WORK_DIR' not in os.environ:
+                raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
+
+            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', clade_conf['base'])
+
+            if os.path.exists(clade_base):
+                if not os.path.isdir(clade_base):
+                    raise FileExistsError('Clade base "{0}" is not a directory'.format(clade_base))
+
+                if os.listdir(clade_base):
+                    clade_conf['is base cached'] = True
+        else:
+            # Clade will output results into this subdirectory within job/sub-job working directory.
+            clade_base = os.path.join(self.work_dir, 'clade')
+
+        clade_conf['base'] = clade_base
+
+        # When configuration does not specify Clade storage take if from or place it within Clade base. Otherwise
+        # use specified Clade storage.
+        if clade_conf.get('storage'):
+            if 'KLEVER_WORK_DIR' not in os.environ:
+                raise KeyError('Do not specify Clade storage when environment variable KLEVER_WORK_DIR is not set')
+
+            clade_storage = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', 'storage', clade_conf['storage'])
+        else:
+            clade_storage = os.path.join(clade_base, 'storage')
+
+        clade_conf['storage'] = clade_storage
+
+        # Update existing Clade configuration.
+        self.common_components_conf['Clade'] = clade_conf
 
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
