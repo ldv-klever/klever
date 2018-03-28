@@ -18,6 +18,7 @@
 import os
 import re
 import hashlib
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -120,9 +121,46 @@ TITLES = {
 }
 
 
+def months_choices():
+    months = []
+    for i in range(1, 13):
+        months.append((i, datetime(2016, i, 1).strftime('%B')))
+    return months
+
+
+def years_choices():
+    curr_year = datetime.now().year
+    return list(range(curr_year - 3, curr_year + 1))
+
+
 def is_readable(filename):
     ext = os.path.splitext(filename)[1]
     return len(ext) > 0 and ext[1:] in {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
+
+
+def get_job_parents(user, job):
+    parent_set = []
+    next_parent = job.parent
+    while next_parent is not None:
+        parent_set.append(next_parent)
+        next_parent = next_parent.parent
+    parent_set.reverse()
+    parents = []
+    for parent in parent_set:
+        if JobAccess(user, parent).can_view():
+            job_id = parent.pk
+        else:
+            job_id = None
+        parents.append({'pk': job_id, 'name': parent.name})
+    return parents
+
+
+def get_job_children(user, job):
+    children = []
+    for child in job.children.order_by('change_date'):
+        if JobAccess(user, child).can_view():
+            children.append({'pk': child.pk, 'name': child.name})
+    return children
 
 
 class JobAccess:

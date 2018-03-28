@@ -16,9 +16,13 @@
 #
 
 import json
+
 from django.db.models import Q
+from django.middleware.locale import LocaleMiddleware
 from django.utils.translation import ugettext_lazy as _, string_concat
+
 from users.models import View
+
 
 DEF_NUMBER_OF_ELEMENTS = 18
 

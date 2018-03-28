@@ -32,12 +32,18 @@ from django.template import loader, Template, Context
 from django.urls import reverse
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.views.generic.base import View, TemplateView, TemplateResponseMixin
+from django.views.generic.detail import SingleObjectMixin, DetailView, ContextMixin, SingleObjectTemplateResponseMixin
+from django.template.response import TemplateResponse
 
-from tools.profiling import unparallel_group
+from tools.profiling import unparallel_group, LoggedCallMixin
 from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT, USER_ROLES
-from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
+from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse,\
+    get_user_view_args, JSONResponseMixin
 
-from users.models import User, View, PreferableView
+from users.models import User
 from reports.models import ReportComponent, ReportRoot
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
@@ -53,244 +59,117 @@ from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, 
     UploadReportsWithoutDecision, JobsTreesGen, UploadTree
 
 
-@login_required
-@unparallel_group([])
-def tree_view(request):
-    activate(request.user.extended.language)
+@method_decorator([login_required, unparallel_group([])], name='dispatch')
+class Testing(JSONResponseMixin, TemplateView):
+    param = 'Hello!'
 
-    view_args = {}
-    if request.GET.get('view_type') == VIEW_TYPES[1][0]:
-        view_args['view'] = request.GET.get('view')
-        view_args['view_id'] = request.GET.get('view_id')
+    def get(self, request, *args, **kwargs):
+        print(request.user)
+        return super().get(request, *args, **kwargs)
 
-    months_choices = []
-    for i in range(1, 13):
-        months_choices.append((i, datetime(2016, i, 1).strftime('%B')))
-    curr_year = datetime.now().year
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['param'] = self.param
+        return context
 
-    return render(request, 'jobs/tree.html', {
-        'users': User.objects.all(),
-        'statuses': JOB_STATUS,
-        'weights': JOB_WEIGHT,
-        'priorities': list(reversed(PRIORITY)),
-        'months': months_choices,
-        'years': list(range(curr_year - 3, curr_year + 1)),
-        'TableData': TableTree(request.user, **view_args)
-    })
+    def render_to_response(self, context, **response_kwargs):
+        return self.render_to_json_response(context, **response_kwargs)
 
 
-@login_required
-@unparallel_group([PreferableView, 'View'])
-def preferable_view(request):
-    activate(request.user.extended.language)
+@method_decorator(login_required, name='dispatch')
+class JobsTree(LoggedCallMixin, TemplateView):
+    template_name = 'jobs/tree.html'
 
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    view_id = request.POST.get('view_id', None)
-    view_type = request.POST.get('view_type', None)
-    if view_id is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    if view_id == 'default':
-        pref_views = request.user.preferableview_set.filter(view__type=view_type)
-        if len(pref_views):
-            pref_views.delete()
-            return JsonResponse({'message': _("The default view was made preferred")})
-        return JsonResponse({'error': _("The default view is already preferred")})
-
-    try:
-        user_view = View.objects.get(Q(pk=view_id, type=view_type) & (Q(author=request.user) | Q(shared=True)))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _("The view was not found")})
-    request.user.preferableview_set.filter(view__type=view_type).delete()
-    pref_view = PreferableView()
-    pref_view.user = request.user
-    pref_view.view = user_view
-    pref_view.save()
-    return JsonResponse({'message': _("The preferred view was successfully changed")})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['users'] = User.objects.all()
+        context['statuses'] = JOB_STATUS
+        context['weights'] = JOB_WEIGHT
+        context['priorities'] = list(reversed(PRIORITY))
+        context['months'] = jobs.utils.months_choices(),
+        context['years'] = jobs.utils.years_choices(),
+        context['TableData'] = TableTree(self.request.user, **get_user_view_args(self.request.GET, VIEW_TYPES[1][0]))
+        return context
 
 
-@login_required
-@unparallel_group(['View'])
-def check_view_name(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+@method_decorator(login_required, name='dispatch')
+class JobPage(LoggedCallMixin, DetailView):
+    model = Job
+    template_name = 'jobs/viewJob.html'
 
-    view_name = request.POST.get('view_title', None)
-    view_type = request.POST.get('view_type', None)
-    if view_name is None or view_type is None:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
-    if view_name == '':
-        return JsonResponse({'error': _("The view name is required")})
+        job_access = jobs.utils.JobAccess(self.request.user, self.object)
+        if not job_access.can_view():
+            raise BridgeException(code=400)
 
-    if view_name == str(_('Default')) or len(request.user.view_set.filter(type=view_type, name=view_name)):
-        return JsonResponse({'error': _("Please choose another view name")})
-    return JsonResponse({})
-
-
-@login_required
-@unparallel_group([View])
-def save_view(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    view_data = request.POST.get('view', None)
-    view_name = request.POST.get('title', '')
-    view_id = request.POST.get('view_id', None)
-    view_type = request.POST.get('view_type', None)
-    if view_data is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if view_id == 'default':
-        return JsonResponse({'error': _("You can't edit the default view")})
-    elif view_id is not None:
-        try:
-            new_view = request.user.view_set.get(pk=int(view_id))
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
-    elif len(view_name) > 0:
-        new_view = View()
-        new_view.name = view_name
-        new_view.type = view_type
-        new_view.author = request.user
-    else:
-        return JsonResponse({'error': _('The view name is required')})
-    new_view.view = view_data
-    new_view.save()
-    return JsonResponse({
-        'view_id': new_view.pk, 'view_name': new_view.name,
-        'message': _("The view was successfully saved")
-    })
+        context['last_version'] = self.object.versions.get(version=self.object.version)
+        context['parents'] = jobs.utils.get_job_parents(self.request.user, self.object)
+        context['children'] = jobs.utils.get_job_children(self.request.user, self.object)
+        context['progress'] = GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id]
+        context['reportdata'] = ViewJobData(
+            self.request.user,
+            ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
+            **get_user_view_args(self.request.GET, VIEW_TYPES[2][0])
+        )
+        context['created_by'] = self.object.versions.get(version=1).change_author
+        context['job_access'] = job_access
+        return context
 
 
-@login_required
-@unparallel_group([View])
-def remove_view(request):
-    activate(request.user.extended.language)
+@method_decorator(login_required, name='dispatch')
+class JobData(LoggedCallMixin, DetailView):
+    model = Job
+    template_name = 'jobs/jobData.html'
 
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    v_id = request.POST.get('view_id', 0)
-    view_type = request.POST.get('view_type', None)
-    if view_type is None:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if v_id == 'default':
-        return JsonResponse({'error': _("You can't remove the default view")})
-    try:
-        View.objects.get(author=request.user, pk=v_id, type=view_type).delete()
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
-    return JsonResponse({'message': _("The view was successfully removed")})
+    def get(self, request, *args, **kwargs):
+        raise BridgeException()
 
+    def post(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
-@login_required
-@unparallel_group([View])
-def share_view(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    v_id = request.POST.get('view_id', 0)
-    view_type = request.POST.get('view_type', None)
-    if view_type is None:
-        return JsonResponse({'error': 'Unknown error'})
-    if v_id == 'default':
-        return JsonResponse({'error': _("You can't share the default view")})
-    try:
-        view = View.objects.get(author=request.user, pk=v_id, type=view_type)
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
-    view.shared = not view.shared
-    view.save()
-    if view.shared:
-        return JsonResponse({'message': _("The view was successfully shared")})
-    PreferableView.objects.filter(view=view).exclude(user=request.user).delete()
-    return JsonResponse({'message': _("The view was hidden from other users")})
+    def get_context_data(self, **kwargs):
+        return {'reportdata': ViewJobData(
+            self.request.user,
+            ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
+            view=self.request.POST.get('view', None)
+        )}
 
 
-@login_required
-@unparallel_group([])
-def show_job(request, job_id=None):
-    activate(request.user.extended.language)
+@method_decorator(login_required, name='dispatch')
+class JobProgress(LoggedCallMixin, DetailView):
+    model = Job
+    template_name = 'jobs/jobProgress.html'
 
-    try:
-        job = Job.objects.get(pk=int(job_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(404)
-    job_access = jobs.utils.JobAccess(request.user, job)
-    if not job_access.can_view():
-        return BridgeErrorResponse(400)
-
-    parent_set = []
-    next_parent = job.parent
-    while next_parent is not None:
-        parent_set.append(next_parent)
-        next_parent = next_parent.parent
-    parent_set.reverse()
-    parents = []
-    for parent in parent_set:
-        if jobs.utils.JobAccess(request.user, parent).can_view():
-            job_id = parent.pk
-        else:
-            job_id = None
-        parents.append({
-            'pk': job_id,
-            'name': parent.name,
-        })
-
-    children = []
-    for child in job.children.all().order_by('change_date'):
-        if jobs.utils.JobAccess(request.user, child).can_view():
-            children.append({'pk': child.pk, 'name': child.name})
-
-    try:
-        report = ReportComponent.objects.get(root__job=job, parent=None)
-    except ObjectDoesNotExist:
-        report = None
-
-    view_args = {}
-    view_type = request.GET.get('view_type')
-    if view_type == VIEW_TYPES[2][0]:
-        view_args['view'] = request.GET.get('view')
-        view_args['view_id'] = request.GET.get('view_id')
-
-    try:
-        progress = GetJobsProgresses(request.user, [job.id]).data[job.id]
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-    return render(
-        request,
-        'jobs/viewJob.html',
-        {
-            'job': job,
-            'last_version': job.versions.get(version=job.version),
-            'parents': parents,
-            'children': children,
-            'progress': progress,
-            'reportdata': ViewJobData(request.user, report, **view_args),
-            'created_by': job.versions.get(version=1).change_author,
-            'can_delete': job_access.can_delete(),
-            'can_edit': job_access.can_edit(),
-            'can_create': job_access.can_create(),
-            'can_decide': job_access.can_decide(),
-            'can_upload_reports': job_access.can_upload_reports(),
-            'can_download': job_access.can_download(),
-            'can_stop': job_access.can_stop(),
-            'can_collapse': job_access.can_collapse(),
-            'can_dfc': job_access.can_dfc(),
-            'can_clear_verifications': job_access.can_clear_verifications()
-        }
-    )
+    def get_context_data(self, **kwargs):
+        return {'progress': GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id]}
 
 
-@login_required
+@method_decorator(login_required, name='dispatch')
+class JobStatus(LoggedCallMixin, JSONResponseMixin, DetailView):
+    model = Job
+    template_name = 'jobs/jobData.html'
+
+    def get(self, request, *args, **kwargs):
+        raise BridgeException()
+
+    def post(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def render_to_response(self, context, **response_kwargs):
+        return self.render_to_json(context, **response_kwargs)
+
+    def get_context_data(self, **kwargs):
+        if not self.request.user.is_authenticated:
+            raise BridgeException(_('You are not signing in'))
+        return {'status': self.object.status}
+
+
 @unparallel_group([])
 def get_job_data(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
     activate(request.user.extended.language)
 
     if request.method != 'POST':
@@ -775,7 +654,7 @@ def upload_jobs_tree(request):
 
 @unparallel_group([Job])
 def decide_job(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})

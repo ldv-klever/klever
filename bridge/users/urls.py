@@ -27,5 +27,12 @@ urlpatterns = [
     path('profile/<int:user_id>', views.show_profile, name='show_profile'),
     path('service_signin/', views.service_signin),
     path('service_signout/', views.service_signout),
-    path('ajax/save_notifications/', views.save_notifications)
+    path('ajax/save_notifications/', views.save_notifications),
+
+    # View actions
+    path('ajax/save_view/', views.save_view),
+    path('ajax/remove_view/', views.remove_view),
+    path('ajax/share_view/', views.share_view),
+    path('ajax/preferable_view/', views.preferable_view),
+    path('ajax/check_view_name/', views.check_view_name),
 ]

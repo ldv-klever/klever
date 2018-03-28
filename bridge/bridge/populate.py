@@ -26,7 +26,7 @@ from django.db.models import Q
 from django.utils.translation import ungettext_lazy
 
 from bridge.vars import SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
-from bridge.utils import file_get_or_create, unique_id, BridgeException
+from bridge.utils import logger, file_get_or_create, unique_id, BridgeException
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
@@ -58,6 +58,8 @@ def extend_user(user, role=USER_ROLES[1][0]):
 
 
 class Population:
+    jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
+
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {'marks': {}}
         self.user = user
@@ -78,9 +80,9 @@ class Population:
             except ObjectDoesNotExist:
                 extend_user(self.user)
         self.__populate_functions()
-        self.__populate_jobs()
+        self.changes['jobs'] = self.__populate_jobs()
+        self.changes['tags'] = self.__populate_tags()
         self.__populate_unknown_marks()
-        self.__populate_tags()
         self.__populate_unsafe_marks()
         if settings.ENABLE_SAFE_MARKS:
             self.__populate_safe_marks()
@@ -170,24 +172,21 @@ class Population:
         return password
 
     def __populate_jobs(self):
-        default_jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
-        for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
+        created_jobs = []
+        for jobdir in [os.path.join(self.jobs_dir, x) for x in os.listdir(self.jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                raise BridgeException('There is default job without settings file (%s)' % jobdir)
+                raise BridgeException('Default job require settings file: {0}'.format(jobdir))
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
-                    raise BridgeException('The default job settings file is wrong json: %s' % e)
-            if any(x not in job_settings for x in ['name', 'description']):
-                raise BridgeException(
-                    'Default job settings must contain name and description. Job in "%s" has %s' % (
-                        jobdir, str(list(job_settings))
-                    )
-                )
+                    logger.exception(e)
+                    raise BridgeException('The default job settings file is wrong json. Job: {0}'.format(jobdir))
+            if 'description' not in job_settings:
+                raise BridgeException('Default job description is required. Job: {0}'.format(jobdir))
+            if 'name' not in job_settings or len(job_settings['name']) == 0:
+                raise BridgeException('Default job name is required. Job: {0}'.format(jobdir))
 
-            if len(job_settings['name']) == 0:
-                raise BridgeException('Default job name is required')
             job_name = job_settings['name']
             cnt = 1
             while True:
@@ -199,15 +198,15 @@ class Population:
                 job_name = "%s #%s" % (job_settings['name'], cnt)
 
             job = create_job({
+                'identifier': job_settings.get('identifier'),
+                'name': job_name,
                 'author': self.manager,
                 'global_role': JOB_ROLES[1][0],
-                'name': job_name,
                 'description': job_settings['description'],
                 'filedata': self.__get_filedata(jobdir)
             })
-            if 'jobs' not in self.changes:
-                self.changes['jobs'] = []
-            self.changes['jobs'].append([job.name, job.identifier])
+            created_jobs.append([job.name, job.identifier])
+        return created_jobs
 
     def __get_filedata(self, d):
         self.cnt = 0
@@ -261,17 +260,18 @@ class Population:
             self.changes['marks']['unsafe'] = (new_num, res.total)
 
     def __populate_tags(self):
-        self.changes['tags'] = []
+        created_tags = []
         num_of_new = self.__create_tags('unsafe')
         if num_of_new > 0:
-            self.changes['tags'].append(ungettext_lazy(
+            created_tags.append(ungettext_lazy(
                 '%(count)d new unsafe tag uploaded.', '%(count)d new unsafe tags uploaded.', num_of_new
             ) % {'count': num_of_new})
         num_of_new = self.__create_tags('safe')
         if num_of_new > 0:
-            self.changes['tags'].append(ungettext_lazy(
+            created_tags.append(ungettext_lazy(
                 '%(count)d new safe tag uploaded.', '%(count)d new safe tags uploaded.', num_of_new
             ) % {'count': num_of_new})
+        return created_tags
 
     def __create_tags(self, tag_type):
         self.__is_not_used()

@@ -22,6 +22,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models.base import ModelBase
 
+from bridge.utils import BridgeException
 from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
@@ -151,6 +152,39 @@ def unparallel_group(groups):
         return wait
 
     return __inner
+
+
+class LoggedCallMixin:
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(super(), 'dispatch'):
+            # This mixin should be used together with View based class
+            raise BridgeException()
+
+        class_name = type(self).__name__
+        groups = getattr(self, 'unparallel', [])
+
+        call_data = CallLogs(name=class_name, enter_time=time.time())
+        locker = ExecLocker(groups)
+        locker.lock()
+        call_data.execution_time = time.time()
+        try:
+            response = getattr(super(), 'dispatch')(request, *args, **kwargs)
+        except Exception:
+            call_data.execution_delta = time.time() - call_data.execution_time
+            call_data.is_failed = True
+            if settings.UNLOCK_FAILED_REQUESTS:
+                locker.unlock()
+            raise
+        else:
+            call_data.execution_delta = time.time() - call_data.execution_time
+            call_data.is_failed = False
+            locker.unlock()
+        finally:
+            call_data.return_time = time.time()
+            call_data.wait1 = locker.waiting_time[0]
+            call_data.wait2 = locker.waiting_time[1]
+            call_data.save()
+        return response
 
 
 class ProfileData:

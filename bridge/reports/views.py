@@ -559,7 +559,7 @@ def report_etv_full(request, trace_id):
 
 @unparallel_group([reports.models.ReportRoot, reports.models.AttrName, Task])
 def upload_report(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signed in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Get request is not supported'})
@@ -897,7 +897,7 @@ def coverage_light_page(request, report_id):
 
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': _('You are not signed in')})
 
     activate(request.user.extended.language)

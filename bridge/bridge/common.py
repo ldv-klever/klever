@@ -49,6 +49,7 @@ MIDDLEWARE = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'bridge.utils.BridgeMiddlware'
 )
 
 ROOT_URLCONF = 'bridge.urls'

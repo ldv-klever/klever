@@ -20,58 +20,71 @@ from jobs import views
 
 
 urlpatterns = [
-    path('', views.tree_view, name='tree'),
-    path('<int:job_id>/', views.show_job, name='job'),
-    path('downloadfile/<int:file_id>/', views.download_file, name='download_file'),
-    path('prepare_run/<int:job_id>/', views.prepare_decision, name='prepare_run'),
-    path('comparison/<int:job1_id>/<int:job2_id>/', views.jobs_files_comparison, name='comparison'),
-    path('download_configuration/<int:runhistory_id>/', views.download_configuration),
+    # Main pages
+    path('', views.JobsTree.as_view(), name='tree'),
+    # path('<int:job_id>/', views.show_job, name='job'),
+    path('<int:pk>/', views.JobPage.as_view(), name='job'),
+    path('data/<int:pk>/', views.JobData.as_view()),
+    path('progress/<int:pk>/', views.JobProgress.as_view()),
+    path('status/<int:pk>/', views.JobStatus.as_view()),
     path('create/', views.copy_new_job, name='create'),
-    path('downloadcompetfile/<int:job_id>/', views.download_files_for_compet, name='download_file_for_compet'),
+    path('comparison/<int:job1_id>/<int:job2_id>/', views.jobs_files_comparison, name='comparison'),
 
-    # For ajax requests
-    path('ajax/save_view/', views.save_view),
-    path('ajax/remove_view/', views.remove_view),
-    path('ajax/share_view/', views.share_view),
-    path('ajax/preferable_view/', views.preferable_view),
-    path('ajax/check_view_name/', views.check_view_name),
-
+    # Main actions with jobs
     path('ajax/removejobs/', views.remove_jobs),
     path('ajax/editjob/', views.edit_job),
     path('ajax/savejob/', views.save_job),
+    path('ajax/save_job_copy/<int:job_id>/', views.save_job_copy),
+
+    # Actions with job results
     path('ajax/showjobdata/', views.showjobdata),
-    path('ajax/upload_file/', views.upload_file),
+    path('ajax/get_job_data/', views.get_job_data),
+    path('ajax/get_job_decision_results/<int:job_id>/', views.get_job_decision_results),
+
+    # Download/upload actions
     path('ajax/downloadjob/<int:job_id>/', views.download_job),
     path('ajax/downloadjobs/', views.download_jobs),
     path('ajax/downloadtrees/', views.download_trees),
-    path('ajax/check_access/', views.check_access),
     path('ajax/upload_job/<parent_id>/', views.upload_job),
     path('ajax/upload_jobs_tree/', views.upload_jobs_tree),
+
+    # Actions with job files
+    path('downloadfile/<int:file_id>/', views.download_file, name='download_file'),
+    path('downloadcompetfile/<int:job_id>/', views.download_files_for_compet, name='download_file_for_compet'),
+    path('ajax/upload_file/', views.upload_file),
     path('ajax/getfilecontent/', views.getfilecontent),
     path('ajax/get_files_diff/', views.get_files_diff),
+    path('ajax/get_file_by_checksum/', views.get_file_by_checksum),
+    path('ajax/replace_job_file/<int:job_id>/', views.replace_job_file),
+
+    # Actions with job versions
     path('ajax/getversions/', views.get_job_versions),
     path('ajax/remove_versions/', views.remove_versions),
     path('ajax/compare_versions/', views.compare_versions),
+    path('ajax/copy_job_version/<int:job_id>/', views.copy_job_version),
+
+    # Actions with job solving
+    path('download_configuration/<int:runhistory_id>/', views.download_configuration),
+    path('prepare_run/<int:job_id>/', views.prepare_decision, name='prepare_run'),
+    path('ajax/get_def_start_job_val/', views.get_def_start_job_val),
     path('ajax/stop_decision/', views.stop_decision),
     path('ajax/run_decision/', views.run_decision),
     path('ajax/fast_run_decision/', views.fast_run_decision),
     path('ajax/lastconf_run_decision/', views.lastconf_run_decision),
-    path('ajax/get_job_data/', views.get_job_data),
-    path('ajax/check_compare_access/', views.check_compare_access),
-    path('ajax/get_file_by_checksum/', views.get_file_by_checksum),
-    path('ajax/get_def_start_job_val/', views.get_def_start_job_val),
-    path('ajax/collapse_reports/', views.collapse_reports),
+    path('decide_job/', views.decide_job),
+
+    # "Utils"
+    path('ajax/get_job_id/', views.get_job_id),
+    path('ajax/get_job_identifier/', views.get_job_identifier),
     path('ajax/do_job_has_children/', views.do_job_has_children),
+    path('ajax/check_access/', views.check_access),
+    path('ajax/check_compare_access/', views.check_compare_access),
+    path('ajax/get_job_progress_json/<int:job_id>/', views.get_job_progress_json),
+
+    # Actions with reports
+    path('ajax/collapse_reports/', views.collapse_reports),
     path('ajax/enable_safe_marks/', views.enable_safe_marks),
     path('ajax/upload_reports/', views.upload_reports),
-    path('ajax/get_job_id/$', views.get_job_id),
-    path('ajax/get_job_identifier/$', views.get_job_identifier),
-    path('ajax/get_job_progress_json/<int:job_id>/', views.get_job_progress_json),
-    path('ajax/get_job_decision_results/<int:job_id>/', views.get_job_decision_results),
-    path('ajax/save_job_copy/<int:job_id>/', views.save_job_copy),
-    path('ajax/copy_job_version/<int:job_id>/', views.copy_job_version),
-    path('ajax/replace_job_file/<int:job_id>/', views.replace_job_file),
 
-    # For Klever Core
-    path('decide_job/', views.decide_job),
+    path('ajax/test/', views.Testing.as_view()),
 ]

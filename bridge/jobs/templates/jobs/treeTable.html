@@ -8,9 +8,9 @@
         <thead>
             {% for column_row in TableData.header %}
                 <tr>
-                {% for coldata in column_row %}
-                    <th style="background: #cafdff" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                {% endfor %}
+                    {% for coldata in column_row %}
+                        <th style="background: #cafdff" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                    {% endfor %}
                 </tr>
             {% endfor %}
         </thead>

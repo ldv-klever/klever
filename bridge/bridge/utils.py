@@ -25,16 +25,15 @@ import zipfile
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-
 from django.db.models import Q
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.template import loader
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, activate
 
-from bridge.vars import UNKNOWN_ERROR, ERRORS
+from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -83,10 +82,8 @@ def file_get_or_create(fp, filename, table, check_size=False):
     try:
         return table.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
-        db_file = table()
-        db_file.file.save(filename, File(fp))
-        db_file.hash_sum = check_sum
-        db_file.save()
+        db_file = table(hash_sum=check_sum)
+        db_file.file.save(filename, File(fp), save=True)
         return db_file, check_sum
 
 
@@ -226,12 +223,18 @@ class RemoveFilesBeforeDelete:
 
 
 class BridgeException(Exception):
-    def __init__(self, message=None):
-        self.message = message
-        if self.message is None:
+    def __init__(self, message=None, code=None, response_type='html', back=None):
+        self.response_type = response_type
+        self.back = back
+        if code is None and message is None:
+            self.code = 500
             self.message = UNKNOWN_ERROR
-        elif isinstance(self.message, int):
-            self.message = ERRORS.get(self.message, UNKNOWN_ERROR)
+        elif isinstance(code, int):
+            self.code = code
+            self.message = ERRORS.get(code, UNKNOWN_ERROR)
+        else:
+            self.code = None
+            self.message = message
 
     def __str__(self):
         return str(self.message)
@@ -245,3 +248,53 @@ class BridgeErrorResponse(HttpResponseBadRequest):
             loader.get_template('error.html').render({'message': response, 'back': back}),
             *args, **kwargs
         )
+
+
+def get_user_view_args(get_params, view_type):
+    view_args = {}
+    if get_params.get('view_type') == view_type:
+        view_args['view'] = get_params.get('view')
+        view_args['view_id'] = get_params.get('view_id')
+    return view_args
+
+
+class BridgeMiddlware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.user.extended.role != USER_ROLES[4][0]:
+            activate(request.user.extended.language)
+        response = self.get_response(request)
+        return response
+
+    def process_exception(self, request, exception):
+        if isinstance(exception, BridgeException):
+            if exception.response_type == 'json':
+                return JsonResponse({'error': str(exception.message)})
+            elif exception.response_type == 'html':
+                print('Return error page')
+                return HttpResponseBadRequest(loader.get_template('error.html').render({
+                    'user': request.user, 'message': exception.message, 'back': exception.back
+                }))
+        else:
+            logger.exception(exception)
+        return None
+
+
+class JSONResponseMixin:
+    def render_to_json(self, context, **kwargs):
+        return JsonResponse(context, **kwargs)
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(super(), 'dispatch'):
+            # This mixin should be used together with main View based class
+            raise BridgeException(response_type='json')
+        try:
+            return getattr(super(), 'dispatch')(request, *args, **kwargs)
+        except Exception as e:
+            if isinstance(e, BridgeException):
+                message = str(e.message)
+            else:
+                message = str(UNKNOWN_ERROR)
+            raise BridgeException(message=message, response_type='json')

@@ -38,7 +38,7 @@
                 <h2 class="ui teal header">{% trans 'Error traces conversion and comparison functions were updated' %}</h2>
             </div>
         {% endif %}
-        {% if changes.jobs %}
+        {% if changes.jobs and changes.jobs.length %}
             <div class="ui green segment">
                 <h2 class="ui green header">{% trans 'New preset jobs were uploaded' %}:</h2>
                 <ul>

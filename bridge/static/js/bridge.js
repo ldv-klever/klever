@@ -213,7 +213,7 @@ window.set_actions_for_views = function(view_type) {
         var view_title = $('#view_name_input__' + view_type).val();
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'check_view_name/',
+            url: '/users/ajax/check_view_name/',
             dataType: 'json',
             data: {
                 view_title: view_title,
@@ -229,7 +229,7 @@ window.set_actions_for_views = function(view_type) {
                     request_data['view_type'] = view_type;
                     $.ajax({
                         method: 'post',
-                        url: job_ajax_url + 'save_view/',
+                        url: '/users/ajax/save_view/',
                         dataType: 'json',
                         data: request_data,
                         success: function(save_data) {
@@ -257,7 +257,7 @@ window.set_actions_for_views = function(view_type) {
         request_data['view_type'] = view_type;
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'save_view/',
+            url: '/users/ajax/save_view/',
             dataType: 'json',
             data: request_data,
             success: function(save_data) {
@@ -292,7 +292,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_remove_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'remove_view/',
+            url: '/users/ajax/remove_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),
@@ -312,7 +312,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_share_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'share_view/',
+            url: '/users/ajax/share_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),
@@ -332,7 +332,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_prefer_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'preferable_view/',
+            url: '/users/ajax/preferable_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),

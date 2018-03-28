@@ -704,7 +704,7 @@ def upload_tags(request):
 
 @unparallel_group([])
 def download_all(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': "You don't have an access to download all marks"})
@@ -717,7 +717,7 @@ def download_all(request):
 
 @unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def upload_all(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
 
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
@@ -747,7 +747,7 @@ def upload_all(request):
 
 @unparallel_group([])
 def get_inline_mark_form(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     activate(request.user.extended.language)
 
@@ -799,7 +799,7 @@ def get_inline_mark_form(request):
 
 @unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def unconfirm_association(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     activate(request.user.extended.language)
 
@@ -822,7 +822,7 @@ def unconfirm_association(request):
 
 @unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def confirm_association(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     activate(request.user.extended.language)
 
@@ -845,7 +845,7 @@ def confirm_association(request):
 
 @unparallel_group([MarkUnsafeReport, MarkSafeReport, MarkUnknownReport])
 def like_association(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     activate(request.user.extended.language)
 

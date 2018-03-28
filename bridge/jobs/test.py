@@ -60,7 +60,7 @@ class TestJobs(KleverTestCase):
                 "format": {"type": "is", "value": "1"}
             }
         }
-        response = self.client.post('/jobs/ajax/save_view/', {
+        response = self.client.post('/users/ajax/save_view/', {
             'view': json.dumps(tree_view), 'view_type': '1', 'title': 'My view'
         })
         self.assertEqual(response.status_code, 200)
@@ -84,7 +84,7 @@ class TestJobs(KleverTestCase):
             "columns": ["role", "author", "status", "problem", "safe"],
             "orders": [], "filters": {}
         }
-        response = self.client.post('/jobs/ajax/save_view/', {
+        response = self.client.post('/users/ajax/save_view/', {
             'view': json.dumps(tree_view), 'view_type': '1', 'view_id': view_id
         })
         self.assertEqual(response.status_code, 200)
@@ -104,7 +104,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(tree_view, json.loads(view.view))
 
         # Making view preffered
-        response = self.client.post('/jobs/ajax/preferable_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/preferable_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -116,7 +116,7 @@ class TestJobs(KleverTestCase):
 
         # Share view
         self.assertFalse(view.shared)
-        response = self.client.post('/jobs/ajax/share_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/share_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -126,28 +126,28 @@ class TestJobs(KleverTestCase):
         self.assertTrue(view.shared)
 
         # Testing view name check
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check view deletion
-        response = self.client.post('/jobs/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))

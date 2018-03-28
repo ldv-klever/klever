@@ -198,5 +198,8 @@ class Session:
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)
 
+    def test(self):
+        print(self.__request('/jobs/ajax/test/').text, {'x': 1})
+
     def __is_not_used(self):
         pass
