@@ -142,6 +142,7 @@ class LKVOG(core.components.Component):
             'storage_dir': self.conf['Clade']['storage'],
             'internal_extensions': ['CommandGraph', 'Callgraph'],
             'CC.with_system_header_files': False,
+            'CommandGraph.as_picture': True,
             'Common.filter_in': [
                 '-',
                 '/dev/null',
