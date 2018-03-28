@@ -38,23 +38,12 @@ from clade import Clade
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
-    context.mqs['Linux kernel build cmd desc files'] = multiprocessing.Queue()
     context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
     context.mqs['model headers'] = multiprocessing.Queue()
 
-
-@core.components.after_callback
-def __get_linux_kernel_build_cmd_desc(context):
-    context.mqs['Linux kernel build cmd desc files'].put(context.linux_kernel['build cmd desc file'])
-
-
-@core.components.after_callback
-def __get_all_linux_kernel_build_cmd_descs(context):
-    context.logger.info('Terminate Linux kernel build command descriptions message queue')
-    context.mqs['Linux kernel build cmd desc files'].put(None)
 
 @core.components.after_callback
 def __set_model_headers(context):
