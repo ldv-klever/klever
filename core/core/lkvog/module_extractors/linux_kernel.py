@@ -25,7 +25,7 @@ class LinuxKernel:
     def _create_module(self, id, build_graph):
         desc = self._get_full_desc(id, build_graph[id]['type'])
         module_id = desc['out'] if not desc['out'].startswith(os.path.abspath('.')) else os.path.relpath(desc['out'])
-        desc_files = []
+        ccs = []
         process = build_graph[id]['using'][:]
         in_files = []
         while process:
@@ -35,14 +35,14 @@ class LinuxKernel:
             if current_type == 'CC':
                 desc = self._get_full_desc(current, current_type)
                 if not desc['in'][0].endswith('.S'):
-                    desc_files.append(current)
+                    ccs.append(current)
                 in_files.extend([os.path.join(desc['cwd'], file) for file in desc['in']])
 
             process.extend(build_graph[current]['using'])
 
         return {
             module_id:  {
-                    'desc files': desc_files,
+                    'CCs': ccs,
                     'in files': in_files
             }
         }

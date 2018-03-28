@@ -17,13 +17,15 @@
 
 import collections
 import glob
+import jinja2
 import json
 import os
 import re
 
+from clade import Clade
+
 import core.vtg.utils
 import core.vtg.plugins
-import jinja2
 from core.vtg.sa.initparser import parse_initializations
 
 import core.utils
@@ -49,6 +51,8 @@ class SA(core.vtg.plugins.Plugin):
         self.files = []
         self.modules_functions = []
         self.kernel_functions = []
+        self.clade = Clade()
+        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
     def analyze_sources(self):
         # Init an empty collection
@@ -126,30 +130,25 @@ class SA(core.vtg.plugins.Plugin):
         b_cmds = {}
         for group in abstract_task["grps"]:
             b_cmds[group['id']] = []
-            for section in group["cc extra full desc files"]:
-                file = os.path.join(self.conf["main working directory"],
-                                    section["cc full desc file"])
-                self.logger.info("Import build commands from {}".format(file))
-                with open(file, encoding="utf8") as fh:
-                    command = json.loads(fh.read())
-                    b_cmds[group['id']].append(command)
-                    self.files.append(command['in files'][0])
+            for section in group["Extra CCs"]:
+                b_cmds[group['id']].append(self.clade.get_cc().load_json_by_id(section['CC']))
+                self.files.append(section['in file'])
 
         for group in abstract_task["grps"]:
             self.logger.info("Analyze source files from group {}".format(group["id"]))
             for command in b_cmds[group['id']]:
                 os.environ["CWD"] = os.path.realpath(os.getcwd())
-                os.environ["CC_IN_FILE"] = command['in files'][0]
+                os.environ["CC_IN_FILE"] = command['in'][0]
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
                                             collect_all_stdout=True)
-                self.logger.info("Analyze source file {}".format(command['in files'][0]))
+                self.logger.info("Analyze source file {}".format(command['in'][0]))
                 core.utils.execute(self.logger,
                                    tuple(['cif',
-                                          '--in', command['in files'][0],
+                                          '--in', command['in'][0],
                                           '--aspect', self.aspect,
                                           '--out', os.path.relpath(
                                            '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                                               os.path.basename(command['out file']))[0], '.c.aux')),
+                                               os.path.basename(command['out']))[0], '.c.aux')),
                                            os.path.join(self.conf['main working directory'], command['cwd'])),
                                           '--stage', 'instrumentation',
                                           '--back-end', 'src',

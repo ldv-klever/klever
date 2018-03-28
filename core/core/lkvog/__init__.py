@@ -22,6 +22,8 @@ import re
 import shutil
 import tarfile
 
+from clade import Clade
+
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
 from core.lkvog.strategies import advanced
@@ -32,8 +34,6 @@ from core.lkvog.module_extractors import module_extractors_list
 
 import core.components
 import core.utils
-
-from clade import Clade
 
 
 @core.components.before_callback
@@ -389,12 +389,11 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['deps'] = {}
         self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
-            cc_full_desc_files = self.modules[module.id]['desc files']
-            self.verification_obj_desc['grps'].append({'id': module.id,
-                                                       'cc full desc files': cc_full_desc_files})
+            ccs = self.modules[module.id]['CCs']
+            self.verification_obj_desc['grps'].append({'id': module.id, 'CCs': ccs})
             self.verification_obj_desc['deps'][module.id] = \
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
-            self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(cc_full_desc_files)
+            self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(ccs)
 
         if 'maximum verification object size' in self.conf \
                 and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:

@@ -27,6 +27,9 @@ import core.components
 import core.utils
 import core.session
 
+from clade import Clade
+
+
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
@@ -598,6 +601,8 @@ class VTGW(core.components.Component):
         self.rule_specification = rule_spec
         self.abstract_task_desc_file = None
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+        self.clade = Clade()
+        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
     def tasks_generator_worker(self):
         try:
@@ -630,15 +635,9 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
-            grp['cc extra full desc files'] = []
-            for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file),
-                          encoding='utf8') as fh:
-                    command = json.load(fh)
-                in_file = command['in files'][0]
-                grp['cc extra full desc files'].append(
-                    {'cc full desc file': cc_full_desc_file, "in file": in_file})
-            del (grp['cc full desc files'])
+            grp['Extra CCs'] = [{'CC': cc, 'in file': self.clade.get_cc().load_json_by_id(cc)['in'][0]}
+                                for cc in grp['CCs']]
+            del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
