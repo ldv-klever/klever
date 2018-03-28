@@ -70,7 +70,6 @@ class LKVOG(core.components.Component):
         self.clade_base = None
         self.clade_storage = None
         self.clade = None
-        self.clade_info = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
         self.linux_kernel_module_info_mq = multiprocessing.Queue()
@@ -130,15 +129,12 @@ class LKVOG(core.components.Component):
 
         self.clade = Clade()
         self.clade.set_work_dir(self.clade_base, self.clade_storage)
+
+        self.set_common_prj_attrs()
+
         self.prepare_modules()
 
         self.set_shadow_src_tree()
-
-        #TODO: Get from clade interface
-        with open(os.path.join(self.clade_base, 'clade.json')) as fp:
-            self.clade_info = json.load(fp)
-
-        #self.extract_linux_kernel_verification_objs_gen_attrs()
 
         raise Exception
 
@@ -388,11 +384,13 @@ class LKVOG(core.components.Component):
     def set_common_prj_attrs(self):
         self.logger.info('Set common project atributes')
 
+        clade_global_data = self.clade.get_global_data()
+
         self.common_prj_attrs = [
             {'Linux kernel': [
-                {'version': self.clade_info['Linux kernel version'][0]},
-                {'architecture': self.clade_info['Linux kernel architecture']},
-                {'configuration': self.clade_info['Linux kernel configuration']}
+                {'version': clade_global_data['Linux kernel version'][0]},
+                {'architecture': clade_global_data['Linux kernel architecture']},
+                {'configuration': clade_global_data['Linux kernel configuration']}
             ]},
             {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
         ]
