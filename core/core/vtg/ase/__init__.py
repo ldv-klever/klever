@@ -16,8 +16,9 @@
 #
 
 import fileinput
-import json
 import os
+
+from clade import Clade
 
 import core.vtg.utils
 import core.utils
@@ -32,6 +33,9 @@ class ASE(core.vtg.plugins.Plugin):
         if not self.conf['request aspects']:
             raise KeyError(
                 'Value of option "request aspects" is not mandatory JSON object with request aspects as keys')
+
+        self.clade = Clade()
+        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
         self.request_arg_signs()
 
@@ -76,38 +80,36 @@ class ASE(core.vtg.plugins.Plugin):
 
             # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
             # "-nostdinc" option and system stdarg.h couldn't be used.
-            gcc_search_dir = '-isystem{0}'.format(
-                core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0])
+            aspectator_search_dir = '-isystem' + core.utils.execute(self.logger,
+                                                                    ('aspectator', '-print-file-name=include'),
+                                                                    collect_all_stdout=True)[0]
 
             for grp in self.abstract_task_desc['grps']:
                 self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
-                for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                    with open(os.path.join(self.conf['main working directory'],
-                                           cc_extra_full_desc_file['cc full desc file']), encoding='utf8') as fp:
-                        cc_full_desc = json.load(fp)
+                for extra_cc in grp['Extra CCs']:
+                    self.logger.info('Request argument signatures for C file "{0}"'.format(extra_cc['in file']))
 
-                    self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))
+                    cc = self.clade.get_cc().load_json_by_id(extra_cc['CC'])
 
                     env = dict(os.environ)
-                    env['LDV_ARG_SIGNS_FILE'] = os.path.relpath(
-                        os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0],
-                        os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))
+                    env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(
+                        os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0])
 
                     # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
                     # additional argument signatures should be extracted. Like in Weaver.
-                    if 'plugin aspects' in cc_extra_full_desc_file:
+                    if 'plugin aspects' in extra_cc:
                         self.logger.info('Concatenate all aspects of all plugins together')
 
                         # Resulting request aspect.
                         aspect = '{0}.aspect'.format(core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                            cc_full_desc['out file']))[0], '.aspect'))
+                            cc['out']))[0], '.aspect'))
 
                         # Get all aspects. Place original request aspect at beginning since it can instrument entities
                         # added by aspects of other plugins while corresponding function declarations still need be at
                         # beginning of file.
                         aspects = [os.path.relpath(request_aspect, self.conf['main working directory'])]
-                        for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
+                        for plugin_aspects in extra_cc['plugin aspects']:
                             aspects.extend(plugin_aspects['aspects'])
 
                         # Concatenate aspects.
@@ -121,23 +123,28 @@ class ASE(core.vtg.plugins.Plugin):
 
                     core.utils.execute(self.logger,
                                        tuple(['cif',
-                                              '--in', cc_full_desc['in files'][0],
-                                              '--aspect', os.path.relpath(aspect, os.path.join(
-                                               self.conf['main working directory'], cc_full_desc['cwd'])),
+                                              '--in', extra_cc['in file'],
+                                              '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               # TODO: issues like in Weaver.
-                                              '--out', os.path.relpath(
-                                               '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                                                   os.path.basename(cc_full_desc['out file']))[0], '.c.aux')),
-                                               os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
+                                              '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
+                                               os.path.splitext(os.path.basename(cc['out']))[0], '.c.aux'))),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
-                                             [gcc_search_dir]),
+                                             [opt.replace('"', '\\"') for opt in cc['opts']] +
+                                             [
+                                                 # Besides header files specific for rule specifications will be
+                                                 # searched for.
+                                                 '-I' + os.path.realpath(os.path.dirname(
+                                                     core.utils.find_file_or_dir(self.logger,
+                                                                                 self.conf['main working directory'],
+                                                                                 self.conf['rule specifications DB']))),
+                                                 aspectator_search_dir,
+                                                 '-isysroot=' + self.conf['Clade']['storage']
+                                             ]),
                                        env,
-                                       os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                    cc_full_desc['cwd'])),
+                                       cwd=self.conf['Clade']['storage'] + cc['cwd'],
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

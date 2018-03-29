@@ -123,8 +123,6 @@ class SA(core.vtg.plugins.Plugin):
             }))
         self.logger.debug('Rendered template was stored into file {}'.format("requests.aspect"))
 
-        self.aspect = os.path.realpath(os.path.join(os.getcwd(), "requests.aspect"))
-
     def _perform_info_requests(self, abstract_task):
         self.logger.info("Import source build commands")
         b_cmds = {}
@@ -133,6 +131,11 @@ class SA(core.vtg.plugins.Plugin):
             for section in group["Extra CCs"]:
                 b_cmds[group['id']].append(self.clade.get_cc().load_json_by_id(section['CC']))
                 self.files.append(section['in file'])
+
+        # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
+        # "-nostdinc" option and system stdarg.h couldn't be used.
+        aspectator_search_dir = '-isystem' + core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
+                                                                collect_all_stdout=True)[0]
 
         for group in abstract_task["grps"]:
             self.logger.info("Analyze source files from group {}".format(group["id"]))
@@ -145,20 +148,20 @@ class SA(core.vtg.plugins.Plugin):
                 core.utils.execute(self.logger,
                                    tuple(['cif',
                                           '--in', command['in'][0],
-                                          '--aspect', self.aspect,
-                                          '--out', os.path.relpath(
-                                           '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                                               os.path.basename(command['out']))[0], '.c.aux')),
-                                           os.path.join(self.conf['main working directory'], command['cwd'])),
+                                          '--aspect', os.path.realpath("requests.aspect"),
+                                          '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
+                                           os.path.splitext(os.path.basename(command['out']))[0], '.c.aux'))),
                                           '--stage', 'instrumentation',
                                           '--back-end', 'src',
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
                                          [opt.replace('"', '\\"') for opt in command["opts"]] +
-                                         ['-isystem{0}'.format(stdout[0])]),
-                                   cwd=os.path.relpath(
-                                       os.path.join(self.conf['main working directory'], command['cwd'])),
+                                         [
+                                             aspectator_search_dir,
+                                             '-isysroot=' + self.conf['Clade']['storage']
+                                         ]),
+                                   cwd=self.conf['Clade']['storage'] + command['cwd'],
                                    filter_func=core.vtg.utils.CIFErrorFilter())
 
     def _import_content(self, file):

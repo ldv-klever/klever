@@ -52,7 +52,7 @@ def __import_inits_exits(collection, analysis, avt):
         for module2 in avt['grps']:
             if module2['id'] != module:
                 continue
-            order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
+            order_c_files.extend([file['in file'] for file in module2['Extra CCs']])
     if "init" in analysis:
         for module in (m for m in order_c_files if m in analysis["init"]):
             collection.add_init(module, analysis['init'][module])

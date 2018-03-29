@@ -19,6 +19,8 @@ import json
 import os
 import re
 
+from clade import Clade
+
 import core.utils
 import core.vtg.plugins
 
@@ -119,10 +121,10 @@ class RSG(core.vtg.plugins.Plugin):
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                if 'plugin aspects' not in cc_extra_full_desc_file:
-                    cc_extra_full_desc_file['plugin aspects'] = []
-                cc_extra_full_desc_file['plugin aspects'].append({
+            for extra_cc in grp['Extra CCs']:
+                if 'plugin aspects' not in extra_cc:
+                    extra_cc['plugin aspects'] = []
+                extra_cc['plugin aspects'].append({
                     'plugin': self.name,
                     'aspects': [os.path.relpath(aspect, self.conf['main working directory']) for aspect in aspects]
                 })
@@ -173,50 +175,44 @@ class RSG(core.vtg.plugins.Plugin):
             else:
                 model['bug kinds preprocessed C file'] = model_c_file
 
-        # Generate CC extra full description file per each model and add it to abstract task description.
-        model_grp = {'id': 'models', 'cc extra full desc files': []}
+        # Generate CC full description file per each model and add it to abstract task description.
+        # First of all obtain CC options to be used to compile models. They correspond to options used to compile
+        # scripts/mod/empty.c.
+        clade = Clade()
+        clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        empty_cc = clade.get_cc().load_json_by_in('scripts/mod/empty.c')
+
+        model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):
             model = models[model_c_file]
-            cc_extra_full_desc_file = {}
+            extra_cc = {}
 
             if 'bug kinds preprocessed C file' in model:
                 file, ext = os.path.splitext(os.path.join('models',
                                                           os.path.basename(model['bug kinds preprocessed C file'])))
                 base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
                 full_desc_file = '{0}{1}.json'.format(base_name, ext)
-
-                # Output file should be located somewhere inside RSG working directory to avoid races.
                 out_file = '{0}.c'.format(base_name)
 
-                self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
+                self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w', encoding='utf8') as fp:
                     json.dump({
-                        'cwd': self.conf['shadow source tree'],
-                        # Input and output file paths should be relative to source tree root since compilation options
-                        # are relative to this directory and we will change directory to that one before invoking
-                        # preprocessor.
-                        'in files': [os.path.relpath(model['bug kinds preprocessed C file'],
-                                                     os.path.join(self.conf['main working directory'],
-                                                                  self.conf['shadow source tree']))],
-                        'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
-                                                                           self.conf['shadow source tree'])),
-                        'opts': self.conf['model CC opts'] +
-                            # Like in LKBCE.
-                            ['-Wp,-MD,{0}'.format(os.path.relpath(
-                                out_file + '.d',
-                                os.path.join(self.conf['main working directory'], self.conf['shadow source tree'])))] +
-                            ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
-                                                    else self.conf['common sets model']).upper()]
+                        'cwd': empty_cc['cwd'],
+                        'in': [os.path.realpath(model['bug kinds preprocessed C file'])],
+                        'out': os.path.realpath(out_file),
+                        'opts': empty_cc['opts'] +
+                                ['-DLDV_SETS_MODEL_' + (model['sets model']
+                                                        if 'sets model' in model
+                                                        else self.conf['common sets model']).upper()]
                     }, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
-                                                                               self.conf['main working directory'])
+                extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
 
             if 'bug kinds' in model:
-                cc_extra_full_desc_file['bug kinds'] = model['bug kinds']
+                extra_cc['bug kinds'] = model['bug kinds']
 
-            if cc_extra_full_desc_file:
-                model_grp['cc extra full desc files'].append(cc_extra_full_desc_file)
+            if extra_cc:
+                model_grp['Extra CCs'].append(extra_cc)
 
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():
