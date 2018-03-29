@@ -663,7 +663,7 @@ class Job(core.components.Component):
                     clade_conf['is base cached'] = True
         else:
             # Clade will output results into this subdirectory within job/sub-job working directory.
-            clade_base = os.path.join(self.work_dir, 'clade')
+            clade_base = os.path.join(os.path.realpath(self.work_dir), 'clade')
 
         clade_conf['base'] = clade_base
 
