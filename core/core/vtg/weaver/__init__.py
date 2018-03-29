@@ -95,7 +95,8 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', cc['in'][0],
+                                  '--in', (self.conf['Clade']['storage'] + cc['in'][0])
+                                  if os.path.isabs(cc['in'][0]) else cc['in'][0],
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for rule specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(os.path.dirname(

@@ -635,8 +635,15 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
-            grp['Extra CCs'] = [{'CC': cc, 'in file': self.clade.get_cc().load_json_by_id(cc)['in'][0]}
-                                for cc in grp['CCs']]
+            grp['Extra CCs'] = []
+
+            for cc in grp['CCs']:
+                in_file = self.clade.get_cc().load_json_by_id(cc)['in'][0]
+                grp['Extra CCs'].append({
+                    'CC': cc,
+                    'in file': (self.conf['Clade']['storage'] + in_file) if os.path.isabs(in_file) else in_file
+                })
+
             del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'
         self.logger.debug(

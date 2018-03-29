@@ -198,7 +198,8 @@ class RSG(core.vtg.plugins.Plugin):
                 with open(full_desc_file, 'w', encoding='utf8') as fp:
                     json.dump({
                         'cwd': empty_cc['cwd'],
-                        'in': [os.path.realpath(model['bug kinds preprocessed C file'])],
+                        'in': [os.path.relpath(model['bug kinds preprocessed C file'],
+                                               self.conf['Clade']['storage'] + empty_cc['cwd'])],
                         'out': os.path.realpath(out_file),
                         'opts': empty_cc['opts'] +
                                 ['-DLDV_SETS_MODEL_' + (model['sets model']

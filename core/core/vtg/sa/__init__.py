@@ -147,7 +147,8 @@ class SA(core.vtg.plugins.Plugin):
                 self.logger.info("Analyze source file {}".format(command['in'][0]))
                 core.utils.execute(self.logger,
                                    tuple(['cif',
-                                          '--in', command['in'][0],
+                                          '--in', (self.conf['Clade']['storage'] + command['in'][0])
+                                          if os.path.isabs(command['in'][0]) else command['in'][0],
                                           '--aspect', os.path.realpath("requests.aspect"),
                                           '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
                                            os.path.splitext(os.path.basename(command['out']))[0], '.c.aux'))),
