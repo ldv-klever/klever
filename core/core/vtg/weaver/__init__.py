@@ -110,11 +110,8 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              [opt.replace('"', '\\"') for opt in cc['opts']] +
-                              [
-                                  aspectator_search_dir,
-                                  '-isysroot=' + self.conf['Clade']['storage']
-                              ]),
+                              core.utils.prepare_cif_opts(cc['opts'], self.conf['Clade']['storage']) +
+                              [aspectator_search_dir]),
                         cwd=self.conf['Clade']['storage'] + cc['cwd'],
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))

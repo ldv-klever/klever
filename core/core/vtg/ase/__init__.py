@@ -132,7 +132,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             [opt.replace('"', '\\"') for opt in cc['opts']] +
+                                             core.utils.prepare_cif_opts(cc['opts'], self.conf['Clade']['storage']) +
                                              [
                                                  # Besides header files specific for rule specifications will be
                                                  # searched for.
@@ -140,8 +140,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                      core.utils.find_file_or_dir(self.logger,
                                                                                  self.conf['main working directory'],
                                                                                  self.conf['rule specifications DB']))),
-                                                 aspectator_search_dir,
-                                                 '-isysroot=' + self.conf['Clade']['storage']
+                                                 aspectator_search_dir
                                              ]),
                                        env,
                                        cwd=self.conf['Clade']['storage'] + cc['cwd'],

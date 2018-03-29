@@ -156,11 +156,8 @@ class SA(core.vtg.plugins.Plugin):
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
-                                         [opt.replace('"', '\\"') for opt in command["opts"]] +
-                                         [
-                                             aspectator_search_dir,
-                                             '-isysroot=' + self.conf['Clade']['storage']
-                                         ]),
+                                         core.utils.prepare_cif_opts(command["opts"], self.conf['Clade']['storage']) +
+                                         [aspectator_search_dir]),
                                    cwd=self.conf['Clade']['storage'] + command['cwd'],
                                    filter_func=core.vtg.utils.CIFErrorFilter())
 
