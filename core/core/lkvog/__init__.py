@@ -204,8 +204,7 @@ class LKVOG(core.components.Component):
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
         self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
                                                                               self.clade,
-                                                                              os.path.join(os.path.abspath('.'),
-                                                                                           self.conf['Module extractor']['clade']))
+                                                                              self.conf['Module extractor'])
         self.modules = self.module_extractor.divide()
 
         if self.sizes is None:
@@ -420,7 +419,9 @@ class LKVOG(core.components.Component):
                 self.verification_obj_desc_file))
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
             self.module, self.verification_obj_desc_file))
-        os.makedirs(os.path.dirname(self.verification_obj_desc_file).encode('utf8'), exist_ok=True)
+        dir_path = os.path.dirname(self.verification_obj_desc_file).encode('utf8')
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
 
         # Add dir to exlcuded from cleaning by lkvog
         root_dir_id = self.verification_obj_desc_file.split('/')[0]
