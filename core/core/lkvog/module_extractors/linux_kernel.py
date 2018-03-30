@@ -24,7 +24,7 @@ class LinuxKernel:
 
     def _create_module(self, id, build_graph):
         desc = self._get_full_desc(id, build_graph[id]['type'])
-        module_id = desc['out'] if not desc['out'].startswith(os.path.abspath('.')) else os.path.relpath(desc['out'])
+        module_id = desc['relative_out']
         ccs = []
         process = build_graph[id]['using'][:]
         in_files = []
