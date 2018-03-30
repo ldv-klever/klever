@@ -156,7 +156,8 @@ class LKVOG(core.components.Component):
                     'name': 'FetchWorkSrcTree',
                     'use original source tree': self.conf['allow local source directories use'],
                     'src': src,
-                    'work_src_tree': 'linux'
+                    'work_src_tree': 'linux',
+                    'Git repository': self.conf['Linux kernel'].get('Git repository')
                 },
                 {'name': 'MakeCanonicalWorkSrcTree'},
                 # TODO: make in parallel since it helps much!
