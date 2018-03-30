@@ -219,7 +219,8 @@ class RP(core.components.Component):
         # Obtain file prefix that can be removed from file paths.
         clade = Clade()
         clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        self.work_src_tree = self.conf['Clade']['storage'] + clade.get_global_data()['working source tree']
+        self.storage_src_tree = self.conf['Clade']['storage']
+        self.work_src_tree = clade.get_global_data()['working source tree']
 
 
     def fetcher(self):
@@ -304,7 +305,8 @@ class RP(core.components.Component):
                     self.verdict = 'unsafe'
                     try:
                         error_trace = import_error_trace(self.logger, witness)
-                        arcnames = self.__trim_file_names(error_trace['files'], self.work_src_tree)
+                        arcnames = self.__trim_file_names(error_trace['files'], os.path.join(self.storage_src_tree,
+                                                                                             self.work_src_tree))
                         error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                         match = re.search(r'witness\.(.+)\.graphml', witness)
@@ -357,7 +359,8 @@ class RP(core.components.Component):
                                             format(len(witnesses)))
 
                     error_trace = et.import_error_trace(self.logger, witnesses[0])
-                    arcnames = self.__trim_file_names(error_trace['files'], self.work_src_tree)
+                    arcnames = self.__trim_file_names(error_trace['files'], os.path.join(self.storage_src_tree,
+                                                                                         self.work_src_tree))
                     error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                     self.logger.info('Write processed witness to "error trace.json"')
@@ -473,7 +476,8 @@ class RP(core.components.Component):
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
-        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.work_src_tree,
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage_src_tree,
+                                          self.work_src_tree,
                                           self.conf['main working directory'], opts.get('coverage', None),
                                           os.path.join(self.conf['main working directory'], self.coverage_info_file),
                                           os.path.join(self.conf['main working directory'], coverage_info_dir))

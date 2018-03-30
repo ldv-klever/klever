@@ -30,11 +30,12 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, work_src_tree, main_work_dir, completeness, coverage_id,
+    def __init__(self, logger, coverage_file, storage_src_tree, work_src_tree, main_work_dir, completeness, coverage_id,
                  coverage_info_dir):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
+        self.storage_src_tree = storage_src_tree
         self.work_src_tree = work_src_tree
         self.main_work_dir = main_work_dir
         self.completeness = completeness
@@ -85,6 +86,8 @@ class LCOV:
                         if os.path.isfile(file_name):
                             dir, file = os.path.split(file_name)
                             all_files.setdefault(dir, [])
+                            if file_name.startswith(self.storage_src_tree):
+                                file_name = os.path.relpath(file_name, self.storage_src_tree)
                             all_files[dir].append(file)
 
                 for dir, files in all_files.items():
@@ -121,8 +124,12 @@ class LCOV:
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
                     file_name = line[len(self.FILENAME_PREFIX):]
-                    if os.path.isfile(file_name) and not \
-                            any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
+                    if not os.path.isfile(file_name):
+                        ignore_file = True
+                        continue
+                    if file_name.startswith(self.storage_src_tree):
+                        file_name = os.path.relpath(file_name, self.storage_src_tree)
+                    if not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
                         for dest, src in dir_map:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
