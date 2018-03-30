@@ -40,12 +40,6 @@ def __launch_sub_job_components(context):
     context.mqs['processing tasks'] = multiprocessing.Queue()
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['verification obj descs num'] = multiprocessing.Queue()
-    context.mqs['shadow src tree'] = multiprocessing.Queue()
-
-
-@core.components.after_callback
-def __set_shadow_src_tree(context):
-    context.mqs['shadow src tree'].put(context.shadow_src_tree)
 
 
 @core.components.after_callback
@@ -314,7 +308,6 @@ class VTG(core.components.Component):
     def generate_verification_tasks(self):
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_headers()
-        self.__get_shadow_src_tree()
 
         core.utils.report(self.logger,
                           'attrs',
@@ -386,15 +379,6 @@ class VTG(core.components.Component):
                             self.model_headers[model_c_file] = headers
 
                             self.logger.debug('Set headers "{0}"'.format(headers))
-
-    def __get_shadow_src_tree(self):
-        self.logger.info('Get shadow source tree')
-
-        self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
-
-        self.mqs['shadow src tree'].close()
-
-        self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
 
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
@@ -726,8 +710,6 @@ class VTGW(core.components.Component):
 
             # VTG will consume this abstract verification task description file.
             self.abstract_task_desc_file = out_abstract_task_desc_file
-            shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                          self.conf['shadow source tree']))
 
             if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
@@ -741,8 +723,7 @@ class VTGW(core.components.Component):
                                                final_task_data["result processing"],
                                                self.verification_object,
                                                self.rule_specification,
-                                               final_task_data['verifier'],
-                                               shadow_src_dir])
+                                               final_task_data['verifier']])
                 self.logger.info("Submitted successfully verification task {} for solution".
                                  format(os.path.join(plugin_work_dir, 'task.json')))
             else:

@@ -30,12 +30,12 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness, coverage_id,
+    def __init__(self, logger, coverage_file, work_src_tree, main_work_dir, completeness, coverage_id,
                  coverage_info_dir):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
-        self.shadow_src_dir = shadow_src_dir
+        self.work_src_tree = work_src_tree
         self.main_work_dir = main_work_dir
         self.completeness = completeness
         self.coverage_info_dir = coverage_info_dir
@@ -63,7 +63,7 @@ class LCOV:
             self.logger.exception('Could not parse coverage')
 
     def parse(self):
-        dir_map = (('source files', self.shadow_src_dir),
+        dir_map = (('source files', self.work_src_tree),
                    ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
                    ('generated models', self.main_work_dir))
 
@@ -90,7 +90,7 @@ class LCOV:
                 for dir, files in all_files.items():
                     # Lightweight coverage keeps only source code dirs.
                     if self.completeness == 'lightweight' \
-                            and not dir.startswith(self.shadow_src_dir):
+                            and not dir.startswith(self.work_src_tree):
                         self.logger.debug('Excluded {0}'.format(dir))
                         excluded_dirs.add(dir)
                         continue

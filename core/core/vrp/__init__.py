@@ -26,6 +26,8 @@ import xml.etree.ElementTree as ElementTree
 import zipfile
 import multiprocessing
 
+from clade import Clade
+
 from core.vrp.et import import_error_trace
 
 import core.components
@@ -214,11 +216,17 @@ class RP(core.components.Component):
         self.clean_dir = True
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
+        # Obtain file prefix that can be removed from file paths.
+        clade = Clade()
+        clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        self.work_src_tree = self.conf['Clade']['storage'] + clade.get_global_data()['working source tree']
+
+
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir = data
+        task_id, opts, verification_object, rule_specification, verifier = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
 
@@ -226,7 +234,7 @@ class RP(core.components.Component):
 
         try:
             if status == 'finished':
-                self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+                self.process_finished_task(task_id, opts, verifier)
                 # Raise exception just here sinse the method above has callbacks.
                 if self.__exception:
                     self.logger.warning("Raising the saved exception")
@@ -242,7 +250,7 @@ class RP(core.components.Component):
 
     main = fetcher
 
-    def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
+    def process_single_verdict(self, decision_results, opts, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
@@ -296,7 +304,7 @@ class RP(core.components.Component):
                     self.verdict = 'unsafe'
                     try:
                         error_trace = import_error_trace(self.logger, witness)
-                        arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                        arcnames = self.__trim_file_names(error_trace['files'], self.work_src_tree)
                         error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                         match = re.search(r'witness\.(.+)\.graphml', witness)
@@ -349,7 +357,7 @@ class RP(core.components.Component):
                                             format(len(witnesses)))
 
                     error_trace = et.import_error_trace(self.logger, witnesses[0])
-                    arcnames = self.__trim_file_names(error_trace['files'], shadow_src_dir)
+                    arcnames = self.__trim_file_names(error_trace['files'], self.work_src_tree)
                     error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                     self.logger.info('Write processed witness to "error trace.json"')
@@ -419,7 +427,7 @@ class RP(core.components.Component):
 
         self.verdict = 'non-verifier unknown'
 
-    def process_finished_task(self, task_id, opts, verifier, shadow_src_dir):
+    def process_finished_task(self, task_id, opts, verifier):
         """Function has a callback at Job.py."""
         self.session.download_decision(task_id)
 
@@ -463,9 +471,9 @@ class RP(core.components.Component):
             os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir))
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
-                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
+                                               "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
-        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.work_src_tree,
                                           self.conf['main working directory'], opts.get('coverage', None),
                                           os.path.join(self.conf['main working directory'], self.coverage_info_file),
                                           os.path.join(self.conf['main working directory'], coverage_info_dir))
@@ -485,7 +493,7 @@ class RP(core.components.Component):
 
         try:
             # Submit a verdict
-            self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
+            self.process_single_verdict(decision_results, opts, log_file)
         finally:
             # Submit a closing report
             core.utils.report(self.logger,

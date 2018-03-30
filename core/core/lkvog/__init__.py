@@ -86,14 +86,9 @@ class LKVOG(core.components.Component):
 
         self.generate_all_verification_obj_descs()
 
-        self.set_shadow_src_tree()
-
         self.clean_dir = True
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
-
-    def set_shadow_src_tree(self):
-        self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
 
     def prepare_strategy(self):
         strategy_name = self.conf['LKVOG strategy']['name']
