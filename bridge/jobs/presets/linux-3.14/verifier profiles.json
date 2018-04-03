@@ -48,6 +48,7 @@
       ],
       "add options": [
         {"-smg-ldv": ""},
+        {"-setprop": "analysis.traversal.order=dfs"},
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     },
