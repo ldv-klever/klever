@@ -30,13 +30,14 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, storage_src_tree, work_src_tree, main_work_dir, completeness, coverage_id,
-                 coverage_info_dir):
+    def __init__(self, logger, coverage_file, storage_src_tree, work_src_tree, search_dirs, main_work_dir, completeness,
+                 coverage_id, coverage_info_dir):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
         self.storage_src_tree = storage_src_tree
         self.work_src_tree = work_src_tree
+        self.search_dirs = search_dirs
         self.main_work_dir = main_work_dir
         self.completeness = completeness
         self.coverage_info_dir = coverage_info_dir
@@ -145,7 +146,7 @@ class LCOV:
                                 break
                         # This "else" corresponds "for"
                         else:
-                            new_file_name = core.utils.make_relative_path(self.logger, self.main_work_dir, file_name)
+                            new_file_name = core.utils.make_relative_path(self.search_dirs, file_name)
                             if new_file_name == file_name:
                                 ignore_file = True
                                 continue

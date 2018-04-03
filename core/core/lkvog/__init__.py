@@ -151,6 +151,9 @@ class LKVOG(core.components.Component):
                 '/dev/null',
                 '.*?\\.cmd$'
             ],
+            'global_data': {
+                'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
+            },
             'extensions': [
                 {
                     'name': 'FetchWorkSrcTree',

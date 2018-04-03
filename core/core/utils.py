@@ -193,13 +193,21 @@ def reliable_rmtree(logger, directory):
         shutil.rmtree(directory, ignore_errors=True)
 
 
-def get_search_dirs(main_work_dir):
+def get_search_dirs(main_work_dir, abs_paths=False):
     search_dirs = ['job/root', os.path.pardir]
+
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])
-    search_dirs = tuple(
-        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
-    return search_dirs
+
+    # All search directories are represented by either absolute paths (so, join does not have any effect) or paths
+    # relatively to main working directory. Thus, after this operation all search directories become absolute.
+    search_dirs = [os.path.realpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs]
+
+    if abs_paths:
+        return search_dirs
+
+    # Make search directories relative to current working directory if necessary.
+    return tuple(os.path.relpath(search_dir) for search_dir in search_dirs)
 
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
@@ -219,11 +227,11 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
 
 
-def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
-    search_dirs = get_search_dirs(main_work_dir)
+def make_relative_path(search_dirs, abs_path_to_file_or_dir):
     for search_dir in search_dirs:
-        if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
+        if os.path.commonprefix([abs_path_to_file_or_dir, search_dir]) == search_dir:
             return os.path.relpath(abs_path_to_file_or_dir, search_dir)
+
     return abs_path_to_file_or_dir
 
 

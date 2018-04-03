@@ -219,8 +219,10 @@ class RP(core.components.Component):
         # Obtain file prefix that can be removed from file paths.
         clade = Clade()
         clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        self.storage_src_tree = self.conf['Clade']['storage']
-        self.work_src_tree = clade.get_global_data()['working source tree']
+        self.storage = self.conf['Clade']['storage']
+        clade_global_data = clade.get_global_data()
+        self.work_src_tree = clade_global_data['working source tree']
+        self.search_dirs = clade_global_data['search directories']
 
 
     def fetcher(self):
@@ -305,8 +307,7 @@ class RP(core.components.Component):
                     self.verdict = 'unsafe'
                     try:
                         error_trace = import_error_trace(self.logger, witness)
-                        arcnames = self.__trim_file_names(error_trace['files'], os.path.join(self.storage_src_tree,
-                                                                                             self.work_src_tree))
+                        arcnames = self.__trim_file_names(error_trace['files'])
                         error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                         match = re.search(r'witness\.(.+)\.graphml', witness)
@@ -359,8 +360,7 @@ class RP(core.components.Component):
                                             format(len(witnesses)))
 
                     error_trace = et.import_error_trace(self.logger, witnesses[0])
-                    arcnames = self.__trim_file_names(error_trace['files'], os.path.join(self.storage_src_tree,
-                                                                                         self.work_src_tree))
+                    arcnames = self.__trim_file_names(error_trace['files'])
                     error_trace['files'] = [arcnames[file] for file in error_trace['files']]
 
                     self.logger.info('Write processed witness to "error trace.json"')
@@ -476,8 +476,8 @@ class RP(core.components.Component):
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
-        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage_src_tree,
-                                          self.work_src_tree,
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage,
+                                          self.work_src_tree, self.search_dirs,
                                           self.conf['main working directory'], opts.get('coverage', None),
                                           os.path.join(self.conf['main working directory'], self.coverage_info_file),
                                           os.path.join(self.conf['main working directory'], coverage_info_dir))
@@ -507,13 +507,22 @@ class RP(core.components.Component):
                               self.vals['report id'],
                               self.conf['main working directory'])
 
-    def __trim_file_names(self, file_names, shadow_src_dir):
+    def __trim_file_names(self, file_names):
         arcnames = {}
+
         for file_name in file_names:
-            if file_name.startswith(shadow_src_dir):
-                new_file_name = os.path.relpath(file_name, shadow_src_dir)
+            # Remove storage from file names if files were put there.
+            if os.path.commonprefix([file_name, self.storage]) == self.storage:
+                new_file_name = os.path.join(os.path.sep, os.path.relpath(file_name, self.storage))
             else:
-                new_file_name = core.utils.make_relative_path(self.logger, self.conf['main working directory'],
-                                                              file_name)
+                new_file_name = file_name
+
+            # Try to make paths relative to working source tree or standard search directories.
+            if os.path.commonprefix([new_file_name, self.work_src_tree]) == self.work_src_tree:
+                new_file_name = os.path.relpath(new_file_name, self.work_src_tree)
+            else:
+                new_file_name = core.utils.make_relative_path(self.search_dirs, new_file_name)
+
             arcnames[file_name] = new_file_name
+
         return arcnames
