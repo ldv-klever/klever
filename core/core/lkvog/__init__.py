@@ -139,9 +139,32 @@ class LKVOG(core.components.Component):
             'remove_existing_work_dir': True,
             'storage_dir': self.conf['Clade']['storage'],
             'internal_extensions': ['CommandGraph', 'Callgraph'],
+            'template aspect file': self.conf['aspect file'],
+            'max arguments number': 30,
             'CC.with_system_header_files': False,
             'CommandGraph.as_picture': True,
             'Common.filter': ['.*?\\.tmp$'],
+            'allowed macros': ['module_init',
+                               'early_initcall',
+                               'pure_initcall',
+                               'core_initcall',
+                               'core_initcall_sync',
+                               'postcore_initcall',
+                               'postcore_initcall_sync',
+                               'arch_initcall',
+                               'arch_inicall_sync',
+                               'subsys_initcall',
+                               'subsys_initcall_sync',
+                               'fs_initcall',
+                               'fs_initcall_sync',
+                               'rootfs_initcall',
+                               'device_initcall',
+                               'device_initcall_sync',
+                               'late_initcall',
+                               'late_initcall_sync',
+                               'console_initcall',
+                               'security_initcall',
+                               'module_exit'],
             'Common.filter_in': [
                 '-',
                 '/dev/null',
@@ -224,6 +247,7 @@ class LKVOG(core.components.Component):
             callgraph = self.clade.get_callgraph()
             callgraph_dict = callgraph.load_callgraph()
             self.strategy.set_callgraph(callgraph_dict)
+
 
         modules_in_clusters = set()
 
@@ -450,11 +474,72 @@ class LKVOG(core.components.Component):
             self.logger.debug("Add excl {0}".format(root_dir_id))
             self.dynamic_excluded_clean.append(root_dir_id)
 
+        callgraph = self._generate_callgraph()
+        callgraph_file = "{0}_callgraph.json".format(self.verification_obj_desc['id'])
+        self.verification_obj_desc['callgraph'] = callgraph_file
+        with open(callgraph_file, 'w', encoding='utf-8') as fp:
+            json.dump(callgraph, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
+
+    def _generate_callgraph(self):
+        call_graph = self.clade.get_callgraph()
+        call_graph_dict = call_graph.load_callgraph()
+
+        group_callgraph = {}
+        allowed_files = set()
+        cc = self.clade.get_cc()
+
+        # Collect all files that will be included into group callgraph
+        for grp in self.verification_obj_desc['grps']:
+            for file in grp['CCs']:
+                full_desc = cc.load_json_by_id(file)
+                allowed_files.update(full_desc['deps'].keys())
+                allowed_files.update(full_desc['in'])
+
+        for func, files in call_graph_dict.items():
+            for file, descs in files.items():
+                if file in allowed_files or file == 'unknown':
+
+                    # Firstly, copy all desc
+                    group_callgraph.setdefault(func, {})
+                    group_callgraph[func][file] = dict(descs)
+
+                    # Then, for these four types ('declared_in' also) clear and fill with only allowed files
+                    for type in ('called_in', 'calls', 'used_in_func'):
+                        if type in descs:
+                            group_callgraph[func][file][type] = {}
+                            for called_func, called_files in descs[type].items():
+                                for called_file, called_file_descs in called_files.items():
+                                    if called_file in allowed_files:
+                                        group_callgraph[func][file][type].setdefault(called_func, {})
+                                        group_callgraph[func][file][type][called_func][called_file] = called_file_descs
+                    if 'declared_in' in descs:
+                        call_graph_dict[func][file]['declared_in'] = {}
+                        for decl_file, decl_descs in descs['declared_in'].items():
+                            if decl_file in allowed_files:
+                                group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
+                                group_callgraph[func][file]['declared_in'][decl_file] = decl_descs
+
+                    # Remove if empty
+                    if not group_callgraph[func][file].get('called_in') \
+                            and not group_callgraph[func][file].get('calls') \
+                            and not group_callgraph[func][file].get('declared_in') \
+                            and not group_callgraph[func][file].get('used_in_func'):
+                        group_callgraph[func][file] = {}
+
+                # Remove if empty
+                if func in group_callgraph and not group_callgraph[func].get(file, True):
+                    del group_callgraph[func][file]
+            # Remove if empty
+            if not group_callgraph.get(func, True):
+                del group_callgraph[func]
+
+        return group_callgraph
 
     def _get_dependencies(self):
         module_by_file = {}
