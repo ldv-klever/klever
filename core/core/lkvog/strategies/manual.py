@@ -25,7 +25,13 @@ class Manual(AbstractStrategy):
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
         self.groups = {}
+        self._need_dependencies = False
+        self.group_params = params.get('groups', {})
         for key, value in params.get('groups', {}).items():
+            if not key.endswith('.ko'):
+                self._need_dependencies = True
+                self.groups = {}
+                return
             self.groups[key] = []
             for module_list in value:
                 if not isinstance(module_list, tuple) \
@@ -33,6 +39,11 @@ class Manual(AbstractStrategy):
                     raise ValueError('You should specify a list of lists for modules for manual strategy\n'
                                      'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
                                                                                              value))
+                for module in module_list:
+                    if not module.endswith('.ko'):
+                        self._need_dependencies = True
+                        self.groups = {}
+                        return
                 self.groups[key].append(module_list)
 
     def _divide(self, module_name):
@@ -59,6 +70,8 @@ class Manual(AbstractStrategy):
             for group in self.groups[module_name]:
                 group_modules = []
                 for module in group:
+                    if not module.endswith('.ko'):
+                        module = self.get_modules_by_func(module)[0]
                     if is_external:
                         group_modules.append(Module('ext-modules/' + module))
                     else:
@@ -79,10 +92,36 @@ class Manual(AbstractStrategy):
 
         return ret
 
+    def _set_dependencies(self, deps, sizes):
+        for key, value in self.group_params.items():
+            if not key.endswith('.ko'):
+                key = self.get_modules_by_func(key)[0]
+            self.groups[key] = []
+            for module_list in value:
+                if not isinstance(module_list, tuple) \
+                        and not isinstance(module_list, list):
+                    raise ValueError('You should specify a list of lists for modules for manual strategy\n'
+                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
+                                                                                             value))
+                modules = []
+                for module in module_list:
+                    if not module.endswith('.ko'):
+                        modules.extend(self.get_modules_by_func(module))
+                    else:
+                        modules.append(module)
+                self.groups[key].append(modules)
+        self.logger.debug("Groups are {0}".format(str(self.groups)))
+
+    def need_dependencies(self):
+        return self._need_dependencies
+
     def get_modules_to_build(self, modules):
         ret = set()
         for groups in self.groups.values():
             for group in groups:
                 ret.update(group)
+                for module in group:
+                    if not module.endswith('.ko'):
+                        return [], True
 
         return list(ret), False

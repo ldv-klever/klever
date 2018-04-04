@@ -21,8 +21,10 @@ from core.lkvog.strategies.strategy_utils import Graph, Module
 class AbstractStrategy:
     def __init__(self, logger):
         self.logger = logger
+        self.clade = None
         self.graphs = None
         self.is_deps = False
+        self.vog_modules = None
 
     def divide(self, module):
         if self.graphs is not None:
@@ -30,12 +32,25 @@ class AbstractStrategy:
         else:
             return self._divide(module)
 
+    def divide_by_function(self, func):
+        modules = self.get_modules_by_func(func)
+        clusters = set()
+        for module in modules:
+            clusters.update(self.divide(module))
+        return clusters
+
     def set_dependencies(self, deps, sizes):
         self.is_deps = True
         self._set_dependencies(deps, sizes)
 
     def _set_dependencies(self, deps, sizes):
         pass
+
+    def set_modules(self, modules):
+        self.vog_modules = modules
+
+    def set_clade(self, clade):
+        self.clade = clade
 
     def _divide(self, module):
         raise NotImplementedError
@@ -59,3 +74,24 @@ class AbstractStrategy:
 
     def need_dependencies(self):
         return False
+
+    def get_modules_by_func(self, func_name):
+        call_graph = self.clade.get_callgraph()
+        call_graph_dict = call_graph.load_callgraph()
+        files = set()
+        for func in call_graph_dict:
+            if func == func_name:
+                files.update(filter(lambda x: x != 'unknown', list(call_graph_dict[func].keys())))
+        res = []
+        if files:
+            cc = self.clade.get_cc()
+            for file in files:
+                desc = cc.load_json_by_in(file)
+                for module, module_desc in self.vog_modules.items():
+                    if desc['id'] in (int(cc) for cc in module_desc['CCs']):
+                        res.append(module)
+                        break
+
+        return res
+
+

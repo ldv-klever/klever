@@ -122,7 +122,7 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        if 'all' in self.conf['Linux kernel']['modules']:
+        if 'all' in self.conf['Linux kernel']['modules'] or 'functions' in self.conf['Linux kernel']:
             is_build_all_modules = True
             modules_to_build = []
         else:
@@ -206,6 +206,8 @@ class LKVOG(core.components.Component):
                                                                               self.clade,
                                                                               self.conf['Module extractor'])
         self.modules = self.module_extractor.divide()
+        self.strategy.set_clade(self.clade)
+        self.strategy.set_modules(self.modules)
 
         if self.sizes is None:
             self.sizes = self._get_sizes()
@@ -219,6 +221,15 @@ class LKVOG(core.components.Component):
             if module == 'all':
                 continue
             clusters = self.strategy.divide(module)
+            self.all_clusters.update(clusters)
+            for cluster in clusters:
+                # Draw graph if need it
+                if self.conf['LKVOG strategy'].get('draw graphs'):
+                    cluster.draw('.')
+                modules_in_clusters.update([module.id for module in cluster.modules])
+
+        for function in self.conf['Linux kernel'].get('functions', []):
+            clusters = self.strategy.divide_by_function(function)
             self.all_clusters.update(clusters)
             for cluster in clusters:
                 # Draw graph if need it
