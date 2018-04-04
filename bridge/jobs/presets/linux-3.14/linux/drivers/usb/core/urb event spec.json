@@ -1,0 +1,121 @@
+{
+  "Linux 3.14 (base)": {
+  	"functions models": {
+  		"usb_unlink_urb": {
+  			"comment": "Unlink urb.",
+	        "labels": {
+	          "urb": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "urb.urb"
+	          }
+	        },
+	        "process": "<assign>.[callback].<success> | <fail>",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the urb callback.",
+	            "callback": "%urb.complete%",
+	            "parameters": [
+	            	"%urb%"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the urb structure from arguments.",
+	            "statements": [
+	              "%urb% = $ARG1;"
+	            ]
+	          },
+	          "success": {
+	            "comment": "Success.",
+	            "statements": [
+	              "return true;"
+	            ]
+	          },
+	          "fail": {
+	            "comment": "Fail.",
+	            "statements": [
+	              "return false;"
+	            ]
+	          }
+	        }
+  		},
+  		"usb_kill_urb": {
+  			"comment": "Kill urb.",
+	        "labels": {
+	          "urb": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "urb.urb"
+	          }
+	        },
+	        "process": "<assign>.[callback].<success> | <fail>",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the urb callback.",
+	            "callback": "%urb.complete%",
+	            "parameters": [
+	            	"%urb%"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the urb structure from arguments.",
+	            "statements": [
+	              "%urb% = $ARG1;"
+	            ]
+	          },
+	          "success": {
+	            "comment": "Success.",
+	            "statements": [
+	              "return true;"
+	            ]
+	          },
+	          "fail": {
+	            "comment": "Fail.",
+	            "statements": [
+	              "return false;"
+	            ]
+	          }
+	        }
+  		},
+  		"usb_poison_urb": {
+  			"comment": "Poison urb.",
+	        "labels": {
+	          "urb": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "urb.urb"
+	          }
+	        },
+	        "process": "<assign>.[callback].<success> | <fail>",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the urb callback.",
+	            "callback": "%urb.complete%",
+	            "parameters": [
+	            	"%urb%"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the urb structure from arguments.",
+	            "statements": [
+	              "%urb% = $ARG1;"
+	            ]
+	          },
+	          "success": {
+	            "comment": "Success.",
+	            "statements": [
+	              "return true;"
+	            ]
+	          },
+	          "fail": {
+	            "comment": "Fail.",
+	            "statements": [
+	              "return false;"
+	            ]
+	          }
+	        }
+  		}
+  	},
+  	"environment processes": {}
+  }
+}

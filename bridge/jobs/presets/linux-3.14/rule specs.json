@@ -48,7 +48,7 @@
             "intermediate model options": [
               {
                 "linuxModule": {
-                  "dump instances": false,
+                  "dump instances": true,
                   "convert statics to globals": true,
                   "add registration guards": true,
                   "ignore missed callbacks": true,
@@ -106,7 +106,7 @@
               }
             ],
             "translation options": {
-              "debug output": false,
+              "debug output": true,
               "self parallel processes": false,
               "self parallel model": false,
               "always sequential processes": ["linux/initialization"],
@@ -136,6 +136,7 @@
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
               "linux/mm/kzalloc.c": {},
               "linux/err.c": {},
+              "linux/arch/atomic.c": {},
               "linux/ldv/common.c": {
                 "headers": {
                   "Linux 3.14 (base)": [
@@ -210,7 +211,7 @@
               "version": "ldv-bam:25793"
             },
             "result processing": {
-              "coverage": "lightweight"
+              "coverage": "full"
             }
           }
         }
@@ -643,7 +644,6 @@
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {
-          "linux/arch/atomic.c": {},
           "linux/usb/dev.c": {"bug kinds": [
             "linux:usb:dev::unincremented counter decrement",
             "linux:usb:dev::less initial decrement",
