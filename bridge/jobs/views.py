@@ -1242,8 +1242,12 @@ def get_job_decision_results(request, job_id):
 
 @login_required
 def save_job_copy(request, job_id):
+    job_name = None
+    if request.method == 'POST':
+        job_name = request.POST.get('name')
+
     try:
-        job = jobs.utils.save_job_copy(request.user, job_id)
+        job = jobs.utils.save_job_copy(request.user, job_id, job_name)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

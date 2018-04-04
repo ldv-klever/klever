@@ -25,6 +25,7 @@ parser.add_argument('job', help='Verification job identifier or its name.')
 parser.add_argument('--copy', action='store_true',
                     help='Set it if you would like to copy verification job before uploading reports.')
 parser.add_argument('--archive', help='ZIP archive name.', required=True)
+parser.add_argument('--name', help='Set it if you would like to set specific name when copying verification job.')
 args = parser.parse_args()
 
 if not os.path.exists(args.archive):
@@ -33,7 +34,7 @@ if not os.path.exists(args.archive):
 with Session(args) as session:
     job_id_or_name = args.job
     if args.copy:
-        job_id_or_name = session.copy_job(args.job)
+        job_id_or_name = session.copy_job(args.job, name=args.name)
 
     session.upload_reports(job_id_or_name, args.archive)
 
