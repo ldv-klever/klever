@@ -117,7 +117,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
@@ -441,7 +441,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
@@ -757,7 +757,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
