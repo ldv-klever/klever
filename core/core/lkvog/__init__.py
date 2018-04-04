@@ -474,7 +474,7 @@ class LKVOG(core.components.Component):
             self.logger.debug("Add excl {0}".format(root_dir_id))
             self.dynamic_excluded_clean.append(root_dir_id)
 
-        callgraph = self._generate_callgraph()
+        callgraph = self._generate_analysis_data()
         callgraph_file = "{0}_callgraph.json".format(self.verification_obj_desc['id'])
         self.verification_obj_desc['callgraph'] = callgraph_file
         with open(callgraph_file, 'w', encoding='utf-8') as fp:
@@ -486,11 +486,9 @@ class LKVOG(core.components.Component):
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
 
-    def _generate_callgraph(self):
+    def _generate_analysis_data(self):
         call_graph = self.clade.get_callgraph()
-        call_graph_dict = call_graph.load_callgraph()
 
-        group_callgraph = {}
         allowed_files = set()
         cc = self.clade.get_cc()
 
@@ -500,6 +498,16 @@ class LKVOG(core.components.Component):
                 full_desc = cc.load_json_by_id(file)
                 allowed_files.update(full_desc['deps'].keys())
                 allowed_files.update(full_desc['in'])
+
+        return {
+            'callgraph': self._generate_callgraph(allowed_files, call_graph),
+            'variables': self._generate_variables(allowed_files, call_graph),
+            'macros': self._generate_macros(allowed_files, call_graph)
+        }
+
+    def _generate_callgraph(self, allowed_files, call_graph):
+        call_graph_dict = call_graph.load_callgraph()
+        group_callgraph = {}
 
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
@@ -538,8 +546,27 @@ class LKVOG(core.components.Component):
             # Remove if empty
             if not group_callgraph.get(func, True):
                 del group_callgraph[func]
-
         return group_callgraph
+
+    def _generate_variables(self, allowed_files, call_graph):
+        variables_dict = call_graph.load_variables()
+        group_variables = []
+        for var_desc in variables_dict:
+            if var_desc.get('path') in allowed_files:
+                group_variables.append(var_desc)
+        return group_variables
+
+    def _generate_macros(self, allowed_files, call_graph):
+        macros_dict = call_graph.load_macros()
+        group_macros = {}
+        for macro, macro_desc in macros_dict.items():
+            new_macro_desc = {}
+            for file, desc in macro_desc.items():
+                if file in allowed_files:
+                    new_macro_desc[file] = desc
+            if new_macro_desc:
+                group_macros[macro] = new_macro_desc
+        return group_macros
 
     def _get_dependencies(self):
         module_by_file = {}
