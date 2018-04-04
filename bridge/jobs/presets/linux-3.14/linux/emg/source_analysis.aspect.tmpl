@@ -61,7 +61,7 @@ info: expand(__EXPORT_SYMBOL(sym, sec)){
 
 // for i in range(max_args_num)
 info: expand($({{ arg_patterns[i] }})) {
-	$fprintf<"$env<CWD>/expand.txt","%s %s\n",$path,$macro_name>
+	$fprintf<"$env<CWD>/expand.txt","%s %s {{ arg_printf_patterns[i] }}\n",$path,$macro_name,{{ arg_vals[i] }}>
 }
 // endfor
 
@@ -97,8 +97,13 @@ info: use_var($ $) {
   $fprintf<"$env<CWD>/use_var.txt","%s %s %s %s\n",$func_context_path,$func_context_name,$var_name,$use_line>
 }
 
+info: init_global(static $ $){
+	$fprintf<"$env<CWD>/init_global.txt","declaration: %s path: %s; type: static\n",$signature,$env<CC_IN_FILE>>
+	$fprintf_var_init_list<"$env<CWD>/init_global.txt">
+}
+
 info: init_global($ $){
-	$fprintf<"$env<CWD>/init_global.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
+	$fprintf<"$env<CWD>/init_global.txt","declaration: %s path: %s; type: global\n",$signature,$env<CC_IN_FILE>>
 	$fprintf_var_init_list<"$env<CWD>/init_global.txt">
 }
 
