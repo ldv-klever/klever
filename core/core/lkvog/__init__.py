@@ -145,7 +145,8 @@ class LKVOG(core.components.Component):
                 'scripts/(?!mod/empty\\.c)',
                 'kernel/.*?bounds.*?',
                 'arch/x86/tools/relocs',
-                'arch/x86/kernel/asm-offsets.c'
+                'arch/x86/kernel/asm-offsets.c',
+                '.*\.mod\.c'
             ],
             'Common.filter_out': [
                 '/dev/null',
