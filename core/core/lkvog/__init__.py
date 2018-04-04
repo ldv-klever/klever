@@ -152,7 +152,8 @@ class LKVOG(core.components.Component):
                 '.*?\\.cmd$'
             ],
             'global_data': {
-                'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
+                'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
+                'external modules': os.path.abspath(ext_modules) if ext_modules else None,
             },
             'extensions': [
                 {

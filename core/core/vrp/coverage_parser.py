@@ -30,7 +30,7 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, storage_src_tree, work_src_tree, search_dirs, main_work_dir, completeness,
+    def __init__(self, logger, coverage_file, storage_src_tree, ext_modules_dir, work_src_tree, search_dirs, main_work_dir, completeness,
                  coverage_id, coverage_info_dir):
         # Public
         self.logger = logger
@@ -41,8 +41,13 @@ class LCOV:
         self.main_work_dir = main_work_dir
         self.completeness = completeness
         self.coverage_info_dir = coverage_info_dir
+        self.ext_modules_dir = ext_modules_dir
 
         self.arcnames = {}
+        self.logger.debug("Search dirs are {0}".format(self.search_dirs))
+        self.logger.debug("Work src tree is {0}".format(self.work_src_tree))
+        self.logger.debug("Work dir is {0}".format(self.main_work_dir))
+        self.logger.debug("Ext modules dir is {0}".format(self.ext_modules_dir))
 
         # Sanity checks
         if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
@@ -65,9 +70,12 @@ class LCOV:
             self.logger.exception('Could not parse coverage')
 
     def parse(self):
-        dir_map = (('source files', self.work_src_tree),
+        dir_map = [('source files', self.work_src_tree),
                    ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
-                   ('generated models', self.main_work_dir))
+                   ('generated models', self.main_work_dir)]
+
+        if self.ext_modules_dir:
+            dir_map.insert(1, ('source files', self.ext_modules_dir))
 
         ignore_file = False
 
@@ -86,15 +94,18 @@ class LCOV:
                         file_name = line[len(self.FILENAME_PREFIX):]
                         if os.path.isfile(file_name):
                             dir, file = os.path.split(file_name)
+                            if dir.startswith(self.storage_src_tree):
+                                dir = os.path.join('/', os.path.relpath(dir, self.storage_src_tree))
                             all_files.setdefault(dir, [])
                             if file_name.startswith(self.storage_src_tree):
-                                file_name = os.path.relpath(file_name, self.storage_src_tree)
+                                file_name = os.path.join('/', os.path.relpath(file_name, self.storage_src_tree))
                             all_files[dir].append(file)
 
                 for dir, files in all_files.items():
                     # Lightweight coverage keeps only source code dirs.
                     if self.completeness == 'lightweight' \
-                            and not dir.startswith(self.work_src_tree):
+                            and not dir.startswith(self.work_src_tree)\
+                            and self.ext_modules_dir and dir.startswith(self.ext_modules_dir):
                         self.logger.debug('Excluded {0}'.format(dir))
                         excluded_dirs.add(dir)
                         continue
@@ -124,12 +135,14 @@ class LCOV:
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
-                    file_name = line[len(self.FILENAME_PREFIX):]
-                    if not os.path.isfile(file_name):
+                    init_file_name = line[len(self.FILENAME_PREFIX):]
+                    if not os.path.isfile(init_file_name):
                         ignore_file = True
                         continue
-                    if file_name.startswith(self.storage_src_tree):
-                        file_name = os.path.relpath(file_name, self.storage_src_tree)
+                    if init_file_name.startswith(self.storage_src_tree):
+                        file_name = os.path.join('/', os.path.relpath(init_file_name, self.storage_src_tree))
+                    else:
+                        file_name = init_file_name
                     if not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
                         for dest, src in dir_map:
                             if file_name.startswith(src):
@@ -154,8 +167,8 @@ class LCOV:
                                 ignore_file = False
                             new_file_name = os.path.join('specifications', new_file_name)
 
-                        self.arcnames[file_name] = new_file_name
-                        old_file_name, file_name = file_name, new_file_name
+                        self.arcnames[init_file_name] = new_file_name
+                        old_file_name, file_name = init_file_name, new_file_name
                     else:
                         ignore_file = True
                 elif line.startswith(self.LINE_PREFIX):

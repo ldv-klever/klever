@@ -223,6 +223,7 @@ class RP(core.components.Component):
         clade_global_data = clade.get_global_data()
         self.work_src_tree = clade_global_data['working source tree']
         self.search_dirs = clade_global_data['search directories']
+        self.ext_modules_dir = clade_global_data['external modules']
 
 
     def fetcher(self):
@@ -477,7 +478,7 @@ class RP(core.components.Component):
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
         self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage,
-                                          self.work_src_tree, self.search_dirs,
+                                          self.ext_modules_dir, self.work_src_tree, self.search_dirs,
                                           self.conf['main working directory'], opts.get('coverage', None),
                                           os.path.join(self.conf['main working directory'], self.coverage_info_file),
                                           os.path.join(self.conf['main working directory'], coverage_info_dir))
