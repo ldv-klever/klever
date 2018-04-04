@@ -208,7 +208,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "ldv-bam:25793"
+              "version": "trunk:27583"
             },
             "result processing": {
               "coverage": "full"
@@ -340,7 +340,7 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "smg_witness_for_ldv:26089"
+          "version": "trunk:27583"
         }
       }
     },
@@ -361,7 +361,7 @@
         "verifier profile": "reachability with function pointers",
         "verifier": {
           "name": "CPAchecker",
-          "version": "ldv-bam:26347"
+          "version": "trunk:27583"
         }
       }
     },
