@@ -400,6 +400,8 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['deps'] = {}
         self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
+            if module.id not in self.modules:
+                raise Exception("Module {0} does not exist".format(module.id))
             ccs = self.modules[module.id]['CCs']
             self.verification_obj_desc['grps'].append({'id': module.id, 'CCs': ccs})
             self.verification_obj_desc['deps'][module.id] = \
