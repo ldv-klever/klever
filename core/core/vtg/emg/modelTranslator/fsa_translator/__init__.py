@@ -58,8 +58,12 @@ class FSATranslator:
         self._logger.info("Include extra header files if necessary")
 
         # Get from unused interfaces
+        header_sets = []
         for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
-            self._cmodel.add_headers(self._cmodel.entry_file, process.headers)
+            header_sets.append(process.headers)
+        header_sets = sorted(header_sets, key=len)
+        for hset in header_sets:
+            self._cmodel.add_headers(self._cmodel.entry_file, hset)
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
