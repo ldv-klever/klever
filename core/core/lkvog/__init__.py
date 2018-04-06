@@ -129,7 +129,8 @@ class LKVOG(core.components.Component):
             modules_to_build, is_build_all_modules = \
                 self.strategy.get_modules_to_build(self.conf['Linux kernel']['modules'])
 
-        modules_to_build = [module.lstrip('ext-modules/') for module in modules_to_build]
+        modules_to_build = [module if not module.startswith('ext-modules/') else module[len('ext-modules/'):]
+                            for module in modules_to_build]
 
         ext_modules = self.prepare_ext_modules()
 
