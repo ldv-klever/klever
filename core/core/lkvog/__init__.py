@@ -225,8 +225,9 @@ class LKVOG(core.components.Component):
 
         modules_in_clusters = set()
 
+        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
         for module in self.conf['Linux kernel']['modules']:
-            if module == 'all':
+            if module == 'all' or module in subsystems:
                 continue
             clusters = self.strategy.divide(module)
             self.all_clusters.update(clusters)
@@ -245,15 +246,14 @@ class LKVOG(core.components.Component):
                     cluster.draw('.')
                 modules_in_clusters.update([module.id for module in cluster.modules])
 
-        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
         for module in self.modules:
             if module not in modules_in_clusters:
                 if 'all' in self.conf['Linux kernel']['modules']:
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
                     for subsystem in subsystems:
-                        if subsystem.startswith(module):
-                            self.all_clusters.update(strategy_utils.Graph([strategy_utils.Module(module)]))
+                        if module.startswith(subsystem):
+                            self.all_clusters.add(strategy_utils.Graph([strategy_utils.Module(module)]))
                             break
 
         for cluster in self.all_clusters:
