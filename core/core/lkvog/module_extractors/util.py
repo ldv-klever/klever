@@ -10,11 +10,10 @@ def extract_cc(clade):
     for node_id, desc in build_graph.items():
         if desc['type'] == 'CC':
             full_desc = clade.get_cc().load_json_by_id(node_id)
-            if not full_desc['out'].endswith('.mod.o'):
-                for in_file in full_desc['in']:
-                    if not in_file.startswith(full_desc['cwd']):
-                        in_file = os.path.join(full_desc['cwd'], in_file)
-                    cc_modules[in_file] = full_desc
+            for in_file in full_desc['in']:
+                if not in_file.startswith(full_desc['cwd']):
+                    in_file = os.path.join(full_desc['cwd'], in_file)
+                cc_modules[in_file] = full_desc
 
     return cc_modules
 
