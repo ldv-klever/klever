@@ -215,6 +215,10 @@ class LKVOG(core.components.Component):
         if self.dependencies is None and self.strategy.need_dependencies():
             self.dependencies = self._get_dependencies()
             self.strategy.set_dependencies(self.dependencies, self.sizes)
+        if self.strategy.need_callgraph():
+            callgraph = self.clade.get_callgraph()
+            callgraph_dict = callgraph.load_callgraph()
+            self.strategy.set_callgraph(callgraph_dict)
 
         modules_in_clusters = set()
 
