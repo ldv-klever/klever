@@ -46,6 +46,7 @@ def build_dependencies(clade):
 
     return dependencies, root_files
 
+
 def create_module(desc_files, in_files):
     module_id = md5("".join([in_file for in_file in sorted(in_files)]).encode('utf-8')).hexdigest()[:12]
     ret = {
@@ -58,3 +59,37 @@ def create_module(desc_files, in_files):
     in_files.clear()
     return ret
 
+
+def create_module_by_ld(clade, id, build_graph):
+    desc = get_full_desc(clade, id, build_graph[id]['type'])
+    module_id = desc['relative_out']
+    ccs = []
+    process = build_graph[id]['using'][:]
+    in_files = []
+    while process:
+        current = process.pop(0)
+        current_type = build_graph[current]['type']
+
+        if current_type == 'CC':
+            desc = get_full_desc(clade, current, current_type)
+            if not desc['in'][0].endswith('.S'):
+                ccs.append(current)
+            in_files.extend([os.path.join(desc['cwd'], file) for file in desc['in']])
+
+        process.extend(build_graph[current]['using'])
+
+    return {
+        module_id:  {
+            'CCs': ccs,
+            'in files': in_files
+        }
+    }
+
+
+def get_full_desc(clade, id, type_desc):
+    desc = None
+    if type_desc == 'CC':
+        desc = clade.get_cc()
+    elif type_desc == 'LD':
+        desc = clade.get_ld()
+    return desc.load_json_by_id(id)

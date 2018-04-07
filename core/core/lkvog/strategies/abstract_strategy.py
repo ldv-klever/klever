@@ -107,4 +107,17 @@ class AbstractStrategy:
             if desc['id'] in (int(cc) for cc in module_desc['CCs']):
                 return module
 
+    def get_modules_for_subsystem(self, subsystem):
+        ret = []
+        for module in self.vog_modules:
+            if module.startswith(subsystem):
+                ret.append(module)
+
+        return ret
+
+    def _is_module(self, file):
+        return file.endswith('.ko')
+
+    def _is_subsystem(self, file):
+        return file.endswith('/')
 

@@ -153,7 +153,9 @@ class LKVOG(core.components.Component):
             ],
             'Common.filter_out': [
                 '/dev/null',
-                '.*?\\.cmd$'
+                '.*?\\.cmd$',
+                '.*/built-in.o',
+                'vmlinux'
             ],
             'global_data': {
                 'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
@@ -226,41 +228,38 @@ class LKVOG(core.components.Component):
         modules_in_clusters = set()
 
         subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
-        for module in self.conf['Linux kernel']['modules']:
-            if module == 'all' or module in subsystems:
-                continue
-            clusters = self.strategy.divide(module)
-            self.all_clusters.update(clusters)
-            for cluster in clusters:
-                # Draw graph if need it
-                if self.conf['LKVOG strategy'].get('draw graphs'):
-                    cluster.draw('.')
-                modules_in_clusters.update([module.id for module in cluster.modules])
-
-        for function in self.conf['Linux kernel'].get('functions', []):
-            clusters = self.strategy.divide_by_function(function)
-            self.all_clusters.update(clusters)
-            for cluster in clusters:
-                # Draw graph if need it
-                if self.conf['LKVOG strategy'].get('draw graphs'):
-                    cluster.draw('.')
-                modules_in_clusters.update([module.id for module in cluster.modules])
-
         for module in self.modules:
             if module not in modules_in_clusters:
                 if 'all' in self.conf['Linux kernel']['modules']:
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
-                    for subsystem in subsystems:
-                        if module.startswith(subsystem):
-                            self.all_clusters.add(strategy_utils.Graph([strategy_utils.Module(module)]))
-                            break
+                    if module in self.conf['Linux kernel']['modules']:
+                        clusters = self.strategy.divide(module)
+                        self.add_new_clusters(clusters, modules_in_clusters)
+                    else:
+                        for subsystem in subsystems:
+                            if module.startswith(subsystem):
+                                clusters = self.strategy.divide(module)
+                                self.add_new_clusters(clusters, modules_in_clusters)
+                                break
+
+        for function in self.conf['Linux kernel'].get('functions', []):
+            clusters = self.strategy.divide_by_function(function)
+            self.add_new_clusters(clusters, modules_in_clusters)
 
         for cluster in self.all_clusters:
             self.logger.debug("Going to verify cluster")
             self.cluster = cluster
             self.module = cluster.root.id
             self.generate_verification_obj_desc()
+
+    def add_new_clusters(self, clusters, modules_in_clusters):
+        self.all_clusters.update(clusters)
+        for cluster in clusters:
+            # Draw graph if need it
+            if self.conf['LKVOG strategy'].get('draw graphs'):
+                cluster.draw('.')
+            modules_in_clusters.update([module.id for module in cluster.modules])
 
     def prepare_ext_modules(self):
         if 'external modules' not in self.conf['Linux kernel']:
