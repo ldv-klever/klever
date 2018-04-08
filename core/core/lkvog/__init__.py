@@ -227,7 +227,8 @@ class LKVOG(core.components.Component):
 
         modules_in_clusters = set()
 
-        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
+        subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
+                                 self.conf['Linux kernel']['modules']))
         for module in self.modules:
             if module not in modules_in_clusters:
                 if 'all' in self.conf['Linux kernel']['modules']:
@@ -568,6 +569,7 @@ class LKVOG(core.components.Component):
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
 
+    """
     def __build_dependencies(self):
         reverse_provided = {}
         dependencies = []
@@ -591,7 +593,9 @@ class LKVOG(core.components.Component):
                 fp.write('{0} needs "{1}": {2}\n'.format(m2, f, m1))
 
         return sorted(dependencies)
+    """
 
+    """
     def __get_module_sizes(self):
         sizes = {}
 
@@ -600,3 +604,4 @@ class LKVOG(core.components.Component):
                 sizes[module.replace('.ko', '.o')] = desc.get('output size', 0)
 
         return sizes
+    """

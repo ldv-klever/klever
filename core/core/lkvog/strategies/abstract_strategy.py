@@ -118,6 +118,6 @@ class AbstractStrategy:
     def _is_module(self, file):
         return file.endswith('.ko')
 
-    def _is_subsystem(self, file):
+    def is_subsystem(self, file):
         return file.endswith('/')
 

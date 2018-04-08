@@ -293,7 +293,7 @@ class Advanced(AbstractStrategy):
             for module in sorted(self.modules.keys()):
                 ret.update(self.divide(module))
             return ret
-        elif not module_name.endswith('.ko'):
+        elif self.is_subsystem(module_name):
             # This is subsystem
             ret = set()
             for module in sorted(self.modules.keys()):

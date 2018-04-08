@@ -29,7 +29,7 @@ class Manual(AbstractStrategy):
         self.group_params = params.get('groups', {})
         self._already_in_modules = set()
         for key, value in params.get('groups', {}).items():
-            if not self._is_module(key) and not self._is_subsystem(key):
+            if not self._is_module(key) and not self.is_subsystem(key):
                 self._need_dependencies = True
                 self.groups = {}
                 return
@@ -41,7 +41,7 @@ class Manual(AbstractStrategy):
                                      'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
                                                                                              value))
                 for module in module_list:
-                    if not self._is_module(module) and not self._is_subsystem(module):
+                    if not self._is_module(module) and not self.is_subsystem(module):
                         self._need_dependencies = True
                         self.groups = {}
                         return
@@ -54,7 +54,7 @@ class Manual(AbstractStrategy):
             for module in self.groups.keys():
                 ret.extend(self.divide(module))
             return ret
-        elif self._is_subsystem(module_name):
+        elif self.is_subsystem(module_name):
             # This is subsystem
             for module in self.groups.keys():
                 if module.startswith(module_name) and module != module_name:
@@ -78,7 +78,7 @@ class Manual(AbstractStrategy):
                         process = []
                         if self._is_module(module):
                             process.append(module)
-                        elif self._is_subsystem(module):
+                        elif self.is_subsystem(module):
                             process.extend(self.get_modules_for_subsystem(module))
                         else:
                             process.extend(self.get_modules_by_func(module))
@@ -111,7 +111,7 @@ class Manual(AbstractStrategy):
 
     def _set_dependencies(self, deps, sizes):
         for key, value in self.group_params.items():
-            if not self._is_module(key):
+            if not self._is_module(key) and not self.is_subsystem(key):
                 key = self.get_modules_by_func(key)[0]
             self.groups[key] = []
             for module_list in value:
@@ -122,7 +122,7 @@ class Manual(AbstractStrategy):
                                                                                              value))
                 modules = []
                 for module in module_list:
-                    if self._is_module(module) or self._is_subsystem(module):
+                    if self._is_module(module) or self.is_subsystem(module):
                         modules.append(module)
                     else:
                         modules.extend(self.get_modules_by_func(module))
@@ -138,7 +138,7 @@ class Manual(AbstractStrategy):
             for group in groups:
                 ret.update(group)
                 for module in group:
-                    if not self._is_module(module) and not self._is_subsystem(module):
+                    if not self._is_module(module) and not self.is_subsystem(module):
                         return [], True
 
         return list(ret), False
