@@ -11,6 +11,9 @@
 	          "threadfn": {
 	          	"parameter": true,
 	          	"interface": "kthread.threadfn"
+	          },
+	          "ptr": {
+	          	"declaration": "void *ptr"
 	          }
 	        },
 	        "process": "<assign>.[callback].<return>",
@@ -32,7 +35,9 @@
 	          "return": {
 	            "comment": "Kthread has been created.",
 	            "statements": [
-	              "return ldv_undef_ptr();"
+	              "%ptr% = ldv_undef_ptr();",
+	              "ldv_assume(ldv_is_err(%ptr%));",
+	              "return %ptr%;"
 	            ]
 	          }
 	        }

@@ -48,7 +48,7 @@
             "intermediate model options": [
               {
                 "linuxModule": {
-                  "dump instances": true,
+                  "dump instances": false,
                   "convert statics to globals": true,
                   "add registration guards": true,
                   "ignore missed callbacks": true,
@@ -106,7 +106,7 @@
               }
             ],
             "translation options": {
-              "debug output": true,
+              "debug output": false,
               "self parallel processes": false,
               "self parallel model": false,
               "always sequential processes": ["linux/initialization"],
@@ -211,7 +211,7 @@
               "version": "trunk:27583"
             },
             "result processing": {
-              "coverage": "full"
+              "coverage": "lightweight"
             }
           }
         }

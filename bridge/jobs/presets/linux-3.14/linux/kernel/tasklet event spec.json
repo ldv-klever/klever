@@ -16,7 +16,7 @@
   			}
   		},
   		"__tasklet_schedule": {
-  			"comment": "Tasklet schedule.",
+  			"comment": "Schedule a tasklet.",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
@@ -45,7 +45,7 @@
 	        }
   		},
   		"__tasklet_hi_schedule": {
-  			"comment": "Tasklet hi_schedule",
+  			"comment": "Schedule a high priority tasklet.",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
@@ -74,7 +74,7 @@
 	        }
   		},
   		"__tasklet_hi_schedule_first": {
-  			"comment": "Tasklet hi_schedule_first",
+  			"comment": "Schedule a high priority tasklet.",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
