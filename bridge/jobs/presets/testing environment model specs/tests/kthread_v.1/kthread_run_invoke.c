@@ -6,7 +6,7 @@
 void *data;
 static struct task_struct *thread;
 
-static void ldv_handler(void *data)
+static int ldv_handler(void *data)
 {
 	ldv_invoke_reached();
 }
