@@ -20,8 +20,8 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-static struct workqueue_struct *queue;
 static struct work_struct work;
+static struct workqueue_struct *queue;
 
 static void ldv_handler(struct work_struct *work)
 {

@@ -16,7 +16,7 @@
   			}
   		},
   		"__tasklet_schedule": {
-  			"comment": "Tasklet schedule",
+  			"comment": "Tasklet schedule.",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
@@ -24,7 +24,7 @@
 	            "interface": "tasklet.tasklet_struct"
 	          }
 	        },
-	        "process": "<assign>.([callback].<success> | <fail>)",
+	        "process": "<assign>.[callback]",
 	        "actions": {
 	          "callback": {
 	            "comment": "Call the tasklet callback.",
@@ -40,24 +40,12 @@
 	            "comment": "Get the tasklet structure from arguments.",
 	            "statements": [
 	              "%tasklet_struct% = $ARG1;"
-	            ]
-	          },
-	          "success": {
-	            "comment": "Success.",
-	            "statements": [
-	              "return true;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Fail.",
-	            "statements": [
-	              "return false;"
 	            ]
 	          }
 	        }
   		},
   		"__tasklet_hi_schedule": {
-  			"comment": "Tasklet schedule",
+  			"comment": "Tasklet hi_schedule",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
@@ -65,7 +53,7 @@
 	            "interface": "tasklet.tasklet_struct"
 	          }
 	        },
-	        "process": "<assign>.[callback].<success> | <fail>",
+	        "process": "<assign>.[callback]",
 	        "actions": {
 	          "callback": {
 	            "comment": "Call the tasklet callback.",
@@ -81,24 +69,12 @@
 	            "comment": "Get the tasklet structure from arguments.",
 	            "statements": [
 	              "%tasklet_struct% = $ARG1;"
-	            ]
-	          },
-	          "success": {
-	            "comment": "Success.",
-	            "statements": [
-	              "return true;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Fail.",
-	            "statements": [
-	              "return false;"
 	            ]
 	          }
 	        }
   		},
   		"__tasklet_hi_schedule_first": {
-  			"comment": "Tasklet schedule",
+  			"comment": "Tasklet hi_schedule_first",
 	        "labels": {
 	          "tasklet_struct": {
 	            "container": true,
@@ -106,7 +82,7 @@
 	            "interface": "tasklet.tasklet_struct"
 	          }
 	        },
-	        "process": "<assign>.[callback].<success> | <fail>",
+	        "process": "<assign>.[callback]",
 	        "actions": {
 	          "callback": {
 	            "comment": "Call the tasklet callback.",
@@ -122,18 +98,6 @@
 	            "comment": "Get the tasklet structure from arguments.",
 	            "statements": [
 	              "%tasklet_struct% = $ARG1;"
-	            ]
-	          },
-	          "success": {
-	            "comment": "Success.",
-	            "statements": [
-	              "return true;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Fail.",
-	            "statements": [
-	              "return false;"
 	            ]
 	          }
 	        }

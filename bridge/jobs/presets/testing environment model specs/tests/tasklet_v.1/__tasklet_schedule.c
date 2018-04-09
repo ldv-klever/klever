@@ -11,13 +11,10 @@ static void ldv_handler(unsigned long data)
 	ldv_invoke_reached();
 }
 
-
 static int __init ldv_init(void)
 {
 	ldv_invoke_test();
-
 	__tasklet_schedule(&tasklet);
-
 	return 0;
 }
 

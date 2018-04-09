@@ -11,7 +11,7 @@
           "SA": {
             "template aspect": "linux/emg/source_analysis.aspect.tmpl",
             "max arguments number": 30,
-            "remove only inline functions": false,
+            "remove only inline functions": true,
             "keep macros": [
               "module_init",
               "early_initcall",

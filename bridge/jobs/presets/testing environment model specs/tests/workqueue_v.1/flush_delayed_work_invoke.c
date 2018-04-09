@@ -20,8 +20,8 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-static struct workqueue_struct *queue;
 static struct delayed_work work;
+static struct workqueue_struct *queue;
 
 static void ldv_handler(struct work_struct *work)
 {
@@ -34,7 +34,6 @@ static int __init ldv_init(void)
 	queue = create_workqueue("ldv_queue");
 	if (!queue)
 		return -ENOMEM;
-
 	INIT_DELAYED_WORK(&work, ldv_handler);
 	flush_delayed_work(&work);
 	return 0;

@@ -27,7 +27,7 @@
         },
         "callbacks": {
           "complete": {
-            "declaration": "usb_complete_t complete",
+            "declaration": "void (*complete)(struct urb *)",
             "interrupt context": false
           }
         }

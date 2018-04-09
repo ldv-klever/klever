@@ -12,12 +12,12 @@ static void ldv_handler(struct urb *u)
 
 static int __init ldv_init(void)
 {
-	struct usb_device *dev = ldv_undef_ptr();
-	unsigned int pipe = ldv_undef_uint();
-	unsigned char *setup_packet = (unsigned char) ldv_undef_uint();
-	void *transfer_buffer = ldv_undef_ptr();
-	int buffer_length = ldv_undef_int();
 	void *context = ldv_undef_ptr();
+	int buffer_length = ldv_undef_int();
+	unsigned int pipe = ldv_undef_uint();
+	void *transfer_buffer = ldv_undef_ptr();
+	struct usb_device *dev = ldv_undef_ptr();
+	unsigned char *setup_packet = (unsigned char) ldv_undef_uint();
 	ldv_invoke_test();
 	usb_fill_control_urb(&u, dev, pipe, setup_packet, transfer_buffer, buffer_length, 
 		(usb_complete_t) ldv_handler, context);
@@ -26,8 +26,7 @@ static int __init ldv_init(void)
 	return 0;
 }
 
-static void __exit ldv_exit(void)
-{}
+static void __exit ldv_exit(void) {}
 
 module_init(ldv_init);
 module_exit(ldv_exit);
