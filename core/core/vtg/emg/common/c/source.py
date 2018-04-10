@@ -15,12 +15,10 @@
 # limitations under the License.
 #
 import re
-import os
 import json
 import clade
 
 from core.utils import find_file_or_dir
-from core.vtg.emg.common import get_necessary_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
 from core.vtg.emg.common.c.types import import_typedefs, import_declaration, extract_name, is_static
 
@@ -250,9 +248,10 @@ class Source:
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
         if source_analysis and 'typedefs' in source_analysis:
+            # todo: Wait for proper implementation
             import_typedefs(source_analysis['typedefs'])
 
-        if 'global variable initializations' in source_analysis:
+        if 'variables' in source_analysis:
             self.logger.info("Import types from global variables initializations")
             for variable in source_analysis["global variable initializations"]:
                 variable_name = extract_name(variable['declaration'])
@@ -270,38 +269,40 @@ class Source:
                 if 'value' in variable:
                     var.value = variable['value']
 
-        if 'functions' in source_analysis:
+        if 'callgraph' in source_analysis:
             self.logger.info("Import source functions")
-            for func in source_analysis['functions']:
-                for path in source_analysis['functions'][func]:
-                    description = source_analysis['functions'][func][path]
-                    declaration = import_declaration(description['signature'])
-                    func_intf = self.get_source_function(func, declaration=declaration)
-                    if func_intf and func_intf.declaration.compare(declaration):
-                        func_intf.declaration_files.add(path)
+            for func in source_analysis['callgraph']:
+                for definition_candidate in source_analysis['callgraph'][func]:
+                    desc = source_analysis['callgraph'][func][definition_candidate]
+                    signature = list(desc["declared_in"].values())[-1]['signature']
+                    func_intf = Function(func, signature)
+
+                    # Use any file
+                    definition_file = list(files_map[definition_candidate])[-1]
+                    func_intf.definition_file = definition_file
+
+                    # Set static
+                    if "type" in desc and desc["type"] == "static":
+                        func_intf.static = True
                     else:
-                        func_intf = Function(func, description['signature'])
-                        func_intf.declaration_files.add(path)
-                    if 'definition' in description and description['definition']:
-                        func_intf.definition_file = path
-                    if 'static' in description:
-                        func_intf.static = description['static']
+                        func_intf.static = False
 
-                    func_intf.raw_declaration = description['signature']
-                    self.set_source_function(func_intf, path)
+                    # Set declarations
+                    for dfile in desc["declared_in"]:
+                        for actual_file in files_map[dfile]:
+                            self.set_source_function(func_intf, actual_file)
 
-            # Then add calls
-            for func in source_analysis['functions']:
-                for path in source_analysis['functions'][func]:
-                    func_obj = self.get_source_function(func, path)
-                    description = source_analysis['functions'][func][path]
-                    if "called at" in description:
-                        for name in description["called at"]:
-                            func_obj.add_call(name, path)
-                    if "calls" in description:
-                        for name in description["calls"]:
-                            for call in description["calls"][name]:
-                                func_obj.call_in_function(name, call)
+                    if "calls" in desc:
+                        for called in desc["calls"]:
+                            for calls in desc["calls"][called]:
+                                for call in calls:
+                                    func_intf.call_in_function(called, call)
+
+                    if 'called_in' in desc:
+                        for caller in desc['called_in']:
+                            for scope in desc['called_in'][caller]:
+                                for actual_scope in files_map[scope]:
+                                    func_intf.add_call(caller, actual_scope)
         else:
             self.logger.warning("There is no any functions in source analysis")
 
@@ -313,13 +314,13 @@ class Source:
             if func not in source_analysis['functions'] or len(self._source_functions[func].keys()) == 0:
                 self.remove_source_function(func)
 
-        if 'macro expansions' in source_analysis:
-            for name in source_analysis['macro expansions']:
+        if 'macros' in source_analysis:
+            for name in source_analysis['macro expansions']['macros']:
                 macro = Macro(name)
-                for path in source_analysis['macro expansions'][name]:
-                    if 'args' in source_analysis['macro expansions'][name][path]:
-                        for p in source_analysis['macro expansions'][name][path]['args']:
-                            macro.add_parameters(path, p)
+                for scope in source_analysis['macro expansions'][name]:
+                    for actual_scope in files_map[scope]:
+                        for call in source_analysis['macro expansions'][name][scope]['args']:
+                            macro.add_parameters(actual_scope, call)
                 self.set_macro(macro)
 
     def _collect_file_dependencies(self, abstract_task):
