@@ -15,8 +15,12 @@
 # limitations under the License.
 #
 import re
+import os
 import json
+import clade
 
+from core.utils import find_file_or_dir
+from core.vtg.emg.common import get_necessary_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
 from core.vtg.emg.common.c.types import import_typedefs, import_declaration, extract_name, is_static
 
@@ -27,13 +31,13 @@ class Source:
     information about functions, variable initializations, a functions call graph, macros.
     """
 
-    def __init__(self, logger, conf, analysis_file):
+    def __init__(self, logger, conf, abstract_task):
         """
         Setup initial attributes and get logger object.
 
         :param logger: logging object.
         :param conf: Source code analysis configuration.
-        :param analysis_file: Name of the file with source analysis data.
+        :param abstract_task: Abstract verification task dictionary (given by VTG).
         :param conf: Configuration properties dictionary.
         """
         self.logger = logger
@@ -43,10 +47,19 @@ class Source:
         self._macros = dict()
         self.__function_calls_cache = dict()
 
-        self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
+        # Initialize Clade cient to make requests
+        self._clade = clade.Clade()
+        self._clade.set_work_dir(self._conf['Clade']['base'], self._conf['Clade']['storage'])
+
+        # Ask for dependencies for each CC
+        files_map = self._collect_file_dependencies(abstract_task)
+
+        # Read file with source analysis
+        analysis_file = find_file_or_dir(self.logger, self._conf["main working directory"], abstract_task['callgraph'])
+        self.logger.info("Read file with results of source analysis from {!r}".format(analysis_file))
         with open(analysis_file, encoding="utf8") as fh:
             analysis_data = json.loads(fh.read())
-        self._import_code_analysis(analysis_data)
+        self._import_code_analysis(analysis_data, files_map)
 
     @property
     def source_functions(self):
@@ -224,13 +237,16 @@ class Source:
         else:
             return None
 
-    def _import_code_analysis(self, source_analysis):
+    def _import_code_analysis(self, source_analysis, files_map):
         """
         Read global variables, functions and macros to fill up the collection.
 
         :param source_analysis: Dictionary with the content of source analysis.
+        :param files_map: Dictionary to resolve main file by an included file.
         :return: None.
         """
+        # Todo: Major refactoring to support new format
+
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
         if source_analysis and 'typedefs' in source_analysis:
@@ -305,3 +321,30 @@ class Source:
                         for p in source_analysis['macro expansions'][name][path]['args']:
                             macro.add_parameters(path, p)
                 self.set_macro(macro)
+
+    def _collect_file_dependencies(self, abstract_task):
+        """
+        Collect for each included header file or c file its "main" file to which it was included. This is required
+        since we cannot write aspects and instrument files which have no CC command so me build this map.
+
+        :param abstract_task: Abstract task dictionary.
+        :return: Collection dictionary {included file: {files that include this one}}.
+        """
+        collection = dict()
+
+        def _collect_cc_deps(cfile, deps):
+            # Collect for each file CC entry to which it is included
+            for file in deps:
+                if file not in collection:
+                    collection[file] = set()
+                collection[file].add(cfile)
+
+        # Read each CC description and import map of files to in files
+        for group in abstract_task['grps']:
+            for desc in group['Extra CCs']:
+                cc_desc = self._clade.get_cc().load_json_by_id(desc['CC'])
+                c_file = desc['in file']
+                # Now read deps
+                _collect_cc_deps(c_file, cc_desc['deps'])
+
+        return collection

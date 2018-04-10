@@ -43,12 +43,11 @@ class EMG(core.vtg.plugins.Plugin):
         :return: None
         """
         self.logger.info("Start environment model generator {}".format(self.id))
-        sa_file = os.path.join(get_necessary_conf_property(self.conf, "main working directory"),
-                               self.abstract_task_desc["source analysis"])
 
         # Initialization of EMG
-        self.logger.info("Import results of source analysis from SA plugin")
-        sa = Source(self.logger, get_necessary_conf_property(self.conf, "source analysis"), sa_file)
+        # Todo: refactor this
+        self.logger.info("Import results of source analysis")
+        sa = Source(self.logger, self.conf, self.abstract_task_desc)
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")

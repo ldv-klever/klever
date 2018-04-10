@@ -21,7 +21,6 @@ from core.vtg.emg.processGenerator.linuxModule.interface import StructureContain
 
 def extract_implementations(collection, sa):
     entities = []
-    # todo: this section below is slow enough
     collection.logger.info("Import values from global variables initializations")
     for varname in sa.source_variables:
         for var in sa.get_source_variables(varname):
