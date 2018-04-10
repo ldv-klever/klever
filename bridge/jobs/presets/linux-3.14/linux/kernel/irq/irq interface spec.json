@@ -1,36 +1,36 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "request_threaded_irq": {
-        "signature": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+        "declaration": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long flags, const char *name, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "request_irq": {
-        "signature": "int request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+        "declaration": "int request_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "request_any_context_irq": {
-        "signature": "int request_any_context_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+        "declaration": "int request_any_context_irq(%interrupt.line%, %interrupt.handler%, unsigned long flags, const char *name, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "devm_request_threaded_irq": {
-        "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+        "declaration": "int devm_request_threaded_irq(struct device *dev, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, unsigned long irqflags, const char *devname, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "request_percpu_irq": {
-        "signature": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, $, %interrupt.data%)",
+        "declaration": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, const char *devname, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "free_irq": {
-        "signature": "void free_irq(%interrupt.line%, %interrupt.data%)",
+        "declaration": "void free_irq(%interrupt.line%, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "devm_free_irq": {
-        "signature": "void devm_free_irq($, %interrupt.line%, %interrupt.data%)",
+        "declaration": "void devm_free_irq(struct device *dev, %interrupt.line%, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
       "free_percpu_irq": {
-        "signature": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
+        "declaration": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
         "header": "linux/interrupt.h"
       }
     },
@@ -39,19 +39,19 @@
         "containers": {},
         "resources": {
           "line": {
-            "signature": "int line"
+            "declaration": "int line"
           },
           "data": {
-            "signature": "void *data"
+            "declaration": "void *data"
           }
         },
         "callbacks": {
           "handler": {
-            "signature": "irqreturn_t (*handler)(%interrupt.line%, %interrupt.data%)",
+            "declaration": "irqreturn_t (*handler)(%interrupt.line%, %interrupt.data%)",
             "interrupt context": true
           },
           "thread": {
-            "signature": "irqreturn_t (*thread)(%interrupt.line%, %interrupt.data%)"
+            "declaration": "irqreturn_t (*thread)(%interrupt.line%, %interrupt.data%)"
           }
         }
       }

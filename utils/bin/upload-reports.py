@@ -22,14 +22,21 @@ from utils.utils import get_args_parser, Session
 
 parser = get_args_parser('Upload ZIP archive with reports for verificaiton job.')
 parser.add_argument('job', help='Verification job identifier or its name.')
+parser.add_argument('--copy', action='store_true',
+                    help='Set it if you would like to copy verification job before uploading reports.')
 parser.add_argument('--archive', help='ZIP archive name.', required=True)
+parser.add_argument('--name', help='Set it if you would like to set specific name when copying verification job.')
 args = parser.parse_args()
 
 if not os.path.exists(args.archive):
     raise FileNotFoundError('ZIP archive with reports "{0}" does not exist'.format(args.archive))
 
 with Session(args) as session:
-    session.upload_reports(args.job, args.archive)
+    job_id_or_name = args.job
+    if args.copy:
+        job_id_or_name = session.copy_job(args.job, name=args.name)
+
+    session.upload_reports(job_id_or_name, args.archive)
 
 print('ZIP archive with reports "{0}" was successfully uploaded for verificaiton job "{1}"'
-      .format(args.archive, args.job))
+      .format(args.archive, job_id_or_name))

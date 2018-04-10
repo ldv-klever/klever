@@ -21,10 +21,12 @@
 #include <verifier/nondet.h>
 
 int flip_a_coin;
+int flag;
 
 int ldv_create(struct net *net, struct socket *sock, int kern)
 {
 	ldv_probe_up();
+	flag = 1;
 	return 0;
 }
 
@@ -38,6 +40,7 @@ int ldv_bind(struct socket *sock, struct sockaddr *myaddr, int sockaddr_len)
 {
     ldv_release_down();
     ldv_probe_up();
+    flag = 0;
     return 0;
 }
 
@@ -67,6 +70,8 @@ static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
 		unregister_pppox_proto(5);
+		if (flag)
+			ldv_release_down();
 		ldv_deregister();
 	}
 }

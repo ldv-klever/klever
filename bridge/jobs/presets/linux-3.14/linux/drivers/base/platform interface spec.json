@@ -1,16 +1,20 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "platform_driver_unregister": {
-        "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
+        "declaration": "void platform_driver_unregister(*%platform.platform_driver%)",
         "header": "linux/platform_device.h"
       },
       "platform_driver_probe": {
-        "signature": "int platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
+        "declaration": "int platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
         "header": "linux/platform_device.h"
       },
       "platform_driver_register": {
-        "signature": "int platform_driver_register(*%platform.platform_driver%)",
+        "declaration": "int platform_driver_register(*%platform.platform_driver%)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_register": {
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *)",
         "header": "linux/platform_device.h"
       }
     },
@@ -18,7 +22,7 @@
       "platform": {
         "containers": {
           "platform_driver": {
-            "signature": "struct platform_driver driver",
+            "declaration": "struct platform_driver driver",
             "header": "linux/platform_device.h",
             "fields": {
               "probe": "%platform.probe%",
@@ -28,34 +32,34 @@
         },
         "resources": {
           "platform_device": {
-            "signature": "struct platform_device *device",
+            "declaration": "struct platform_device *device",
             "header": "linux/platform_device.h",
             "implemented in kernel": true
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%platform.platform_device%)"
+            "declaration": "int (*probe)(%platform.platform_device%)"
           },
           "release": {
-            "signature": "int (*release)(%platform.platform_device%)"
+            "declaration": "int (*release)(%platform.platform_device%)"
           }
         }
       }
     }
   },
   "Linux 4.6.7": {
-    "kernel functions": {
+    "functions models": {
       "platform_driver_unregister": {
-        "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
+        "declaration": "void platform_driver_unregister(*%platform.platform_driver%)",
         "header": "linux/platform_device.h"
       },
       "__platform_driver_probe": {
-        "signature": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, $)",
+        "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
         "header": "linux/platform_device.h"
       },
       "__platform_driver_register": {
-        "signature": "int __platform_driver_register(*%platform.platform_driver%, $)",
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *owner)",
         "header": "linux/platform_device.h"
       }
     },
@@ -63,7 +67,7 @@
       "platform": {
         "containers": {
           "platform_driver": {
-            "signature": "struct platform_driver driver",
+            "declaration": "struct platform_driver driver",
             "header": "linux/platform_device.h",
             "fields": {
               "probe": "%platform.probe%",
@@ -73,17 +77,17 @@
         },
         "resources": {
           "platform_device": {
-            "signature": "struct platform_device *device",
+            "declaration": "struct platform_device *device",
             "header": "linux/platform_device.h",
             "implemented in kernel": true
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%platform.platform_device%)"
+            "declaration": "int (*probe)(%platform.platform_device%)"
           },
           "release": {
-            "signature": "int (*release)(%platform.platform_device%)"
+            "declaration": "int (*release)(%platform.platform_device%)"
           }
         }
       }

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "hid_add_device": {
         "comment": "Register hid device.",
         "labels": {
@@ -84,7 +84,7 @@
             ]
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "callback": {
