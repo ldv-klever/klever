@@ -473,7 +473,8 @@ class LKVOG(core.components.Component):
         return {
             'callgraph': self._generate_callgraph(allowed_files, call_graph),
             'variables': self._generate_variables(allowed_files, call_graph),
-            'macros': self._generate_macros(allowed_files, call_graph)
+            'macros': self._generate_macros(allowed_files, call_graph),
+            'typedefs': self._generate_typedefs(allowed_files, call_graph)
         }
 
     def _generate_callgraph(self, allowed_files, call_graph):
@@ -538,6 +539,14 @@ class LKVOG(core.components.Component):
             if new_macro_desc:
                 group_macros[macro] = new_macro_desc
         return group_macros
+
+    def _generate_typedefs(self, allowed_files, call_graph):
+        typedefs_dict = call_graph.load_typedefs()
+        typedefs = {}
+        for file, desc in typedefs_dict.items():
+            if file in allowed_files:
+                typedefs[file] = desc
+        return typedefs
 
     def _get_dependencies(self):
         module_by_file = {}
