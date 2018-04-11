@@ -484,8 +484,6 @@ class LKVOG(core.components.Component):
 
         allowed_files.add("unknown")
 
-        self.logger.debug("Allowed files are {0}".format("\n".join(sorted(allowed_files))))
-
         return {
             'callgraph': self._generate_callgraph(allowed_files, call_graph),
             'variables': self._generate_variables(allowed_files, call_graph),
