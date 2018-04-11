@@ -457,8 +457,6 @@ class LKVOG(core.components.Component):
 
         callgraph = self._generate_analysis_data()
         callgraph_file = "{0}_callgraph.json".format(self.verification_obj_desc['id'])
-        # Todo: check that this does not break runs with working directories cleaning. Note that by callgraph_file other
-        # todo: components cannot search for this file.
         self.verification_obj_desc['callgraph'] = os.path.relpath(os.path.join(os.path.curdir, callgraph_file),
                                                                   os.path.join(self.conf["main working directory"],
                                                                                os.path.pardir))
