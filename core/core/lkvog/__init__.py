@@ -477,7 +477,7 @@ class LKVOG(core.components.Component):
         for grp in self.verification_obj_desc['grps']:
             for file in grp['CCs']:
                 full_desc = cc.load_json_by_id(file)
-                allowed_files.update(full_desc['deps'].keys())
+                allowed_files.update(full_desc['deps'].values())
                 allowed_files.update(full_desc['in'])
 
         allowed_files.add("unknown")
