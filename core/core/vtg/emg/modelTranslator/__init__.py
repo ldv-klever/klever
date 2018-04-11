@@ -58,7 +58,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     # Collect files
     files = set()
     for grp in avt['grps']:
-        files.update([f['in file'] for f in grp['cc extra full desc files'] if 'in file' in f])
+        files.update([f['in file'] for f in grp['Extra CCs'] if 'in file' in f])
     files = sorted(files)
     logger.info("Files found: {}".format(len(files)))
 
@@ -149,7 +149,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     avt["entry points"] = [cmodel.entry_name]
     for grp in avt['grps']:
         logger.info('Add aspects to C files of group {!r}'.format(grp['id']))
-        for cc_extra_full_desc_file in [f for f in grp['cc extra full desc files'] if 'in file' in f]:
+        for cc_extra_full_desc_file in [f for f in grp['Extra CCs'] if 'in file' in f]:
             if cc_extra_full_desc_file["in file"] in addictions:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []

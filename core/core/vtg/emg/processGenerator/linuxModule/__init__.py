@@ -166,8 +166,8 @@ def __merge_spec_versions(collection, user_tag):
             else:
                 for new_tag in spec[tag]:
                     if new_tag in final_spec[tag]:
-                        raise KeyError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG"
-                                       " specification".format(new_tag, tag))
+                        raise RuntimeError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG"
+                                           " specification".format(new_tag, tag))
                     final_spec[tag][new_tag] = spec[tag][new_tag]
 
     def match_default_tag(e):

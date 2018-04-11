@@ -61,7 +61,7 @@ def __import_inits_exits(logger, conf, avt, source):
         for module2 in avt['grps']:
             if module2['id'] != module:
                 continue
-            order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
+            order_c_files.extend([file['in file'] for file in module2['Extra CCs']])
 
     init = source.get_macro(get_necessary_conf_property(conf, 'init'))
     if init:

@@ -243,17 +243,14 @@ class Source:
         :param files_map: Dictionary to resolve main file by an included file.
         :return: None.
         """
-        # Todo: Major refactoring to support new format
-
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
         if source_analysis and 'typedefs' in source_analysis:
-            # todo: Wait for proper implementation
             import_typedefs(source_analysis['typedefs'])
 
         if 'variables' in source_analysis:
             self.logger.info("Import types from global variables initializations")
-            for variable in source_analysis["global variable initializations"]:
+            for variable in source_analysis["variables"]:
                 variable_name = extract_name(variable['declaration'])
                 if not variable_name:
                     raise ValueError('Global variable without a name')
@@ -274,11 +271,25 @@ class Source:
             for func in source_analysis['callgraph']:
                 for definition_candidate in source_analysis['callgraph'][func]:
                     desc = source_analysis['callgraph'][func][definition_candidate]
-                    signature = list(desc["declared_in"].values())[-1]['signature']
-                    func_intf = Function(func, signature)
 
                     # Use any file
-                    definition_file = list(files_map[definition_candidate])[-1]
+                    if definition_candidate == "unknown" or definition_candidate not in files_map:
+                        # todo: This is a mistake of callgraph collectors filter
+                        if "declared_in" in desc:
+                            candidates = [k for k in desc["declared_in"].keys() if k in files_map]
+                            if len(candidates) == 0:
+                                continue
+                        else:
+                            continue
+
+                        definition_candidate = candidates[-1]
+                        definition_file = list(files_map[definition_candidate])[-1]
+                    else:
+                        definition_file = list(files_map[definition_candidate])[-1]
+
+                    signature = desc['signature'] if 'signature' in desc \
+                        else list(desc["declared_in"].values())[-1]['signature']
+                    func_intf = Function(func, signature)
                     func_intf.definition_file = definition_file
 
                     # Set static
@@ -288,21 +299,27 @@ class Source:
                         func_intf.static = False
 
                     # Set declarations
-                    for dfile in desc["declared_in"]:
-                        for actual_file in files_map[dfile]:
-                            self.set_source_function(func_intf, actual_file)
+                    self.set_source_function(func_intf, definition_file)
+                    func_intf.declaration_files.add(definition_file)
+                    if "declared_in" in desc:
+                        for dfile in (f for f in desc["declared_in"] if f in files_map):
+                            for actual_file in files_map[dfile]:
+                                self.set_source_function(func_intf, actual_file)
+                                func_intf.declaration_files.add(actual_file)
 
                     if "calls" in desc:
-                        for called in desc["calls"]:
-                            for calls in desc["calls"][called]:
-                                for call in calls:
-                                    func_intf.call_in_function(called, call)
+                        for called_function in desc["calls"]:
+                            for from_where in desc["calls"][called_function]:
+                                for call in desc["calls"][called_function][from_where]['args']:
+                                    func_intf.call_in_function(called_function, call)
 
                     if 'called_in' in desc:
                         for caller in desc['called_in']:
                             for scope in desc['called_in'][caller]:
-                                for actual_scope in files_map[scope]:
-                                    func_intf.add_call(caller, actual_scope)
+                                # todo: This is also not filtered properly information from the callgraph collector
+                                if scope != "unknown" and scope in files_map:
+                                    for actual_scope in files_map[scope]:
+                                        func_intf.add_call(caller, actual_scope)
         else:
             self.logger.warning("There is no any functions in source analysis")
 
@@ -311,15 +328,15 @@ class Source:
             if None in self._source_functions[func]:
                 del self._source_functions[func][None]
 
-            if func not in source_analysis['functions'] or len(self._source_functions[func].keys()) == 0:
+            if func not in source_analysis['callgraph'] or len(self._source_functions[func].keys()) == 0:
                 self.remove_source_function(func)
 
         if 'macros' in source_analysis:
-            for name in source_analysis['macro expansions']['macros']:
+            for name in source_analysis['macros']:
                 macro = Macro(name)
-                for scope in source_analysis['macro expansions'][name]:
+                for scope in source_analysis['macros'][name]:
                     for actual_scope in files_map[scope]:
-                        for call in source_analysis['macro expansions'][name][scope]['args']:
+                        for call in source_analysis['macros'][name][scope]['args']:
                             macro.add_parameters(actual_scope, call)
                 self.set_macro(macro)
 
@@ -335,7 +352,7 @@ class Source:
 
         def _collect_cc_deps(cfile, deps):
             # Collect for each file CC entry to which it is included
-            for file in deps:
+            for file in deps.values():
                 if file not in collection:
                     collection[file] = set()
                 collection[file].add(cfile)
