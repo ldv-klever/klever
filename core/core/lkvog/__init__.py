@@ -129,6 +129,9 @@ class LKVOG(core.components.Component):
             modules_to_build, is_build_all_modules = \
                 self.strategy.get_modules_to_build(self.conf['Linux kernel']['modules'])
 
+        modules_to_build = [module if not module.startswith('ext-modules/') else module[len('ext-modules/'):]
+                            for module in modules_to_build]
+
         ext_modules = self.prepare_ext_modules()
 
         clade_conf = {
@@ -149,11 +152,14 @@ class LKVOG(core.components.Component):
                 'scripts/(?!mod/empty\\.c)',
                 'kernel/.*?bounds.*?',
                 'arch/x86/tools/relocs',
-                'arch/x86/kernel/asm-offsets.c'
+                'arch/x86/kernel/asm-offsets.c',
+                '.*\.mod\.c'
             ],
             'Common.filter_out': [
                 '/dev/null',
-                '.*?\\.cmd$'
+                '.*?\\.cmd$',
+                '.*/built-in.o',
+                'vmlinux'
             ],
             'global_data': {
                 'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
@@ -218,46 +224,48 @@ class LKVOG(core.components.Component):
         if self.dependencies is None and self.strategy.need_dependencies():
             self.dependencies = self._get_dependencies()
             self.strategy.set_dependencies(self.dependencies, self.sizes)
+        if self.strategy.need_callgraph():
+            callgraph = self.clade.get_callgraph()
+            callgraph_dict = callgraph.load_callgraph()
+            self.strategy.set_callgraph(callgraph_dict)
 
 
         modules_in_clusters = set()
 
-        for module in self.conf['Linux kernel']['modules']:
-            if module == 'all':
-                continue
-            clusters = self.strategy.divide(module)
-            self.all_clusters.update(clusters)
-            for cluster in clusters:
-                # Draw graph if need it
-                if self.conf['LKVOG strategy'].get('draw graphs'):
-                    cluster.draw('.')
-                modules_in_clusters.update([module.id for module in cluster.modules])
-
-        for function in self.conf['Linux kernel'].get('functions', []):
-            clusters = self.strategy.divide_by_function(function)
-            self.all_clusters.update(clusters)
-            for cluster in clusters:
-                # Draw graph if need it
-                if self.conf['LKVOG strategy'].get('draw graphs'):
-                    cluster.draw('.')
-                modules_in_clusters.update([module.id for module in cluster.modules])
-
-        subsystems = list(filter(lambda target: not target.endswith('.ko'), self.conf['Linux kernel']['modules']))
+        subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
+                                 self.conf['Linux kernel']['modules']))
         for module in self.modules:
             if module not in modules_in_clusters:
                 if 'all' in self.conf['Linux kernel']['modules']:
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
-                    for subsystem in subsystems:
-                        if subsystem.startswith(module):
-                            self.all_clusters.update(strategy_utils.Graph([strategy_utils.Module(module)]))
-                            break
+                    if module in self.conf['Linux kernel']['modules']:
+                        clusters = self.strategy.divide(module)
+                        self.add_new_clusters(clusters, modules_in_clusters)
+                    else:
+                        for subsystem in subsystems:
+                            if module.startswith(subsystem):
+                                clusters = self.strategy.divide(module)
+                                self.add_new_clusters(clusters, modules_in_clusters)
+                                break
+
+        for function in self.conf['Linux kernel'].get('functions', []):
+            clusters = self.strategy.divide_by_function(function)
+            self.add_new_clusters(clusters, modules_in_clusters)
 
         for cluster in self.all_clusters:
             self.logger.debug("Going to verify cluster")
             self.cluster = cluster
             self.module = cluster.root.id
             self.generate_verification_obj_desc()
+
+    def add_new_clusters(self, clusters, modules_in_clusters):
+        self.all_clusters.update(clusters)
+        for cluster in clusters:
+            # Draw graph if need it
+            if self.conf['LKVOG strategy'].get('draw graphs'):
+                cluster.draw('.')
+            modules_in_clusters.update([module.id for module in cluster.modules])
 
     def prepare_ext_modules(self):
         if 'external modules' not in self.conf['Linux kernel']:
@@ -404,6 +412,8 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['deps'] = {}
         self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
+            if module.id not in self.modules:
+                raise Exception("Module {0} does not exist".format(module.id))
             ccs = self.modules[module.id]['CCs']
             self.verification_obj_desc['grps'].append({'id': module.id, 'CCs': ccs})
             self.verification_obj_desc['deps'][module.id] = \
@@ -661,6 +671,7 @@ class LKVOG(core.components.Component):
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
 
+    """
     def __build_dependencies(self):
         reverse_provided = {}
         dependencies = []
@@ -684,7 +695,9 @@ class LKVOG(core.components.Component):
                 fp.write('{0} needs "{1}": {2}\n'.format(m2, f, m1))
 
         return sorted(dependencies)
+    """
 
+    """
     def __get_module_sizes(self):
         sizes = {}
 
@@ -693,3 +706,4 @@ class LKVOG(core.components.Component):
                 sizes[module.replace('.ko', '.o')] = desc.get('output size', 0)
 
         return sizes
+    """

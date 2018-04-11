@@ -50,7 +50,7 @@ class Closure(AbstractStrategy):
             for module in [module for module in self.modules.values() if not module.successors]:
                 clusters.extend(self.divide(module.id))
             return clusters
-        elif not module_name.endswith('.ko'):
+        elif not self.is_subsystem(module_name):
             # This is subsystem
             for module in sorted(self.modules.keys()):
                 if module.startswith(module_name):

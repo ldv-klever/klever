@@ -45,6 +45,7 @@ class LCOV:
 
         self.arcnames = {}
         self.logger.debug("Search dirs are {0}".format(self.search_dirs))
+        self.logger.debug("Storage src tree is {0}".format(self.storage_src_tree))
         self.logger.debug("Work src tree is {0}".format(self.work_src_tree))
         self.logger.debug("Work dir is {0}".format(self.main_work_dir))
         self.logger.debug("Ext modules dir is {0}".format(self.ext_modules_dir))
@@ -75,7 +76,7 @@ class LCOV:
                    ('generated models', self.main_work_dir)]
 
         if self.ext_modules_dir:
-            dir_map.insert(1, ('source files', self.ext_modules_dir))
+            dir_map.insert(1, ('source files/ext-modules', self.ext_modules_dir))
 
         ignore_file = False
 
@@ -105,7 +106,7 @@ class LCOV:
                     # Lightweight coverage keeps only source code dirs.
                     if self.completeness == 'lightweight' \
                             and not dir.startswith(self.work_src_tree)\
-                            and self.ext_modules_dir and dir.startswith(self.ext_modules_dir):
+                            and self.ext_modules_dir and not dir.startswith(self.ext_modules_dir):
                         self.logger.debug('Excluded {0}'.format(dir))
                         excluded_dirs.add(dir)
                         continue
