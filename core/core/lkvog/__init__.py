@@ -484,6 +484,8 @@ class LKVOG(core.components.Component):
 
         allowed_files.add("unknown")
 
+        self.logger.debug("Allowed files are {0}".format("\n".join(sorted(allowed_files))))
+
         return {
             'callgraph': self._generate_callgraph(allowed_files, call_graph),
             'variables': self._generate_variables(allowed_files, call_graph),
@@ -497,7 +499,7 @@ class LKVOG(core.components.Component):
 
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
-                if file in allowed_files or file == 'unknown':
+                if file in allowed_files:
 
                     # Firstly, copy all desc
                     group_callgraph.setdefault(func, {})
@@ -513,7 +515,7 @@ class LKVOG(core.components.Component):
                                         group_callgraph[func][file][type].setdefault(called_func, {})
                                         group_callgraph[func][file][type][called_func][called_file] = called_file_descs
                     if 'declared_in' in descs:
-                        call_graph_dict[func][file]['declared_in'] = {}
+                        group_callgraph[func][file]['declared_in'] = {}
                         for decl_file, decl_descs in descs['declared_in'].items():
                             if decl_file in allowed_files:
                                 group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
