@@ -122,7 +122,7 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        if 'all' in self.conf['Linux kernel']['modules'] or 'functions' in self.conf['Linux kernel']:
+        if 'all' in self.conf['Linux kernel'].get('modules', []) or 'functions' in self.conf['Linux kernel']:
             is_build_all_modules = True
             modules_to_build = []
         else:
@@ -233,13 +233,13 @@ class LKVOG(core.components.Component):
         modules_in_clusters = set()
 
         subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
-                                 self.conf['Linux kernel']['modules']))
+                                 self.conf['Linux kernel'].get('modules', [])))
         for module in self.modules:
             if module not in modules_in_clusters:
-                if 'all' in self.conf['Linux kernel']['modules']:
+                if 'all' in self.conf['Linux kernel'].get('modules', []):
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
-                    if module in self.conf['Linux kernel']['modules']:
+                    if module in self.conf['Linux kernel'].get('modules', []):
                         clusters = self.strategy.divide(module)
                         self.add_new_clusters(clusters, modules_in_clusters)
                     else:
