@@ -1,0 +1,322 @@
+{
+  "Linux kernel": {
+    "source": "linux-stable",
+    "configuration": "allmodconfig",
+    "architecture": "x86_64",
+    "modules": [
+      "samples/kobject/kobject-example.ko",
+      "drivers/rtc/rtc-wm831x.ko",
+      "lib/test-string_helpers.ko"
+    ]
+  },
+  "LKVOG strategy": {
+    "name": "manual",
+    "groups": {
+      "samples/kobject/kobject-example.ko": [
+        [
+          "drivers/char/ttyprintk.o",
+          "drivers/char/mem.o",
+          "drivers/char/random.o",
+          "drivers/char/misc.o",
+          "drivers/char/hpet.o",
+          "samples/kobject/kobject-example.ko"
+        ]
+      ],
+      "drivers/rtc/rtc-wm831x.ko": [
+        [
+          "drivers/char/ttyprintk.o",
+          "drivers/char/mem.o",
+          "drivers/char/random.o",
+          "drivers/char/misc.o",
+          "drivers/char/hpet.o",
+          "drivers/rtc/rtc-wm831x.ko"
+        ]
+      ],
+      "lib/test-string_helpers.ko": [
+        [
+          "drivers/char/ttyprintk.o",
+          "drivers/char/mem.o",
+          "drivers/char/random.o",
+          "drivers/char/misc.o",
+          "drivers/char/hpet.o",
+          "lib/test-string_helpers.ko"
+        ]
+      ]
+    }
+  },
+  "maximum verification object size": 30000,
+  "rule specifications DB": "rule specs.json",
+  "verifier profiles DB": "verifier profiles.json",
+  "specifications set": "Linux 3.14 (base)",
+  "rule specifications": [
+    "linux:empty",
+    "generic:memory", 
+    "linux:usb:urb", 
+    "linux:usb:register", 
+    "linux:usb:gadget", 
+    "linux:usb:dev", 
+    "linux:usb:coherent", 
+    "linux:net:sock", 
+    "linux:net:rtnetlink", 
+    "linux:net:register", 
+    "linux:lib:idr", 
+    "linux:lib:find_bit", 
+    "linux:kernel:module", 
+    "linux:kernel:sched:completion", 
+    "linux:kernel:rcu:srcu", 
+    "linux:kernel:rcu:update:lock", 
+    "linux:kernel:rcu:update:lock sched", 
+    "linux:kernel:rcu:update:lock bh", 
+    "linux:kernel:locking:spinlock", 
+    "linux:kernel:locking:rwlock", 
+    "linux:kernel:locking:mutex", 
+    "linux:fs:sysfs", 
+    "linux:drivers:clk2", 
+    "linux:drivers:clk1", 
+    "linux:drivers:base:dma-mapping", 
+    "linux:alloc:usb lock", 
+    "linux:arch:io", 
+    "linux:block:genhd", 
+    "linux:block:queue", 
+    "linux:block:request", 
+    "linux:drivers:base:class"
+  ],
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.9"
+        },
+        "modules": [
+          "samples/kobject/kobject-example.ko",
+          "drivers/rtc/rtc-wm831x.ko"
+        ]
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.10"
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.11"
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.12"
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.13"
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.14"
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.15"
+        }
+      },
+      "LKVOG strategy": {
+        "groups": {
+          "samples/kobject/kobject-example.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "samples/kobject/kobject-example.ko"
+            ]
+          ],
+          "drivers/rtc/rtc-wm831x.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "drivers/rtc/rtc-wm831x.ko"
+            ]
+          ],
+          "lib/test-string_helpers.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "lib/test-string_helpers.ko"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.16"
+        }
+      },
+      "LKVOG strategy": {
+        "groups": {
+          "samples/kobject/kobject-example.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "samples/kobject/kobject-example.ko"
+            ]
+          ],
+          "drivers/rtc/rtc-wm831x.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "drivers/rtc/rtc-wm831x.ko"
+            ]
+          ],
+          "lib/test-string_helpers.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "lib/test-string_helpers.ko"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.17"
+        }
+      },
+      "LKVOG strategy": {
+        "groups": {
+          "samples/kobject/kobject-example.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "samples/kobject/kobject-example.ko"
+            ]
+          ],
+          "drivers/rtc/rtc-wm831x.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "drivers/rtc/rtc-wm831x.ko"
+            ]
+          ],
+          "lib/test-string_helpers.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "lib/test-string_helpers.ko"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.18"
+        }
+      },
+      "LKVOG strategy": {
+        "groups": {
+          "samples/kobject/kobject-example.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "samples/kobject/kobject-example.ko"
+            ]
+          ],
+          "drivers/rtc/rtc-wm831x.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "drivers/rtc/rtc-wm831x.ko"
+            ]
+          ],
+          "lib/test-string_helpers.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "lib/test-string_helpers.ko"
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "v3.19"
+        }
+      },
+      "LKVOG strategy": {
+        "groups": {
+          "samples/kobject/kobject-example.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "samples/kobject/kobject-example.ko"
+            ]
+          ],
+          "drivers/rtc/rtc-wm831x.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "drivers/rtc/rtc-wm831x.ko"
+            ]
+          ],
+          "lib/test-string_helpers.ko": [
+            [
+              "drivers/char/mem.o",
+              "drivers/char/random.o",
+              "drivers/char/misc.o",
+              "drivers/char/hpet.o",
+              "lib/test-string_helpers.ko"
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
