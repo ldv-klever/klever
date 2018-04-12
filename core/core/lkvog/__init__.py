@@ -122,7 +122,7 @@ class LKVOG(core.components.Component):
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
-        if 'all' in self.conf['Linux kernel']['modules'] or 'functions' in self.conf['Linux kernel']:
+        if 'all' in self.conf['Linux kernel'].get('modules', []) or 'functions' in self.conf['Linux kernel']:
             is_build_all_modules = True
             modules_to_build = []
         else:
@@ -233,13 +233,13 @@ class LKVOG(core.components.Component):
         modules_in_clusters = set()
 
         subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
-                                 self.conf['Linux kernel']['modules']))
+                                 self.conf['Linux kernel'].get('modules', [])))
         for module in self.modules:
             if module not in modules_in_clusters:
-                if 'all' in self.conf['Linux kernel']['modules']:
+                if 'all' in self.conf['Linux kernel'].get('modules', []):
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
-                    if module in self.conf['Linux kernel']['modules']:
+                    if module in self.conf['Linux kernel'].get('modules', []):
                         clusters = self.strategy.divide(module)
                         self.add_new_clusters(clusters, modules_in_clusters)
                     else:
@@ -463,11 +463,36 @@ class LKVOG(core.components.Component):
         with open(callgraph_file, 'w', encoding='utf-8') as fp:
             json.dump(callgraph, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
+        functions = self._extract_functions_for_cluster(callgraph)
+        if functions:
+            functions_file = "{0}_functions.json".format(self.verification_obj_desc['id'])
+            self.verification_obj_desc['functions'] = os.path.relpath(os.path.join(os.path.curdir, callgraph_file),
+                                                                      os.path.join(self.conf['main working directory'],
+                                                                                   os.path.pardir))
+            with open(functions_file, 'w', encoding='utf-8') as fp:
+                json.dump(functions, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
+
+    def _extract_functions_for_cluster(self, callgraph):
+        result = set()
+        if self.conf.get('autoextract functions'):
+            cc_files = set()
+            for grp in self.verification_obj_desc['grps']:
+                for cc in grp['CCs']:
+                    cc_files.update(self.clade.get_cc().load_json_by_id(cc)['in'])
+            for function, function_desc in callgraph['callgraph'].items():
+                for file, file_desc in function_desc.items():
+                    if file_desc.get('type') == 'global' and file in cc_files:
+                        result.add(function)
+        elif self.conf['Linux kernel']['functions']:
+            result = set(self.conf['Linux kernel']['functions']) & set(callgraph['callgraph'].keys())
+            self.logger.debug("Functions intersect is {0}".format(result))
+        return sorted(result)
 
     def _generate_analysis_data(self):
         call_graph = self.clade.get_callgraph()

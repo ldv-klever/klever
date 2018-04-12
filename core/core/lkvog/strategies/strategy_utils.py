@@ -128,10 +128,8 @@ class Graph:
     def __repr__(self):
         return str(self)
 
-    """
     def __eq__(self, rhs):
         return set(self.modules).__eq__(set(rhs.modules))
-    """
 
     def __cmp__(self, rhs):
         return set(self.modules).__cmp__(set(rhs.modules))
