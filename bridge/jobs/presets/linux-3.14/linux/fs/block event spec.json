@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "add_disk": {
         "comment": "Add partitioning information to kernel list.",
         "labels": {
@@ -94,7 +94,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },

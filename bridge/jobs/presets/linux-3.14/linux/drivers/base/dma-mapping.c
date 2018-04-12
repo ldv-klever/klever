@@ -15,40 +15,50 @@
  * limitations under the License.
  */
 
+#include <linux/types.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 int ldv_dma_calls = 0;
 
 /* MODEL_FUNC Map page */
-void ldv_dma_map_page(void) {
+dma_addr_t ldv_dma_map_page(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
+
+	return ldv_undef_int();
 }
 
 /* MODEL_FUNC Check page */
-void ldv_dma_mapping_error(void) {
+int ldv_dma_mapping_error(void) {
 	/* ASSERT No dma_mapping calls to verify */				
 	ldv_assert("linux:drivers:base:dma-mapping::check before map", ldv_dma_calls > 0);
 	ldv_dma_calls--;
+
+	return ldv_undef_int();
 }
 
 /* MODEL_FUNC Map page */
-void ldv_dma_map_single(void) {
+dma_addr_t ldv_dma_map_single(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
+
+	return ldv_undef_int();
 }
 	
 /* MODEL_FUNC Map page */
-void ldv_dma_map_single_attrs(void) {
+dma_addr_t ldv_dma_map_single_attrs(void) {
 	/* ASSERT Check that previous dma_mapping call was checked */
 	ldv_assert("linux:drivers:base:dma-mapping::unchecked", ldv_dma_calls == 0);
 	/* NOTE Increase map counter */
 	ldv_dma_calls++;
+
+	return ldv_undef_int();
 }
 
 /* MODEL_FUNC Check that all dma_mapping calls are checked at the end */

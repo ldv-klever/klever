@@ -1,20 +1,20 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "seq_open_private": {
-        "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
+        "declaration": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, int)",
         "header": "linux/seq_file.h"
       },
       "seq_release_private": {
-        "signature": "int seq_release_private($, %seq_operations.file%)",
+        "declaration": "int seq_release_private(struct inode *, %seq_operations.file%)",
         "header": "linux/seq_file.h"
       },
       "seq_open": {
-        "signature": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
+        "declaration": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
         "header": "linux/seq_file.h"
       },
       "seq_release": {
-        "signature": "int seq_release($, %seq_operations.file%)",
+        "declaration": "int seq_release(struct inode *, %seq_operations.file%)",
         "header": "linux/seq_file.h"
       }
     },
@@ -22,7 +22,7 @@
       "seq_operations": {
         "containers": {
           "seq_operations": {
-            "signature": "struct seq_operations ops",
+            "declaration": "struct seq_operations ops",
             "header": "linux/seq_file.h",
             "fields": {
               "start": "%seq_operations.start%",
@@ -34,30 +34,30 @@
         },
         "resources": {
           "seq_file": {
-            "signature": "struct seq_file *file",
+            "declaration": "struct seq_file *file",
             "header": "linux/seq_file.h"
           },
           "file": {
-            "signature": "struct file *file",
+            "declaration": "struct file *file",
             "header": "linux/fs.h"
           },
           "index": {
-            "signature": "loff_t *a",
+            "declaration": "loff_t *a",
             "header": "linux/fs.h"
           }
         },
         "callbacks": {
           "start": {
-            "signature": "void * (*start)(%seq_operations.seq_file%, %seq_operations.index%)"
+            "declaration": "void * (*start)(%seq_operations.seq_file%, %seq_operations.index%)"
           },
           "stop": {
-            "signature": "void (*stop)(%seq_operations.seq_file%, $)"
+            "declaration": "void (*stop)(%seq_operations.seq_file%, void *)"
           },
           "next": {
-            "signature": "void * (*next)(%seq_operations.seq_file%, $, %seq_operations.index%)"
+            "declaration": "void * (*next)(%seq_operations.seq_file%, void *, %seq_operations.index%)"
           },
           "show": {
-            "signature": "int (*show)(%seq_operations.seq_file%, $)"
+            "declaration": "int (*show)(%seq_operations.seq_file%, void *)"
           }
         }
       }

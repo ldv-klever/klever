@@ -1,0 +1,25 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "kthread_create_on_node": {
+        "declaration": "struct task_struct *kthread_create_on_node(%kthread.handler%, %kthread.data%, int node, const char *namefmt, ...)",
+        "header": "linux/kthread.h"
+      }
+    },
+    "categories": {
+      "kthread": {
+        "resources": {
+          "data": {
+            "declaration": "void *data"
+          }
+        },
+        "callbacks": {
+          "handler": {
+            "declaration": "int (*threadfn)(%kthread.data%)",
+            "interrupt context": false
+          }
+        }
+      }
+    }
+  }
+}

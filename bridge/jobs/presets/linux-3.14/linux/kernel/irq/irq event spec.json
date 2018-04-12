@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "request_threaded_irq": {
         "comment": "Allocate an interrupt line for a managed device.",
         "labels": {
@@ -348,7 +348,7 @@
             ]
           },
           "ret_val": {
-            "signature": "irqreturn_t a"
+            "declaration": "irqreturn_t a"
           }
         },
         "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",

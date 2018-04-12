@@ -16,6 +16,7 @@
  */
 
 #include <linux/ldv/err.h>
+#include <verifier/common.h>
 
 long ldv_is_err(const void *ptr)
 {
@@ -24,11 +25,13 @@ long ldv_is_err(const void *ptr)
 
 void *ldv_err_ptr(long error)
 {
+    ldv_assume(error <= 0);
 	return (void *)(LDV_PTR_MAX - error);
 }
 
 long ldv_ptr_err(const void *ptr)
 {
+    ldv_assume((unsigned long) ptr >= LDV_PTR_MAX);
 	return (long)(LDV_PTR_MAX - (unsigned long)ptr);
 }
 

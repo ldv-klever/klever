@@ -1,11 +1,11 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "functions models": {},
     "categories": {
       "v4l2_file_operations": {
         "containers": {
           "v4l2_file_operations": {
-            "signature": "struct v4l2_file_operations ops",
+            "declaration": "struct v4l2_file_operations ops",
             "header": "media/v4l2-dev.h",
             "fields": {
               "release": "%v4l2_file_operations.release%",
@@ -15,15 +15,15 @@
         },
         "resources": {
           "file": {
-            "signature": "struct file *file"
+            "declaration": "struct file *file"
           }
         },
         "callbacks": {
           "probe": {
-            "signature": "int (*probe) (%v4l2_file_operations.file%)"
+            "declaration": "int (*probe) (%v4l2_file_operations.file%)"
           },
           "release": {
-            "signature": "$ (*release) (%v4l2_file_operations.file%)"
+            "declaration": "int (*release) (%v4l2_file_operations.file%)"
           }
         }
       }

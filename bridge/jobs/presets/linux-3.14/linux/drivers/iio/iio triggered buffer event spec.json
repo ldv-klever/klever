@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "iio_triggered_buffer_setup": {
         "comment": "Setup industrial I/O triggered buffer.",
         "labels": {
@@ -122,7 +122,7 @@
             ]
           },
           "ret_val": {
-            "signature": "irqreturn_t a"
+            "declaration": "irqreturn_t a"
           }
         },
         "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",

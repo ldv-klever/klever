@@ -1,12 +1,12 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "ieee80211_alloc_hw": {
-        "signature": "*%ieee80211.ieee80211_hw% ieee80211_alloc_hw($, *%ieee80211.ieee80211_ops%)",
+        "declaration": "*%ieee80211.ieee80211_hw% ieee80211_alloc_hw(size_t priv_data_len, *%ieee80211.ieee80211_ops%)",
         "header": "net/mac80211.h"
       },
       "ieee80211_free_hw": {
-        "signature": "void ieee80211_free_hw(*%ieee80211.ieee80211_hw%)",
+        "declaration": "void ieee80211_free_hw(*%ieee80211.ieee80211_hw%)",
         "header": "net/mac80211.h"
       }
     },
@@ -14,7 +14,7 @@
       "ieee80211": {
         "containers": {
           "ieee80211_ops": {
-            "signature": "struct ieee80211_ops a",
+            "declaration": "struct ieee80211_ops a",
             "header": "net/mac80211.h",
             "fields": {
               "start": "%ieee80211.start%",
@@ -26,21 +26,21 @@
         },
         "callbacks": {
           "start": {
-            "signature": "int (*start)(%ieee80211.ieee80211_hw%)"
+            "declaration": "int (*start)(%ieee80211.ieee80211_hw%)"
           },
           "stop": {
-            "signature": "void (*stop)(%ieee80211.ieee80211_hw%)"
+            "declaration": "void (*stop)(%ieee80211.ieee80211_hw%)"
           },
           "suspend": {
-            "signature": "int (*suspend)(%ieee80211.ieee80211_hw%, $)"
+            "declaration": "int (*suspend)(%ieee80211.ieee80211_hw%, struct cfg80211_wowlan *wowlan)"
           },
           "resume": {
-            "signature": "int (*resume)(%ieee80211.ieee80211_hw%)"
+            "declaration": "int (*resume)(%ieee80211.ieee80211_hw%)"
           }
         },
         "resources": {
           "ieee80211_hw": {
-            "signature": "struct ieee80211_hw *a"
+            "declaration": "struct ieee80211_hw *a"
           }
         }
       }

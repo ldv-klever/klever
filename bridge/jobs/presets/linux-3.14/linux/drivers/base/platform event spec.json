@@ -1,7 +1,7 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
-      "__platform_driver_register": {
+    "functions models": {
+      "platform_driver_register, __platform_driver_register": {
         "comment": "Register a driver for platform-level device.",
         "labels": {
           "platform_driver": {
@@ -133,7 +133,7 @@
             "callback": true
           },
           "probed": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -231,7 +231,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel model": {
+    "functions models": {
       "__platform_driver_register": {
         "comment": "Register a driver for platform-level device.",
         "labels": {
@@ -364,7 +364,7 @@
             "callback": true
           },
           "probed": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "1"
           }
         },

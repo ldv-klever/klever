@@ -1,0 +1,57 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "kthread_create_on_node": {
+        "comment": "Call the function provided via kthread_run.",
+        "labels": {
+          "handler": {
+            "callback": true,
+            "parameter": true,
+            "interface": [
+              "kthread.handler"
+            ]
+          },
+          "data": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "kthread.data"
+            ]
+          },
+          "retstruct": {
+            "declaration": "struct task_struct *a"
+          }
+        },
+        "process": "<assign>.[call].<success> | <fail>",
+        "actions": {
+          "call": {
+            "callback": "%handler%",
+            "parameters": [
+              "%data%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to call function kthread",
+            "statements": [
+              "return ldv_err_ptr(-ENOMEM);"
+            ]
+          },
+          "assign": {
+            "comment": "Get timer representing structure.",
+            "statements": [
+              "%handler% = $ARG1;",
+              "%data% = $ARG2;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully modified a timer's timeout",
+            "statements": [
+              "return $ALLOC(%retstruct%);"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {}
+  }
+}

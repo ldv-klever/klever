@@ -209,10 +209,6 @@ def solve_job(logger, conf):
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
         logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
 
-    # Save Klever Core configuration to default configuration file
-    with open("core.json", "w", encoding="utf8") as fh:
-        json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
-
     # Do this for deterministic python in job
     os.environ['PYTHONHASHSEED'] = "0"
     os.environ['PYTHONIOENCODING'] = "utf8"

@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "scsi_host_alloc": {
         "comment": "Allocate a new Scsi_Host and perform basic initialization.",
         "labels": {
@@ -186,6 +186,10 @@
     "environment processes": {
       "scsi_LLDd_scenario": {
         "comment": "Invoke SCSI mid level callbacks (e.g. model LLD).",
+        "headers": [
+          "linux/blkdev.h",
+          "scsi/scsi_host.h"
+        ],
         "labels": {
           "host": {
             "container": true,
@@ -193,15 +197,22 @@
               "scsi_host_template.host"
             ]
           },
+          "scsi_host_template": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ]
+          },
           "callback": {
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
-        "process": "(!register).{main}",
+        "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
             "comment": "Old style SCSI drivers initialization.",
@@ -210,6 +221,12 @@
           "call": {
             "comment": "Call mid-layer callbacks",
             "process": "[callback].{call} | [release].{main}"
+          },
+          "init": {
+            "comment": "Extract Scsi_Host structure.",
+            "statements": [
+              "%scsi_host_template% = %host%->hostt;"
+            ]
           },
           "register": {
             "parameters": [
@@ -242,7 +259,7 @@
             "comment": "Initialize the SCSI driver.",
             "callback": "%host.scsi_host_template.probe%",
             "parameters": [
-              "%host%"
+              "%scsi_host_template%"
             ],
             "pre-call": [
               "ldv_pre_probe();"

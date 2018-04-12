@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "transport_subsystem_register": {
         "comment": "Register new target backend operations.",
         "labels": {
@@ -69,6 +69,10 @@
     "environment processes": {
       "io_target_scenario": {
         "comment": "Invoke Linux-IO target callbacks.",
+        "headers": [
+          "target/target_core_base.h",
+          "target/target_core_backend.h"
+        ],
         "labels": {
           "se_subsystem_api": {
             "container": true,
@@ -176,7 +180,7 @@
     }
   },
   "Linux 4.6.7": {
-    "kernel model": {
+    "functions models": {
       "transport_backend_register": {
         "comment": "Register new target backend operations.",
         "labels": {
@@ -244,6 +248,10 @@
     },
     "environment processes": {
       "io_target_scenario": {
+        "headers": [
+          "target/target_core_base.h",
+          "target/target_core_backend.h"
+        ],
         "comment": "Invoke Linux-IO target callbacks.",
         "labels": {
           "target_backend_ops": {

@@ -22,7 +22,7 @@
 
 int flip_a_coin;
 
-int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
+static int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
 	int res;
 

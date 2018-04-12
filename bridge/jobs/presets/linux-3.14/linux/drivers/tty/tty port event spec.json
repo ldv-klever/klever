@@ -1,0 +1,176 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "tty_port_register_device": {
+        "comment": "Register new tty device.",
+        "labels": {
+          "tty_port": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "tty_port.tty_port"
+            ]
+          },
+          "tty_port_operations": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "tty_port.tty_port_operations"
+            ]
+          },
+          "device": {
+            "declaration": "struct device *"
+          }
+        },
+        "process": "<alloc>.[register].<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for device structure and get port and tty driver structures.",
+            "statements": [
+              "%device% = $ALLOC(%device%);",
+              "%tty_port% = $ARG1;",
+              "%tty_port_operations% = %tty_port%->ops;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%tty_port%",
+              "%tty_port_operations%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered a new tty device.",
+            "statements": [
+              "return %device%;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to register a new tty device.",
+            "statements": [
+              "return ERR_PTR(-ENOMEM);"
+            ]
+          }
+        }
+      },
+      "tty_port_unregister_device": {
+        "comment": "Unregister new tty device.",
+        "labels": {
+          "tty_port": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "tty_port.tty_port"
+            ]
+          },
+          "tty_port_operations": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "tty_port.tty_port_operations"
+            ]
+          }
+        },
+        "process": "<init>.[deregister]",
+        "actions": {
+          "init": {
+            "comment": "Get port.",
+            "statements": [
+              "%tty_port% = $ARG1;",
+              "%tty_port_operations% = %tty_port%->ops;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%tty_port%",
+              "%tty_port_operations%"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "tty_port_scenario": {
+        "comment": "Invoke tty callbacks",
+        "labels": {
+          "tty_port_operations": {
+            "container": true,
+            "interface": [
+              "tty_port.tty_port_operations"
+            ]
+          },
+          "tty_port": {
+            "resource": true,
+            "interface": [
+              "tty_port.tty_port"
+            ]
+          },
+          "tty_struct": {
+            "declaration": "struct tty_struct *str",
+            "header": "linux/tty.h"
+          },
+          "ret": {
+            "declaration": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "actions": {
+          "main": {
+            "comment": "Install tty or deregister.",
+            "process": "[port_activate].(<activate_success>.[port_shutdown] | <activate_failed>).{main} | (deregister)"
+          },
+          "register": {
+            "parameters": [
+              "%tty_port%",
+              "%tty_port_operations%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%tty_port% == $ARG1"
+            ],
+            "parameters": [
+              "%tty_port%",
+              "%tty_port_operations%"
+            ]
+          },
+          "init": {
+            "comment": "Extract tty_struct value from port.",
+            "statements": [
+              "%tty_struct% = %tty_port%->tty;"
+            ]
+          },
+          "activate_success": {
+            "comment": "Port activation has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "activate_failed": {
+            "comment": "Port activation has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "port_activate": {
+            "callback": "%tty_port_operations.port_activate%",
+            "parameters": [
+              "%tty_port%",
+              "%tty_struct%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "port_shutdown": {
+            "callback": "%tty_port_operations.port_shutdown%",
+            "parameters": [
+              "%tty_port%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

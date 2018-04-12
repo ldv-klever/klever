@@ -22,7 +22,6 @@
 #include <verifier/nondet.h>
 
 struct tty_driver *driver;
-struct tty_port port;
 struct device *device;
 unsigned int lines;
 unsigned indx;
@@ -43,25 +42,9 @@ static struct tty_operations ldv_tty_ops = {
 	.close = ldv_close
 };
 
-static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
-{
-	/* pass */
-	return 0;
-}
-
-static void ldv_shutdown(struct tty_port *tport)
-{
-	/* pass */
-}
-
-static const struct tty_port_operations ldv_tty_port_ops = {
-	.activate = ldv_activate,
-	.shutdown = ldv_shutdown,
-};
-
 static int __init ldv_init(void)
 {
-	int res = ldv_undef_int();
+	int res;
 	ldv_invoke_test();
 	driver = alloc_tty_driver(lines);
 	if (driver) {
@@ -69,20 +52,14 @@ static int __init ldv_init(void)
 		res = tty_register_driver(driver);
 		if (res) {
 			put_tty_driver(driver);
-			return res;
-		}
-		else {
-			tty_port_init(& port);
-			port.ops = & ldv_tty_port_ops;
 		}
 	}
-	return 0;
+	return res;
 }
 
 static void __exit ldv_exit(void)
 {
 	tty_unregister_device(driver, indx);
-	tty_port_put(&port);
 	tty_unregister_driver(driver);
 	put_tty_driver(driver);
 }

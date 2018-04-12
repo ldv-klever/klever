@@ -457,7 +457,9 @@ class LKVOG(core.components.Component):
 
         callgraph = self._generate_analysis_data()
         callgraph_file = "{0}_callgraph.json".format(self.verification_obj_desc['id'])
-        self.verification_obj_desc['callgraph'] = callgraph_file
+        self.verification_obj_desc['callgraph'] = os.path.relpath(os.path.join(os.path.curdir, callgraph_file),
+                                                                  os.path.join(self.conf["main working directory"],
+                                                                               os.path.pardir))
         with open(callgraph_file, 'w', encoding='utf-8') as fp:
             json.dump(callgraph, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -477,13 +479,16 @@ class LKVOG(core.components.Component):
         for grp in self.verification_obj_desc['grps']:
             for file in grp['CCs']:
                 full_desc = cc.load_json_by_id(file)
-                allowed_files.update(full_desc['deps'].keys())
+                allowed_files.update(full_desc['deps'].values())
                 allowed_files.update(full_desc['in'])
+
+        allowed_files.add("unknown")
 
         return {
             'callgraph': self._generate_callgraph(allowed_files, call_graph),
             'variables': self._generate_variables(allowed_files, call_graph),
-            'macros': self._generate_macros(allowed_files, call_graph)
+            'macros': self._generate_macros(allowed_files, call_graph),
+            'typedefs': self._generate_typedefs(allowed_files, call_graph)
         }
 
     def _generate_callgraph(self, allowed_files, call_graph):
@@ -492,7 +497,7 @@ class LKVOG(core.components.Component):
 
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
-                if file in allowed_files or file == 'unknown':
+                if file in allowed_files:
 
                     # Firstly, copy all desc
                     group_callgraph.setdefault(func, {})
@@ -508,7 +513,7 @@ class LKVOG(core.components.Component):
                                         group_callgraph[func][file][type].setdefault(called_func, {})
                                         group_callgraph[func][file][type][called_func][called_file] = called_file_descs
                     if 'declared_in' in descs:
-                        call_graph_dict[func][file]['declared_in'] = {}
+                        group_callgraph[func][file]['declared_in'] = {}
                         for decl_file, decl_descs in descs['declared_in'].items():
                             if decl_file in allowed_files:
                                 group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
@@ -548,6 +553,14 @@ class LKVOG(core.components.Component):
             if new_macro_desc:
                 group_macros[macro] = new_macro_desc
         return group_macros
+
+    def _generate_typedefs(self, allowed_files, call_graph):
+        typedefs_dict = call_graph.load_typedefs()
+        typedefs = {}
+        for file, desc in typedefs_dict.items():
+            if file in allowed_files:
+                typedefs[file] = desc
+        return typedefs
 
     def _get_dependencies(self):
         module_by_file = {}

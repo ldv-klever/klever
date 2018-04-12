@@ -1,8 +1,13 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "comment": "Register USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -42,6 +47,11 @@
       },
       "usb_serial_deregister_drivers": {
         "comment": "Deregister USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -70,6 +80,11 @@
     "environment processes": {
       "usb_serial_scenario": {
         "comment": "Invoke USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -90,7 +105,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -102,7 +117,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
@@ -318,7 +333,7 @@
     }
   },
   "Linux 3.2": {
-    "kernel model": {
+    "functions models": {
       "usb_serial_register_drivers": {
         "comment": "Register USB serial callbacks.",
         "labels": {
@@ -389,6 +404,11 @@
     "environment processes": {
       "usb_serial_scenario": {
         "comment": "Invoke USB serial callbacks.",
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -409,7 +429,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -421,7 +441,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
@@ -630,9 +650,80 @@
     }
   },
   "Linux 2.6.33": {
-    "kernel model": {},
+    "functions models": {
+      "usb_serial_register": {
+        "comment": "Register USB serial callbacks.",
+        "labels": {
+          "usb_serial_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%usb_serial_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to register provided within 'usb_serial_driver' argument.",
+            "statements": [
+              "%usb_serial_driver% = $ARG1;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail USB callbacks registration.",
+            "statements": [
+              "ldv_failed_usb_register_driver();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Registration of usb_serial_driver callbacks has been finished successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "usb_serial_deregister": {
+        "comment": "Deregister USB serial callbacks.",
+        "labels": {
+          "usb_serial_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%usb_serial_driver%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
+            "statements": [
+              "%usb_serial_driver% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
     "environment processes": {
       "usb_serial_scenario": {
+        "headers": [
+          "linux/tty.h",
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ],
         "comment": "Invoke USB serial callbacks",
         "labels": {
           "usb_device_id": {
@@ -654,7 +745,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -666,7 +757,7 @@
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>)).[port_remove] | <not_port_probed>) | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",

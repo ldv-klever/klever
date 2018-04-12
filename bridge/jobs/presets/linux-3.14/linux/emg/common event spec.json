@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {},
+    "functions models": {},
     "environment processes": {
       "factory_scenario": {
         "comment": "Register callbacks heuristically.",
@@ -53,7 +53,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },
@@ -299,7 +299,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           }
         },

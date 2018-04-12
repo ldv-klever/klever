@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "usb_reset_device": {
         "comment": "Reset USB device.",
         "labels": {},
@@ -27,10 +27,6 @@
             "interface": [
               "usb.usb_driver"
             ]
-          },
-          "res": {
-            "signature": "int a",
-            "value": "ldv_undef_int()"
           }
         },
         "process": "<assign>.[register].<success> | <fail>",
@@ -108,12 +104,8 @@
               "usb.usb_device"
             ]
           },
-          "reset_flag": {
-            "signature": "bool a",
-            "value": "false"
-          },
           "probe_retval": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "callback": {

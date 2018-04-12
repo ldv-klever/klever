@@ -15,6 +15,7 @@
     "name": "Linux kernel"
   },
   "aspect file": "linux/emg/source_analysis.aspect.tmpl",
+<<<<<<< HEAD
   "allowed macors": ["module_init",
                      "early_initcall",
                      "pure_initcall",
@@ -36,4 +37,29 @@
                      "console_initcall",
                      "security_initcall",
                      "module_exit"]
+=======
+  "allowed macros": [
+    "module_init",
+    "early_initcall",
+    "pure_initcall",
+    "core_initcall",
+    "core_initcall_sync",
+    "postcore_initcall",
+    "postcore_initcall_sync",
+    "arch_initcall",
+    "arch_inicall_sync",
+    "subsys_initcall",
+    "subsys_initcall_sync",
+    "fs_initcall",
+    "fs_initcall_sync",
+    "rootfs_initcall",
+    "device_initcall",
+    "device_initcall_sync",
+    "late_initcall",
+    "late_initcall_sync",
+    "console_initcall",
+    "security_initcall",
+    "module_exit"
+  ]
+>>>>>>> clade_bce_callgraph
 }

@@ -1,12 +1,12 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {
+    "functions models": {
       "hid_add_device": {
-        "signature": "int hid_add_device(*%hid.hid_device%)",
+        "declaration": "int hid_add_device(*%hid.hid_device%)",
         "header": "linux/hid.h"
       },
       "hid_destroy_device": {
-        "signature": "void hid_destroy_device(*%hid.hid_device%)",
+        "declaration": "void hid_destroy_device(*%hid.hid_device%)",
         "header": "linux/hid.h"
       }
     },
@@ -15,14 +15,14 @@
         "containers": {
           "hid_device": {
             "header": "linux/hid.h",
-            "signature": "struct hid_device a",
+            "declaration": "struct hid_device a",
             "fields": {
               "ll_driver": "*%hid.ll_driver%"
             }
           },
           "ll_driver": {
             "header": "linux/hid.h",
-            "signature": "struct hid_ll_driver a",
+            "declaration": "struct hid_ll_driver a",
             "fields": {
               "start": "%hid.start%",
               "stop": "%hid.stop%",
@@ -33,16 +33,16 @@
         },
         "callbacks": {
           "start": {
-            "signature": "int (*start)(*%hid.hid_device%)"
+            "declaration": "int (*start)(*%hid.hid_device%)"
           },
           "stop": {
-            "signature": "void (*stop)(*%hid.hid_device%)"
+            "declaration": "void (*stop)(*%hid.hid_device%)"
           },
           "open": {
-            "signature": "int (*open)(*%hid.hid_device%)"
+            "declaration": "int (*open)(*%hid.hid_device%)"
           },
           "close": {
-            "signature": "void (*close)(*%hid.hid_device%)"
+            "declaration": "void (*close)(*%hid.hid_device%)"
           }
         }
       }

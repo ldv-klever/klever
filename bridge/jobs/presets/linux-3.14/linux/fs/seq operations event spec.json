@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "seq_open, seq_open_private": {
         "comment": "Initialize sequential file.",
         "labels": {
@@ -94,15 +94,15 @@
             ]
           },
           "ret": {
-            "signature": "void *a",
+            "declaration": "void *a",
             "value": "ldv_undef_ptr()"
           },
           "show_ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "index": {
-            "signature": "loff_t *a",
+            "declaration": "loff_t *a",
             "pointer": true
           }
         },

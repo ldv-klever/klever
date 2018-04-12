@@ -1,6 +1,6 @@
 {
   "Linux 3.14 (base)": {
-    "kernel model": {
+    "functions models": {
       "misc_register": {
         "comment": "Register miscellaneous character driver.",
         "labels": {
@@ -81,6 +81,78 @@
           }
         }
       },
+      "debugfs_create_file": {
+        "comment": "Create a file in the debugfs filesystem.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "dentry": {
+            "declaration": "struct dentry *d"
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register provided file_operations callbacks.",
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "statements": [
+              "%dentry% = $ALLOC(%dentry%);",
+              "%file_operations% = $ARG5;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to create a file in the debugfs filesystem.",
+            "statements": [
+              "return ERR_PTR(-ENODEV);"
+            ]
+          },
+          "success": {
+            "comment": "Successfully created a file in the debugfs filesystem.",
+            "statements": [
+              "return %dentry%;"
+            ]
+          }
+        }
+      },
+      "debugfs_remove": {
+        "comment": "Deregister miscellaneous character driver.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "dentry": {
+            "declaration": "struct dentry *d"
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "condition": [],
+            "statements": [
+              "%dentry% = $ARG1;",
+              "$FREE(%dentry%);"
+            ]
+          }
+        }
+      },
       "cdev_init": {
         "comment": "Register cdev structure of the character driver.",
         "labels": {
@@ -151,6 +223,45 @@
           }
         }
       },
+      "register_chrdev": {
+        "comment": "Create and register a cdev occupying a range of minors.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register provided file_operations callbacks.",
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "statements": [
+              "%file_operations% = $ARG3;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to register the cdev.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered the cdev.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
       "unregister_chrdev": {
         "comment": "Unregister and destroy a cdev.",
         "labels": {
@@ -194,7 +305,7 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a",
+            "declaration": "int a",
             "value": "ldv_undef_int()"
           },
           "size_cnt": {
