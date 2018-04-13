@@ -90,6 +90,7 @@ class Function:
         self.called_at = dict()
         self.declaration_files = set()
         self.definition_file = None
+        self.header_files = []
 
         if not declaration:
             declaration = 'void f(void)'
