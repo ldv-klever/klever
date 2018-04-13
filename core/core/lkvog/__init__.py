@@ -466,7 +466,7 @@ class LKVOG(core.components.Component):
         functions = self._extract_functions_for_cluster(callgraph)
         if functions:
             functions_file = "{0}_functions.json".format(self.verification_obj_desc['id'])
-            self.verification_obj_desc['functions'] = os.path.relpath(os.path.join(os.path.curdir, callgraph_file),
+            self.verification_obj_desc['functions'] = os.path.relpath(os.path.join(os.path.curdir, functions_file),
                                                                       os.path.join(self.conf['main working directory'],
                                                                                    os.path.pardir))
             with open(functions_file, 'w', encoding='utf-8') as fp:
