@@ -14,6 +14,52 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "Git repository": {"commit": "00acc3dc2480~"},
+        "modules": ["drivers/regulator/gpio-regulator.ko"]
+      },
+      "LKVOG strategy": {"name": "manual",
+        "groups": {
+          "drivers/regulator/gpio-regulator.ko": [[
+            "drivers/gpio/gpiolib-legacy.o",
+            "drivers/gpio/gpiolib-sysfs.o",
+            "drivers/gpio/gpio-intel-mid.o",
+            "drivers/gpio/devres.o",
+            "drivers/gpio/gpiolib-acpi.o",
+            "drivers/gpio/gpiolib.o",
+            "drivers/gpio/gpio-timberdale.o",
+            "drivers/regulator/gpio-regulator.ko" ]]
+        }
+      },
+      "rule specifications": ["linux:kernel:locking:spinlock"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe"
+      }]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "00acc3dc2480"},
+        "modules": ["drivers/regulator/gpio-regulator.ko"]
+      },
+      "LKVOG strategy": {"name": "manual",
+        "groups": {
+          "drivers/regulator/gpio-regulator.ko": [[
+            "drivers/gpio/gpiolib-legacy.o",
+            "drivers/gpio/gpiolib-sysfs.o",
+            "drivers/gpio/gpio-intel-mid.o",
+            "drivers/gpio/devres.o",
+            "drivers/gpio/gpiolib-acpi.o",
+            "drivers/gpio/gpiolib.o",
+            "drivers/gpio/gpio-timberdale.o",
+            "drivers/regulator/gpio-regulator.ko" ]]
+        }
+      },
+      "rule specifications": ["linux:kernel:locking:spinlock"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe"
+      }]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "e9595f84a627~"},
         "modules": ["drivers/gpio/gpio-bt8xx.ko"]
       },
