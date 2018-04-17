@@ -1,0 +1,61 @@
+# Full version of dockerfile
+FROM debian:latest
+
+ENV DEBIAN_FRONTEND = "noninteractive"
+
+WORKDIR /root/
+
+# Upgrade installed packages
+RUN apt-get update && apt-get upgrade -y
+
+# Install new packages 
+RUN apt-get update && apt-get install -y /
+# For Python packages
+	libpq-dev python3-dev python3-pip /
+# For Klever Core
+	bc git graphviz /
+# For CPAchecker 1.6+
+	openjdk-8-jre-headless /
+# For building the Linux kernel
+	make libc6-dev-i386 /
+# For building new versions of the Linux kernel
+	libssl-dev libelf-dev
+
+# Install Python packages
+RUN pip3 install -U /
+	# For Klever Core
+	jinja2 grraphviz ply requests setuptools_scm /
+	# For Klever Scheduler
+	consulate
+
+# Copy CPAchecker binaries
+# ADD will auto extract archive
+ADD ["CPAchecker-1.6.1-svn 25793-unix.tar.bz2", "/"]
+
+ENV PATH="CPAchecker-1.6.1-svn 25793-unixr/scripts:{$PATH}"
+
+# Copy BenchExec source code
+COPY benchexec/bin benchexec/bin
+COPY benchexec/benchexec benchexec/benchexec
+
+ENV PATH benchexec/bin:$PATH
+
+# Copy Klever Core binaries
+COPY klever/core klever/core
+
+ENV PATH klever/core/bin:$PATH
+
+# Expose port
+EXPOSE 9001
+
+# Copy Klever scheduler to run client scr
+COPY klever/scheduler klever/scheduler
+WORKDIR /root/klever/scheduler/client
+# Имя скрипта node_client.py
+# Записано имя нового скрипта, так как я полугаю,
+# что нужно будет написать новый скрипт,
+# который будет принимать единственный файл JSON
+# и верным образом запускать _init_.py
+# для выполнения task или job
+# и выдачи результата как будет нужно
+ENTRYPOINT ["python", "node_client.py"]
