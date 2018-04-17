@@ -29,6 +29,7 @@ import traceback
 from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
+import keystoneauth1.exceptions
 import novaclient.client
 import novaclient.exceptions
 import neutronclient.v2_0.client
@@ -63,6 +64,13 @@ class OSEntity:
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)
+
+        try:
+            # Perform a request to OpenStack in order to check the correctness of provided username and password
+            sess.get_auth_headers()
+        except keystoneauth1.exceptions.http.Unauthorized:
+            self.logger.error('Sign in failed: invalid username or password')
+            sys.exit(-1)
 
         if glance:
             self.logger.info('Initialize OpenStack client for glance (images)')
