@@ -630,8 +630,9 @@ class OSInstance:
                         if not self.floating_ip:
                             raise RuntimeError('There are no free floating IPs, please, resolve this manually')
 
-                        # TODO: maybe wait for adding floating IP.
-                        instance.add_floating_ip(self.floating_ip)
+                        port = self.os_services['neutron'].list_ports(device_id=self.instance.id)['ports'][0]
+                        update_dict = {'port_id': port['id']}
+                        self.os_services['neutron'].update_floatingip(floating_ip['id'], {'floatingip': update_dict})
 
                         self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
                                                                                                 self.name))
