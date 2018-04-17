@@ -213,7 +213,8 @@ class OSKleverBaseImage(OSEntity):
                     break
 
         with OSInstance(logger=self.logger, clients=self.clients, name=klever_base_image_name,
-                        base_image=base_image, flavor_name='keystone.xlarge') as instance:
+                        network_name=self.args.os_network_name, base_image=base_image,
+                        flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
                 ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
@@ -269,8 +270,8 @@ class OSKleverDeveloperInstance(OSEntity):
         if klever_developer_instances:
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(logger=self.logger, clients=self.clients, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor) as self.instance:
+        with OSInstance(logger=self.logger, clients=self.clients, name=self.name, network_name=self.args.os_network_name,
+                        base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
                 self.logger.info('Copy and install init.d scripts')
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, 'init.d')):
@@ -515,7 +516,8 @@ class OSKleverExperimentalInstances(OSEntity):
                 self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
                 with OSInstance(logger=self.logger, clients=self.clients, name=instance_name,
-                                base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
+                                network_name=self.args.os_network_name, base_image=master_image,
+                                flavor_name=self.args.flavor, keep_on_exit=True):
                     pass
 
                 instance_id += 1
@@ -561,10 +563,11 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, logger, clients, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, clients, name, network_name, base_image, flavor_name, keep_on_exit=False):
         self.logger = logger
         self.clients = clients
         self.name = name
+        self.network_name = network_name
         self.base_image = base_image
         self.flavor_name = flavor_name
         self.keep_on_exit = keep_on_exit
@@ -600,8 +603,17 @@ class OSInstance:
 
                         self.instance = instance
 
+                        network_id = None
+                        for net in self.clients.neutron.list_networks()['networks']:
+                            if net['name'] == self.network_name:
+                                network_id = net['id']
+
+                        if not network_id:
+                            timeout = 0
+                            raise ValueError('OpenStack does not have network with "{}" name'.format(self.network_name))
+
                         for floating_ip in self.clients.neutron.list_floatingips()['floatingips']:
-                            if floating_ip['status'] == 'DOWN':
+                            if floating_ip['status'] == 'DOWN' and floating_ip['floating_network_id'] == network_id:
                                 self.floating_ip = floating_ip['floating_ip_address']
                                 break
 

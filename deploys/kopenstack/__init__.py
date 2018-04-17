@@ -36,6 +36,8 @@ def main():
                         help='OpenStack username for authentication (default: "%(default)s").')
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
+    parser.add_argument('--os-network-name', default='ispras',
+                        help='OpenStack network name. Can be "ispras" or "external-network" (default: "%(default)s").')
     parser.add_argument('--ssh-username', default='debian',
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
@@ -53,6 +55,7 @@ def main():
     parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                             'conf', 'klever.json'),
                         help='Path to Klever configuration file (default: "%(default)s").')
+    # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
