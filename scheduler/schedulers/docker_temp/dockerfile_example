@@ -28,6 +28,11 @@ RUN pip3 install -U \
 	# For Klever Scheduler
 	consulate
 
+# Copy Klever Core binaries
+COPY klever/core klever/core
+
+ENV PATH klever/core/bin:$PATH
+
 # Copy CPAchecker binaries
 # ADD will auto extract archive
 ADD ["CPAchecker-1.6.1-svn 25793-unix.tar.bz2", "/"]
@@ -39,11 +44,6 @@ COPY benchexec/bin benchexec/bin
 COPY benchexec/benchexec benchexec/benchexec
 
 ENV PATH benchexec/bin:$PATH
-
-# Copy Klever Core binaries
-COPY klever/core klever/core
-
-ENV PATH klever/core/bin:$PATH
 
 # Expose port
 EXPOSE 9001

@@ -1,0 +1,27 @@
+{
+  "image config": {
+    "image base": "debian:latest",
+    "path type": "absolute",
+    "build path": "/home/schuser/src",
+    "port": 9001,
+    "Klever Core": {
+      "using": true,
+      "version": "master",
+      "path": "klever/core",
+      "executable path": "bin"
+    },
+    "CPAchecker": {
+      "using": true,
+      "tar name": "CPAchecker-1.6.1-svn 25793-unix.tar.bz2",
+      "version": "ldv-bam:25793",
+      "path": "trunk",
+      "executable path": "scripts"
+    },
+    "BenchExec": {
+      "using": true,
+      "version": "master",
+      "path": "benchexec",
+      "executable path": "bin"
+    }
+  }
+}
