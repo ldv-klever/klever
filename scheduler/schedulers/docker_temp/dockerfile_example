@@ -9,22 +9,22 @@ WORKDIR /root/
 RUN apt-get update && apt-get upgrade -y
 
 # Install new packages 
-RUN apt-get update && apt-get install -y /
+RUN apt-get update && apt-get install -y \
 # For Python packages
-	libpq-dev python3-dev python3-pip /
+	libpq-dev python3-dev python3-pip \
 # For Klever Core
-	bc git graphviz /
+	bc git graphviz \
 # For CPAchecker 1.6+
-	openjdk-8-jre-headless /
+	openjdk-8-jre-headless \
 # For building the Linux kernel
-	make libc6-dev-i386 /
+	make libc6-dev-i386 \
 # For building new versions of the Linux kernel
 	libssl-dev libelf-dev
 
 # Install Python packages
-RUN pip3 install -U /
+RUN pip3 install -U \
 	# For Klever Core
-	jinja2 grraphviz ply requests setuptools_scm /
+	jinja2 graphviz ply requests setuptools_scm \
 	# For Klever Scheduler
 	consulate
 
