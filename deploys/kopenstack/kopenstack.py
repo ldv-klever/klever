@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import getpass
 import json
 import os
 import re
@@ -26,6 +25,7 @@ import tempfile
 import time
 import traceback
 
+from Crypto.PublicKey import RSA
 from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
@@ -35,6 +35,7 @@ import neutronclient.v2_0.client
 import cinderclient.client
 
 from kopenstack.ssh import SSH
+from kopenstack.utils import get_password
 
 
 class NotImplementedOSEntityAction(NotImplementedError):
@@ -59,7 +60,7 @@ class OSEntity:
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
-            'password': self._get_password(),
+            'password': get_password('OpenStack password for authentication: ', self.logger),
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)
@@ -150,15 +151,6 @@ class OSEntity:
 
         return instances
 
-    def _get_password(self):
-        prompt = 'OpenStack password for authentication: '
-        if sys.stdin.isatty():
-            return getpass.getpass(prompt)
-        else:
-            self.logger.warning('Password will be echoed')
-            print(prompt, end='', flush=True)
-            return sys.stdin.readline().rstrip()
-
     def _show_instance(self, instance):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
                                                    self._get_instance_floating_ip(instance))
@@ -215,7 +207,7 @@ class OSKleverBaseImage(OSEntity):
                                                              name=deprecated_klever_base_image_name)
                     break
 
-        with OSInstance(logger=self.logger, os_services=self.os_services, name=klever_base_image_name,
+        with OSInstance(logger=self.logger, os_services=self.os_services, args=self.args, name=klever_base_image_name,
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
@@ -278,8 +270,8 @@ class OSKleverDeveloperInstance(OSEntity):
         if klever_developer_instances:
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor) as self.instance:
+        with OSInstance(logger=self.logger, os_services=self.os_services, args=self.args, name=self.name,
+                        base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
                 self.logger.info('Copy and install init.d scripts')
                 for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
@@ -533,7 +525,7 @@ class OSKleverExperimentalInstances(OSEntity):
                 instance_name = '{0}-{1}'.format(self.name, instance_id)
                 self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
-                with OSInstance(logger=self.logger, os_services=self.os_services, name=instance_name,
+                with OSInstance(logger=self.logger, os_services=self.os_services, args=self.args, name=instance_name,
                                 base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
                     pass
 
@@ -583,9 +575,10 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, logger, os_services, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, os_services, args, name, base_image, flavor_name, keep_on_exit=False):
         self.logger = logger
         self.os_services = os_services
+        self.args = args
         self.name = name
         self.base_image = base_image
         self.flavor_name = flavor_name
@@ -607,12 +600,14 @@ class OSInstance:
                                for flavor in self.os_services['nova'].flavors.list()])))
             raise
 
+        self._check_keypair()
+
         attempts = self.CREATION_ATTEMPTS
 
         while attempts > 0:
             try:
                 instance = self.os_services['nova'].servers.create(name=self.name, image=self.base_image, flavor=flavor,
-                                                                   key_name='ldv')
+                                                                   key_name=self.args.os_keypair_name)
 
                 timeout = self.CREATION_TIMEOUT
 
@@ -662,6 +657,36 @@ class OSInstance:
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
 
         raise RuntimeError('Could not create instance')
+
+    def _check_keypair(self):
+        private_key_file = self.args.ssh_rsa_private_key_file
+        self.logger.info('Setup OpenStack keypair using specified private key "{}"'.format(private_key_file))
+        private_key = open(private_key_file, 'rb').read()
+
+        try:
+            public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
+        except ValueError:
+            self.args.key_password = get_password('Private key password: ', self.logger)
+            try:
+                public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
+            except ValueError:
+                self.logger.error('Incorrect password')
+                sys.exit(-1)
+
+        try:
+            kp = self.os_services['nova'].keypairs.get(self.args.os_keypair_name)
+            kp_public_key = kp.to_dict()['public_key']
+            kp_public_key = RSA.import_key(kp_public_key).publickey().exportKey('OpenSSH')
+
+            if public_key != kp_public_key:
+                self.logger.error('Specified private key "{}" does not match "{}" keypair stored in OpenStack'
+                                  .format(private_key_file, self.args.os_keypair_name))
+                sys.exit(-1)
+        except novaclient.exceptions.NotFound:
+            self.logger.info('Specified keypair "{}" is not found and will be created'
+                             .format(self.args.os_keypair_name))
+
+            self.os_services['nova'].keypairs.create(self.args.os_keypair_name, public_key=public_key.decode('utf8'))
 
     def __exit__(self, etype, value, traceback):
         if not self.keep_on_exit:

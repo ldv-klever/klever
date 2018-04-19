@@ -36,6 +36,8 @@ def main():
                         help='OpenStack username for authentication (default: "%(default)s").')
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
+    parser.add_argument('--os-keypair-name', default='ldv',
+                        help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default='debian',
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
