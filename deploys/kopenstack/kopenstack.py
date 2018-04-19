@@ -571,6 +571,7 @@ class OSInstance:
         self.base_image = base_image
         self.flavor_name = flavor_name
         self.keep_on_exit = keep_on_exit
+        self.floating_ip = None
 
     def __enter__(self):
         self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
@@ -618,7 +619,8 @@ class OSInstance:
                                 break
 
                         if not self.floating_ip:
-                            raise RuntimeError('There are no free floating IPs, please, resolve this manually')
+                            create_dict = {"floating_network_id": network_id}
+                            self.clients.neutron.create_floatingip({"floatingip": create_dict})
 
                         port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
                         update_dict = {'port_id': port['id']}
@@ -635,9 +637,8 @@ class OSInstance:
                         return self
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait for {0} seconds until instance will run ({1})'
-                                         .format(self.CREATION_CHECK_INTERVAL,
-                                                 'remaining timeout is {0} seconds'.format(timeout)))
+                        self.logger.info('Wait until instance will run ({1})'
+                                         .format('remaining timeout is {0} seconds'.format(timeout)))
                         time.sleep(self.CREATION_CHECK_INTERVAL)
                         instance = self.clients.nova.servers.get(instance.id)
 
