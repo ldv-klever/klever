@@ -671,7 +671,7 @@ class OSInstance:
             try:
                 public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
             except ValueError:
-                self.logger.error('Incorrect password')
+                self.logger.error('Incorrect password for private key')
                 sys.exit(errno.EACCES)
 
         try:

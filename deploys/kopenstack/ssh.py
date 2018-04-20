@@ -64,7 +64,7 @@ class SSH:
             try:
                 k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file, key_password)
             except paramiko.ssh_exception.SSHException:
-                self.logger.error('Incorrect password')
+                self.logger.error('Incorrect password for private key')
                 sys.exit(errno.EACCES)
 
         attempts = self.CONNECTION_ATTEMPTS
