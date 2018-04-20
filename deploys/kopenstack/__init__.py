@@ -26,7 +26,7 @@ from kopenstack.kopenstack import execute_os_entity_action
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove'], help='Action to be executed.')
+    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'], help='Action to be executed.')
     parser.add_argument('entity',
                         choices=['Klever base image', 'Klever developer instance', 'Klever experimental instances'],
                         help='Entity for which action to be executed.')
@@ -36,6 +36,8 @@ def main():
                         help='OpenStack username for authentication (default: "%(default)s").')
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
+    parser.add_argument('--os-network-type', default='internal',
+                        help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
     parser.add_argument('--os-keypair-name', default='ldv',
                         help='OpenStack keypair name (default: "%(default)s").')
     parser.add_argument('--ssh-username', default='debian',
@@ -55,6 +57,7 @@ def main():
     parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                             'conf', 'klever.json'),
                         help='Path to Klever configuration file (default: "%(default)s").')
+    # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
