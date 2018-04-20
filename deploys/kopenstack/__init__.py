@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
     parser.add_argument('--os-network-type', default='internal',
-                        help='OpenStack network natypeme. Can be "internal" or "external" (default: "%(default)s").')
+                        help='OpenStack network type. Can be "internal" or "external" (default: "%(default)s").')
     parser.add_argument('--ssh-username', default='debian',
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
