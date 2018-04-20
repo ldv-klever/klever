@@ -601,7 +601,7 @@ class OSInstance:
                                for flavor in self.os_services['nova'].flavors.list()])))
             raise
 
-        self._check_keypair()
+        self._setup_keypair()
 
         attempts = self.CREATION_ATTEMPTS
 
@@ -659,7 +659,7 @@ class OSInstance:
 
         raise RuntimeError('Could not create instance')
 
-    def _check_keypair(self):
+    def _setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file
         self.logger.info('Setup OpenStack keypair using specified private key "{}"'.format(private_key_file))
         private_key = open(private_key_file, 'rb').read()
