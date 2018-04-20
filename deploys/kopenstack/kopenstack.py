@@ -498,7 +498,7 @@ class OSKleverDeveloperInstance(OSEntity):
             self.logger.info('Floating IP {} is already in internal network'.format(floating_ip_address))
             sys.exit()
 
-        self.clients.neutron.update_floatingip(f_ip['id'], {"floatingip": {"port_id": None}})
+        self.clients.neutron.update_floatingip(floating_ip['id'], {"floatingip": {"port_id": None}})
 
         self.logger.info('Floating IP {0} is dettached from instance "{1}"'.format(floating_ip_address, self.name))
 
@@ -513,19 +513,19 @@ class OSKleverDeveloperInstance(OSEntity):
 
         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
             if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
-                floating_ip = f_ip['floating_ip_address']
+                floating_ip = f_ip
                 break
 
         if not floating_ip:
             create_dict = {"floating_network_id": network_id}
-            f_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
-            floating_ip = f_ip['floating_ip_address']
+            floating_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
 
         port = self.clients.neutron.list_ports(device_id=instance.id)['ports'][0]
         update_dict = {'port_id': port['id']}
-        self.clients.neutron.update_floatingip(f_ip['id'], {'floatingip': update_dict})
+        self.clients.neutron.update_floatingip(floating_ip['id'], {'floatingip': update_dict})
 
-        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(floating_ip, self.name))
+        self.logger.info('Floating IP {0} is attached to instance "{1}"'
+                         .format(floating_ip['floating_ip_address'], self.name))
 
     def _get_network_id(self, network_name):
         for net in self.clients.neutron.list_networks()['networks']:
@@ -685,20 +685,19 @@ class OSInstance:
 
                         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
                             if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
-                                self.floating_ip = f_ip['floating_ip_address']
+                                self.floating_ip = f_ip
                                 break
 
                         if not self.floating_ip:
                             create_dict = {"floating_network_id": network_id}
-                            f_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
-                            self.floating_ip = f_ip['floating_ip_address']
+                            self.floating_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
 
                         port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
                         update_dict = {'port_id': port['id']}
-                        self.clients.neutron.update_floatingip(f_ip['id'], {'floatingip': update_dict})
+                        self.clients.neutron.update_floatingip(self.floating_ip['id'], {'floatingip': update_dict})
 
-                        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
-                                                                                                self.name))
+                        self.logger.info('Floating IP {0} is attached to instance "{1}"'
+                                         .format(self.floating_ip['floating_ip_address'], self.name))
 
                         self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
