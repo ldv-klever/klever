@@ -662,6 +662,11 @@ class OSInstance:
     def _setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file
         self.logger.info('Setup OpenStack keypair using specified private key "{}"'.format(private_key_file))
+
+        if not os.path.exists(private_key_file):
+            self.logger.error('Specified private key "{}" does not exist'.format(private_key_file))
+            sys.exit(errno.EINVAL)
+
         private_key = open(private_key_file, 'rb').read()
 
         try:
