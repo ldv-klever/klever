@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import errno
 import getpass
 import json
 import os
@@ -66,11 +67,11 @@ class OSEntity:
         sess = session.Session(auth=auth)
 
         try:
-            # Perform a request to OpenStack in order to check the correctness of provided username and password
+            # Perform a request to OpenStack in order to check the correctness of provided username and password.
             sess.get_auth_headers()
         except keystoneauth1.exceptions.http.Unauthorized:
             self.logger.error('Sign in failed: invalid username or password')
-            sys.exit(-1)
+            sys.exit(errno.EACCES)
 
         if glance:
             self.logger.info('Initialize OpenStack client for glance (images)')
