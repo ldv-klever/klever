@@ -212,9 +212,8 @@ class OSKleverBaseImage(OSEntity):
                     self.clients.glance.images.update(klever_base_images[0].id, name=deprecated_klever_base_image_name)
                     break
 
-        with OSInstance(logger=self.logger, clients=self.clients, name=klever_base_image_name,
-                        network_name=self.args.os_network_name, base_image=base_image,
-                        flavor_name='keystone.xlarge') as instance:
+        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=klever_base_image_name,
+                        base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
                 ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
@@ -270,7 +269,7 @@ class OSKleverDeveloperInstance(OSEntity):
         if klever_developer_instances:
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(logger=self.logger, clients=self.clients, name=self.name, network_name=self.args.os_network_name,
+        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
                 self.logger.info('Copy and install init.d scripts')
@@ -515,9 +514,8 @@ class OSKleverExperimentalInstances(OSEntity):
                 instance_name = '{0}-{1}'.format(self.name, instance_id)
                 self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
-                with OSInstance(logger=self.logger, clients=self.clients, name=instance_name,
-                                network_name=self.args.os_network_name, base_image=master_image,
-                                flavor_name=self.args.flavor, keep_on_exit=True):
+                with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
+                                base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
                     pass
 
                 instance_id += 1
@@ -562,12 +560,13 @@ class OSInstance:
     IMAGE_CREATION_TIMEOUT = 300
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
+    NETWORK_TYPE = {'internal': 'ispras', 'external': 'external_network'}
 
-    def __init__(self, logger, clients, name, network_name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, clients, args, name, base_image, flavor_name, keep_on_exit=False):
         self.logger = logger
         self.clients = clients
+        self.args = args
         self.name = name
-        self.network_name = network_name
         self.base_image = base_image
         self.flavor_name = flavor_name
         self.keep_on_exit = keep_on_exit
@@ -605,26 +604,28 @@ class OSInstance:
                         self.instance = instance
 
                         network_id = None
+                        network_name = self.NETWORK_TYPE[self.args.os_network_type]
                         for net in self.clients.neutron.list_networks()['networks']:
-                            if net['name'] == self.network_name:
+                            if net['name'] == network_name:
                                 network_id = net['id']
 
                         if not network_id:
                             timeout = 0
-                            raise ValueError('OpenStack does not have network with "{}" name'.format(self.network_name))
+                            raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
 
-                        for floating_ip in self.clients.neutron.list_floatingips()['floatingips']:
-                            if floating_ip['status'] == 'DOWN' and floating_ip['floating_network_id'] == network_id:
-                                self.floating_ip = floating_ip['floating_ip_address']
+                        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+                            if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
+                                self.floating_ip = f_ip['floating_ip_address']
                                 break
 
                         if not self.floating_ip:
                             create_dict = {"floating_network_id": network_id}
-                            self.clients.neutron.create_floatingip({"floatingip": create_dict})
+                            f_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
+                            self.floating_ip = f_ip['floating_ip_address']
 
                         port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
                         update_dict = {'port_id': port['id']}
-                        self.clients.neutron.update_floatingip(floating_ip['id'], {'floatingip': update_dict})
+                        self.clients.neutron.update_floatingip(f_ip['id'], {'floatingip': update_dict})
 
                         self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
                                                                                                 self.name))
@@ -637,8 +638,8 @@ class OSInstance:
                         return self
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait until instance will run ({1})'
-                                         .format('remaining timeout is {0} seconds'.format(timeout)))
+                        self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
+                                         .format(timeout))
                         time.sleep(self.CREATION_CHECK_INTERVAL)
                         instance = self.clients.nova.servers.get(instance.id)
 
