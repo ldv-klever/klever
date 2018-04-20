@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import errno
 import getpass
 import json
 import os
@@ -491,11 +492,11 @@ class OSKleverDeveloperInstance(OSEntity):
                 break
 
         if not floating_ip and share:
-            self.logger.error('Floating IP {} is already in external network'.format(floating_ip_address))
-            sys.exit(-1)
+            self.logger.info('Floating IP {} is already in external network'.format(floating_ip_address))
+            sys.exit()
         elif not floating_ip and not share:
-            self.logger.error('Floating IP {} is already in internal network'.format(floating_ip_address))
-            sys.exit(-1)
+            self.logger.info('Floating IP {} is already in internal network'.format(floating_ip_address))
+            sys.exit()
 
         self.clients.neutron.update_floatingip(f_ip['id'], {"floatingip": {"port_id": None}})
 
