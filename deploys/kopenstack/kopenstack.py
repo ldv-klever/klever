@@ -682,6 +682,7 @@ class OSInstance:
         try:
             kp = self.os_services['nova'].keypairs.get(self.args.os_keypair_name)
             kp_public_key = kp.to_dict()['public_key']
+            # Normalize kp_public_key in order to be able to compare it with public_key
             kp_public_key = RSA.import_key(kp_public_key).publickey().exportKey('OpenSSH')
 
             if public_key != kp_public_key:
