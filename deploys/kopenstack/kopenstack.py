@@ -686,12 +686,14 @@ class OSInstance:
                                 break
 
                         if not self.floating_ip:
-                            create_dict = {"floating_network_id": network_id}
-                            self.floating_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
+                            self.floating_ip = self.clients.neutron.create_floatingip(
+                                {"floatingip": {"floating_network_id": network_id}}
+                            )['floatingip']
 
                         port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
-                        update_dict = {'port_id': port['id']}
-                        self.clients.neutron.update_floatingip(self.floating_ip['id'], {'floatingip': update_dict})
+                        self.clients.neutron.update_floatingip(
+                            self.floating_ip['id'], {'floatingip': {'port_id': port['id']}}
+                        )
 
                         self.logger.info('Floating IP {0} is attached to instance "{1}"'
                                          .format(self.floating_ip['floating_ip_address'], self.name))
