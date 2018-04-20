@@ -26,7 +26,7 @@ from kopenstack.kopenstack import execute_os_entity_action
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove'], help='Action to be executed.')
+    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'], help='Action to be executed.')
     parser.add_argument('entity',
                         choices=['Klever base image', 'Klever developer instance', 'Klever experimental instances'],
                         help='Entity for which action to be executed.')

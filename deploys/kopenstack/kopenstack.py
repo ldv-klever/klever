@@ -23,17 +23,15 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import time
-import traceback
 
 from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
 import novaclient.client
-import novaclient.exceptions
 import neutronclient.v2_0.client
 import cinderclient.client
 
+from kopenstack.instance import OSInstance
 from kopenstack.ssh import SSH
 
 
@@ -464,6 +462,75 @@ class OSKleverDeveloperInstance(OSEntity):
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name)), open_sftp=False) as ssh:
             ssh.open_shell()
 
+    def share(self):
+        instance = self._get_instance(self.name)
+        self._remove_floating_ip(instance, share=True)
+        self._assign_floating_ip(instance, share=True)
+
+    def hide(self):
+        instance = self._get_instance(self.name)
+        self._remove_floating_ip(instance, share=False)
+        self._assign_floating_ip(instance, share=False)
+
+    def _remove_floating_ip(self, instance, share=False):
+        if share:
+            network_name = OSInstance.NETWORK_TYPE["internal"]
+        else:
+            network_name = OSInstance.NETWORK_TYPE["external"]
+
+        floating_ip = None
+        network_id = self._get_network_id(network_name)
+
+        floating_ip_address = self._get_instance_floating_ip(instance)
+
+        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+            if f_ip['floating_ip_address'] == floating_ip_address and f_ip['floating_network_id'] == network_id:
+                floating_ip = f_ip
+                break
+
+        if not floating_ip and share:
+            self.logger.error('Floating IP {} is already in external network'.format(floating_ip_address))
+            sys.exit(-1)
+        elif not floating_ip and not share:
+            self.logger.error('Floating IP {} is already in internal network'.format(floating_ip_address))
+            sys.exit(-1)
+
+        self.clients.neutron.update_floatingip(f_ip['id'], {"floatingip": {"port_id": None}})
+
+        self.logger.info('Floating IP {0} is dettached from instance "{1}"'.format(floating_ip_address, self.name))
+
+    def _assign_floating_ip(self, instance, share=False):
+        if share:
+            network_name = OSInstance.NETWORK_TYPE["external"]
+        else:
+            network_name = OSInstance.NETWORK_TYPE["internal"]
+
+        floating_ip = None
+        network_id = self._get_network_id(network_name)
+
+        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+            if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
+                floating_ip = f_ip['floating_ip_address']
+                break
+
+        if not floating_ip:
+            create_dict = {"floating_network_id": network_id}
+            f_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
+            floating_ip = f_ip['floating_ip_address']
+
+        port = self.clients.neutron.list_ports(device_id=instance.id)['ports'][0]
+        update_dict = {'port_id': port['id']}
+        self.clients.neutron.update_floatingip(f_ip['id'], {'floatingip': update_dict})
+
+        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(floating_ip, self.name))
+
+    def _get_network_id(self, network_name):
+        for net in self.clients.neutron.list_networks()['networks']:
+            if net['name'] == network_name:
+                return net['id']
+
+        raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
+
 
 class OSKleverExperimentalInstances(OSEntity):
     def __init__(self, args, logger):
@@ -544,166 +611,6 @@ class OSKleverExperimentalInstances(OSEntity):
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
-
-
-class OSInstanceCreationTimeout(RuntimeError):
-    pass
-
-
-class OSInstance:
-    CREATION_ATTEMPTS = 5
-    CREATION_TIMEOUT = 120
-    CREATION_CHECK_INTERVAL = 5
-    CREATION_RECOVERY_INTERVAL = 10
-    OPERATING_SYSTEM_STARTUP_DELAY = 120
-    IMAGE_CREATION_ATTEMPTS = 3
-    IMAGE_CREATION_TIMEOUT = 300
-    IMAGE_CREATION_CHECK_INTERVAL = 10
-    IMAGE_CREATION_RECOVERY_INTERVAL = 30
-    NETWORK_TYPE = {'internal': 'ispras', 'external': 'external_network'}
-
-    def __init__(self, logger, clients, args, name, base_image, flavor_name, keep_on_exit=False):
-        self.logger = logger
-        self.clients = clients
-        self.args = args
-        self.name = name
-        self.base_image = base_image
-        self.flavor_name = flavor_name
-        self.keep_on_exit = keep_on_exit
-        self.floating_ip = None
-
-    def __enter__(self):
-        self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
-                         .format(self.name, self.flavor_name, self.base_image.name))
-
-        instance = None
-
-        try:
-            flavor = self.clients.nova.flavors.find(name=self.flavor_name)
-        except novaclient.exceptions.NotFound:
-            self.logger.info(
-                'You can use one of the following flavors:\n{0}'.format(
-                    '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
-                               .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
-                               for flavor in self.clients.nova.flavors.list()])))
-            raise
-
-        attempts = self.CREATION_ATTEMPTS
-
-        while attempts > 0:
-            try:
-                instance = self.clients.nova.servers.create(name=self.name, image=self.base_image, flavor=flavor,
-                                                            key_name='ldv')
-
-                timeout = self.CREATION_TIMEOUT
-
-                while timeout > 0:
-                    if instance.status == 'ACTIVE':
-                        self.logger.info('Instance "{0}" is active'.format(self.name))
-
-                        self.instance = instance
-
-                        network_id = None
-                        network_name = self.NETWORK_TYPE[self.args.os_network_type]
-                        for net in self.clients.neutron.list_networks()['networks']:
-                            if net['name'] == network_name:
-                                network_id = net['id']
-
-                        if not network_id:
-                            timeout = 0
-                            raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
-
-                        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
-                            if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
-                                self.floating_ip = f_ip['floating_ip_address']
-                                break
-
-                        if not self.floating_ip:
-                            create_dict = {"floating_network_id": network_id}
-                            f_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
-                            self.floating_ip = f_ip['floating_ip_address']
-
-                        port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
-                        update_dict = {'port_id': port['id']}
-                        self.clients.neutron.update_floatingip(f_ip['id'], {'floatingip': update_dict})
-
-                        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
-                                                                                                self.name))
-
-                        self.logger.info(
-                            'Wait for {0} seconds until operating system will start before performing other operations'
-                            .format(self.OPERATING_SYSTEM_STARTUP_DELAY))
-                        time.sleep(self.OPERATING_SYSTEM_STARTUP_DELAY)
-
-                        return self
-                    else:
-                        timeout -= self.CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
-                                         .format(timeout))
-                        time.sleep(self.CREATION_CHECK_INTERVAL)
-                        instance = self.clients.nova.servers.get(instance.id)
-
-                raise OSInstanceCreationTimeout
-            except Exception as e:
-                if instance:
-                    instance.delete()
-                attempts -= 1
-                self.logger.warning(
-                    'Could not create instance, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
-                time.sleep(self.CREATION_RECOVERY_INTERVAL)
-
-        raise RuntimeError('Could not create instance')
-
-    def __exit__(self, etype, value, traceback):
-        if not self.keep_on_exit:
-            self.remove()
-
-    def create_image(self):
-        self.logger.info('Create image "{0}"'.format(self.name))
-
-        # Shut off instance to ensure all data is written to disks.
-        self.instance.stop()
-
-        # TODO: wait until instance will be shut off otherwise image can't be created.
-
-        attempts = self.IMAGE_CREATION_ATTEMPTS
-
-        while attempts > 0:
-            try:
-                image_id = self.instance.create_image(image_name=self.name)
-
-                timeout = self.IMAGE_CREATION_TIMEOUT
-
-                while timeout > 0:
-                    image = self.clients.glance.images.get(image_id)
-
-                    if image.status == 'active':
-                        self.logger.info('Image "{0}" was created'.format(self.name))
-                        return
-                    else:
-                        timeout -= self.IMAGE_CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait for {0} seconds until image will be created ({1})'
-                                         .format(self.IMAGE_CREATION_CHECK_INTERVAL,
-                                                 'remaining timeout is {0} seconds'.format(timeout)))
-                        time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
-
-                raise OSInstanceCreationTimeout
-            except Exception as e:
-                attempts -= 1
-                self.logger.warning(
-                    'Could not create image, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
-                time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
-
-        raise RuntimeError('Could not create image')
-
-    def remove(self):
-        if self.instance:
-            self.logger.info('Remove instance "{0}"'.format(self.name))
-            self.instance.delete()
 
 
 def execute_os_entity_action(args, logger):
