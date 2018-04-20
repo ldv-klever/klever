@@ -678,7 +678,6 @@ class OSInstance:
                                 network_id = net['id']
 
                         if not network_id:
-                            timeout = 0
                             raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
 
                         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
@@ -711,7 +710,7 @@ class OSInstance:
                         instance = self.clients.nova.servers.get(instance.id)
 
                 raise OSInstanceCreationTimeout
-            except Exception as e:
+            except OSInstanceCreationTimeout as e:
                 if instance:
                     instance.delete()
                 attempts -= 1
@@ -720,6 +719,9 @@ class OSInstance:
                     .format(self.CREATION_RECOVERY_INTERVAL, attempts,
                             '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
+            except Exception:
+                if instance:
+                    instance.delete()
 
         raise RuntimeError('Could not create instance')
 
