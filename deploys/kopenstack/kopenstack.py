@@ -521,8 +521,7 @@ class OSKleverDeveloperInstance(OSEntity):
             )['floatingip']
 
         port = self.clients.neutron.list_ports(device_id=instance.id)['ports'][0]
-        update_dict = {'port_id': port['id']}
-        self.clients.neutron.update_floatingip(floating_ip['id'], {'floatingip': update_dict})
+        self.clients.neutron.update_floatingip(floating_ip['id'], {'floatingip': {'port_id': port['id']}})
 
         self.logger.info('Floating IP {0} is attached to instance "{1}"'
                          .format(floating_ip['floating_ip_address'], self.name))
