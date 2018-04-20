@@ -516,8 +516,9 @@ class OSKleverDeveloperInstance(OSEntity):
                 break
 
         if not floating_ip:
-            create_dict = {"floating_network_id": network_id}
-            floating_ip = self.clients.neutron.create_floatingip({"floatingip": create_dict})['floatingip']
+            floating_ip = self.clients.neutron.create_floatingip(
+                {"floatingip": {"floating_network_id": network_id}}
+            )['floatingip']
 
         port = self.clients.neutron.list_ports(device_id=instance.id)['ports'][0]
         update_dict = {'port_id': port['id']}
