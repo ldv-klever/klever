@@ -595,8 +595,7 @@ class OSKleverExperimentalInstances(OSEntity):
                 master_instance.remove()
             if master_image:
                 self.logger.info('Remove master image "{0}"'.format(self.name))
-                # TODO: after this there won't be any base image for created Klever experimental instances.
-                # Likely we need to overwrite corresponding attribute when creating these instances.
+                # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
                 self.clients.glance.images.delete(master_image.id)
 
     def remove(self):
