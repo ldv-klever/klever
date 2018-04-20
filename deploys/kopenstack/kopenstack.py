@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import errno
 import getpass
 import json
 import os
