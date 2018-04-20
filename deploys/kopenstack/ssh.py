@@ -27,6 +27,8 @@ import termios
 import time
 import tty
 
+from kopenstack.utils import get_password
+
 
 class SSH:
     CONNECTION_ATTEMPTS = 30
@@ -50,7 +52,20 @@ class SSH:
 
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file)
+
+        try:
+            k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file)
+        except paramiko.ssh_exception.PasswordRequiredException:
+            if hasattr(self.args, 'key_password'):
+                key_password = self.args.key_password
+            else:
+                key_password = get_password('Private key password: ', self.logger)
+
+            try:
+                k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file, key_password)
+            except paramiko.ssh_exception.SSHException:
+                self.logger.error('Incorrect password for private key')
+                sys.exit(errno.EACCES)
 
         attempts = self.CONNECTION_ATTEMPTS
 
