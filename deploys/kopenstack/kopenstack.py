@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import errno
 import json
 import os
 import re
@@ -671,7 +672,7 @@ class OSInstance:
                 public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
             except ValueError:
                 self.logger.error('Incorrect password')
-                sys.exit(-1)
+                sys.exit(errno.EACCES)
 
         try:
             kp = self.os_services['nova'].keypairs.get(self.args.os_keypair_name)
@@ -681,7 +682,7 @@ class OSInstance:
             if public_key != kp_public_key:
                 self.logger.error('Specified private key "{}" does not match "{}" keypair stored in OpenStack'
                                   .format(private_key_file, self.args.os_keypair_name))
-                sys.exit(-1)
+                sys.exit(errno.EINVAL)
         except novaclient.exceptions.NotFound:
             self.logger.info('Specified keypair "{}" is not found and will be created'
                              .format(self.args.os_keypair_name))
