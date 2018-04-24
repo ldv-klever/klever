@@ -20,7 +20,7 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F, Count, Case, When
-from django.template import Template, Context, loader
+from django.template import loader
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 from django.utils.timezone import now, timedelta
@@ -28,7 +28,7 @@ from django.utils.timezone import now, timedelta
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
     UNSAFE_VERDICTS
-from bridge.utils import unique_id, BridgeException
+from bridge.utils import unique_id, get_templated_text, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
@@ -517,7 +517,7 @@ class MarksList:
                 elif col == 'change_date':
                     val = mark.change_date
                     if self.user.extended.data_format == 'hum':
-                        val = Template('{% load humanize %}{{ date|naturaltime }}').render(Context({'date': val}))
+                        val = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
                 elif col == 'format':
                     val = mark.format
                 elif col == 'component':

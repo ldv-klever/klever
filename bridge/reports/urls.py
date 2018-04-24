@@ -42,7 +42,7 @@ urlpatterns = [
     path('ajax/get_source/', views.get_source_code),
     path('ajax/fill_compare_cache/', views.fill_compare_cache),
     path('ajax/get_compare_jobs_data/', views.get_compare_jobs_data),
-    path('ajax/clear_verification_files/', views.clear_verification_files),
+    path('clear_verification_files/', views.clear_verification_files),
     path('component/<int:report_id>/download_verifier_input_files/',
          views.download_verifier_input_files, name='download_verifier_input_files'),
     path('component/<int:archive_id>/download_coverage/', views.download_coverage, name='download_coverage'),

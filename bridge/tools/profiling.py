@@ -186,6 +186,9 @@ class LoggedCallMixin:
             call_data.save()
         return response
 
+    def is_not_used(self, *args, **kwargs):
+        pass
+
 
 class ProfileData:
     def get_statistic_around(self, date, delta_seconds=300):

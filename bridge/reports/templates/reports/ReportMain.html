@@ -197,9 +197,9 @@
         </div>
         <div class="ui orange segment">
             <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
-            {% include 'users/views/jobData.html' with view=reportdata.view %}
+            {% include 'users/views/DecisionResults.html' with view=reportdata.view %}
             <br>
-            {% include 'jobs/jobData.html' %}
+            {% include 'jobs/DecisionResults.html' %}
         </div>
     </div>
 </div>

@@ -28,6 +28,7 @@ DATAFORMAT = (
 ERRORS = {
     301: _('Wrong request method or not enough request arguments'),
     400: _("You don't have an access to this job"),
+    401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),

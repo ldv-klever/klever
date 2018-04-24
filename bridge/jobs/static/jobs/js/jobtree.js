@@ -62,7 +62,7 @@ function fill_checked_values() {
 function check_jobs_access(jobs) {
     var status = true;
     $.ajax({
-        url: job_ajax_url + 'check_access/',
+        url: '/jobs/check_download_access/',
         type: 'POST',
         dataType: 'json',
         data: {jobs: JSON.stringify(jobs)},
@@ -88,7 +88,7 @@ function compare_reports() {
     }
     $('#dimmer_of_page').addClass('active');
     $.post(
-        job_ajax_url + 'check_compare_access/',
+        '/jobs/check_compare_access/',
         {
             job1: selected_jobs[0],
             job2: selected_jobs[1]
@@ -158,7 +158,7 @@ $(document).ready(function () {
                 confirm_delete_modal.modal('hide');
                 $('#dimmer_of_page').addClass('active');
                 $.post(
-                    job_ajax_url + 'removejobs/',
+                    '/jobs/remove/',
                     {jobs: JSON.stringify(jobs_for_delete)},
                     function (data) {
                         $('#dimmer_of_page').removeClass('active');
@@ -188,7 +188,7 @@ $(document).ready(function () {
         });
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
-                $.redirectPost(job_ajax_url + 'downloadjobs/', {job_ids: JSON.stringify(job_ids)});
+                $.redirectPost('/jobs/downloadjobs/', {job_ids: JSON.stringify(job_ids)});
             }
         }
         else {
@@ -206,7 +206,7 @@ $(document).ready(function () {
         });
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
-                $.redirectPost(job_ajax_url + 'downloadtrees/', {job_ids: JSON.stringify(job_ids)});
+                $.redirectPost('/jobs/downloadtrees/', {job_ids: JSON.stringify(job_ids)});
             }
         }
         else {

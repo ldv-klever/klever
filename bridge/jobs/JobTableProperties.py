@@ -17,12 +17,12 @@
 
 from datetime import datetime
 from django.db.models import Q, F, Case, When, Count
-from django.template import Template, Context
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
 from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.utils import get_templated_text
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
@@ -594,8 +594,7 @@ class TableTree:
                         cell_value = self._values_data[job['id']][col]
                 if col in DATE_COLUMNS:
                     if self._user.extended.data_format == 'hum' and isinstance(cell_value, datetime):
-                        cell_value = Template('{% load humanize %}{{ date|naturaltime }}')\
-                            .render(Context({'date': cell_value}))
+                        cell_value = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=cell_value)
                 row_values.append({
                     'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),

@@ -23,14 +23,13 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, Count, Case, When, IntegerField
-from django.template import Template, Context
+from django.db.models import Count, Case, When, IntegerField
 from django.utils.translation import ugettext_lazy as _, string_concat
-from django.utils.timezone import now
+from django.utils.timezone import now, pytz
 
 from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS, USER_ROLES, JOB_ROLES,\
     SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
-from bridge.utils import logger, BridgeException, file_get_or_create
+from bridge.utils import logger, BridgeException, file_get_or_create, get_templated_text
 from users.notifications import Notify
 
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
@@ -463,9 +462,7 @@ def convert_time(val, acc):
             rounded_value = round(time)
         else:
             rounded_value = round(time, int(acc) - fpart_len)
-        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
-            'val': rounded_value, 'postfix': postfix
-        }))
+        return get_templated_text('{% load l10n %}{{ val }} {{ postfix }}', val=rounded_value, postfix=postfix)
 
     new_time = int(val)
     try_div = new_time / 1000
@@ -492,9 +489,7 @@ def convert_memory(val, acc):
             rounded_value = round(memory)
         else:
             rounded_value = round(memory, int(acc) - fpart_len)
-        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
-            'val': rounded_value, 'postfix': postfix
-        }))
+        return get_templated_text('{% load l10n %}{{ val }} {{ postfix }}', val=rounded_value, postfix=postfix)
 
     new_mem = int(val)
     try_div = new_mem / 10**3
@@ -509,38 +504,6 @@ def convert_memory(val, acc):
     if try_div < 1:
         return final_value(new_mem, _('MB'))
     return final_value(try_div, _('GB'))
-
-
-def role_info(job, user):
-    roles_data = {'global': (job.global_role, job.get_global_role_display())}
-
-    users = []
-    user_roles_data = []
-    users_roles = job.userrole_set.all().order_by('user__last_name')
-    job_author = job.job.versions.get(version=1).change_author
-
-    for ur in users_roles:
-        u_id = ur.user_id
-        if u_id == user.id:
-            user_roles_data.append({
-                'user': {'name': _('Your role for the job')},
-                'role': {'val': ur.role, 'title': ur.get_role_display()}
-            })
-        else:
-            user_roles_data.append({
-                'user': {'id': u_id, 'name': ur.user.get_full_name()},
-                'role': {'val': ur.role, 'title': ur.get_role_display()}
-            })
-        users.append(u_id)
-
-    roles_data['user_roles'] = user_roles_data
-
-    available_users = []
-    for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)).order_by('last_name'):
-        if u != job_author:
-            available_users.append({'id': u.pk, 'name': u.get_full_name()})
-    roles_data['available_users'] = available_users
-    return roles_data
 
 
 def create_version(job, kwargs):
@@ -649,20 +612,12 @@ def update_job(kwargs):
             logger.exception("Can't notify users: %s" % e)
 
 
-def copy_job_version(user, job_id):
-    try:
-        job = Job.objects.get(id=job_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The job was not found'))
-
+def copy_job_version(user, job):
     last_version = JobHistory.objects.get(job=job, version=job.version)
-    job.change_author = user
     job.version += 1
-    job.save()
 
     new_version = JobHistory.objects.create(
-        job=job, parent=job.parent, version=job.version,
-        change_author=user, change_date=job.change_date, comment='',
+        job=job, parent=job.parent, version=job.version, change_author=user, comment='',
         description=last_version.description, global_role=last_version.global_role
     )
 
@@ -678,18 +633,13 @@ def copy_job_version(user, job_id):
         SaveFileData(fdata, new_version)
     except Exception:
         new_version.delete()
-        job.version -= 1
-        job.save()
         raise
-    return new_version
+    job.change_date = new_version.change_date
+    job.change_author = user
+    job.save()
 
 
-def save_job_copy(user, job_id):
-    try:
-        job = Job.objects.get(id=job_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The job was not found'))
-
+def save_job_copy(user, job):
     last_version = JobHistory.objects.get(job=job, version=job.version)
 
     cnt = 1
@@ -758,6 +708,31 @@ def remove_jobs_by_id(user, job_ids):
 
     for job_id in job_ids:
         remove_job_with_children(job_id)
+
+
+class JobVersionsData:
+    def __init__(self, job, user):
+        self._job = job
+        self._user = user
+        self.first_version = None
+        self.last_version = None
+        self.versions = self.__get_versions()
+
+    def __get_versions(self):
+        versions = []
+        for j in self._job.versions.order_by('-version'):
+            if self.first_version is None:
+                self.first_version = j
+            if j.version == self._job.version:
+                self.last_version = j
+
+            title = j.change_date.astimezone(pytz.timezone(self._user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
+            if j.change_author:
+                title += ' ({0})'.format(j.change_author.get_full_name())
+            if j.comment:
+                title += ': %s' % j.comment
+            versions.append({'version': j.version, 'title': title})
+        return versions
 
 
 def delete_versions(job, versions):
@@ -1142,22 +1117,18 @@ class CompareJobVersions:
     def __get_files(self, version):
         self.__is_not_used()
         tree = {}
-        for f in FileSystem.objects.filter(job=version).order_by('id'):
-            tree[f.id] = {'parent': f.parent_id, 'name': f.name, 'f_id': f.file_id, 'fs_id': f.id}
+        for f in FileSystem.objects.filter(job=version).order_by('id').select_related('file'):
+            tree[f.id] = {'parent': f.parent_id, 'name': f.name, 'hashsum': f.file.hash_sum if f.file else None}
         files = {}
         for f_id in tree:
-            if tree[f_id]['f_id'] is None:
+            if tree[f_id]['hashsum'] is None:
                 continue
             parent = tree[f_id]['parent']
             path_list = [tree[f_id]['name']]
             while parent is not None:
                 path_list.insert(0, tree[parent]['name'])
                 parent = tree[parent]['parent']
-            files['/'.join(path_list)] = {
-                'f_id': tree[f_id]['f_id'],
-                'fs_id': tree[f_id]['fs_id'],
-                'name': tree[f_id]['name']
-            }
+            files['/'.join(path_list)] = {'hashsum': tree[f_id]['hashsum'], 'name': tree[f_id]['name']}
         return files
 
     def __compare_files(self):
@@ -1167,26 +1138,26 @@ class CompareJobVersions:
         changed_paths = []
         for fp1 in list(files1):
             if fp1 in files2:
-                if files1[fp1]['f_id'] != files2[fp1]['f_id']:
+                if files1[fp1]['hashsum'] != files2[fp1]['hashsum']:
                     # The file was changed
-                    changed_files.append([is_readable(fp1), fp1, files1[fp1]['fs_id'], files2[fp1]['fs_id']])
+                    changed_files.append([is_readable(fp1), fp1, files1[fp1]['hashsum'], files2[fp1]['hashsum']])
 
                 # Files are not changed deleted here too
                 del files2[fp1]
             else:
                 for fp2 in list(files2):
-                    if files2[fp2]['f_id'] == files1[fp1]['f_id']:
+                    if files2[fp2]['hashsum'] == files1[fp1]['hashsum']:
                         # The file was moved
-                        changed_paths.append([files1[fp1]['fs_id'], files2[fp2]['fs_id'], fp1, fp2])
+                        changed_paths.append([files1[fp1]['hashsum'], files2[fp2]['hashsum'], fp1, fp2])
                         del files2[fp2]
                         break
                 else:
                     # The file was deleted
-                    changed_paths.append([files1[fp1]['fs_id'], None, fp1, None])
+                    changed_paths.append([files1[fp1]['hashsum'], None, fp1, None])
 
         # files2 contains now only created files (or moved+changed at the same time)
         for fp2 in list(files2):
-            changed_paths.append([None, files2[fp2]['fs_id'], None, fp2])
+            changed_paths.append([None, files2[fp2]['hashsum'], None, fp2])
         return changed_paths, changed_files
 
     def __is_not_used(self):
@@ -1194,11 +1165,8 @@ class CompareJobVersions:
 
 
 class GetJobDecisionResults:
-    def __init__(self, job_id):
-        try:
-            self.job = Job.objects.get(id=job_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The job was not found'))
+    def __init__(self, job):
+        self.job = job
         try:
             self.start_date = self.job.solvingprogress.start_date
             self.finish_date = self.job.solvingprogress.finish_date
@@ -1343,3 +1311,17 @@ class GetJobDecisionResults:
         for r_id in sorted(reports):
             report_data.append(reports[r_id])
         return {'reports': report_data, 'marks': marks}
+
+
+class ReadJobFile:
+    def __init__(self, hash_sum):
+        try:
+            self._file = JobFile.objects.get(hash_sum=hash_sum)
+        except ObjectDoesNotExist:
+            raise BridgeException(_('The file was not found'))
+
+    def read(self):
+        return self._file.file.read()
+
+    def lines(self):
+        return self._file.file.read().decode('utf8').split('\n')

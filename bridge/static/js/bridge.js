@@ -595,7 +595,7 @@ $(document).ready(function () {
         $('#upload_job_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
+            url: '/jobs/upload_jobs/' + encodeURIComponent(parent_id) + '/',
             type: 'POST',
             data: data,
             dataType: 'json',
@@ -655,7 +655,7 @@ $(document).ready(function () {
         $('#upload_jobtree_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: job_ajax_url + 'upload_jobs_tree/',
+            url: '/jobs/upload_jobs_tree/',
             type: 'POST',
             data: data,
             dataType: 'json',

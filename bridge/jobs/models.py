@@ -50,7 +50,7 @@ class Job(models.Model):
     change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
-    change_date = models.DateTimeField(auto_now=True)
+    change_date = models.DateTimeField()
     identifier = models.CharField(max_length=255, unique=True, db_index=True)
     parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
@@ -78,12 +78,11 @@ class RunHistory(models.Model):
 class JobHistory(models.Model):
     job = models.ForeignKey(Job, models.CASCADE, related_name='versions')
     change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
-    version = models.PositiveSmallIntegerField()
-    change_date = models.DateTimeField()
-    comment = models.CharField(max_length=255, default='')
-    parent = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')
+    change_date = models.DateTimeField(auto_now=True)
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default='0')
     description = models.TextField(default='')
+    version = models.PositiveSmallIntegerField()
+    comment = models.CharField(max_length=255, default='')
 
     class Meta:
         db_table = 'jobhistory'

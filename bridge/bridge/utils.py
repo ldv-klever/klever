@@ -15,10 +15,10 @@
 # limitations under the License.
 #
 
+import hashlib
+import logging
 import os
 import shutil
-import logging
-import hashlib
 import tempfile
 import zipfile
 
@@ -28,6 +28,7 @@ from django.core.files import File
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.template import loader
+from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
@@ -258,6 +259,10 @@ def get_user_view_args(get_params, view_type):
     return view_args
 
 
+def get_templated_text(template, **kwargs):
+    return Template(template).render(Context(kwargs))
+
+
 class BridgeMiddlware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -273,28 +278,9 @@ class BridgeMiddlware:
             if exception.response_type == 'json':
                 return JsonResponse({'error': str(exception.message)})
             elif exception.response_type == 'html':
-                print('Return error page')
                 return HttpResponseBadRequest(loader.get_template('error.html').render({
                     'user': request.user, 'message': exception.message, 'back': exception.back
                 }))
         else:
             logger.exception(exception)
         return None
-
-
-class JSONResponseMixin:
-    def render_to_json(self, context, **kwargs):
-        return JsonResponse(context, **kwargs)
-
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(super(), 'dispatch'):
-            # This mixin should be used together with main View based class
-            raise BridgeException(response_type='json')
-        try:
-            return getattr(super(), 'dispatch')(request, *args, **kwargs)
-        except Exception as e:
-            if isinstance(e, BridgeException):
-                message = str(e.message)
-            else:
-                message = str(UNKNOWN_ERROR)
-            raise BridgeException(message=message, response_type='json')
