@@ -89,3 +89,4 @@ To deploy Klever within OpenStack clouds you need:
   * `neutronclient <https://pypi.python.org/pypi/python-neutronclient>`__.
   * `novaclient <https://pypi.python.org/pypi/python-novaclient/>`__.
   * `paramiko <http://www.paramiko.org/>`__.
+  * `pycryptodome <https://www.pycryptodome.org>`__.

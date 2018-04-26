@@ -292,7 +292,7 @@ class Population:
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
 # last_name and first_name are not required; username and password are required. email can be set for admin.
 # Returns None if everything is OK, str (error text) in other cases.
-def populate_users(admin=None, manager=None, service=None):
+def populate_users(admin=None, manager=None, service=None, exist_ok=False):
 
     def check_user_data(userdata):
         if not isinstance(userdata, dict):
@@ -307,6 +307,7 @@ def populate_users(admin=None, manager=None, service=None):
             userdata['first_name'] = 'Firstname'
         try:
             User.objects.get(username=userdata['username'])
+            userdata['exists'] = True
             return '{0} with specified username already exists'
         except ObjectDoesNotExist:
             return None
@@ -314,29 +315,37 @@ def populate_users(admin=None, manager=None, service=None):
     if admin is not None:
         res = check_user_data(admin)
         if res is not None:
-            return res.format('Administrator')
-        user = User.objects.create_superuser(
-            username=admin['username'], email=admin.get('email', ''), password=admin['password'],
-            first_name=admin['first_name'], last_name=admin['last_name']
-        )
-        Extended.objects.create(user=user, role=USER_ROLES[1][0])
+            if not admin.get('exists') or not exist_ok:
+                return res.format('Administrator')
+        else:
+            user = User.objects.create_superuser(
+                username=admin['username'], email=admin.get('email', ''), password=admin['password'],
+                first_name=admin['first_name'], last_name=admin['last_name']
+            )
+            Extended.objects.create(user=user, role=USER_ROLES[1][0])
 
     if manager is not None:
         res = check_user_data(manager)
         if res is not None:
-            return res.format('Manager')
-        user = User.objects.create_user(
-            username=manager['username'], password=manager['password'],
-            first_name=manager['first_name'], last_name=manager['last_name']
-        )
-        Extended.objects.create(user=user, role=USER_ROLES[2][0])
+            if not manager.get('exists') or not exist_ok:
+                return res.format('Manager')
+        else:
+            user = User.objects.create_user(
+                username=manager['username'], password=manager['password'],
+                first_name=manager['first_name'], last_name=manager['last_name']
+            )
+            Extended.objects.create(user=user, role=USER_ROLES[2][0])
+
     if service is not None:
         res = check_user_data(service)
         if res is not None:
-            return res.format('Service user')
-        user = User.objects.create_user(
-            username=service['username'], password=service['password'],
-            first_name=service['first_name'], last_name=service['last_name']
-        )
-        Extended.objects.create(user=user, role=USER_ROLES[4][0])
+            if not manager.get('exists') or not exist_ok:
+                return res.format('Service user')
+        else:
+            user = User.objects.create_user(
+                username=service['username'], password=service['password'],
+                first_name=service['first_name'], last_name=service['last_name']
+            )
+            Extended.objects.create(user=user, role=USER_ROLES[4][0])
+
     return None

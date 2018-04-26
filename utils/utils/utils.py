@@ -173,8 +173,11 @@ class Session:
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
-    def copy_job(self, job):
-        resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)))
+    def copy_job(self, job, name=None):
+        if isinstance(name, str) and len(name) > 0:
+            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {'name': name})
+        else:
+            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)))
         return resp.json()['identifier']
 
     def copy_job_version(self, job):
@@ -197,9 +200,6 @@ class Session:
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)
-
-    def test(self):
-        print(self.__request('/jobs/ajax/test/').text, {'x': 1})
 
     def __is_not_used(self):
         pass

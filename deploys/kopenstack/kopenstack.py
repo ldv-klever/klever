@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import getpass
+import errno
 import json
 import os
 import re
@@ -26,19 +26,39 @@ import tempfile
 import time
 import traceback
 
+from Crypto.PublicKey import RSA
 from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
+import keystoneauth1.exceptions
 import novaclient.client
 import novaclient.exceptions
 import neutronclient.v2_0.client
 import cinderclient.client
 
 from kopenstack.ssh import SSH
+from kopenstack.utils import get_password
 
 
 class NotImplementedOSEntityAction(NotImplementedError):
     pass
+
+
+class OSClients:
+    def __init__(self, logger, session):
+        self.logger = logger
+
+        self.logger.info('Initialize OpenStack client for glance (images)')
+        self.glance = glanceclient.client.Client('1', session=session)
+
+        self.logger.info('Initialize OpenStack client for nova (instances)')
+        self.nova = novaclient.client.Client('2', session=session)
+
+        self.logger.info('Initialize OpenStack client for neutron (floating IPs)')
+        self.neutron = neutronclient.v2_0.client.Client(session=session)
+
+        self.logger.info('Initialize OpenStack client for cinder (volumes)')
+        self.cinder = cinderclient.client.Client('2', session=session)
 
 
 class OSEntity:
@@ -48,37 +68,29 @@ class OSEntity:
 
         self.kind = args.entity
 
-        self.os_services = {}
+        self.clients = self._connect()
 
     def __getattr__(self, name):
         raise NotImplementedOSEntityAction('You can not {0} "{1}"'.format(name, self.kind))
 
-    # TODO: measure whether there are any benefits from connection to not all services unconditionally.
-    def _connect(self, glance=False, nova=False, neutron=False, cinder=False):
+    def _connect(self):
         self.logger.info('Sign in to OpenStack')
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
-            'password': self._get_password(),
+            'password': get_password('OpenStack password for authentication: ', self.logger),
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)
 
-        if glance:
-            self.logger.info('Initialize OpenStack client for glance (images)')
-            self.os_services['glance'] = glanceclient.client.Client('1', session=sess)
+        try:
+            # Perform a request to OpenStack in order to check the correctness of provided username and password.
+            sess.get_auth_headers()
+        except keystoneauth1.exceptions.http.Unauthorized:
+            self.logger.error('Sign in failed: invalid username or password')
+            sys.exit(errno.EACCES)
 
-        if nova:
-            self.logger.info('Initialize OpenStack client for nova (instances)')
-            self.os_services['nova'] = novaclient.client.Client('2', session=sess)
-
-        if neutron:
-            self.logger.info('Initialize OpenStack client for neutron (floating IPs)')
-            self.os_services['neutron'] = neutronclient.v2_0.client.Client(session=sess)
-
-        if cinder:
-            self.logger.info('Initialize OpenStack client for cinder (volumes)')
-            self.os_services['cinder'] = cinderclient.client.Client('2', session=sess)
+        return OSClients(self.logger, sess)
 
     def _execute_cmd(self, *args, get_output=False):
         self.logger.info('Execute command "{0}"'.format(' '.join(args)))
@@ -104,7 +116,7 @@ class OSEntity:
     def _get_images(self, image_name):
         images = []
 
-        for image in self.os_services['glance'].images.list():
+        for image in self.clients.glance.images.list():
             if re.fullmatch(image_name, image.name):
                 images.append(image)
 
@@ -144,20 +156,11 @@ class OSEntity:
     def _get_instances(self, instance_name):
         instances = []
 
-        for instance in self.os_services['nova'].servers.list():
+        for instance in self.clients.nova.servers.list():
             if re.fullmatch(instance_name, instance.name):
                 instances.append(instance)
 
         return instances
-
-    def _get_password(self):
-        prompt = 'OpenStack password for authentication: '
-        if sys.stdin.isatty():
-            return getpass.getpass(prompt)
-        else:
-            self.logger.warning('Password will be echoed')
-            print(prompt, end='', flush=True)
-            return sys.stdin.readline().rstrip()
 
     def _show_instance(self, instance):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
@@ -171,8 +174,6 @@ class OSKleverBaseImage(OSEntity):
         self.name = self.args.name
 
     def show(self):
-        self._connect(glance=True)
-
         klever_base_image_name = self.name if self.name else 'Klever Base.*'
         klever_base_images = self._get_images(klever_base_image_name)
 
@@ -188,8 +189,6 @@ class OSKleverBaseImage(OSEntity):
             self.logger.info('There are no Klever base images matching "{0}"'.format(klever_base_image_name))
 
     def create(self):
-        self._connect(glance=True, nova=True, neutron=True)
-
         klever_base_image_name = self.name if self.name else 'Klever Base'
         klever_base_images = self._get_images(klever_base_image_name)
         base_image = self._get_base_image(self.args.base_image)
@@ -203,7 +202,7 @@ class OSKleverBaseImage(OSEntity):
             i = 0
             while True:
                 deprecated_klever_base_image_name = klever_base_image_name + \
-                                                    ' (deprecated{0})'.format(' ' + str(i) if i else '')
+                    ' (deprecated{0})'.format(' ' + str(i) if i else '')
                 deprecated_klever_base_images = self._get_images(deprecated_klever_base_image_name)
 
                 if deprecated_klever_base_images:
@@ -211,11 +210,10 @@ class OSKleverBaseImage(OSEntity):
                 else:
                     self.logger.info('Rename previous Klever base image to "{0}"'
                                      .format(deprecated_klever_base_image_name))
-                    self.os_services['glance'].images.update(klever_base_images[0].id,
-                                                             name=deprecated_klever_base_image_name)
+                    self.clients.glance.images.update(klever_base_images[0].id, name=deprecated_klever_base_image_name)
                     break
 
-        with OSInstance(logger=self.logger, os_services=self.os_services, name=klever_base_image_name,
+        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=klever_base_image_name,
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
@@ -227,8 +225,6 @@ class OSKleverBaseImage(OSEntity):
             instance.create_image()
 
     def remove(self):
-        self._connect(glance=True)
-
         klever_base_image_name = self.name if self.name else 'Klever Base'
         klever_base_images = self._get_images(klever_base_image_name)
 
@@ -240,7 +236,7 @@ class OSKleverBaseImage(OSEntity):
                 'There are several Klever base images matching "{0}", please, remove the appropriate ones manually'
                 .format(self.name))
 
-        self.os_services['glance'].images.delete(klever_base_images[0].id)
+        self.clients.glance.images.delete(klever_base_images[0].id)
 
 
 class OSKleverDeveloperInstance(OSEntity):
@@ -253,8 +249,6 @@ class OSKleverDeveloperInstance(OSEntity):
         self.instance = None
 
     def show(self):
-        self._connect(nova=True)
-
         klever_developer_instances = self._get_instances(self.name)
 
         if len(klever_developer_instances) == 1:
@@ -269,8 +263,6 @@ class OSKleverDeveloperInstance(OSEntity):
             self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
 
     def create(self):
-        self._connect(glance=True, nova=True, neutron=True)
-
         base_image = self._get_base_image(self.args.klever_base_image)
 
         klever_developer_instances = self._get_instances(self.name)
@@ -278,12 +270,11 @@ class OSKleverDeveloperInstance(OSEntity):
         if klever_developer_instances:
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor) as self.instance:
+        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
+                        base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
                 self.logger.info('Copy and install init.d scripts')
-                for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                         'init.d')):
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, 'init.d')):
                     for filename in filenames:
                         ssh.sftp_put(os.path.join(dirpath, filename),
                                      os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
@@ -461,23 +452,87 @@ class OSKleverDeveloperInstance(OSEntity):
             ssh.execute_cmd('./configure-controller-and-schedulers')
 
     def update(self):
-        self._connect(nova=True)
-
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             self._do_update(ssh)
 
     def remove(self):
-        self._connect(nova=True)
         # TODO: wait for successfull deletion everywhere.
-        self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
+        self.clients.nova.servers.delete(self._get_instance(self.name).id)
 
     def ssh(self):
-        self._connect(nova=True)
-
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name)), open_sftp=False) as ssh:
             ssh.open_shell()
+
+    def share(self):
+        instance = self._get_instance(self.name)
+        self._remove_floating_ip(instance, share=True)
+        self._assign_floating_ip(instance, share=True)
+
+    def hide(self):
+        instance = self._get_instance(self.name)
+        self._remove_floating_ip(instance, share=False)
+        self._assign_floating_ip(instance, share=False)
+
+    def _remove_floating_ip(self, instance, share=False):
+        if share:
+            network_name = OSInstance.NETWORK_TYPE["internal"]
+        else:
+            network_name = OSInstance.NETWORK_TYPE["external"]
+
+        floating_ip = None
+        network_id = self._get_network_id(network_name)
+
+        floating_ip_address = self._get_instance_floating_ip(instance)
+
+        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+            if f_ip['floating_ip_address'] == floating_ip_address and f_ip['floating_network_id'] == network_id:
+                floating_ip = f_ip
+                break
+
+        if not floating_ip and share:
+            self.logger.info('Floating IP {} is already in external network'.format(floating_ip_address))
+            sys.exit()
+        elif not floating_ip and not share:
+            self.logger.info('Floating IP {} is already in internal network'.format(floating_ip_address))
+            sys.exit()
+
+        self.clients.neutron.update_floatingip(floating_ip['id'], {"floatingip": {"port_id": None}})
+
+        self.logger.info('Floating IP {0} is dettached from instance "{1}"'.format(floating_ip_address, self.name))
+
+    def _assign_floating_ip(self, instance, share=False):
+        if share:
+            network_name = OSInstance.NETWORK_TYPE["external"]
+        else:
+            network_name = OSInstance.NETWORK_TYPE["internal"]
+
+        floating_ip = None
+        network_id = self._get_network_id(network_name)
+
+        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+            if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
+                floating_ip = f_ip
+                break
+
+        if not floating_ip:
+            floating_ip = self.clients.neutron.create_floatingip(
+                {"floatingip": {"floating_network_id": network_id}}
+            )['floatingip']
+
+        port = self.clients.neutron.list_ports(device_id=instance.id)['ports'][0]
+        self.clients.neutron.update_floatingip(floating_ip['id'], {'floatingip': {'port_id': port['id']}})
+
+        self.logger.info('Floating IP {0} is attached to instance "{1}"'
+                         .format(floating_ip['floating_ip_address'], self.name))
+
+    def _get_network_id(self, network_name):
+        for net in self.clients.neutron.list_networks()['networks']:
+            if net['name'] == network_name:
+                return net['id']
+
+        raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
 
 
 class OSKleverExperimentalInstances(OSEntity):
@@ -490,8 +545,6 @@ class OSKleverExperimentalInstances(OSEntity):
         self.name_pattern = self.name + '.*'
 
     def show(self):
-        self._connect(nova=True)
-
         klever_experimental_instances = self._get_instances(self.name_pattern)
 
         if len(klever_experimental_instances) == 1:
@@ -509,8 +562,6 @@ class OSKleverExperimentalInstances(OSEntity):
         if not self.args.instances:
             raise ValueError('Please specify the number of new Klever experimental instances with help of' +
                              ' command-line option --instances')
-
-        self._connect(glance=True, nova=True, neutron=True)
 
         self.logger.info(
             'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
@@ -533,7 +584,7 @@ class OSKleverExperimentalInstances(OSEntity):
                 instance_name = '{0}-{1}'.format(self.name, instance_id)
                 self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
-                with OSInstance(logger=self.logger, os_services=self.os_services, name=instance_name,
+                with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
                                 base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
                     pass
 
@@ -546,11 +597,9 @@ class OSKleverExperimentalInstances(OSEntity):
             if master_image:
                 self.logger.info('Remove master image "{0}"'.format(self.name))
                 # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
-                self.os_services['glance'].images.delete(master_image.id)
+                self.clients.glance.images.delete(master_image.id)
 
     def remove(self):
-        self._connect(nova=True)
-
         klever_experimental_instances = self._get_instances(self.name_pattern)
 
         if len(klever_experimental_instances) == 0:
@@ -558,11 +607,9 @@ class OSKleverExperimentalInstances(OSEntity):
 
         for klever_experimental_instance in klever_experimental_instances:
             self.logger.info('Remove instance "{0}"'.format(klever_experimental_instance.name))
-            self.os_services['nova'].servers.delete(klever_experimental_instance.id)
+            self.clients.nova.servers.delete(klever_experimental_instance.id)
 
     def ssh(self):
-        self._connect(nova=True)
-
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
@@ -582,10 +629,12 @@ class OSInstance:
     IMAGE_CREATION_TIMEOUT = 300
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
+    NETWORK_TYPE = {'internal': 'ispras', 'external': 'external_network'}
 
-    def __init__(self, logger, os_services, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, clients, args, name, base_image, flavor_name, keep_on_exit=False):
         self.logger = logger
-        self.os_services = os_services
+        self.clients = clients
+        self.args = args
         self.name = name
         self.base_image = base_image
         self.flavor_name = flavor_name
@@ -598,21 +647,23 @@ class OSInstance:
         instance = None
 
         try:
-            flavor = self.os_services['nova'].flavors.find(name=self.flavor_name)
+            flavor = self.clients.nova.flavors.find(name=self.flavor_name)
         except novaclient.exceptions.NotFound:
             self.logger.info(
                 'You can use one of the following flavors:\n{0}'.format(
                     '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
-                               for flavor in self.os_services['nova'].flavors.list()])))
+                               for flavor in self.clients.nova.flavors.list()])))
             raise
+
+        self._setup_keypair()
 
         attempts = self.CREATION_ATTEMPTS
 
         while attempts > 0:
             try:
-                instance = self.os_services['nova'].servers.create(name=self.name, image=self.base_image, flavor=flavor,
-                                                                   key_name='ldv')
+                instance = self.clients.nova.servers.create(name=self.name, image=self.base_image, flavor=flavor,
+                                                            key_name=self.args.os_keypair_name)
 
                 timeout = self.CREATION_TIMEOUT
 
@@ -622,19 +673,32 @@ class OSInstance:
 
                         self.instance = instance
 
-                        for floating_ip in self.os_services['neutron'].list_floatingips()['floatingips']:
-                            if floating_ip['status'] == 'DOWN':
-                                self.floating_ip = floating_ip['floating_ip_address']
+                        network_id = None
+                        network_name = self.NETWORK_TYPE[self.args.os_network_type]
+                        for net in self.clients.neutron.list_networks()['networks']:
+                            if net['name'] == network_name:
+                                network_id = net['id']
+
+                        if not network_id:
+                            raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
+
+                        for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
+                            if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
+                                self.floating_ip = f_ip
                                 break
 
                         if not self.floating_ip:
-                            raise RuntimeError('There are no free floating IPs, please, resolve this manually')
+                            self.floating_ip = self.clients.neutron.create_floatingip(
+                                {"floatingip": {"floating_network_id": network_id}}
+                            )['floatingip']
 
-                        # TODO: maybe wait for adding floating IP.
-                        instance.add_floating_ip(self.floating_ip)
+                        port = self.clients.neutron.list_ports(device_id=self.instance.id)['ports'][0]
+                        self.clients.neutron.update_floatingip(
+                            self.floating_ip['id'], {'floatingip': {'port_id': port['id']}}
+                        )
 
-                        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
-                                                                                                self.name))
+                        self.logger.info('Floating IP {0} is attached to instance "{1}"'
+                                         .format(self.floating_ip['floating_ip_address'], self.name))
 
                         self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
@@ -644,14 +708,13 @@ class OSInstance:
                         return self
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
-                        self.logger.info('Wait for {0} seconds until instance will run ({1})'
-                                         .format(self.CREATION_CHECK_INTERVAL,
-                                                 'remaining timeout is {0} seconds'.format(timeout)))
+                        self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
+                                         .format(timeout))
                         time.sleep(self.CREATION_CHECK_INTERVAL)
-                        instance = self.os_services['nova'].servers.get(instance.id)
+                        instance = self.clients.nova.servers.get(instance.id)
 
                 raise OSInstanceCreationTimeout
-            except Exception as e:
+            except OSInstanceCreationTimeout as e:
                 if instance:
                     instance.delete()
                 attempts -= 1
@@ -660,8 +723,52 @@ class OSInstance:
                     .format(self.CREATION_RECOVERY_INTERVAL, attempts,
                             '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
+            except Exception:
+                if instance:
+                    instance.delete()
 
         raise RuntimeError('Could not create instance')
+
+    def _setup_keypair(self):
+        private_key_file = self.args.ssh_rsa_private_key_file
+
+        if not private_key_file:
+            self.logger.error('Private key is required. Please specify it using --ssh-rsa-private-key-file argument')
+            sys.exit(errno.EINVAL)
+
+        if not os.path.exists(private_key_file):
+            self.logger.error('Specified private key "{}" does not exist'.format(private_key_file))
+            sys.exit(errno.ENOENT)
+
+        self.logger.info('Setup OpenStack keypair using specified private key "{}"'.format(private_key_file))
+
+        private_key = open(private_key_file, 'rb').read()
+
+        try:
+            public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
+        except ValueError:
+            self.args.key_password = get_password('Private key password: ', self.logger)
+            try:
+                public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
+            except ValueError:
+                self.logger.error('Incorrect password for private key')
+                sys.exit(errno.EACCES)
+
+        try:
+            kp = self.clients.nova.keypairs.get(self.args.os_keypair_name)
+            kp_public_key = kp.to_dict()['public_key']
+            # Normalize kp_public_key in order to be able to compare it with public_key
+            kp_public_key = RSA.import_key(kp_public_key).publickey().exportKey('OpenSSH')
+
+            if public_key != kp_public_key:
+                self.logger.error('Specified private key "{}" does not match "{}" keypair stored in OpenStack'
+                                  .format(private_key_file, self.args.os_keypair_name))
+                sys.exit(errno.EINVAL)
+        except novaclient.exceptions.NotFound:
+            self.logger.info('Specified keypair "{}" is not found and will be created'
+                             .format(self.args.os_keypair_name))
+
+            self.clients.nova.keypairs.create(self.args.os_keypair_name, public_key=public_key.decode('utf8'))
 
     def __exit__(self, etype, value, traceback):
         if not self.keep_on_exit:
@@ -684,7 +791,7 @@ class OSInstance:
                 timeout = self.IMAGE_CREATION_TIMEOUT
 
                 while timeout > 0:
-                    image = self.os_services['glance'].images.get(image_id)
+                    image = self.clients.glance.images.get(image_id)
 
                     if image.status == 'active':
                         self.logger.info('Image "{0}" was created'.format(self.name))

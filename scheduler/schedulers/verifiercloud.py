@@ -482,7 +482,14 @@ class Scheduler(schedulers.SchedulerExchange):
                 if glob.glob(os.path.join(solution_dir, "output", "witness.*.graphml")):
                     description["status"] = "false"
                 else:
-                    description["status"] = "true"
+                    # Check that soft limit has not activated
+                    status_checker = 'grep -F "Verification result: UNKNOWN" -m 1 -c {}'.\
+                        format(os.path.join(solution_dir, "output", "benchmark.logfiles", "*.log"))
+                    number = int(utils.get_output(status_checker))
+                    if number > 0:
+                        description["status"] = "unknown"
+                    else:
+                        description["status"] = "true"
             else:
                 description["status"] = "unknown"
         else:

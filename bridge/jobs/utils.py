@@ -639,17 +639,31 @@ def copy_job_version(user, job):
     job.save()
 
 
-def save_job_copy(user, job):
+def save_job_copy(user, job_id, name=None):
+    try:
+        job = Job.objects.get(id=job_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The job was not found'))
+
     last_version = JobHistory.objects.get(job=job, version=job.version)
 
-    cnt = 1
-    while True:
-        job_name = "%s #COPY-%s" % (job.name, cnt)
+    if isinstance(name, str) and len(name) > 0:
+        job_name = name
         try:
             Job.objects.get(name=job_name)
         except ObjectDoesNotExist:
-            break
-        cnt += 1
+            pass
+        else:
+            raise BridgeException('The job name is used already.')
+    else:
+        cnt = 1
+        while True:
+            job_name = "%s #COPY-%s" % (job.name, cnt)
+            try:
+                Job.objects.get(name=job_name)
+            except ObjectDoesNotExist:
+                break
+            cnt += 1
 
     newjob = Job.objects.create(
         identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),

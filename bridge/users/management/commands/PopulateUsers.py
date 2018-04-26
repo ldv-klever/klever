@@ -8,7 +8,7 @@ from bridge.populate import populate_users
 class Command(BaseCommand):
     help = """
 Populates administrator, manager and service users.
-Accept three optional arguments: 'admin', 'manager', 'service' in json format.
+Accept four optional arguments: 'admin', 'manager', 'service' in json format and 'exist-ok' without any value.
 Example argument: '{"username": "uname", "password": "pass", "last_name": "Name1", "first_name": "Name2"}'.
 'last_name' and 'first_name' are not required; 'username' and 'password' are required. 'email' can be set for admin.
     """
@@ -17,9 +17,11 @@ Example argument: '{"username": "uname", "password": "pass", "last_name": "Name1
         parser.add_argument('--admin', dest='admin', help='Administrator data in json format')
         parser.add_argument('--manager', dest='manager', help='Manager data in json format')
         parser.add_argument('--service', dest='service', help='Service data in json format')
+        parser.add_argument('--exist-ok', dest='exist-ok', default=False, action='store_true',
+                            help='Do not fail if users already exist')
 
     def handle(self, *args, **options):
-        users = {'admin': None, 'manager': None, 'service': None}
+        users = {'admin': None, 'manager': None, 'service': None, 'exist_ok': options['exist-ok']}
         if 'admin' in options and options['admin'] is not None:
             users['admin'] = json.loads(options['admin'])
         if 'manager' in options and options['manager'] is not None:
