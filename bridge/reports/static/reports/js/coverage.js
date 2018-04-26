@@ -9,21 +9,20 @@ $(document).ready(function () {
     function show_src_code(filename) {
         $.ajax({
             method: 'post',
-            url: '/reports/ajax/get-coverage-src/',
+            url: '/reports/get-coverage-src/' + $('#cov_arch_id').val() + '/',
             dataType: 'json',
-            data: {cov_arch_id: $('#cov_arch_id').val(), filename: filename, with_data: with_data},
+            data: {filename: filename, with_data: with_data},
             success: function(data) {
                 if (data.error) {
-                    err_notify(data.error)
+                    err_notify(data.error);
+                    return false;
                 }
-                else {
-                    $('#selected_file_name').text(filename);
-                    src_code_content.html(data['content']).scrollTop(0);
-                    if ($(with_data === '1')) {
-                        src_data_content.html(data['data']).find('.item').tab();
-                    }
-                    $('#div_for_legend').html(data['legend']);
+                $('#selected_file_name').text(filename);
+                src_code_content.html(data['content']).scrollTop(0);
+                if ($(with_data === '1')) {
+                    src_data_content.html(data['data']).find('.item').tab();
                 }
+                $('#div_for_legend').html(data['legend']);
             }
         });
     }

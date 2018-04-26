@@ -78,11 +78,11 @@ function check_jobs_access(jobs) {
 }
 
 function compare_reports() {
-    var selected_jobs = [];
+    var sel_jobs = [];
     $('input[id^="job_checkbox__"]:checked').each(function () {
-        selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
+        sel_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
     });
-    if (selected_jobs.length !== 2) {
+    if (sel_jobs.length !== 2) {
         err_notify($('#error__no_jobs_to_compare').text());
         return false;
     }
@@ -90,8 +90,8 @@ function compare_reports() {
     $.post(
         '/jobs/check_compare_access/',
         {
-            job1: selected_jobs[0],
-            job2: selected_jobs[1]
+            job1: sel_jobs[0],
+            job2: sel_jobs[1]
         },
         function (data) {
             if (data.error) {
@@ -99,23 +99,10 @@ function compare_reports() {
                 err_notify(data.error);
             }
             else {
-                $.post(
-                    '/reports/ajax/fill_compare_cache/',
-                    {
-                        job1: selected_jobs[0],
-                        job2: selected_jobs[1]
-                    },
-                    function (data) {
-                        $('#dimmer_of_page').removeClass('active');
-                        if (data.error) {
-                            err_notify(data.error);
-                        }
-                        else {
-                            window.location.href = '/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
-                        }
-                    },
-                    'json'
-                );
+                $.post('/reports/fill_compare_cache/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function (data) {
+                    $('#dimmer_of_page').removeClass('active');
+                    data.error ? err_notify(data.error) : window.location.href = '/reports/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
+                }, 'json');
             }
         },
         'json'

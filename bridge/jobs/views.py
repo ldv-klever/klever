@@ -25,8 +25,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.urls import reverse
-from django.utils.translation import ugettext as _, override
 from django.utils.decorators import method_decorator
+from django.utils.translation import ugettext as _, override
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
@@ -136,7 +136,7 @@ class JobsFilesComparison(LoggedCallMixin, TemplateView):
             raise BridgeException(code=405)
         if not jobs.utils.JobAccess(self.request.user, job1).can_view() \
                 or not jobs.utils.JobAccess(self.request.user, job2).can_view():
-            raise BridgeException(code=507)
+            raise BridgeException(code=401)
         return {'job1': job1, 'job2': job2, 'data': jobs.utils.CompareFileSet(job1, job2).data}
 
 

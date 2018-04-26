@@ -26,16 +26,14 @@
                     <th class="right aligned">{% trans 'Job' %}</th>
                     <td><a class="violet-link" href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a></td>
                 </tr>
-                {% if status != 4 %}
+                {% if status.name %}
                     <tr>
                         <th class="right aligned">{% trans 'Status' %}</th>
                         <td>
-                        {% if unknown %}
-                            <a class="violet-link" href="{{ unknown }}">{% trans 'Failed' %}</a>
-                        {% elif status == 1 %}
-                            <span style="color: #a4e9eb">{% trans 'In progress' %}</span>
-                        {% elif status == 2 %}
-                            <span style="color: #4ce215">{% trans 'Finished' context 'component status' %}</span>
+                        {% if status.href %}
+                            <a class="violet-link" href="{{ status.href }}">{{ status.name }}</a>
+                        {% else %}
+                            <span{% if status.color %} style="color: {{ status.color }}"{% endif %}>{{ status.name }}</span>
                         {% endif %}
                         </td>
                     </tr>
@@ -79,13 +77,13 @@
         <div id="timeinfo_popup" class="ui popup">
             <div class="header">{{ report.component.name }}</div>
             <div class="content" style="white-space:nowrap;">
-                {% if duration != None %}
-                    {% if duration %}
+                {% if status.duration != None %}
+                    {% if status.duration %}
                         <span class="purple-subtitle">{% trans 'Start date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}
                         <br>
                         <span class="purple-subtitle">{% trans 'Finish date' %}: </span> {{ report.finish_date|date:"d.m.y H:i:s" }}
                         <br>
-                        <span class="purple-subtitle">{% trans 'Duration' %}: </span> {{ duration }}
+                        <span class="purple-subtitle">{% trans 'Duration' %}: </span> {{ status.duration }}
                         <br>
                     {% else %}
                         <span class="purple-subtitle">{% trans 'Creation date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}<br>
@@ -111,10 +109,10 @@
         </div>
         <input id="report_pk" type="hidden" value="{{ report.pk }}">
 
-        {% if data %}
+        {% if data.data %}
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
             <div class="ui brown segment">
-                {% include 'reports/ReportData.html' with data=data component=report.component.name type=data_type %}
+                {% include 'reports/ReportData.html' with data=data.data component=report.component.name type=data.type %}
             </div>
         {% endif %}
         <br>
@@ -123,7 +121,7 @@
                 <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
             {% endif %}
             {% if report.verifier_input %}
-                <a href="{% url 'reports:download_verifier_input_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
+                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
             {% endif %}
             {% if report.covnum > 0 %}
                 <a href="{% if user.extended.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
@@ -182,7 +180,7 @@
                         <tbody>
                             {% for v in TableData.table_data.values %}
                                 <tr>
-                                    <td class="collapsing"><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                                    <td class="collapsing"><a href="{% url 'reports:component' v.pk %}">{{ v.component.name }}</a></td>
                                     {% for attr in v.attrs %}
                                         <td class="collapsing"><span>{{ attr }}</span></td>
                                     {% endfor %}

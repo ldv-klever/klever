@@ -155,16 +155,15 @@ def unparallel_group(groups):
 
 
 class LoggedCallMixin:
+    unparallel = []
+
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(super(), 'dispatch'):
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        class_name = type(self).__name__
-        groups = getattr(self, 'unparallel', [])
-
-        call_data = CallLogs(name=class_name, enter_time=time.time())
-        locker = ExecLocker(groups)
+        call_data = CallLogs(name=type(self).__name__, enter_time=time.time())
+        locker = ExecLocker(self.unparallel)
         locker.lock()
         call_data.execution_time = time.time()
         try:

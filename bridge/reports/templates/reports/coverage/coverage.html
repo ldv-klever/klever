@@ -17,7 +17,7 @@
             <a href="{% url 'jobs:job' coverage.job.id %}">{{ coverage.job.name }}</a>
         </div>
         <div class="three wide column">
-            <a href="{% url 'reports:component' coverage.job.id coverage.report.id %}">{{ coverage.report.component.name }}</a>
+            <a href="{% url 'reports:component' coverage.report.id %}">{{ coverage.report.component.name }}</a>
         </div>
         <div class="six wide column">
             <div class="ui breadcrumb">

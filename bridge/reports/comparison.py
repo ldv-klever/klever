@@ -114,10 +114,10 @@ class ReportTree:
 
 
 class CompareTree:
-    def __init__(self, user, j1, j2):
+    def __init__(self, user, root1, root2):
         self.user = user
-        self._root1 = j1.reportroot
-        self._root2 = j2.reportroot
+        self._root1 = root1
+        self._root2 = root2
 
         self._name_ids = self.__get_attr_names()
         self.tree1 = ReportTree(self._root1, self._name_ids)
@@ -169,18 +169,15 @@ class CompareTree:
 
 
 class ComparisonTableData:
-    def __init__(self, user, j1, j2):
-        self.job1 = j1
-        self.job2 = j2
-        self.user = user
+    def __init__(self, user, root1, root2):
         self.data = []
         self.info = 0
         self.attrs = []
-        self.__get_data()
+        self.__get_data(user, root1, root2)
 
-    def __get_data(self):
+    def __get_data(self, user, root1, root2):
         try:
-            info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
+            info = CompareJobsInfo.objects.get(user=user, root1=root1, root2=root2)
         except ObjectDoesNotExist:
             raise BridgeException(_('The comparison cache was not found'))
         self.info = info.pk
@@ -224,15 +221,12 @@ class ComparisonTableData:
 
 
 class ComparisonData:
-    def __init__(self, info_id, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
-        try:
-            self.info = CompareJobsInfo.objects.get(pk=info_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_("The comparison cache was not found"))
+    def __init__(self, info, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
+        self.info = info
         self._attr_names = list(int(x) for x in self.info.attr_names.split('|'))
         self.v1 = self.v2 = None
-        self.hide_attrs = hide_attrs
-        self.hide_components = hide_components
+        self.hide_attrs = bool(int(hide_attrs))
+        self.hide_components = bool(int(hide_components))
         self.attr_search = False
         self.pages = {
             'backward': True,
@@ -278,8 +272,11 @@ class ComparisonData:
         self.pages['backward'] = (self.pages['num'] > 1)
         self.pages['forward'] = (self.pages['num'] < self.pages['total'])
         data = data[self.pages['num'] - 1]
-        self.v1 = data.verdict1
-        self.v2 = data.verdict2
+        for v in COMPARE_VERDICT:
+            if data.verdict1 == v[0]:
+                self.v1 = v[1]
+            if data.verdict2 == v[0]:
+                self.v2 = v[1]
 
         try:
             branches = self.__compare_reports(data)
@@ -407,7 +404,7 @@ class ComparisonData:
         if parent_id is not None:
             block.parents.append('c_%s' % parent_id)
         block.list = self.__get_attrs_list(report)
-        block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
+        block.href = reverse('reports:component', args=[report.pk])
         return block
 
     def __unsafe_data(self, report_id, parent_id):

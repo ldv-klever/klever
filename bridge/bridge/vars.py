@@ -33,7 +33,6 @@ ERRORS = {
     405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
-    507: _("You can't compare the selected jobs"),
     604: _("The mark was not found"),
     605: _('The mark is being deleted')
 }

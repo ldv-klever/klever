@@ -229,8 +229,7 @@ function collapse_reports() {
 
 function clear_verification_files() {
     $('#dimmer_of_page').addClass('active');
-    // TODO: job_id to url
-    $.post('/reports/clear_verification_files/', {job_id: $('#job_id').val()}, error_or_reload);
+    $.post('/reports/clear_verification_files/' + $('#job_id').val() + '/', {}, error_or_reload);
 }
 
 $(document).ready(function () {

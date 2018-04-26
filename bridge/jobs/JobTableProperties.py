@@ -657,11 +657,10 @@ class TableTree:
                 'date': date,
                 'status': j.get_status_display()
             })
-        for report in ReportComponent.objects.filter(root__job_id__in=self._job_ids, parent=None)\
-                .values('id', 'root__job_id'):
-            self._values_data[report['root__job_id']]['status'] = (
-                self._values_data[report['root__job_id']]['status'],
-                reverse('reports:component', args=[report['root__job_id'], report['id']])
+        for r_id, job_id in ReportComponent.objects.filter(root__job_id__in=self._job_ids, parent=None)\
+                .values_list('id', 'root__job_id'):
+            self._values_data[job_id]['status'] = (
+                self._values_data[job_id]['status'], reverse('reports:component', args=[r_id])
             )
 
     def __collect_verdicts(self):

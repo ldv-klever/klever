@@ -20,34 +20,39 @@ from reports import views
 
 
 urlpatterns = [
-    path('component/<int:job_id>/<int:report_id>/', views.report_component, name='component'),
-    path('log/<int:report_id>/', views.get_component_log, name='log'),
-    path('logcontent/<int:report_id>/', views.get_log_content),
-    path('attrdata/<int:attr_id>/', views.get_attr_data_file, name='attr_data'),
-    path('attrdata-content/<int:attr_id>/', views.get_attr_data_content),
+    # ReportComponent page
+    path('component/<int:pk>/', views.ReportComponentView.as_view(), name='component'),
+    path('log/<int:report_id>/', views.ComponentLogView.as_view(), name='log'),
+    path('logcontent/<int:report_id>/', views.ComponentLogContent.as_view()),
+    path('attrdata/<int:pk>/', views.AttrDataFileView.as_view(), name='attr_data'),
+    path('attrdata-content/<int:pk>/', views.AttrDataContentView.as_view()),
+    path('component/<int:pk>/download_files/', views.DownloadVerifierFiles.as_view(), name='download_files'),
 
-    path('component/<int:report_id>/safes/', views.safes_list, name='safes'),
-    path('component/<int:report_id>/unsafes/', views.unsafes_list, name='unsafes'),
-    path('component/<int:report_id>/unknowns/', views.unknowns_list, name='unknowns'),
+    # List of verdicts
+    path('component/<int:report_id>/safes/', views.SafesListView.as_view(), name='safes'),
+    path('component/<int:report_id>/unsafes/', views.UnsafesListView.as_view(), name='unsafes'),
+    path('component/<int:report_id>/unknowns/', views.UnknownsListView.as_view(), name='unknowns'),
 
-    path('unsafe/<slug:trace_id>/', views.report_unsafe, name='unsafe'),
-    path('safe/<int:report_id>/', views.report_safe, name='safe'),
-    path('unknown/<int:report_id>/', views.report_unknown, name='unknown'),
-    path('unsafe/<slug:trace_id>/fullscreen/', views.report_etv_full, name='unsafe_fullscreen'),
+    # Pages of verdicts
+    path('safe/<int:pk>/', views.ReportSafeView.as_view(), name='safe'),
+    path('unknown/<int:pk>/', views.ReportUnknownView.as_view(), name='unknown'),
+    path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
+    path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
+    path('get_source/<int:unsafe_id>', views.SourceCodeView.as_view()),
+    path('download-error-trace/<int:unsafe_id>/', views.DownloadErrorTrace.as_view(), name='download_error_trace'),
 
-    path('comparison/<int:job1_id>/<int:job2_id>/', views.jobs_comparison, name='comparison'),
-    path('download-error-trace/<int:report_id>/', views.download_error_trace, name='download_error_trace'),
+    # Reports comparison
+    path('fill_compare_cache/<int:job1_id>/<int:job2_id>/', views.FillComparisonCacheView.as_view()),
+    path('comparison/<int:job1_id>/<int:job2_id>/', views.ReportsComparisonView.as_view(), name='comparison'),
+    path('get_compare_jobs_data/<int:info_id>/', views.ReportsComparisonData.as_view()),
 
-    path('upload/', views.upload_report),
-    path('ajax/get_source/', views.get_source_code),
-    path('ajax/fill_compare_cache/', views.fill_compare_cache),
-    path('ajax/get_compare_jobs_data/', views.get_compare_jobs_data),
-    path('clear_verification_files/', views.clear_verification_files),
-    path('component/<int:report_id>/download_verifier_input_files/',
-         views.download_verifier_input_files, name='download_verifier_input_files'),
-    path('component/<int:archive_id>/download_coverage/', views.download_coverage, name='download_coverage'),
+    # Coverage
+    path('coverage/<int:report_id>/', views.CoverageView.as_view(), name='coverage'),
+    path('coverage-light/<int:report_id>/', views.CoverageLightView.as_view(), name='coverage_light'),
+    path('get-coverage-src/<int:archive_id>/', views.CoverageSrcView.as_view()),
+    path('download_coverage/<int:pk>/', views.DownloadCoverageView.as_view(), name='download_coverage'),
 
-    path('coverage/<int:report_id>/', views.coverage_page, name='coverage'),
-    path('coverage-light/<int:report_id>/', views.coverage_light_page, name='coverage_light'),
-    path('ajax/get-coverage-src/', views.get_coverage_src),
+    # Utils
+    path('upload/', views.UploadReportView.as_view()),
+    path('clear_verification_files/<int:job_id>/', views.ClearVerificationFiles.as_view())
 ]

@@ -267,7 +267,7 @@ class TestReports(KleverTestCase):
         self.__decide_job(SJC_1)
         main_report = ReportComponent.objects.get(parent=None, root__job_id=self.job.pk)
 
-        response = self.client.get(reverse('reports:component', args=[self.job.pk, main_report.pk]))
+        response = self.client.get(reverse('reports:component', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(reverse('reports:unsafes', args=[main_report.pk]))
@@ -287,7 +287,7 @@ class TestReports(KleverTestCase):
             self.assertEqual(response.status_code, 200)
 
         for report in ReportComponent.objects.filter(~Q(parent=None) & Q(root__job_id=self.job.pk)):
-            response = self.client.get(reverse('reports:component', args=[self.job.pk, report.pk]))
+            response = self.client.get(reverse('reports:component', args=[report.pk]))
             self.assertEqual(response.status_code, 200)
 
         for unsafe in ReportUnsafe.objects.all():

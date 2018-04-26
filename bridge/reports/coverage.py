@@ -153,13 +153,12 @@ def json_to_html(data):
 
 
 class GetCoverage:
-    def __init__(self, report_id, cov_arch_id, with_data):
+    def __init__(self, report, cov_arch_id, with_data):
+        self.report = report
         if cov_arch_id is None:
-            self.report = ReportComponent.objects.get(id=report_id)
             self.cov_arch = self.report.coverages.order_by('identifier').first()
         else:
-            self.cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
-            self.report = self.cov_arch.report
+            self.cov_arch = CoverageArchive.objects.get(id=cov_arch_id, report=report)
         self.coverage_archives = self.report.coverages.order_by('identifier').values_list('id', 'identifier')
         self.job = self.report.root.job
 
@@ -167,17 +166,14 @@ class GetCoverage:
         self._statistic = CoverageStatistics(self.cov_arch)
         self.statistic_table = self._statistic.table_data
         if self._statistic.first_file:
-            self.first_file = GetCoverageSrcHTML(self.cov_arch.id, self._statistic.first_file, with_data)
+            self.first_file = GetCoverageSrcHTML(self.cov_arch, self._statistic.first_file, with_data)
         if with_data:
             self.data_statistic = DataStatistic(self.cov_arch.id).table_html
 
-    def __is_not_used(self):
-        pass
-
 
 class GetCoverageSrcHTML:
-    def __init__(self, cov_arch_id, filename, with_data):
-        self._cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
+    def __init__(self, cov_arch, filename, with_data):
+        self._cov_arch = cov_arch
         self.filename = os.path.normpath(filename).replace('\\', '/')
         try:
             self._covfile = CoverageFile.objects.get(archive=self._cov_arch, name=self.filename)

@@ -3,7 +3,7 @@
 
 {% block reports_head_block %}<link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">{% endblock %}
 
-{# See reports.utils.get_report_data_type() for types #}
+{# See reports.utils.ReportData.__get_type() for types #}
 {% if type == 'Core:testing' %}
     <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
     <table class="ui compact brown table">

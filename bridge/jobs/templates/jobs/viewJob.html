@@ -137,7 +137,7 @@
                             <th class="right aligned">{% trans 'Decision status' %}</th>
                             <td>
                                 {% if reportdata.report %}
-                                    <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
+                                    <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' reportdata.report.id %}">{{ job.get_status_display }}</a>
                                 {% else %}
                                     <span style="color: #f1ffff">{{ job.get_status_display }}</span>
                                 {% endif %}
