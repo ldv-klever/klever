@@ -177,7 +177,7 @@ class Session:
         if isinstance(name, str) and len(name) > 0:
             resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {'name': name})
         else:
-            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)))
+            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {})
         return resp.json()['identifier']
 
     def copy_job_version(self, job):

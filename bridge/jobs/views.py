@@ -148,12 +148,12 @@ class RemoveJobsView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class SaveJobCopyView(LoggedCallMixin, Bviews.JsonDetailView):
+class SaveJobCopyView(LoggedCallMixin, Bviews.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
-        newjob = jobs.utils.save_job_copy(self.request.user, self.object)
+        newjob = jobs.utils.save_job_copy(self.request.user, self.object, self.request.POST.get('name'))
         return {'identifier': newjob.identifier, 'id': newjob.id}
 
 
