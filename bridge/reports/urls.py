@@ -38,7 +38,7 @@ urlpatterns = [
     path('unknown/<int:pk>/', views.ReportUnknownView.as_view(), name='unknown'),
     path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
     path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
-    path('get_source/<int:unsafe_id>', views.SourceCodeView.as_view()),
+    path('get_source/<int:unsafe_id>/', views.SourceCodeView.as_view()),
     path('download-error-trace/<int:unsafe_id>/', views.DownloadErrorTrace.as_view(), name='download_error_trace'),
 
     # Reports comparison

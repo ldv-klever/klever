@@ -548,7 +548,7 @@ class UnsafesTable:
         leaves_set = self.report.leaves.filter(**self._filters).exclude(unsafe=None).annotate(
             marks_number=Count('unsafe__markreport_set'),
             confirmed=Count(Case(When(unsafe__markreport_set__type='1', then=1)))
-        ).values('unsafe_id', 'confirmed', 'marks_number', 'unsafe__verdict',
+        ).values('unsafe_id', 'unsafe__trace_id', 'confirmed', 'marks_number', 'unsafe__verdict',
                  'unsafe__parent_id', 'unsafe__cpu_time', 'unsafe__wall_time', 'unsafe__memory')
 
         if 'marks_number' in self.view:
@@ -567,6 +567,7 @@ class UnsafesTable:
             else:
                 marks_num = str(leaf['marks_number'])
             reports[leaf['unsafe_id']] = {
+                'trace_id': leaf['unsafe__trace_id'],
                 'marks_number': marks_num,
                 'verdict': leaf['unsafe__verdict'],
                 'parent_id': leaf['unsafe__parent_id'],
@@ -637,7 +638,7 @@ class UnsafesTable:
                             break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unsafe', args=[rep_id])
+                    href = reverse('reports:unsafe', args=[reports[rep_id]['trace_id']])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':

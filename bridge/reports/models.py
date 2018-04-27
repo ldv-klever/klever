@@ -92,7 +92,7 @@ class AttrFile(models.Model):
     file = models.FileField(upload_to=get_attr_data_path)
 
     class Meta:
-        db_table = 'report_et_source'
+        db_table = 'report_attr_file'
 
 
 @receiver(pre_delete, sender=AttrFile)
@@ -253,7 +253,6 @@ class ReportUnknown(Report):
     memory = models.BigIntegerField(null=True)
     cpu_time = models.BigIntegerField(null=True)
     wall_time = models.BigIntegerField(null=True)
-
 
     def add_problem_desc(self, fname, fp, save=False):
         self.problem_description.save(fname, File(fp), save)
