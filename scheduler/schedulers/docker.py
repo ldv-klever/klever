@@ -17,20 +17,20 @@
 
 import concurrent.futures 
 import json 
-import logging
+import logging #hamster ASK: смогу ли ими воспользоваться ? 
 import os 
 
 import schedulers as schedulers 
+import schedulers.resource_scheduler #hamster ASK: нужен ли именно этот ? 
 import utils 
 
 
 class Scheduler(schedulers.SchedulerExchange):
-    #hamster CHECK: пока делаю только для native
 	"""
     Implement the scheduler which is used to run tasks and jobs on cluster.
     Parent class SchedulerExchange in _init_
     """
-    #hamster TODO: надо добавлять по ходу написания программы сюда self переменные
+    
 
 
     @staticmethod
@@ -56,112 +56,139 @@ class Scheduler(schedulers.SchedulerExchange):
         Initialize scheduler completely.
         This method should be called both at constructing stage and scheduler reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-
         super(Scheduler, self).init_scheduler()
 
 
-        def _init_k8s_cluster(self, k8s_init_config=None):
-            '''
-            Initialize kubernetes cluster.
-            :param k8s_init_config: Part of self.conf. Dictionary with initialization information like version, configuration for master in k8s and etc.
-            This method should be called both at constructing stage and scheduler reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
-            '''
-            '''
-            #hamster TODO:
-                on master:
-                    0) Check all component of kubernetes is installed
-                        if not, installed it
-                    1) Make config file for master
-                    2) Initialize master
-                on node:
-                    0) Check all component of kubernetes is installed
-                        if not, installed it
-                    1) Make config file for node
-                    2) Initialize node and connect it to master
-            '''
-                
-                def k8s_installation(config):
-                    """
-                    Just install kubernetes components
-                    :return: Error if happened. Otherwise None.
-                    """
-                    commands = (
-                        'sudo apt install curl',
-                        'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add',
-                        'sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"',
-                        'sudo apt-get update',
-                        'echo Y | sudo apt-get install docker-ce',
-                        'apt-cache madison docker-ce',
-                        'sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add',
-                        "echo 'deb http://apt.kubernetes.io/ kubernetes-xenial main' | sudo tee /etc/apt/sources.list.d/kubernetes.list",
-                        'sudo apt-get update',
-                        'sudo apt-get install -y kubelet kubectl kubeadm kubernetes-cni'
-                        )
-                    for line in commands:
-                        error = __execute_cmd(line, give_output=True)[1]
-                        if error:
-                            return error
-                    return None
+        self._init_k8s_cluster()
 
-            # Loading default installation configuration if necessary 
-            if not k8s_init_config:
-                temp_config = _get_k8s_init_config()
-            else:
-                #hamster TODO: need to add check, that is dictionary
-                temp_config = k8s_init_config
-
-            # Check that necessary components install and available
-            if not (self._check_k8s_component_version("kubeadm") and
-                    self._check_k8s_component_version("kubelet") and
-                    self._check_k8s_component_version("kubectl") and
-                    self._check_k8s_component_version("kubernetes-cni"))
-                k8s_installation(temp_config)
-
-            def make_master_conf_file(conf):
-                """
-                Made configuration kubernetes file for master initialization in working directory.
-                
-                :param conf: Master configuration from dictionary.
-                :return: File (path).
-                """
-                with open("master_config.yaml", "w") as conf_file: 
-                    str_1 = "apiVersion: kubeadm.k8s.io/v1alpha1"
-                    conf_file.write(str_1)
-                    str_2 = "kind: MasterConfiguration"
-                    conf_file.write(str_2)
-                    if "advertiseAddress" or "bindPort" in conf:
-                        str_3 = "api:"
-                        conf_file.write(str_3)
-                        if "advertiseAddress" in conf:
-                            str_4 = "  advertiseAddress: " + conf["advertiseAddress"] 
-                            conf_file.write(str_4)
-                        else:
-                            str_5 = "  bindPort: " + conf["bindPort"] 
-                            conf_file.write(str_5)
-                    if "token" in conf:
-                        str_6 = "token: " + conf["token"]
-                        conf_file.write(str_6)
-                    if "tokenTTL" in conf:
-                        str_7 = "tokenTTL: " + conf["tokenTTL"]
-                        conf_file.write(str_7)
-                    return "master_config.yaml"
-            
-
-            if "master configuration" in temp_config:
-                file_name = make_master_conf_file(k8s_init_config["master configuration"])
-                master_conf = os.path.join(self.work_dir, file_name)
-                cmd_string = 'sudo kubeadm init --config "' + master_conf + '"'
-                __execute_cmd(cmd_string)#hamster TODO: add check error from command 
-            else:
-                __execute_cmd("sudo kubeadm init")#hamster TODO: add check error from command
-
-
-
-        _init_k8s_cluster()
+        _init_registry_p_id095()
 
         _init_consul()
 
         _init_native_sheduler()
+
+    def _init_k8s_cluster(self, k8s_init_config=None):
+        '''
+        Initialize kubernetes cluster.
+        :param k8s_init_config: Part of self.conf. Dictionary with initialization information like version, configuration for master in k8s and etc.
+        This method should be called both at constructing stage and scheduler reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
+        '''
+        '''
+        #hamster TODO:
+            on master:
+                0) Check all component of kubernetes is installed
+                    if not, installed it
+                1) Make config file for master
+                2) Initialize master
+            on node:
+                0) Check all component of kubernetes is installed
+                    if not, installed it
+                1) Make config file for node
+                2) Initialize node and connect it to master
+        '''
+            
+            def k8s_installation(config):
+                """
+                Just install kubernetes components
+                :return: Error if happened. Otherwise None.
+                """
+                #hamster TODO: need proper testing because of changes in __execute_cmd and sudo in commands (need to get rid of "sudo" in the future)
+                commands = [
+                    'sudo apt install curl',
+                    'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add',
+                    'sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"',
+                    'sudo apt-get update',
+                    'echo Y | sudo apt-get install docker-ce',
+                    'apt-cache madison docker-ce',
+                    'sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add',
+                    "echo 'deb http://apt.kubernetes.io/ kubernetes-xenial main' | sudo tee /etc/apt/sources.list.d/kubernetes.list",
+                    'sudo apt-get update',
+                    'sudo apt-get install -y kubelet kubectl kubeadm kubernetes-cni'
+                    ]
+                for line in commands:
+                    error = __execute_cmd(line, give_output=True)[1]
+                    if error:
+                        return error
+                return None
+
+        # Loading default initialization configuration if necessary 
+        if not k8s_init_config:
+            temp_config = _get_k8s_init_config()
+        else:
+            #hamster TODO: need to add check, that is dictionary
+            temp_config = k8s_init_config
+
+        # Check that necessary components install and available
+        if not (self._check_k8s_component_version("kubeadm") and
+                self._check_k8s_component_version("kubelet") and
+                self._check_k8s_component_version("kubectl") and
+                self._check_k8s_component_version("kubernetes-cni"))
+            k8s_installation(temp_config)
+
+        def make_master_conf_file(conf):
+            """
+            Made configuration kubernetes file for master initialization in working directory.
+            
+            :param conf: Master configuration from dictionary.
+            :return: File (path).
+            """
+            with open("master_config.yaml", "w") as conf_file: 
+                str_1 = "apiVersion: kubeadm.k8s.io/v1alpha1"
+                conf_file.write(str_1)
+                str_2 = "kind: MasterConfiguration"
+                conf_file.write(str_2)
+                if "advertiseAddress" or "bindPort" in conf:
+                    str_3 = "api:"
+                    conf_file.write(str_3)
+                    if "advertiseAddress" in conf:
+                        str_4 = "  advertiseAddress: " + conf["advertiseAddress"] 
+                        conf_file.write(str_4)
+                    else:
+                        str_5 = "  bindPort: " + conf["bindPort"] 
+                        conf_file.write(str_5)
+                if "token" in conf:
+                    str_6 = "token: " + conf["token"]
+                    conf_file.write(str_6)
+                if "tokenTTL" in conf:
+                    str_7 = "tokenTTL: " + conf["tokenTTL"]
+                    conf_file.write(str_7)
+                str_8 = "imageRepository: /home/schuser/tools/hamster/DockerTemp/registry_config.yml"
+                conf_file.write(str_8)
+                return "master_config.yaml"
+        
+
+        if "master configuration" in temp_config:
+            file_name = make_master_conf_file(temp_config["master configuration"])
+            master_conf = os.path.join(self.work_dir, file_name)
+            cmd_string = 'sudo kubeadm init --config "' + master_conf + '"'
+            __execute_cmd(cmd_string)#hamster TODO: add check error from command 
+        else:
+            __execute_cmd("sudo kubeadm init")#hamster TODO: add check error from command
+
+
+
+    def _init_registry_p_id095(self):
+    """
+    Initialization registry for kubernetes cluster
+    :return: 
+    """
+    commands = [
+        "docker run -d \
+        -p 5001:5000 \
+        --restart=always \
+        --name registry-test \
+        -v `pwd`/config.yml:/home/schuser/tools/hamster/DockerTemp/registry_config.yml \
+        registry:2" ]
+        
+
+        
+        
+        
+    for cmd in commands:
+        __execute_cmd(cmd, timeout=5, give_output=True)
+
+    return 
+
 
     def _init_consul(self):
         '''
@@ -418,13 +445,20 @@ class Scheduler(schedulers.SchedulerExchange):
     @staticmethod
     def _get_k8s_init_config():
         config_init_k8s = {
-            #hamster TODO: insert needed parameters
+            "master configuration": {
+                "bindPort": 9586,
+            }
         }
         '''
         possible parameters:
+        "master configuration":
+            "advertiseAddress":<address|string>,
+            "bindPort":<int>,
+            "token":<string>,
+            "tokenTTL":<time duration>
+        
+        also want to add:
         version of kubernetes (for installation)
-
-
         '''
         return config_init_k8s
 
