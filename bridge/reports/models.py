@@ -207,9 +207,9 @@ class ReportUnsafe(Report):
     error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
     source = models.ForeignKey(ErrorTraceSource, models.CASCADE)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
+    memory = models.BigIntegerField()
     cpu_time = models.BigIntegerField()
     wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
     has_confirmed = models.BooleanField(default=False)
 
     def add_trace(self, fname, fp, save=False):
@@ -228,9 +228,9 @@ def unsafe_delete_signal(**kwargs):
 class ReportSafe(Report):
     proof = models.FileField(upload_to='Safes/%Y/%m', null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
+    memory = models.BigIntegerField()
     cpu_time = models.BigIntegerField()
     wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
     has_confirmed = models.BooleanField(default=False)
 
     def add_proof(self, fname, fp, save=False):
@@ -250,9 +250,10 @@ def safe_delete_signal(**kwargs):
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, models.PROTECT)
     problem_description = models.FileField(upload_to='Unknowns/%Y/%m')
+    memory = models.BigIntegerField(null=True)
     cpu_time = models.BigIntegerField(null=True)
     wall_time = models.BigIntegerField(null=True)
-    memory = models.BigIntegerField(null=True)
+
 
     def add_problem_desc(self, fname, fp, save=False):
         self.problem_description.save(fname, File(fp), save)

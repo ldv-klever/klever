@@ -4,30 +4,22 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
+
+
+task_status_choices = [
+    ('PENDING', 'Pending'),
+    ('PROCESSING', 'Processing'),
+    ('FINISHED', 'Finished'),
+    ('ERROR', 'Error'),
+    ('CANCELLED', 'Cancelled')
+]
 
 
 class Migration(migrations.Migration):
-
     initial = True
-
-    dependencies = [
-        ('jobs', '0001_initial'),
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-    ]
+    dependencies = [('jobs', '0001_initial'), migrations.swappable_dependency(settings.AUTH_USER_MODEL)]
 
     operations = [
-        migrations.CreateModel(
-            name='Node',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('USER_OCCUPIED', 'User occupied'), ('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')], max_length=13)),
-                ('hostname', models.CharField(max_length=128)),
-            ],
-            options={
-                'db_table': 'node',
-            },
-        ),
         migrations.CreateModel(
             name='NodesConfiguration',
             fields=[
@@ -37,50 +29,58 @@ class Migration(migrations.Migration):
                 ('ram', models.BigIntegerField()),
                 ('memory', models.BigIntegerField()),
             ],
-            options={
-                'db_table': 'nodes_configuration',
-            },
+            options={'db_table': 'nodes_configuration'},
         ),
         migrations.CreateModel(
             name='Scheduler',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('type', models.CharField(choices=[('0', 'Klever'), ('1', 'VerifierCloud')], max_length=1)),
-                ('status', models.CharField(choices=[('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')], default='AILING', max_length=12)),
+                ('status', models.CharField(choices=[('HEALTHY', 'Healthy'), ('AILING', 'Ailing'),
+                                                     ('DISCONNECTED', 'Disconnected')],
+                                            default='AILING', max_length=12)),
             ],
-            options={
-                'db_table': 'scheduler',
-            },
+            options={'db_table': 'scheduler'},
         ),
         migrations.CreateModel(
             name='SchedulerUser',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('user', models.OneToOneField(on_delete=models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('login', models.CharField(max_length=128)),
                 ('password', models.CharField(max_length=128)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
-            options={
-                'db_table': 'scheduler_user',
-            },
+            options={'db_table': 'scheduler_user'},
         ),
         migrations.CreateModel(
-            name='Solution',
+            name='JobProgress',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('description', models.BinaryField()),
-                ('archname', models.CharField(max_length=256)),
-                ('archive', models.FileField(upload_to='Service')),
+                ('job', models.OneToOneField(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+                ('total_sj', models.PositiveIntegerField(null=True)),
+                ('failed_sj', models.PositiveIntegerField(null=True)),
+                ('solved_sj', models.PositiveIntegerField(null=True)),
+                ('expected_time_sj', models.PositiveIntegerField(null=True)),
+                ('start_sj', models.DateTimeField(null=True)),
+                ('finish_sj', models.DateTimeField(null=True)),
+                ('gag_text_sj', models.CharField(max_length=128, null=True)),
+                ('total_ts', models.PositiveIntegerField(null=True)),
+                ('failed_ts', models.PositiveIntegerField(null=True)),
+                ('solved_ts', models.PositiveIntegerField(null=True)),
+                ('expected_time_ts', models.PositiveIntegerField(null=True)),
+                ('start_ts', models.DateTimeField(null=True)),
+                ('finish_ts', models.DateTimeField(null=True)),
+                ('gag_text_ts', models.CharField(max_length=128, null=True)),
             ],
-            options={
-                'db_table': 'solution',
-            },
         ),
         migrations.CreateModel(
             name='SolvingProgress',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('priority', models.CharField(choices=[('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')], max_length=6)),
+                ('job', models.OneToOneField(on_delete=models.deletion.CASCADE, to='jobs.Job')),
+                ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.Scheduler')),
+                ('priority', models.CharField(choices=[('URGENT', 'Urgent'), ('HIGH', 'High'),
+                                                       ('LOW', 'Low'), ('IDLE', 'Idle')], max_length=6)),
                 ('start_date', models.DateTimeField(null=True)),
                 ('finish_date', models.DateTimeField(null=True)),
                 ('tasks_total', models.PositiveIntegerField(default=0)),
@@ -92,27 +92,33 @@ class Migration(migrations.Migration):
                 ('solutions', models.PositiveIntegerField(default=0)),
                 ('error', models.CharField(max_length=1024, null=True)),
                 ('configuration', models.BinaryField()),
-                ('job', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='jobs.Job')),
-                ('scheduler', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.Scheduler')),
+                ('fake', models.BooleanField(default=False)),
             ],
-            options={
-                'db_table': 'solving_progress',
-            },
+            options={'db_table': 'solving_progress'},
         ),
         migrations.CreateModel(
             name='Task',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('PROCESSING', 'Processing'), ('FINISHED', 'Finished'), ('ERROR', 'Error'), ('CANCELLED', 'Cancelled')], default='PENDING', max_length=10)),
+                ('progress', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.SolvingProgress')),
+                ('status', models.CharField(choices=task_status_choices, default='PENDING', max_length=10)),
                 ('error', models.CharField(max_length=1024, null=True)),
                 ('description', models.BinaryField()),
                 ('archname', models.CharField(max_length=256)),
                 ('archive', models.FileField(upload_to='Service')),
-                ('progress', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.SolvingProgress')),
             ],
-            options={
-                'db_table': 'task',
-            },
+            options={'db_table': 'task'},
+        ),
+        migrations.CreateModel(
+            name='Solution',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('task', models.OneToOneField(on_delete=models.deletion.CASCADE, to='service.Task')),
+                ('description', models.BinaryField()),
+                ('archname', models.CharField(max_length=256)),
+                ('archive', models.FileField(upload_to='Service')),
+            ],
+            options={'db_table': 'solution'},
         ),
         migrations.CreateModel(
             name='VerificationTool',
@@ -120,11 +126,9 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=128)),
                 ('version', models.CharField(max_length=128)),
-                ('scheduler', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.Scheduler')),
+                ('scheduler', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.Scheduler')),
             ],
-            options={
-                'db_table': 'verification_tool',
-            },
+            options={'db_table': 'verification_tool'},
         ),
         migrations.CreateModel(
             name='Workload',
@@ -138,23 +142,20 @@ class Migration(migrations.Migration):
                 ('for_tasks', models.BooleanField()),
                 ('for_jobs', models.BooleanField()),
             ],
-            options={
-                'db_table': 'workload',
-            },
+            options={'db_table': 'workload'},
         ),
-        migrations.AddField(
-            model_name='solution',
-            name='task',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='service.Task'),
-        ),
-        migrations.AddField(
-            model_name='node',
-            name='config',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='service.NodesConfiguration'),
-        ),
-        migrations.AddField(
-            model_name='node',
-            name='workload',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='service.Workload'),
+        migrations.CreateModel(
+            name='Node',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('workload', models.OneToOneField(null=True, on_delete=models.deletion.SET_NULL, related_name='+',
+                                                  to='service.Workload')),
+                ('hostname', models.CharField(max_length=128)),
+                ('status', models.CharField(
+                    choices=[('USER_OCCUPIED', 'User occupied'), ('HEALTHY', 'Healthy'), ('AILING', 'Ailing'),
+                             ('DISCONNECTED', 'Disconnected')], max_length=13)),
+                ('config', models.ForeignKey(on_delete=models.deletion.CASCADE, to='service.NodesConfiguration')),
+            ],
+            options={'db_table': 'node'},
         ),
     ]

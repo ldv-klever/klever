@@ -228,7 +228,7 @@ class UnsafeTag(models.Model):
 
 class ReportSafeTag(models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='safe_tags')
-    tag = models.ForeignKey(SafeTag, models.CASCADE)
+    tag = models.ForeignKey(SafeTag, models.CASCADE, related_name='+')
     number = models.IntegerField(default=0)
 
     def __str__(self):

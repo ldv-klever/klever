@@ -42,10 +42,10 @@ class Extended(models.Model):
 
 class View(models.Model):
     author = models.ForeignKey(User, models.CASCADE)
-    type = models.CharField(max_length=2, choices=VIEW_TYPES, default='1')
+    type = models.CharField(max_length=2, choices=VIEW_TYPES, default=VIEW_TYPES[1][0])
+    shared = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
     view = models.TextField()
-    shared = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

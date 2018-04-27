@@ -76,10 +76,10 @@ class Workload(models.Model):
 
 
 class Node(models.Model):
-    config = models.ForeignKey(NodesConfiguration, models.CASCADE)
-    status = models.CharField(max_length=13, choices=NODE_STATUS)
-    hostname = models.CharField(max_length=128)
     workload = models.OneToOneField(Workload, models.SET_NULL, null=True, related_name='+')
+    hostname = models.CharField(max_length=128)
+    status = models.CharField(max_length=13, choices=NODE_STATUS)
+    config = models.ForeignKey(NodesConfiguration, models.CASCADE)
 
     class Meta:
         db_table = 'node'

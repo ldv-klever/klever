@@ -46,13 +46,13 @@ def jobfile_delete_signal(**kwargs):
 
 
 class Job(models.Model):
-    name = models.CharField(max_length=150, unique=True, db_index=True)
-    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
-    format = models.PositiveSmallIntegerField(default=FORMAT)
-    version = models.PositiveSmallIntegerField(default=1)
-    change_date = models.DateTimeField()
-    identifier = models.CharField(max_length=255, unique=True, db_index=True)
     parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
+    identifier = models.CharField(max_length=255, unique=True, db_index=True)
+    version = models.PositiveSmallIntegerField(default=1)
+    format = models.PositiveSmallIntegerField(default=FORMAT)
+    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
+    change_date = models.DateTimeField()
+    name = models.CharField(max_length=150, unique=True, db_index=True)
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
     safe_marks = models.BooleanField(default=False)
@@ -67,9 +67,9 @@ class Job(models.Model):
 class RunHistory(models.Model):
     job = models.ForeignKey(Job, models.CASCADE)
     operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
-    configuration = models.ForeignKey(JobFile, models.CASCADE)
     date = models.DateTimeField()
     status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])
+    configuration = models.ForeignKey(JobFile, models.CASCADE)
 
     class Meta:
         db_table = 'job_run_history'
@@ -77,11 +77,11 @@ class RunHistory(models.Model):
 
 class JobHistory(models.Model):
     job = models.ForeignKey(Job, models.CASCADE, related_name='versions')
+    version = models.PositiveSmallIntegerField()
     change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
     change_date = models.DateTimeField(auto_now=True)
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default='0')
     description = models.TextField(default='')
-    version = models.PositiveSmallIntegerField()
     comment = models.CharField(max_length=255, default='')
 
     class Meta:
