@@ -48,16 +48,11 @@ class OSClients:
     def __init__(self, logger, session):
         self.logger = logger
 
-        self.logger.info('Initialize OpenStack client for glance (images)')
+        self.logger.info('Initialize OpenStack clients')
+
         self.glance = glanceclient.client.Client('1', session=session)
-
-        self.logger.info('Initialize OpenStack client for nova (instances)')
         self.nova = novaclient.client.Client('2', session=session)
-
-        self.logger.info('Initialize OpenStack client for neutron (floating IPs)')
         self.neutron = neutronclient.v2_0.client.Client(session=session)
-
-        self.logger.info('Initialize OpenStack client for cinder (volumes)')
         self.cinder = cinderclient.client.Client('2', session=session)
 
 
@@ -707,6 +702,11 @@ class OSInstance:
                         time.sleep(self.OPERATING_SYSTEM_STARTUP_DELAY)
 
                         return self
+                    elif instance.status == 'ERROR':
+                        self.logger.error('An error occurred during instance creation. '
+                                          'Perhaps there are not enough resources available')
+                        instance.delete()
+                        sys.exit(errno.EACCES)
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
                         self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
