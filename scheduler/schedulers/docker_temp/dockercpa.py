@@ -1,11 +1,20 @@
+# todo: что тебе мешает посмотреть как сделано у нас и сделать также? Приставка ниже говорит, что ты запускаешь python2.7, а у нас весь клевер на 3.4-3.6
 #!/usr/bin/python
 
 import os
 import re
+# todo: жаль что библиотека ниже не используется -_- Все аргументы нужно брать через нее.
 import argparse
 import json
+# todo: испорты лучше делать не так, а чтобы вызовы были subprocess.run и т.п. Так хоть понятно, что это функция снаружи, особенно это полезно для больших скриптов и программ, которые ты в будующем будешь писать
 from subprocess import run, Popen, PIPE
 
+
+# todo: что за скрипт без глобального кода для выполнения? Кто начнет выполнение функции ниже? Ты его надеюсь запускал ... Опять же посмотри как у нас сделано.
+
+# todo: ЗАМЕЧАНИЕ ПО СУТИ: 1. зависимости для работы клевер взяты не все. Не хвататет cil, cif.
+# todo: ЗАМЕЧАНИЕ ПО СУТИ: 2. Не хватает скрипта для запуска core и cpachecker - ну ты и сам это знаешь. Без этого образы пока нерабочие.
+# todo: ЗАМЕЧАНИЕ ПО СУТИ: 3. Нужен знатный рефакторинг кода ниже. Для каждого проекта, кроме сборки cpachecker делается одно и то же, поэтому копирование и установку можно делать единообразно, а не кучей копипасты.
 
 def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
     """
@@ -13,8 +22,11 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
     :param configuration: The configuration dictionary. Do not set the option alongside with the file one.
     :return: #hamster CHECK:
     """
+    # todo: Дописал бы уж, раз вставил пайдок
+
 
     # check configuration being
+    # todo: argparse как раз поможет это сделать элегантнее
     if configuration and config_file:
         raise ValueError('Provide either file or configuration string')
     elif config_file:
@@ -26,6 +38,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
         raise ValueError('Provide any file or configuration string')
 
     # check image config
+    # todo: "image config" not in config - так правильно, это относится к коду ниже
     if not "image config" in config:
         raise KeyError("Provide configuration property 'image config' as an JSON-object")
 
@@ -40,6 +53,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
 
     # check path
     # check path type - image_path_type
+    # todo: немонимаю зачем это все - перемещайся в директорию указанную в build path на пофиг, какая разница абсолютный или относительный это путь, просто проверь что переход можно сделать и все. Но Сначала можно преобразовать все остальные пути из конфига до абсолютных или относительных для build dir
     if not "path type" in config["image config"]:
         raise KeyError("Provide configuration property 'path type' as an JSON-object")
     # check build path - image_build_path
@@ -133,6 +147,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
         cpachecker_using = False
 
     # check BenchExec information
+    # todo: не нужно проверять using - он всегда нужен раз уж на то пошло
     if not "BenchExec" in config["image config"]:
         raise KeyError("Provide configuration property 'BenchExec' as an JSON-object")
     # check do we need BenchExec in image
@@ -178,6 +193,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
         os.chdir(current_path)
 
         # save git branch
+        # todo: используй наши утилиты из scheduler/utils например get_output или более сложный execute - у тебя замороченно и много лишнего. Напримрер зачем явно создавать процесс, если тебе не нужно параллельное выполнение, а нужно просто получить результат работы команды?
         _process = Popen("git status", stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True)
         _process_output, _process_error = _process.communicate()
         if _process_error:
@@ -196,6 +212,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
 
     # configure enviroment CPAchecker
     if cpachecker_using:
+        # todo: конечно коряво, два варианта же trunk или branches/*** - тут чего-то полно конфигураций, имен архивов и т.д.
         # pass to CPAchecker path
         current_path = os.path.join(full_build_path, cpachecker_path)
         os.chdir(current_path)
@@ -221,6 +238,7 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
                 "Can't find 'revision' in the output of 'svn info' shell command:\n{}".format(_process_output))
 
         # switch on right svn branch and revision
+        # todo: велосипедыыы Нужно будет переделать на основе биндинга python3-svn
         _cmd = "svn switch ^/" + cpachecker_branch_name
         run(_cmd, shell=True)
         _cmd = "svn up -r " + cpachecker_branch_revision
@@ -272,6 +290,8 @@ def prepare_enviroment_and_dockerfile(config_file=None, configuration=None):
     current_path = full_build_path
     os.chdir(current_path)
     # make dockerfile and write into it
+    # todo: тут конечно чрезмерный хардкод. Особенно с пакетами. В будующем нужно отрефакторить и сделать переиспользование скрипта, устанавливающего зависимости.
+    # todo: остальные замечения я оставил в примере докерфайла
     with open("dockerfile", "w", encoding="utf8") as dockerfile:
         _str = "#Installing parts: "
         if klever_using:

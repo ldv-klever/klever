@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND = "noninteractive"
 WORKDIR /root/
 
 # Upgrade installed packages
+# todo: зачем тебе нужен upgrade?
 RUN apt-get update && apt-get upgrade -y
 
 # Install new packages 
@@ -50,6 +51,7 @@ EXPOSE 9001
 
 # Copy Klever scheduler to run client scr
 COPY klever/scheduler klever/scheduler
+# todo: вот не надо рабочую директорию делать прямо вместе с исходниками, сделай рядом ее
 WORKDIR /root/klever/scheduler/client
 # Имя скрипта node_client.py
 # Записано имя нового скрипта, так как я полугаю,
@@ -58,4 +60,6 @@ WORKDIR /root/klever/scheduler/client
 # и верным образом запускать _init_.py
 # для выполнения task или job
 # и выдачи результата как будет нужно
+# todo: в целом так, это должна быть маленькая обертка вокруг скрипта client/__init__.py. Обертка отличается от скрипта только тем, что она берет и подкладывает json сама, а потом омжно запускать уже client/__init__.py.
+# todo: все команды должны запускаться с python3, потому как python по умолчанию запускает python2.7 обычно.
 ENTRYPOINT ["python", "node_client.py"]
