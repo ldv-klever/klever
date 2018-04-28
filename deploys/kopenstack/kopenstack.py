@@ -216,7 +216,7 @@ class OSKleverBaseImage(OSEntity):
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=klever_base_image_name,
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
-                     floating_ip=instance.floating_ip) as ssh:
+                     floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
                 ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
                              'install-deps')
                 ssh.execute_cmd('sudo ./install-deps')
@@ -272,7 +272,8 @@ class OSKleverDeveloperInstance(OSEntity):
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
-            with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
+            with SSH(args=self.args, logger=self.logger, name=self.name,
+                     floating_ip=self.instance.floating_ip['floating_ip_address']) as ssh:
                 self.logger.info('Copy and install init.d scripts')
                 for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, 'init.d')):
                     for filename in filenames:
