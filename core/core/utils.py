@@ -628,10 +628,19 @@ def prepare_cif_opts(opts, clade_storage):
     is_sysroot_search_dir = False
     is_include = False
 
+    skip_next = False
+
     for opt in opts:
+        if skip_next:
+            skip_next = False
+            continue
         # Get rid of options unsupported by Aspectator.
         match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
         if match:
+            continue
+
+        if opt == '-MF':
+            skip_next = True
             continue
 
         new_opt = opt

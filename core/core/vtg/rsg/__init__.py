@@ -185,7 +185,7 @@ class RSG(core.vtg.plugins.Plugin):
         # scripts/mod/empty.c.
         clade = Clade()
         clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        empty_cc = clade.get_cc().load_json_by_in('scripts/mod/empty.c')
+        empty_cc = clade.get_cc().load_json_by_in(self.conf['opts file'])
 
         model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):

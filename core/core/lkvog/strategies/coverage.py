@@ -30,9 +30,20 @@ class Coverage(AbstractStrategy):
         self.coverage_files = params['coverage files']
         self.work_dirs = params.get('work dirs', [])
         self.covered_funcs = None
+        self.functions_in_file = {}
         self._build_coverage()
 
     def _divide(self, module_name):
+        result = set()
+        for file in self.vog_modules[module_name]['CCs']:
+            desc = self.clade.get_cc().load_json_by_id(file)
+            in_files = desc['in']
+            for in_file in in_files:
+                for func in self.functions_in_file.get(in_file, []):
+                    result.update(self.divide_by_function(func))
+        if result:
+            return sorted(list(result))
+
         return [Graph([Module(module_name)])]
 
     def divide_by_function(self, func):
@@ -53,10 +64,18 @@ class Coverage(AbstractStrategy):
         if found_path:
             modules = set()
             for file in set(found_path):
-                modules.add(Module(self.get_module_by_file(file)))
-            return [Graph(list(modules))]
+                module_file = self.get_module_by_file(file)
+                if module_file:
+                    modules.add(Module(module_file))
+                else:
+                    self.logger.debug("Module for {0} file not found".format(file))
+            if modules:
+                return [Graph(list(modules))]
+            else:
+                return []
         else:
-            return [Graph([Module(m)]) for m in self.get_modules_by_func(func)]
+            self.logger.debug("Not found path for {0} {1}".format(func, file_func))
+            return [Graph([Module(m)]) for m in self.get_modules_by_func(func) if m]
 
     def _set_dependencies(self, deps, sizes):
         pass
@@ -64,21 +83,26 @@ class Coverage(AbstractStrategy):
     def set_callgraph(self, callgraph):
         for func, desc in callgraph.items():
             for file, desc_file in desc.items():
-                if file == 'unknown':
+                if file == 'unknown' or not file.endswith('.c'):
                     continue
+                self.functions_in_file.setdefault(file, [])
+                if desc_file.get('type') == 'global':
+                    self.functions_in_file[file].append(func)
                 self.callgraph.setdefault((file, func), [])
-                for called_func, called_desc in desc_file.get('called in', {}).items():
-                    for called_file in called_desc:
-                        if called_file == 'unknown':
-                            continue
-                        self.callgraph[(file, func)].append((called_file, called_func))
+                for t in ('called_in', 'used_in_func'):
+                    for called_func, called_desc in desc_file.get(t, {}).items():
+                        for called_file in called_desc:
+                            if called_file == 'unknown' or not called_file.endswith('.c'):
+                                continue
+                            self.callgraph[(file, func)].append((called_file, called_func))
 
-                for calls_func, calls_desc in desc_file.get('calls', {}).items():
-                    for calls_file in calls_desc:
-                        if calls_file == 'unknown':
-                            continue
-                        self.callgraph.setdefault((calls_file, calls_func), [])
-                        self.callgraph[(calls_file, calls_func)].append((file, func))
+                for t in ('calls', 'uses'):
+                    for calls_func, calls_desc in desc_file.get(t, {}).items():
+                        for calls_file in calls_desc:
+                            if calls_file == 'unknown' or not calls_file.endswith('.c'):
+                                continue
+                            self.callgraph.setdefault((calls_file, calls_func), [])
+                            self.callgraph[(calls_file, calls_func)].append((file, func))
 
     def need_callgraph(self):
         return True

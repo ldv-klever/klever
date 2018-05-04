@@ -111,12 +111,13 @@ class LKVOG(core.components.Component):
             # Linux kernel source code is not provided in form of file or directory.
             src = self.conf['Linux kernel']['source']
 
-        try:
-            conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                               self.conf['Linux kernel']['configuration'])
-        except FileNotFoundError:
-            # Linux kernel configuration is not provided in form of file.
-            conf = self.conf['Linux kernel']['configuration']
+        if 'configuration' in self.conf['Linux kernel']:
+            try:
+                conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                   self.conf['Linux kernel']['configuration'])
+            except FileNotFoundError:
+                # Linux kernel configuration is not provided in form of file.
+                conf = self.conf['Linux kernel']['configuration']
 
         arch = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
 
@@ -174,7 +175,6 @@ class LKVOG(core.components.Component):
                     'Git repository': self.conf['Linux kernel'].get('Git repository')
                 },
                 {'name': 'MakeCanonicalWorkSrcTree'},
-                # TODO: make in parallel since it helps much!
                 {'name': 'CleanLinuxKernelWorkSrcTree'},
                 {
                     'name': 'Execute',
@@ -203,21 +203,49 @@ class LKVOG(core.components.Component):
             ]
         }
 
+        """
+        {
+            'name': 'Execute',
+            'command': ['make', 'clean']
+        },
+        # TODO: make in parallel since it helps much!
+        {
+            'name': 'Build',
+            'jobs': build_jobs,
+            'architecture': arch,
+            'modules': modules_to_build if not is_build_all_modules else ["all"],
+            'model headers': self.mqs['model headers'].get(),
+            'intercept_commands': True
+        }
+        """
+        """
+
+            ]
+        }
+        """
+
         with open('clade.json', 'w', encoding='utf8') as fp:
             json.dump(clade_conf, fp, indent=4, sort_keys=True)
 
+        env = os.environ
         core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
 
     def generate_all_verification_obj_descs(self):
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
+        extractor_conf = {}
+        extractor_conf.update(self.conf['Module extractor'])
+        extractor_conf.update({
+            'specific modules': self.strategy.get_modules_to_build(self.conf['Linux kernel'].get('modules', []))[0]
+        })
         self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
                                                                               self.clade,
-                                                                              self.conf['Module extractor'])
+                                                                              extractor_conf)
         self.modules = self.module_extractor.divide()
         self.strategy.set_clade(self.clade)
         self.strategy.set_modules(self.modules)
+        self.logger.debug("Modules are {0}".format(self.modules))
 
         if self.sizes is None:
             self.sizes = self._get_sizes()
@@ -239,12 +267,14 @@ class LKVOG(core.components.Component):
                 if 'all' in self.conf['Linux kernel'].get('modules', []):
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
+                    # TODO: remove replacement
+                    #if module.replace('.o', '.ko') in self.conf['Linux kernel'].get('modules', []):
                     if module in self.conf['Linux kernel'].get('modules', []):
                         clusters = self.strategy.divide(module)
                         self.add_new_clusters(clusters, modules_in_clusters)
                     else:
                         for subsystem in subsystems:
-                            if module.startswith(subsystem):
+                            if self.strategy.is_module_in_subsystem(module, subsystem):
                                 clusters = self.strategy.divide(module)
                                 self.add_new_clusters(clusters, modules_in_clusters)
                                 break
@@ -355,9 +385,12 @@ class LKVOG(core.components.Component):
 
         self.common_prj_attrs = [
             {'Linux kernel': [
-                {'version': clade_global_data['Linux kernel version'][0]},
-                {'architecture': clade_global_data['Linux kernel architecture']},
-                {'configuration': clade_global_data['Linux kernel configuration']}
+                #{'version': clade_global_data['Linux kernel version'][0]},
+                #{'architecture': clade_global_data['Linux kernel architecture']},
+                #{'configuration': clade_global_data['Linux kernel configuration']}
+                {'version': '1'},
+                {'architecture': '2'},
+                {'configuration': '3'}
             ]},
             {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
         ]
@@ -480,7 +513,7 @@ class LKVOG(core.components.Component):
 
     def _extract_functions_for_cluster(self, callgraph):
         result = set()
-        if self.conf.get('autoextract functions'):
+        if self.conf.get('autoextract functions') or 'functions' not in self.conf['Linux kernel']:
             cc_files = set()
             for grp in self.verification_obj_desc['grps']:
                 for cc in grp['CCs']:

@@ -33,7 +33,15 @@ class AbstractStrategy:
             return self._divide(module)
 
     def divide_by_function(self, func):
-        modules = self.get_modules_by_func(func)
+        try:
+            modules = self.get_modules_by_func(func)
+        except FileNotFoundError:
+            self.logger.debug("Not found files for {0} function".format(func))
+            return []
+        if not modules:
+            self.logger.debug("Skipping {0} function".format(func))
+            return []
+            raise Exception("Function {0} not found in modules".format(func))
         clusters = set()
         for module in modules:
             clusters.update(self.divide(module))
@@ -102,21 +110,35 @@ class AbstractStrategy:
 
     def get_module_by_file(self, file):
         cc = self.clade.get_cc()
-        desc = cc.load_json_by_in(file)
-        for module, module_desc in self.vog_modules.items():
-            if desc['id'] in (int(cc) for cc in module_desc['CCs']):
-                return module
+        descs = cc.load_all_json_by_in(file)
+        for desc in descs:
+            for module, module_desc in self.vog_modules.items():
+                if desc['id'] in (int(cc) for cc in module_desc['CCs']):
+                    return module
 
     def get_modules_for_subsystem(self, subsystem):
         ret = []
         for module in self.vog_modules:
-            if module.startswith(subsystem):
-                ret.append(module)
+            for cc_file in module['CCs']:
+                if cc_file.startswith(subsystem):
+                    ret.append(module)
+                    break
 
         return ret
 
+    def is_module_in_subsystem(self, module, subsystem):
+        if module not in self.vog_modules:
+            return False
+
+        for in_file in self.vog_modules[module]['in files']:
+            if in_file.startswith(subsystem):
+                return True
+        if module.startswith(subsystem):
+            return True
+        return False
+
     def _is_module(self, file):
-        return file.endswith('.ko')
+        return file.endswith('.o') or file.endswith('.ko')
 
     def is_subsystem(self, file):
         return file.endswith('/')

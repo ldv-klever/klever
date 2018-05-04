@@ -18,6 +18,7 @@
 from hashlib import md5
 from graphviz import Digraph
 import os.path
+import collections
 
 
 class Module:
@@ -129,10 +130,22 @@ class Graph:
         return str(self)
 
     def __eq__(self, rhs):
-        return set(self.modules).__eq__(set(rhs.modules))
+        if isinstance(rhs, collections.Iterable):
+            return False
+            return set(self.modules).__eq__(set(rhs))
+        else:
+            return set(self.modules).__eq__(set(rhs.modules))
 
     def __cmp__(self, rhs):
-        return set(self.modules).__cmp__(set(rhs.modules))
+        if isinstance(rhs, collections.Iterable):
+            return False
+            return set(self.modules).__cmp__(set(rhs))
+        else:
+            return set(self.modules).__cmp__(set(rhs.modules))
+        #return set(self.modules).__cmp__(set(rhs.modules))
+
+    def __lt__(self, rhs):
+        return self.modules < rhs.modules
 
     def draw(self, dir):
         g = Digraph(name=str(self.root.id),

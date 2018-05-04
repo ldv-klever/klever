@@ -18,6 +18,7 @@
 #ifndef __VERIFIER_NONDET_H
 #define __VERIFIER_NONDET_H
 
+
 /* Special nondeterministic functions. */
 extern int ldv_undef_int(void);
 extern int ldv_undef_long(void);

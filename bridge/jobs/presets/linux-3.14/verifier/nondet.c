@@ -15,9 +15,15 @@
  * limitations under the License.
  */
 
-#include <linux/types.h>
+//#include <linux/types.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
+#include <stddef.h>
+
+typedef void* loff_t;
+typedef long u32;
+typedef int u16;
+typedef short u8;
 
 /* SV-COMP functions intended for modelling nondeterminism. */
 char __VERIFIER_nondet_char(void);
@@ -97,7 +103,7 @@ int ldv_undef_int_nonpositive(void)
 
 void *ldv_undef_ptr_non_null(void)
 {
-	void *ret = ldv_undef_int();
+	void *ret = ldv_undef_ptr();
 
 	ldv_assume(ret != NULL);
 

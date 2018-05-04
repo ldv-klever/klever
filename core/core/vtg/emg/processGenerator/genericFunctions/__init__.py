@@ -97,7 +97,7 @@ def __generate_calls(logger, emg, conf, functions_collection):
     code = []
     tab = 0
     if loop:
-        code.append(indented_line(tab, "while (true) {"))
+        code.append(indented_line(tab, "while (1) {"))
         tab += 1
 
     code.append(indented_line(tab, "switch (ldv_undef_int()) {"))
@@ -149,8 +149,9 @@ def __generate_call(emg, ep, func, obj):
                     value = "external_allocated_data();"
                 else:
                     if get_necessary_conf_property(emg.conf["translation options"], "allocate with sizeof"):
+                        apt = arg.points.to_string('', typedef='complex_and_params')
                         value = "ldv_xmalloc(sizeof({}));".\
-                            format(arg.points.to_string('', typedef='complex_and_params'))
+                            format(apt if apt != 'void' else apt + '*')
                     else:
                         value = "ldv_xmalloc_unknown_size(0);"
                     free_args.append(argvar.name)

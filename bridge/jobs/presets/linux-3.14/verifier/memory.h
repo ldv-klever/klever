@@ -18,7 +18,13 @@
 #ifndef __VERIFIER_MEMORY_H
 #define __VERIFIER_MEMORY_H
 
-#include <linux/types.h>
+//#include <linux/types.h>
+
+#include <stddef.h>
+/*
+typedef unsigned size_t;
+#define NULL 0;
+*/
 
 extern void *ldv_malloc(size_t size);
 extern void *ldv_calloc(size_t nmemb, size_t size);
