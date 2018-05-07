@@ -24,11 +24,11 @@ class LinuxKernel:
         build_graph = cmd_graph.load()
         kernel_modules = {}
 
-        for id, desc in build_graph.items():
+        for identifier, desc in build_graph.items():
             if desc['type'] == 'LD':
-                full_desc = util.get_full_desc(self.clade, id, desc['type'])
+                full_desc = util.get_full_desc(self.clade, identifier, desc['type'])
                 if full_desc['out'].endswith('.ko'):
-                    module = util.create_module_by_ld(self.clade, id, build_graph,
+                    module = util.create_module_by_ld(self.clade, identifier, build_graph,
                                                       full_desc['relative_out'].replace('.ko', '.o'))
                     if self.modules \
                             or set(list(module.values())[0]['canon in files']).intersection(set(self.specific_files)) \
@@ -37,7 +37,7 @@ class LinuxKernel:
                             module[list(module.keys())[0]]['separate verify'] = False
                         modules.update(module)
                 if self.kernel and not full_desc['out'].endswith('.ko') and not desc['used_by']:
-                    module = util.create_module_by_ld(self.clade, id, build_graph)
+                    module = util.create_module_by_ld(self.clade, identifier, build_graph)
                     module_subsystem = self._get_subsystem(list(module.keys())[0])
                     for subsystem in self.subsystems:
                         if module_subsystem == subsystem \

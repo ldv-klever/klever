@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import os
 from core.lkvog.strategies.strategy_utils import Graph, Module
 
 
@@ -132,7 +133,7 @@ class AbstractStrategy:
     def get_specific_modules(self):
         return []
 
-    def is_module_in_subsystem(self, module, subsystem):
+    def is_module_in_subsystem(self, module, subsystem, strict=False):
         if module not in self.vog_modules:
             return False
 
@@ -140,12 +141,18 @@ class AbstractStrategy:
             if in_file.startswith(subsystem):
                 return True
         if module.startswith(subsystem):
-            return True
+            if strict:
+                if os.path.dirname(module) == os.path.dirname(subsystem):
+                    return True
+            else:
+                return True
         return False
 
     def _is_module(self, file):
         return file.endswith('.o') or file.endswith('.ko')
 
     def is_subsystem(self, file):
+        # todo: this is an ugly workaround
+        # todo: an option is to check a file extension
         return file.endswith('/')
 
