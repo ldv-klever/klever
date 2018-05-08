@@ -126,6 +126,12 @@ class AbstractStrategy:
 
         return ret
 
+    def get_specific_files(self, files):
+        return {}
+
+    def get_specific_modules(self):
+        return []
+
     def is_module_in_subsystem(self, module, subsystem):
         if module not in self.vog_modules:
             return False

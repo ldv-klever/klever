@@ -234,18 +234,7 @@ class LKVOG(core.components.Component):
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
-        extractor_conf = {}
-        extractor_conf.update(self.conf['Module extractor'])
-        extractor_conf.update({
-            'specific modules': self.strategy.get_modules_to_build(self.conf['Linux kernel'].get('modules', []))[0]
-        })
-        self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
-                                                                              self.clade,
-                                                                              extractor_conf)
-        self.modules = self.module_extractor.divide()
         self.strategy.set_clade(self.clade)
-        self.strategy.set_modules(self.modules)
-        self.logger.debug("Modules are {0}".format(self.modules))
 
         if self.sizes is None:
             self.sizes = self._get_sizes()
@@ -257,13 +246,27 @@ class LKVOG(core.components.Component):
             callgraph_dict = callgraph.load_callgraph()
             self.strategy.set_callgraph(callgraph_dict)
 
+        extractor_conf = {}
+        extractor_conf.update(self.conf['Module extractor'])
+        extractor_conf.update({
+            'specific files': self.strategy.get_specific_files(self.conf['Linux kernel'].get('modules', [])),
+            'specific modules': self.strategy.get_specific_modules()
+        })
+        self.logger.debug('Specific files are {0}'.format(str(extractor_conf['specific modules'])))
+        self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
+                                                                              self.clade,
+                                                                              extractor_conf,
+                                                                              self.conf['Linux kernel']['modules'])
+        self.modules = self.module_extractor.divide()
+        self.logger.debug("Modules are {0}".format(self.modules))
+        self.strategy.set_modules(self.modules)
 
         modules_in_clusters = set()
 
         subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
                                  self.conf['Linux kernel'].get('modules', [])))
         for module in self.modules:
-            if module not in modules_in_clusters:
+            if module not in modules_in_clusters and self.modules[module].get('separate verify', True):
                 if 'all' in self.conf['Linux kernel'].get('modules', []):
                     self.all_clusters.update(self.strategy.divide(module))
                 else:

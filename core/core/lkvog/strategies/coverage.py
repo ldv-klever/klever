@@ -29,6 +29,7 @@ class Coverage(AbstractStrategy):
 
         self.coverage_files = params['coverage files']
         self.work_dirs = params.get('work dirs', [])
+        self.extra_modules = [Module(m) for m in params.get('extra modules', [])]
         self.covered_funcs = None
         self.functions_in_file = {}
         self._build_coverage()
@@ -49,11 +50,15 @@ class Coverage(AbstractStrategy):
     def divide_by_function(self, func):
         file_func = self.get_files_by_func(func)[0]
         process = [((file_func, func), [file_func])]
+        processed = set()
         found_path = None
         while process:
             current, path = process.pop(0)
+            if current in processed:
+                continue
+            processed.add(current)
             if current in self.covered_funcs:
-                self.logger.debug("Found path {0}".format(path))
+                #self.logger.debug("Found path {0}".format(path))
                 found_path = path
                 break
             for new_func in self.callgraph.get(current, []):
@@ -68,13 +73,14 @@ class Coverage(AbstractStrategy):
                 if module_file:
                     modules.add(Module(module_file))
                 else:
-                    self.logger.debug("Module for {0} file not found".format(file))
+                    pass
+                    #self.logger.debug("Module for {0} file not found".format(file))
             if modules:
-                return [Graph(list(modules))]
+                return [Graph(list(modules) + self.extra_modules)]
             else:
                 return []
         else:
-            self.logger.debug("Not found path for {0} {1}".format(func, file_func))
+            #self.logger.debug("Not found path for {0} {1}".format(func, file_func))
             return [Graph([Module(m)]) for m in self.get_modules_by_func(func) if m]
 
     def _set_dependencies(self, deps, sizes):
@@ -110,6 +116,49 @@ class Coverage(AbstractStrategy):
     def get_modules_to_build(self, modules):
         return [], True
 
+    def get_specific_files(self, files):
+        result = set()
+        for file in files:
+            paths = self.get_paths_by_file(file)
+            for path in paths:
+                result.update(set(path).difference(set(path[:1])))
+        return sorted(result)
+
+    def get_specific_modules(self):
+        return [m.id for m in self.extra_modules]
+
+    def get_paths_by_file(self, file):
+        res = []
+        if self.is_subsystem(file):
+            for func_file, functions in self.functions_in_file.items():
+                if func_file.startswith(file):
+                    for function in functions:
+                        path = self.get_path_by_function(function, func_file)
+                        if path:
+                            res.append(path)
+        else:
+            for function in self.functions_in_file.get(file, []):
+                res.append(self.get_path_by_function(function, file))
+        return res
+
+    def get_path_by_function(self, function, file):
+        process = [((file, function), [file])]
+        processed = set()
+        found_path = None
+        while process:
+            current, path = process.pop(0)
+            if current in processed:
+                continue
+            processed.add(current)
+            if current in self.covered_funcs:
+                found_path = path
+                break
+            for new_func in self.callgraph.get(current, []):
+                new_path = path[:]
+                new_path.append(new_func[0])
+                process.append((new_func, new_path))
+        return found_path
+
     def _build_coverage(self):
         self.covered_funcs = set()
         for file in self.coverage_files:
@@ -123,7 +172,7 @@ class Coverage(AbstractStrategy):
                         continue
                     elif line.startswith('FNDA:'):
                         func = line.split(',')[1]
-                        self.logger.debug("Covered func is {0}".format((current_file, func)))
+                        #self.logger.debug("Covered func is {0}".format((current_file, func)))
                         self.covered_funcs.add((current_file, func))
 
     def _cut_work_dirs(self, file):
