@@ -29,12 +29,12 @@ def execute_cmd(*args, get_output=False):
     #     subprocess.check_call(args)
 
 
-def install_deps(klever_conf_file, prev_build_conf_file, non_interactive):
-    with open(klever_conf_file) as fp:
+def install_deps(build_conf_file, prev_build_conf_file, non_interactive):
+    with open(build_conf_file) as fp:
         klever_conf = json.load(fp)
 
     # Update.
-    if prev_build_conf_file:
+    if os.path.exists(prev_build_conf_file):
         with open(prev_build_conf_file) as fp:
             prev_build_conf = json.load(fp)
     # Installation.
@@ -60,7 +60,7 @@ def install_deps(klever_conf_file, prev_build_conf_file, non_interactive):
     new_pckgs = get_pckgs(klever_conf['Packages'])
     new_py_pckgs = get_pckgs(klever_conf['Python3 Packages'])
 
-    if prev_build_conf_file:
+    if prev_build_conf:
         for pckg in new_pckgs:
             if pckg in prev_build_conf['Packages']:
                 pckgs_to_update.append(pckg)
@@ -97,9 +97,11 @@ def install_deps(klever_conf_file, prev_build_conf_file, non_interactive):
         print('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
         execute_cmd('pip3', 'install', '--upgrade', *py_pckgs_to_update)
 
-    # Remember what packages were installed/updated if everything went well.
-    with open(prev_build_conf_file) as fp:
-        prev_build_conf = json.load(fp)
+    # Remember what packages were installed/updated just if everything went well.
+    return {
+        'Packages': sorted(pckgs_to_install + pckgs_to_update),
+        'Python3 Packages': sorted(py_pckgs_to_install + py_pckgs_to_update)
+    }
 
 
 if __name__ == '__main__':

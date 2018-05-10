@@ -35,28 +35,29 @@ class Klever:
         self.logger = logger
 
         self.mode = args.mode
-        self.build_conf_file = os.path.join(self.args.build_directory, 'klever.json')
-        self.build_conf = None
+        self.prev_build_conf_file = os.path.join(self.args.build_directory, 'klever.json')
+        self.build_conf = {}
 
     def __getattr__(self, name):
         raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.mode))
 
     def _pre_install(self):
-        install_deps(self.args.build_configuration_file, self.build_conf_file, self.args.non_interactive)
+        self.build_conf.update(install_deps(self.args.build_configuration_file, self.prev_build_conf_file,
+                                            self.args.non_interactive))
 
     def _post_install(self):
-        os.makedirs(os.path.dirname(self.build_conf_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.prev_build_conf_file), exist_ok=True)
 
-        with open(self.build_conf_file, 'w') as fp:
+        with open(self.prev_build_conf_file, 'w') as fp:
             json.dump(self.build_conf, fp, sort_keys=True, indent=4)
 
     def _pre_update(self):
-        if not os.path.isfile(self.build_conf_file):
+        if not os.path.isfile(self.prev_build_conf_file):
             raise FileNotFoundError(
                 'There is not build configuration file "{0}" ({1})'
-                .format(self.build_conf_file, 'perhaps you try to update Klever without previous installation'))
+                .format(self.prev_build_conf_file, 'perhaps you try to update Klever without previous installation'))
 
-        with open(self.build_conf_file) as fp:
+        with open(self.prev_build_conf_file) as fp:
             self.build_conf = json.load(fp)
 
 
@@ -112,7 +113,6 @@ def main():
                         help='Path to Klever build configuration file (default: "%(default)s").')
     parser.add_argument('--build-directory', default=os.path.join(os.path.dirname(__file__), os.path.pardir, 'build'),
                         help='Path to Klever build directory (default: "%(default)s").')
-    parser.add_argument('--aaa', required=True)
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
