@@ -62,38 +62,20 @@ with Cd('/var/www/klever-bridge'):
         json.dump({'ENGINE': 'django.db.backends.postgresql', 'NAME': 'klever', 'USER': 'postgres'}, fp, sort_keys=True,
                   indent=4)
 
-
     print('Update translations')
     execute_cmd('./manage.py', 'compilemessages')
-
 
     print('Migrate database')
     execute_cmd('./manage.py', 'migrate')
 
-
     print('Collect static files')
     execute_cmd('./manage.py', 'collectstatic', '--noinput')
 
-
-    print('Populate databace (once)')
-    read_fp, write_fp = os.pipe()
-    os.write(
-        write_fp,
-        ('import sys;' +
-         'from django.contrib.auth.models import User;' +
-         'sys.exit(0) if User.objects.filter(username="admin").first() else None;' +
-         'User.objects.create_superuser(username="admin", email="", password="admin");' +
-         'from bridge.populate import populate_users;' +
-         'populate_users({0}, {1}, {2});'.format(
-             'admin={"username": "admin"}',
-             'manager={"username": "manager", "password": "manager"}',
-             'service={"username": "service", "password": "service"}'
-         ) +
-         'from bridge.populate import Population;' +
-         'Population()').encode(encoding='utf8')
-    )
-    os.close(write_fp)
-    execute_cmd('./manage.py', 'shell', stdin=read_fp)
-    os.close(read_fp)
+    print('Populate databace')
+    execute_cmd('./manage.py', 'PopulateUsers', '--exist-ok',
+                '--admin', '{"username": "admin", "password": "admin"}',
+                '--manager', '{"username": "manager", "password": "manager"}',
+                '--service', '{"username": "service", "password": "service"}')
+    execute_cmd('./manage.py', 'Population')
 
 execute_cmd('chown', '-R', 'www-data:www-data', '/var/lib/klever/media')

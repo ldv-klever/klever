@@ -536,14 +536,14 @@ class VTG(core.components.Component):
                             solved += 1
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
-                            (self.conf['keep intermediate files'] or
-                             (vobject in delete_ready and solved == len(delete_ready[vobject]))):
+                            (self.conf['keep intermediate files'] or (vobject in delete_ready and
+                             solved == len([rule for rule in processing_status[vobject][rule_class]
+                                            if rule in delete_ready[vobject]]))):
                         self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
                                 deldir = os.path.join(vobject, rule)
                                 core.utils.reliable_rmtree(self.logger, deldir)
-                            del delete_ready[vobject]
                         del processing_status[vobject][rule_class]
 
                 if len(processing_status[vobject]) == 0:
@@ -552,6 +552,8 @@ class VTG(core.components.Component):
                     # Verification object is lastly processed
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
+                    if vobject in delete_ready:
+                        del delete_ready[vobject]
 
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
