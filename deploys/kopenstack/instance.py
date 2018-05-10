@@ -122,7 +122,7 @@ class OSInstance:
                         self.logger.error('An error occurred during instance creation. '
                                           'Perhaps there are not enough resources available')
                         instance.delete()
-                        sys.exit(errno.EACCES)
+                        sys.exit(errno.EAGAIN)
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
                         self.logger.info('Wait until instance will run (remaining timeout is {} seconds)'
