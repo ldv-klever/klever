@@ -84,7 +84,7 @@ class KleverDevelopment(Klever):
         if not self.args.developer_username:
             raise ValueError('You should specify developer username')
 
-        psql_user_passwd = get_password('PostgreSQL user password: ', self.logger)
+        psql_user_passwd = get_password(self.logger, 'PostgreSQL user password: ')
 
         self._pre_install()
         prepare_env(self.args.developer_username, self.args.deployment_directory, psql_user_passwd)

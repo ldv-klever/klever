@@ -19,7 +19,7 @@ import getpass
 import sys
 
 
-def get_password(prompt, logger):
+def get_password(logger, prompt):
     if sys.stdin.isatty():
         return getpass.getpass(prompt)
     else:
