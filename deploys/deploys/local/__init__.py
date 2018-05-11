@@ -36,6 +36,7 @@ def main():
                                              'klever.json'),
                         help='Path to Klever deployment configuration file (default: "%(default)s").')
     parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
+    parser.add_argument('--developer-username', help='Developer username.')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)

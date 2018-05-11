@@ -20,6 +20,8 @@ import json
 import os
 
 from deploys.install_deps import install_deps
+from deploys.prepare_env import prepare_env
+from deploys.utils import get_password
 
 
 class NotImplementedKleverMode(NotImplementedError):
@@ -79,7 +81,13 @@ class KleverDevelopment(Klever):
         super().__init__(args, logger)
 
     def install(self):
+        if not self.args.developer_username:
+            raise ValueError('You should specify developer username')
+
+        psql_user_passwd = get_password('PostgreSQL user password: ', self.logger)
+
         self._pre_install()
+        prepare_env(self.args.developer_username, self.args.deployment_directory, psql_user_passwd)
         self._post_install()
 
     def update(self):
