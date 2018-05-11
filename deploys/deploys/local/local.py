@@ -16,11 +16,8 @@
 # limitations under the License.
 #
 
-import argparse
 import json
-import logging
 import os
-import sys
 
 from deploys.install_deps import install_deps
 
@@ -99,38 +96,3 @@ class KleverTesting(Klever):
     def update(self):
         self._pre_update()
 
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['install', 'update'], help='Action to be executed.')
-    parser.add_argument('mode', choices=['development', 'production', 'testing'],
-                        help='Mode for which action to be executed.')
-    parser.add_argument('--non-interactive', default=False, action='store_true',
-                        help='Install/update standard packages non-interactively (default: "%(default)s"). ' +
-                             'This option has no effect for mode testing.')
-    parser.add_argument('--build-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                           'conf', 'klever.json'),
-                        help='Path to Klever build configuration file (default: "%(default)s").')
-    parser.add_argument('--build-directory', default=os.path.join(os.path.dirname(__file__), os.path.pardir, 'build'),
-                        help='Path to Klever build directory (default: "%(default)s").')
-    args = parser.parse_args()
-
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s',
-                                  "%Y-%m-%d %H:%M:%S")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    logger.info('{0} Klever for {1}'.format(args.action.capitalize(), args.mode))
-
-    if args.mode == 'development':
-        getattr(KleverDevelopment(args, logger), args.action)()
-    elif args.entity == 'production':
-        getattr(KleverProduction(args, logger), args.action)()
-    elif args.entity == 'testing':
-        getattr(KleverTesting(args, logger), args.action)()
-    else:
-        raise NotImplementedError('Mode "{0}" is not supported'.format(args.mode))
