@@ -31,11 +31,11 @@ def main():
     parser.add_argument('--non-interactive', default=False, action='store_true',
                         help='Install/update standard packages non-interactively (default: "%(default)s"). ' +
                              'This option has no effect for mode testing.')
-    parser.add_argument('--build-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                           'conf', 'klever.json'),
-                        help='Path to Klever build configuration file (default: "%(default)s").')
-    parser.add_argument('--build-directory', default=os.path.join(os.path.dirname(__file__), os.path.pardir, 'build'),
-                        help='Path to Klever build directory (default: "%(default)s").')
+    parser.add_argument('--deployment-configuration-file',
+                        default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
+                                             'klever.json'),
+                        help='Path to Klever deployment configuration file (default: "%(default)s").')
+    parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)

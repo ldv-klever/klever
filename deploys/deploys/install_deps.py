@@ -29,18 +29,7 @@ def execute_cmd(*args, get_output=False):
     #     subprocess.check_call(args)
 
 
-def install_deps(build_conf_file, prev_build_conf_file, non_interactive):
-    with open(build_conf_file) as fp:
-        klever_conf = json.load(fp)
-
-    # Update.
-    if os.path.exists(prev_build_conf_file):
-        with open(prev_build_conf_file) as fp:
-            prev_build_conf = json.load(fp)
-    # Installation.
-    else:
-        prev_build_conf = None
-
+def install_deps(deploy_conf, prev_deploy_info, non_interactive):
     if non_interactive:
         # Do not require users input.
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -57,18 +46,18 @@ def install_deps(build_conf_file, prev_build_conf_file, non_interactive):
             _pckgs.extend(val)
         return _pckgs
 
-    new_pckgs = get_pckgs(klever_conf['Packages'])
-    new_py_pckgs = get_pckgs(klever_conf['Python3 Packages'])
+    new_pckgs = get_pckgs(deploy_conf['Packages'])
+    new_py_pckgs = get_pckgs(deploy_conf['Python3 Packages'])
 
-    if prev_build_conf:
+    if prev_deploy_info:
         for pckg in new_pckgs:
-            if pckg in prev_build_conf['Packages']:
+            if pckg in prev_deploy_info['Packages']:
                 pckgs_to_update.append(pckg)
             else:
                 pckgs_to_install.append(pckg)
 
         for py_pckg in new_py_pckgs:
-            if py_pckg in prev_build_conf['Python3 Packages']:
+            if py_pckg in prev_deploy_info['Python3 Packages']:
                 py_pckgs_to_update.append(py_pckg)
             else:
                 py_pckgs_to_install.append(py_pckg)
@@ -108,9 +97,18 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--non-interactive', type=bool, required=True)
-    parser.add_argument('--build-configuration-file', required=True)
-    parser.add_argument('--previous-build-configuration-file', default=None)
+    parser.add_argument('--deployment-configuration-file', required=True)
+    parser.add_argument('--deployment-directory', required=True)
     args = parser.parse_args()
 
-    install_deps(args.build_configuration_file, args.previous_build_configuration_file, args.non_interactive)
+    with open(args.deployment_configuration_file) as fp:
+        deploy_conf = json.load(fp)
+
+    prev_deploy_info_file = os.path.join(args.deployment_directory, 'klever.json')
+    if os.path.exists(prev_deploy_info_file):
+        with open(prev_deploy_info_file) as fp:
+            prev_deploy_info = json.load(fp)
+    else:
+        prev_deploy_info = None
+
+    install_deps(deploy_conf, prev_deploy_info, True)
