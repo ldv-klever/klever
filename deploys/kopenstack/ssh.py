@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
+# Copyright (c) 2017-2018 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +18,11 @@
 import errno
 import os
 import paramiko
-import select
-import socket
+import subprocess
 import sys
 import tarfile
 import tempfile
-import termios
 import time
-import tty
 
 from kopenstack.utils import get_password
 
@@ -130,41 +127,9 @@ class SSH:
 
     def open_shell(self):
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
-        self.logger.warning(
-            'Just simple operations can be peformed, for the complex ones, please, run "{0}"'
-            .format('ssh -o StrictHostKeyChecking=no -i {0} {1}@{2}'
-                    .format(self.args.ssh_rsa_private_key_file, self.args.ssh_username, self.floating_ip)))
 
-        chan = self.ssh.get_transport().open_session()
-        chan.get_pty()
-        chan.invoke_shell()
-
-        # https://github.com/paramiko/paramiko/blob/master/demos/interactive.py (commit 15aa741).
-        oldtty = termios.tcgetattr(sys.stdin)
-
-        try:
-            tty.setraw(sys.stdin.fileno())
-            tty.setcbreak(sys.stdin.fileno())
-            chan.settimeout(0.0)
-
-            while True:
-                r, w, e = select.select([chan, sys.stdin], [], [])
-                if chan in r:
-                    try:
-                        x = chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                        if len(x) == 0:
-                            break
-                        sys.stdout.write(x)
-                        sys.stdout.flush()
-                    except socket.timeout:
-                        pass
-                if sys.stdin in r:
-                    x = sys.stdin.read(1)
-                    if len(x) == 0:
-                        break
-                    chan.send(x)
-        finally:
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+        subprocess.call(['ssh', '-o', 'StrictHostKeyChecking=no', '-i', self.args.ssh_rsa_private_key_file,
+                         '{}@{}'.format(self.args.ssh_username, self.floating_ip)])
 
     def sftp_exist(self, path):
         try:
