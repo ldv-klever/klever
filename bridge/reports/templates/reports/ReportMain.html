@@ -1,10 +1,17 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
 
 {% load tz %}
+{% load staticfiles %}
 
 {% block title %}{{ report.component.name }}{% endblock %}
+
+{% block head_block %}
+    <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
+    <script src="{% static 'reports/js/reportComponent.js' %}"></script>
+{% endblock %}
+
 {% block body_block %}{% timezone user.extended.timezone %}
 
 <div class="ui grid">

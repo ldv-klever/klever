@@ -1,11 +1,11 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
 {% load staticfiles %}
 
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
-{% block reports_head_block %}
+{% block head_block %}
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">

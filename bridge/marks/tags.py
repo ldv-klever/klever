@@ -142,11 +142,11 @@ class TagData:
 
 class GetTagsData:
     def __init__(self, tags_type, tag_ids=None, user=None):
-        self.__type = tags_type
+        self._type = tags_type
         self.user = user
         self.tags = []
         self.tag_ids = tag_ids
-        if self.__type not in {'safe', 'unsafe'}:
+        if self._type not in {'safe', 'unsafe'}:
             raise BridgeException()
         self.__get_tags()
         self.table = TagTable()
@@ -161,7 +161,7 @@ class GetTagsData:
                 tags_filter = {'parent': None}
             if self.tag_ids is not None:
                 tags_filter['id__in'] = self.tag_ids
-            if self.__type == 'safe':
+            if self._type == 'safe':
                 next_level = [TagData(self.user, tag) for tag in SafeTag.objects.filter(**tags_filter).order_by('tag')]
             else:
                 next_level = \

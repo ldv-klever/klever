@@ -98,6 +98,9 @@ class PresetMarkFile:
         self.data = json.dumps(self.__get_mark_data(), indent=2, sort_keys=True).encode('utf8')
         self.filename = "%s.json" % self._mark.identifier
 
+    def __iter__(self):
+        yield self.data
+
     def __get_mark_data(self):
         if isinstance(self._mark, MarkUnknown):
             data = {

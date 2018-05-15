@@ -251,14 +251,6 @@ class BridgeErrorResponse(HttpResponseBadRequest):
         )
 
 
-def get_user_view_args(get_params, view_type):
-    view_args = {}
-    if get_params.get('view_type') == view_type:
-        view_args['view'] = get_params.get('view')
-        view_args['view_id'] = get_params.get('view_id')
-    return view_args
-
-
 def get_templated_text(template, **kwargs):
     return Template(template).render(Context(kwargs))
 

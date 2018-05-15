@@ -1,4 +1,4 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
 {% load i18n %}
 
 {% load staticfiles %}
@@ -6,8 +6,8 @@
 {% block title %}{% trans 'Coverage' %}{% endblock %}
 
 {% block head_block %}
-    <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
     <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}

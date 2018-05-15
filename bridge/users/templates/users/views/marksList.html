@@ -18,7 +18,7 @@
         {# Order #}
         <h3 class="header">{% trans 'Order' %}</h3>
         <div class="ui divider"></div>
-        <input id="view_data_{{ view.type }}__order" value="list_null" data-list="radio_order_value__radio_order{% if view.type != '9' %}__order_attr{% endif %}" type="hidden">
+        <input id="view_data_{{ view.type }}__order" value="list_null" data-list="radio_order_value__radio_order__order_attr" type="hidden">
         <div class="fields">
             <div class="four wide field">
                 <div class="ui radio checkbox">
@@ -41,23 +41,19 @@
                     <input id="order_by_repnum__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="num_of_links"{% if view.order.1 == 'num_of_links' %} checked{% endif %}>
                     <label for="order_by_repnum__{{ view.type }}">{% trans 'Order by the number of associated leaf reports' %}</label>
                 </div>
-            {% if view.type != '9' %}
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_attr__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="attr"{% if view.order.1 == 'attr' %} checked{% endif %}>
                     <label for="order_by_attr__{{ view.type }}">{% trans 'Order by attribute' %}</label>
                 </div>
-            {% endif %}
             </div>
         </div>
-        {% if view.type != '9' %}
-            <div id="order_attr_value_div__{{ view.type }}"{% if view.order.1 != 'attr' %} style="display: none"{% endif %}>
-                <label for="view_{{ view.type }}__order_attr"></label>
-                <input id="view_{{ view.type }}__order_attr" type="text"{% if view.order.1 == 'attr' %} value="{{ view.order.2 }}"{% endif %}>
-                <br>
-                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
-            </div>
-        {% endif %}
+        <div id="order_attr_value_div__{{ view.type }}"{% if view.order.1 != 'attr' %} style="display: none"{% endif %}>
+            <label for="view_{{ view.type }}__order_attr"></label>
+            <input id="view_{{ view.type }}__order_attr" type="text"{% if view.order.1 == 'attr' %} value="{{ view.order.2 }}"{% endif %}>
+            <br>
+            <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+        </div>
     </div>
     <div class="ten wide column">
         <h3>{% trans 'Filters' %}</h3>
@@ -234,6 +230,7 @@
         </div>
 
         <div class="ui divider"></div>
+    {% endif %}
 
         {# Attribute #}
         <input id="view_data_{{ view.type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
@@ -263,7 +260,6 @@
                 </div>
             </div>
         </div>
-    {% endif %}
     </div>
 </div>
 <div class="ui divider"></div>

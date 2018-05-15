@@ -28,14 +28,15 @@ from django.utils.timezone import now, timedelta
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
     UNSAFE_VERDICTS
-from bridge.utils import unique_id, get_templated_text, BridgeException
+from bridge.utils import unique_id, get_templated_text
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges,\
+    MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr,\
     MarkUnsafeCompare, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, ConvertedTraces, \
     MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike, UnknownProblem
 
-from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
+from users.utils import DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
 from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -139,12 +140,11 @@ class MarkChangesTable:
                     values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
                     if 'tags' in self.changes[report]:
                         values[report.id]['tags'] = self.changes[report]['tags']
-            if self.mark_type != 'unknown':
-                for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-                    if a_name not in self.attrs:
-                        self.attrs.append(a_name)
-                    if a_name not in values[report.id]:
-                        values[report.id][a_name] = a_value
+            for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+                if a_name not in self.attrs:
+                    self.attrs.append(a_name)
+                if a_name not in values[report.id]:
+                    values[report.id][a_name] = a_value
         return values
 
     def __save_data(self, user):
@@ -154,10 +154,9 @@ class MarkChangesTable:
             cache = MarkAssociationsChanges(user=user)
         cache.identifier = unique_id()
 
-        view_types = {'safe': VIEW_TYPES[16][0], 'unsafe': VIEW_TYPES[17][0], 'unknown': VIEW_TYPES[18][0]}
         cache.table_data = json.dumps({
-            'href': reverse('marks:mark', args=[self.mark_type, 'view', self.mark.pk]),
-            'type': view_types[self.mark_type], 'values': self.values, 'attrs': self.attrs
+            'href': reverse('marks:mark', args=[self.mark_type, self.mark.pk]),
+            'values': self.values, 'attrs': self.attrs
         }, ensure_ascii=False, sort_keys=True, indent=2)
         cache.save()
         return cache.identifier
@@ -165,9 +164,10 @@ class MarkChangesTable:
 
 # Table data for showing links between the specified report and marks
 class ReportMarkTable:
-    def __init__(self, user, report, view=None, view_id=None):
-        self.report = report
+    def __init__(self, user, report, view):
         self.user = user
+        self.report = report
+        self.view = view
         self.statuses = MARK_STATUS
         self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):
@@ -180,9 +180,6 @@ class ReportMarkTable:
             self.type = 'unknown'
         else:
             return
-
-        view_types = {'unsafe': VIEW_TYPES[10][0], 'safe': VIEW_TYPES[11][0], 'unknown': VIEW_TYPES[12][0]}
-        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
 
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -269,7 +266,7 @@ class ReportMarkTable:
                 if col == 'mark_num':
                     val = cnt
                     href = '%s?report_to_redirect=%s' % (
-                        reverse('marks:mark', args=[self.type, 'view', mark_rep.mark_id]), self.report.pk
+                        reverse('marks:mark', args=[self.type, mark_rep.mark_id]), self.report.pk
                     )
                 elif col == 'verdict' and self.type != 'unknown':
                     val = mark_rep.mark.get_verdict_display()
@@ -336,23 +333,19 @@ class ReportMarkTable:
 
 
 class MarksList:
-    def __init__(self, user, marks_type, view=None, view_id=None, page=1):
+    def __init__(self, user, marks_type, view, page=1):
         self.user = user
         self.type = marks_type
-        if self.type not in {'unsafe', 'safe', 'unknown'}:
-            return
-        self.authors = []
+        self.view = view
 
-        view_types = {'unsafe': VIEW_TYPES[7][0], 'safe': VIEW_TYPES[8][0], 'unknown': VIEW_TYPES[9][0]}
-        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+        self.authors = []
 
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
 
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
-        if self.type != 'unknown':
-            self.attr_values = self.__get_attrs()
+        self.attr_values = self.__get_attrs()
 
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_page(page, self.__get_values())
@@ -435,9 +428,12 @@ class MarksList:
         if self.type == 'safe':
             vers_model = MarkSafeHistory
             attr_model = MarkSafeAttr
-        else:
+        elif self.type == 'unsafe':
             vers_model = MarkUnsafeHistory
             attr_model = MarkUnsafeAttr
+        else:
+            vers_model = MarkUnknownHistory
+            attr_model = MarkUnknownAttr
         last_versions = vers_model.objects.filter(version=F('mark__version'), mark__in=self.marks)
 
         data = {}
@@ -485,7 +481,7 @@ class MarksList:
                 val = '-'
                 color = None
                 href = None
-                if self.type != 'unknown' and col in self.attr_values[mark]:
+                if col in self.attr_values[mark]:
                     val = self.attr_values[mark][col]
                     if self.__get_order() == col:
                         order_by_value = val
@@ -557,7 +553,7 @@ class MarksList:
         final_values = []
         cnt = 1
         for mark_id, valstr in ordered_values:
-            valstr.insert(0, {'value': cnt, 'href': reverse('marks:mark', args=[self.type, 'view', mark_id])})
+            valstr.insert(0, {'value': cnt, 'href': reverse('marks:mark', args=[self.type, mark_id])})
             valstr.insert(0, {'checkbox': mark_id})
             final_values.append(valstr)
             cnt += 1
@@ -627,11 +623,11 @@ class MarkData:
             self.author = type(self.mark_version).objects.get(mark=self.mark_version.mark, version=1).author
 
     def __get_attributes(self, report):
-        if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
+        if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory, MarkUnknownHistory)):
             return list(
                 self.mark_version.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'is_compare')
             )
-        elif isinstance(report, (ReportUnsafe, ReportSafe)):
+        elif isinstance(report, (ReportUnsafe, ReportSafe, ReportUnknown)):
             return list(report.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'associate'))
         return None
 
@@ -707,10 +703,11 @@ class MarkData:
 
 
 # Table data for showing links between the specified mark and reports
-class MarkReportsTable(object):
-    def __init__(self, user, mark, view=None, view_id=None):
+class MarkReportsTable:
+    def __init__(self, user, mark, view, page=1):
         self.user = user
         self.mark = mark
+        self.view = view
 
         if isinstance(self.mark, MarkUnsafe):
             self.type = 'unsafe'
@@ -721,15 +718,12 @@ class MarkReportsTable(object):
         else:
             return
 
-        view_types = {'unsafe': VIEW_TYPES[13][0], 'safe': VIEW_TYPES[14][0], 'unknown': VIEW_TYPES[15][0]}
-        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
-
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
 
         self.columns = self.__get_columns()
         self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
+        self.values = self.__get_page(page, self.__get_values())
 
     def __selected(self):
         columns = []
@@ -798,7 +792,10 @@ class MarkReportsTable(object):
                 if col == 'report':
                     val = cnt
                     if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('reports:%s' % self.type, args=[report.id])
+                        if self.type == 'unsafe':
+                            href = reverse('reports:unsafe', args=[report.trace_id])
+                        else:
+                            href = reverse('reports:%s' % self.type, args=[report.id])
                 elif col == 'similarity':
                     if mark_report.error is not None:
                         val = mark_report.error
@@ -822,14 +819,26 @@ class MarkReportsTable(object):
             values.append(values_str)
         return values
 
+    def __get_page(self, page, values):
+        num_per_page = DEF_NUMBER_OF_ELEMENTS
+        if 'elements' in self.view:
+            num_per_page = int(self.view['elements'][0])
+        self.paginator = Paginator(values, num_per_page)
+        try:
+            values = self.paginator.page(page)
+        except PageNotAnInteger:
+            values = self.paginator.page(1)
+        except EmptyPage:
+            values = self.paginator.page(self.paginator.num_pages)
+        return values
+
 
 class AssociationChangesTable:
-    def __init__(self, user, association_id, view=None, view_id=None):
-        self._data = self.__get_data(association_id)
+    def __init__(self, obj, view):
+        self.view = view
+        self._data = json.loads(obj.table_data)
         self._problems_names = {}
         self.href = self._data['href']
-
-        self.view = ViewData(user, self._data['type'], view=view, view_id=view_id)
 
         if self.view['type'] == VIEW_TYPES[16][0]:
             self.verdicts = SAFE_VERDICTS
@@ -842,14 +851,6 @@ class AssociationChangesTable:
         self.columns = self.__get_columns()
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
-
-    def __get_data(self, association_id):
-        self.__is_not_used()
-        try:
-            ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_("Mark associations changes cache wasn't found"))
-        return json.loads(ass_ch.table_data)
 
     def __selected(self):
         columns = []
@@ -873,7 +874,7 @@ class AssociationChangesTable:
 
     def __supported_columns(self):
         supported_columns = ['change_kind', 'job', 'format', 'problems']
-        if self._data['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
+        if self.view['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
             supported_columns.append('sum_verdict')
             supported_columns.append('tags')
         return supported_columns

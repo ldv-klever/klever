@@ -194,7 +194,7 @@ def show_profile(request, user_id):
             'act_type': act_type,
             'act_color': act_color,
             'obj_type': _('Job'),
-            'obj_link': act.name
+            'obj_link': act.job.name
         }
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
@@ -218,7 +218,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Safes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['safe', 'view', act.mark_id]),
+            'href': reverse('marks:mark', args=['safe', act.mark_id]),
         })
     for act in MarkUnsafeHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -239,7 +239,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unsafes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['unsafe', 'view', act.mark_id])
+            'href': reverse('marks:mark', args=['unsafe', act.mark_id])
         })
     for act in MarkUnknownHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -260,7 +260,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unknowns mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['unknown', 'view', act.mark_id])
+            'href': reverse('marks:mark', args=['unknown', act.mark_id])
         })
     return render(request, 'users/showProfile.html', {
         'target': target,

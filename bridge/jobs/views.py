@@ -33,7 +33,7 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 import bridge.CustomViews as Bviews
 from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
-from bridge.utils import logger, file_get_or_create, extract_archive, get_templated_text, get_user_view_args,\
+from bridge.utils import logger, file_get_or_create, extract_archive, get_templated_text,\
     BridgeException
 
 from users.models import User
@@ -42,6 +42,7 @@ from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
+from users.utils import ViewData
 
 import jobs.utils
 from jobs.jobForm import JobForm, role_info, LoadFilesTree, UserRolesForm
@@ -62,7 +63,7 @@ class JobsTree(LoggedCallMixin, TemplateView):
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': jobs.utils.months_choices(), 'years': jobs.utils.years_choices(),
-            'TableData': TableTree(self.request.user, **get_user_view_args(self.request.GET, VIEW_TYPES[1][0]))
+            'TableData': TableTree(self.request.user, ViewData(self.request.user, VIEW_TYPES[1][0], self.request.GET))
         }
 
 
@@ -89,7 +90,7 @@ class JobPage(LoggedCallMixin, DetailView):
         context['reportdata'] = ViewJobData(
             self.request.user,
             ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
-            **get_user_view_args(self.request.GET, VIEW_TYPES[2][0])
+            ViewData(self.request.user, VIEW_TYPES[2][0], self.request.GET)
         )
 
         context['job_access'] = job_access
@@ -105,7 +106,7 @@ class DecisionResults(LoggedCallMixin, Bviews.JSONResponseMixin, Bviews.DetailPo
         return {'reportdata': ViewJobData(
             self.request.user,
             ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
-            view=self.request.POST.get('view', None)
+            ViewData(self.request.user, VIEW_TYPES[2][0], self.request.POST)
         )}
 
 

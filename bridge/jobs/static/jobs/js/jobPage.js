@@ -170,10 +170,10 @@ function activate_run_history() {
     });
 }
 
-function show_warn_modal(warn_text_id, action_func, disabled) {
-    $('.browse').popup('hide');
-    disabled = typeof disabled !== 'undefined' ?  disabled : $(this).prop('disabled');
+function show_warn_modal(btn, warn_text_id, action_func, disabled) {
+    disabled = typeof disabled !== 'undefined' ?  disabled : btn.hasClass('disabled');
     if (disabled) return false;
+    $('.browse').popup('hide');
 
     var warn_confirm_btn = $('#warn_confirm_btn');
     $('#warn_text').text($('#' + warn_text_id).text());
@@ -203,7 +203,7 @@ function check_children() {
             err_notify(data.error);
             return false;
         }
-        data.children ? show_warn_modal('warn__has_children', remove_job, false) : remove_job();
+        data.children ? show_warn_modal(null, 'warn__has_children', remove_job, false) : remove_job();
     }, 'json');
 }
 
@@ -243,13 +243,13 @@ $(document).ready(function () {
 
     $('#warn_modal').modal({transition: 'fade in', autofocus: false, closable: false});
     $('#warn_close_btn').click(function () { $('#warn_modal').modal('hide') });
-    $('#remove_job_btn').click(function () { show_warn_modal('warn__remove_job', check_children) });
-    $('#decide_job_btn').click(function () { show_warn_modal('warn__decide_job', function () { window.location.href = '/jobs/prepare_run/' + $('#job_id').val() + '/' }) });
-    $('#fast_decide_job_btn').click(function () { show_warn_modal('warn__decide_job', fast_run_decision) });
-    $('#last_decide_job_btn').click(function () { show_warn_modal('warn__decide_job', lastconf_run_decision) });
-    $('#stop_job_btn').click(function () { show_warn_modal('warn__stop_decision', stop_job_decision) });
-    $('#collapse_reports_btn').click(function () { show_warn_modal('warn__collapse', collapse_reports) });
-    $('#clear_verifications_modal').click(function () { show_warn_modal('warn__clear_files', clear_verification_files) });
+    $('#remove_job_btn').click(function () { show_warn_modal($(this), 'warn__remove_job', check_children) });
+    $('#decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', function () { window.location.href = '/jobs/prepare_run/' + $('#job_id').val() + '/' }) });
+    $('#fast_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', fast_run_decision) });
+    $('#last_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', lastconf_run_decision) });
+    $('#stop_job_btn').click(function () { show_warn_modal($(this), 'warn__stop_decision', stop_job_decision) });
+    $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
+    $('#clear_verifications_modal').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
 
     var job_status_popup = $('#job_status_popup');
     if (job_status_popup.length) $('#job_status_popup_activator').popup({popup: job_status_popup, position: 'bottom center'});
@@ -269,7 +269,13 @@ $(document).ready(function () {
         });
     }
 
-    $('#upload_reports_popup').modal({transition: 'vertical flip'}).modal('attach events', '#upload_reports_btn', 'show');
+    $('#download_job_btn').click(function () { $('.browse').popup('hide') });
+
+    $('#upload_reports_popup').modal({transition: 'vertical flip'});
+    $('#upload_reports_btn').click(function () {
+        $('.browse').popup('hide');
+        $('#upload_reports_popup').modal('show');
+    });
     $('#upload_reports_file_input').on('fileselect', function () {
         $('#upload_reports_filename').html($('<span>', {text: $(this)[0].files[0].name}));
     });

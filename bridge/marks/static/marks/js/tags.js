@@ -63,10 +63,9 @@ window.activate_tags = function () {
 
     function update_tags(deleted) {
         $.ajax({
-            url: '/marks/ajax/get_tags_data/',
+            url: '/marks/' + $('#tags_type').val() + '/tags_data/',
             type: 'POST',
             data: {
-                tag_type: $('#tags_type').val(),
                 selected_tags: JSON.stringify(get_tags_values()),
                 deleted: deleted
             },

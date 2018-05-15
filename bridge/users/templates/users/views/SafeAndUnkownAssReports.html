@@ -7,6 +7,12 @@
         <div class="ui divider"></div>
         <div class="ui grid">
             <div class="ten wide column">
+                <h3>{% trans 'Number of rows' %}</h3>
+                <input id="view_data_{{ view.type }}__elements" value="list" data-list="elements" type="hidden">
+                <label for="view_{{ view.type }}__elements"></label>
+                <div class="ui input"><input id="view_{{ view.type }}__elements" type="number"{% if 'elements' in view %} value="{{ view.elements.0 }}"{% endif %}></div>
+                <div class="ui divider"></div>
+
                 <h3>{% trans 'Columns' %}</h3>
                 <div class="ui divider"></div>
                 {% include 'users/views/viewColumns.html' %}

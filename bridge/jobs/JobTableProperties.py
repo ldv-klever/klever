@@ -21,14 +21,13 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
-from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import get_templated_text
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, ReportComponentLeaf
 
-from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
 from service.utils import GetJobsProgresses
@@ -103,11 +102,11 @@ def all_user_columns():
 
 
 class TableTree:
-    def __init__(self, user, view=None, view_id=None):
+    def __init__(self, user, view):
         self._user = user
         self._columns = ['name']
 
-        self.view = ViewData(user, VIEW_TYPES[1][0], view=view, view_id=view_id)
+        self.view = view
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
 

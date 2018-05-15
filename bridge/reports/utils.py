@@ -28,16 +28,16 @@ from django.db.models import Q, Count, Case, When
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, VIEW_TYPES, ASSOCIATION_TYPE
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.tableHead import Header
-from bridge.utils import logger, extract_archive, get_user_view_args, BridgeException
+from bridge.utils import logger, extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, AttrFile, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe,\
     ReportUnknown, ReportRoot
 from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag, MarkUnknownReport, SafeTag, UnsafeTag
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
+from users.utils import DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
 from marks.utils import SAFE_COLOR, UNSAFE_COLOR
 
@@ -149,7 +149,6 @@ class SafesListGetData:
     def __init__(self, data):
         self.title = _('Safes')
         self.args = {'page': data.get('page', 1)}
-        self.args.update(get_user_view_args(data, VIEW_TYPES[5][0]))
         self.__get_filters_data(data)
 
     def __get_filters_data(self, data):
@@ -185,7 +184,6 @@ class UnsafesListGetData:
     def __init__(self, data):
         self.title = _('Unsafes')
         self.args = {'page': data.get('page', 1)}
-        self.args.update(get_user_view_args(data, VIEW_TYPES[4][0]))
         self.__get_filters_data(data)
 
     def __get_filters_data(self, data):
@@ -221,7 +219,6 @@ class UnknownsListGetData:
     def __init__(self, data):
         self.title = _('Unknowns')
         self.args = {'page': data.get('page', 1)}
-        self.args.update(get_user_view_args(data, VIEW_TYPES[6][0]))
         self.__get_filters_data(data)
 
     def __get_filters_data(self, data):
@@ -251,12 +248,11 @@ class UnknownsListGetData:
 
 
 class SafesTable:
-    def __init__(self, user, report, **kwargs):
+    def __init__(self, user, report, view, **kwargs):
         self.user = user
         self.report = report
+        self.view = view
         self.tag = kwargs.get('tag')
-
-        self.view = ViewData(self.user, VIEW_TYPES[5][0], view=kwargs.get('view'), view_id=kwargs.get('view_id'))
 
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -496,12 +492,11 @@ class SafesTable:
 
 
 class UnsafesTable:
-    def __init__(self, user, report, **kwargs):
+    def __init__(self, user, report, view, **kwargs):
         self.user = user
         self.report = report
+        self.view = view
         self.tag = kwargs.get('tag')
-
-        self.view = ViewData(self.user, VIEW_TYPES[4][0], view=kwargs.get('view'), view_id=kwargs.get('view_id'))
 
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -744,11 +739,10 @@ class UnknownsTable:
     columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
-    def __init__(self, user, report, **kwargs):
+    def __init__(self, user, report, view, **kwargs):
         self.user = user
         self.report = report
-
-        self.view = ViewData(self.user, VIEW_TYPES[6][0], view=kwargs.get('view'), view_id=kwargs.get('view_id'))
+        self.view = view
 
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -986,13 +980,12 @@ class UnknownsTable:
 
 
 class ReportChildrenTable:
-    def __init__(self, user, report, page=1, view=None, view_id=None):
+    def __init__(self, user, report, view, page=1):
         self.user = user
         self.report = report
+        self.view = view
+
         self.columns = []
-
-        self.view = ViewData(self.user, VIEW_TYPES[3][0], view=view, view_id=view_id)
-
         columns, values = self.__component_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}

@@ -32,7 +32,8 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import JOB_STATUS, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE
-from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse, get_user_view_args
+from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
+from users.utils import ViewData
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
@@ -161,12 +162,11 @@ class ReportComponentView(LoggedCallMixin, DetailView):
             'SelfAttrsData': reports.utils.ReportAttrsTable(self.object).table_data,
             'parents': reports.utils.get_parents(self.object),
             'TableData': reports.utils.ReportChildrenTable(
-                self.request.user, self.object, page=self.request.GET.get('page', 1),
-                **get_user_view_args(self.request.GET, VIEW_TYPES[3][0])
+                self.request.user, self.object, ViewData(self.request.user, VIEW_TYPES[3][0], self.request.GET),
+                page=self.request.GET.get('page', 1)
             ),
             'reportdata': ViewJobData(
-                self.request.user, self.object,
-                **get_user_view_args(self.request.GET, VIEW_TYPES[2][0])
+                self.request.user, self.object, ViewData(self.request.user, VIEW_TYPES[2][0], self.request.GET)
             )
         }
 
@@ -283,7 +283,10 @@ class SafesListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.SafesListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.SafesTable(self.request.user, self.object, **getdata.args)
+            'TableData': reports.utils.SafesTable(
+                self.request.user, self.object,
+                ViewData(self.request.user, VIEW_TYPES[5][0], self.request.GET), **getdata.args
+            )
         }
 
 
@@ -311,7 +314,10 @@ class UnsafesListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.UnsafesListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnsafesTable(self.request.user, self.object, **getdata.args)
+            'TableData': reports.utils.UnsafesTable(
+                self.request.user, self.object,
+                ViewData(self.request.user, VIEW_TYPES[4][0], self.request.GET), **getdata.args
+            )
         }
 
 
@@ -339,7 +345,10 @@ class UnknownsListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.UnknownsListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnknownsTable(self.request.user, self.object, **getdata.args)
+            'TableData': reports.utils.UnknownsTable(
+                self.request.user, self.object,
+                ViewData(self.request.user, VIEW_TYPES[6][0], self.request.GET), **getdata.args
+            )
         }
 
 
@@ -362,8 +371,8 @@ class ReportSafeView(LoggedCallMixin, DetailView):
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'main_content': proof_content,
-            'MarkTable': ReportMarkTable(
-                self.request.user, self.object, **get_user_view_args(self.request.GET, VIEW_TYPES[11][0]))
+            'MarkTable': ReportMarkTable(self.request.user, self.object,
+                                         ViewData(self.request.user, VIEW_TYPES[11][0], self.request.GET))
         }
 
 
@@ -384,8 +393,8 @@ class ReportUnknownView(LoggedCallMixin, DetailView):
             'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
-            'MarkTable': ReportMarkTable(
-                self.request.user, self.object, **get_user_view_args(self.request.GET, VIEW_TYPES[12][0]))
+            'MarkTable': ReportMarkTable(self.request.user, self.object,
+                                         ViewData(self.request.user, VIEW_TYPES[12][0], self.request.GET))
         }
 
 
@@ -409,8 +418,8 @@ class ReportUnsafeView(LoggedCallMixin, DetailView):
             'report': self.object,
             'parents': reports.utils.get_parents(self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
-            'MarkTable': ReportMarkTable(
-                self.request.user, self.object, **get_user_view_args(self.request.GET, VIEW_TYPES[10][0])),
+            'MarkTable': ReportMarkTable(self.request.user, self.object,
+                                         ViewData(self.request.user, VIEW_TYPES[10][0], self.request.GET)),
             'etv': etv,
             'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'include_assumptions': self.request.user.extended.assumptions,

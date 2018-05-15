@@ -1,7 +1,7 @@
 {% load i18n %}
 
 <div class="ui styled accordion fluid">
-    <div class="title"><i class="clock outline icon"></i>{% trans 'Job versions' %}</div>
+    <div class="title"><i class="clock outline icon"></i>{{ versions_title }}</div>
     <div class="content">
         {% for version in versions %}
             <div class="version-line">
@@ -27,7 +27,7 @@
     </div>
     <div class="content">
         <div class="ui center aligned grid">
-            <p>{% trans "You won't be able to restore deleted versions" %}</p>
+            <p>{% trans "You won't be able to restore deleted versions" %}!</p>
         </div>
     </div>
     <div class="actions">
@@ -44,6 +44,6 @@
 </div>
 
 <div hidden>
-    <span id="error__no_vers_selected" hidden>{% trans "Nothing to delete" %}</span>
-    <span id="error__select_two_vers" hidden>{% trans "Please select exactly two versions to compare" %}</span>
+    <span id="error__no_vers_selected">{% trans "Nothing to delete" %}</span>
+    <span id="error__select_two_vers">{% trans "Please select exactly two versions to compare" %}</span>
 </div>

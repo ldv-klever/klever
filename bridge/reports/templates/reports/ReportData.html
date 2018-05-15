@@ -1,8 +1,6 @@
 {% load i18n %}
 {% load staticfiles %}
 
-{% block reports_head_block %}<link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">{% endblock %}
-
 {# See reports.utils.ReportData.__get_type() for types #}
 {% if type == 'Core:testing' %}
     <h5 class="ui brown header">{% trans 'Testing results' %}</h5>

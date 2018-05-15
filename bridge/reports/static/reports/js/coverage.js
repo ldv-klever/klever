@@ -1,4 +1,7 @@
 $(document).ready(function () {
+    $('.parent-popup').popup({inline:true});
+    $('.ui.dropdown').dropdown();
+
     var src_code_content = $("#CoverageSRCContent"),
         src_data_content = $('#CoverageDataContent'),
         with_data = $('#with_data').val(),
@@ -142,7 +145,6 @@ $(document).ready(function () {
             data_stat_table.show();
         });
     }
-    $('.ui.dropdown').dropdown();
     $('#identifier_selector').change(function () {
         if (with_data === '1') {
             window.location.href = '/reports/coverage/' + $('#report_id').val() + '?archive=' + $(this).val();

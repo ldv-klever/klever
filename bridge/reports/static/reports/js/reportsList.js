@@ -14,7 +14,7 @@
  * ee the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 $(document).ready(function () {
-    activate_tags();
+    $('.parent-popup').popup({inline:true});
+    $('.ui.dropdown').dropdown();
 });

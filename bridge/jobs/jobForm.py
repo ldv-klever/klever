@@ -203,7 +203,7 @@ class JobForm:
             identifier = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest()
 
         newjob = Job.objects.create(
-            identifier=identifier, name=self.__check_name(data.get('name', '')),
+            identifier=identifier, name=self.__check_name(data.get('name', '')), change_date=now(),
             parent=self.__get_parent(data.get('parent', '')), safe_marks=settings.ENABLE_SAFE_MARKS
         )
         try:

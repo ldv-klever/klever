@@ -87,7 +87,7 @@ class Mark(models.Model):
     author = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
-    change_date = models.DateTimeField(auto_now=True)
+    change_date = models.DateTimeField()
     description = models.TextField(default='')
     type = models.CharField(max_length=1, choices=MARK_TYPE, default=MARK_TYPE[0][0])
 
@@ -312,6 +312,15 @@ class MarkUnknownHistory(MarkHistory):
 
     class Meta:
         db_table = 'mark_unknown_history'
+
+
+class MarkUnknownAttr(models.Model):
+    mark = models.ForeignKey(MarkUnknownHistory, models.CASCADE, related_name='attrs')
+    attr = models.ForeignKey(Attr, models.CASCADE)
+    is_compare = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'mark_unknown_attr'
 
 
 class MarkUnknownReport(models.Model):

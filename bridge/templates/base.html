@@ -50,9 +50,9 @@
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
-                        <a class="item" href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
-                        <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
-                        <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'unknown' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'safe' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">

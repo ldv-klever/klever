@@ -16,11 +16,7 @@
  */
 
 $(document).ready(function () {
-    $('.ui.dropdown').each(function () {
-        if (!$(this).hasClass('search')) {
-            $(this).dropdown();
-        }
-    });
+    $('.ui.dropdown').each(function () { if (!$(this).hasClass('search')) $(this).dropdown() });
 
     $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#cancel_remove_marks').click(function () {$('#remove_marks_popup').modal('hide')});
@@ -50,21 +46,8 @@ $(document).ready(function () {
             err_notify($('#no_marks_selected').text());
         }
         else {
-            $.ajax({
-                url: marks_ajax_url + 'delete/',
-                data: {
-                    'type': $('#marks_type').val(),
-                    ids: JSON.stringify(ids_for_del)
-                },
-                type: 'POST',
-                success: function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else {
-                        window.location.replace('');
-                    }
-                }
+            $.post('/marks/delete/', {'type': $('#marks_type').val(), ids: JSON.stringify(ids_for_del)}, function (data) {
+                data.error ? err_notify(data.error) : window.location.replace('');
             });
         }
     });
