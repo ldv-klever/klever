@@ -6,11 +6,8 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
-
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
@@ -20,8 +17,21 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(db_index=True, max_length=64, unique=True)),
                 ('locked', models.BooleanField(default=False)),
             ],
-            options={
-                'db_table': 'lock_table',
-            },
+            options={'db_table': 'lock_table'},
+        ),
+        migrations.CreateModel(
+            name='CallLogs',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(db_index=True, max_length=64)),
+                ('enter_time', models.DecimalField(decimal_places=4, max_digits=14)),
+                ('execution_time', models.DecimalField(decimal_places=4, max_digits=14)),
+                ('return_time', models.DecimalField(decimal_places=4, max_digits=14)),
+                ('execution_delta', models.FloatField()),
+                ('wait1', models.FloatField()),
+                ('wait2', models.FloatField()),
+                ('is_failed', models.BooleanField()),
+            ],
+            options={'db_table': 'tools_call_logs'},
         ),
     ]
