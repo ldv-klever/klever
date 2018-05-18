@@ -38,14 +38,12 @@ class Klever:
         with open(self.args.deployment_configuration_file) as fp:
             self.deploy_conf = json.load(fp)
 
-        self.new_deploy_info_file = prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
-        if os.path.exists(prev_deploy_info_file):
-            with open(prev_deploy_info_file) as fp:
+        self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
+        if os.path.exists(self.prev_deploy_info_file):
+            with open(self.prev_deploy_info_file) as fp:
                 self.prev_deploy_info = json.load(fp)
         else:
             self.prev_deploy_info = None
-
-        self.new_deploy_info = {}
 
     def __getattr__(self, name):
         raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.mode))
@@ -53,15 +51,15 @@ class Klever:
     def _dump_cur_deploy_info(self):
         os.makedirs(self.args.deployment_directory, exist_ok=True)
 
-        with open(self.new_deploy_info_file, 'w') as fp:
-            json.dump(self.new_deploy_info, fp, sort_keys=True, indent=4)
+        with open(self.prev_deploy_info_file, 'w') as fp:
+            json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_install(self):
         if self.prev_deploy_info:
             raise ValueError(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
 
-        self.new_deploy_info.update(install_deps(self.deploy_conf, self.prev_deploy_info, self.args.non_interactive))
+        install_deps(self.deploy_conf, self.prev_deploy_info, self.args.non_interactive)
         self._dump_cur_deploy_info()
 
     def _post_install(self):
@@ -72,7 +70,7 @@ class Klever:
             raise ValueError('There is not information on previous deployment ({0})'
                              .format('perhaps you try to update Klever without previous installation'))
 
-        self.new_deploy_info.update(install_deps(self.deploy_conf, self.prev_deploy_info, self.args.non_interactive))
+        install_deps(self.deploy_conf, self.prev_deploy_info, self.args.non_interactive)
         self._dump_cur_deploy_info()
 
 
