@@ -110,6 +110,8 @@ if __name__ == '__main__':
     with open(args.deployment_configuration_file) as fp:
         deploy_conf = json.load(fp)
 
+    os.makedirs(args.deployment_directory, exist_ok=True)
+
     prev_deploy_info_file = os.path.join(args.deployment_directory, 'klever.json')
     if os.path.exists(prev_deploy_info_file):
         with open(prev_deploy_info_file) as fp:
@@ -118,3 +120,6 @@ if __name__ == '__main__':
         prev_deploy_info = None
 
     install_deps(deploy_conf, prev_deploy_info, True)
+
+    with open(prev_deploy_info_file, 'w') as fp:
+        json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)
