@@ -172,7 +172,20 @@ class VRP(core.components.Component):
             workdir = os.path.join(vo, rule)
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
-                        workdir, [{"Rule specification": rule}, {"Verification object": vo}], separate_from_parent=True,
+                        workdir, [
+                            {
+                                "name": "Rule specification",
+                                "value": rule,
+                                "compare": True,
+                                "associate": True
+                            },
+                            {
+                                "name": "Verification object",
+                                "value": vo,
+                                "compare": True,
+                                "associate": True
+                            }
+                        ], separate_from_parent=True,
                         element=element)
                 rp.start()
                 rp.join()
@@ -319,7 +332,10 @@ class RP(core.components.Component):
                                           {
                                               'id': "{}/verification/unsafe {}".format(self.id, error_trace_id),
                                               'parent id': "{}/verification".format(self.id),
-                                              'attrs': [{"Error trace identifier": error_trace_id}],
+                                              'attrs': [{
+                                                  'name': 'Error trace identifier',
+                                                  'value': error_trace_id
+                                              }],
                                               'error trace': core.utils.ReportFiles([error_trace_file]
                                                                                     + list(arcnames.keys()),
                                                                                     arcnames=arcnames)

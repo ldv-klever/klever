@@ -64,7 +64,10 @@ class Core(core.components.CallbacksCaller):
                                                   'start',
                                                   {
                                                       'id': self.ID,
-                                                      'attrs': [{'Klever Core version': version}],
+                                                      'attrs': [{
+                                                          'name': 'Klever Core version',
+                                                          'value': version
+                                                      }],
                                                       'comp': self.comp
                                                   },
                                                   None,

@@ -598,7 +598,16 @@ class VTGWL(core.components.Component):
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
                     self.locks, self.vals, "{}/{}/VTGW".format(element[0]['id'], element[1]['id']),
                     os.path.join(element[0]['id'], element[1]['id']),
-                    attrs=[{"Rule specification": element[1]['id']}, {"Verification object": element[0]['id']}],
+                    attrs=[
+                        {
+                            "name": "Rule specification",
+                            "value": element[1]['id']
+                        },
+                        {
+                            "name": "Verification object",
+                            "value": element[0]['id']
+                        }
+                    ],
                     separate_from_parent=True, verification_object=element[0], rule_spec=element[1])
 
     main = task_generating_loop

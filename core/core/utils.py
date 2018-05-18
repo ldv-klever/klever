@@ -432,23 +432,15 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     if 'attrs' in report_data:
         # Capitalize first letters of attribute names.
         def capitalize_attr_names(attrs):
-            capitalized_name_attrs = []
-
             # Each attribute is dictionary with one element which value is either string or array of subattributes.
             for attr in attrs:
-                attr_name = list(attr.keys())[0]
-                attr_val = attr[attr_name]
                 # Does capitalize attribute name.
-                attr_name = attr_name[0].upper() + attr_name[1:]
+                attr['name'] = attr['name'][0].upper() + attr['name'][1:]
 
-                if isinstance(attr_val, str):
-                    capitalized_name_attrs.append({attr_name: attr_val})
-                else:
-                    capitalized_name_attrs.append({attr_name: capitalize_attr_names(attr_val)})
+                if isinstance(attr['value'], list):
+                    capitalize_attr_names(attr['value'])
 
-            return capitalized_name_attrs
-
-        report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
+        capitalize_attr_names(report_data['attrs'])
 
     logger.debug('{0} going to modify report id'.format(kind.capitalize()))
     with report_id.get_lock():
