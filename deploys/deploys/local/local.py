@@ -21,7 +21,7 @@ import os
 
 from deploys.install_deps import install_deps
 from deploys.prepare_env import prepare_env
-from deploys.utils import get_password
+from deploys.utils import get_password, install_extra_deps
 
 
 class NotImplementedKleverMode(NotImplementedError):
@@ -38,6 +38,8 @@ class Klever:
         with open(self.args.deployment_configuration_file) as fp:
             self.deploy_conf = json.load(fp)
 
+        os.makedirs(self.args.deployment_directory, exist_ok=True)
+
         self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
         if os.path.exists(self.prev_deploy_info_file):
             with open(self.prev_deploy_info_file) as fp:
@@ -49,8 +51,6 @@ class Klever:
         raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.mode))
 
     def _dump_cur_deploy_info(self):
-        os.makedirs(self.args.deployment_directory, exist_ok=True)
-
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
