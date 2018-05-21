@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import re
-
 from core.lkvog.strategies.strategy_utils import Module, Graph
 from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 
@@ -27,8 +24,7 @@ class Coverage(AbstractStrategy):
         self.callgraph = {}
         self.analyzed_modules = set()
 
-        self.coverage_files = params['coverage files']
-        self.work_dirs = params.get('work dirs', [])
+        self.coverage_file = params['coverage file']
         self.extra_modules = [Module(m) for m in params.get('extra modules', [])]
         self.covered_funcs = None
         self.functions_in_file = {}
@@ -58,7 +54,7 @@ class Coverage(AbstractStrategy):
                 continue
             processed.add(current)
             if current in self.covered_funcs:
-                #self.logger.debug("Found path {0}".format(path))
+                # self.logger.debug("Found path {0}".format(path))
                 found_path = path
                 break
             for new_func in self.callgraph.get(current, []):
@@ -74,13 +70,13 @@ class Coverage(AbstractStrategy):
                     modules.add(Module(module_file))
                 else:
                     pass
-                    #self.logger.debug("Module for {0} file not found".format(file))
+                    # self.logger.debug("Module for {0} file not found".format(file))
             if modules:
                 return [Graph(list(modules) + self.extra_modules)]
             else:
                 return []
         else:
-            #self.logger.debug("Not found path for {0} {1}".format(func, file_func))
+            # self.logger.debug("Not found path for {0} {1}".format(func, file_func))
             return [Graph([Module(m)]) for m in self.get_modules_by_func(func) if m]
 
     def _set_dependencies(self, deps, sizes):
@@ -132,17 +128,17 @@ class Coverage(AbstractStrategy):
         if self.is_subsystem(file):
             for func_file, functions in self.functions_in_file.items():
                 if func_file.startswith(file):
-                    for function in functions:
-                        path = self.get_path_by_function(function, func_file)
+                    for func in functions:
+                        path = self.get_path_by_function(func, func_file)
                         if path:
                             res.append(path)
         else:
-            for function in self.functions_in_file.get(file, []):
-                res.append(self.get_path_by_function(function, file))
+            for func in self.functions_in_file.get(file, []):
+                res.append(self.get_path_by_function(func, file))
         return res
 
-    def get_path_by_function(self, function, file):
-        process = [((file, function), [file])]
+    def get_path_by_function(self, func, file):
+        process = [((file, func), [file])]
         processed = set()
         found_path = None
         while process:
@@ -161,22 +157,14 @@ class Coverage(AbstractStrategy):
 
     def _build_coverage(self):
         self.covered_funcs = set()
-        for file in self.coverage_files:
-            with open(file, encoding='utf=8') as fp:
-                current_file = None
-                for line in fp:
-                    line = line.rstrip('\n')
-                    if line.startswith('SF:'):
-                        current_file = line[len('SF:'):]
-                        current_file = self._cut_work_dirs(current_file)
-                        continue
-                    elif line.startswith('FNDA:'):
-                        func = line.split(',')[1]
-                        #self.logger.debug("Covered func is {0}".format((current_file, func)))
-                        self.covered_funcs.add((current_file, func))
-
-    def _cut_work_dirs(self, file):
-        for work_dir in self.work_dirs:
-            if file.startswith(work_dir):
-                return file[len(work_dir):]
-        return file
+        with open(self.coverage_file, encoding='utf8') as fp:
+            current_file = None
+            for line in fp:
+                line = line.rstrip('\n')
+                if line.startswith('SF:'):
+                    current_file = line[len('SF:'):]
+                    continue
+                elif line.startswith('FNDA:'):
+                    func = line.split(',')[1]
+                    # self.logger.debug("Covered func is {0}".format((current_file, func)))
+                    self.covered_funcs.add((current_file, func))
