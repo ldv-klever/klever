@@ -278,6 +278,10 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
             # Check that we can quit
             if len(components) == 0 and len(elements) == 0 and not active:
                 break
+
+            # Workaround for the case when 'components' variable is an empty list
+            if not components:
+                time.sleep(3)
     finally:
         for p in components:
             if p.is_alive():
@@ -576,4 +580,3 @@ class Component(multiprocessing.Process, CallbacksCaller):
             subcomponent_processes.append(p)
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)
-
