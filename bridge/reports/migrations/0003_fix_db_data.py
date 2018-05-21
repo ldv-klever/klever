@@ -60,14 +60,13 @@ def split_trace_and_source(apps, schema_editor):
                             else:
                                 s_zip.writestr(item, et_zip.read(item.filename))
         if source_inmem.seek(0, 2) > 0:
+            source_inmem.seek(0)
             et_src = apps.get_model("reports", "ErrorTraceSource")(root=unsafe.root)
             et_src.archive.save('Source.zip', source_inmem)
         else:
-            print('Removing unsafe...')
             unsafe.delete()
             continue
         trace_inmem.seek(0)
-        source_inmem.seek(0)
         unsafe.source = et_src
         unsafe.error_trace.save('ErrorTrace.zip', trace_inmem)
 

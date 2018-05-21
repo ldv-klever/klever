@@ -539,7 +539,7 @@ def create_job(kwargs):
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         logger.error('The job author was not got')
         raise BridgeException()
-    newjob = Job(name=kwargs['name'], change_author=kwargs['author'], parent=kwargs.get('parent'))
+    newjob = Job(name=kwargs['name'], change_date=now(), change_author=kwargs['author'], parent=kwargs.get('parent'))
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
@@ -587,6 +587,7 @@ def update_job(kwargs):
                 raise BridgeException(_('The job name is already used'))
         kwargs['job'].name = kwargs['name']
     kwargs['job'].change_author = kwargs['author']
+    kwargs['job'].change_date = now()
     kwargs['job'].version += 1
     kwargs['job'].save()
 
@@ -667,7 +668,7 @@ def save_job_copy(user, job_id, name=None):
 
     newjob = Job.objects.create(
         identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),
-        name=job_name, change_author=user, parent=job, type=job.type, safe_marks=job.safe_marks
+        name=job_name, change_date=now(), change_author=user, parent=job, type=job.type, safe_marks=job.safe_marks
     )
 
     new_version = JobHistory.objects.create(

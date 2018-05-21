@@ -140,6 +140,8 @@ class MarkChangesTable:
                     values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
                     if 'tags' in self.changes[report]:
                         values[report.id]['tags'] = self.changes[report]['tags']
+                    if self.mark_type == 'unsafe':
+                        values[report.id]['trace_id'] = report.trace_id
             for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
                 if a_name not in self.attrs:
                     self.attrs.append(a_name)
@@ -939,7 +941,10 @@ class AssociationChangesTable:
                     break
                 if col == 'report':
                     val = cnt
-                    href = reverse('reports:%s' % mark_type, args=[report_id])
+                    if mark_type == 'unsafe':
+                        href = reverse('reports:unsafe', args=[self._data['values'][report_id]['trace_id']])
+                    else:
+                        href = reverse('reports:%s' % mark_type, args=[report_id])
                 elif col == 'sum_verdict':
                     val = self.__verdict_change(report_id, mark_type)
                 elif col == 'change_kind':
