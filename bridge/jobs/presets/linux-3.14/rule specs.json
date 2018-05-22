@@ -194,6 +194,11 @@
                     "exclude": [
                       "linux/poll.h"
                     ]
+                  },
+                  "Linux 4.15": {
+                    "exclude": [
+                      "linux/poll.h"
+                    ]
                   }
                 }
               },

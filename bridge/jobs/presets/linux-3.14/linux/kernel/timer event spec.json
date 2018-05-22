@@ -146,5 +146,153 @@
         }
       }
     }
+  },
+  "Linux 4.15": {
+    "functions models": {
+      "mod_timer, mod_timer_pinned, mod_timer_pending": {
+        "comment": "Modify a timer's timeout.",
+        "labels": {
+          "timer_list": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "<assign>.[instance_register].<success> | <fail>",
+        "actions": {
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to modify a timer's timeout",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "assign": {
+            "comment": "Get timer representing structure.",
+            "statements": [
+              "%timer_list% = $ARG1;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully modified a timer's timeout",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "setup_timer, setup_timer_on_stack": {
+        "comment": "Setup a new timer.",
+        "labels": {
+          "timer_list": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          },
+          "data": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "timer.data"
+            ]
+          },
+          "function": {
+            "callback": true,
+            "parameter": true,
+            "interface": [
+              "timer.callback"
+            ]
+          }
+        },
+        "process": "<assign>.[instance_register]",
+        "actions": {
+          "instance_register": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          },
+          "assign": {
+            "comment": "Get timer representing structure and fill it up.",
+            "statements": [
+              "%timer_list% = $ARG1;",
+              "%function% = $ARG2",
+              "%data% = $ARG3",
+              "%timer_list.data%=%data%;",
+              "%timer_list.function%=%function%;"
+            ]
+          }
+        }
+      },
+      "del_timer, try_to_del_timer_sync, del_timer_sync": {
+        "comment": "Deactivate a timer.",
+        "labels": {
+          "timer_list": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "<assign>.[instance_deregister]",
+        "actions": {
+          "instance_deregister": {
+            "parameters": [
+              "%timer_list%"
+            ]
+          },
+          "assign": {
+            "comment": "Get timer representing structure.",
+            "statements": [
+              "%timer_list% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "timer_scenario": {
+        "comment": "Invoke a timer callback.",
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "timer.timer_list"
+            ]
+          }
+        },
+        "process": "(!instance_register).[callback].(instance_deregister)",
+        "actions": {
+          "instance_register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "instance_deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "comment": "Time has come: call the timer callback.",
+            "callback": "%container.handler%",
+            "parameters": [
+              "%container.data%"
+            ]
+          }
+        }
+      }
+    }
   }
 }
