@@ -109,7 +109,14 @@ class Klever:
 
         self._pre_do_install_or_update()
 
-    def _post_install(self):
+    def _pre_update(self):
+        if not self.prev_deploy_info:
+            raise ValueError('There is not information on previous deployment ({0})'
+                             .format('perhaps you try to update Klever without previous installation'))
+
+        self._pre_do_install_or_update()
+
+    def _post_do_install_or_update(self):
         if self.is_update['Klever']:
             install_klever_bridge(self.args.deployment_directory, self.prev_deploy_info['PostgreSQL user password'])
 
@@ -122,12 +129,11 @@ class Klever:
             # configuration files holding changes of verification backends.
             configure_native_scheduler_task_worker(self.args.deployment_directory, self.prev_deploy_info)
 
-    def _pre_update(self):
-        if not self.prev_deploy_info:
-            raise ValueError('There is not information on previous deployment ({0})'
-                             .format('perhaps you try to update Klever without previous installation'))
+    def _post_install(self):
+        self._post_do_install_or_update()
 
-        self._pre_do_install_or_update()
+    def _post_update(self):
+        self._post_do_install_or_update()
 
 
 class KleverDevelopment(Klever):
@@ -166,6 +172,7 @@ class KleverDevelopment(Klever):
 
     def update(self):
         self._pre_update()
+        self._post_update()
 
 
 class KleverProduction(Klever):

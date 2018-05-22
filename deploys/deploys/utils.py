@@ -80,7 +80,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
     # Remove previous version of entity if so.
     if prev_version:
-        cmd_fn(logger, 'rm -rf ' + deploy_dir)
+        cmd_fn(logger, 'rm', '-rf', deploy_dir)
         # ssh.execute_cmd('sudo rm -rf ' + instance_path)
 
     if is_git_repo:
@@ -123,7 +123,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
 def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     is_update_controller_and_schedulers = False
-    is_update_verification_backend = False
+    is_update_verification_backends = False
     
     if 'Klever Addons' in deploy_conf:
         deploy_addons_conf = deploy_conf['Klever Addons']
@@ -139,7 +139,7 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
                     prev_deploy_addons_conf['Verification Backends'] = {}
 
                 for verification_backend in deploy_addons_conf['Verification Backends'].keys():
-                    is_update_verification_backend |= \
+                    is_update_verification_backends |= \
                         install_extra_dep_or_program(logger, verification_backend,
                                                      os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
                                                                   verification_backend),
@@ -151,7 +151,7 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
                     and addon in ('BenchExec', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
                 is_update_controller_and_schedulers = True
 
-    return is_update_controller_and_schedulers, is_update_verification_backend
+    return is_update_controller_and_schedulers, is_update_verification_backends
 
 
 def install_programs(logger, username, group, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
