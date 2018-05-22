@@ -36,8 +36,8 @@ def main():
                                              'klever.json'),
                         help='Path to Klever deployment configuration file (default: "%(default)s").')
     parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
-    # Do not suggest information on current user since root will run this script.
-    parser.add_argument('--developer-username', help='Developer username.')
+    # Do not suggest information on current user since it will be root rather than normal one.
+    parser.add_argument('--username', required=True, help='Klever username.')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)

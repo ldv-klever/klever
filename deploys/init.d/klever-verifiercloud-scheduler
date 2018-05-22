@@ -35,7 +35,7 @@ SCRIPTNAME=/etc/init.d/"$NAME"
 [ -r /etc/default/klever ] && . /etc/default/klever
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/verifiercloud-scheduler
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/verifiercloud-scheduler.json
-USER="$KLEVER_USER"
+USER="$KLEVER_USERNAME"
 
 . /lib/lsb/init-functions
 

@@ -17,7 +17,6 @@
 #
 
 import glob
-import grp
 import os
 import pwd
 import subprocess

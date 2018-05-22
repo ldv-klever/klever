@@ -36,7 +36,7 @@ SCRIPTNAME=/etc/init.d/"$NAME"
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/native-scheduler
 WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-programs
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/native-scheduler.json
-USER="$KLEVER_USER"
+USER="$KLEVER_USERNAME"
 
 . /lib/lsb/init-functions
 
