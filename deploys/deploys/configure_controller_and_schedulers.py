@@ -48,12 +48,15 @@ def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False
                                         klever_addon_desc.get('executable path', '')))
 
 
-def configure_native_scheduler_task_worker(deploy_dir, prev_deploy_info):
+def configure_native_scheduler_task_worker(mode, deploy_dir, prev_deploy_info):
     print('Configure Klever Native Scheduler Task Worker')
 
     with Cd(deploy_dir):
         with open('klever/scheduler/conf/task-client.json') as fp:
             task_client_conf = json.load(fp)
+
+        if mode == 'development':
+            task_client_conf['common']['keep working directory'] = True
 
         task_client_conf['client']['benchexec location'] = get_klever_addon_abs_path(prev_deploy_info, 'BenchExec')
         verification_backends = task_client_conf['client']['verification tools'] = {}
@@ -68,7 +71,7 @@ def configure_native_scheduler_task_worker(deploy_dir, prev_deploy_info):
             json.dump(task_client_conf, fp, sort_keys=True, indent=4)
 
 
-def configure_controller_and_schedulers(deploy_dir, prev_deploy_info):
+def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
     print('(Re)configure Klever Controller and Klever schedulers')
 
     print('Stop services')
@@ -84,10 +87,12 @@ def configure_controller_and_schedulers(deploy_dir, prev_deploy_info):
             controller_conf = json.load(fp)
 
         controller_conf['common']['working directory'] = os.path.join(deploy_dir_abs, 'klever-work/controller')
+
         controller_conf['Klever Bridge'].update({
             'user': 'service',
             'password': 'service'
         })
+
         controller_conf['client-controller']['consul'] = get_klever_addon_abs_path(prev_deploy_info, 'Consul')
 
         with open('klever-conf/controller.json', 'w') as fp:
@@ -99,15 +104,22 @@ def configure_controller_and_schedulers(deploy_dir, prev_deploy_info):
 
         native_scheduler_conf['common']['working directory'] = os.path.join(deploy_dir_abs,
                                                                             'klever-work/native-scheduler')
+        if mode == 'development':
+            native_scheduler_conf['common']['keep working directory'] = True
+
         native_scheduler_conf['Klever Bridge'].update({
             'user': 'service',
             'password': 'service'
         })
+
         native_scheduler_conf['scheduler'].update({
             'disable CPU cores account': True,
             'job client configuration': os.path.abspath('klever-conf/native-scheduler-job-client.json'),
             'task client configuration': os.path.abspath('klever-conf/native-scheduler-task-client.json')
         })
+
+        if mode == 'development':
+            native_scheduler_conf['scheduler']['keep working directory'] = True
 
         with open('klever-conf/native-scheduler.json', 'w') as fp:
             json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
@@ -115,6 +127,9 @@ def configure_controller_and_schedulers(deploy_dir, prev_deploy_info):
         print('Configure Klever Native Scheduler Job Worker')
         with open('klever/scheduler/conf/job-client.json') as fp:
             job_client_conf = json.load(fp)
+
+        if mode == 'development':
+            job_client_conf['common']['keep working directory'] = True
 
         job_client_conf['client'] = {
             'benchexec location': get_klever_addon_abs_path(prev_deploy_info, 'BenchExec'),
@@ -131,17 +146,19 @@ def configure_controller_and_schedulers(deploy_dir, prev_deploy_info):
 
         verifiercloud_scheduler_conf['common']['working directory'] = \
             os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
+
         verifiercloud_scheduler_conf['Klever Bridge'].update({
             'user': 'service',
             'password': 'service'
         })
+
         verifiercloud_scheduler_conf['scheduler']['web client location'] =\
             get_klever_addon_abs_path(prev_deploy_info, 'VerifierCloud Client')
 
         with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
             json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(mode, deploy_dir, prev_deploy_info)
 
     print('Start services')
     for service in services:

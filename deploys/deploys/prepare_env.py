@@ -46,7 +46,7 @@ def execute_cmd(*args, stdin=None, get_output=False, username=None):
         subprocess.check_call(args, **kwargs)
 
 
-def prepare_env(username, deploy_dir, psql_user_passwd, psql_user_name='klever'):
+def prepare_env(mode, username, deploy_dir, psql_user_passwd, psql_user_name='klever'):
     try:
         pwd.getpwnam(username)
     except KeyError:
@@ -77,9 +77,11 @@ def prepare_env(username, deploy_dir, psql_user_passwd, psql_user_name='klever')
     execute_cmd('createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
 
     print('Prepare Klever Bridge media directory')
-    media_dir = os.path.join(deploy_dir, 'media')
-    execute_cmd('mkdir', media_dir)
-    execute_cmd('chown', '-R', 'www-data:www-data', media_dir)
+    media = os.path.join(deploy_dir, 'media')
+    execute_cmd('mkdir', media)
+
+    if mode != 'development':
+        execute_cmd('chown', '-R', 'www-data:www-data', media)
 
 
 if __name__ == '__main__':

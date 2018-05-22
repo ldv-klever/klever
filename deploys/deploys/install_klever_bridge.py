@@ -42,27 +42,41 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
-def install_klever_bridge(deploy_dir, psql_user_passwd, psql_user_name='klever'):
+def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd, psql_user_name='klever'):
     print('(Re)install Klever Bridge')
 
+    services = ['postgresql']
+    services.extend(['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge'])
+
     print('Stop services')
-    services = ('nginx', 'klever-bridge')
     for service in services:
         execute_cmd('service', service, 'stop')
 
-    print('Copy Klever Bridge configuration file for NGINX')
-    shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'), '/etc/nginx/sites-enabled/klever-bridge')
+    media = None
+    media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
 
-    print('Update Klever Bridge source/binary code')
-    shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
-    shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge', symlinks=True)
-    shutil.rmtree('/var/www/klever-bridge/media')
-    execute_cmd('ln', '-s', '-T', os.path.join(os.path.realpath(deploy_dir), 'media'), '/var/www/klever-bridge/media')
+    if mode == 'development':
+        if action == 'install':
+            media = os.path.join(deploy_dir, 'klever/bridge/media')
+    else:
+        print('Copy Klever Bridge configuration file for NGINX')
+        shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'),
+                    '/etc/nginx/sites-enabled/klever-bridge')
 
-    with Cd('/var/www/klever-bridge'):
+        print('Update Klever Bridge source/binary code')
+        shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
+        shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge', symlinks=True)
+
+        media = '/var/www/klever-bridge/media'
+
+    if media:
+        shutil.rmtree(media)
+        execute_cmd('ln', '-s', '-T', media_real, media)
+
+    with Cd(os.path.join(deploy_dir, 'klever/bridge') if mode == 'development' else '/var/www/klever-bridge'):
         print('Configure Klever Bridge')
         with open('bridge/settings.py', 'w') as fp:
-            fp.write('from bridge.production import *\n')
+            fp.write('from bridge.{0} import *\n'.format('development' if mode == 'development' else 'production'))
 
         with open('bridge/db.json', 'w') as fp:
             json.dump({
@@ -79,8 +93,9 @@ def install_klever_bridge(deploy_dir, psql_user_passwd, psql_user_name='klever')
         print('Migrate database')
         execute_cmd('./manage.py', 'migrate')
 
-        print('Collect static files')
-        execute_cmd('./manage.py', 'collectstatic', '--noinput')
+        if mode != 'development':
+            print('Collect static files')
+            execute_cmd('./manage.py', 'collectstatic', '--noinput')
 
         print('Populate databace')
         execute_cmd('./manage.py', 'PopulateUsers', '--exist-ok',
@@ -89,7 +104,8 @@ def install_klever_bridge(deploy_dir, psql_user_passwd, psql_user_name='klever')
                     '--service', '{"username": "service", "password": "service"}')
         execute_cmd('./manage.py', 'Population')
 
-    execute_cmd('chown', '-R', 'www-data:www-data', os.path.join(deploy_dir, 'media'))
+    if mode != 'development':
+        execute_cmd('chown', '-R', 'www-data:www-data', media_real)
 
     print('Start services')
     for service in services:

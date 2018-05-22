@@ -37,8 +37,6 @@ class Klever:
         self.args = args
         self.logger = logger
 
-        self.mode = args.mode
-
         self.is_update = {
             'Klever': False,
             'Controller & Schedulers': False,
@@ -58,7 +56,7 @@ class Klever:
             self.prev_deploy_info = {}
 
     def __getattr__(self, name):
-        raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.mode))
+        raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
 
     def _dump_cur_deploy_info(self):
         with open(self.prev_deploy_info_file, 'w') as fp:
@@ -115,18 +113,38 @@ class Klever:
 
         self._pre_do_install_or_update()
 
+    def _install(self):
+        psql_user_passwd = get_password(self.logger, 'PostgreSQL user password (it will be stored as plaintext!): ')
+        self.prev_deploy_info['PostgreSQL user password'] = psql_user_passwd
+        self._dump_cur_deploy_info()
+
+        prepare_env(self.args.mode, self.args.username, self.args.deployment_directory, psql_user_passwd)
+
+        self.logger.info('Install init.d scripts')
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
+                                                          'init.d')):
+            for filename in filenames:
+                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
+                execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
+
+        with open('/etc/default/klever', 'w') as fp:
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
+                     .format(os.path.realpath(self.args.deployment_directory), self.args.username))
+
     def _post_do_install_or_update(self):
         if self.is_update['Klever']:
-            install_klever_bridge(self.args.deployment_directory, self.prev_deploy_info['PostgreSQL user password'])
+            install_klever_bridge(self.args.action, self.args.mode, self.args.deployment_directory,
+                                  self.prev_deploy_info['PostgreSQL user password'])
 
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
-            configure_controller_and_schedulers(self.args.deployment_directory, self.prev_deploy_info)
+            configure_controller_and_schedulers(self.args.mode, self.args.deployment_directory, self.prev_deploy_info)
 
         if self.is_update['Verification Backends'] and not self.is_update['Klever'] \
                 and not self.is_update['Controller & Schedulers']:
             # It is enough to reconfigure controller and schedulers since they automatically reread
             # configuration files holding changes of verification backends.
-            configure_native_scheduler_task_worker(self.args.deployment_directory, self.prev_deploy_info)
+            configure_native_scheduler_task_worker(self.args.mode, self.args.deployment_directory,
+                                                   self.prev_deploy_info)
 
     def _post_install(self):
         self._post_do_install_or_update()
@@ -141,24 +159,7 @@ class KleverDevelopment(Klever):
 
     def install(self):
         self._pre_install()
-
-        psql_user_passwd = get_password(self.logger, 'PostgreSQL user password (it will be stored as plaintext!): ')
-        self.prev_deploy_info['PostgreSQL user password'] = psql_user_passwd
-        self._dump_cur_deploy_info()
-
-        prepare_env(self.args.username, self.args.deployment_directory, psql_user_passwd)
-
-        self.logger.info('Install init.d scripts')
-        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
-                                                          'init.d')):
-            for filename in filenames:
-                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
-                execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
-
-        with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
-                     .format(os.path.realpath(self.args.deployment_directory), self.args.username))
-
+        self._install()
         self._post_install()
 
     def update(self):
@@ -172,10 +173,12 @@ class KleverProduction(Klever):
 
     def install(self):
         self._pre_install()
+        self._install()
         self._post_install()
 
     def update(self):
         self._pre_update()
+        self._post_update()
 
 
 class KleverTesting(Klever):

@@ -53,9 +53,9 @@ def main():
 
     if args.mode == 'development':
         getattr(KleverDevelopment(args, logger), args.action)()
-    elif args.entity == 'production':
+    elif args.mode == 'production':
         getattr(KleverProduction(args, logger), args.action)()
-    elif args.entity == 'testing':
+    elif args.mode == 'testing':
         getattr(KleverTesting(args, logger), args.action)()
     else:
         raise NotImplementedError('Mode "{0}" is not supported'.format(args.mode))
