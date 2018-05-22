@@ -95,9 +95,8 @@ class Klever:
             self._dump_cur_deploy_info()
 
         try:
-            install_programs(self.logger, self.args.developer_username, self.args.developer_group,
-                             self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
-                             cmd_fn, install_fn)
+            install_programs(self.logger, self.args.developer_username, self.args.deployment_directory,
+                             self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn)
         # Like above.
         finally:
             self._dump_cur_deploy_info()
@@ -144,17 +143,13 @@ class KleverDevelopment(Klever):
         if not self.args.developer_username:
             raise ValueError('You should specify developer username')
 
-        if not self.args.developer_group:
-            raise ValueError('You should specify developer group')
-
         self._pre_install()
 
         psql_user_passwd = get_password(self.logger, 'PostgreSQL user password (it will be stored as plaintext!): ')
         self.prev_deploy_info['PostgreSQL user password'] = psql_user_passwd
         self._dump_cur_deploy_info()
 
-        prepare_env(self.args.developer_username, self.args.developer_group, self.args.deployment_directory,
-                    psql_user_passwd)
+        prepare_env(self.args.developer_username, self.args.deployment_directory, psql_user_passwd)
 
         self.logger.info('Install init.d scripts')
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
@@ -164,9 +159,8 @@ class KleverDevelopment(Klever):
                 execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
 
         with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USER={1}\nKLEVER_GROUP={2}'
-                     .format(os.path.realpath(self.args.deployment_directory), self.args.developer_username,
-                             self.args.developer_group))
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USER={1}\n'
+                     .format(os.path.realpath(self.args.deployment_directory), self.args.developer_username))
 
         self._post_install()
 

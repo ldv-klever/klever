@@ -154,7 +154,7 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
     return is_update_controller_and_schedulers, is_update_verification_backends
 
 
-def install_programs(logger, username, group, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_programs(logger, username, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     if 'Programs' in deploy_conf:
         deploy_programs_conf = deploy_conf['Programs']
 
@@ -167,4 +167,4 @@ def install_programs(logger, username, group, deploy_dir, deploy_conf, prev_depl
             deploy_dir = os.path.join(deploy_dir, 'klever-programs', program)
             if install_extra_dep_or_program(logger, program, deploy_dir, deploy_programs_conf,
                                             prev_deploy_programs_conf, cmd_fn, install_fn):
-                cmd_fn(logger, 'chown', '-LR', '{0}:{1}'.format(username, group), deploy_dir)
+                cmd_fn(logger, 'chown', '-LR', username, deploy_dir)

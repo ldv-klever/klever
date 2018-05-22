@@ -36,7 +36,6 @@ SCRIPTNAME=/etc/init.d/"$NAME"
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/verifiercloud-scheduler
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/verifiercloud-scheduler.json
 USER="$KLEVER_USER"
-GROUP="$KLEVER_GROUP"
 
 . /lib/lsb/init-functions
 
@@ -50,7 +49,7 @@ case "$1" in
         fi
 
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+            --exec ${DAEMON} -- ${CONFFILE}
         then
             rc=0
             sleep 1

@@ -47,18 +47,12 @@ def execute_cmd(*args, stdin=None, get_output=False, username=None):
         subprocess.check_call(args, **kwargs)
 
 
-def prepare_env(username, group, deploy_dir, psql_user_passwd, psql_user_name='klever'):
-    try:
-        grp.getgrnam(group)
-    except KeyError:
-        print('Create group "{0}"'.format(group))
-        execute_cmd('groupadd', group)
-
+def prepare_env(username, deploy_dir, psql_user_passwd, psql_user_name='klever'):
     try:
         pwd.getpwnam(username)
     except KeyError:
         print('Create user "{0}"'.format(username))
-        execute_cmd('useradd', '-g', group, username)
+        execute_cmd('useradd', username)
 
     print('Prepare configurations directory')
     execute_cmd('mkdir', os.path.join(deploy_dir, 'klever-conf'))
@@ -66,7 +60,7 @@ def prepare_env(username, group, deploy_dir, psql_user_passwd, psql_user_name='k
     print('Prepare working directory')
     work_dir = os.path.join(deploy_dir, 'klever-work')
     execute_cmd('mkdir', work_dir)
-    execute_cmd('chown', '-LR', '{0}:{1}'.format(username, group), work_dir)
+    execute_cmd('chown', '-LR', username, work_dir)
 
     print('Create soft links for libssl to build new versions of the Linux kernel')
     execute_cmd('ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/')

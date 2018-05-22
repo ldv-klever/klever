@@ -37,7 +37,6 @@ DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/native-scheduler
 WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-programs
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/native-scheduler.json
 USER="$KLEVER_USER"
-GROUP="$KLEVER_GROUP"
 
 . /lib/lsb/init-functions
 
@@ -55,7 +54,7 @@ case "$1" in
 
         export KLEVER_WORK_DIR=${WORKDIR}
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+            --exec ${DAEMON} -- ${CONFFILE}
         then
             rc=0
             sleep 1
