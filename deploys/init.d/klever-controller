@@ -28,12 +28,15 @@
 
 DESC="Klever Controller"
 NAME=klever-controller
-DAEMON=/home/debian/klever/scheduler/bin/client-controller
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-CONFFILE=/home/debian/klever-conf/controller.json
-USER=klever
-GROUP=klever
+
+# Read configuration variable file if it is present.
+[ -r /etc/default/klever ] && . /etc/default/klever
+DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/client-controller
+CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/controller.json
+USER="$KLEVER_USER"
+GROUP="$KLEVER_GROUP"
 
 . /lib/lsb/init-functions
 

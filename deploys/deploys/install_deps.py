@@ -23,10 +23,10 @@ import subprocess
 
 def execute_cmd(*args, get_output=False):
     print('Execute command "{0}"'.format(' '.join(args)))
-    # if get_output:
-    #     return subprocess.check_output(args).decode('utf8')
-    # else:
-    #     subprocess.check_call(args)
+    if get_output:
+        return subprocess.check_output(args).decode('utf8')
+    else:
+        subprocess.check_call(args)
 
 
 def install_deps(deploy_conf, prev_deploy_info, non_interactive):
@@ -49,21 +49,24 @@ def install_deps(deploy_conf, prev_deploy_info, non_interactive):
     new_pckgs = get_pckgs(deploy_conf['Packages'])
     new_py_pckgs = get_pckgs(deploy_conf['Python3 Packages'])
 
-    if prev_deploy_info:
+    if 'Packages' in prev_deploy_info:
         for pckg in new_pckgs:
             if pckg in prev_deploy_info['Packages']:
                 pckgs_to_update.append(pckg)
             else:
                 pckgs_to_install.append(pckg)
+    else:
+        # All packages should be installed.
+        pckgs_to_install = new_pckgs
 
+    if 'Python3 Packages' in prev_deploy_info:
         for py_pckg in new_py_pckgs:
             if py_pckg in prev_deploy_info['Python3 Packages']:
                 py_pckgs_to_update.append(py_pckg)
             else:
                 py_pckgs_to_install.append(py_pckg)
     else:
-        # All packages should be installed.
-        pckgs_to_install = new_pckgs
+        # All Python3 packages should be installed.
         py_pckgs_to_install = new_py_pckgs
 
     if pckgs_to_install or pckgs_to_update:
@@ -72,7 +75,11 @@ def install_deps(deploy_conf, prev_deploy_info, non_interactive):
 
     if pckgs_to_install:
         print('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
-        execute_cmd('apt-get', 'install', '--assume-yes' if non_interactive else '--assume-no', *pckgs_to_install)
+        args = ['apt-get', 'install']
+        if non_interactive:
+            args.append('--assume-yes')
+        args.extend(pckgs_to_install)
+        execute_cmd(*args)
 
         # Remember what packages were installed just if everything went well.
         if 'Packages' not in prev_deploy_info:
@@ -88,11 +95,14 @@ def install_deps(deploy_conf, prev_deploy_info, non_interactive):
         if 'Python3 Packages' not in prev_deploy_info:
             prev_deploy_info['Python3 Packages'] = []
 
-        prev_deploy_info['Python3 Packages'] = sorted(prev_deploy_info['Python3 Packages'] + pckgs_to_install)
+        prev_deploy_info['Python3 Packages'] = sorted(prev_deploy_info['Python3 Packages'] + py_pckgs_to_install)
 
     if pckgs_to_update:
         print('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
-        execute_cmd('apt-get', 'upgrade', '--assume-yes' if non_interactive else '--assume-no', *pckgs_to_update)
+        args = ['apt-get', 'upgrade']
+        if non_interactive:
+            args.append('--assume-yes')
+        args.extend(pckgs_to_update)
 
     if py_pckgs_to_update:
         print('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))

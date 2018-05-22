@@ -17,30 +17,56 @@
 #
 
 import glob
+import grp
 import os
-# import subprocess
+import pwd
+import subprocess
 
 
 def execute_cmd(*args, stdin=None, get_output=False, username=None):
-    if username:
-        args = ['su', '-m', username, '-c'] + args
-
     print('Execute command "{0}"'.format(' '.join(args)))
-    # if get_output:
-    #     return subprocess.check_output(args, stdin=stdin).decode('utf8')
-    # else:
-    #     subprocess.check_call(args, stdin=stdin)
+
+    kwargs = {
+        'stdin': stdin
+    }
+
+    def demote(uid, gid):
+        def set_ids():
+            os.setgid(gid)
+            os.setuid(uid)
+
+        return set_ids
+
+    if username:
+        pw_record = pwd.getpwnam(username)
+        kwargs['preexec_fn'] = demote(pw_record.pw_uid, pw_record.pw_gid)
+
+    if get_output:
+        return subprocess.check_output(args, **kwargs).decode('utf8')
+    else:
+        subprocess.check_call(args, **kwargs)
 
 
-def prepare_env(username, deploy_dir, psql_user_passwd, psql_user_name='klever', create_user=False):
-    if create_user:
-        print('Create user')
-        execute_cmd('useradd', 'klever')
+def prepare_env(username, group, deploy_dir, psql_user_passwd, psql_user_name='klever'):
+    try:
+        grp.getgrnam(group)
+    except KeyError:
+        print('Create group "{0}"'.format(group))
+        execute_cmd('groupadd', group)
+
+    try:
+        pwd.getpwnam(username)
+    except KeyError:
+        print('Create user "{0}"'.format(username))
+        execute_cmd('useradd', '-g', group, username)
+
+    print('Prepare configurations directory')
+    execute_cmd('mkdir', os.path.join(deploy_dir, 'klever-conf'))
 
     print('Prepare working directory')
-    work_dir = os.path.join(deploy_dir, 'work')
+    work_dir = os.path.join(deploy_dir, 'klever-work')
     execute_cmd('mkdir', work_dir)
-    execute_cmd('chown', '-LR', '{0}:{0}'.format(username), work_dir)
+    execute_cmd('chown', '-LR', '{0}:{1}'.format(username, group), work_dir)
 
     print('Create soft links for libssl to build new versions of the Linux kernel')
     execute_cmd('ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/')
@@ -55,7 +81,7 @@ def prepare_env(username, deploy_dir, psql_user_passwd, psql_user_name='klever',
                 username='postgres')
 
     print('Create PostgreSQL database')
-    execute_cmd('createdb', '-T', 'template0', '-E', 'utf8', 'klever' , username='postgres')
+    execute_cmd('createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
 
     print('Prepare Klever Bridge media directory')
     media_dir = os.path.join(deploy_dir, 'media')
