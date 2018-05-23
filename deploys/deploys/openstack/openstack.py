@@ -210,10 +210,12 @@ class OSKleverBaseImage(OSEntity):
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
-                ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
-                             'install-deps')
-                ssh.execute_cmd('sudo ./install-deps')
-                ssh.sftp.remove('install-deps')
+                ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
+                ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'install_deps.py'),
+                             'install_deps.py')
+                ssh.execute_cmd('sudo ./install_deps.py')
+                ssh.sftp.remove('install_deps.py')
+                ssh.sftp.remove('klever.json')
 
             instance.create_image()
 
