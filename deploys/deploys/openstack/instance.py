@@ -24,7 +24,7 @@ import traceback
 from Crypto.PublicKey import RSA
 import novaclient
 
-from kopenstack.utils import get_password
+from deploys.utils import get_password
 
 
 class OSInstanceCreationTimeout(RuntimeError):

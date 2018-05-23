@@ -27,7 +27,7 @@ import termios
 import time
 import tty
 
-from kopenstack.utils import get_password
+from deploys.utils import get_password
 
 
 class SSH:

@@ -33,9 +33,9 @@ import novaclient.exceptions
 import neutronclient.v2_0.client
 import cinderclient.client
 
-from kopenstack.instance import OSInstance
-from kopenstack.ssh import SSH
-from kopenstack.utils import get_password
+from deploys.openstack.instance import OSInstance
+from deploys.openstack.ssh import SSH
+from deploys.utils import get_password
 
 
 class NotImplementedOSEntityAction(NotImplementedError):
