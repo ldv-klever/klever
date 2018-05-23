@@ -197,7 +197,8 @@ class OSInstance:
         # Shut off instance to ensure all data is written to disks.
         self.instance.stop()
 
-        # TODO: wait until instance will be shut off otherwise image can't be created.
+        # TODO: wait until instance will be shut off otherwise image can't be created. Corresponding exceptions look like:
+        # novaclient.exceptions.Conflict: Cannot 'createImage' instance ... while it is in task_state powering-off (HTTP 409) (Request-ID: ...)
 
         attempts = self.IMAGE_CREATION_ATTEMPTS
 
