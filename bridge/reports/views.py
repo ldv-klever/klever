@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import os
 import json
 from io import BytesIO
 from wsgiref.util import FileWrapper
@@ -210,7 +211,7 @@ class ComponentLogContent(LoggedCallMixin, Bview.JsonDetailView):
 
 
 @method_decorator(login_required, name='dispatch')
-class AttrDataFileView(LoggedCallMixin, Bview.StreamingResponseView):
+class AttrDataFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = ReportAttr
 
     def get_generator(self):
@@ -220,12 +221,12 @@ class AttrDataFileView(LoggedCallMixin, Bview.StreamingResponseView):
         if not self.object.data:
             raise BridgeException(_("The attribute doesn't have data"))
 
-        content = BytesIO(self.object.data.file.read())
+        content = self.object.data.file.read()
         self.file_size = len(content)
-        return FileWrapper(content, 8192)
+        return FileWrapper(BytesIO(content), 8192)
 
     def get_filename(self):
-        return self.object.data.name
+        return 'Attr-Data' + os.path.splitext(self.object.data.file.name)[-1]
 
 
 class AttrDataContentView(LoggedCallMixin, Bview.JsonDetailView):
@@ -584,7 +585,7 @@ class UploadReportView(LoggedCallMixin, Bview.JsonDetailPostView):
 
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
-            super().dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         if queryset is None:

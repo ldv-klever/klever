@@ -141,7 +141,7 @@ class ReportAttrsTable:
         values = []
         for ra in self.report.attrs.order_by('id').select_related('attr', 'attr__name'):
             columns.append(ra.attr.name.name)
-            values.append((ra.attr.value, ra.attr_id if ra.data is not None else None))
+            values.append((ra.attr.value, ra.id if ra.data is not None else None))
         return columns, values
 
 
@@ -1094,13 +1094,13 @@ class AttrData:
         except Exception as e:
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
             raise ValueError('Archive "%s" with attributes data is corrupted' % archive.name)
-        for dir_path, dir_names, file_names in os.walk(files_dir):
+        for dir_path, dir_names, file_names in os.walk(files_dir.name):
             for file_name in file_names:
                 full_path = os.path.join(dir_path, file_name)
-                rel_path = os.path.relpath(full_path, files_dir).replace('\\', '/')
+                rel_path = os.path.relpath(full_path, files_dir.name).replace('\\', '/')
                 newfile = AttrFile(root_id=self._root_id)
                 with open(full_path, mode='rb') as fp:
-                    newfile.save(os.path.basename(rel_path), File(fp), True)
+                    newfile.file.save(os.path.basename(rel_path), File(fp), True)
                 self._files[rel_path] = newfile.id
 
     def add(self, report_id, name, value, compare, associate, data):

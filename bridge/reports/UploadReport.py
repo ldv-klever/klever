@@ -632,7 +632,7 @@ class UploadReport:
             for ra in p.attrs.order_by('id').select_related('attr__name'):
                 self.ordered_attrs.append(ra.attr.name.name)
                 parent_attrs.append(ReportAttr(
-                    attr_id=ra.attr_id, report=leaf, comapre=ra.compare, associate=ra.associate, data_id=ra.data_id
+                    attr_id=ra.attr_id, report=leaf, compare=ra.compare, associate=ra.associate, data_id=ra.data_id
                 ))
         ReportAttr.objects.bulk_create(parent_attrs)
 
@@ -739,7 +739,8 @@ class UploadReport:
             for v in value:
                 if not isinstance(v, dict) or 'name' not in v or 'value' not in v:
                     raise ValueError('Wrong format of report attribute')
-                for n in self.__attr_children(v['name'].replace(':', '_'), v['value']):
+                for n in self.__attr_children(v['name'].replace(':', '_'), v['value'], v.get('compare', False),
+                                              v.get('associate', False), v.get('data')):
                     attr_data.append(("%s:%s" % (name, n[0]) if len(name) > 0 else n[0], n[1], n[2], n[3], n[4]))
         elif isinstance(value, str):
             attr_data = [(name, value, compare, associate, data)]
@@ -751,7 +752,7 @@ class UploadReport:
         if not isinstance(attrs, list):
             return []
         attr_archive = None
-        if 'attr data' in self.data and self.data['attr data'] in self.archives:
+        if 'attr data' in self.data:
             attr_archive = self.archives[self.data['attr data']]
         attrdata = AttrData(self.root.id, attr_archive)
         attrorder = []
@@ -848,7 +849,7 @@ class CheckErrorTraces:
 
         files = self.__get_list_of_sources()
         for tr_name in self._traces:
-            res = GetETV(self.__read_trace(tr_name), manager)
+            res = GetETV(self.__read_trace(tr_name), manager.user)
 
             if 'attrs' in res.data:
                 self.add_attrs[tr_name] = res.data['attrs']
@@ -859,7 +860,7 @@ class CheckErrorTraces:
 
     def __read_trace(self, trace_name):
         with zipfile.ZipFile(self._traces[trace_name], mode='r') as zfp:
-            return zfp.read('error trace.json', 'r').decode('utf8')
+            return zfp.read('error trace.json').decode('utf8')
 
     def __get_list_of_sources(self):
         with zipfile.ZipFile(self._sources, mode='r') as zfp:

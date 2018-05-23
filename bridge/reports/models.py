@@ -88,7 +88,6 @@ class Report(models.Model):
 
 class AttrFile(models.Model):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
-    name = models.CharField(max_length=128)
     file = models.FileField(upload_to=get_attr_data_path)
 
     class Meta:

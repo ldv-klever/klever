@@ -522,7 +522,7 @@ class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
 
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
-            super().dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def get_object(self, queryset=None):
         if queryset is None:

@@ -29,7 +29,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import datetime, pytz
 
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
-from bridge.utils import logger, file_get_or_create, BridgeException, extract_archive
+from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
@@ -87,6 +87,26 @@ class KleverCoreArchiveGen:
         return job_files
 
 
+class AttrDataArchive:
+    def __init__(self, job):
+        self._job = job
+        self.stream = ZipStream()
+
+    def __iter__(self):
+        for afile in AttrFile.objects.filter(root__job=self._job):
+            file_name = os.path.join(settings.MEDIA_ROOT, afile.file.name)
+            arc_name = os.path.join('{0}{1}'.format(afile.id, os.path.splitext(afile.file.name)[-1]))
+            buf = b''
+            for data in self.stream.compress_file(file_name, arc_name):
+                buf += data
+                if len(buf) > CHUNK_SIZE:
+                    yield buf
+                    buf = b''
+            if len(buf) > 0:
+                yield buf
+        yield self.stream.close_stream()
+
+
 class JobArchiveGenerator:
     def __init__(self, job):
         self.job = job
@@ -118,6 +138,9 @@ class JobArchiveGenerator:
         self.__add_coverage_files(reportsdata.coverage_arch_names)
         for file_path, arcname in self.files_to_add:
             for data in self.stream.compress_file(file_path, arcname):
+                yield data
+        if AttrFile.objects.filter(root__job=self.job).count() > 0:
+            for data in self.stream.compress_stream('AttrData.zip', AttrDataArchive(self.job)):
                 yield data
         yield self.stream.close_stream()
 
@@ -225,13 +248,6 @@ class JobArchiveGenerator:
         for i in range(len(archives)):
             self.files_to_add.append((
                 os.path.join(settings.MEDIA_ROOT, archives[i]), os.path.join('Coverages', '%s.zip' % i)
-            ))
-
-    def __add_attrs_files(self, archives):
-        for afile in AttrFile.objects.filter(root__job=self.job):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, report.log.name),
-                os.path.join('ReportComponent', 'log_%s.zip' % report.pk)
             ))
 
 
@@ -394,13 +410,12 @@ class ReportsData:
             i += 1
         for ra in ReportAttr.objects.filter(report__root=self.root).select_related('attr', 'attr__name', 'data')\
                 .order_by('id'):
-            attr_data = {
-                'name': ra.attr.name.name, 'value': ra.attr.value,
-                'compare': ra.compare, 'associate': ra.associate
-            }
+            ra_data = None
             if ra.data is not None:
-                attr_data['data'] = [ra.data_id, ra.data.name]
-            reports[report_index[ra.report_id]]['attrs'].append()
+                ra_data = os.path.join('{0}{1}'.format(ra.data_id, os.path.splitext(ra.data.file.name)[-1]))
+            reports[report_index[ra.report_id]]['attrs'].append([
+                ra.attr.name.name, ra.attr.value, ra.compare, ra.associate, ra_data
+            ])
         return reports
 
     def __get_coverage_data(self):
@@ -527,6 +542,7 @@ class UploadJob:
         resources = {}
         coverage_data = []
         coverage_files = {}
+        attr_data = None
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
                 rel_path = os.path.relpath(os.path.join(dir_path, file_name), self.job_dir)
@@ -545,6 +561,8 @@ class UploadJob:
                 elif rel_path == 'coverage_archives.json':
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         coverage_data = json.load(fp)
+                elif rel_path == 'AttrData.zip':
+                    attr_data = open(os.path.join(dir_path, file_name), encoding='utf8')
                 elif rel_path.startswith('version-'):
                     m = re.match('version-(\d+)\.json', rel_path)
                     if m is None:
@@ -683,7 +701,8 @@ class UploadJob:
         self.__create_progress(job, jobdata['progress'])
         ReportRoot.objects.create(user=self.user, job=job)
         try:
-            UploadReports(job, computers, reports_data, report_files, resources, coverage_data, coverage_files)
+            UploadReports(job, computers, reports_data, report_files,
+                          resources, coverage_data, coverage_files, attr_data)
         except BridgeException:
             job.delete()
             raise
@@ -733,7 +752,7 @@ class UploadJob:
 
 
 class UploadReports:
-    def __init__(self, job, computers, data, files, resources, coverage, cov_archives):
+    def __init__(self, job, computers, data, files, resources, coverage, cov_archives, attr_data):
         self.job = job
         self.data = data
         self.files = files
@@ -749,7 +768,7 @@ class UploadReports:
         self._computers = computers
         self.__upload_computers()
         self._components = {}
-        self._attrs = AttrData()
+        self._attrs = AttrData(self.job.reportroot.id, attr_data)
         self._rc_id_map = {}
         self.__upload_all()
         self.__upload_coverage()
@@ -802,7 +821,7 @@ class UploadReports:
         for report in Report.objects.filter(root=self.job.reportroot).only('id', 'identifier'):
             i = self._indexes[report.identifier]
             for attr in self.data[i]['attrs']:
-                self._attrs.add(report.id, attr[0], attr[1])
+                self._attrs.add(report.id, *attr)
         self._attrs.upload()
 
     @transaction.atomic

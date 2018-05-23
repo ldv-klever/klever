@@ -24,7 +24,7 @@ urlpatterns = [
     path('component/<int:pk>/', views.ReportComponentView.as_view(), name='component'),
     path('log/<int:report_id>/', views.ComponentLogView.as_view(), name='log'),
     path('logcontent/<int:report_id>/', views.ComponentLogContent.as_view()),
-    path('attrdata/<int:pk>/', views.AttrDataFileView.as_view(), name='attr_data'),
+    path('attrdata/<int:pk>/', views.AttrDataFileView.as_view()),
     path('attrdata-content/<int:pk>/', views.AttrDataContentView.as_view()),
     path('component/<int:pk>/download_files/', views.DownloadVerifierFiles.as_view(), name='download_files'),
 

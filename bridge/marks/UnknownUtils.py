@@ -213,7 +213,6 @@ class NewMark:
                     else:
                         raise ValueError('Not enough attributes in args')
                 else:
-                    print('Creating attr: ', a_name, associate)
                     new_attrs.append(MarkUnknownAttr(mark_id=markversion_id, attr_id=a_id, is_compare=associate))
         elif isinstance(inst, MarkUnknownHistory):
             for a_id, a_name, is_compare in inst.attrs.order_by('id')\

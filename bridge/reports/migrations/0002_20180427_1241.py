@@ -28,7 +28,6 @@ class Migration(migrations.Migration):
             name='AttrFile',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128)),
                 ('file', models.FileField(upload_to=reports.models.get_attr_data_path)),
                 ('root', models.ForeignKey(on_delete=models.deletion.CASCADE, to='reports.ReportRoot')),
             ],

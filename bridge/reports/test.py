@@ -39,8 +39,12 @@ from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportCompon
 
 # TODO: test 'jobs:download_file_for_compet', 'upload_job' after decision
 
-LINUX_ATTR = {'Linux kernel': [{'Version': '3.5.0'}, {'Architecture': 'x86_64'}, {'Configuration': 'allmodconfig'}]}
-LKVOG_ATTR = {'LKVOG strategy': [{'Name': 'separate modules'}]}
+LINUX_ATTR = {'name': 'Linux kernel', 'value': [
+    {'name': 'Version', 'value': '3.5.0'},
+    {'name': 'Architecture', 'value': 'x86_64'},
+    {'name': 'Configuration', 'value': 'allmodconfig'}
+]}
+LKVOG_ATTR = {'name': 'LKVOG strategy', 'value': [{'name': 'Name', 'value': 'separate modules'}]}
 COMPUTER = [
     {"node name": "hellwig.intra.ispras.ru"},
     {"CPU model": "Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz"},
@@ -925,8 +929,14 @@ class DecideJobs:
         f_rep, logname = self.__get_finish_report(r_id)
         self.__upload_reports([f_rep], [logname])
 
-    def __upload_attrs_report(self, r_id, attrs):
-        self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs})})
+    def __upload_attrs_report(self, r_id, attrs, archive=None):
+        if archive is None:
+            self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs})})
+            return
+        with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
+            self.service.post('/reports/upload/', {
+                'report': json.dumps({'id': r_id, 'type': 'attrs', 'attrs': attrs}), 'attr data': fp
+            })
 
     def __upload_data_report(self, r_id, data=None):
         if data is None:
@@ -973,7 +983,7 @@ class DecideJobs:
 
     def __decide_job(self):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'attrs': [{'name': 'Klever Core version', 'value': 'latest'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
 
         self.__upload_progress([1, 0, 0, 1000], None, True, False)
@@ -1033,7 +1043,9 @@ class DecideJobs:
         self.__upload_finish_report('/')
 
     def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
+        sj = self.__upload_start_report('Sub-job', '/', [{
+            'name': 'Name', 'value': 'test/dir/and/some/other/text:{0}'.format(subjob['rule'])
+        }])
         lkbce = self.__upload_start_report('LKBCE', sj)
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
@@ -1043,7 +1055,8 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
@@ -1053,7 +1066,8 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -1079,7 +1093,8 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
@@ -1091,7 +1106,8 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -1112,11 +1128,13 @@ class DecideJobs:
 
         verification = {
             'id': self.__get_report_id(chunk['tool']), 'type': 'verification',
-            'parent id': parent, 'name': chunk['tool'], 'attrs': [],
-            'resources': resources(), 'data': {'description': str(chunk['tool'])}
+            'parent id': parent, 'name': chunk['tool'],
+            'attrs': [{'name': 'Test', 'value': 'test value', 'data': 'attrdata.txt'}],
+            'resources': resources(), 'data': {'description': str(chunk['tool'])},
+            'attr data': 'attrdata.zip'
         }
 
-        files = []
+        files = ['attrdata.zip']
         if coverage is not None:
             files.append(coverage)
             verification['coverage'] = coverage
@@ -1140,7 +1158,8 @@ class DecideJobs:
                 files.append(u)
                 reports.append({
                     'id': self.__get_report_id('unsafe'), 'type': 'unsafe', 'parent id': verification['id'],
-                    'attrs': [{'entry point': 'func_%s' % cnt}], 'error trace': os.path.basename(u)
+                    'attrs': [{'name': 'entry point', 'value': 'func_%s' % cnt}], 'error traces': [os.path.basename(u)],
+                    'sources': os.path.basename(u)
                 })
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:

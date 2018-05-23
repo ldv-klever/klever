@@ -348,7 +348,7 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
-            super().dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def get_generator(self):
         if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
@@ -363,7 +363,7 @@ class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
 
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
-            super().dispatch(request, *args, **kwargs)
+            return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
