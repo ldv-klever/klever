@@ -86,8 +86,10 @@ class Core(core.components.CallbacksCaller):
                                                       {'build': multiprocessing.Manager().Lock()},
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
-            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {'report id': self.report_id,
-                                                                                    'coverage_finished': multiprocessing.Manager().dict()})
+            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {
+                'report id': self.report_id,
+                'coverage_finished': multiprocessing.Manager().dict()
+            })
         except Exception:
             self.process_exception()
 
