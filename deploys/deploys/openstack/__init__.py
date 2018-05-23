@@ -55,9 +55,10 @@ def main():
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
     parser.add_argument('--instances', type=int,
                         help='The number of new Klever experimental instances.')
-    parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                            'conf', 'klever.json'),
-                        help='Path to Klever configuration file (default: "%(default)s").')
+    parser.add_argument('--deployment-configuration-file',
+                        default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
+                                             'klever.json'),
+                        help='Path to Klever deployment configuration file (default: "%(default)s").')
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
