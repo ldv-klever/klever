@@ -508,7 +508,7 @@ def convert_memory(val, acc):
 
 def create_version(job, kwargs):
     new_version = JobHistory(
-        job=job, parent=job.parent, version=job.version,
+        job=job, version=job.version,
         change_author=job.change_author, change_date=job.change_date,
         comment=kwargs.get('comment', ''), description=kwargs.get('description', '')
     )

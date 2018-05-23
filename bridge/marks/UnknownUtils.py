@@ -597,7 +597,7 @@ class PopulateMarks:
                         description=data['description'], type=MARK_TYPE[1][0], is_regexp=data['is regexp'],
                         link=data['link'] if len(data['link']) > 0 else None
                     ))
-                    self._markattrs[identifier] = data['attrs']
+                    self._markattrs[identifier] = data.get('attrs', [])
                     self.created += 1
                 except MultipleObjectsReturned:
                     raise Exception('There are similar unknown marks in the system')
