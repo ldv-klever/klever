@@ -71,7 +71,7 @@ class OSEntity:
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
-            'password': get_password('OpenStack password for authentication: ', self.logger),
+            'password': get_password(self.logger, 'OpenStack password for authentication: '),
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)

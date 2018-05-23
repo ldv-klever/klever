@@ -164,7 +164,7 @@ class OSInstance:
         try:
             public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
         except ValueError:
-            self.args.key_password = get_password('Private key password: ', self.logger)
+            self.args.key_password = get_password(self.logger, 'Private key password: ')
             try:
                 public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
             except ValueError:

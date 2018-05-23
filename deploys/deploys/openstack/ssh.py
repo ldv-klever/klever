@@ -59,7 +59,7 @@ class SSH:
             if hasattr(self.args, 'key_password'):
                 key_password = self.args.key_password
             else:
-                key_password = get_password('Private key password: ', self.logger)
+                key_password = get_password(self.logger, 'Private key password: ')
 
             try:
                 k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file, key_password)
