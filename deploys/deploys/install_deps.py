@@ -113,10 +113,11 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--deployment-configuration-file', required=True)
-    parser.add_argument('--deployment-directory', required=True)
+    parser.add_argument('--deployment-configuration-file', default='klever.json')
+    parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
+    # TODO: this code duplicates code from deploys.local.local.Klever#__init__.
     with open(args.deployment_configuration_file) as fp:
         deploy_conf = json.load(fp)
 
