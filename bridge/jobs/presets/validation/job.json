@@ -1,4 +1,5 @@
 {
+  "Class": "Validation on commits in Linux kernel Git repositories",
   "Common": {
     "Linux kernel": {
       "source": "linux-stable",

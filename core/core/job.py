@@ -45,13 +45,15 @@ def start_jobs(core_obj, locks, vals):
     with zipfile.ZipFile(JOB_ARCHIVE) as ZipFile:
         ZipFile.extractall('job')
 
-    core_obj.logger.info('Get job class')
-    with open(os.path.join('job', 'class'), encoding='utf8') as fp:
-        job_type = fp.read()
-    core_obj.logger.debug('Job class is "{0}"'.format(job_type))
-
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")
+
+    core_obj.logger.info('Get job class')
+    if 'Class' in common_components_conf:
+        job_type = common_components_conf['Class']
+    else:
+        raise KeyError('Specify job class within job.json')
+    core_obj.logger.debug('Job class is "{0}"'.format(job_type))
 
     if 'Common' in common_components_conf and 'Sub-jobs' not in common_components_conf:
         raise KeyError('You can not specify common sub-jobs configuration without sub-jobs themselves')
