@@ -128,7 +128,7 @@ if __name__ == '__main__':
         with open(prev_deploy_info_file) as fp:
             prev_deploy_info = json.load(fp)
     else:
-        prev_deploy_info = None
+        prev_deploy_info = {}
 
     install_deps(deploy_conf, prev_deploy_info, True)
 
