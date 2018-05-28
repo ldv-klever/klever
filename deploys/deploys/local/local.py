@@ -83,6 +83,9 @@ class Klever:
                                                                 os.path.join(self.args.deployment_directory, 'klever'),
                                                                 self.deploy_conf, self.prev_deploy_info,
                                                                 cmd_fn, install_fn)
+        if self.is_update['Klever']:
+            self._dump_cur_deploy_info()
+
         try:
             self.is_update['Controller & Schedulers'], self.is_update['Verification Backends'] = \
                 install_extra_deps(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
@@ -90,14 +93,17 @@ class Klever:
         # Without this we won't store information on successfully installed/updated extra dependencies and following
         # installation/update will fail.
         finally:
-            self._dump_cur_deploy_info()
+            if self.is_update['Controller & Schedulers'] or self.is_update['Verification Backends']:
+                self._dump_cur_deploy_info()
 
+        is_update_programs = False
         try:
-            install_programs(self.logger, self.args.username, self.args.deployment_directory, self.deploy_conf,
-                             self.prev_deploy_info, cmd_fn, install_fn)
+            is_update_programs = install_programs(self.logger, self.args.username, self.args.deployment_directory,
+                                                  self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn)
         # Like above.
         finally:
-            self._dump_cur_deploy_info()
+            if is_update_programs:
+                self._dump_cur_deploy_info()
 
     def _pre_install(self):
         if self.prev_deploy_info:
