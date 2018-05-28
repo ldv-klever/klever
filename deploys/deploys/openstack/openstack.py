@@ -19,6 +19,7 @@ import errno
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tarfile
@@ -35,7 +36,7 @@ import cinderclient.client
 
 from deploys.openstack.instance import OSInstance
 from deploys.openstack.ssh import SSH
-from deploys.utils import get_password
+from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs
 
 
 class NotImplementedOSEntityAction(NotImplementedError):
@@ -269,183 +270,106 @@ class OSKleverDeveloperInstance(OSEntity):
                         base_image=base_image, flavor_name=self.args.flavor) as self.instance:
             with SSH(args=self.args, logger=self.logger, name=self.name,
                      floating_ip=self.instance.floating_ip['floating_ip_address']) as ssh:
-                self.logger.info('Copy and install init.d scripts')
-                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, 'init.d')):
+                # TODO: looks like deploys/local/local.py too much.
+                self.logger.info('Install init.d scripts')
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                  os.path.pardir, 'init.d')):
+                    # TODO: putting files one by one is extremely slow.
                     for filename in filenames:
-                        ssh.sftp_put(os.path.join(dirpath, filename),
-                                     os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
+                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
+                                     sudo=True, dir=os.path.sep)
                         ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
+
+                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
+                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
+                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\nKLEVER_USERNAME=klever\n')
+                    fp.flush()
+                    ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, dir=os.path.sep)
 
                 self.logger.info(
                     'Copy scripts that can be used during creation/update of Klever developer instance')
-                for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
-                    ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
+                # TODO: putting files one by one is extremely slow.
+                for script in (
+                        'configure_controller_and_schedulers.py',
+                        'install_deps.py',
+                        'install_klever_bridge.py',
+                        'prepare_env.py'
+                ):
+                    ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, script), script)
 
-                self.logger.info('Prepare environment')
-                ssh.execute_cmd('sudo ./prepare-environment')
-                ssh.sftp.remove('prepare-environment')
-                # Owner of these directories should be default user since later that user will put and update files
-                # there.
-                self.logger.info('Prepare configurations and programs directory')
-                ssh.execute_cmd('mkdir -p klever-conf klever-programs')
+                ssh.execute_cmd('sudo ./prepare_env.py --mode OpenStack --username klever')
+                ssh.sftp.remove('prepare_env.py')
 
-                self._do_update(ssh)
+                self._do_update(ssh, deps=False)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
-    def _update_entity(self, name, instance_path, host_klever_conf, instance_klever_conf, ssh):
-        if name not in host_klever_conf:
-            raise KeyError('Entity "{0}" is not described'.format(name))
+    def _do_update(self, ssh, deps=True):
+        # Copy and use fresh deployment configuration file.
+        ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
+        with open(self.args.deployment_configuration_file) as fp:
+            deploy_conf = json.load(fp)
 
-        host_desc = host_klever_conf[name]
+        is_update = {
+            'Klever': False,
+            'Controller & Schedulers': False,
+            'Verification Backends': False
+        }
 
-        if 'version' not in host_desc:
-            raise KeyError('Version is not specified for entity "{0}"'.format(name))
+        if deps:
+            ssh.execute_cmd('sudo ./install_deps.py')
 
-        host_version = host_desc['version']
+        with ssh.sftp.file('klever-inst/klever.json') as fp:
+            prev_deploy_info = json.loads(fp.read().decode('utf8'))
 
-        if 'path' not in host_desc:
-            raise KeyError('Path is not specified for entity "{0}"'.format(name))
+        def cmd_fn(logger, *args):
+            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
 
-        host_path = host_desc['path'] if os.path.isabs(host_desc['path']) \
-            else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, host_desc['path'])
+        def install_fn(logger, src, dst):
+            logger.info('Install "{0}" to "{1}"'.format(src, dst))
+            ssh.sftp_put(src, dst, sudo=True)
 
-        if not os.path.exists(host_path):
-            raise ValueError('Path "{0}" does not exist'.format(host_path))
+        is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
+                                                           prev_deploy_info, cmd_fn, install_fn)
 
-        is_git_repo = False
+        def dump_cur_deploy_info():
+            with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
+                json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)
+                fp.flush()
+                ssh.execute_cmd('sudo rm klever-inst/klever.json')
+                ssh.sftp_put(fp.name, 'klever-inst/klever.json', sudo=True)
 
-        # Use commit hash to uniquely identify entity version if it is provided as Git repository.
-        if os.path.isdir(host_path) and os.path.isdir(os.path.join(host_path, '.git')):
-            is_git_repo = True
-            host_version = self._execute_cmd('git', '-C', host_path, 'rev-list', '-n', '1', host_version,
-                                             get_output=True).rstrip()
+        if is_update['Klever']:
+            dump_cur_deploy_info()
 
-        instance_version = instance_klever_conf[name]['version'] if name in instance_klever_conf else None
+        try:
+            is_update['Controller & Schedulers'], is_update['Verification Backends'] = \
+                install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn)
+        # Without this we won't store information on successfully installed/updated extra dependencies and following
+        # installation/update will fail.
+        finally:
+            if is_update['Controller & Schedulers'] or is_update['Verification Backends']:
+                dump_cur_deploy_info()
 
-        if host_version == instance_version:
-            self.logger.info('Entity "{0}" is up to date (version: "{1}")'.format(name, host_version))
-            return False
+        is_update_programs = False
+        try:
+            is_update_programs = install_programs(self.logger, 'klever', 'klever-inst', deploy_conf, prev_deploy_info,
+                                                  cmd_fn, install_fn)
+        # Like above.
+        finally:
+            if is_update_programs:
+                dump_cur_deploy_info()
 
-        self.logger.info('Update "{0}" (host version: "{1}", instance version "{2}")'
-                         .format(name, host_version, instance_version))
+        if is_update['Klever']:
+            ssh.execute_cmd('sudo ./install_klever_bridge.py --action {0} --mode OpenStack'.format(self.args.action))
 
-        instance_klever_conf[name] = {'version': host_version}
-        for attr in ('name', 'executable path'):
-            if attr in host_desc:
-                instance_klever_conf[name][attr] = host_desc[attr]
+        if is_update['Klever'] or is_update['Controller & Schedulers']:
+            ssh.execute_cmd('sudo ./configure_controller_and_schedulers.py --mode OpenStack')
 
-        # Remove previous version of entity if so.
-        if instance_version:
-            ssh.execute_cmd('sudo rm -rf ' + instance_path)
-
-        if is_git_repo:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                tmp_host_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(host_path)))
-                self._execute_cmd('git', 'clone', '-q', host_path, tmp_host_path)
-                self._execute_cmd('git', '-C', tmp_host_path, 'checkout', '-q', host_version)
-                # TODO: this makes imposible to detect Klever Core version.
-                # shutil.rmtree(os.path.join(tmp_host_path, '.git'))
-                ssh.sftp_put(tmp_host_path, instance_path)
-        elif os.path.isfile(host_path) and tarfile.is_tarfile(host_path):
-            instance_archive = os.path.basename(host_path)
-            ssh.sftp.put(host_path, instance_archive)
-            ssh.execute_cmd('mkdir -p "{0}"'.format(instance_path))
-            ssh.execute_cmd('tar -C "{0}" -xf "{1}"'.format(instance_path, instance_archive))
-            ssh.execute_cmd('rm -rf "{0}"'.format(instance_archive))
-        elif os.path.isfile(host_path) or os.path.isdir(host_path):
-            ssh.sftp_put(host_path, instance_path)
-        else:
-            raise NotImplementedError
-
-        return True
-
-    def _do_update(self, ssh):
-        with open(self.args.klever_configuration_file) as fp:
-            host_klever_conf = json.load(fp)
-
-        if ssh.sftp_exist('klever.json'):
-            with ssh.sftp.file('klever.json') as fp:
-                instance_klever_conf = json.loads(fp.read().decode('utf8'))
-        else:
-            instance_klever_conf = {}
-
-        is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh)
-
-        is_update_controller_and_schedulers = False
-        is_update_verification_backend = False
-        if 'Klever Addons' in host_klever_conf:
-            host_klever_addons_conf = host_klever_conf['Klever Addons']
-
-            if 'Klever Addons' not in instance_klever_conf:
-                instance_klever_conf['Klever Addons'] = {}
-
-            instance_klever_addons_conf = instance_klever_conf['Klever Addons']
-
-            for addon in host_klever_addons_conf.keys():
-                if addon == 'Verification Backends':
-                    if 'Verification Backends' not in instance_klever_addons_conf:
-                        instance_klever_addons_conf['Verification Backends'] = {}
-
-                    for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
-                        is_update_verification_backend |= \
-                            self._update_entity(verification_backend, os.path.join('klever-addons',
-                                                                                   'verification-backends',
-                                                                                   verification_backend),
-                                                host_klever_addons_conf['Verification Backends'],
-                                                instance_klever_addons_conf['Verification Backends'],
-                                                ssh)
-                elif self._update_entity(addon, os.path.join('klever-addons', addon), host_klever_addons_conf,
-                                         instance_klever_addons_conf, ssh) \
-                        and addon in ('BenchExec', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
-                    is_update_controller_and_schedulers = True
-
-        if 'Programs' in host_klever_conf:
-            host_programs_conf = host_klever_conf['Programs']
-
-            if 'Programs' not in instance_klever_conf:
-                instance_klever_conf['Programs'] = {}
-
-            instance_programs_conf = instance_klever_conf['Programs']
-
-            for program in host_programs_conf.keys():
-                instance_path = os.path.join('klever-programs', program)
-                if self._update_entity(program, instance_path, host_programs_conf, instance_programs_conf, ssh):
-                    ssh.execute_cmd('sudo chown -LR klever:klever ' + instance_path)
-
-        # TODO: if something below will fail below then one will see entities as successfully updated. But indeed this is a fatal error.
-        self.logger.info('Specify actual versions of Klever, its addons and programs')
-        with ssh.sftp.file('klever.json', 'w') as fp:
-            json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
-
-        if is_update_klever:
-            self.logger.info('(Re)install and (re)start Klever Bridge')
-            services = ('nginx', 'klever-bridge')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} stop'.format(service) for service in services)
-            ))
-            ssh.execute_cmd('sudo ./install-klever-bridge')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} start'.format(service) for service in services)
-            ))
-
-        if is_update_klever or is_update_controller_and_schedulers:
-            self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
-            services = ('klever-controller', 'klever-native-scheduler', 'klever-verifiercloud-scheduler')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} stop'.format(service) for service in services)
-            ))
-            ssh.execute_cmd('./configure-controller-and-schedulers')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} start'.format(service) for service in services)
-            ))
-
-        if is_update_verification_backend and not is_update_klever and not is_update_controller_and_schedulers:
-            self.logger.info('(Re)configure Klever Controller and Klever schedulers')
-            # It is enough to reconfigure controller and schedulers since they automatically reread
-            # configuration files holding changes of verification backends.
-            ssh.execute_cmd('./configure-controller-and-schedulers')
+        if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
+            ssh.execute_cmd(
+                'sudo ./configure_controller_and_schedulers.py --mode OpenStack --just-native-scheduler-task-worker')
 
     def update(self):
         with SSH(args=self.args, logger=self.logger, name=self.name,
