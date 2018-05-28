@@ -46,7 +46,7 @@ def execute_cmd(*args, stdin=None, get_output=False, username=None):
         subprocess.check_call(args, **kwargs)
 
 
-def prepare_env(mode, username, deploy_dir, psql_user_passwd, psql_user_name='klever'):
+def prepare_env(mode, username, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
     try:
         pwd.getpwnam(username)
     except KeyError:

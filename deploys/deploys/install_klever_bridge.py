@@ -42,7 +42,7 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
-def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd, psql_user_name='klever'):
+def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
     print('(Re)install Klever Bridge')
 
     services = ['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge']
