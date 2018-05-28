@@ -542,6 +542,10 @@ def create_job(kwargs):
     newjob = Job(name=kwargs['name'], change_date=now(), change_author=kwargs['author'], parent=kwargs.get('parent'))
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
+        if Job.objects.filter(identifier=kwargs['identifier']).count() > 0:
+            # This exception will be occurred only on jobs population (if for preset jobs identifier would be set)
+            # or jobs uploading
+            raise BridgeException(_('The job with specified identifier already exists'))
         newjob.identifier = kwargs['identifier']
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')

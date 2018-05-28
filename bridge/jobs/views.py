@@ -233,7 +233,8 @@ class GetJobHistoryRoles(LoggedCallMixin, Bviews.JSONResponseMixin, DetailView):
 
 class GetJobHistoryFiles(LoggedCallMixin, Bviews.JsonView):
     def get_context_data(self, **kwargs):
-        return LoadFilesTree(self.kwargs['job_id'], self.kwargs['version']).as_json()
+        opened = 'opened' not in self.request.POST or json.loads(self.request.POST['opened'])
+        return LoadFilesTree(self.kwargs['job_id'], self.kwargs['version'], opened).as_json()
 
 
 @method_decorator(login_required, name='dispatch')

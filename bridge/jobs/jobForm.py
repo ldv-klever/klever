@@ -198,6 +198,8 @@ class JobForm:
 
     def __create_job(self, data):
         if 'identifier' in data and data['identifier'] is not None:
+            if Job.objects.filter(identifier=data['identifier']).count() > 0:
+                raise BridgeException(_('The job with specified identifier already exists'))
             identifier = data['identifier']
         else:
             identifier = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest()
@@ -242,7 +244,8 @@ class JobForm:
 
 
 class LoadFilesTree:
-    def __init__(self, job_id, version):
+    def __init__(self, job_id, version, opened=True):
+        self._opened = opened
         self._tree = self.__files_tree(job_id, version)
 
     def __files_tree(self, job_id, version):
@@ -279,8 +282,10 @@ class LoadFilesTree:
         return node
 
     def as_json(self):
-        # 'state': {'opened': True}
-        return {'text': 'Files', 'type': 'root', "children": self.__get_children(None)}
+        return {
+            'state': {'opened': self._opened}, 'type': 'root',
+            'text': 'Files', "children": self.__get_children(None)
+        }
 
     def __is_not_used(self):
         pass
