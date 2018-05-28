@@ -93,9 +93,9 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             install_fn(logger, tmp_path, deploy_dir)
             # ssh.sftp_put(tmp_host_path, instance_path)
     elif os.path.isfile(path) and tarfile.is_tarfile(path):
-        cmd_fn(logger, 'mkdir', '-p', '{0}'.format(deploy_dir))
-        archive = os.path.join(deploy_dir, os.pardir, os.path.basename(path))
+        archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
         install_fn(logger, path, archive)
+        cmd_fn(logger, 'mkdir', '-p', '{0}'.format(deploy_dir))
         cmd_fn(logger, 'tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
         cmd_fn(logger, 'rm', '-rf', '{0}'.format(archive))
         # ssh.sftp.put(host_path, instance_archive)
