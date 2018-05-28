@@ -470,8 +470,7 @@ class RP(core.components.Component):
         coverage_info_dir = os.path.join('total coverages',
                                          self.conf['job identifier'].replace('/', '-'),
                                          self.rule_specification.replace('/', '-'))
-        if not os.path.exists(os.path.join(self.conf['main working directory'], coverage_info_dir)):
-            os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir))
+        os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                 "{0}_coverage_info.json".format(task_id.replace('/', '-')))

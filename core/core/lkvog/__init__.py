@@ -288,6 +288,11 @@ class LKVOG(core.components.Component):
                     # Remove clusters that will be checked.
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
+                elif self.module.startswith('ext-modules'):
+                    # External module
+                    self.all_modules.add(self.module)
+                    self.checked_modules.add(strategy_utils.Module(self.module))
+                    module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module)]))
                 else:
                     # This module hasn't specified. But it may be in subsystem
                     for subsystem in subsystems:
