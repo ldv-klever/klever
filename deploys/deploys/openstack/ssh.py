@@ -183,7 +183,7 @@ class SSH:
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
             instance_archive = os.path.basename(fp.name)
             with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                TarFile.add(host_path, instance_path)
+                TarFile.add(host_path, os.path.normpath(instance_path))
             fp.flush()
             fp.seek(0)
             self.sftp.putfo(fp, instance_archive)
