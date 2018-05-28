@@ -176,7 +176,7 @@ class SSH:
         else:
             return True
 
-    def sftp_put(self, host_path, instance_path, dir=None):
+    def sftp_put(self, host_path, instance_path, sudo=False, dir=None):
         self.logger.info('Copy "{0}" to "{1}"'.format(host_path, os.path.join(dir if dir else '', instance_path)))
 
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
@@ -189,5 +189,6 @@ class SSH:
             self.sftp.putfo(fp, instance_archive)
 
         # Use sudo to allow extracting archives outside home directory.
-        self.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive))
+        self.execute_cmd('{0} -xf {1}'.format(('sudo ' if sudo else '') + 'tar' + (' -C ' + dir if dir else ''),
+                                              instance_archive))
         self.execute_cmd('rm ' + instance_archive)
