@@ -45,8 +45,7 @@ def execute_cmd(*args, stdin=None, get_output=False):
 def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd, psql_user_name='klever'):
     print('(Re)install Klever Bridge')
 
-    services = ['postgresql']
-    services.extend(['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge'])
+    services = ['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge']
 
     print('Stop services')
     for service in services:
