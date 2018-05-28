@@ -103,7 +103,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         # ssh.execute_cmd('tar -C "{0}" -xf "{1}"'.format(instance_path, instance_archive))
         # ssh.execute_cmd('rm -rf "{0}"'.format(instance_archive))
     elif os.path.isfile(path) or os.path.isdir(path):
-        cmd_fn(logger, 'mkdir', '-p', '"{0}"'.format(deploy_dir))
+        cmd_fn(logger, 'mkdir', '-p', '{0}'.format(deploy_dir))
         install_fn(logger, path, deploy_dir)
         # ssh.sftp_put(host_path, instance_path)
     else:
