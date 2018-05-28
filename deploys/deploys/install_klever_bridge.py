@@ -112,4 +112,12 @@ def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', p
 
 
 if __name__ == '__main__':
-    pass
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--action', required=True)
+    parser.add_argument('--mode', required=True)
+    parser.add_argument('--deployment-directory', default='klever-inst')
+    args = parser.parse_args()
+
+    install_klever_bridge(args.action, args.mode, args.deployment_directory)

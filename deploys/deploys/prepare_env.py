@@ -88,12 +88,9 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--klever-username')
-    parser.add_argument('--klever-user-password', default=None)
-    parser.add_argument('--klever-working-directory')
-    parser.add_argument('--previous-build-configuration-file', default=None)
-    parser.add_argument('--new-build-configuration-file')
+    parser.add_argument('--mode', required=True)
+    parser.add_argument('--username', required=True)
+    parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    prepare_env(args.klever_configuration_file, args.previous_build_configuration_file,
-                args.new_build_configuration_file, args.non_interactive)
+    prepare_env(args.mode, args.username, args.deployment_directory)

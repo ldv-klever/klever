@@ -166,4 +166,18 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
 
 
 if __name__ == '__main__':
-    pass
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', required=True)
+    parser.add_argument('--deployment-directory', default='klever-inst')
+    parser.add_argument('--just-native-scheduler-task-worker', default=False, action='store_true')
+    args = parser.parse_args()
+
+    with open(os.path.join(args.deployment_directory, 'klever.json')) as fp:
+        prev_deploy_info = json.load(fp)
+
+    if args.just_native_scheduler_task_worker:
+        configure_native_scheduler_task_worker(args.mode, args.deployment_directory, prev_deploy_info)
+    else:
+        configure_controller_and_schedulers(args.mode, args.deployment_directory, prev_deploy_info)
