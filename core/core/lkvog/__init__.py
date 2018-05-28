@@ -574,6 +574,7 @@ class LKVOG(core.components.Component):
         call_graph_dict = call_graph.load_callgraph()
         group_callgraph = {}
 
+        # todo: Compile a new callgraph especially from allowed files
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
                 if file in allowed_files:
