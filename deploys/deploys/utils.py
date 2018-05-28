@@ -81,7 +81,6 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
     # Remove previous version of entity if so.
     if prev_version:
         cmd_fn(logger, 'rm', '-rf', deploy_dir)
-        # ssh.execute_cmd('sudo rm -rf ' + instance_path)
 
     if is_git_repo:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -91,20 +90,14 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             # TODO: this makes imposible to detect Klever Core version.
             # shutil.rmtree(os.path.join(tmp_host_path, '.git'))
             install_fn(logger, tmp_path, deploy_dir)
-            # ssh.sftp_put(tmp_host_path, instance_path)
     elif os.path.isfile(path) and tarfile.is_tarfile(path):
         archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
         install_fn(logger, path, archive)
         cmd_fn(logger, 'mkdir', '-p', '{0}'.format(deploy_dir))
         cmd_fn(logger, 'tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
         cmd_fn(logger, 'rm', '-rf', '{0}'.format(archive))
-        # ssh.sftp.put(host_path, instance_archive)
-        # ssh.execute_cmd('mkdir -p "{0}"'.format(instance_path))
-        # ssh.execute_cmd('tar -C "{0}" -xf "{1}"'.format(instance_path, instance_archive))
-        # ssh.execute_cmd('rm -rf "{0}"'.format(instance_archive))
     elif os.path.isfile(path) or os.path.isdir(path):
         install_fn(logger, path, deploy_dir)
-        # ssh.sftp_put(host_path, instance_path)
     else:
         raise NotImplementedError
 
