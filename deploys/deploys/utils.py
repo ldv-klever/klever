@@ -16,6 +16,7 @@
 #
 
 import getpass
+import logging
 import os
 import subprocess
 import sys
@@ -29,6 +30,19 @@ def execute_cmd(logger, *args, get_output=False):
         return subprocess.check_output(args).decode('utf8')
     else:
         subprocess.check_call(args)
+
+
+def get_logger(name):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s',
+                                  "%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
 
 
 def get_password(logger, prompt):

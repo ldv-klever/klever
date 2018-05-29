@@ -63,7 +63,7 @@ class Klever:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_do_install_or_update(self):
-        install_deps(self.deploy_conf, self.prev_deploy_info, self.args.non_interactive)
+        install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive)
         self._dump_cur_deploy_info()
 
         def cmd_fn(logger, *args):
@@ -124,7 +124,7 @@ class Klever:
         self.prev_deploy_info['PostgreSQL user password'] = psql_user_passwd
         self._dump_cur_deploy_info()
 
-        prepare_env(self.args.mode, self.args.username, self.args.deployment_directory, psql_user_passwd)
+        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory, psql_user_passwd)
 
         self.logger.info('Install init.d scripts')
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
@@ -139,17 +139,18 @@ class Klever:
 
     def _post_do_install_or_update(self):
         if self.is_update['Klever']:
-            install_klever_bridge(self.args.action, self.args.mode, self.args.deployment_directory,
+            install_klever_bridge(self.logger, self.args.action, self.args.mode, self.args.deployment_directory,
                                   self.prev_deploy_info['PostgreSQL user password'])
 
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
-            configure_controller_and_schedulers(self.args.mode, self.args.deployment_directory, self.prev_deploy_info)
+            configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
+                                                self.prev_deploy_info)
 
         if self.is_update['Verification Backends'] and not self.is_update['Klever'] \
                 and not self.is_update['Controller & Schedulers']:
             # It is enough to reconfigure controller and schedulers since they automatically reread
             # configuration files holding changes of verification backends.
-            configure_native_scheduler_task_worker(self.args.mode, self.args.deployment_directory,
+            configure_native_scheduler_task_worker(self.logger, self.args.mode, self.args.deployment_directory,
                                                    self.prev_deploy_info)
 
     def _post_install(self):

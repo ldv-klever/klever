@@ -17,11 +17,10 @@
 
 import argparse
 import getpass
-import logging
 import os
-import sys
 
 from deploys.openstack.openstack import execute_os_entity_action
+from deploys.utils import get_logger
 
 
 def main():
@@ -62,13 +61,4 @@ def main():
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s',
-                                  "%Y-%m-%d %H:%M:%S")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    execute_os_entity_action(args, logger)
+    execute_os_entity_action(args, get_logger(__name__))

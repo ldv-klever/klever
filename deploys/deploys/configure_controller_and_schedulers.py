@@ -20,6 +20,8 @@ import json
 import os
 import subprocess
 
+from deploys.utils import get_logger
+
 
 class Cd:
     def __init__(self, path):
@@ -48,8 +50,8 @@ def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False
                                         klever_addon_desc.get('executable path', '')))
 
 
-def configure_native_scheduler_task_worker(mode, deploy_dir, prev_deploy_info):
-    print('Configure Klever Native Scheduler Task Worker')
+def configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info):
+    logger.info('Configure Klever Native Scheduler Task Worker')
 
     with Cd(deploy_dir):
         with open('klever/scheduler/conf/task-client.json') as fp:
@@ -71,10 +73,10 @@ def configure_native_scheduler_task_worker(mode, deploy_dir, prev_deploy_info):
             json.dump(task_client_conf, fp, sort_keys=True, indent=4)
 
 
-def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
-    print('(Re)configure Klever Controller and Klever schedulers')
+def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_info):
+    logger.info('(Re)configure Klever Controller and Klever schedulers')
 
-    print('Stop services')
+    logger.info('Stop services')
     services = ('klever-controller', 'klever-native-scheduler', 'klever-verifiercloud-scheduler')
     for service in services:
         execute_cmd('service', service, 'stop')
@@ -82,7 +84,7 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
     deploy_dir_abs = os.path.realpath(deploy_dir)
 
     with Cd(deploy_dir):
-        print('Configure Klever Controller')
+        logger.info('Configure Klever Controller')
         with open('klever/scheduler/conf/controller.json') as fp:
             controller_conf = json.load(fp)
 
@@ -98,7 +100,7 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
         with open('klever-conf/controller.json', 'w') as fp:
             json.dump(controller_conf, fp, sort_keys=True, indent=4)
 
-        print('Configure Klever Native Scheduler')
+        logger.info('Configure Klever Native Scheduler')
         with open('klever/scheduler/conf/native-scheduler.json') as fp:
             native_scheduler_conf = json.load(fp)
 
@@ -124,7 +126,7 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
         with open('klever-conf/native-scheduler.json', 'w') as fp:
             json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
 
-        print('Configure Klever Native Scheduler Job Worker')
+        logger.info('Configure Klever Native Scheduler Job Worker')
         with open('klever/scheduler/conf/job-client.json') as fp:
             job_client_conf = json.load(fp)
 
@@ -140,7 +142,7 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
         with open('klever-conf/native-scheduler-job-client.json', 'w') as fp:
             json.dump(job_client_conf, fp, sort_keys=True, indent=4)
 
-        print('Configure Klever VerifierCloud Scheduler')
+        logger.info('Configure Klever VerifierCloud Scheduler')
         with open('klever/scheduler/conf/verifiercloud-scheduler.json') as fp:
             verifiercloud_scheduler_conf = json.load(fp)
 
@@ -158,9 +160,9 @@ def configure_controller_and_schedulers(mode, deploy_dir, prev_deploy_info):
         with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
             json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(mode, deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info)
 
-    print('Start services')
+    logger.info('Start services')
     for service in services:
         execute_cmd('service', service, 'start')
 
@@ -178,6 +180,8 @@ if __name__ == '__main__':
         prev_deploy_info = json.load(fp)
 
     if args.just_native_scheduler_task_worker:
-        configure_native_scheduler_task_worker(args.mode, args.deployment_directory, prev_deploy_info)
+        configure_native_scheduler_task_worker(get_logger(__name__), args.mode, args.deployment_directory,
+                                               prev_deploy_info)
     else:
-        configure_controller_and_schedulers(args.mode, args.deployment_directory, prev_deploy_info)
+        configure_controller_and_schedulers(get_logger(__name__), args.mode, args.deployment_directory,
+                                            prev_deploy_info)

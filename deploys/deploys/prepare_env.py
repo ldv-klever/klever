@@ -21,6 +21,8 @@ import os
 import pwd
 import subprocess
 
+from deploys.utils import get_logger
+
 
 def execute_cmd(*args, stdin=None, get_output=False, username=None):
     print('Execute command "{0}"'.format(' '.join(args)))
@@ -46,37 +48,37 @@ def execute_cmd(*args, stdin=None, get_output=False, username=None):
         subprocess.check_call(args, **kwargs)
 
 
-def prepare_env(mode, username, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
+def prepare_env(logger, mode, username, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
     try:
         pwd.getpwnam(username)
     except KeyError:
-        print('Create user "{0}"'.format(username))
+        logger.info('Create user "{0}"'.format(username))
         execute_cmd('useradd', username)
 
-    print('Prepare configurations directory')
+    logger.info('Prepare configurations directory')
     execute_cmd('mkdir', os.path.join(deploy_dir, 'klever-conf'))
 
-    print('Prepare working directory')
+    logger.info('Prepare working directory')
     work_dir = os.path.join(deploy_dir, 'klever-work')
     execute_cmd('mkdir', work_dir)
     execute_cmd('chown', '-LR', username, work_dir)
 
-    print('Create soft links for libssl to build new versions of the Linux kernel')
+    logger.info('Create soft links for libssl to build new versions of the Linux kernel')
     execute_cmd('ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/')
 
-    print('Prepare CIF environment')
+    logger.info('Prepare CIF environment')
     args = glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o')
     args.append('/usr/lib')
     execute_cmd('ln', '-s', *args)
 
-    print('Create PostgreSQL user')
+    logger.info('Create PostgreSQL user')
     execute_cmd('psql', '-c', "CREATE USER {0} WITH PASSWORD '{1}'".format(psql_user_name, psql_user_passwd),
                 username='postgres')
 
-    print('Create PostgreSQL database')
+    logger.info('Create PostgreSQL database')
     execute_cmd('createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
 
-    print('Prepare Klever Bridge media directory')
+    logger.info('Prepare Klever Bridge media directory')
     media = os.path.join(deploy_dir, 'media')
     execute_cmd('mkdir', media)
 
@@ -93,4 +95,4 @@ if __name__ == '__main__':
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    prepare_env(args.mode, args.username, args.deployment_directory)
+    prepare_env(get_logger(__name__), args.mode, args.username, args.deployment_directory)

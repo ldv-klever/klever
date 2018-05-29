@@ -21,6 +21,8 @@ import os
 import shutil
 import subprocess
 
+from deploys.utils import get_logger
+
 
 class Cd:
     def __init__(self, path):
@@ -42,12 +44,12 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
-def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
-    print('(Re)install Klever Bridge')
+def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
+    logger.info('(Re)install Klever Bridge')
 
     services = ['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge']
 
-    print('Stop services')
+    logger.info('Stop services')
     for service in services:
         execute_cmd('service', service, 'stop')
 
@@ -58,11 +60,11 @@ def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', p
         if action == 'install':
             media = os.path.join(deploy_dir, 'klever/bridge/media')
     else:
-        print('Copy Klever Bridge configuration file for NGINX')
+        logger.info('Copy Klever Bridge configuration file for NGINX')
         shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'),
                     '/etc/nginx/sites-enabled/klever-bridge')
 
-        print('Update Klever Bridge source/binary code')
+        logger.info('Update Klever Bridge source/binary code')
         shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
         shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge', symlinks=True)
 
@@ -73,7 +75,7 @@ def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', p
         execute_cmd('ln', '-s', '-T', media_real, media)
 
     with Cd(os.path.join(deploy_dir, 'klever/bridge') if mode == 'development' else '/var/www/klever-bridge'):
-        print('Configure Klever Bridge')
+        logger.info('Configure Klever Bridge')
         with open('bridge/settings.py', 'w') as fp:
             fp.write('from bridge.{0} import *\n'.format('development' if mode == 'development' else 'production'))
 
@@ -86,17 +88,17 @@ def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', p
                 'PASSWORD': psql_user_passwd
             }, fp, sort_keys=True, indent=4)
 
-        print('Update translations')
+        logger.info('Update translations')
         execute_cmd('./manage.py', 'compilemessages')
 
-        print('Migrate database')
+        logger.info('Migrate database')
         execute_cmd('./manage.py', 'migrate')
 
         if mode != 'development':
-            print('Collect static files')
+            logger.info('Collect static files')
             execute_cmd('./manage.py', 'collectstatic', '--noinput')
 
-        print('Populate databace')
+        logger.info('Populate databace')
         execute_cmd('./manage.py', 'PopulateUsers', '--exist-ok',
                     '--admin', '{"username": "admin", "password": "admin"}',
                     '--manager', '{"username": "manager", "password": "manager"}',
@@ -106,7 +108,7 @@ def install_klever_bridge(action, mode, deploy_dir, psql_user_passwd='klever', p
     if mode != 'development':
         execute_cmd('chown', '-R', 'www-data:www-data', media_real)
 
-    print('Start services')
+    logger.info('Start services')
     for service in services:
         execute_cmd('service', service, 'start')
 
@@ -120,4 +122,4 @@ if __name__ == '__main__':
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    install_klever_bridge(args.action, args.mode, args.deployment_directory)
+    install_klever_bridge(get_logger(__name__), args.action, args.mode, args.deployment_directory)
