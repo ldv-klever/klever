@@ -280,8 +280,8 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
                 break
 
             # Workaround for the case when 'components' variable is an empty list
-            if not components:
-                time.sleep(3)
+            if len(components) == 0 and len(elements) == 0:
+                time.sleep(1)
     finally:
         for p in components:
             if p.is_alive():
