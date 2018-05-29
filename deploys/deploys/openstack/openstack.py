@@ -22,7 +22,6 @@ import re
 import shlex
 import subprocess
 import sys
-import tarfile
 import tempfile
 
 from keystoneauth1.identity import v2
@@ -44,15 +43,15 @@ class NotImplementedOSEntityAction(NotImplementedError):
 
 
 class OSClients:
-    def __init__(self, logger, session):
+    def __init__(self, logger, sess):
         self.logger = logger
 
         self.logger.info('Initialize OpenStack clients')
 
-        self.glance = glanceclient.client.Client('1', session=session)
-        self.nova = novaclient.client.Client('2', session=session)
-        self.neutron = neutronclient.v2_0.client.Client(session=session)
-        self.cinder = cinderclient.client.Client('2', session=session)
+        self.glance = glanceclient.client.Client('1', session=sess)
+        self.nova = novaclient.client.Client('2', session=sess)
+        self.neutron = neutronclient.v2_0.client.Client(session=sess)
+        self.cinder = cinderclient.client.Client('2', session=sess)
 
 
 class OSEntity:
@@ -331,8 +330,9 @@ class OSKleverDeveloperInstance(OSEntity):
         with ssh.sftp.file('klever-inst/klever.json') as fp:
             prev_deploy_info = json.loads(fp.read().decode('utf8'))
 
-        def cmd_fn(logger, *args):
-            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
+        def cmd_fn(*args):
+            # First argument is logger that is already known in "ssh".
+            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args[1:]]))
 
         def install_fn(logger, src, dst):
             logger.info('Install "{0}" to "{1}"'.format(src, dst))
