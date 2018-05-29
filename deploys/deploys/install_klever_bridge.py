@@ -19,17 +19,8 @@
 import json
 import os
 import shutil
-import subprocess
 
-from deploys.utils import Cd, get_logger
-
-
-def execute_cmd(*args, stdin=None, get_output=False):
-    print('Execute command "{0}"'.format(' '.join(args)))
-    if get_output:
-        return subprocess.check_output(args, stdin=stdin).decode('utf8')
-    else:
-        subprocess.check_call(args, stdin=stdin)
+from deploys.utils import Cd, execute_cmd, get_logger
 
 
 def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
@@ -39,7 +30,7 @@ def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='kl
 
     logger.info('Stop services')
     for service in services:
-        execute_cmd('service', service, 'stop')
+        execute_cmd(logger, 'service', service, 'stop')
 
     media = None
     media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
@@ -60,7 +51,7 @@ def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='kl
 
     if media:
         shutil.rmtree(media)
-        execute_cmd('ln', '-s', '-T', media_real, media)
+        execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
 
     with Cd(os.path.join(deploy_dir, 'klever/bridge') if mode == 'development' else '/var/www/klever-bridge'):
         logger.info('Configure Klever Bridge')
@@ -77,28 +68,28 @@ def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='kl
             }, fp, sort_keys=True, indent=4)
 
         logger.info('Update translations')
-        execute_cmd('./manage.py', 'compilemessages')
+        execute_cmd(logger, './manage.py', 'compilemessages')
 
         logger.info('Migrate database')
-        execute_cmd('./manage.py', 'migrate')
+        execute_cmd(logger, './manage.py', 'migrate')
 
         if mode != 'development':
             logger.info('Collect static files')
-            execute_cmd('./manage.py', 'collectstatic', '--noinput')
+            execute_cmd(logger, './manage.py', 'collectstatic', '--noinput')
 
         logger.info('Populate databace')
-        execute_cmd('./manage.py', 'PopulateUsers', '--exist-ok',
+        execute_cmd(logger, './manage.py', 'PopulateUsers', '--exist-ok',
                     '--admin', '{"username": "admin", "password": "admin"}',
                     '--manager', '{"username": "manager", "password": "manager"}',
                     '--service', '{"username": "service", "password": "service"}')
-        execute_cmd('./manage.py', 'Population')
+        execute_cmd(logger, './manage.py', 'Population')
 
     if mode != 'development':
-        execute_cmd('chown', '-R', 'www-data:www-data', media_real)
+        execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media_real)
 
     logger.info('Start services')
     for service in services:
-        execute_cmd('service', service, 'start')
+        execute_cmd(logger, 'service', service, 'start')
 
 
 if __name__ == '__main__':

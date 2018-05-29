@@ -18,6 +18,7 @@
 import getpass
 import logging
 import os
+import pwd
 import subprocess
 import sys
 import tarfile
@@ -36,12 +37,28 @@ class Cd:
         os.chdir(self.prev_path)
 
 
-def execute_cmd(logger, *args, get_output=False):
+def execute_cmd(logger, *args, stdin=None, get_output=False, username=None):
     logger.info('Execute command "{0}"'.format(' '.join(args)))
+
+    kwargs = {
+        'stdin': stdin
+    }
+
+    def demote(uid, gid):
+        def set_ids():
+            os.setgid(gid)
+            os.setuid(uid)
+
+        return set_ids
+
+    if username:
+        pw_record = pwd.getpwnam(username)
+        kwargs['preexec_fn'] = demote(pw_record.pw_uid, pw_record.pw_gid)
+
     if get_output:
-        return subprocess.check_output(args).decode('utf8')
+        return subprocess.check_output(args, **kwargs).decode('utf8')
     else:
-        subprocess.check_call(args)
+        subprocess.check_call(args, **kwargs)
 
 
 def get_logger(name):

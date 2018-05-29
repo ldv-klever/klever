@@ -18,17 +18,8 @@
 
 import json
 import os
-import subprocess
 
-from deploys.utils import get_logger
-
-
-def execute_cmd(*args, get_output=False):
-    print('Execute command "{0}"'.format(' '.join(args)))
-    if get_output:
-        return subprocess.check_output(args).decode('utf8')
-    else:
-        subprocess.check_call(args)
+from deploys.utils import execute_cmd, get_logger
 
 
 def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
@@ -73,7 +64,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
 
     if pckgs_to_install or pckgs_to_update:
         logger.info('Update packages list')
-        execute_cmd('apt-get', 'update')
+        execute_cmd(logger, 'apt-get', 'update')
 
     if pckgs_to_install:
         logger.info('Install packages:\n  {0}'.format('\n  '.join(pckgs_to_install)))
@@ -81,7 +72,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
         if non_interactive:
             args.append('--assume-yes')
         args.extend(pckgs_to_install)
-        execute_cmd(*args)
+        execute_cmd(logger, *args)
 
         # Remember what packages were installed just if everything went well.
         if 'Packages' not in prev_deploy_info:
@@ -91,7 +82,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
 
     if py_pckgs_to_install:
         logger.info('Install Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_install)))
-        execute_cmd('pip3', 'install', *py_pckgs_to_install)
+        execute_cmd(logger, 'pip3', 'install', *py_pckgs_to_install)
 
         # Remember what Python3 packages were installed just if everything went well.
         if 'Python3 Packages' not in prev_deploy_info:
@@ -108,7 +99,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
 
     if py_pckgs_to_update:
         logger.info('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
-        execute_cmd('pip3', 'install', '--upgrade', *py_pckgs_to_update)
+        execute_cmd(logger, 'pip3', 'install', '--upgrade', *py_pckgs_to_update)
 
 
 if __name__ == '__main__':

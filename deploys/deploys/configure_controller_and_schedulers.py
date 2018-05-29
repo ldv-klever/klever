@@ -18,17 +18,8 @@
 
 import json
 import os
-import subprocess
 
-from deploys.utils import Cd, get_logger
-
-
-def execute_cmd(*args, stdin=None, get_output=False):
-    print('Execute command "{0}"'.format(' '.join(args)))
-    if get_output:
-        return subprocess.check_output(args, stdin=stdin).decode('utf8')
-    else:
-        subprocess.check_call(args, stdin=stdin)
+from deploys.utils import Cd, execute_cmd, get_logger
 
 
 def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False):
@@ -67,7 +58,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
     logger.info('Stop services')
     services = ('klever-controller', 'klever-native-scheduler', 'klever-verifiercloud-scheduler')
     for service in services:
-        execute_cmd('service', service, 'stop')
+        execute_cmd(logger, 'service', service, 'stop')
 
     deploy_dir_abs = os.path.realpath(deploy_dir)
 
@@ -152,7 +143,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
 
     logger.info('Start services')
     for service in services:
-        execute_cmd('service', service, 'start')
+        execute_cmd(logger, 'service', service, 'start')
 
 
 if __name__ == '__main__':
