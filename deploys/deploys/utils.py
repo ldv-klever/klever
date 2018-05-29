@@ -24,6 +24,18 @@ import tarfile
 import tempfile
 
 
+class Cd:
+    def __init__(self, path):
+        self.new_path = path
+
+    def __enter__(self):
+        self.prev_path = os.getcwd()
+        os.chdir(self.new_path)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.prev_path)
+
+
 def execute_cmd(logger, *args, get_output=False):
     logger.info('Execute command "{0}"'.format(' '.join(args)))
     if get_output:

@@ -20,19 +20,7 @@ import json
 import os
 import subprocess
 
-from deploys.utils import get_logger
-
-
-class Cd:
-    def __init__(self, path):
-        self.new_path = path
-
-    def __enter__(self):
-        self.prev_path = os.getcwd()
-        os.chdir(self.new_path)
-
-    def __exit__(self, etype, value, traceback):
-        os.chdir(self.prev_path)
+from deploys.utils import Cd, get_logger
 
 
 def execute_cmd(*args, stdin=None, get_output=False):
