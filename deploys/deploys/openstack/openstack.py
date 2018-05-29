@@ -212,11 +212,11 @@ class OSKleverBaseImage(OSEntity):
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
                 ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
-                ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'install_deps.py'),
-                             'install_deps.py')
-                ssh.execute_cmd('sudo ./install_deps.py')
-                ssh.sftp.remove('install_deps.py')
-                ssh.sftp.remove('klever.json')
+
+                self.logger.info(
+                    'Copy scripts that can be used during creation/update of Klever developer instance')
+                ssh.sftp_put(os.path.dirname(os.path.dirname(__file__)), 'deploys')
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
 
             instance.create_image()
 
@@ -286,19 +286,8 @@ class OSKleverDeveloperInstance(OSEntity):
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, dir=os.path.sep)
 
-                self.logger.info(
-                    'Copy scripts that can be used during creation/update of Klever developer instance')
-                # TODO: putting files one by one is extremely slow.
-                for script in (
-                        'configure_controller_and_schedulers.py',
-                        'install_deps.py',
-                        'install_klever_bridge.py',
-                        'prepare_env.py'
-                ):
-                    ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, script), script)
-
-                ssh.execute_cmd('sudo ./prepare_env.py --mode OpenStack --username klever')
-                ssh.sftp.remove('prepare_env.py')
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --mode OpenStack --username klever')
+                ssh.sftp.remove('./deploys/prepare_env.py')
 
                 self._do_update(ssh, deps=False)
 
@@ -318,7 +307,7 @@ class OSKleverDeveloperInstance(OSEntity):
         }
 
         if deps:
-            ssh.execute_cmd('sudo ./install_deps.py')
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
 
         with ssh.sftp.file('klever-inst/klever.json') as fp:
             prev_deploy_info = json.loads(fp.read().decode('utf8'))
@@ -362,14 +351,15 @@ class OSKleverDeveloperInstance(OSEntity):
                 dump_cur_deploy_info()
 
         if is_update['Klever']:
-            ssh.execute_cmd('sudo ./install_klever_bridge.py --action {0} --mode OpenStack'.format(self.args.action))
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py --action {0} --mode OpenStack'
+                            .format(self.args.action))
 
+        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py --mode OpenStack'
         if is_update['Klever'] or is_update['Controller & Schedulers']:
-            ssh.execute_cmd('sudo ./configure_controller_and_schedulers.py --mode OpenStack')
+            ssh.execute_cmd(cmd)
 
         if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
-            ssh.execute_cmd(
-                'sudo ./configure_controller_and_schedulers.py --mode OpenStack --just-native-scheduler-task-worker')
+            ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
 
     def update(self):
         with SSH(args=self.args, logger=self.logger, name=self.name,
