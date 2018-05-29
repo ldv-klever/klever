@@ -161,6 +161,28 @@ class OSEntity:
                                                    self._get_instance_floating_ip(instance))
 
 
+class DeployConfAndScripts:
+    def __init__(self, logger, ssh, deploy_conf_file, action):
+        self.logger = logger
+        self.ssh = ssh
+        self.deploy_conf_file = deploy_conf_file
+        self.action = action
+
+    def __enter__(self):
+        self.logger.info('Copy deployment configuration file')
+        self.ssh.sftp_put(self.deploy_conf_file, 'klever.json')
+
+        self.logger.info('Copy scripts that can be used during {0}'.format(self.action))
+        self.ssh.sftp_put(os.path.dirname(os.path.dirname(__file__)), 'deploys')
+
+    def __exit__(self, etype, value, traceback):
+        self.logger.info('Remove scripts used during {0}'.format(self.action))
+        self.ssh.execute_cmd('rm -r deploys')
+
+        self.logger.info('Remove deployment configuration file')
+        self.ssh.sftp.remove('klever.json')
+
+
 class OSKleverBaseImage(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
@@ -211,12 +233,9 @@ class OSKleverBaseImage(OSEntity):
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
-                ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
-
-                self.logger.info(
-                    'Copy scripts that can be used during creation/update of Klever developer instance')
-                ssh.sftp_put(os.path.dirname(os.path.dirname(__file__)), 'deploys')
-                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
+                with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
+                                          'creation of Klever base image'):
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
 
             instance.create_image()
 
@@ -286,17 +305,15 @@ class OSKleverDeveloperInstance(OSEntity):
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, dir=os.path.sep)
 
-                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --mode OpenStack --username klever')
-                ssh.sftp.remove('./deploys/prepare_env.py')
-
-                self._do_update(ssh, deps=False)
+                with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
+                                          'creation of Klever developer instance'):
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --mode OpenStack --username klever')
+                    self._do_update(ssh, deps=False)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
     def _do_update(self, ssh, deps=True):
-        # Copy and use fresh deployment configuration file.
-        ssh.sftp_put(self.args.deployment_configuration_file, 'klever.json')
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
@@ -364,7 +381,9 @@ class OSKleverDeveloperInstance(OSEntity):
     def update(self):
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
-            self._do_update(ssh)
+            with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
+                                      'update of Klever developer instance'):
+                self._do_update(ssh)
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
