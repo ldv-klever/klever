@@ -151,16 +151,6 @@ class Klever:
         self.logger.info('Drop PostgreSQL user')
         execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
 
-        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
-        if os.path.exists(nginx_klever_bridge_conf_file):
-            self.logger.info('Remove Klever Bridge configuration file for NGINX')
-            os.remove(nginx_klever_bridge_conf_file)
-
-        klever_bridge_dir = '/var/www/klever-bridge'
-        if os.path.exists(klever_bridge_dir):
-            self.logger.info('Remove Klever Bridge source/binary code')
-            shutil.rmtree(klever_bridge_dir)
-
         # Do not remove user since this can result in bad consequences.
 
     def _install(self):
@@ -176,6 +166,17 @@ class Klever:
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
                      .format(os.path.realpath(self.args.deployment_directory), self.args.username))
+
+    def _uninstall_production(self):
+        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
+        if os.path.exists(nginx_klever_bridge_conf_file):
+            self.logger.info('Remove Klever Bridge configuration file for NGINX')
+            os.remove(nginx_klever_bridge_conf_file)
+
+        klever_bridge_dir = '/var/www/klever-bridge'
+        if os.path.exists(klever_bridge_dir):
+            self.logger.info('Remove Klever Bridge source/binary code')
+            shutil.rmtree(klever_bridge_dir)
 
     def _post_do_install_or_update(self):
         if self.is_update['Klever']:
@@ -200,6 +201,7 @@ class Klever:
 
     def _post_uninstall(self):
         pass
+
 
 class KleverDevelopment(Klever):
     def __init__(self, args, logger):
@@ -234,6 +236,7 @@ class KleverProduction(Klever):
 
     def uninstall(self):
         self._pre_uninstall(self._get_production_services())
+        self._uninstall_production()
         self._post_uninstall()
 
 
@@ -255,4 +258,5 @@ class KleverTesting(Klever):
 
     def uninstall(self):
         self._pre_uninstall(self._get_production_services())
+        self._uninstall_production()
         self._post_uninstall()
