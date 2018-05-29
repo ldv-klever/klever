@@ -193,7 +193,9 @@ class KleverTesting(Klever):
 
     def install(self):
         self._pre_install()
+        self._install()
         self._post_install()
 
     def update(self):
         self._pre_update()
+        self._post_update()
