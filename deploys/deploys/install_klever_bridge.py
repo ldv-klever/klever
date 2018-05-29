@@ -23,7 +23,7 @@ import shutil
 from deploys.utils import Cd, execute_cmd, get_logger
 
 
-def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
+def install_klever_bridge(logger, action, mode, deploy_dir):
     logger.info('(Re)install Klever Bridge')
 
     services = ['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge']
@@ -63,8 +63,8 @@ def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='kl
                 'ENGINE': 'django.db.backends.postgresql',
                 'HOST': '127.0.0.1',
                 'NAME': 'klever',
-                'USER': psql_user_name,
-                'PASSWORD': psql_user_passwd
+                'USER': 'klever',
+                'PASSWORD': 'klever'
             }, fp, sort_keys=True, indent=4)
 
         logger.info('Update translations')

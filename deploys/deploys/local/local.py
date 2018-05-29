@@ -25,7 +25,7 @@ from deploys.configure_controller_and_schedulers import configure_controller_and
 from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge
 from deploys.prepare_env import prepare_env
-from deploys.utils import execute_cmd, get_password, install_extra_dep_or_program, install_extra_deps, install_programs
+from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs
 
 
 class NotImplementedKleverMode(NotImplementedError):
@@ -121,11 +121,7 @@ class Klever:
         self._pre_do_install_or_update()
 
     def _install(self):
-        psql_user_passwd = get_password(self.logger, 'PostgreSQL user password (it will be stored as plaintext!): ')
-        self.prev_deploy_info['PostgreSQL user password'] = psql_user_passwd
-        self._dump_cur_deploy_info()
-
-        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory, psql_user_passwd)
+        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory)
 
         self.logger.info('Install init.d scripts')
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
@@ -140,8 +136,7 @@ class Klever:
 
     def _post_do_install_or_update(self):
         if self.is_update['Klever']:
-            install_klever_bridge(self.logger, self.args.action, self.args.mode, self.args.deployment_directory,
-                                  self.prev_deploy_info['PostgreSQL user password'])
+            install_klever_bridge(self.logger, self.args.action, self.args.mode, self.args.deployment_directory)
 
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
             configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,

@@ -23,7 +23,7 @@ import pwd
 from deploys.utils import execute_cmd, get_logger
 
 
-def prepare_env(logger, mode, username, deploy_dir, psql_user_passwd='klever', psql_user_name='klever'):
+def prepare_env(logger, mode, username, deploy_dir):
     try:
         pwd.getpwnam(username)
     except KeyError:
@@ -47,8 +47,7 @@ def prepare_env(logger, mode, username, deploy_dir, psql_user_passwd='klever', p
     execute_cmd(logger, 'ln', '-s', *args)
 
     logger.info('Create PostgreSQL user')
-    execute_cmd(logger, 'psql', '-c', "CREATE USER {0} WITH PASSWORD '{1}'".format(psql_user_name, psql_user_passwd),
-                username='postgres')
+    execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH PASSWORD 'klever'", username='postgres')
 
     logger.info('Create PostgreSQL database')
     execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
