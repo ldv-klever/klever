@@ -38,13 +38,20 @@ def prepare_env(logger, mode, username, deploy_dir):
     execute_cmd(logger, 'mkdir', work_dir)
     execute_cmd(logger, 'chown', '-LR', username, work_dir)
 
-    logger.info('Create soft links for libssl to build new versions of the Linux kernel')
-    execute_cmd(logger, 'ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', '/usr/include/openssl/')
+    openssl_header = '/usr/include/openssl/opensslconf.h'
+    if not os.path.exists(openssl_header):
+        logger.info('Create soft links for libssl to build new versions of the Linux kernel')
+        execute_cmd(logger, 'ln', '-s', '/usr/include/x86_64-linux-gnu/openssl/opensslconf.h', openssl_header)
 
-    logger.info('Prepare CIF environment')
-    args = glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o')
-    args.append('/usr/lib')
-    execute_cmd(logger, 'ln', '-s', *args)
+    crts = glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o')
+    args = []
+    for crt in crts:
+        if not os.path.exists(os.path.join('/usr/lib', os.path.basename(crt))):
+            args.append(crt)
+    if args:
+        logger.info('Prepare CIF environment')
+        args.append('/usr/lib')
+        execute_cmd(logger, 'ln', '-s', *args)
 
     logger.info('Create PostgreSQL user')
     execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH PASSWORD 'klever'", username='postgres')
