@@ -26,7 +26,7 @@ from deploys.utils import Cd, execute_cmd, get_logger
 def install_klever_bridge(logger, action, mode, deploy_dir):
     logger.info('(Re)install Klever Bridge')
 
-    services = ['klever-bridge-development'] if mode == 'development' else ['nginx', 'klever-bridge']
+    services = ('klever-bridge-development',) if mode == 'development' else ('nginx', 'klever-bridge')
 
     logger.info('Stop services')
     for service in services:

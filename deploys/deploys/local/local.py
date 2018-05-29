@@ -46,8 +46,6 @@ class Klever:
         with open(self.args.deployment_configuration_file) as fp:
             self.deploy_conf = json.load(fp)
 
-        os.makedirs(self.args.deployment_directory, exist_ok=True)
-
         self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
         if os.path.exists(self.prev_deploy_info_file):
             with open(self.prev_deploy_info_file) as fp:
@@ -107,9 +105,15 @@ class Klever:
                 self._dump_cur_deploy_info()
 
     def _pre_install(self):
+        if os.path.exists(self.args.deployment_directory):
+            raise ValueError('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
+
         if self.prev_deploy_info:
             raise ValueError(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
+
+        self.logger.info('Create deployment directory')
+        os.makedirs(self.args.deployment_directory)
 
         self._pre_do_install_or_update()
 

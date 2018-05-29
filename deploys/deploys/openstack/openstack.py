@@ -234,6 +234,8 @@ class OSKleverBaseImage(OSEntity):
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever base image'):
+                    self.logger.info('Create deployment directory')
+                    os.makedirs('klever-inst')
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive')
 
             instance.create_image()

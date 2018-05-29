@@ -118,8 +118,6 @@ def main():
     with open(args.deployment_configuration_file) as fp:
         deploy_conf = json.load(fp)
 
-    os.makedirs(args.deployment_directory, exist_ok=True)
-
     prev_deploy_info_file = os.path.join(args.deployment_directory, 'klever.json')
     if os.path.exists(prev_deploy_info_file):
         with open(prev_deploy_info_file) as fp:
