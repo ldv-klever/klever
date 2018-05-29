@@ -204,19 +204,18 @@ class JobForm:
         else:
             identifier = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest()
 
-        newjob = Job.objects.create(
+        self._job = Job.objects.create(
             identifier=identifier, name=self.__check_name(data.get('name', '')), change_date=now(),
             parent=self.__get_parent(data.get('parent', '')), safe_marks=settings.ENABLE_SAFE_MARKS
         )
         try:
             new_version = self.__create_version(data)
         except Exception:
-            newjob.delete()
+            self._job.delete()
             raise
-        newjob.change_author = new_version.change_author
-        newjob.change_date = new_version.change_date
-        newjob.save()
-        self._job = newjob
+        self._job.change_author = new_version.change_author
+        self._job.change_date = new_version.change_date
+        self._job.save()
 
     def __update_job(self, data):
         if self._job.version != int(data.get('last_version', 0)):
