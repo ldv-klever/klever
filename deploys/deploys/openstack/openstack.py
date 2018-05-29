@@ -235,7 +235,7 @@ class OSKleverBaseImage(OSEntity):
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever base image'):
-                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive')
 
             instance.create_image()
 
@@ -324,7 +324,9 @@ class OSKleverDeveloperInstance(OSEntity):
         }
 
         if deps:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py')
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
+                            (' --update-packages' if self.args.update_packages else '') +
+                            (' --update-python3-packages' if self.args.update_python3_packages else ''))
 
         with ssh.sftp.file('klever-inst/klever.json') as fp:
             prev_deploy_info = json.loads(fp.read().decode('utf8'))

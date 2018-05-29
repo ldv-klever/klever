@@ -22,7 +22,7 @@ import os
 from deploys.utils import execute_cmd, get_logger
 
 
-def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
+def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_pckgs, update_py_pckgs):
     if non_interactive:
         # Do not require users input.
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -62,7 +62,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
         # All Python3 packages should be installed.
         py_pckgs_to_install = new_py_pckgs
 
-    if pckgs_to_install or pckgs_to_update:
+    if pckgs_to_install or (pckgs_to_update and update_pckgs):
         logger.info('Update packages list')
         execute_cmd(logger, 'apt-get', 'update')
 
@@ -90,14 +90,15 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive):
 
         prev_deploy_info['Python3 Packages'] = sorted(prev_deploy_info['Python3 Packages'] + py_pckgs_to_install)
 
-    if pckgs_to_update:
+    if pckgs_to_update and update_pckgs:
         logger.info('Update packages:\n  {0}'.format('\n  '.join(pckgs_to_update)))
         args = ['apt-get', 'upgrade']
         if non_interactive:
             args.append('--assume-yes')
         args.extend(pckgs_to_update)
+        execute_cmd(*args)
 
-    if py_pckgs_to_update:
+    if py_pckgs_to_update and update_py_pckgs:
         logger.info('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
         execute_cmd(logger, 'pip3', 'install', '--upgrade', *py_pckgs_to_update)
 
@@ -108,6 +109,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--deployment-configuration-file', default='klever.json')
     parser.add_argument('--deployment-directory', default='klever-inst')
+    parser.add_argument('--non-interactive', default=False, action='store_true')
+    parser.add_argument('--update-packages', default=False, action='store_true')
+    parser.add_argument('--update-python3-packages', default=False, action='store_true')
     args = parser.parse_args()
 
     # TODO: this code duplicates code from deploys.local.local.Klever#__init__.
@@ -123,7 +127,8 @@ if __name__ == '__main__':
     else:
         prev_deploy_info = {}
 
-    install_deps(get_logger(__name__), deploy_conf, prev_deploy_info, True)
+    install_deps(get_logger(__name__), deploy_conf, prev_deploy_info, args.non_interactive, args.update_packages,
+                 args.update_python3_packages)
 
     with open(prev_deploy_info_file, 'w') as fp:
         json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)

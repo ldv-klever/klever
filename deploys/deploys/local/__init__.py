@@ -29,8 +29,8 @@ def main():
     parser.add_argument('mode', choices=['development', 'production', 'testing'],
                         help='Mode for which action to be executed.')
     parser.add_argument('--non-interactive', default=False, action='store_true',
-                        help='Install/update standard packages non-interactively (default: "%(default)s"). ' +
-                             'This option has no effect for mode testing.')
+                        help='Install/update packages non-interactively (default: "%(default)s"). ' +
+                             'This option has no effect for mode "testing".')
     parser.add_argument('--deployment-configuration-file',
                         default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
                                              'klever.json'),
@@ -38,6 +38,12 @@ def main():
     parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
     # Do not suggest information on current user since it will be root rather than normal one.
     parser.add_argument('--username', required=True, help='Klever username.')
+    parser.add_argument('--update-packages', default=False, action='store_true',
+                        help='Update packages for action "update" (default: "%(default)s"). ' +
+                             'This option has no effect for action "install".')
+    parser.add_argument('--update-python3-packages', default=False, action='store_true',
+                        help='Update Python3 packages for action "update" (default: "%(default)s"). ' +
+                             'This option has no effect for action "install".')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)

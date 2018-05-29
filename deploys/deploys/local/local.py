@@ -63,7 +63,8 @@ class Klever:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_do_install_or_update(self):
-        install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive)
+        install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
+                     self.args.update_packages, self.args.update_python3_packages)
         self._dump_cur_deploy_info()
 
         def cmd_fn(logger, *args):
