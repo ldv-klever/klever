@@ -571,40 +571,38 @@ class LKVOG(core.components.Component):
     # todo: functions below are static mostly and required to covert callgraph, so it is better to extract them to a separate file
     @staticmethod
     def _generate_callgraph(allowed_files, call_graph):
-        call_graph_dict = call_graph.load_callgraph()
+        call_graph_dict = call_graph.load_detailed_callgraph(allowed_files)
         group_callgraph = {}
 
         # todo: Compile a new callgraph especially from allowed files
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
-                if file in allowed_files:
+                # Firstly, copy all desc
+                group_callgraph.setdefault(func, {})
+                group_callgraph[func][file] = dict(descs)
 
-                    # Firstly, copy all desc
-                    group_callgraph.setdefault(func, {})
-                    group_callgraph[func][file] = dict(descs)
+                # Then, for these four types ('declared_in' also) clear and fill with only allowed files
+                for tag in ('called_in', 'calls', 'used_in_func'):
+                    if tag in descs:
+                        group_callgraph[func][file][tag] = {}
+                        for called_func, called_files in descs[tag].items():
+                            for called_file, called_file_descs in called_files.items():
+                                if called_file in allowed_files:
+                                    group_callgraph[func][file][tag].setdefault(called_func, {})
+                                    group_callgraph[func][file][tag][called_func][called_file] = called_file_descs
+                if 'declared_in' in descs:
+                    group_callgraph[func][file]['declared_in'] = {}
+                    for decl_file, decl_descs in descs['declared_in'].items():
+                        if decl_file in allowed_files:
+                            group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
+                            group_callgraph[func][file]['declared_in'][decl_file] = decl_descs
 
-                    # Then, for these four types ('declared_in' also) clear and fill with only allowed files
-                    for tag in ('called_in', 'calls', 'used_in_func'):
-                        if tag in descs:
-                            group_callgraph[func][file][tag] = {}
-                            for called_func, called_files in descs[tag].items():
-                                for called_file, called_file_descs in called_files.items():
-                                    if called_file in allowed_files:
-                                        group_callgraph[func][file][tag].setdefault(called_func, {})
-                                        group_callgraph[func][file][tag][called_func][called_file] = called_file_descs
-                    if 'declared_in' in descs:
-                        group_callgraph[func][file]['declared_in'] = {}
-                        for decl_file, decl_descs in descs['declared_in'].items():
-                            if decl_file in allowed_files:
-                                group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
-                                group_callgraph[func][file]['declared_in'][decl_file] = decl_descs
-
-                    # Remove if empty
-                    if not group_callgraph[func][file].get('called_in') \
-                            and not group_callgraph[func][file].get('calls') \
-                            and not group_callgraph[func][file].get('declared_in') \
-                            and not group_callgraph[func][file].get('used_in_func'):
-                        group_callgraph[func][file] = {}
+                # Remove if empty
+                if not group_callgraph[func][file].get('called_in') \
+                        and not group_callgraph[func][file].get('calls') \
+                        and not group_callgraph[func][file].get('declared_in') \
+                        and not group_callgraph[func][file].get('used_in_func'):
+                    group_callgraph[func][file] = {}
 
                 # Remove if empty
                 if func in group_callgraph and not group_callgraph[func].get(file, True):
