@@ -19,6 +19,7 @@
 import json
 import os
 import shutil
+import subprocess
 
 from deploys.configure_controller_and_schedulers import configure_controller_and_schedulers, \
                                                         configure_native_scheduler_task_worker
@@ -59,6 +60,9 @@ class Klever:
     def _dump_cur_deploy_info(self):
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
+
+    def _get_production_services(self):
+        return 'nginx', 'klever-bridge'
 
     def _pre_do_install_or_update(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
@@ -124,6 +128,41 @@ class Klever:
 
         self._pre_do_install_or_update()
 
+    def _pre_uninstall(self, services):
+        self.logger.info('Stop services')
+        all_mode_services = (
+            'klever-controller',
+            'klever-native-scheduler',
+            'klever-verifiercloud-scheduler'
+        )
+        for service in list(services) + list(all_mode_services):
+            try:
+                execute_cmd(self.logger, 'service', service, 'stop')
+            except subprocess.CalledProcessError:
+                pass
+
+        if os.path.exists(self.args.deployment_directory):
+            self.logger.info('Remove deployment directory')
+            shutil.rmtree(self.args.deployment_directory)
+
+        self.logger.info('Drop PostgreSQL database')
+        execute_cmd(self.logger, 'dropdb', '--if-exists', 'klever', username='postgres')
+
+        self.logger.info('Drop PostgreSQL user')
+        execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
+
+        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
+        if os.path.exists(nginx_klever_bridge_conf_file):
+            self.logger.info('Remove Klever Bridge configuration file for NGINX')
+            os.remove(nginx_klever_bridge_conf_file)
+
+        klever_bridge_dir = '/var/www/klever-bridge'
+        if os.path.exists(klever_bridge_dir):
+            self.logger.info('Remove Klever Bridge source/binary code')
+            shutil.rmtree(klever_bridge_dir)
+
+        # Do not remove user since this can result in bad consequences.
+
     def _install(self):
         prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory)
 
@@ -159,6 +198,8 @@ class Klever:
     def _post_update(self):
         self._post_do_install_or_update()
 
+    def _post_uninstall(self):
+        pass
 
 class KleverDevelopment(Klever):
     def __init__(self, args, logger):
@@ -173,6 +214,10 @@ class KleverDevelopment(Klever):
         self._pre_update()
         self._post_update()
 
+    def uninstall(self):
+        self._pre_uninstall(('klever-bridge-development',))
+        self._post_uninstall()
+
 
 class KleverProduction(Klever):
     def __init__(self, args, logger):
@@ -186,6 +231,10 @@ class KleverProduction(Klever):
     def update(self):
         self._pre_update()
         self._post_update()
+
+    def uninstall(self):
+        self._pre_uninstall(self._get_production_services())
+        self._post_uninstall()
 
 
 class KleverTesting(Klever):
@@ -203,3 +252,7 @@ class KleverTesting(Klever):
     def update(self):
         self._pre_update()
         self._post_update()
+
+    def uninstall(self):
+        self._pre_uninstall(self._get_production_services())
+        self._post_uninstall()

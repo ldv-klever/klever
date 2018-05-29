@@ -25,7 +25,7 @@ from deploys.local.local import KleverDevelopment, KleverProduction, KleverTesti
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['install', 'update'], help='Action to be executed.')
+    parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
     parser.add_argument('mode', choices=['development', 'production', 'testing'],
                         help='Mode for which action to be executed.')
     parser.add_argument('--non-interactive', default=False, action='store_true',
