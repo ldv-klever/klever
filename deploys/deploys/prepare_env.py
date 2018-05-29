@@ -61,7 +61,7 @@ def prepare_env(logger, mode, username, deploy_dir, psql_user_passwd='klever', p
         execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media)
 
 
-if __name__ == '__main__':
+def main():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -71,3 +71,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     prepare_env(get_logger(__name__), args.mode, args.username, args.deployment_directory)
+
+
+if __name__ == '__main__':
+    main()

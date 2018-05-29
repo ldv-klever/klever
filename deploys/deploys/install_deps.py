@@ -103,7 +103,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         execute_cmd(logger, 'pip3', 'install', '--upgrade', *py_pckgs_to_update)
 
 
-if __name__ == '__main__':
+def main():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -132,3 +132,7 @@ if __name__ == '__main__':
 
     with open(prev_deploy_info_file, 'w') as fp:
         json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)
+
+
+if __name__ == '__main__':
+    main()

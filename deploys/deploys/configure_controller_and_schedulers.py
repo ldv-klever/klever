@@ -146,7 +146,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
         execute_cmd(logger, 'service', service, 'start')
 
 
-if __name__ == '__main__':
+def main():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -164,3 +164,7 @@ if __name__ == '__main__':
     else:
         configure_controller_and_schedulers(get_logger(__name__), args.mode, args.deployment_directory,
                                             prev_deploy_info)
+
+
+if __name__ == '__main__':
+    main()

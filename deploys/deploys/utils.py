@@ -40,9 +40,7 @@ class Cd:
 def execute_cmd(logger, *args, stdin=None, get_output=False, username=None):
     logger.info('Execute command "{0}"'.format(' '.join(args)))
 
-    kwargs = {
-        'stdin': stdin
-    }
+    kwargs = {'stdin': stdin}
 
     def demote(uid, gid):
         def set_ids():

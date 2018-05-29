@@ -92,7 +92,7 @@ def install_klever_bridge(logger, action, mode, deploy_dir, psql_user_passwd='kl
         execute_cmd(logger, 'service', service, 'start')
 
 
-if __name__ == '__main__':
+def main():
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -102,3 +102,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     install_klever_bridge(get_logger(__name__), args.action, args.mode, args.deployment_directory)
+
+
+if __name__ == '__main__':
+    main()
