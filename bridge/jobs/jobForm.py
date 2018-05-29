@@ -198,23 +198,24 @@ class JobForm:
 
     def __create_job(self, data):
         if 'identifier' in data and data['identifier'] is not None:
+            if Job.objects.filter(identifier=data['identifier']).count() > 0:
+                raise BridgeException(_('The job with specified identifier already exists'))
             identifier = data['identifier']
         else:
             identifier = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest()
 
-        newjob = Job.objects.create(
+        self._job = Job.objects.create(
             identifier=identifier, name=self.__check_name(data.get('name', '')), change_date=now(),
             parent=self.__get_parent(data.get('parent', '')), safe_marks=settings.ENABLE_SAFE_MARKS
         )
         try:
             new_version = self.__create_version(data)
         except Exception:
-            newjob.delete()
+            self._job.delete()
             raise
-        newjob.change_author = new_version.change_author
-        newjob.change_date = new_version.change_date
-        newjob.save()
-        self._job = newjob
+        self._job.change_author = new_version.change_author
+        self._job.change_date = new_version.change_date
+        self._job.save()
 
     def __update_job(self, data):
         if self._job.version != int(data.get('last_version', 0)):
@@ -242,7 +243,8 @@ class JobForm:
 
 
 class LoadFilesTree:
-    def __init__(self, job_id, version):
+    def __init__(self, job_id, version, opened=True):
+        self._opened = opened
         self._tree = self.__files_tree(job_id, version)
 
     def __files_tree(self, job_id, version):
@@ -279,8 +281,10 @@ class LoadFilesTree:
         return node
 
     def as_json(self):
-        # 'state': {'opened': True}
-        return {'text': 'Files', 'type': 'root', "children": self.__get_children(None)}
+        return {
+            'state': {'opened': self._opened}, 'type': 'root',
+            'text': 'Files', "children": self.__get_children(None)
+        }
 
     def __is_not_used(self):
         pass

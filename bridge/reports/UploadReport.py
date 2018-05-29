@@ -323,6 +323,7 @@ class UploadReport:
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
         if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+            logger.error("Attributes were redefined. List of attributes that should be unique: %s" % self.ordered_attrs)
             raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
@@ -573,7 +574,8 @@ class UploadReport:
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.problem_description.name)):
             report.delete()
             raise CheckArchiveError('Report archive "problem desc" was not saved')
-        self.__fill_leaf_data(report)
+        self.__create_leaf_attrs(report)
+        self.__fill_leaf_cache(report)
 
     def __create_report_safe(self, identifier):
         try:
@@ -593,7 +595,8 @@ class UploadReport:
                 raise CheckArchiveError('Report archive "proof" was not saved')
         else:
             report.save()
-        self.__fill_leaf_data(report)
+        self.__create_leaf_attrs(report)
+        self.__fill_leaf_cache(report)
 
     def __create_unsafe_reports(self, identifier):
         et_archs = {}
@@ -605,6 +608,7 @@ class UploadReport:
         source.add_sources(REPORT_ARCHIVE['sources'], self.archives[self.data['sources']], True)
 
         cnt = 1
+        unsafes = []
         for arch_name in self.data['error traces']:
             try:
                 ReportUnsafe.objects.get(identifier=identifier + '/{0}'.format(cnt))
@@ -623,10 +627,13 @@ class UploadReport:
                 report.delete()
                 raise CheckArchiveError('Report archive "error trace" was not saved')
 
-            self.__fill_leaf_data(report, res.add_attrs.get(arch_name))
+            self.__create_leaf_attrs(report, res.add_attrs.get(arch_name))
+            unsafes.append(report)
             cnt += 1
+        self.__fill_unsafes_cache(unsafes)
 
-    def __fill_leaf_data(self, leaf, add_attrs=None):
+    def __create_leaf_attrs(self, leaf, add_attrs=None):
+        self.ordered_attrs = []
         parent_attrs = []
         for p in self._parents_branch:
             for ra in p.attrs.order_by('id').select_related('attr__name'):
@@ -641,16 +648,40 @@ class UploadReport:
         if add_attrs is not None:
             self.ordered_attrs += self.__save_attrs(leaf.id, add_attrs)
 
+    def __fill_unsafes_cache(self, reports):
         if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_leaf_parents_branch(leaf)
+            self.__cut_parents_branch()
+            if self.parent.verifier_input or self.parent.covnum > 0:
+                # After verification finish report self.parent.parent will be Core/first-level report
+                self._parents_branch.append(self.parent)
+            else:
+                ReportUnsafe.objects.filter(id__in=list(r.id for r in reports)).update(parent=self._parents_branch[-1])
+
+        leaves = []
+        for p in self._parents_branch:
+            verdict = Verdict.objects.get_or_create(report=p)[0]
+            verdict.unsafe += len(reports)
+            verdict.unsafe_unassociated += len(reports)
+            verdict.save()
+            leaves.extend(list(ReportComponentLeaf(report=p, unsafe=unsafe) for unsafe in reports))
+        ReportComponentLeaf.objects.bulk_create(leaves)
+        for leaf in reports:
+            UnsafeUtils.ConnectReport(leaf)
+        UnsafeUtils.RecalculateTags(reports)
+
+    def __fill_leaf_cache(self, leaf):
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+            if self.parent.verifier_input or self.parent.covnum > 0:
+                # After verification finish report self.parent.parent will be Core/first-level report
+                self._parents_branch.append(self.parent)
+            else:
+                leaf.parent = self._parents_branch[-1]
+                leaf.save()
 
         if self.data['type'] == 'unknown':
             self.__fill_unknown_cache(leaf)
             UnknownUtils.ConnectReport(leaf)
-        elif self.data['type'] == 'unsafe':
-            self.__fill_unsafe_cache(leaf)
-            UnsafeUtils.ConnectReport(leaf)
-            UnsafeUtils.RecalculateTags([leaf])
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
             if self.job.safe_marks:
@@ -665,18 +696,8 @@ class UploadReport:
             # Just Core report
             self._parents_branch = self._parents_branch[:1]
 
-    def __cut_leaf_parents_branch(self, leaf):
-        self.__cut_parents_branch()
-        if self.parent.verifier_input or self.parent.covnum > 0:
-            # After verification finish report self.parent.parent will be Core/first-level report
-            self._parents_branch.append(self.parent)
-        else:
-            leaf.parent = self._parents_branch[-1]
-            leaf.save()
-
     def __fill_unknown_cache(self, unknown):
         for p in self._parents_branch:
-            self.__is_not_used()
             verdict = Verdict.objects.get_or_create(report=p)[0]
             verdict.unknown += 1
             verdict.save()
@@ -692,14 +713,6 @@ class UploadReport:
             verdict.safe_unassociated += 1
             verdict.save()
             ReportComponentLeaf.objects.create(report=p, safe=safe)
-
-    def __fill_unsafe_cache(self, unsafe):
-        for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unsafe += 1
-            verdict.unsafe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=p, unsafe=unsafe)
 
     def __update_parent_resources(self, report):
 
