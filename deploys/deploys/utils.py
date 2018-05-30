@@ -143,7 +143,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
         cmd_fn('rm', '-rf', '{0}'.format(archive))
     elif os.path.isfile(path) or os.path.isdir(path):
-        install_fn(path, deploy_dir)
+        install_fn(path, deploy_dir, allow_symlink=True)
     else:
         logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
         sys.exit(errno.ENOSYS)

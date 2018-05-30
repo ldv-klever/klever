@@ -72,15 +72,18 @@ class Klever:
         def cmd_fn(*args):
             execute_cmd(self.logger, *args)
 
-        def install_fn(src, dst):
+        def install_fn(src, dst, allow_symlink=False):
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
 
             os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
 
-            if os.path.isdir(src):
-                shutil.copytree(src, dst, symlinks=True)
+            if allow_symlink and self.args.allow_symbolic_links:
+                execute_cmd(self.logger, 'ln', '-s', src, dst)
             else:
-                shutil.copy(src, dst)
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst, symlinks=True)
+                else:
+                    shutil.copy(src, dst)
 
         self.is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever',
                                                                 os.path.join(self.args.deployment_directory, 'klever'),

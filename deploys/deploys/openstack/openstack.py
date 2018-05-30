@@ -341,7 +341,9 @@ class OSKleverDeveloperInstance(OSEntity):
         def cmd_fn(*args):
             ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
 
-        def install_fn(src, dst):
+        def install_fn(src, dst, allow_symlink=False):
+            # To avoid warnings. This parameter is actually used in corresponding function in deploys/local/local.py.
+            del allow_symlink
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
             ssh.sftp_put(src, dst, sudo=True)
 
