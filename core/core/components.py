@@ -275,13 +275,12 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
             if finished > 0:
                 logger.debug("Finished {} workers".format(finished))
 
-            # Check that we can quit
-            if len(components) == 0 and len(elements) == 0 and not active:
-                break
-
-            # Workaround for the case when 'components' variable is an empty list
+            # Check that we can quit or must wait
             if len(components) == 0 and len(elements) == 0:
-                time.sleep(1)
+                if not active:
+                    break
+                else:
+                    time.sleep(1)
     finally:
         for p in components:
             if p.is_alive():
