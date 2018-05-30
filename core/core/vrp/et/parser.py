@@ -43,7 +43,7 @@ class ErrorTraceParser:
                                      format(edge['start line'], edge['source']))
                 # We cannot predict the file and have to delete it
                 if 'enter' in edge or 'return' in edge:
-                    raise ValueError('sdfasd')
+                    raise ValueError("There should not be 'enter' or 'return' in the edge")
                 self.error_trace.remove_edge_and_target_node(edge)
 
     def _parse_witness(self, witness):
@@ -108,6 +108,7 @@ class ErrorTraceParser:
         # The number of edges leading to sink nodes. Such edges will be completely removed.
         sink_edges_num = 0
         edges_num = 0
+        main_id = None
 
         for edge in graph.findall('graphml:edge', self.WITNESS_NS):
             # Sanity checks.
@@ -143,6 +144,8 @@ class ErrorTraceParser:
                     _edge['source'] = data.text
                 elif data_key == 'enterFunction' or data_key == 'returnFrom' or data_key == 'assumption.scope':
                     self.error_trace.add_function(data.text)
+                    if data.text == 'main':
+                        main_id = self.error_trace.resolve_function_id(data.text)
                     if data_key == 'enterFunction':
                         _edge['enter'] = self.error_trace.resolve_function_id(data.text)
                     elif data_key == 'returnFrom':
@@ -162,6 +165,9 @@ class ErrorTraceParser:
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
+
+                if isinstance(main_id, int) and 'enter' in _edge and 'source' in _edge and _edge['enter'] == main_id:
+                    del _edge['enter']
 
             edges_num += 1
 

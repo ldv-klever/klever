@@ -434,7 +434,6 @@ class ErrorTrace:
 
             last_thread = edge['thread']
 
-
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
