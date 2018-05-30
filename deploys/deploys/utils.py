@@ -126,7 +126,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
     # Remove previous version of entity if so.
     if prev_version:
-        cmd_fn(logger, 'rm', '-rf', deploy_dir)
+        cmd_fn('rm', '-rf', deploy_dir)
 
     if is_git_repo:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -135,15 +135,15 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
             # TODO: this makes imposible to detect Klever Core version.
             # shutil.rmtree(os.path.join(tmp_host_path, '.git'))
-            install_fn(logger, tmp_path, deploy_dir)
+            install_fn(tmp_path, deploy_dir)
     elif os.path.isfile(path) and tarfile.is_tarfile(path):
         archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
-        install_fn(logger, path, archive)
-        cmd_fn(logger, 'mkdir', '-p', '{0}'.format(deploy_dir))
-        cmd_fn(logger, 'tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
-        cmd_fn(logger, 'rm', '-rf', '{0}'.format(archive))
+        install_fn(path, archive)
+        cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
+        cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
+        cmd_fn('rm', '-rf', '{0}'.format(archive))
     elif os.path.isfile(path) or os.path.isdir(path):
-        install_fn(logger, path, deploy_dir)
+        install_fn(path, deploy_dir)
     else:
         logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
         sys.exit(errno.ENOSYS)
@@ -209,7 +209,7 @@ def install_programs(logger, username, deploy_dir, deploy_conf, prev_deploy_info
             if install_extra_dep_or_program(logger, program, deploy_dir, deploy_programs_conf,
                                             prev_deploy_programs_conf, cmd_fn, install_fn):
                 is_update_programs = True
-                cmd_fn(logger, 'chown', '-LR', username, deploy_dir)
+                cmd_fn('chown', '-LR', username, deploy_dir)
 
     return is_update_programs
 

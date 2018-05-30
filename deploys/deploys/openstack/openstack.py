@@ -339,11 +339,10 @@ class OSKleverDeveloperInstance(OSEntity):
             prev_deploy_info = json.loads(fp.read().decode('utf8'))
 
         def cmd_fn(*args):
-            # First argument is logger that is already known in "ssh".
-            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args[1:]]))
+            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
 
-        def install_fn(logger, src, dst):
-            logger.info('Install "{0}" to "{1}"'.format(src, dst))
+        def install_fn(src, dst):
+            self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
             ssh.sftp_put(src, dst, sudo=True)
 
         is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,

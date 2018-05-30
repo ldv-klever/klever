@@ -69,11 +69,11 @@ class Klever:
                      self.args.update_packages, self.args.update_python3_packages)
         self._dump_cur_deploy_info()
 
-        def cmd_fn(logger, *args):
-            execute_cmd(logger, *args)
+        def cmd_fn(*args):
+            execute_cmd(self.logger, *args)
 
-        def install_fn(logger, src, dst):
-            logger.info('Install "{0}" to "{1}"'.format(src, dst))
+        def install_fn(src, dst):
+            self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
 
             os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
 
