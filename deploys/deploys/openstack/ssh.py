@@ -166,16 +166,6 @@ class SSH:
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
 
-    def sftp_exist(self, path):
-        try:
-            self.sftp.stat(path)
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                return False
-            raise
-        else:
-            return True
-
     def sftp_put(self, host_path, instance_path, sudo=False, dir=None):
         self.logger.info('Copy "{0}" to "{1}"'.format(host_path, os.path.join(dir if dir else '', instance_path)))
 
