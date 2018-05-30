@@ -249,7 +249,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Submit an empty configuration
         logging.debug("Submit an empty configuration list before shutting down")
         configurations = []
-        self.server.submit_nodes(configurations, looping=False)
+        self.server.submit_nodes(configurations, looping=True)
 
         # Terminate
         super(Scheduler, self).terminate()
