@@ -220,3 +220,21 @@ def need_verifiercloud_scheduler(deploy_conf):
             return True
 
     return False
+
+
+def start_services(logger, services):
+    logger.info('Start services')
+    for service in services:
+        execute_cmd(logger, 'service', service, 'start')
+
+
+def stop_services(logger, services, ignore_errors=False):
+    logger.info('Stop services')
+    for service in services:
+        try:
+            execute_cmd(logger, 'service', service, 'stop')
+        except subprocess.CalledProcessError:
+            if ignore_errors:
+                pass
+            else:
+                raise

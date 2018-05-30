@@ -20,7 +20,7 @@ import json
 import os
 import shutil
 
-from deploys.utils import Cd, execute_cmd, get_logger
+from deploys.utils import Cd, execute_cmd, get_logger, start_services, stop_services
 
 
 # This function includes common actions for both development and production Klever Bridge.
@@ -53,10 +53,7 @@ def install_klever_bridge_development(logger, deploy_dir):
     logger.info('Install/update development Klever Bridge')
 
     services = ('klever-bridge-development',)
-
-    logger.info('Stop services')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'stop')
+    stop_services(logger, services)
 
     logger.info('Prepare media directory')
     media = os.path.join(deploy_dir, 'klever/bridge/media')
@@ -70,19 +67,14 @@ def install_klever_bridge_development(logger, deploy_dir):
 
         _install_klever_bridge(logger)
 
-    logger.info('Start services')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'start')
+    start_services(logger, services)
 
 
 def install_klever_bridge_production(logger, deploy_dir):
     logger.info('Install/update production Klever Bridge')
 
     services = ('nginx', 'klever-bridge')
-
-    logger.info('Stop services')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'stop')
+    stop_services(logger, services)
 
     logger.info('Copy Klever Bridge configuration file for NGINX')
     shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'),
@@ -110,9 +102,7 @@ def install_klever_bridge_production(logger, deploy_dir):
     # Make available data from media for its actual user.
     execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media_real)
 
-    logger.info('Start services')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'start')
+    start_services(logger, services)
 
 
 def main():

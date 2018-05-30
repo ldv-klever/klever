@@ -19,7 +19,7 @@
 import json
 import os
 
-from deploys.utils import Cd, execute_cmd, get_logger, need_verifiercloud_scheduler
+from deploys.utils import Cd, execute_cmd, get_logger, need_verifiercloud_scheduler, start_services, stop_services
 
 
 def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False):
@@ -55,12 +55,10 @@ def configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy
 def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_info):
     logger.info('(Re)configure Klever Controller and Klever schedulers')
 
-    logger.info('Stop services')
     services = ['klever-controller', 'klever-native-scheduler']
     if need_verifiercloud_scheduler(prev_deploy_info):
         services.append('klever-verifiercloud-scheduler')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'stop')
+    stop_services(logger, services)
 
     deploy_dir_abs = os.path.realpath(deploy_dir)
 
@@ -144,9 +142,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
 
     configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info)
 
-    logger.info('Start services')
-    for service in services:
-        execute_cmd(logger, 'service', service, 'start')
+    start_services(logger, services)
 
 
 def main():
