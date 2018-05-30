@@ -22,27 +22,15 @@
       "path": "addons/consul"
     },
     "VerifierCloud Client": {
-      "version": "trunk:26155",
-      "path": "addons/CPAchecker-1.6.1-svn edde8bf827-unix/scripts/",
+      "version": "trunk:27946",
+      "path": "addons/CPAchecker-1.7-svn 27946-unix/scripts/",
       "executable path": "benchmark"
     },
     "Verification Backends": {
-      "CPAchecker LDV": {
+      "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:26155",
-        "path": "addons/CPAchecker-1.6.1-svn edde8bf827-unix",
-        "executable path": "scripts"
-      },
-      "CPAchecker LDV BAM": {
-        "name": "CPAchecker",
-        "version": "ldv-bam:25793",
-        "path": "addons/CPAchecker-1.6.1-svn 816d5667b1-unix",
-        "executable path": "scripts"
-      },
-      "CPAchecker LDV SMG": {
-        "name": "CPAchecker",
-        "version": "smg_witness_for_ldv:26912",
-        "path": "addons/CPAchecker-1.6.1-svn c25a8706c8-unix",
+        "version": "trunk:27946",
+        "path": "addons/CPAchecker-1.7-svn 27946-unix",
         "executable path": "scripts"
       },
       "CPALockator": {
