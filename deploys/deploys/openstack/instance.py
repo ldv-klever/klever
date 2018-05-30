@@ -19,7 +19,6 @@ import errno
 import os
 import sys
 import time
-import traceback
 
 from Crypto.PublicKey import RSA
 import novaclient
@@ -27,7 +26,7 @@ import novaclient
 from deploys.utils import get_password
 
 
-class OSInstanceCreationTimeout(RuntimeError):
+class OSCreationTimeout(RuntimeError):
     pass
 
 
@@ -132,17 +131,15 @@ class OSInstance:
                         time.sleep(self.CREATION_CHECK_INTERVAL)
                         instance = self.clients.nova.servers.get(instance.id)
 
-                raise OSInstanceCreationTimeout
-            except OSInstanceCreationTimeout as e:
+                raise OSCreationTimeout
+            except OSCreationTimeout:
                 if instance:
                     instance.delete()
                 attempts -= 1
-                self.logger.warning(
-                    'Could not create instance, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                self.logger.warning('Could not create instance, wait for {0} seconds and try {1} times more'
+                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
-            except Exception:
+            finally:
                 if instance:
                     instance.delete()
 
@@ -224,13 +221,11 @@ class OSInstance:
                                                  'remaining timeout is {0} seconds'.format(timeout)))
                         time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
 
-                raise OSInstanceCreationTimeout
-            except Exception as e:
+                raise OSCreationTimeout
+            except OSCreationTimeout:
                 attempts -= 1
-                self.logger.warning(
-                    'Could not create image, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                self.logger.warning('Could not create image, wait for {0} seconds and try {1} times more'
+                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
         self.logger.warning('Could not create image')
