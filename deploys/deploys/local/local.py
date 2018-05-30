@@ -28,7 +28,8 @@ from deploys.configure_controller_and_schedulers import configure_controller_and
 from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge
 from deploys.prepare_env import prepare_env
-from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs
+from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs, \
+                          need_verifiercloud_scheduler
 
 
 class Klever:
@@ -130,14 +131,13 @@ class Klever:
 
         self._pre_do_install_or_update()
 
-    def _pre_uninstall(self, services):
+    def _pre_uninstall(self, mode_services):
         self.logger.info('Stop services')
-        all_mode_services = (
-            'klever-controller',
-            'klever-native-scheduler',
-            'klever-verifiercloud-scheduler'
-        )
-        for service in list(services) + list(all_mode_services):
+        services = list(mode_services)
+        services.extend(('klever-controller', 'klever-native-scheduler'))
+        if need_verifiercloud_scheduler(self.deploy_conf):
+            services.append('klever-verifiercloud-scheduler')
+        for service in services:
             try:
                 execute_cmd(self.logger, 'service', service, 'stop')
             except subprocess.CalledProcessError:

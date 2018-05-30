@@ -19,7 +19,7 @@
 import json
 import os
 
-from deploys.utils import Cd, execute_cmd, get_logger
+from deploys.utils import Cd, execute_cmd, get_logger, need_verifiercloud_scheduler
 
 
 def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False):
@@ -56,7 +56,9 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
     logger.info('(Re)configure Klever Controller and Klever schedulers')
 
     logger.info('Stop services')
-    services = ('klever-controller', 'klever-native-scheduler', 'klever-verifiercloud-scheduler')
+    services = ['klever-controller', 'klever-native-scheduler']
+    if need_verifiercloud_scheduler(prev_deploy_info):
+        services.append('klever-verifiercloud-scheduler')
     for service in services:
         execute_cmd(logger, 'service', service, 'stop')
 
@@ -121,23 +123,24 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
         with open('klever-conf/native-scheduler-job-client.json', 'w') as fp:
             json.dump(job_client_conf, fp, sort_keys=True, indent=4)
 
-        logger.info('Configure Klever VerifierCloud Scheduler')
-        with open('klever/scheduler/conf/verifiercloud-scheduler.json') as fp:
-            verifiercloud_scheduler_conf = json.load(fp)
+        if need_verifiercloud_scheduler(prev_deploy_info):
+            logger.info('Configure Klever VerifierCloud Scheduler')
+            with open('klever/scheduler/conf/verifiercloud-scheduler.json') as fp:
+                verifiercloud_scheduler_conf = json.load(fp)
 
-        verifiercloud_scheduler_conf['common']['working directory'] = \
-            os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
+            verifiercloud_scheduler_conf['common']['working directory'] = \
+                os.path.join(deploy_dir_abs, 'klever-work/verifiercloud-scheduler')
 
-        verifiercloud_scheduler_conf['Klever Bridge'].update({
-            'user': 'service',
-            'password': 'service'
-        })
+            verifiercloud_scheduler_conf['Klever Bridge'].update({
+                'user': 'service',
+                'password': 'service'
+            })
 
-        verifiercloud_scheduler_conf['scheduler']['web client location'] =\
-            get_klever_addon_abs_path(prev_deploy_info, 'VerifierCloud Client')
+            verifiercloud_scheduler_conf['scheduler']['web client location'] =\
+                get_klever_addon_abs_path(prev_deploy_info, 'VerifierCloud Client')
 
-        with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
-            json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
+            with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
+                json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
     configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info)
 

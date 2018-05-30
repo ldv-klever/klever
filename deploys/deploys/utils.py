@@ -212,3 +212,11 @@ def install_programs(logger, username, deploy_dir, deploy_conf, prev_deploy_info
                 cmd_fn(logger, 'chown', '-LR', username, deploy_dir)
 
     return is_update_programs
+
+
+def need_verifiercloud_scheduler(deploy_conf):
+    if 'Klever Addons' in deploy_conf:
+        if 'VerifierCloud Client' in deploy_conf['Klever Addons']:
+            return True
+
+    return False
