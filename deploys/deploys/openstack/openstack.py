@@ -379,7 +379,7 @@ class OSKleverDeveloperInstance(OSEntity):
                 dump_cur_deploy_info()
 
         if is_update['Klever']:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py --mode OpenStack')
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py')
 
         cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py --mode OpenStack'
         if is_update['Klever'] or is_update['Controller & Schedulers']:

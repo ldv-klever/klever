@@ -26,7 +26,7 @@ import sys
 from deploys.configure_controller_and_schedulers import configure_controller_and_schedulers, \
                                                         configure_native_scheduler_task_worker
 from deploys.install_deps import install_deps
-from deploys.install_klever_bridge import install_klever_bridge
+from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
 from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs, \
                           need_verifiercloud_scheduler
@@ -184,9 +184,6 @@ class Klever:
             shutil.rmtree(klever_bridge_dir)
 
     def _post_do_install_or_update(self):
-        if self.is_update['Klever']:
-            install_klever_bridge(self.logger, self.args.mode, self.args.deployment_directory)
-
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
             configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
                                                 self.prev_deploy_info)
@@ -215,10 +212,14 @@ class KleverDevelopment(Klever):
     def install(self):
         self._pre_install()
         self._install()
+        if self.is_update['Klever']:
+            install_klever_bridge_development(self.logger, self.args.deployment_directory)
         self._post_install()
 
     def update(self):
         self._pre_update()
+        if self.is_update['Klever']:
+            install_klever_bridge_development(self.logger, self.args.deployment_directory)
         self._post_update()
 
     def uninstall(self):
@@ -233,10 +234,14 @@ class KleverProduction(Klever):
     def install(self):
         self._pre_install()
         self._install()
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
         self._post_install()
 
     def update(self):
         self._pre_update()
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
         self._post_update()
 
     def uninstall(self):
@@ -255,10 +260,14 @@ class KleverTesting(Klever):
     def install(self):
         self._pre_install()
         self._install()
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
         self._post_install()
 
     def update(self):
         self._pre_update()
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
         self._post_update()
 
     def uninstall(self):
