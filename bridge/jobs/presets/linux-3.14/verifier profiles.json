@@ -75,7 +75,7 @@
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator:25964": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator:26692": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
       "CPAchecker": {"trunk:27946": {"inherit": "CPAchecker SMG memory checking"}}
