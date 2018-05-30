@@ -23,7 +23,7 @@ import shutil
 from deploys.utils import Cd, execute_cmd, get_logger
 
 
-def install_klever_bridge(logger, action, mode, deploy_dir):
+def install_klever_bridge(logger, mode, deploy_dir):
     logger.info('(Re)install Klever Bridge')
 
     services = ('klever-bridge-development',) if mode == 'development' else ('nginx', 'klever-bridge')
@@ -36,8 +36,7 @@ def install_klever_bridge(logger, action, mode, deploy_dir):
     media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
 
     if mode == 'development':
-        if action == 'install':
-            media = os.path.join(deploy_dir, 'klever/bridge/media')
+        media = os.path.join(deploy_dir, 'klever/bridge/media')
     else:
         logger.info('Copy Klever Bridge configuration file for NGINX')
         shutil.copy(os.path.join(deploy_dir, 'klever/bridge/conf/debian-nginx'),
@@ -96,12 +95,11 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--action', required=True)
     parser.add_argument('--mode', required=True)
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    install_klever_bridge(get_logger(__name__), args.action, args.mode, args.deployment_directory)
+    install_klever_bridge(get_logger(__name__), args.mode, args.deployment_directory)
 
 
 if __name__ == '__main__':

@@ -185,7 +185,7 @@ class Klever:
 
     def _post_do_install_or_update(self):
         if self.is_update['Klever']:
-            install_klever_bridge(self.logger, self.args.action, self.args.mode, self.args.deployment_directory)
+            install_klever_bridge(self.logger, self.args.mode, self.args.deployment_directory)
 
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
             configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
