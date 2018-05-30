@@ -16,6 +16,7 @@
 #
 
 import argparse
+import errno
 import logging
 import os
 import sys
@@ -64,4 +65,5 @@ def main():
     elif args.mode == 'testing':
         getattr(KleverTesting(args, logger), args.action)()
     else:
-        raise NotImplementedError('Mode "{0}" is not supported'.format(args.mode))
+        logger.warning('Mode "{0}" is not supported'.format(args.mode))
+        return errno.ENOSYS

@@ -61,12 +61,12 @@ class OSInstance:
         try:
             flavor = self.clients.nova.flavors.find(name=self.flavor_name)
         except novaclient.exceptions.NotFound:
-            self.logger.info(
+            self.logger.warning(
                 'You can use one of the following flavors:\n{0}'.format(
                     '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
                                for flavor in self.clients.nova.flavors.list()])))
-            raise
+            sys.exit(errno.EINVAL)
 
         self._setup_keypair()
 
@@ -92,7 +92,9 @@ class OSInstance:
                                 network_id = net['id']
 
                         if not network_id:
-                            raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
+                            self.logger.warning(
+                                'OpenStack does not have network with "{}" name'.format(network_name))
+                            sys.exit(errno.EINVAL)
 
                         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
                             if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
@@ -144,7 +146,8 @@ class OSInstance:
                 if instance:
                     instance.delete()
 
-        raise RuntimeError('Could not create instance')
+        self.logger.warning('Could not create instance')
+        sys.exit(errno.EPERM)
 
     def _setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file
@@ -230,7 +233,8 @@ class OSInstance:
                             '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
-        raise RuntimeError('Could not create image')
+        self.logger.warning('Could not create image')
+        sys.exit(errno.EPERM)
 
     def remove(self):
         if self.instance:

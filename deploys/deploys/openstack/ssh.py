@@ -38,8 +38,9 @@ class SSH:
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            raise ValueError('Please specify path to SSH RSA private key file with help of command-line option' +
-                             ' --ssh-rsa-private-key-file')
+            self.logger.warning('Please specify path to SSH RSA private key file with help of command-line option' +
+                                ' --ssh-rsa-private-key-file')
+            sys.exit(errno.EINVAL)
 
         self.args = args
         self.logger = logger
@@ -86,7 +87,8 @@ class SSH:
                     .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CONNECTION_RECOVERY_INTERVAL)
 
-        raise RuntimeError('Could not open SSH session')
+        self.logger.warning('Could not open SSH session')
+        sys.exit(errno.EPERM)
 
     def __exit__(self, etype, value, traceback):
         if self.open_sftp:
@@ -126,7 +128,8 @@ class SSH:
         retcode = chan.recv_exit_status()
 
         if retcode:
-            raise RuntimeError('Command exitted with {0}'.format(retcode))
+            self.logger.warning('Command exitted with {0}'.format(retcode))
+            sys.exit(errno.EPERM)
 
     def open_shell(self):
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))

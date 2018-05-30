@@ -16,10 +16,12 @@
 # limitations under the License.
 #
 
+import errno
 import json
 import os
 import shutil
 import subprocess
+import sys
 
 from deploys.configure_controller_and_schedulers import configure_controller_and_schedulers, \
                                                         configure_native_scheduler_task_worker
@@ -27,10 +29,6 @@ from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge
 from deploys.prepare_env import prepare_env
 from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs
-
-
-class NotImplementedKleverMode(NotImplementedError):
-    pass
 
 
 class Klever:
@@ -55,7 +53,8 @@ class Klever:
             self.prev_deploy_info = {}
 
     def __getattr__(self, name):
-        raise NotImplementedKleverMode('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
+        self.logger.warning('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
+        sys.exit(errno.ENOSYS)
 
     def _dump_cur_deploy_info(self):
         with open(self.prev_deploy_info_file, 'w') as fp:
@@ -110,11 +109,13 @@ class Klever:
 
     def _pre_install(self):
         if os.path.exists(self.args.deployment_directory):
-            raise ValueError('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
+            self.logger.warning('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
+            sys.exit(errno.ENOTEMPTY)
 
         if self.prev_deploy_info:
-            raise ValueError(
+            self.logger.warning(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
+            sys.exit(errno.EINVAL)
 
         self.logger.info('Create deployment directory')
         os.makedirs(self.args.deployment_directory)
@@ -123,8 +124,9 @@ class Klever:
 
     def _pre_update(self):
         if not self.prev_deploy_info:
-            raise ValueError('There is not information on previous deployment ({0})'
-                             .format('perhaps you try to update Klever without previous installation'))
+            self.logger.warning('There is not information on previous deployment ({0})'
+                                .format('perhaps you try to update Klever without previous installation'))
+            sys.exit(errno.EINVAL)
 
         self._pre_do_install_or_update()
 
