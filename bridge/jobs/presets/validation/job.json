@@ -24,15 +24,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "specifications set": "Linux 3.5",
-      "rule specifications": ["linux:fs:char_dev"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "60b35930067d~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
@@ -106,15 +97,6 @@
       },
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "specifications set": "Linux 3.5",
-      "rule specifications": ["linux:fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
@@ -524,6 +506,26 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    }
+  ],
+  "Staging rules": [
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38~"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:fs:char_dev"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ],

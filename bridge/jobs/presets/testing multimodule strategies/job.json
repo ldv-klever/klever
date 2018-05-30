@@ -1,5 +1,4 @@
 {
-  "Class": "Verification of Linux kernel modules",
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
