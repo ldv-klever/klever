@@ -107,7 +107,7 @@ class Session:
                 else:
                     return resp
             except requests.ConnectionError as err:
-                logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+                logging.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
                     time.sleep(1)
                 else:
@@ -208,5 +208,5 @@ class Session:
         :return: Nothing
         """
         logging.info('Finish session at {}'.format(self.name))
-        self.__request('users/service_signout/', looping=False)
+        self.__request('users/service_signout/', looping=True)
 
