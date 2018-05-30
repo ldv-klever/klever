@@ -67,6 +67,11 @@ case "$1" in
         ;;
     stop)
         log_daemon_msg "Stopping $DESC"
+        # Django development server starts child process that actually serves as server to support automatic reloading.
+        # We need to stop this child process. After taht Django development server terminates.
+        ppid=`cat ${PIDFILE}`
+        pid=`pgrep -P ${ppid}`
+        echo ${pid} > ${PIDFILE}
         start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
         log_end_msg $?
         rm -f ${PIDFILE}
