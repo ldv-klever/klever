@@ -53,7 +53,7 @@ class Klever:
             self.prev_deploy_info = {}
 
     def __getattr__(self, name):
-        self.logger.warning('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
+        self.logger.error('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
         sys.exit(errno.ENOSYS)
 
     def _dump_cur_deploy_info(self):
@@ -109,11 +109,11 @@ class Klever:
 
     def _pre_install(self):
         if os.path.exists(self.args.deployment_directory):
-            self.logger.warning('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
+            self.logger.error('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
             sys.exit(errno.ENOTEMPTY)
 
         if self.prev_deploy_info:
-            self.logger.warning(
+            self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
 
@@ -124,8 +124,8 @@ class Klever:
 
     def _pre_update(self):
         if not self.prev_deploy_info:
-            self.logger.warning('There is not information on previous deployment ({0})'
-                                .format('perhaps you try to update Klever without previous installation'))
+            self.logger.error('There is not information on previous deployment ({0})'
+                              .format('perhaps you try to update Klever without previous installation'))
             sys.exit(errno.EINVAL)
 
         self._pre_do_install_or_update()

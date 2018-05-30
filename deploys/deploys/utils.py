@@ -84,26 +84,26 @@ def get_password(logger, prompt):
 
 def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     if name not in deploy_conf:
-        logger.warning('Entity "{0}" is not described'.format(name))
+        logger.error('Entity "{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
 
     desc = deploy_conf[name]
 
     if 'version' not in desc:
-        logger.warning('Version is not specified for entity "{0}"'.format(name))
+        logger.error('Version is not specified for entity "{0}"'.format(name))
         sys.exit(errno.EINVAL)
 
     version = desc['version']
 
     if 'path' not in desc:
-        logger.warning('Path is not specified for entity "{0}"'.format(name))
+        logger.error('Path is not specified for entity "{0}"'.format(name))
         sys.exit(errno.EINVAL)
 
     path = desc['path'] if os.path.isabs(desc['path']) \
         else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, desc['path'])
 
     if not os.path.exists(path):
-        logger.warning('Path "{0}" does not exist'.format(path))
+        logger.error('Path "{0}" does not exist'.format(path))
         sys.exit(errno.ENOENT)
 
     is_git_repo = False
@@ -145,7 +145,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
     elif os.path.isfile(path) or os.path.isdir(path):
         install_fn(logger, path, deploy_dir)
     else:
-        logger.warning('Could not install extra dependency or program since it is provided in the unsupported format')
+        logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
         sys.exit(errno.ENOSYS)
 
     # Remember what extra dependencies were installed just if everything went well.

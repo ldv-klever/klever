@@ -60,7 +60,7 @@ class OSEntity:
         self.clients = self._connect()
 
     def __getattr__(self, name):
-        self.logger.warning('You can not {0} "{1}"'.format(name, self.kind))
+        self.logger.error('You can not {0} "{1}"'.format(name, self.kind))
         sys.exit(errno.ENOSYS)
 
     def _connect(self):
@@ -95,12 +95,12 @@ class OSEntity:
         base_images = self._get_images(base_image_name)
 
         if len(base_images) == 0:
-            self.logger.warning('There are no base images matching "{0}"'.format(base_image_name))
+            self.logger.error('There are no base images matching "{0}"'.format(base_image_name))
             sys.exit(errno.EINVAL)
 
         if len(base_images) > 1:
-            self.logger.warning('There are several base images matching "{0}", please, resolve this conflict manually'
-                                .format(base_image_name))
+            self.logger.error('There are several base images matching "{0}", please, resolve this conflict manually'
+                              .format(base_image_name))
             sys.exit(errno.EINVAL)
 
         return base_images[0]
@@ -120,12 +120,12 @@ class OSEntity:
         instances = self._get_instances(instance_name)
 
         if len(instances) == 0:
-            self.logger.warning('There are no intances matching "{0}"'.format(instance_name))
+            self.logger.error('There are no intances matching "{0}"'.format(instance_name))
             sys.exit(errno.EINVAL)
 
         if len(instances) > 1:
-            self.logger.warning('There are several instances matching "{0}", please, resolve this conflict manually'
-                                .format(instance_name))
+            self.logger.error('There are several instances matching "{0}", please, resolve this conflict manually'
+                              .format(instance_name))
             sys.exit(errno.EINVAL)
 
         return instances[0]
@@ -143,7 +143,7 @@ class OSEntity:
                 break
 
         if not floating_ip:
-            self.logger.warning('There are no floating IPs, please, resolve this manually')
+            self.logger.error('There are no floating IPs, please, resolve this manually')
             sys.exit(errno.EINVAL)
 
         return floating_ip
@@ -211,7 +211,7 @@ class OSKleverBaseImage(OSEntity):
         base_image = self._get_base_image(self.args.base_image)
 
         if len(klever_base_images) > 1:
-            self.logger.warning(
+            self.logger.error(
                 'There are several Klever base images matching "{0}", please, rename the appropriate ones manually'
                 .format(klever_base_image_name))
             sys.exit(errno.EINVAL)
@@ -248,11 +248,11 @@ class OSKleverBaseImage(OSEntity):
         klever_base_images = self._get_images(klever_base_image_name)
 
         if len(klever_base_images) == 0:
-            self.logger.warning('There are no Klever base images matching "{0}"'.format(klever_base_image_name))
+            self.logger.error('There are no Klever base images matching "{0}"'.format(klever_base_image_name))
             sys.exit(errno.EINVAL)
 
         if len(klever_base_images) > 1:
-            self.logger.warning(
+            self.logger.error(
                 'There are several Klever base images matching "{0}", please, remove the appropriate ones manually'
                 .format(self.name))
             sys.exit(errno.EINVAL)
@@ -289,7 +289,7 @@ class OSKleverDeveloperInstance(OSEntity):
         klever_developer_instances = self._get_instances(self.name)
 
         if klever_developer_instances:
-            self.logger.warning('Klever developer instance matching "{0}" already exists'.format(self.name))
+            self.logger.error('Klever developer instance matching "{0}" already exists'.format(self.name))
             sys.exit(errno.EINVAL)
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
@@ -471,7 +471,7 @@ class OSKleverDeveloperInstance(OSEntity):
             if net['name'] == network_name:
                 return net['id']
 
-        self.logger.warning('OpenStack does not have network with "{}" name'.format(network_name))
+        self.logger.error('OpenStack does not have network with "{}" name'.format(network_name))
         sys.exit(errno.EINVAL)
 
 
@@ -500,8 +500,8 @@ class OSKleverExperimentalInstances(OSEntity):
 
     def create(self):
         if not self.args.instances:
-            self.logger.warning('Please specify the number of new Klever experimental instances with help of' +
-                                ' command-line option --instances')
+            self.logger.error('Please specify the number of new Klever experimental instances with help of' +
+                              ' command-line option --instances')
             sys.exit(errno.EINVAL)
 
         self.logger.info(
@@ -544,7 +544,7 @@ class OSKleverExperimentalInstances(OSEntity):
         klever_experimental_instances = self._get_instances(self.name_pattern)
 
         if len(klever_experimental_instances) == 0:
-            self.logger.warning('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
+            self.logger.error('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
             sys.exit(errno.EINVAL)
 
         for klever_experimental_instance in klever_experimental_instances:
@@ -567,5 +567,5 @@ def execute_os_entity_action(args, logger):
     elif args.entity == 'Klever experimental instances':
         getattr(OSKleverExperimentalInstances(args, logger), args.action)()
     else:
-        logger.warning('Entity "{0}" is not supported'.format(args.entity))
+        logger.error('Entity "{0}" is not supported'.format(args.entity))
         return errno.ENOSYS

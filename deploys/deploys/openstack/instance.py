@@ -60,7 +60,7 @@ class OSInstance:
         try:
             flavor = self.clients.nova.flavors.find(name=self.flavor_name)
         except novaclient.exceptions.NotFound:
-            self.logger.warning(
+            self.logger.error(
                 'You can use one of the following flavors:\n{0}'.format(
                     '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
@@ -91,8 +91,7 @@ class OSInstance:
                                 network_id = net['id']
 
                         if not network_id:
-                            self.logger.warning(
-                                'OpenStack does not have network with "{}" name'.format(network_name))
+                            self.logger.error('OpenStack does not have network with "{}" name'.format(network_name))
                             sys.exit(errno.EINVAL)
 
                         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
@@ -143,7 +142,7 @@ class OSInstance:
                 if instance:
                     instance.delete()
 
-        self.logger.warning('Could not create instance')
+        self.logger.error('Could not create instance')
         sys.exit(errno.EPERM)
 
     def _setup_keypair(self):
@@ -228,7 +227,7 @@ class OSInstance:
                                     .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
-        self.logger.warning('Could not create image')
+        self.logger.error('Could not create image')
         sys.exit(errno.EPERM)
 
     def remove(self):
