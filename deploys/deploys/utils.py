@@ -109,10 +109,11 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
     is_git_repo = False
 
-    # Use commit hash to uniquely identify entity version if it is provided as Git repository.
     if os.path.isdir(path) and os.path.isdir(os.path.join(path, '.git')):
         is_git_repo = True
-        version = execute_cmd(logger, 'git', '-C', path, 'rev-list', '-n', '1', version, get_output=True).rstrip()
+        if version != 'CURRENT':
+            # Use commit hash to uniquely identify entity version if it is provided as Git repository.
+            version = execute_cmd(logger, 'git', '-C', path, 'rev-list', '-n', '1', version, get_output=True).rstrip()
 
     prev_version = prev_deploy_info[name]['version'] if name in prev_deploy_info else None
 
@@ -130,17 +131,20 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         cmd_fn('rm', '-rf', deploy_dir)
 
     if is_git_repo:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(path)))
-            execute_cmd(logger, 'git', 'clone', '-q', path, tmp_path)
-            execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
-            # Remember actual Klever Core version since this won't be able after removing ".git" below.
-            if name == 'Klever':
-                with Cd(os.path.join(tmp_path, 'core')):
-                    execute_cmd(logger, './setup.py', 'egg_info')
-            # Directory .git can be quite large but one won't need it, so, remove it before installing.
-            shutil.rmtree(os.path.join(tmp_path, '.git'))
-            install_fn(tmp_path, deploy_dir)
+        if version == 'CURRENT':
+            install_fn(path, deploy_dir, allow_symlink=True)
+        else:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmp_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(path)))
+                execute_cmd(logger, 'git', 'clone', '-q', path, tmp_path)
+                execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
+                # Remember actual Klever Core version since this won't be able after removing ".git" below.
+                if name == 'Klever':
+                    with Cd(os.path.join(tmp_path, 'core')):
+                        execute_cmd(logger, './setup.py', 'egg_info')
+                # Directory .git can be quite large but one won't need it, so, remove it before installing.
+                shutil.rmtree(os.path.join(tmp_path, '.git'))
+                install_fn(tmp_path, deploy_dir)
     elif os.path.isfile(path) and tarfile.is_tarfile(path):
         archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
         install_fn(path, archive)
