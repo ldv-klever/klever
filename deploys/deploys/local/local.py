@@ -143,6 +143,15 @@ class Klever:
 
         stop_services(self.logger, services, ignore_errors=True)
 
+        self.logger.info('Uninstall init.d scripts')
+        for dirpath, _, filenames in os.walk('/etc/init.d'):
+            for filename in filenames:
+                if filename.startswith('klever'):
+                    execute_cmd(self.logger, 'update-rc.d', filename, 'disable')
+                    os.unlink(os.path.join('/etc/init.d', filename))
+        if os.path.exists('/etc/default/klever'):
+            os.unlink('/etc/default/klever')
+
         if os.path.exists(self.args.deployment_directory):
             self.logger.info('Remove deployment directory')
             shutil.rmtree(self.args.deployment_directory)
