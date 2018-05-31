@@ -20,7 +20,6 @@ import errno
 import json
 import os
 import shutil
-import subprocess
 import sys
 
 from deploys.configure_controller_and_schedulers import configure_controller_and_schedulers, \
@@ -60,9 +59,6 @@ class Klever:
     def _dump_cur_deploy_info(self):
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
-
-    def _get_production_services(self):
-        return 'nginx', 'klever-bridge'
 
     def _pre_do_install_or_update(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
@@ -124,6 +120,19 @@ class Klever:
         self.logger.info('Create deployment directory')
         os.makedirs(self.args.deployment_directory)
 
+        self.logger.info('Install init.d scripts')
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
+                                                          'init.d')):
+            for filename in filenames:
+                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
+                execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
+
+        with open('/etc/default/klever', 'w') as fp:
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
+                     .format(os.path.realpath(self.args.deployment_directory), self.args.username))
+
+        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory)
+
         self._pre_do_install_or_update()
 
     def _pre_update(self):
@@ -164,32 +173,15 @@ class Klever:
 
         # Do not remove user since this can result in bad consequences.
 
-    def _install(self):
-        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory)
+    def _install_or_update_production(self):
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
 
-        self.logger.info('Install init.d scripts')
-        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
-                                                          'init.d')):
-            for filename in filenames:
-                shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
-                execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
+    def _install_or_update_development(self):
+        if self.is_update['Klever']:
+            install_klever_bridge_development(self.logger, self.args.deployment_directory)
 
-        with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
-                     .format(os.path.realpath(self.args.deployment_directory), self.args.username))
-
-    def _uninstall_production(self):
-        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
-        if os.path.exists(nginx_klever_bridge_conf_file):
-            self.logger.info('Remove Klever Bridge configuration file for NGINX')
-            os.remove(nginx_klever_bridge_conf_file)
-
-        klever_bridge_dir = '/var/www/klever-bridge'
-        if os.path.exists(klever_bridge_dir):
-            self.logger.info('Remove Klever Bridge source/binary code')
-            shutil.rmtree(klever_bridge_dir)
-
-    def _post_do_install_or_update(self):
+    def _post_install_or_update(self):
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
             configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
                                                 self.prev_deploy_info)
@@ -201,15 +193,6 @@ class Klever:
             configure_native_scheduler_task_worker(self.logger, self.args.mode, self.args.deployment_directory,
                                                    self.prev_deploy_info)
 
-    def _post_install(self):
-        self._post_do_install_or_update()
-
-    def _post_update(self):
-        self._post_do_install_or_update()
-
-    def _post_uninstall(self):
-        pass
-
 
 class KleverDevelopment(Klever):
     def __init__(self, args, logger):
@@ -217,20 +200,16 @@ class KleverDevelopment(Klever):
 
     def install(self):
         self._pre_install()
-        self._install()
-        if self.is_update['Klever']:
-            install_klever_bridge_development(self.logger, self.args.deployment_directory)
-        self._post_install()
+        self._install_or_update_development()
+        self._post_install_or_update()
 
     def update(self):
         self._pre_update()
-        if self.is_update['Klever']:
-            install_klever_bridge_development(self.logger, self.args.deployment_directory)
-        self._post_update()
+        self._install_or_update_development()
+        self._post_install_or_update()
 
     def uninstall(self):
         self._pre_uninstall(('klever-bridge-development',))
-        self._post_uninstall()
 
 
 class KleverProduction(Klever):
@@ -239,44 +218,31 @@ class KleverProduction(Klever):
 
     def install(self):
         self._pre_install()
-        self._install()
-        if self.is_update['Klever']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
-        self._post_install()
+        self._install_or_update_production()
+        self._post_install_or_update()
 
     def update(self):
         self._pre_update()
-        if self.is_update['Klever']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
-        self._post_update()
+        self._install_or_update_production()
+        self._post_install_or_update()
 
     def uninstall(self):
-        self._pre_uninstall(self._get_production_services())
-        self._uninstall_production()
-        self._post_uninstall()
+        self._pre_uninstall(('nginx', 'klever-bridge'))
+
+        nginx_klever_bridge_conf_file = '/etc/nginx/sites-enabled/klever-bridge'
+        if os.path.exists(nginx_klever_bridge_conf_file):
+            self.logger.info('Remove Klever Bridge configuration file for NGINX')
+            os.remove(nginx_klever_bridge_conf_file)
+
+        klever_bridge_dir = '/var/www/klever-bridge'
+        if os.path.exists(klever_bridge_dir):
+            self.logger.info('Remove Klever Bridge source/binary code')
+            shutil.rmtree(klever_bridge_dir)
 
 
-class KleverTesting(Klever):
+class KleverTesting(KleverProduction):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
         # Always install/update Klever for testing non-interactively.
         args.non_interactive = False
-
-    def install(self):
-        self._pre_install()
-        self._install()
-        if self.is_update['Klever']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
-        self._post_install()
-
-    def update(self):
-        self._pre_update()
-        if self.is_update['Klever']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
-        self._post_update()
-
-    def uninstall(self):
-        self._pre_uninstall(self._get_production_services())
-        self._uninstall_production()
-        self._post_uninstall()
