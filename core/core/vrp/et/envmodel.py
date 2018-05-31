@@ -157,6 +157,11 @@ def _set_main(data, main, error_trace):
         return
 
     for edge in error_trace.trace_iterator():
+        if edge.get("source", "") == "Begin program execution":
+            edge["file"] = data['file']
+            edge["line"] = data['begin'] - 1
+            return
+
         if _inside_this_control_function(data, edge['file'], edge['start line']):
             # Got it!
             if edge["file"] != data['file']:
