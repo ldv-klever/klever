@@ -918,6 +918,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     declaration = 'void f(void *data)'
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
 
+            cf.control_function = True
             self._control_functions[automaton.identifier] = cf
 
         return self._control_functions[automaton.identifier]
