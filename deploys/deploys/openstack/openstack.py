@@ -314,7 +314,7 @@ class OSKleverDeveloperInstance(OSEntity):
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever developer instance'):
-                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --mode OpenStack --username klever')
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --username klever')
                     self._do_update(ssh, deps=False)
 
                 # Preserve instance if everything above went well.

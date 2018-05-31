@@ -55,11 +55,14 @@ def install_klever_bridge_development(logger, deploy_dir):
     services = ('klever-bridge-development',)
     stop_services(logger, services)
 
-    logger.info('Prepare media directory')
-    media = os.path.join(deploy_dir, 'klever/bridge/media')
-    media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
-    shutil.rmtree(media)
-    execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
+    # Do not overwrite directory "media" from sumbolically linked Git repository. Otherwise it will notice changes.
+    if not os.path.islink(os.path.join(deploy_dir, 'klever')):
+        logger.info('Prepare media directory')
+        media = os.path.join(deploy_dir, 'klever/bridge/media')
+        media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
+        shutil.rmtree(media)
+        execute_cmd(logger, 'mkdir', '-p', media_real)
+        execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
 
     with Cd(os.path.join(deploy_dir, 'klever/bridge')):
         with open('bridge/settings.py', 'w') as fp:
@@ -88,6 +91,7 @@ def install_klever_bridge_production(logger, deploy_dir):
     media = '/var/www/klever-bridge/media'
     media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
     shutil.rmtree(media)
+    execute_cmd(logger, 'mkdir', '-p', media_real)
     execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
 
     with Cd('/var/www/klever-bridge'):

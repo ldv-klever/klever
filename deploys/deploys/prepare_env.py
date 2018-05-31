@@ -23,7 +23,7 @@ import pwd
 from deploys.utils import execute_cmd, get_logger
 
 
-def prepare_env(logger, mode, username, deploy_dir):
+def prepare_env(logger, username, deploy_dir):
     try:
         pwd.getpwnam(username)
     except KeyError:
@@ -59,24 +59,16 @@ def prepare_env(logger, mode, username, deploy_dir):
     logger.info('Create PostgreSQL database')
     execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')
 
-    logger.info('Prepare Klever Bridge media directory')
-    media = os.path.join(deploy_dir, 'media')
-    execute_cmd(logger, 'mkdir', media)
-
-    if mode != 'development':
-        execute_cmd(logger, 'chown', '-R', 'www-data:www-data', media)
-
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', required=True)
     parser.add_argument('--username', required=True)
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    prepare_env(get_logger(__name__), args.mode, args.username, args.deployment_directory)
+    prepare_env(get_logger(__name__), args.username, args.deployment_directory)
 
 
 if __name__ == '__main__':

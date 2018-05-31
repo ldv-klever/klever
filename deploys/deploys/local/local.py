@@ -131,7 +131,7 @@ class Klever:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
                      .format(os.path.realpath(self.args.deployment_directory), self.args.username))
 
-        prepare_env(self.logger, self.args.mode, self.args.username, self.args.deployment_directory)
+        prepare_env(self.logger, self.args.username, self.args.deployment_directory)
 
         self._pre_do_install_or_update()
 
