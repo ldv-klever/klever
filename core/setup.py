@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #
 # Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
