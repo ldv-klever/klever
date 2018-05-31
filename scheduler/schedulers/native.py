@@ -115,12 +115,13 @@ class Scheduler(schedulers.SchedulerExchange):
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
                 data = utils.extract_cpu_cores_info()
-                # Evaluate as a number of virtual cores
-                max_processes = int(max_processes * sum((len(data[a]) for a in data)))
+                # Evaluate as a number of virtual cores. Allow 2 processes at least that hits when there is the only
+                # CPU core.
+                max_processes = max(2, int(max_processes * sum((len(data[a]) for a in data))))
         else:
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
-                max_processes = int(max_processes * self._cpu_cores)
+                max_processes = max(2, int(max_processes * self._cpu_cores))
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
