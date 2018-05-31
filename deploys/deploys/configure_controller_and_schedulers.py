@@ -29,14 +29,14 @@ def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False
                                         klever_addon_desc.get('executable path', '')))
 
 
-def configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info):
+def configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info):
     logger.info('Configure Klever Native Scheduler Task Worker')
 
     with Cd(deploy_dir):
         with open('klever/scheduler/conf/task-client.json') as fp:
             task_client_conf = json.load(fp)
 
-        if mode == 'development':
+        if development:
             task_client_conf['common']['keep working directory'] = True
 
         task_client_conf['client']['benchexec location'] = get_klever_addon_abs_path(prev_deploy_info, 'BenchExec')
@@ -52,7 +52,7 @@ def configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy
             json.dump(task_client_conf, fp, sort_keys=True, indent=4)
 
 
-def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_info):
+def configure_controller_and_schedulers(logger, development, deploy_dir, prev_deploy_info):
     logger.info('(Re)configure Klever Controller and Klever schedulers')
 
     services = ['klever-controller', 'klever-native-scheduler']
@@ -85,7 +85,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
 
         native_scheduler_conf['common']['working directory'] = os.path.join(deploy_dir_abs,
                                                                             'klever-work/native-scheduler')
-        if mode == 'development':
+        if development:
             native_scheduler_conf['common']['keep working directory'] = True
 
         native_scheduler_conf['Klever Bridge'].update({
@@ -99,7 +99,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
             'task client configuration': os.path.abspath('klever-conf/native-scheduler-task-client.json')
         })
 
-        if mode == 'development':
+        if development:
             native_scheduler_conf['scheduler']['keep working directory'] = True
 
         with open('klever-conf/native-scheduler.json', 'w') as fp:
@@ -109,7 +109,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
         with open('klever/scheduler/conf/job-client.json') as fp:
             job_client_conf = json.load(fp)
 
-        if mode == 'development':
+        if development:
             job_client_conf['common']['keep working directory'] = True
 
         job_client_conf['client'] = {
@@ -140,7 +140,7 @@ def configure_controller_and_schedulers(logger, mode, deploy_dir, prev_deploy_in
             with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
                 json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(logger, mode, deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info)
 
     start_services(logger, services)
 
@@ -149,7 +149,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', required=True)
+    parser.add_argument('--development', default=False, action='store_true')
     parser.add_argument('--deployment-directory', default='klever-inst')
     parser.add_argument('--just-native-scheduler-task-worker', default=False, action='store_true')
     args = parser.parse_args()
@@ -158,10 +158,10 @@ def main():
         prev_deploy_info = json.load(fp)
 
     if args.just_native_scheduler_task_worker:
-        configure_native_scheduler_task_worker(get_logger(__name__), args.mode, args.deployment_directory,
+        configure_native_scheduler_task_worker(get_logger(__name__), args.development, args.deployment_directory,
                                                prev_deploy_info)
     else:
-        configure_controller_and_schedulers(get_logger(__name__), args.mode, args.deployment_directory,
+        configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
                                             prev_deploy_info)
 
 
