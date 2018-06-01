@@ -173,14 +173,6 @@ class Klever:
 
         # Do not remove user since this can result in bad consequences.
 
-    def _install_or_update_production(self):
-        if self.is_update['Klever']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
-
-    def _install_or_update_development(self):
-        if self.is_update['Klever']:
-            install_klever_bridge_development(self.logger, self.args.deployment_directory)
-
     def _post_install_or_update(self):
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
             configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
@@ -198,14 +190,18 @@ class KleverDevelopment(Klever):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+    def _install_or_update(self):
+        if self.is_update['Klever']:
+            install_klever_bridge_development(self.logger, self.args.deployment_directory)
+
     def install(self):
         self._pre_install()
-        self._install_or_update_development()
+        self._install_or_update()
         self._post_install_or_update()
 
     def update(self):
         self._pre_update()
-        self._install_or_update_development()
+        self._install_or_update()
         self._post_install_or_update()
 
     def uninstall(self):
@@ -216,14 +212,18 @@ class KleverProduction(Klever):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+    def _install_or_update(self):
+        if self.is_update['Klever']:
+            install_klever_bridge_production(self.logger, self.args.deployment_directory)
+
     def install(self):
         self._pre_install()
-        self._install_or_update_production()
+        self._install_or_update()
         self._post_install_or_update()
 
     def update(self):
         self._pre_update()
-        self._install_or_update_production()
+        self._install_or_update()
         self._post_install_or_update()
 
     def uninstall(self):
