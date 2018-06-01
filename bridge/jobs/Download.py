@@ -24,17 +24,18 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import datetime, pytz
 
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
-from bridge.utils import logger, file_get_or_create, BridgeException
+from bridge.utils import logger, file_get_or_create, unique_id, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile
+    Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile, ErrorTraceSource
 from service.models import SolvingProgress, JobProgress, Scheduler
 from jobs.utils import create_job, update_job, change_job_status, GetConfiguration, remove_jobs_by_id
 from reports.utils import AttrData
@@ -214,25 +215,27 @@ class JobArchiveGenerator:
         return data
 
     def __add_reports_files(self):
-        for report in ReportSafe.objects.filter(root__job=self.job):
+        try:
+            root_id = ReportRoot.objects.get(job=self.job).id
+        except ObjectDoesNotExist:
+            return
+        for report in ReportSafe.objects.filter(root_id=root_id):
             if report.proof:
                 self.files_to_add.append((
                     os.path.join(settings.MEDIA_ROOT, report.proof.name),
                     os.path.join('ReportSafe', 'proof_%s.zip' % report.pk)
                 ))
-        for report in ReportUnsafe.objects.filter(root__job=self.job):
-            if report.error_trace:
-                self.files_to_add.append((
-                    os.path.join(settings.MEDIA_ROOT, report.error_trace.name),
-                    os.path.join('ReportUnsafe', 'trace_%s.zip' % report.pk)
-                ))
-        for report in ReportUnknown.objects.filter(root__job=self.job):
-            if report.problem_description:
-                self.files_to_add.append((
-                    os.path.join(settings.MEDIA_ROOT, report.problem_description.name),
-                    os.path.join('ReportUnknown', 'problem_%s.zip' % report.pk)
-                ))
-        for report in ReportComponent.objects.filter(root__job=self.job):
+        for report in ReportUnsafe.objects.filter(root_id=root_id):
+            self.files_to_add.append((
+                os.path.join(settings.MEDIA_ROOT, report.error_trace.name),
+                os.path.join('ReportUnsafe', 'trace_%s.zip' % report.pk)
+            ))
+        for report in ReportUnknown.objects.filter(root_id=root_id):
+            self.files_to_add.append((
+                os.path.join(settings.MEDIA_ROOT, report.problem_description.name),
+                os.path.join('ReportUnknown', 'problem_%s.zip' % report.pk)
+            ))
+        for report in ReportComponent.objects.filter(root_id=root_id):
             if report.log:
                 self.files_to_add.append((
                     os.path.join(settings.MEDIA_ROOT, report.log.name),
@@ -243,6 +246,11 @@ class JobArchiveGenerator:
                     os.path.join(settings.MEDIA_ROOT, report.verifier_input.name),
                     os.path.join('ReportComponent', 'verifier_input_%s.zip' % report.pk)
                 ))
+        for source in ErrorTraceSource.objects.filter(root_id=root_id):
+            self.files_to_add.append((
+                os.path.join(settings.MEDIA_ROOT, source.archive.name),
+                os.path.join('ErrorTraceSource', 'source_%s.zip' % source.id)
+            ))
 
     def __add_coverage_files(self, archives):
         for i in range(len(archives)):
@@ -380,6 +388,9 @@ class ReportsData:
         }
         if isinstance(report, ReportUnknown):
             data['component'] = report.component.name
+        elif isinstance(report, ReportUnsafe):
+            data['trace_id'] = report.trace_id
+            data['source'] = report.source_id
         return data
 
     def __reports_data(self):
@@ -562,7 +573,7 @@ class UploadJob:
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         coverage_data = json.load(fp)
                 elif rel_path == 'AttrData.zip':
-                    attr_data = open(os.path.join(dir_path, file_name), encoding='utf8')
+                    attr_data = File(open(os.path.join(dir_path, file_name), mode='rb'))
                 elif rel_path.startswith('version-'):
                     m = re.match('version-(\d+)\.json', rel_path)
                     if m is None:
@@ -579,7 +590,7 @@ class UploadJob:
                     b_dir = os.path.basename(dir_path)
                     if not rel_path.startswith(b_dir):
                         raise BridgeException(_('Unknown file in the archive: %(filename)s') % {'filename': rel_path})
-                    if b_dir in {'ReportSafe', 'ReportUnsafe', 'ReportUnknown', 'ReportComponent'}:
+                    if b_dir in {'ReportSafe', 'ReportUnsafe', 'ReportUnknown', 'ReportComponent', 'ErrorTraceSource'}:
                         m = re.match('(.*)_(\d+)\.zip', file_name)
                         if m is not None:
                             report_files[(b_dir, m.group(1), int(m.group(2)))] = os.path.join(dir_path, file_name)
@@ -875,10 +886,24 @@ class UploadReports:
 
     @transaction.atomic
     def __upload_unsafe_reports(self):
+        sources = {}
         for i in self._unsafes:
+            # Upload error trace sources if it was not uploaded for already created error traces
+            if self.data[i]['source'] not in sources:
+                source_arch_id = (ErrorTraceSource.__name__, 'source', self.data[i]['source'])
+                new_source = ErrorTraceSource(root=self.job.reportroot)
+                with open(self.files[source_arch_id], mode='rb') as fp:
+                    new_source.add_sources(REPORT_ARCHIVE['sources'], fp, True)
+                sources[self.data[i]['source']] = new_source.id
+
+            # Check if error trace identifier exists and is unique
+            if 'trace_id' not in self.data[i] or \
+                    ReportUnsafe.objects.filter(trace_id=self.data[i]['trace_id']).count() > 0:
+                self.data[i]['trace_id'] = unique_id()
+
             report = ReportUnsafe(
-                root=self.job.reportroot, identifier=self.data[i]['identifier'],
-                parent_id=self._parents[self.data[i]['parent']],
+                root=self.job.reportroot, identifier=self.data[i]['identifier'], trace_id=self.data[i]['trace_id'],
+                source_id=sources[self.data[i]['source']], parent_id=self._parents[self.data[i]['parent']],
                 cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
             )
             trace_id = (ReportUnsafe.__name__, 'trace', self.data[i]['pk'])
