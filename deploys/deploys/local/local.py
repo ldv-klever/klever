@@ -61,10 +61,6 @@ class Klever:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
     def _pre_do_install_or_update(self):
-        install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
-                     self.args.update_packages, self.args.update_python3_packages)
-        self._dump_cur_deploy_info()
-
         def cmd_fn(*args):
             execute_cmd(self.logger, *args)
 
@@ -107,6 +103,11 @@ class Klever:
             if is_update_programs:
                 self._dump_cur_deploy_info()
 
+    def _install_or_update_deps(self):
+        install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
+                     self.args.update_packages, self.args.update_python3_packages)
+        self._dump_cur_deploy_info()
+
     def _pre_install(self):
         if os.path.exists(self.args.deployment_directory):
             self.logger.error('Deployment directory "{0}" already exists'.format(self.args.deployment_directory))
@@ -131,8 +132,8 @@ class Klever:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
                      .format(os.path.realpath(self.args.deployment_directory), self.args.username))
 
+        self._install_or_update_deps()
         prepare_env(self.logger, self.args.username, self.args.deployment_directory)
-
         self._pre_do_install_or_update()
 
     def _pre_update(self):
@@ -141,6 +142,7 @@ class Klever:
                               .format('perhaps you try to update Klever without previous installation'))
             sys.exit(errno.EINVAL)
 
+        self._install_or_update_deps()
         self._pre_do_install_or_update()
 
     def _pre_uninstall(self, mode_services):
@@ -165,6 +167,7 @@ class Klever:
             self.logger.info('Remove deployment directory')
             shutil.rmtree(self.args.deployment_directory)
 
+        # TODO: do not do this if user "postgres" does not exist.
         self.logger.info('Drop PostgreSQL database')
         execute_cmd(self.logger, 'dropdb', '--if-exists', 'klever', username='postgres')
 
