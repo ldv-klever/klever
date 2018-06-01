@@ -235,10 +235,10 @@ class OSKleverBaseImage(OSEntity):
                         base_image=base_image, flavor_name='crawler.mini') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip['floating_ip_address']) as ssh:
+                self.logger.info('Create deployment directory')
+                ssh.execute_cmd('mkdir klever-inst')
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever base image'):
-                    self.logger.info('Create deployment directory')
-                    os.makedirs('klever-inst')
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive')
 
             instance.create_image()
