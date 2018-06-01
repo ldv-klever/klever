@@ -95,7 +95,7 @@ class Session:
                     return resp
             except requests.ConnectionError:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
-                time.sleep(1)
+                time.sleep(0.2)
 
     def start_job_decision(self, format, archive, start_report_file):
         with open(start_report_file, encoding='utf8') as fp:
@@ -190,7 +190,7 @@ class Session:
                 if self.error == 'ZIP error':
                     self.logger.exception('Could not upload ZIP archive')
                     self.error = None
-                    time.sleep(1)
+                    time.sleep(0.2)
                 else:
                     raise
             finally:
