@@ -305,7 +305,7 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-def delete_marks(user, marks_type, mark_ids):
+def delete_marks(user, marks_type, mark_ids, report_id=None):
     if marks_type == 'safe':
         marks = MarkSafe.objects.filter(id__in=mark_ids)
     elif marks_type == 'unsafe':
@@ -322,11 +322,21 @@ def delete_marks(user, marks_type, mark_ids):
         else:
             raise BridgeException(_('Nothing to delete'))
     if marks_type == 'safe':
-        return SafeUtils.delete_marks(marks)
+        SafeUtils.delete_marks(marks)
+        reports_model = ReportSafe
     elif marks_type == 'unsafe':
-        return UnsafeUtils.delete_marks(marks)
-    elif marks_type == 'unknown':
-        return UnknownUtils.delete_marks(marks)
+        UnsafeUtils.delete_marks(marks)
+        reports_model = ReportUnsafe
+    else:
+        UnknownUtils.delete_marks(marks)
+        reports_model = ReportUnknown
+    if report_id:
+        try:
+            report = reports_model.objects.get(id=report_id)
+        except ObjectDoesNotExist:
+            return None
+        return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
+
 
 
 class DownloadTags:
