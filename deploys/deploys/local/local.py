@@ -19,6 +19,7 @@
 import errno
 import json
 import os
+import pwd
 import shutil
 import sys
 
@@ -167,12 +168,17 @@ class Klever:
             self.logger.info('Remove deployment directory')
             shutil.rmtree(self.args.deployment_directory)
 
-        # TODO: do not do this if user "postgres" does not exist.
-        self.logger.info('Drop PostgreSQL database')
-        execute_cmd(self.logger, 'dropdb', '--if-exists', 'klever', username='postgres')
+        try:
+            pwd.getpwnam('postgres')
+        except KeyError:
+            # Do nothing if user "postgres" does not exist.
+            pass
+        else:
+            self.logger.info('Drop PostgreSQL database')
+            execute_cmd(self.logger, 'dropdb', '--if-exists', 'klever', username='postgres')
 
-        self.logger.info('Drop PostgreSQL user')
-        execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
+            self.logger.info('Drop PostgreSQL user')
+            execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
 
         # Do not remove user since this can result in bad consequences.
 
