@@ -44,7 +44,7 @@ from tools.utils import Recalculation
 
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 9
+ARCHIVE_FORMAT = 10
 
 
 class KleverCoreArchiveGen:
@@ -167,7 +167,7 @@ class JobArchiveGenerator:
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
             'status': self.job.status, 'files_map': self.arch_files, 'name': self.job.name,
-            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks,
+            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe marks': self.job.safe_marks,
             'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
@@ -607,7 +607,7 @@ class UploadJob:
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
         if any(x not in jobdata for x in ['format', 'name', 'status', 'files_map',
-                                          'run_history', 'weight', 'safe_marks', 'progress']):
+                                          'run_history', 'weight', 'safe marks', 'progress']):
             raise BridgeException(_("The job archive was corrupted"))
         if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
             raise BridgeException(_("The job archive format is not supported"))
@@ -667,7 +667,7 @@ class UploadJob:
                 'global_role': version_list[0]['global_role'],
                 'filedata': version_list[0]['filedata'],
                 'comment': version_list[0]['comment'],
-                'safe_marks': jobdata['safe_marks']
+                'safe marks': jobdata['safe marks']
             })
         except Exception as e:
             logger.exception(e, stack_info=True)
