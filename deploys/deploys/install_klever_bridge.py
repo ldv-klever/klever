@@ -118,7 +118,7 @@ def main():
     args = parser.parse_args()
 
     install_klever_bridge = install_klever_bridge_development if args.development else install_klever_bridge_production
-    install_klever_bridge(get_logger(__name__), args.mode, args.deployment_directory)
+    install_klever_bridge(get_logger(__name__), args.deployment_directory)
 
 
 if __name__ == '__main__':
