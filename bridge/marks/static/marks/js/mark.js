@@ -68,21 +68,19 @@ $(document).ready(function () {
         }
     });
     $('#confirm_remove_mark').click(function () {
-        var mark_type = $('#mark_type').val();
-        $.post('/marks/delete/', {
-            'type': mark_type, ids: JSON.stringify([$('#mark_pk').val()])
-        }, function (data) {
+        var mark_type = $('#mark_type').val(), report_id = $('#report_id'),
+            data = {'type': mark_type, ids: JSON.stringify([$('#mark_pk').val()])};
+        if (report_id.length) data['report_id'] = report_id.val();
+        $.post('/marks/delete/', data, function (data) {
             if (data.error) {
                 err_notify(data.error);
+                return false;
+            }
+            if (data.report_id) {
+                window.location.replace('/reports/' + mark_type + '/' + data.report_id + '/');
             }
             else {
-                var report_id = $('#report_id');
-                if (report_id.length) {
-                    window.location.replace('/reports/' + mark_type + '/' + report_id.val() + '/');
-                }
-                else {
-                    window.location.replace('/marks/' + mark_type + '/');
-                }
+                window.location.replace('/marks/' + mark_type + '/');
             }
         });
     });

@@ -203,7 +203,8 @@ class Population:
                 'author': self.manager,
                 'global_role': JOB_ROLES[1][0],
                 'description': job_settings['description'],
-                'filedata': self.__get_filedata(jobdir)
+                'filedata': self.__get_filedata(jobdir),
+                'safe marks': bool(job_settings.get('safe marks'))
             })
             created_jobs.append([job.name, job.identifier])
         return created_jobs

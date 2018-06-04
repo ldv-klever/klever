@@ -531,8 +531,9 @@ class DeleteMarksView(LoggedCallMixin, Bview.JsonView):
     unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
 
     def get_context_data(self, **kwargs):
-        mutils.delete_marks(self.request.user, self.request.POST['type'], json.loads(self.request.POST['ids']))
-        return {}
+        return {'report_id': mutils.delete_marks(self.request.user, self.request.POST['type'],
+                                                 json.loads(self.request.POST['ids']),
+                                                 report_id=self.request.POST.get('report_id'))}
 
 
 class GetFuncDescription(LoggedCallMixin, Bview.JsonDetailPostView):
