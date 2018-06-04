@@ -119,8 +119,10 @@ class CModel:
             prefix = 'AUX_FUNC_CALLBACK'
         else:
             prefix = 'AUX_FUNC'
-        self._function_definitions[file][function.name] = ['/* {} {} */\n'.format(prefix, function.name)] + \
-                                                          list(function.get_definition())
+        self._function_definitions[file][function.name] = list(function.get_definition())
+        if not function.control_function:
+            self._function_definitions[file][function.name] += ['/* {} {} */\n'.format(prefix, function.name)]
+
         self.add_function_declaration(file, function, extern=False)
 
     def add_function_declaration(self, file, function, extern=False):
@@ -350,6 +352,7 @@ class FunctionDefinition:
         self.export = export
         self.body = []
         self.callback = callback
+        self.control_function = False
 
         if not signature:
             signature = 'void f(void)'

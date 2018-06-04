@@ -4,8 +4,11 @@
       "description": "Common options for the CPAchecker tool",
       "add options": [
         {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
+        {"-setprop": "counterexample.export.extendedWitnessFile=witness.%d.graphml"},
+        {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
+        {"-setprop": "cpa.arg.witness.exportSourcecode=true"},
+        {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "limits.time.cpu=%ldv:CPU time:0.9:s%s"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ]
@@ -32,12 +35,12 @@
       "inherit": "CPAchecker common",
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
-        {"-ldv-bam-optimized-coverage": ""},
+        {"-ldv-bam": ""},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },
     "CPAchecker SMG memory checking": {
-      "description": "CPAchecker with BAM for reachability checking",
+      "description": "CPAchecker with SMG for memory errors checking",
       "inherit": "CPAchecker common",
       "safety properties": [
           "CHECK( init({entry_point}()), LTL(G valid-free) )",
@@ -46,6 +49,7 @@
       ],
       "add options": [
         {"-smg-ldv": ""},
+        {"-setprop": "analysis.traversal.order=dfs"},
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     },
@@ -55,6 +59,11 @@
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-lockator-linux": ""},
+        {"-setprop": "parser.readLineDirectives=true"},
+        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
+        {"-setprop": "counterexample.export.compressWitness=false"},
+        {"-setprop": "limits.time.cpu=%ldv:CPU time:0.9:s%s"},
+        {"-heap": "%ldv:memory size:0.8:MB%m"},
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     }
@@ -62,19 +71,18 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:26155": {"inherit": "CPAchecker reachability"},
-        "ldv-bam:25793": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:27946": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "race checking": {
-      "CPAchecker": {"CPALockator:25964": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator:26692": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
-      "CPAchecker": {"smg_witness_for_ldv:26089": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"trunk:27946": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking ARM": {
-      "CPAchecker": {"smg_witness_for_ldv:26089": {
+      "CPAchecker": {"trunk:27946": {
           "inherit": "CPAchecker SMG memory checking",
           "add options": [{"-setprop": "analysis.machineModel=ARM"}],
           "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]
