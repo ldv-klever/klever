@@ -19,7 +19,7 @@
 import json
 import os
 
-from deploys.utils import Cd, execute_cmd, get_logger, need_verifiercloud_scheduler, start_services, stop_services
+from deploys.utils import Cd, get_logger, need_verifiercloud_scheduler, start_services, stop_services
 
 
 def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False):
