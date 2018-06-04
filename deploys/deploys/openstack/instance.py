@@ -51,6 +51,11 @@ class OSInstance:
         self.flavor_name = flavor_name
         self.keep_on_exit = keep_on_exit
 
+    def _remove_instance(self, instance):
+        if instance:
+            self.logger.info('Remove instance "{0}"'.format(instance.name))
+            instance.delete()
+
     def __enter__(self):
         self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
                          .format(self.name, self.flavor_name, self.base_image.name))
@@ -121,7 +126,7 @@ class OSInstance:
                     elif instance.status == 'ERROR':
                         self.logger.error('An error occurred during instance creation. '
                                           'Perhaps there are not enough resources available')
-                        instance.delete()
+                        self._remove_instance(instance)
                         sys.exit(errno.EAGAIN)
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
@@ -132,15 +137,17 @@ class OSInstance:
 
                 raise OSCreationTimeout
             except OSCreationTimeout:
-                if instance:
-                    instance.delete()
                 attempts -= 1
                 self.logger.warning('Could not create instance, wait for {0} seconds and try {1} times more'
                                     .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
-            finally:
-                if instance:
-                    instance.delete()
+                self._remove_instance(instance)
+            except Exception:
+                attempts -= 1
+                # Give a chance to see information on this exception for handling it one day.
+                self.logger.exception('Please, handle me!')
+                time.sleep(self.CREATION_RECOVERY_INTERVAL)
+                self._remove_instance(instance)
 
         self.logger.error('Could not create instance')
         sys.exit(errno.EPERM)
@@ -226,11 +233,14 @@ class OSInstance:
                 self.logger.warning('Could not create image, wait for {0} seconds and try {1} times more'
                                     .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
+            except Exception:
+                attempts -= 1
+                # Give a chance to see information on this exception for handling it one day.
+                self.logger.exception('Please, handle me!')
+                time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
         self.logger.error('Could not create image')
         sys.exit(errno.EPERM)
 
     def remove(self):
-        if self.instance:
-            self.logger.info('Remove instance "{0}"'.format(self.name))
-            self.instance.delete()
+        self._remove_instance(self.instance)
