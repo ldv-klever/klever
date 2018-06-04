@@ -1333,9 +1333,10 @@ class ReportData:
                 and all(isinstance(res, dict) for res in self.data.values()):
             if all(x in res for x in ['ideal verdict', 'verdict'] for res in self.data.values()):
                 return 'Core:testing'
-            elif all(x in res for x in ['before fix', 'after fix'] for res in self.data.values()) \
-                    and all('verdict' in self.data[mod]['before fix']
-                            and 'verdict' in self.data[mod]['after fix'] for mod in self.data):
+            elif all(any(x in res for x in ['before fix', 'after fix']) for res in self.data.values()) \
+                    and all(('verdict' in self.data[bug]['before fix'] if 'before fix' in self.data[bug] else True)
+                            or ('verdict' in self.data[bug]['after fix'] if 'after fix' in self.data[bug] else True)
+                            for bug in self.data):
                 return 'Core:validation'
         elif component == 'LKVOG' and isinstance(self.data, dict):
             return 'LKVOG:lines'
