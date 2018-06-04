@@ -84,8 +84,7 @@ class Population:
         self.changes['tags'] = self.__populate_tags()
         self.__populate_unknown_marks()
         self.__populate_unsafe_marks()
-        if settings.ENABLE_SAFE_MARKS:
-            self.__populate_safe_marks()
+        self.__populate_safe_marks()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
