@@ -121,7 +121,7 @@ class StreamQueue:
             self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False, filter_func=None,
+def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False, filter_func=None,
             enforce_limitations=False):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,

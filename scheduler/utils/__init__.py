@@ -243,7 +243,7 @@ def dir_size(dir):
     return res
 
 
-def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
+def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stderr, stdout=sys.stdout,
             disk_limitation=None, disk_checking_period=30):
     """
     Execute given command in a separate process catching its stderr if necessary.
@@ -354,7 +354,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                 raise RuntimeError(
                     'STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
             last_try = not err_q.finished
-            time.sleep(timeout if isinstance(timeout, int) else 0)
+            time.sleep(timeout)
 
             output = []
             while True:
