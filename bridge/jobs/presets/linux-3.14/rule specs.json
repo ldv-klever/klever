@@ -144,7 +144,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "ldv-bam:25793"
+              "version": "trunk:27946"
             },
             "result processing": {
               "coverage": "lightweight"
@@ -211,7 +211,7 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "smg_witness_for_ldv:26089"
+          "version": "trunk:27946"
         }
       }
     },
@@ -576,7 +576,7 @@
         "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:25964"
+          "version": "CPALockator:26692"
         },
         "result processing": {
           "expect several witnesses": true
