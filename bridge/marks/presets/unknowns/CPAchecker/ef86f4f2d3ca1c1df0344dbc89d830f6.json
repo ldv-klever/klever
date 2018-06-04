@@ -1,0 +1,7 @@
+{
+  "description": "The code is reachable, time is spend on transfer relation calculation.",
+  "is regexp": true,
+  "pattern": "A(n)alysis interrupted",
+  "problem": "I{0}terruption",
+  "status": "1"
+}

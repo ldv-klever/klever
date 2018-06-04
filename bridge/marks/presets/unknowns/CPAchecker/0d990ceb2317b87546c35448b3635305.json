@@ -1,0 +1,7 @@
+{
+  "description": "Time spend on transfer relation. Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
+  "is regexp": true,
+  "pattern": "Analysis in(t)errupted",
+  "problem": "In{0}erruption",
+  "status": "1"
+}

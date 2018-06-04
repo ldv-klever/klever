@@ -1,0 +1,89 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "bff71889260f~/drivers/staging/iio/adc/mxs-lradc.ko/linux:drivers:clk1"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.17.2"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/staging/iio/adc/mxs-lradc.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "All is right.",
+  "error trace": [
+    [
+      {
+        "ldv_main_12": [
+          {
+            "ldv_check_final_state": [
+              {
+                "ldv_assert_linux_drivers_clk1__more_at_exit": []
+              },
+              {
+                "ldv_assert_linux_drivers_clk1__more_at_exit": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_platform_instance_probe_4_14": [
+          {
+            "mxs_lradc_probe": [
+              {
+                "ldv_clk_enable_clk_of_mxs_lradc": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "ldv_switch_to_process_context": []
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [],
+  "verdict": "2"
+}

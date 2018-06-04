@@ -1,0 +1,7 @@
+{
+  "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
+  "is regexp": true,
+  "pattern": "Analysis i(nterrup)ted",
+  "problem": "I{0}tion",
+  "status": "1"
+}

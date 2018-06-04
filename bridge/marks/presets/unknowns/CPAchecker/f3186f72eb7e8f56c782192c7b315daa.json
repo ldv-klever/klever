@@ -1,0 +1,7 @@
+{
+  "description": "This is a known bug in CPAchecker",
+  "is regexp": true,
+  "pattern": "Error: (Ref)inement failed: Counterexample could not be ruled out and was found again",
+  "problem": "{0}Failed",
+  "status": "1"
+}

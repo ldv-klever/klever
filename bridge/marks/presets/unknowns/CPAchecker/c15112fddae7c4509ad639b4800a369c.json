@@ -1,0 +1,7 @@
+{
+  "description": "Too many and long value refinements.",
+  "is regexp": true,
+  "pattern": "Warning: Analysis i(nt)errupted",
+  "problem": "I{0}erruption",
+  "status": "1"
+}

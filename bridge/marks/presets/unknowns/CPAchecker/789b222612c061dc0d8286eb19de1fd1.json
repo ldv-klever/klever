@@ -1,0 +1,7 @@
+{
+  "description": "Environment model does not generate environment model with export symbol function call 'svc_recv'",
+  "is regexp": true,
+  "pattern": "Analysis inte(r)rupted",
+  "problem": "Inte{0}ruption",
+  "status": "1"
+}
