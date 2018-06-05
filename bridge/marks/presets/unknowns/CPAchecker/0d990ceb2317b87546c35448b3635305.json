@@ -1,7 +1,49 @@
 {
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "063579d4c3ed~/drivers/w1/wire.ko/linux:kernel:locking:mutex"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.15.2"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/w1/wire.kocec1328ebf02"
+    }
+  ],
   "description": "Time spend on transfer relation. Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
   "is regexp": true,
-  "pattern": "Analysis in(t)errupted",
-  "problem": "In{0}erruption",
+  "pattern": "Analysis interrupted",
+  "problem": "Interruption",
   "status": "1"
 }
