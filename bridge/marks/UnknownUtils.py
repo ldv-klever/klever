@@ -21,7 +21,7 @@ import json
 
 from django.db.models import ProtectedError, F
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
@@ -488,13 +488,13 @@ class PopulateMarks:
     def __init__(self, manager):
         self._author = manager
         self.total = 0
-        self.created = 0
         self._markattrs = {}
         self._marks = self.__get_data()
         self.__get_attrnames()
         self.__get_attrs()
 
         self.new_marks = self.__create_marks()
+        self.created = len(self.new_marks)
         self.__create_related()
         for mark in self.new_marks.values():
             ConnectMark(mark)
@@ -539,6 +539,7 @@ class PopulateMarks:
             if not 0 < len(component) <= 20:
                 raise ValueError('Wrong component length: "%s". 1-20 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
+                self.total += 1
                 data = None
                 identifier = os.path.splitext(os.path.basename(mark_settings))[0]
                 try:
@@ -588,21 +589,14 @@ class PopulateMarks:
                             or any(x not in y for x in ['attr', 'value', 'is_compare'] for y in data['attrs']):
                         raise BridgeException(_('Corrupted preset unknown mark: one of attributes has wrong format'))
 
-                self.total += 1
-                try:
-                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['problem'])
-                except ObjectDoesNotExist:
-                    new_marks.append(MarkUnknown(
-                        identifier=identifier, component=Component.objects.get_or_create(name=component)[0],
-                        author=self._author, change_date=now(), is_modifiable=data['is_modifiable'],
-                        status=data['status'], function=data['pattern'], problem_pattern=data['problem'],
-                        description=data['description'], type=MARK_TYPE[1][0], is_regexp=data['is regexp'],
-                        link=data['link'] if len(data['link']) > 0 else None
-                    ))
-                    self._markattrs[identifier] = data.get('attrs', [])
-                    self.created += 1
-                except MultipleObjectsReturned:
-                    raise Exception('There are similar unknown marks in the system')
+                new_marks.append(MarkUnknown(
+                    identifier=identifier, component=Component.objects.get_or_create(name=component)[0],
+                    author=self._author, change_date=now(), is_modifiable=data['is_modifiable'],
+                    status=data['status'], function=data['pattern'], problem_pattern=data['problem'],
+                    description=data['description'], type=MARK_TYPE[1][0], is_regexp=data['is regexp'],
+                    link=data['link'] if len(data['link']) > 0 else None
+                ))
+                self._markattrs[identifier] = data.get('attrs', [])
         return new_marks
 
     def __create_marks(self):
