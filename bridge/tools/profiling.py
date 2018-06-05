@@ -126,24 +126,32 @@ def unparallel_group(groups):
     def __inner(f):
 
         def wait(*args, **kwargs):
-            call_data = CallLogs(name=f.__name__, enter_time=time.time())
+
+            def get_time():
+                while True:
+                    try:
+                        return time.time()
+                    except Exception:
+                        pass
+
+            call_data = CallLogs(name=f.__name__, enter_time=get_time())
             locker = ExecLocker(groups)
             locker.lock()
-            call_data.execution_time = time.time()
+            call_data.execution_time = get_time()
             try:
                 res = f(*args, **kwargs)
             except Exception:
-                call_data.execution_delta = time.time() - call_data.execution_time
+                call_data.execution_delta = get_time() - call_data.execution_time
                 call_data.is_failed = True
                 if settings.UNLOCK_FAILED_REQUESTS:
                     locker.unlock()
                 raise
             else:
-                call_data.execution_delta = time.time() - call_data.execution_time
+                call_data.execution_delta = get_time() - call_data.execution_time
                 call_data.is_failed = False
                 locker.unlock()
             finally:
-                call_data.return_time = time.time()
+                call_data.return_time = get_time()
                 call_data.wait1 = locker.waiting_time[0]
                 call_data.wait2 = locker.waiting_time[1]
                 call_data.save()
@@ -162,24 +170,31 @@ class LoggedCallMixin:
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        call_data = CallLogs(name=type(self).__name__, enter_time=time.time())
+        def get_time():
+            while True:
+                try:
+                    return time.time()
+                except Exception:
+                    pass
+
+        call_data = CallLogs(name=type(self).__name__, enter_time=get_time())
         locker = ExecLocker(self.unparallel)
         locker.lock()
-        call_data.execution_time = time.time()
+        call_data.execution_time = get_time()
         try:
             response = getattr(super(), 'dispatch')(request, *args, **kwargs)
         except Exception:
-            call_data.execution_delta = time.time() - call_data.execution_time
+            call_data.execution_delta = get_time() - call_data.execution_time
             call_data.is_failed = True
             if settings.UNLOCK_FAILED_REQUESTS:
                 locker.unlock()
             raise
         else:
-            call_data.execution_delta = time.time() - call_data.execution_time
+            call_data.execution_delta = get_time() - call_data.execution_time
             call_data.is_failed = False
             locker.unlock()
         finally:
-            call_data.return_time = time.time()
+            call_data.return_time = get_time()
             call_data.wait1 = locker.waiting_time[0]
             call_data.wait2 = locker.waiting_time[1]
             call_data.save()
