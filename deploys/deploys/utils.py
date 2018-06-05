@@ -117,7 +117,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
     prev_version = prev_deploy_info[name]['version'] if name in prev_deploy_info else None
 
-    if version == prev_version:
+    if version == prev_version and version != 'CURRENT':
         logger.info('Entity "{0}" is up to date (version: "{1}")'.format(name, version))
         return False
 
