@@ -34,10 +34,10 @@ class CallLogs(models.Model):
     enter_time = models.DecimalField(max_digits=14, decimal_places=4)
     execution_time = models.DecimalField(max_digits=14, decimal_places=4)
     return_time = models.DecimalField(max_digits=14, decimal_places=4)
-    execution_delta = models.FloatField()
+    execution_delta = models.FloatField(default=0)
     wait1 = models.FloatField()
     wait2 = models.FloatField()
-    is_failed = models.BooleanField()
+    is_failed = models.BooleanField(default=True)
 
     class Meta:
         db_table = 'tools_call_logs'
