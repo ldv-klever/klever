@@ -110,10 +110,10 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
         if development:
             job_client_conf['common']['keep working directory'] = True
 
-        job_client_conf['client'] = {
+        job_client_conf['client'].update({
             'cif location': get_klever_addon_abs_path(prev_deploy_info, 'CIF'),
             'cil location': get_klever_addon_abs_path(prev_deploy_info, 'CIL')
-        }
+        })
 
         with open('klever-conf/native-scheduler-job-client.json', 'w') as fp:
             json.dump(job_client_conf, fp, sort_keys=True, indent=4)
