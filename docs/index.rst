@@ -18,8 +18,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   reqs
-   install
+   deploy
    dev
 
 Indices and tables
