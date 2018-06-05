@@ -1,4 +1,48 @@
 {
+  "Packages": {
+    "For building Python packages": [
+      "libpq-dev",
+      "python3-dev",
+      "python3-pip"
+    ],
+    "For building and running Klever Bridge": [
+      "gettext",
+      "nginx",
+      "postgresql"
+    ],  
+    "For running Klever Core": [
+      "bc", 
+      "git",
+      "graphviz"
+    ],  
+    "For running CPAchecker 1.6+": ["openjdk-8-jre-headless"],
+    "For building the Linux kernel": [
+      "make", 
+      "libc6-dev-i386"
+    ],  
+    "For building new versions of the Linux kernel": [
+      "libelf-dev",
+      "libssl-dev"
+    ]  
+  },
+  "Python3 Packages": {
+    "For building and running Klever Bridge": [
+      "Django<2",
+      "gunicorn",
+      "psycopg2",
+      "pytz"
+    ],
+    "For running Klever Core": [
+      "jinja2",
+      "graphviz",
+      "ply",
+      "requests",
+      "setuptools_scm"
+    ],
+    "For running Klever Scheduler": [
+      "consulate"
+    ]
+  },
   "Klever": {
     "version": "master",
     "path": "."
@@ -10,7 +54,8 @@
     },
     "CIF": {
       "version": "58ca670",
-      "path": "addons/cif-58ca670"
+      "path": "addons/cif-58ca670",
+      "executable path": "bin"
     },
     "CIL": {
       "version": "1.5.1-ldv",
