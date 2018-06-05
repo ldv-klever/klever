@@ -53,8 +53,8 @@
       "path": "../benchexec"
     },
     "CIF": {
-      "version": "58ca670",
-      "path": "addons/cif-58ca670",
+      "version": "d95cdf0",
+      "path": "addons/cif-d95cdf0.tar.gz",
       "executable path": "bin"
     },
     "CIL": {
