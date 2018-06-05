@@ -394,7 +394,6 @@ class RecalculateConnections:
     def __recalc(self):
         MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
         ComponentMarkUnknownProblem.objects.filter(report__root__in=self._roots).delete()
-        # TODO: optiomizations: connect all reports at once
         for unknown in ReportUnknown.objects.filter(root__in=self._roots):
             ConnectReport(unknown, False)
         update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
@@ -509,7 +508,9 @@ class PopulateMarks:
                 if a['attr'] in attrnames:
                     a['attr'] = attrnames[a['attr']]
                 else:
-                    a['attr'] = AttrName.objects.create(name=a['attr']).id
+                    newname = AttrName.objects.create(name=a['attr'])
+                    a['attr'] = newname.id
+                    attrnames[newname.name] = newname.id
 
     def __get_attrs(self):
         attrs_in_db = {}
@@ -520,6 +521,7 @@ class PopulateMarks:
             for a in self._markattrs[mid]:
                 if (a['attr'], a['value']) not in attrs_in_db:
                     attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
+                    attrs_in_db[(a['attr'], a['value'])] = None
         if len(attrs_to_create) > 0:
             Attr.objects.bulk_create(attrs_to_create)
             self.__get_attrs()

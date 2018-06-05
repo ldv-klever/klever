@@ -289,7 +289,7 @@ class CompareVersionsView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.Detail
 
     def get_context_data(self, **kwargs):
         versions = [int(self.request.POST['v1']), int(self.request.POST['v2'])]
-        mark_versions = self.model_map[self.kwargs['type']][1].objects.filter(job=self.object, version__in=versions)\
+        mark_versions = self.model_map[self.kwargs['type']][1].objects.filter(mark=self.object, version__in=versions)\
             .order_by('change_date')
         if mark_versions.count() != 2:
             raise BridgeException(_('The page is outdated, reload it please'))

@@ -25,6 +25,9 @@ class LockTable(models.Model):
     class Meta:
         db_table = 'lock_table'
 
+    def __str__(self):
+        return self.name
+
 
 class CallLogs(models.Model):
     name = models.CharField(max_length=64, db_index=True)

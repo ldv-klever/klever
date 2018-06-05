@@ -37,7 +37,7 @@ from jobs.models import Job, JobFile
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
 from service.models import Scheduler
 
-from jobs.utils import create_job
+from jobs.jobForm import JobForm
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace, CONVERSION
 from marks.tags import CreateTagsFromFile
@@ -170,6 +170,20 @@ class Population:
         user.save()
         return password
 
+    def __check_job_name(self, name):
+        if not isinstance(name, str) or len(name) == 0:
+            raise BridgeException('Default job name is required')
+        job_name = name
+        cnt = 1
+        while True:
+            try:
+                Job.objects.get(name=job_name)
+            except ObjectDoesNotExist:
+                break
+            cnt += 1
+            job_name = "%s #%s" % (name, cnt)
+        return job_name
+
     def __populate_jobs(self):
         created_jobs = []
         for jobdir in [os.path.join(self.jobs_dir, x) for x in os.listdir(self.jobs_dir)]:
@@ -183,64 +197,36 @@ class Population:
                     raise BridgeException('The default job settings file is wrong json. Job: {0}'.format(jobdir))
             if 'description' not in job_settings:
                 raise BridgeException('Default job description is required. Job: {0}'.format(jobdir))
-            if 'name' not in job_settings or len(job_settings['name']) == 0:
-                raise BridgeException('Default job name is required. Job: {0}'.format(jobdir))
 
-            job_name = job_settings['name']
-            cnt = 1
-            while True:
-                try:
-                    Job.objects.get(name=job_name)
-                except ObjectDoesNotExist:
-                    break
-                cnt += 1
-                job_name = "%s #%s" % (job_settings['name'], cnt)
+            try:
+                job_name = self.__check_job_name(job_settings.get('name'))
+            except BridgeException as e:
+                raise BridgeException("{0}. Job: {1}".format(str(e), jobdir))
 
-            job = create_job({
-                'identifier': job_settings.get('identifier'),
-                'name': job_name,
-                'author': self.manager,
-                'global_role': JOB_ROLES[1][0],
-                'description': job_settings['description'],
-                'filedata': self.__get_filedata(jobdir),
-                'safe marks': bool(job_settings.get('safe marks'))
+            job = JobForm(self.manager, None, 'copy').save({
+                'identifier': job_settings.get('identifier'), 'name': job_name,
+                'description': job_settings['description'], 'global_role': JOB_ROLES[1][0],
+                'file_data': self.__get_files_tree(jobdir), 'safe marks': bool(job_settings.get('safe marks')),
             })
             created_jobs.append([job.name, job.identifier])
         return created_jobs
 
-    def __get_filedata(self, d):
-        self.cnt = 0
-        self.dir_info = {d: None}
+    def __get_children(self, root):
+        children = []
+        for fname in os.listdir(root):
+            if fname == JOB_SETTINGS_FILE:
+                continue
+            path = os.path.join(root, fname)
+            if os.path.isfile(path):
+                with open(path, mode='rb') as fp:
+                    hashsum = file_get_or_create(fp, fname, JobFile, True)[1]
+                children.append({'type': 'file', 'text': fname, 'data': {'hashsum': hashsum}})
+            elif os.path.isdir(path):
+                children.append({'type': 'folder', 'text': fname, 'children': self.__get_children(path)})
+        return children
 
-        def get_fdata(directory):
-            fdata = []
-            for f in [os.path.join(directory, x) for x in os.listdir(directory)]:
-                parent_name, base_f = os.path.split(f)
-                if base_f == JOB_SETTINGS_FILE:
-                    continue
-                self.cnt += 1
-                if os.path.isfile(f):
-                    with open(f, mode='rb') as fp:
-                        check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
-                    fdata.append({
-                        'id': self.cnt,
-                        'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': check_sum,
-                        'title': base_f,
-                        'type': '1'
-                    })
-                elif os.path.isdir(f):
-                    self.dir_info[f] = self.cnt
-                    fdata.append({
-                        'id': self.cnt,
-                        'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': None,
-                        'title': base_f,
-                        'type': '0'
-                    })
-                    fdata += get_fdata(f)
-            return fdata
-        return get_fdata(d)
+    def __get_files_tree(self, root):
+        return json.dumps([{'type': 'root', 'text': 'Root', 'children': self.__get_children(root)}], ensure_ascii=False)
 
     def __populate_unknown_marks(self):
         res = UnknownUtils.PopulateMarks(self.manager)

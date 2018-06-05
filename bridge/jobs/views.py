@@ -183,9 +183,8 @@ class JobFormPage(LoggedCallMixin, DetailView):
     def post(self, *args, **kwargs):
         self.is_not_used(*args, **kwargs)
         try:
-            return JsonResponse({
-                'job_id': JobForm(self.request.user, self.get_object(), self.kwargs['action']).save(self.request.POST)
-            })
+            return JsonResponse({'job_id': JobForm(self.request.user, self.get_object(),
+                                                   self.kwargs['action']).save(self.request.POST).id})
         except BridgeException as e:
             raise BridgeException(str(e), response_type='json')
         except Exception as e:
@@ -556,7 +555,7 @@ class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
         return generator
 
 
-class GetJobFieldView(Bviews.JsonView):
+class GetJobFieldView(LoggedCallMixin, Bviews.JsonView):
     def get_context_data(self, **kwargs):
         job = jobs.utils.get_job_by_name_or_id(self.request.POST['job'])
         return {self.request.POST['field']: getattr(job, self.request.POST['field'])}

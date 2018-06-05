@@ -25,7 +25,7 @@ from django.db.models import Q
 from django.utils.timezone import pytz, now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_ROLES, USER_ROLES
+from bridge.vars import JOB_ROLES, USER_ROLES, JOB_WEIGHT
 from bridge.utils import BridgeException, file_get_or_create
 
 from users.models import User
@@ -204,10 +204,16 @@ class JobForm:
         else:
             identifier = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest()
 
-        self._job = Job.objects.create(
+        self._job = Job(
             identifier=identifier, name=self.__check_name(data.get('name', '')), change_date=now(),
             parent=self.__get_parent(data.get('parent', '')), safe_marks=settings.ENABLE_SAFE_MARKS
         )
+        if 'weight' in data and data['weight'] in list(x[0] for x in JOB_WEIGHT):
+            self._job.weight = data['weight']
+        if 'safe marks' in data and isinstance(data['safe marks'], bool):
+            self._job.safe_marks = data['safe marks']
+        self._job.save()
+
         try:
             new_version = self.__create_version(data)
         except Exception:
@@ -239,7 +245,7 @@ class JobForm:
             if not JobAccess(self._user, self._job).can_edit():
                 raise BridgeException(_("You don't have an access to edit this job"))
             self.__update_job(data)
-        return self._job.id
+        return self._job
 
 
 class LoadFilesTree:
@@ -328,6 +334,8 @@ class UploadFilesTree:
                     file_id = self._empty.id
                 elif child['data']['hashsum'] in self._files:
                     file_id = self._files[child['data']['hashsum']]
+                else:
+                    raise ValueError('The file with hashsum %s was not uploaded before' % child['data']['hashsum'])
             new_id = self.__save_fs_obj(parent_id, child['text'], file_id)
             if child['type'] == 'folder':
                 self.__save_children(new_id, child['children'])

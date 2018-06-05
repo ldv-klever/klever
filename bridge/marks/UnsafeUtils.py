@@ -721,7 +721,9 @@ class PopulateMarks:
                 if a['attr'] in attrnames:
                     a['attr'] = attrnames[a['attr']]
                 else:
-                    a['attr'] = AttrName.objects.create(name=a['attr']).id
+                    newname = AttrName.objects.create(name=a['attr'])
+                    a['attr'] = newname.id
+                    attrnames[newname.name] = newname.id
 
     def __get_attrs(self):
         attrs_in_db = {}
@@ -732,6 +734,7 @@ class PopulateMarks:
             for a in self._marks_data[mid]['attrs']:
                 if (a['attr'], a['value']) not in attrs_in_db:
                     attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
+                    attrs_in_db[(a['attr'], a['value'])] = None
         if len(attrs_to_create) > 0:
             Attr.objects.bulk_create(attrs_to_create)
             self.__get_attrs()
