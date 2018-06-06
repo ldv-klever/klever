@@ -53,10 +53,11 @@ class TestJobs(KleverTestCase):
 
         # Creating view
         tree_view = {
-            "columns": ["role", "author", "status", "problem", "safe", "resource"],
-            "orders": ["-date", "status", "-finish_date"],
+            "columns": ['name', 'role', 'author', 'date', 'status', 'resource',
+                        'unsafe:total', 'problem:total', 'safe:total'],
+            "order": ["up", "date"],
             "filters": {
-                "name": {"type": "istartswith", "value": "Validation"},
+                "title": {"type": "istartswith", "value": "Testing"},
                 "format": {"type": "is", "value": "1"}
             }
         }
@@ -80,10 +81,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(tree_view, json.loads(view.view))
 
         # Changing view
-        tree_view = {
-            "columns": ["role", "author", "status", "problem", "safe"],
-            "orders": [], "filters": {}
-        }
+        tree_view = {"columns": ["role", "author", "status", "problem", "safe"], "order": [], "filters": {}}
         response = self.client.post('/users/ajax/save_view/', {
             'view': json.dumps(tree_view), 'view_type': '1', 'view_id': view_id
         })

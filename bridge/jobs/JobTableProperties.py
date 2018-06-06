@@ -33,42 +33,6 @@ from service.models import SolvingProgress
 from service.utils import GetJobsProgresses
 
 
-ORDERS = [
-    ('name', 'name'),
-    ('change_author__extended__last_name', 'author'),
-    ('change_date', 'date'),
-    ('status', 'status'),
-    ('solvingprogress__start_date', 'start_date'),
-    ('solvingprogress__finish_date', 'finish_date')
-]
-
-ORDER_TITLES = {
-    'name':  _('Title'),
-    'author': string_concat(_('Author'), '/', _('Last name')),
-    'date': _('Date'),
-    'status': _('Decision status'),
-    'start_date': _('Start date'),
-    'finish_date': _('Finish date')
-}
-
-ALL_FILTERS = [
-    'name', 'change_author', 'change_date', 'status', 'resource_component',
-    'problem_component', 'problem_problem', 'format', 'priority', 'finish_date'
-]
-
-FILTER_TITLES = {
-    'name': _('Title'),
-    'change_author': _('Last change author'),
-    'change_date': _('Last change date'),
-    'status': _('Decision status'),
-    'resource_component': string_concat(_('Consumed resources'), '/', _('Component name')),
-    'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
-    'problem_problem': _('Problem name'),
-    'format': _('Format'),
-    'priority': _('Priority'),
-    'finish_date': _('Finish decision date')
-}
-
 DATE_COLUMNS = {
     'date', 'tasks:start_ts', 'tasks:finish_ts', 'subjobs:start_sj', 'subjobs:finish_sj', 'start_date', 'finish_date'
 }

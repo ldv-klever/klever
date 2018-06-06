@@ -102,27 +102,27 @@ class PresetMarkFile:
         yield self.data
 
     def __get_mark_data(self):
-        if isinstance(self._mark, MarkUnknown):
-            data = {
-                'status': self._mark.status, 'pattern': self._mark.function,
-                'problem': self._mark.problem_pattern, 'is regexp': self._mark.is_regexp
-            }
-            if self._mark.link:
-                data['link'] = self._mark.link
-            if self._mark.description:
-                data['description'] = self._mark.description
-            return data
-
         data = {
-            'status': self._mark.status, 'verdict': self._mark.verdict, 'is_modifiable': self._mark.is_modifiable,
-            'description': self._mark.description, 'attrs': [], 'tags': []
+            'status': self._mark.status, 'is_modifiable': self._mark.is_modifiable,
+            'description': self._mark.description, 'attrs': []
         }
         last_version = self._mark.versions.get(version=self._mark.version)
         for a_name, a_val, is_compare in last_version.attrs.order_by('id')\
                 .values_list('attr__name__name', 'attr__value', 'is_compare'):
             data['attrs'].append({'attr': a_name, 'value': a_val, 'is_compare': is_compare})
-        for t, in last_version.tags.order_by('id').values_list('tag__tag'):
-            data['tags'].append(t)
+
+        if isinstance(self._mark, MarkUnknown):
+            data.update({
+                'pattern': self._mark.function,
+                'problem': self._mark.problem_pattern,
+                'is regexp': self._mark.is_regexp
+            })
+            if self._mark.link:
+                data['link'] = self._mark.link
+        else:
+            data.update({'verdict': self._mark.verdict, 'tags': []})
+            for t, in last_version.tags.order_by('id').values_list('tag__tag'):
+                data['tags'].append(t)
 
         if isinstance(self._mark, MarkUnsafe):
             data['comparison'] = last_version.function.name
