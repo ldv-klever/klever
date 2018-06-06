@@ -17,6 +17,7 @@ Deployment
           require complicating setup, e.g. configuring and running a web service with a database access, running system
           services partially with superuser rights, etc.
           Also, Klever will likely always require several specific addons that can not be deployed normally.
+          Please, be ready to spend quite much time if you follow this instruction especially first time.
 
 .. warning:: Do not deploy Klever at your workstation unless you are ready to lose some sensitive data or to have
              misbehaved services and programs.
