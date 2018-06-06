@@ -3,17 +3,17 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev404+g27a398b9"
+      "value": "0.3.dev290+ge2ee704f"
     },
     {
       "attr": "Name",
-      "is_compare": true,
-      "value": "60b35930067d~/drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko/linux:kernel:locking:mutex"
+      "is_compare": false,
+      "value": "13/tests/verifier/set/nonnegative-counter/test"
     },
     {
       "attr": "Linux kernel:Version",
       "is_compare": false,
-      "value": "3.10.34"
+      "value": "3.14.0"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -33,20 +33,17 @@
     {
       "attr": "Rule specification",
       "is_compare": true,
-      "value": "linux:kernel:locking:mutex"
+      "value": "test"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"
+      "value": "ext-modules/verifier/set/nonnegative-counter/add-add-remove-contains.ko"
     }
   ],
-  "description": "It is necessary to specify i2c_algorithm interface. Note, that registration in the case is implemented using a registration function but it requires some pointer analysis to track.",
+  "description": "",
   "is_modifiable": true,
-  "status": "2",
-  "tags": [
-    "EMG",
-    "EnvSpec"
-  ],
+  "status": "1",
+  "tags": [],
   "verdict": "2"
 }
