@@ -1119,12 +1119,8 @@ class AttrData:
         self.__init__(self._root_id, None)
 
     def __upload_names(self):
-        existing_names = set(n.name for n in AttrName.objects.filter(name__in=self._name))
-        names_to_create = []
-        for name in self._name:
-            if name not in existing_names:
-                names_to_create.append(AttrName(name=name))
-        AttrName.objects.bulk_create(names_to_create)
+        names_to_create = set(self._name) - set(n.name for n in AttrName.objects.filter(name__in=self._name))
+        AttrName.objects.bulk_create(list(AttrName(name=name) for name in names_to_create))
         for n in AttrName.objects.filter(name__in=self._name):
             self._name[n.name] = n.id
 

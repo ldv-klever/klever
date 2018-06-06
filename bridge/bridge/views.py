@@ -28,6 +28,8 @@ from bridge.utils import logger, BridgeErrorResponse, BridgeException
 from bridge.populate import Population
 
 from users.models import Extended
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
+from reports.models import AttrName
 
 
 def index_page(request):
@@ -36,7 +38,8 @@ def index_page(request):
     return HttpResponseRedirect(reverse('users:login'))
 
 
-@unparallel_group(['Job', 'MarkUnknown', 'Scheduler', 'Component'])
+@unparallel_group(['Job', 'Scheduler', 'MarkUnsafeCompare', 'MarkUnsafeConvert',
+                   MarkSafe, MarkUnsafe, MarkUnknown, AttrName])
 @login_required
 def population(request):
     try:

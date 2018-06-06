@@ -20,7 +20,7 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE
-from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
+from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown
 from jobs.models import Job
 
 CONVERTED_DIR = 'Error-traces'

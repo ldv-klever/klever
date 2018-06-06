@@ -343,7 +343,7 @@ class DownloadJobsTreeView(LoggedCallMixin, Bviews.StreamingResponsePostView):
 
 
 class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
-    unparallel = [Job]
+    unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
         if not jobs.utils.JobAccess(self.request.user).can_create():
@@ -370,7 +370,7 @@ class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
 
 
 class UploadJobsTreeView(LoggedCallMixin, Bviews.JsonView):
-    unparallel = [Job]
+    unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
         if self.request.user.extended.role != USER_ROLES[2][0]:
@@ -518,7 +518,7 @@ class StopDecisionView(LoggedCallMixin, Bviews.JsonDetailPostView):
 class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
                            Bviews.JSONResponseMixin, Bviews.StreamingResponsePostView):
     model = Job
-    unparallel = [Job]
+    unparallel = [Job, 'AttrName']
 
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):

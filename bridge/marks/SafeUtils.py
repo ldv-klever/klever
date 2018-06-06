@@ -739,7 +739,7 @@ class PopulateMarks:
                 if a['attr'] in attrnames:
                     a['attr'] = attrnames[a['attr']]
                 else:
-                    newname = AttrName.objects.create(name=a['attr'])
+                    newname = AttrName.objects.get_or_create(name=a['attr'])[0]
                     a['attr'] = newname.id
                     attrnames[newname.name] = newname.id
 
