@@ -308,13 +308,13 @@ class OSKleverDeveloperInstance(OSEntity):
 
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
-                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\nKLEVER_USERNAME=klever\n')
+                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, dir=os.path.sep)
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever developer instance'):
-                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py --username klever')
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
                     self._do_update(ssh, deps=False)
 
                 # Preserve instance if everything above went well.

@@ -48,7 +48,10 @@ Prior to proceding to :ref:`local_deploy`, it is necessary to perform :ref:`comm
 Then you need to choose an appropriate mode (*development*, *production* or *testing*) and perform actions in the
 following order :menuselection:`install --> update --> update --> ... --> update --> uninstall`::
 
-    $ sudo PYTHONPATH=$KLEVER_SRC $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR --username $KLEVER_USER install production
+    $ sudo PYTHONPATH=$KLEVER_SRC $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR install production
+
+.. warning:: Do not use as a deployment directory any standard locations like :file:`/`, :file:`/usr` or
+             :file:`/usr/local`, since during uninstall scripts remove deployment directories forcibly.
 
 .. note:: Do not deploy Klever twice within various deployment directories (*$KLEVER_DEPLOY_DIR*).
           Before a new installation you should uninstall the previous one if so.

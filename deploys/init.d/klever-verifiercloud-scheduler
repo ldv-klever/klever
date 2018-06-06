@@ -30,12 +30,12 @@ DESC="Klever VerifierCloud Scheduler"
 NAME=klever-verifiercloud-scheduler
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
+USER=klever
 
 # Read configuration variable file if it is present.
 [ -r /etc/default/klever ] && . /etc/default/klever
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/verifiercloud-scheduler
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/verifiercloud-scheduler.json
-USER="$KLEVER_USERNAME"
 
 . /lib/lsb/init-functions
 

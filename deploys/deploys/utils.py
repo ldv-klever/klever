@@ -202,7 +202,7 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
     return is_update_controller_and_schedulers, is_update_verification_backends
 
 
-def install_programs(logger, username, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     is_update_programs = False
 
     if 'Programs' in deploy_conf:
@@ -218,7 +218,8 @@ def install_programs(logger, username, deploy_dir, deploy_conf, prev_deploy_info
             if install_extra_dep_or_program(logger, program, deploy_dir, deploy_programs_conf,
                                             prev_deploy_programs_conf, cmd_fn, install_fn):
                 is_update_programs = True
-                cmd_fn('chown', '-LR', username, deploy_dir)
+                # Allow using local source directories.
+                cmd_fn('chown', '-LR', 'klever', deploy_dir)
 
     return is_update_programs
 

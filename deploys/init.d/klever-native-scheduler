@@ -30,13 +30,13 @@ DESC="Klever Native Scheduler"
 NAME=klever-native-scheduler
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
+USER=klever
 
 # Read configuration variable file if it is present.
 [ -r /etc/default/klever ] && . /etc/default/klever
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/native-scheduler
 WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-programs
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/native-scheduler.json
-USER="$KLEVER_USERNAME"
 
 . /lib/lsb/init-functions
 

@@ -37,9 +37,6 @@ def main():
                                              'klever.json'),
                         help='Path to Klever deployment configuration file (default: "%(default)s").')
     parser.add_argument('--deployment-directory', required=True, help='Path to Klever deployment directory.')
-    # Do not suggest information on current user since it will be root rather than normal one.
-    parser.add_argument('--username', required=True,
-                        help='Klever username. Scripts will create appropriate user if it does not exist.')
     parser.add_argument('--update-packages', default=False, action='store_true',
                         help='Update packages for action "update" (default: "%(default)s"). ' +
                              'This option has no effect for action "install".')

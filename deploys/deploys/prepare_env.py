@@ -18,17 +18,13 @@
 
 import glob
 import os
-import pwd
 
 from deploys.utils import execute_cmd, get_logger
 
 
-def prepare_env(logger, username, deploy_dir):
-    try:
-        pwd.getpwnam(username)
-    except KeyError:
-        logger.info('Create user "{0}"'.format(username))
-        execute_cmd(logger, 'useradd', username)
+def prepare_env(logger, deploy_dir):
+    logger.info('Create user "klever"')
+    execute_cmd(logger, 'useradd', 'klever')
 
     logger.info('Prepare configurations directory')
     execute_cmd(logger, 'mkdir', os.path.join(deploy_dir, 'klever-conf'))
@@ -36,7 +32,7 @@ def prepare_env(logger, username, deploy_dir):
     logger.info('Prepare working directory')
     work_dir = os.path.join(deploy_dir, 'klever-work')
     execute_cmd(logger, 'mkdir', work_dir)
-    execute_cmd(logger, 'chown', '-LR', username, work_dir)
+    execute_cmd(logger, 'chown', '-LR', 'klever', work_dir)
 
     openssl_header = '/usr/include/openssl/opensslconf.h'
     if not os.path.exists(openssl_header):
@@ -64,11 +60,10 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--username', required=True)
     parser.add_argument('--deployment-directory', default='klever-inst')
     args = parser.parse_args()
 
-    prepare_env(get_logger(__name__), args.username, args.deployment_directory)
+    prepare_env(get_logger(__name__), args.deployment_directory)
 
 
 if __name__ == '__main__':

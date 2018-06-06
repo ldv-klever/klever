@@ -97,8 +97,8 @@ class Klever:
 
         is_update_programs = False
         try:
-            is_update_programs = install_programs(self.logger, self.args.username, self.args.deployment_directory,
-                                                  self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn)
+            is_update_programs = install_programs(self.logger, self.args.deployment_directory, self.deploy_conf,
+                                                  self.prev_deploy_info, cmd_fn, install_fn)
         # Like above.
         finally:
             if is_update_programs:
@@ -130,11 +130,10 @@ class Klever:
                 execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
 
         with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\nKLEVER_USERNAME={1}\n'
-                     .format(os.path.realpath(self.args.deployment_directory), self.args.username))
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\n'.format(os.path.realpath(self.args.deployment_directory)))
 
         self._install_or_update_deps()
-        prepare_env(self.logger, self.args.username, self.args.deployment_directory)
+        prepare_env(self.logger, self.args.deployment_directory)
         self._pre_do_install_or_update()
 
     def _pre_update(self):
@@ -180,7 +179,13 @@ class Klever:
             self.logger.info('Drop PostgreSQL user')
             execute_cmd(self.logger, 'psql', '-c', "DROP USER IF EXISTS klever", username='postgres')
 
-        # Do not remove user since this can result in bad consequences.
+        try:
+            pwd.getpwnam('klever')
+        except KeyError:
+            # Do nothing if user "klever" does not exist.
+            pass
+        else:
+            execute_cmd(self.logger, 'userdel', 'klever')
 
     def _post_install_or_update(self):
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
