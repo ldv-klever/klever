@@ -1,4 +1,5 @@
-To build and to view Klever documentation you need:
+To build and to view Klever documentation (at least it contains deployment
+instructions) you need:
 * Install Python 3.4 or higher (https://www.python.org/) and Sphinx
   (http://sphinx-doc.org).
 * Execute the following command from the source tree root directory (it should

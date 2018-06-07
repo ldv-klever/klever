@@ -17,16 +17,16 @@
 
 import argparse
 import getpass
-import logging
 import os
-import sys
 
-from kopenstack.kopenstack import execute_os_entity_action
+from deploys.openstack.openstack import execute_os_entity_action
+from deploys.utils import get_logger
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'], help='Action to be executed.')
+    parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
+                        help='Action to be executed.')
     parser.add_argument('entity',
                         choices=['Klever base image', 'Klever developer instance', 'Klever experimental instances'],
                         help='Entity for which action to be executed.')
@@ -46,7 +46,7 @@ def main():
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
-    parser.add_argument('--base-image', default='Debian 9.0.4 64-bit',
+    parser.add_argument('--base-image', default='Debian 9.4.5 64-bit',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default='Klever Base',
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
@@ -54,18 +54,17 @@ def main():
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
     parser.add_argument('--instances', type=int,
                         help='The number of new Klever experimental instances.')
-    parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                            'conf', 'klever.json'),
-                        help='Path to Klever configuration file (default: "%(default)s").')
+    parser.add_argument('--deployment-configuration-file',
+                        default=os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'conf',
+                                             'klever.json'),
+                        help='Path to Klever deployment configuration file (default: "%(default)s").')
+    parser.add_argument('--update-packages', default=False, action='store_true',
+                        help='Update packages for action "update" (default: "%(default)s"). ' +
+                             'This option has no effect for other actions.')
+    parser.add_argument('--update-python3-packages', default=False, action='store_true',
+                        help='Update Python3 packages for action "update" (default: "%(default)s"). ' +
+                             'This option has no effect for other actions.')
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s', "%Y-%m-%d %H:%M:%S")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    execute_os_entity_action(args, logger)
+    execute_os_entity_action(args, get_logger(__name__))

@@ -19,15 +19,14 @@ import errno
 import os
 import sys
 import time
-import traceback
 
 from Crypto.PublicKey import RSA
 import novaclient
 
-from kopenstack.utils import get_password
+from deploys.utils import get_password
 
 
-class OSInstanceCreationTimeout(RuntimeError):
+class OSCreationTimeout(RuntimeError):
     pass
 
 
@@ -52,6 +51,11 @@ class OSInstance:
         self.flavor_name = flavor_name
         self.keep_on_exit = keep_on_exit
 
+    def _remove_instance(self, instance):
+        if instance:
+            self.logger.info('Remove instance "{0}"'.format(instance.name))
+            instance.delete()
+
     def __enter__(self):
         self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
                          .format(self.name, self.flavor_name, self.base_image.name))
@@ -61,12 +65,12 @@ class OSInstance:
         try:
             flavor = self.clients.nova.flavors.find(name=self.flavor_name)
         except novaclient.exceptions.NotFound:
-            self.logger.info(
+            self.logger.error(
                 'You can use one of the following flavors:\n{0}'.format(
                     '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
                                .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
                                for flavor in self.clients.nova.flavors.list()])))
-            raise
+            sys.exit(errno.EINVAL)
 
         self._setup_keypair()
 
@@ -92,7 +96,8 @@ class OSInstance:
                                 network_id = net['id']
 
                         if not network_id:
-                            raise ValueError('OpenStack does not have network with "{}" name'.format(network_name))
+                            self.logger.error('OpenStack does not have network with "{}" name'.format(network_name))
+                            sys.exit(errno.EINVAL)
 
                         for f_ip in self.clients.neutron.list_floatingips()['floatingips']:
                             if f_ip['status'] == 'DOWN' and f_ip['floating_network_id'] == network_id:
@@ -121,7 +126,7 @@ class OSInstance:
                     elif instance.status == 'ERROR':
                         self.logger.error('An error occurred during instance creation. '
                                           'Perhaps there are not enough resources available')
-                        instance.delete()
+                        self._remove_instance(instance)
                         sys.exit(errno.EAGAIN)
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
@@ -130,21 +135,22 @@ class OSInstance:
                         time.sleep(self.CREATION_CHECK_INTERVAL)
                         instance = self.clients.nova.servers.get(instance.id)
 
-                raise OSInstanceCreationTimeout
-            except OSInstanceCreationTimeout as e:
-                if instance:
-                    instance.delete()
+                raise OSCreationTimeout
+            except OSCreationTimeout:
                 attempts -= 1
-                self.logger.warning(
-                    'Could not create instance, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                self.logger.warning('Could not create instance, wait for {0} seconds and try {1} times more'
+                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
+                self._remove_instance(instance)
             except Exception:
-                if instance:
-                    instance.delete()
+                attempts -= 1
+                # Give a chance to see information on this exception for handling it one day.
+                self.logger.exception('Please, handle me!')
+                time.sleep(self.CREATION_RECOVERY_INTERVAL)
+                self._remove_instance(instance)
 
-        raise RuntimeError('Could not create instance')
+        self.logger.error('Could not create instance')
+        sys.exit(errno.EPERM)
 
     def _setup_keypair(self):
         private_key_file = self.args.ssh_rsa_private_key_file
@@ -164,7 +170,7 @@ class OSInstance:
         try:
             public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
         except ValueError:
-            self.args.key_password = get_password('Private key password: ', self.logger)
+            self.args.key_password = get_password(self.logger, 'Private key password: ')
             try:
                 public_key = RSA.import_key(private_key, self.args.key_password).publickey().exportKey('OpenSSH')
             except ValueError:
@@ -197,7 +203,8 @@ class OSInstance:
         # Shut off instance to ensure all data is written to disks.
         self.instance.stop()
 
-        # TODO: wait until instance will be shut off otherwise image can't be created.
+        # TODO: wait until instance will be shut off otherwise image can't be created. Corresponding exceptions look like:
+        # novaclient.exceptions.Conflict: Cannot 'createImage' instance ... while it is in task_state powering-off (HTTP 409) (Request-ID: ...)
 
         attempts = self.IMAGE_CREATION_ATTEMPTS
 
@@ -220,18 +227,20 @@ class OSInstance:
                                                  'remaining timeout is {0} seconds'.format(timeout)))
                         time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
 
-                raise OSInstanceCreationTimeout
-            except Exception as e:
+                raise OSCreationTimeout
+            except OSCreationTimeout:
                 attempts -= 1
-                self.logger.warning(
-                    'Could not create image, wait for {0} seconds and try {1} times more{2}'
-                    .format(self.CREATION_RECOVERY_INTERVAL, attempts,
-                            '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                self.logger.warning('Could not create image, wait for {0} seconds and try {1} times more'
+                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
+                time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
+            except Exception:
+                attempts -= 1
+                # Give a chance to see information on this exception for handling it one day.
+                self.logger.exception('Please, handle me!')
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
-        raise RuntimeError('Could not create image')
+        self.logger.error('Could not create image')
+        sys.exit(errno.EPERM)
 
     def remove(self):
-        if self.instance:
-            self.logger.info('Remove instance "{0}"'.format(self.name))
-            self.instance.delete()
+        self._remove_instance(self.instance)

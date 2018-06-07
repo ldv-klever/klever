@@ -27,7 +27,7 @@ import termios
 import time
 import tty
 
-from kopenstack.utils import get_password
+from deploys.utils import get_password
 
 
 class SSH:
@@ -38,8 +38,9 @@ class SSH:
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            raise ValueError('Please specify path to SSH RSA private key file with help of command-line option' +
-                             ' --ssh-rsa-private-key-file')
+            self.logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
+                              ' --ssh-rsa-private-key-file')
+            sys.exit(errno.EINVAL)
 
         self.args = args
         self.logger = logger
@@ -59,7 +60,7 @@ class SSH:
             if hasattr(self.args, 'key_password'):
                 key_password = self.args.key_password
             else:
-                key_password = get_password('Private key password: ', self.logger)
+                key_password = get_password(self.logger, 'Private key password: ')
 
             try:
                 k = paramiko.RSAKey.from_private_key_file(self.args.ssh_rsa_private_key_file, key_password)
@@ -81,12 +82,12 @@ class SSH:
                 return self
             except:
                 attempts -= 1
-                self.logger.warning(
-                    'Could not open SSH session, wait for {0} seconds and try {1} times more'
-                    .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
+                self.logger.warning('Could not open SSH session, wait for {0} seconds and try {1} times more'
+                                    .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CONNECTION_RECOVERY_INTERVAL)
 
-        raise RuntimeError('Could not open SSH session')
+        self.logger.error('Could not open SSH session')
+        sys.exit(errno.EPERM)
 
     def __exit__(self, etype, value, traceback):
         if self.open_sftp:
@@ -126,7 +127,8 @@ class SSH:
         retcode = chan.recv_exit_status()
 
         if retcode:
-            raise RuntimeError('Command exitted with {0}'.format(retcode))
+            self.logger.error('Command exitted with {0}'.format(retcode))
+            sys.exit(errno.EPERM)
 
     def open_shell(self):
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
@@ -166,28 +168,20 @@ class SSH:
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
 
-    def sftp_exist(self, path):
-        try:
-            self.sftp.stat(path)
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                return False
-            raise
-        else:
-            return True
-
-    def sftp_put(self, host_path, instance_path, dir=None):
+    def sftp_put(self, host_path, instance_path, sudo=False, dir=None):
         self.logger.info('Copy "{0}" to "{1}"'.format(host_path, os.path.join(dir if dir else '', instance_path)))
 
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
             instance_archive = os.path.basename(fp.name)
             with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                TarFile.add(host_path, instance_path)
+                TarFile.add(host_path, os.path.normpath(instance_path))
             fp.flush()
             fp.seek(0)
             self.sftp.putfo(fp, instance_archive)
 
+        # TODO: get rid of numerous warnings like "tar: ...: time stamp 2018-06-04 11:14:25 is 109.824694369 s in the future".
         # Use sudo to allow extracting archives outside home directory.
-        self.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive))
+        self.execute_cmd('{0} -xf {1}'.format(('sudo ' if sudo else '') + 'tar' + (' -C ' + dir if dir else ''),
+                                              instance_archive))
         self.execute_cmd('rm ' + instance_archive)

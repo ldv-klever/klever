@@ -28,12 +28,14 @@
 
 DESC="Klever Controller"
 NAME=klever-controller
-DAEMON=/home/debian/klever/scheduler/bin/client-controller
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-CONFFILE=/home/debian/klever-conf/controller.json
 USER=klever
-GROUP=klever
+
+# Read configuration variable file if it is present.
+[ -r /etc/default/klever ] && . /etc/default/klever
+DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/client-controller
+CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/controller.json
 
 . /lib/lsb/init-functions
 
@@ -46,7 +48,7 @@ case "$1" in
             exit 0
         fi
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+            --exec ${DAEMON} -- ${CONFFILE}
         then
             rc=0
             sleep 1

@@ -18,8 +18,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          klever-bridge
-# Required-Start:    nginx
-# Required-Stop:     nginx
+# Required-Start:    postgresql
+# Required-Stop:     postgresql
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Klever web-interface

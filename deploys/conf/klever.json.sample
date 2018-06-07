@@ -1,16 +1,58 @@
 {
+  "Packages": {
+    "For building Python packages": [
+      "libpq-dev",
+      "python3-dev",
+      "python3-pip"
+    ],
+    "For building and running Klever Bridge": [
+      "gettext",
+      "nginx",
+      "postgresql"
+    ],  
+    "For running Klever Core": [
+      "bc", 
+      "git",
+      "graphviz"
+    ],  
+    "For running CPAchecker 1.6+": ["openjdk-8-jre-headless"],
+    "For building the Linux kernel": [
+      "make", 
+      "libc6-dev-i386"
+    ],  
+    "For building new versions of the Linux kernel": [
+      "libelf-dev",
+      "libssl-dev"
+    ]  
+  },
+  "Python3 Packages": {
+    "For building and running Klever Bridge": [
+      "Django<2",
+      "gunicorn",
+      "psycopg2",
+      "pytz"
+    ],
+    "For running Klever Core": [
+      "jinja2",
+      "graphviz",
+      "ply",
+      "requests",
+      "setuptools_scm"
+    ],
+    "For running Klever Scheduler": [
+      "BenchExec<=1.11",
+      "consulate"
+    ]
+  },
   "Klever": {
     "version": "master",
     "path": "."
   },
   "Klever Addons": {
-    "BenchExec": {
-      "version": "master",
-      "path": "../benchexec"
-    },
     "CIF": {
-      "version": "58ca670",
-      "path": "addons/cif-58ca670"
+      "version": "d95cdf0",
+      "path": "addons/cif-d95cdf0.tar.gz",
+      "executable path": "bin"
     },
     "CIL": {
       "version": "1.5.1-ldv",
@@ -22,27 +64,15 @@
       "path": "addons/consul"
     },
     "VerifierCloud Client": {
-      "version": "trunk:26155",
-      "path": "addons/CPAchecker-1.6.1-svn edde8bf827-unix/scripts/",
+      "version": "trunk:27946",
+      "path": "addons/CPAchecker-1.7-svn 27946-unix/scripts/",
       "executable path": "benchmark"
     },
     "Verification Backends": {
-      "CPAchecker LDV": {
+      "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:26155",
-        "path": "addons/CPAchecker-1.6.1-svn edde8bf827-unix",
-        "executable path": "scripts"
-      },
-      "CPAchecker LDV BAM": {
-        "name": "CPAchecker",
-        "version": "ldv-bam:25793",
-        "path": "addons/CPAchecker-1.6.1-svn 816d5667b1-unix",
-        "executable path": "scripts"
-      },
-      "CPAchecker LDV SMG": {
-        "name": "CPAchecker",
-        "version": "smg_witness_for_ldv:26912",
-        "path": "addons/CPAchecker-1.6.1-svn c25a8706c8-unix",
+        "version": "trunk:27946",
+        "path": "addons/CPAchecker-1.7-svn 27946-unix",
         "executable path": "scripts"
       },
       "CPALockator": {
