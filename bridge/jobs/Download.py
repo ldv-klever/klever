@@ -424,17 +424,17 @@ class ReportsData:
 
 class UploadTree:
     def __init__(self, parent_id, user, jobs_dir):
-        self._parent = self.__get_parent(parent_id)
+        self._parent_id = parent_id
         self._user = user
         self._jobsdir = jobs_dir
 
-        self._uploaded = {}
+        self._uploaded = set()
         self._tree = self.__get_tree()
 
         try:
             self.__upload_tree()
         except Exception:
-            remove_jobs_by_id(self._user, list(j.id for j in self._uploaded.values()))
+            remove_jobs_by_id(self._user, list(j.id for j in Job.objects.filter(identifier__in=self._uploaded)))
             raise
 
     def __get_tree(self):
@@ -465,14 +465,15 @@ class UploadTree:
             if not os.path.exists(jobzip_name):
                 raise BridgeException(_('One of the job archives was not found'))
             if self._tree[j_id] is None:
-                parent = self._parent
+                parent_id = self._parent_id
             elif self._tree[j_id] in self._uploaded:
-                parent = self._uploaded[self._tree[j_id]]
+                parent_id = self._tree[j_id]
             else:
+                logger.error('The parent was not uploaded before the child')
                 raise BridgeException()
-            self.__upload_job(jobzip_name, parent)
+            self.__upload_job(jobzip_name, parent_id)
 
-    def __upload_job(self, jobarch, parent):
+    def __upload_job(self, jobarch, parent_id):
         try:
             jobdir = self.__extract_archive(jobarch)
         except Exception as e:
@@ -481,7 +482,7 @@ class UploadTree:
                 'arcname': os.path.basename(jobarch)
             })
         try:
-            res = UploadJob(parent, self._user, jobdir.name)
+            res = UploadJob(parent_id, self._user, jobdir.name)
         except BridgeException as e:
             raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': os.path.basename(jobarch), 'message': str(e)
@@ -491,7 +492,7 @@ class UploadTree:
             raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': os.path.basename(jobarch), 'message': _('The job archive is corrupted')
                 })
-        self._uploaded[res.job.identifier] = res.job
+        self._uploaded.add(res.job.identifier)
 
     def __extract_archive(self, jobarch):
         self.__is_not_used()
@@ -502,17 +503,6 @@ class UploadTree:
                 tmp_dir_name = tempfile.TemporaryDirectory()
                 zfp.extractall(tmp_dir_name.name)
             return tmp_dir_name
-
-    def __get_parent(self, parent_id):
-        self.__is_not_used()
-        if len(parent_id) == 0:
-            return None
-        parents = Job.objects.filter(identifier__startswith=parent_id)
-        if len(parents) == 0:
-            raise BridgeException(_("The parent with the specified identifier was not found"))
-        elif len(parents) > 1:
-            raise BridgeException(_("Too many jobs starts with the specified identifier"))
-        return parents.first()
 
     def __is_not_used(self):
         pass

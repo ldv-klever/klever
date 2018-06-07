@@ -712,7 +712,7 @@ def remove_jobs_by_id(user, job_ids):
         j_id = int(j_id)
         if j_id not in all_jobs:
             return
-        if j_id in job_struct:
+        if j_id in list(job_struct):
             for ch_id in job_struct[j_id]:
                 remove_job_with_children(ch_id)
             del job_struct[j_id]
