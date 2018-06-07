@@ -94,7 +94,14 @@
     },
     "linux-stable": {
       "version": "master",
-      "path": "programs/linux-stable"
+      "path": "programs/linux-stable",
+      "copy .git directory": true,
+      "allow use local Git repository": false
+    },
+    "linux-4.17": {
+      "version": "v4.17",
+      "path": "programs/linux-stable",
+      "allow use local Git repository": true
     }
   }
 }

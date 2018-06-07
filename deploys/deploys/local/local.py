@@ -65,7 +65,11 @@ class Klever:
         def cmd_fn(*args):
             execute_cmd(self.logger, *args)
 
-        def install_fn(src, dst, allow_symlink=False):
+        def install_fn(src, dst, allow_symlink=False, ignore=None):
+            if ignore and allow_symlink:
+                self.logger.error('You can not both use symbolic links and ignore some directories')
+                sys.exit(errno.EINVAL)
+
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
 
             os.makedirs(dst if os.path.isdir(dst) else os.path.dirname(dst), exist_ok=True)
@@ -74,7 +78,7 @@ class Klever:
                 execute_cmd(self.logger, 'ln', '-s', src, dst)
             else:
                 if os.path.isdir(src):
-                    shutil.copytree(src, dst, symlinks=True)
+                    shutil.copytree(src, dst, symlinks=True, ignore=lambda source, names: ignore or [])
                 else:
                     shutil.copy(src, dst)
 
