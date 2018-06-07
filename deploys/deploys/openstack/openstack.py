@@ -371,8 +371,8 @@ class OSKleverDeveloperInstance(OSEntity):
 
         is_update_programs = False
         try:
-            is_update_programs = install_programs(self.logger, 'klever', 'klever-inst', deploy_conf, prev_deploy_info,
-                                                  cmd_fn, install_fn)
+            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
+                                                  install_fn)
         # Like above.
         finally:
             if is_update_programs:
