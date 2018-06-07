@@ -519,8 +519,8 @@ class UploadTree:
 
 
 class UploadJob:
-    def __init__(self, parent, user, job_dir):
-        self._parent = parent
+    def __init__(self, parent_id, user, job_dir):
+        self._parent_id = '' if parent_id == 'null' else parent_id
         self.job = None
         self._user = user
         self._jobdir = job_dir
@@ -592,8 +592,8 @@ class UploadJob:
         versions = self.__get_job_versions()
 
         # Upload 1st version of job (creating new job)
-        self.job = JobForm(self._user, self._parent, 'copy').save({
-            'identifier': self._jobdata.get('identifier'), 'parent': self._parent.identifier,
+        self.job = JobForm(self._user, None, 'copy').save({
+            'identifier': self._jobdata.get('identifier'), 'parent': self._parent_id,
             'name': self._jobdata['name'], 'comment': versions[0]['comment'], 'description': versions[0]['description'],
             'global_role': versions[0]['global_role'], 'file_data': versions[0]['files'],
             'weight': self._jobdata['weight'], 'safe marks': bool(self._jobdata['safe marks'])
@@ -623,7 +623,7 @@ class UploadJob:
         for version_data in versions[1:]:
             try:
                 self.job = JobForm(self._user, self.job, 'edit').save({
-                    'last_version': self.job.version, 'parent': self._parent.identifier, 'name': self._jobdata['name'],
+                    'last_version': self.job.version, 'parent': self._parent_id, 'name': self._jobdata['name'],
                     'comment': version_data['comment'], 'description': version_data['description'],
                     'global_role': version_data['global_role'], 'file_data': version_data['files']
                 })
