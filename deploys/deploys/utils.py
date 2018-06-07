@@ -214,12 +214,12 @@ def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, 
         prev_deploy_programs_conf = prev_deploy_info['Programs']
 
         for program in deploy_programs_conf.keys():
-            deploy_dir = os.path.join(deploy_dir, 'klever-programs', program)
-            if install_extra_dep_or_program(logger, program, deploy_dir, deploy_programs_conf,
+            program_deploy_dir = os.path.join(deploy_dir, 'klever-programs', program)
+            if install_extra_dep_or_program(logger, program, program_deploy_dir, deploy_programs_conf,
                                             prev_deploy_programs_conf, cmd_fn, install_fn):
                 is_update_programs = True
                 # Allow using local source directories.
-                cmd_fn('chown', '-LR', 'klever', deploy_dir)
+                cmd_fn('chown', '-LR', 'klever', program_deploy_dir)
 
     return is_update_programs
 

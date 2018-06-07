@@ -168,8 +168,10 @@ class SSH:
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
 
-    def sftp_put(self, host_path, instance_path, sudo=False, dir=None):
-        self.logger.info('Copy "{0}" to "{1}"'.format(host_path, os.path.join(dir if dir else '', instance_path)))
+    def sftp_put(self, host_path, instance_path, sudo=False, directory=None):
+        self.logger.info('Copy "{0}" to "{1}"'
+                         .format(host_path,
+                                 os.path.join(directory if directory else '', instance_path)))
 
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
@@ -182,6 +184,7 @@ class SSH:
 
         # TODO: get rid of numerous warnings like "tar: ...: time stamp 2018-06-04 11:14:25 is 109.824694369 s in the future".
         # Use sudo to allow extracting archives outside home directory.
-        self.execute_cmd('{0} -xf {1}'.format(('sudo ' if sudo else '') + 'tar' + (' -C ' + dir if dir else ''),
-                                              instance_archive))
+        self.execute_cmd('{0} -xf {1}'
+                         .format(('sudo ' if sudo else '') + 'tar' + (' -C ' + directory if directory else ''),
+                                 instance_archive))
         self.execute_cmd('rm ' + instance_archive)
