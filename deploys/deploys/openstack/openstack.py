@@ -341,11 +341,11 @@ class OSKleverDeveloperInstance(OSEntity):
         def cmd_fn(*args):
             ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
 
-        def install_fn(src, dst, allow_symlink=False):
+        def install_fn(src, dst, allow_symlink=False, ignore=None):
             # To avoid warnings. This parameter is actually used in corresponding function in deploys/local/local.py.
             del allow_symlink
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
-            ssh.sftp_put(src, dst, sudo=True)
+            ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
 
         is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
                                                            prev_deploy_info, cmd_fn, install_fn)

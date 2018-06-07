@@ -168,7 +168,7 @@ class SSH:
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
 
-    def sftp_put(self, host_path, instance_path, sudo=False, directory=None):
+    def sftp_put(self, host_path, instance_path, sudo=False, directory=None, ignore=None):
         self.logger.info('Copy "{0}" to "{1}"'
                          .format(host_path,
                                  os.path.join(directory if directory else '', instance_path)))
@@ -177,7 +177,8 @@ class SSH:
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
             instance_archive = os.path.basename(fp.name)
             with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                TarFile.add(host_path, os.path.normpath(instance_path))
+                TarFile.add(host_path, os.path.normpath(instance_path),
+                            exclude=lambda path: any(path.endswith(ignore_path) for ignore_path in ignore))
             fp.flush()
             fp.seek(0)
             self.sftp.putfo(fp, instance_archive)

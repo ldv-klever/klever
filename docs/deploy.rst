@@ -291,7 +291,17 @@ Each JSON object describing an entity should always have values for *version* an
   configurations, etc.).
   As we mentioned above you can specify individual files, directories, archives and Git repositories as paths.
 
-For some entities it could be necessary to additionally specify *executable path* within *path* if binaries are not
-available directly from *path*.
+For some :ref:`klever_addons` it could be necessary to additionally specify *executable path* within *path* if binaries
+are not available directly from *path*.
 For :ref:`verification_backends` there is also *name* with value *CPAchecker*.
 Keep this pair for all specified :ref:`verification_backends`.
+
+For :ref:`programs` you can additionally set *copy .git directory* and *allow use local Git repository* to *True*.
+In the former case deployment scripts will copy directory :file:`.git` if one provides programs as Git repositories.
+This can be necessary for verifying commits from Git repositories.
+In the latter case deployment scripts will use specified Git repositories for checkouting required versions
+straightforwardly.
+
+.. warning:: Setting *allow use local Git repository* to *True* will result in removing all your uncommited changes!
+             Besides, ignore rules from, say, :file:`.gitignore` will be ignored and corresponding files and directories
+             will be removed!
