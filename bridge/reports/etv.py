@@ -308,7 +308,7 @@ class ParseErrorTrace:
         return data
 
     def __return(self, func_id=None, if_possible=False):
-        if self.scope.current_action():
+        if self.scope.current_action() is not None:
             # Return from action first
             self.lines.append(self.__triangle_line(self.scope.remove()))
         if not self.scope.is_return_correct(func_id):

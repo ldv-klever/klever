@@ -43,7 +43,7 @@
   ],
   "description": "It is necessary to specify i2c_algorithm interface. Note, that registration in the case is implemented using a registration function but it requires some pointer analysis to track.",
   "is_modifiable": true,
-  "status": "1",
+  "status": "2",
   "tags": [
     "EMG",
     "EnvSpec"
