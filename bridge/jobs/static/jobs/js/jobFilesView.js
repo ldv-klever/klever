@@ -63,7 +63,7 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
         $('#file_content_modal').modal('hide');
         $('#file_content').empty();
     });
-    $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {'opened': false}, function (json) {
+    $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {'opened': true}, function (json) {
         if (json.error) {
             err_notify(json.error);
             return false;

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+var def_file_to_open = 'job.json';
+
 function check_filename(str) {
     if (str.length > 0) {
         if (isASCII(str) || str.length < 30) {
@@ -194,6 +196,13 @@ function download_file(data) {
     }
 }
 
+function clear_editfile_area() {
+    $('#commit_file_changes').addClass('disabled');
+    var editfile_area = $('#editfile_area');
+    editfile_area.prop('disabled', true);
+    editfile_area.val('');
+}
+
 function get_menu(node) {
     var tmp = $.jstree.defaults.contextmenu.items(),
         node_type = this.get_type(node);
@@ -282,13 +291,28 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
                 'multiple': false,
                 'data': [json]
             }
-        })
-        .on('select_node.jstree', function (e, data) {
-            $('#commit_file_changes').addClass('disabled');
-            var editfile_area = $('#editfile_area');
-            editfile_area.prop('disabled', true);
-            data.node.type == 'file' ? load_file_content(data.node) : editfile_area.val('');
-        });
+        }).on('select_node.jstree', function (e, data) {
+            clear_editfile_area();
+            if (data.node.type == 'file') load_file_content(data.node);
+        }).on('ready.jstree', function () {
+            var instance = $(tree_div_id).jstree(true),
+                tree_data = instance._model.data,
+                root_id = tree_data['#']['children'][0],
+                first_file;
+            for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
+                var child_id = tree_data[root_id]['children'][i];
+                if (tree_data[child_id]['type'] == 'file') {
+                    if (tree_data[child_id]['text'] == def_file_to_open) {
+                        first_file = tree_data[root_id]['children'][i];
+                        break;
+                    }
+                    else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
+                        first_file = tree_data[root_id]['children'][i];
+                    }
+                }
+            }
+            if (first_file) instance.select_node(first_file);
+        }).on('delete_node.jstree', clear_editfile_area);
     }, 'json');
 
     $('#commit_file_changes').click(function () { commit_file_changes(tree_div_id) });

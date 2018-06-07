@@ -623,7 +623,7 @@ class UploadJob:
         for version_data in versions[1:]:
             try:
                 self.job = JobForm(self._user, self.job, 'edit').save({
-                    'parent': self._parent.identifier, 'name': self._jobdata['name'],
+                    'last_version': self.job.version, 'parent': self._parent.identifier, 'name': self._jobdata['name'],
                     'comment': version_data['comment'], 'description': version_data['description'],
                     'global_role': version_data['global_role'], 'file_data': version_data['files']
                 })
