@@ -303,14 +303,14 @@ class OSKleverDeveloperInstance(OSEntity):
                     # TODO: putting files one by one is extremely slow.
                     for filename in filenames:
                         ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
-                                     sudo=True, dir=os.path.sep)
+                                     sudo=True, directory=os.path.sep)
                         ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
 
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
                     fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
                     fp.flush()
-                    ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, dir=os.path.sep)
+                    ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever developer instance'):
