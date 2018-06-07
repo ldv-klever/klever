@@ -152,7 +152,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
                         execute_cmd(logger, './setup.py', 'egg_info')
 
                 # Directory .git can be quite large so ignore it during installing except one needs it.
-                install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else '.git')
+                install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
     elif os.path.isfile(path) and tarfile.is_tarfile(path):
         archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
         install_fn(path, archive)
