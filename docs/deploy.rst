@@ -189,7 +189,9 @@ CIL
 
 `CIL <https://people.eecs.berkeley.edu/~necula/cil/>`__ is a very legacy Klever addon.
 You can get its binaries from `here <https://forge.ispras.ru/attachments/5739/cil-1.5.1.tar.gz>`__.
-We do not recommend to build it from source since we have applied several specific patches.
+As well, you can build it from
+`this source <https://forge.ispras.ru/projects/cil/repository/revisions/fdae07e10fcab22c59e30813d87aa5401ef1e7fc>`__
+which has several specific patches relatively to the mainline.
 
 .. _consul:
 
