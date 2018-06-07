@@ -348,7 +348,6 @@ class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
     def get_context_data(self, **kwargs):
         if not jobs.utils.JobAccess(self.request.user).can_create():
             raise BridgeException(_("You don't have an access to upload jobs"))
-        parent = jobs.utils.get_job_by_identifier(self.kwargs['parent_id'])
         for f in self.request.FILES.getlist('file'):
             try:
                 job_dir = extract_archive(f)
@@ -356,7 +355,7 @@ class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
                 logger.exception(e)
                 raise BridgeException(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             try:
-                UploadJob(parent, self.request.user, job_dir.name)
+                UploadJob(self.kwargs['parent_id'], self.request.user, job_dir.name)
             except BridgeException as e:
                 raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': f.name, 'message': str(e)

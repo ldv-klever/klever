@@ -1299,6 +1299,7 @@ class ReportStatus:
         self.color = '#a4e9eb'
         self.href = None
         self.duration = None
+        self.__get_status()
 
     def __get_status(self):
         if self._report.finish_date is not None:

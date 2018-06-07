@@ -566,13 +566,10 @@ $(document).ready(function () {
     });
 
     $('#upload_jobs_start').click(function () {
-        var parent_id = $('#upload_job_parent_id').val();
-        if (!parent_id.length) {
-            err_notify($('#error__parent_required').text());
-            return false;
-        }
-        var files = $('#upload_job_file_input')[0].files,
+        var parent_id = $('#upload_job_parent_id').val(),
+            files = $('#upload_job_file_input')[0].files,
             data = new FormData();
+        if (parent_id.length === 0) parent_id = 'null';
         if (files.length <= 0) {
             err_notify($('#error__no_file_chosen').text());
             return false;
