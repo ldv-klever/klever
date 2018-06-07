@@ -351,11 +351,11 @@ class OSKleverDeveloperInstance(OSEntity):
                                                            prev_deploy_info, cmd_fn, install_fn)
 
         def dump_cur_deploy_info():
-            with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
-                json.dump(prev_deploy_info, fp, sort_keys=True, indent=4)
-                fp.flush()
+            with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
+                json.dump(prev_deploy_info, nested_fp, sort_keys=True, indent=4)
+                nested_fp.flush()
                 ssh.execute_cmd('sudo rm klever-inst/klever.json')
-                ssh.sftp_put(fp.name, 'klever-inst/klever.json', sudo=True)
+                ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
         if is_update['Klever']:
             dump_cur_deploy_info()
@@ -371,8 +371,8 @@ class OSKleverDeveloperInstance(OSEntity):
 
         is_update_programs = False
         try:
-            is_update_programs = install_programs(self.logger, 'klever', 'klever-inst', deploy_conf, prev_deploy_info,
-                                                  cmd_fn, install_fn)
+            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
+                                                  install_fn)
         # Like above.
         finally:
             if is_update_programs:
