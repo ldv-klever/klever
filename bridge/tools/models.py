@@ -32,11 +32,11 @@ class LockTable(models.Model):
 class CallLogs(models.Model):
     name = models.CharField(max_length=64, db_index=True)
     enter_time = models.DecimalField(max_digits=14, decimal_places=4)
-    execution_time = models.DecimalField(max_digits=14, decimal_places=4)
-    return_time = models.DecimalField(max_digits=14, decimal_places=4)
+    execution_time = models.DecimalField(max_digits=14, decimal_places=4, null=True)
+    return_time = models.DecimalField(max_digits=14, decimal_places=4, null=True)
     execution_delta = models.FloatField(default=0)
-    wait1 = models.FloatField()
-    wait2 = models.FloatField()
+    wait1 = models.FloatField(default=0)
+    wait2 = models.FloatField(default=0)
     is_failed = models.BooleanField(default=True)
 
     class Meta:

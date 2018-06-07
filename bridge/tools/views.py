@@ -180,6 +180,15 @@ def call_statistic(request):
     return render(request, "tools/CallStatistic.html", {'data': data})
 
 
+def processing_list(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    return render(request, "tools/ProcessingRequests.html", {
+        'data': ProfileData().processing(), 'locked': LockTable.objects.filter(locked=True)
+    })
+
+
 def clear_call_logs(request):
     activate(request.user.extended.language)
     if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
