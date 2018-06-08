@@ -420,6 +420,10 @@ class CopyJobVersionView(LoggedCallMixin, Bviews.JsonDetailView):
 class PrepareDecisionView(LoggedCallMixin, TemplateView):
     template_name = 'jobs/startDecision.html'
 
+    def post(self, *args, **kwargs):
+        self.is_not_used(*args, **kwargs)
+        return self.render_to_response(self.get_context_data(**kwargs))
+
     def get_context_data(self, **kwargs):
         try:
             job = Job.objects.get(pk=int(self.kwargs['job_id']))
