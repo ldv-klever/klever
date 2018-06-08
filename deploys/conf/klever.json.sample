@@ -27,7 +27,7 @@
   },
   "Python3 Packages": {
     "For building and running Klever Bridge": [
-      "Django<2",
+      "Django>=2",
       "gunicorn",
       "psycopg2",
       "pytz"
