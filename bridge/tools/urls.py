@@ -22,6 +22,7 @@ from tools import views
 urlpatterns = [
     path('manager/', views.manager_tools, name='manager'),
     path('view_call_logs/', views.view_call_logs, name='view_call_logs'),
+    path('processing_list/', views.processing_list, name='processing_list'),
     path('ajax/rename_component/', views.rename_component),
     path('ajax/clear_components/', views.clear_components),
     path('ajax/clear_problems/', views.clear_problems),
