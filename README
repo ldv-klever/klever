@@ -1,12 +1,16 @@
-For now Klever documentation contains only deployment instructions.
-You can either find it online at http://klever.readthedocs.io or build it yourself.
+You can find Klever documentation online at http://klever.readthedocs.io or
+build it yourself.
 
 To build Klever documentation you need:
-* Install Python 3.4 or higher (https://www.python.org/)
-* Install Sphinx (http://sphinx-doc.org) and Read the Docs sphinx theme
-    pip install sphinx sphinx_rtd_theme
+* Install Python 3.4 or higher (https://www.python.org/).
+* Install Sphinx (http://sphinx-doc.org) and its theme Read the Docs
+  (https://sphinx-rtd-theme.readthedocs.io/en/latest/), e.g.:
+    pip3 install sphinx sphinx_rtd_theme
 * Execute the following command from the source tree root directory (it should
   be executed each time when documentation might be changed):
     make -C docs html
-* Open generated documenation index "docs/_build/index.html" in a web browser.
+Then you can open generated documentation index "docs/_build/html/index.html" in
+a web browser.
 
+Note that this Klever documentation does not contain any user documentation
+since we plan to incorporate it directly into Klever web interface.
