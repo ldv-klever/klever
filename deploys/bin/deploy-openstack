@@ -17,11 +17,7 @@
 #
 
 if __name__ == '__main__':
-    import os
     import sys
+    import deploys.openstack
 
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir))
-
-    import kopenstack
-
-    sys.exit(kopenstack.main())
+    sys.exit(deploys.openstack.main())

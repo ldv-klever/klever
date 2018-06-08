@@ -419,19 +419,20 @@ class CopyJobVersionView(LoggedCallMixin, Bviews.JsonDetailView):
         return {}
 
 
-class PrepareDecisionView(LoggedCallMixin, TemplateView):
+class PrepareDecisionView(LoggedCallMixin, DetailView):
     template_name = 'jobs/startDecision.html'
+    model = Job
 
     def post(self, *args, **kwargs):
         self.is_not_used(*args, **kwargs)
-        return self.render_to_response(self.get_context_data(**kwargs))
+        self.object = self.get_object()
+        try:
+            return self.render_to_response(self.get_context_data(object=self.object))
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException(back=reverse('jobs:prepare_run', args=[self.object.pk]))
 
     def get_context_data(self, **kwargs):
-        try:
-            job = Job.objects.get(pk=int(self.kwargs['job_id']))
-        except ObjectDoesNotExist:
-            raise BridgeException(code=404)
-
         current_conf = settings.DEF_KLEVER_CORE_MODE
         configuration = None
 
@@ -448,7 +449,7 @@ class PrepareDecisionView(LoggedCallMixin, TemplateView):
             configuration = jobs.utils.GetConfiguration(conf_name=current_conf).configuration
 
         return {
-            'job': job, 'current_conf': current_conf,
+            'job': self.object, 'current_conf': current_conf,
             'configurations': jobs.utils.get_default_configurations(),
             'data': jobs.utils.StartDecisionData(self.request.user, configuration)
         }

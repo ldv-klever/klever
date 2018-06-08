@@ -241,8 +241,9 @@ class Core(core.components.CallbacksCaller):
             version = setuptools_scm.get_version(root=git_repo_dir)
         else:
             self.logger.info('Get version on the basis of package information')
-            version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
-                                                 parse=setuptools_scm.hacks.parse_pkginfo)
+            version = setuptools_scm.get_version(
+                os.path.join(os.path.dirname(__file__), os.path.pardir, 'KleverCore.egg-info'),
+                parse=setuptools_scm.hacks.parse_pkginfo)
         self.logger.debug('Klever Core version is "{0}"'.format(version))
         return version
 

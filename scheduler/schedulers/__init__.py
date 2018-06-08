@@ -294,9 +294,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                     set(server_state["tasks"]["pending"] + scheduler_state["tasks"]["processing"])]:
                         logging.debug("Cancel task {} with status {}".format(task_id, self.__tasks[task_id]['status']))
                         if "future" in self.__tasks[task_id]:
-                            cancelled = self.__tasks[task_id]["future"].cancel()
-                            if not cancelled:
-                                self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+                            self.__tasks[task_id]["future"].cancel()
+                        self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
                         del self.__tasks[task_id]
                         if not transition_done:
                             transition_done = True
@@ -309,12 +308,12 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                     or job_id in server_state["jobs"]["cancelled"])]:
                         logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]['status']))
                         if "future" in self.__jobs[job_id]:
-                            cancelled = self.__jobs[job_id]["future"].cancel()
-                            if not cancelled:
-                                self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
+                            self.__jobs[job_id]["future"].cancel()
+                        # Make cancellation in scheduler implementation (del dir and so on)
+                        self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
-                                # Then terminate all pending and processing tasks for the job
-                                self.__cancel_job_tasks(job_id)
+                        # Then terminate all pending and processing tasks for the job
+                        self.__cancel_job_tasks(job_id)
 
                         del self.__jobs[job_id]
                         if not transition_done:
