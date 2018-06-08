@@ -23,7 +23,7 @@ from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES
 
 
 class Extended(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, models.CASCADE)
     accuracy = models.SmallIntegerField(default=settings.DEF_USER['accuracy'])
     data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=settings.DEF_USER['dataformat'])
     language = models.CharField(max_length=2, choices=LANGUAGES, default=settings.DEF_USER['language'])
@@ -41,11 +41,11 @@ class Extended(models.Model):
 
 
 class View(models.Model):
-    author = models.ForeignKey(User)
-    type = models.CharField(max_length=2, choices=VIEW_TYPES, default='1')
+    author = models.ForeignKey(User, models.CASCADE)
+    type = models.CharField(max_length=2, choices=VIEW_TYPES, default=VIEW_TYPES[1][0])
+    shared = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
     view = models.TextField()
-    shared = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -55,8 +55,8 @@ class View(models.Model):
 
 
 class PreferableView(models.Model):
-    user = models.ForeignKey(User)
-    view = models.ForeignKey(View, related_name='+')
+    user = models.ForeignKey(User, models.CASCADE)
+    view = models.ForeignKey(View, models.CASCADE, related_name='+')
 
     def __str__(self):
         return self.view.name
@@ -66,6 +66,6 @@ class PreferableView(models.Model):
 
 
 class Notifications(models.Model):
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(User, models.CASCADE)
     settings = models.CharField(max_length=255)
     self_ntf = models.BooleanField(default=True)

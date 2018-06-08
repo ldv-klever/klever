@@ -54,12 +54,9 @@ $(document).ready(function () {
         else {
             ready_for_next_string = false;
             $.ajax({
-                url: '/reports/ajax/get_source/',
+                url: '/reports/get_source/' + $('#report_pk').val() + '/',
                 type: 'POST',
-                data: {
-                    report_id: $('#report_pk').val(),
-                    file_name: filename
-                },
+                data: {file_name: filename},
                 success: function (data) {
                     if (data.error) {
                         $('#ETVSourceTitle').empty();
@@ -69,7 +66,7 @@ $(document).ready(function () {
                     else if (data.name && data.content) {
                         var title_place = $('#ETVSourceTitle');
                         title_place.text(data.name);
-                        $('#ETVSourceTitleFull').text(data['fullname']);
+                        $('#ETVSourceTitleFull').text(data.name);
                         title_place.popup();
                         src_filename_trunc();
                         source_code_window.html(data.content);

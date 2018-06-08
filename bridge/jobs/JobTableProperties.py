@@ -16,59 +16,22 @@
 #
 
 from datetime import datetime
-from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Case, When, Count
-from django.template import Template, Context
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 
-from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.utils import get_templated_text
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, ReportComponentLeaf
 
-from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
 from service.utils import GetJobsProgresses
 
-
-ORDERS = [
-    ('name', 'name'),
-    ('change_author__extended__last_name', 'author'),
-    ('change_date', 'date'),
-    ('status', 'status'),
-    ('solvingprogress__start_date', 'start_date'),
-    ('solvingprogress__finish_date', 'finish_date')
-]
-
-ORDER_TITLES = {
-    'name':  _('Title'),
-    'author': string_concat(_('Author'), '/', _('Last name')),
-    'date': _('Date'),
-    'status': _('Decision status'),
-    'start_date': _('Start date'),
-    'finish_date': _('Finish date')
-}
-
-ALL_FILTERS = [
-    'name', 'change_author', 'change_date', 'status', 'resource_component',
-    'problem_component', 'problem_problem', 'format', 'priority', 'finish_date'
-]
-
-FILTER_TITLES = {
-    'name': _('Title'),
-    'change_author': _('Last change author'),
-    'change_date': _('Last change date'),
-    'status': _('Decision status'),
-    'resource_component': string_concat(_('Consumed resources'), '/', _('Component name')),
-    'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
-    'problem_problem': _('Problem name'),
-    'format': _('Format'),
-    'priority': _('Priority'),
-    'finish_date': _('Finish decision date')
-}
 
 DATE_COLUMNS = {
     'date', 'tasks:start_ts', 'tasks:finish_ts', 'subjobs:start_sj', 'subjobs:finish_sj', 'start_date', 'finish_date'
@@ -97,17 +60,17 @@ def all_user_columns():
     columns.extend(SUBJOBS_COLUMNS)
     columns.extend([
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
-        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+        'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
     ])
     return columns
 
 
 class TableTree:
-    def __init__(self, user, view=None, view_id=None):
+    def __init__(self, user, view):
         self._user = user
         self._columns = ['name']
 
-        self.view = ViewData(user, VIEW_TYPES[1][0], view=view, view_id=view_id)
+        self.view = view
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
 
@@ -554,7 +517,7 @@ class TableTree:
 
         if 'author' in self._columns:
             self.__collect_authors()
-        if any(x in {'format', 'version', 'type', 'date', 'status'} for x in self._columns):
+        if any(x in {'format', 'version', 'date', 'status'} for x in self._columns):
             self.__collect_jobs_data()
         if any(x.startswith('safe:') or x.startswith('unsafe:') or x == 'problem:total' for x in self._columns):
             self.__collect_verdicts()
@@ -594,8 +557,7 @@ class TableTree:
                         cell_value = self._values_data[job['id']][col]
                 if col in DATE_COLUMNS:
                     if self._user.extended.data_format == 'hum' and isinstance(cell_value, datetime):
-                        cell_value = Template('{% load humanize %}{{ date|naturaltime }}')\
-                            .render(Context({'date': cell_value}))
+                        cell_value = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=cell_value)
                 row_values.append({
                     'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
@@ -655,15 +617,13 @@ class TableTree:
             self._values_data[j.id].update({
                 'format': j.format,
                 'version': j.version,
-                'type': j.get_type_display(),
                 'date': date,
                 'status': j.get_status_display()
             })
-        for report in ReportComponent.objects.filter(root__job_id__in=self._job_ids, parent=None)\
-                .values('id', 'root__job_id'):
-            self._values_data[report['root__job_id']]['status'] = (
-                self._values_data[report['root__job_id']]['status'],
-                reverse('reports:component', args=[report['root__job_id'], report['id']])
+        for r_id, job_id in ReportComponent.objects.filter(root__job_id__in=self._job_ids, parent=None)\
+                .values_list('id', 'root__job_id'):
+            self._values_data[job_id]['status'] = (
+                self._values_data[job_id]['status'], reverse('reports:component', args=[r_id])
             )
 
     def __collect_verdicts(self):

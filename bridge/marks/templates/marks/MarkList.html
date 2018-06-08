@@ -3,14 +3,14 @@
 {% load i18n %}
 {% load staticfiles %}
 
-{% block title %}{% if type == 'safe' %}{% trans 'Safe marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
+{% block title %}{% if tabledata.type == 'safe' %}{% trans 'Safe marks' %}{% elif tabledata.type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
 
 {% block head_block %}
     <script type="text/javascript" src="{% static 'marks/js/marks.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}
-    <input id="marks_type" type="hidden" value="{{ type }}">
+    <input id="marks_type" type="hidden" value="{{ tabledata.type }}">
     <button id="view_show_form_btn_{{ tabledata.view.type }}" data-content="{{ tabledata.view.viewtitle }}" data-position="bottom right" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
     <button class="ui mini basic icon red button note-popup" id="show_remove_marks_popup" data-position="bottom left" data-content="{% trans 'Delete selected marks' %}"><i class="ui remove icon"></i></button>
     <br>

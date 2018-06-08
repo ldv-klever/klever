@@ -22,6 +22,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models.base import ModelBase
 
+from bridge.utils import BridgeException
 from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
@@ -125,32 +126,80 @@ def unparallel_group(groups):
     def __inner(f):
 
         def wait(*args, **kwargs):
-            call_data = CallLogs(name=f.__name__, enter_time=time.time())
+
+            def get_time():
+                while True:
+                    try:
+                        return time.time()
+                    except Exception:
+                        pass
+
+            call_data = CallLogs.objects.create(name=f.__name__, enter_time=get_time())
             locker = ExecLocker(groups)
             locker.lock()
-            call_data.execution_time = time.time()
+            call_data.execution_time = get_time()
+            call_data.wait1 = locker.waiting_time[0]
+            call_data.wait2 = locker.waiting_time[1]
+            call_data.save()
             try:
                 res = f(*args, **kwargs)
+                call_data.execution_delta = get_time() - call_data.execution_time
             except Exception:
-                call_data.execution_delta = time.time() - call_data.execution_time
-                call_data.is_failed = True
                 if settings.UNLOCK_FAILED_REQUESTS:
                     locker.unlock()
                 raise
             else:
-                call_data.execution_delta = time.time() - call_data.execution_time
                 call_data.is_failed = False
                 locker.unlock()
             finally:
-                call_data.return_time = time.time()
-                call_data.wait1 = locker.waiting_time[0]
-                call_data.wait2 = locker.waiting_time[1]
+                call_data.return_time = get_time()
                 call_data.save()
             return res
 
         return wait
 
     return __inner
+
+
+class LoggedCallMixin:
+    unparallel = []
+
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(super(), 'dispatch'):
+            # This mixin should be used together with View based class
+            raise BridgeException()
+
+        def get_time():
+            while True:
+                try:
+                    return time.time()
+                except Exception:
+                    pass
+
+        call_data = CallLogs.objects.create(name=type(self).__name__, enter_time=get_time())
+        locker = ExecLocker(self.unparallel)
+        locker.lock()
+        call_data.execution_time = get_time()
+        call_data.wait1 = locker.waiting_time[0]
+        call_data.wait2 = locker.waiting_time[1]
+        call_data.save()
+        try:
+            response = getattr(super(), 'dispatch')(request, *args, **kwargs)
+            call_data.execution_delta = get_time() - call_data.execution_time
+        except Exception:
+            if settings.UNLOCK_FAILED_REQUESTS:
+                locker.unlock()
+            raise
+        else:
+            call_data.is_failed = False
+            locker.unlock()
+        finally:
+            call_data.return_time = get_time()
+            call_data.save()
+        return response
+
+    def is_not_used(self, *args, **kwargs):
+        pass
 
 
 class ProfileData:
@@ -182,11 +231,11 @@ class ProfileData:
         if isinstance(func_name, str):
             filters['name'] = func_name
         logdata = []
-        for call_data in CallLogs.objects.filter(**filters).order_by('id'):
+        for call_data in CallLogs.objects.filter(**filters).exclude(return_time=None).order_by('id'):
             logdata.append({
                 'name': call_data.name,
-                'wait1': (call_data.wait1, call_data.wait1 > MAX_WAITING),
-                'wait2': (call_data.wait2, call_data.wait2 > MAX_WAITING),
+                'wait1': (call_data.wait1, call_data.wait1 >= MAX_WAITING),
+                'wait2': (call_data.wait2, call_data.wait2 >= MAX_WAITING),
                 'wait_total': call_data.wait1 + call_data.wait2,
                 'enter': datetime.fromtimestamp(call_data.enter_time),
                 'exec': datetime.fromtimestamp(call_data.execution_time),
@@ -195,6 +244,16 @@ class ProfileData:
                 'failed': call_data.is_failed
             })
         return logdata
+
+    def processing(self):
+        data = []
+        for l in CallLogs.objects.filter(return_time=None).order_by('id'):
+            data.append({
+                'name': l.name, 'enter': datetime.fromtimestamp(l.enter_time),
+                'wait1': l.wait1, 'wait2': l.wait2,
+                'exec': datetime.fromtimestamp(l.execution_time) if l.execution_time else None
+            })
+        return data
 
     def __collect_statistic(self, date1, date2, func_name):
         self.__is_not_used()

@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import json
 from difflib import unified_diff
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -30,31 +31,31 @@ import marks.UnknownUtils as UnknownUtils
 from users.models import User
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    SafeTag, UnsafeTag, ConvertedTraces
+    SafeTag, UnsafeTag, ConvertedTraces, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 
 STATUS_COLOR = {
-    '0': '#D11919',
+    '0': '#e81919',
     '1': '#FF8533',
     '2': '#FF8533',
-    '3': '#00B800',
+    '3': '#00c600',
 }
 
 UNSAFE_COLOR = {
-    '0': '#A739CC',
-    '1': '#D11919',
-    '2': '#D11919',
+    '0': '#cb58ec',
+    '1': '#e81919',
+    '2': '#e81919',
     '3': '#FF8533',
-    '4': '#D11919',
-    '5': '#000000',
+    '4': '#D11919',  # Incompatible marks
+    '5': '#000000',  # Without marks
 }
 
 SAFE_COLOR = {
-    '0': '#A739CC',
+    '0': '#cb58ec',
     '1': '#FF8533',
-    '2': '#D11919',
-    '3': '#D11919',
-    '4': '#000000',
+    '2': '#e81919',
+    '3': '#D11919',  # Incompatible marks
+    '4': '#000000',  # Without marks
 }
 
 
@@ -186,72 +187,38 @@ class TagsInfo:
 
 
 class NewMark:
-    def __init__(self, user, data):
+    def __init__(self, user, inst, data):
         self._user = user
         self._data = data
-        self._inst = None
+        self._inst = inst
+        self._handler = self.__get_handler()
         self.changes = {}
-        if 'report_id' in data:
-            self.__get_report(data['data_type'], data['report_id'])
-        elif 'mark_id' in data:
-            self.__get_mark(data['data_type'], data['mark_id'])
-        else:
-            raise BridgeException()
-        self.mark = self.__new_mark()
+        self.mark = None
 
-    def __get_report(self, mark_type, report_id):
-        try:
-            if mark_type == 'unsafe':
-                self._inst = ReportUnsafe.objects.get(id=report_id)
-            elif mark_type == 'safe':
-                self._inst = ReportSafe.objects.get(id=report_id)
-                if not self._inst.root.job.safe_marks:
-                    raise BridgeException(_('Safe marks are disabled'))
-            elif mark_type == 'unknown':
-                self._inst = ReportUnknown.objects.get(id=report_id)
-            else:
-                raise ValueError('Unsupported mark type: %s' % mark_type)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The report was not found'))
-        if not MarkAccess(self._user, report=self._inst).can_create():
-            raise BridgeException(_("You don't have an access to create new marks"))
-
-    def __get_mark(self, mark_type, mark_id):
-        try:
-            if mark_type == 'unsafe':
-                self._inst = MarkUnsafe.objects.get(id=mark_id)
-            elif mark_type == 'safe':
-                self._inst = MarkSafe.objects.get(id=mark_id)
-            elif mark_type == 'unknown':
-                self._inst = MarkUnknown.objects.get(id=mark_id)
-            else:
-                raise ValueError('Unsupported mark type: %s' % mark_type)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The mark was not found'))
-        if not MarkAccess(self._user, mark=self._inst).can_edit():
-            raise BridgeException(_("You don't have an access to this mark"))
-
-    def __new_mark(self):
+    def __get_handler(self):
         if isinstance(self._inst, (ReportSafe, MarkSafe)):
-            res = SafeUtils.NewMark(self._user, self._data)
+            return SafeUtils.NewMark(self._user, self._data)
         elif isinstance(self._inst, (ReportUnsafe, MarkUnsafe)):
-            res = UnsafeUtils.NewMark(self._user, self._data)
+            return UnsafeUtils.NewMark(self._user, self._data)
         elif isinstance(self._inst, (ReportUnknown, MarkUnknown)):
-            res = UnknownUtils.NewMark(self._user, self._data)
+            return UnknownUtils.NewMark(self._user, self._data)
         else:
             raise ValueError('Unsupported type: %s' % type(self._inst))
-        if isinstance(self._inst, (ReportSafe, ReportUnsafe, ReportUnknown)):
-            mark = res.create_mark(self._inst)
-        else:
-            mark = res.change_mark(self._inst)
-        self.changes = res.changes
-        return mark
+
+    def create_mark(self):
+        self.mark = self._handler.create_mark(self._inst)
+        self.changes = self._handler.changes
+
+    def change_mark(self):
+        self.mark = self._handler.change_mark(self._inst)
+        self.changes = self._handler.changes
 
 
 class CompareMarkVersions:
-    def __init__(self, mark_id, mark_type, v_ids):
+    def __init__(self, mark_type, version1, version2):
         self.type = mark_type
-        self.v1, self.v2 = self.__get_versions(mark_id, v_ids)
+        self.v1 = version1
+        self.v2 = version2
         self.verdict = self.__verdict_change()
         self.status = self.__status_change()
         self.tags = self.__tags_change()
@@ -260,15 +227,6 @@ class CompareMarkVersions:
         self.attrs = self.__attr_change()
         self.unknown_func = self.__unknown_func_change()
         self.problem = self.__problem_change()
-
-    def __get_versions(self, mid, v_ids):
-        mark_table = {'safe': MarkSafeHistory, 'unsafe': MarkUnsafeHistory, 'unknown': MarkUnknownHistory}
-        if self.type not in mark_table:
-            raise BridgeException()
-        versions = mark_table[self.type].objects.filter(mark_id=mid, version__in=v_ids).order_by('change_date')
-        if versions.count() != 2:
-            raise BridgeException(_('The page is outdated, reload it please'))
-        return list(versions)
 
     def __verdict_change(self):
         if self.type == 'unknown' or self.v1.verdict == self.v2.verdict:
@@ -319,8 +277,6 @@ class CompareMarkVersions:
         return '\n'.join(diff_result)
 
     def __attr_change(self):
-        if self.type == 'unknown':
-            return None
         attrs1 = set(a_id for a_id, in self.v1.attrs.filter(is_compare=True).values_list('attr_id'))
         attrs2 = set(a_id for a_id, in self.v2.attrs.filter(is_compare=True).values_list('attr_id'))
         if attrs1 == attrs2:
@@ -349,7 +305,7 @@ class CompareMarkVersions:
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
 
 
-def delete_marks(user, marks_type, mark_ids):
+def delete_marks(user, marks_type, mark_ids, report_id=None):
     if marks_type == 'safe':
         marks = MarkSafe.objects.filter(id__in=mark_ids)
     elif marks_type == 'unsafe':
@@ -366,8 +322,67 @@ def delete_marks(user, marks_type, mark_ids):
         else:
             raise BridgeException(_('Nothing to delete'))
     if marks_type == 'safe':
-        return SafeUtils.delete_marks(marks)
+        SafeUtils.delete_marks(marks)
+        reports_model = ReportSafe
     elif marks_type == 'unsafe':
-        return UnsafeUtils.delete_marks(marks)
-    elif marks_type == 'unknown':
-        return UnknownUtils.delete_marks(marks)
+        UnsafeUtils.delete_marks(marks)
+        reports_model = ReportUnsafe
+    else:
+        UnknownUtils.delete_marks(marks)
+        reports_model = ReportUnknown
+    if report_id:
+        try:
+            report = reports_model.objects.get(id=report_id)
+        except ObjectDoesNotExist:
+            return None
+        return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
+
+
+
+class DownloadTags:
+    def __init__(self, tags_type):
+        self._type = tags_type
+        self._data = self.__get_tags_data()
+
+    def __iter__(self):
+        yield self._data
+
+    def file_size(self):
+        return len(self._data)
+
+    def __get_tags_data(self):
+        if self._type == 'safe':
+            tags_model = SafeTag
+        elif self._type == 'unsafe':
+            tags_model = UnsafeTag
+        else:
+            return b''
+        tags_data = []
+        for tag in tags_model.objects.all():
+            tag_data = {'name': tag.tag, 'description': tag.description}
+            if tag.parent is not None:
+                tag_data['parent'] = tag.parent.tag
+            tags_data.append(tag_data)
+        return json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+
+
+class UpdateAssociationCache:
+    def __init__(self, association, recalc):
+        self._association = association
+        self._recalc = recalc
+
+    def __update(self):
+        if isinstance(self._association, MarkSafeReport):
+            self.__update_cache(SafeUtils)
+        elif isinstance(self._association, MarkUnsafeReport):
+            self.__update_cache(UnsafeUtils)
+        elif isinstance(self._association, MarkUnknownReport) and self._recalc:
+            UnknownUtils.update_unknowns_cache([self._association.report])
+
+    def __update_cache(self, leaf_lib):
+        if self._recalc:
+            changes = leaf_lib.UpdateVerdicts({self._association.mark_id: {
+                self._association.report: {'kind': '=', 'verdict1': self._association.report.verdict}
+            }}).changes.get(self._association.mark_id, {})
+            leaf_lib.RecalculateTags(list(changes))
+        leaf_lib.update_confirmed_cache([self._association.report])

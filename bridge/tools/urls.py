@@ -15,21 +15,22 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path
 from tools import views
 
 
 urlpatterns = [
-    url(r'^manager/$', views.manager_tools, name='manager'),
-    url(r'^view_call_logs/$', views.view_call_logs, name='view_call_logs'),
-    url(r'^ajax/rename_component/$', views.rename_component),
-    url(r'^ajax/clear_components/$', views.clear_components),
-    url(r'^ajax/clear_problems/$', views.clear_problems),
-    url(r'^ajax/clear_system/$', views.clear_system),
-    url(r'^ajax/recalculation/$', views.recalculation),
-    url(r'^ajax/call_list/$', views.call_list),
-    url(r'^ajax/call_stat/$', views.call_statistic),
-    url(r'^ajax/clear_call_logs/$', views.clear_call_logs),
-    url(r'^ajax/clear_tasks/$', views.clear_tasks),
-    url(r'^manual_unlock/$', views.manual_unlock)
+    path('manager/', views.manager_tools, name='manager'),
+    path('view_call_logs/', views.view_call_logs, name='view_call_logs'),
+    path('processing_list/', views.processing_list, name='processing_list'),
+    path('ajax/rename_component/', views.rename_component),
+    path('ajax/clear_components/', views.clear_components),
+    path('ajax/clear_problems/', views.clear_problems),
+    path('ajax/clear_system/', views.clear_system),
+    path('ajax/recalculation/', views.recalculation),
+    path('ajax/call_list/', views.call_list),
+    path('ajax/call_stat/', views.call_statistic),
+    path('ajax/clear_call_logs/', views.clear_call_logs),
+    path('ajax/clear_tasks/', views.clear_tasks),
+    path('manual_unlock/', views.manual_unlock)
 ]

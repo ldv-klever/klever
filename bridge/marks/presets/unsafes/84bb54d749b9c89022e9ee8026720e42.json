@@ -1,0 +1,72 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "18/tests/linux/kernel/rcu/srcu/linux:kernel:rcu:srcu"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.14.0"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:kernel:rcu:srcu"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "ext-modules/linux/kernel/rcu/srcu/srcu-lock-at-read.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "srcu_read_lock": [
+              {
+                "ldv_srcu_read_lock": []
+              }
+            ]
+          },
+          {
+            "ldv_check_for_read_section": [
+              {
+                "ldv_assert_linux_kernel_rcu_srcu__locked_at_read_section": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

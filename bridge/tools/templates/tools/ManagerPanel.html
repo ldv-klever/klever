@@ -54,14 +54,22 @@
                 </div>
             </div>
             <div class="five wide column">
-                <div class="ui vertical buttons">
-                    <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
-                    <a href="{% url 'marks:download_all' %}" class="ui green button">{% trans 'Download all marks' %}</a>
+                <a class="ui violet button fluid" href="{% url 'service:test' %}">Test service requests</a>
+                <div class="ui divider"></div>
+                <div class="ui vertical fluid buttons">
+                    <a href="{% url 'marks:download_all' %}" class="ui teal button">{% trans 'Download all marks' %}</a>
                     <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui vertical fluid buttons">
                     <button id="clear_system" class="ui red button">{% trans 'Remove unused files and DB rows' %}</button>
-                    <a href="{% url 'tools:view_call_logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
-                    <button id="clear_call_logs" class="ui orange button">{% trans 'Remove call log that is older than 30 days' %}</button>
                     <button id="clear_tasks" class="ui red button">{% trans 'Remove tasks for not solving jobs' %}</button>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui vertical fluid buttons">
+                    <a href="{% url 'tools:processing_list' %}" class="ui yellow button">{% trans 'View processing reqeusts' %}</a>
+                    <a href="{% url 'tools:view_call_logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
+                    <button id="clear_call_logs" class="ui yellow button">{% trans 'Remove call log that is older than 30 days' %}</button>
                 </div>
             </div>
         </div>

@@ -16,7 +16,7 @@
 #
 
 
-class Header(object):
+class Header:
     def __init__(self, columns, titles):
         self.columns = columns
         self.titles = titles

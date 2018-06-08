@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-window.job_ajax_url = '/jobs/ajax/';
-window.marks_ajax_url = '/marks/ajax/';
-
 function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -213,7 +210,7 @@ window.set_actions_for_views = function(view_type) {
         var view_title = $('#view_name_input__' + view_type).val();
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'check_view_name/',
+            url: '/users/ajax/check_view_name/',
             dataType: 'json',
             data: {
                 view_title: view_title,
@@ -229,7 +226,7 @@ window.set_actions_for_views = function(view_type) {
                     request_data['view_type'] = view_type;
                     $.ajax({
                         method: 'post',
-                        url: job_ajax_url + 'save_view/',
+                        url: '/users/ajax/save_view/',
                         dataType: 'json',
                         data: request_data,
                         success: function(save_data) {
@@ -257,7 +254,7 @@ window.set_actions_for_views = function(view_type) {
         request_data['view_type'] = view_type;
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'save_view/',
+            url: '/users/ajax/save_view/',
             dataType: 'json',
             data: request_data,
             success: function(save_data) {
@@ -292,7 +289,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_remove_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'remove_view/',
+            url: '/users/ajax/remove_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),
@@ -312,7 +309,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_share_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'share_view/',
+            url: '/users/ajax/share_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),
@@ -332,7 +329,7 @@ window.set_actions_for_views = function(view_type) {
     $('#view_prefer_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
-            url: job_ajax_url + 'preferable_view/',
+            url: '/users/ajax/preferable_view/',
             dataType: 'json',
             data: {
                 view_id: $('#view_list__' + view_type).children('option:selected').val(),
@@ -438,6 +435,19 @@ window.isFileReadable = function(name) {
     return ($.inArray(extension, readable_extensions) !== -1);
 };
 
+window.get_url_with_get_parameter = function (url, key, value) {
+    if (url.indexOf(key + '=') > -1) {
+        var url_regex = new RegExp('(' + key + "=).*?(&|$)");
+        return url.replace(url_regex, '$1' + value + '$2');
+    }
+    else if (url.indexOf('?') > -1) {
+        return url + '&' + key + '=' + value;
+    }
+    else {
+        return url + '?' + key + '=' + value;
+    }
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
@@ -461,16 +471,7 @@ $(document).ready(function () {
     });
 
     $('.page-link-icon').click(function () {
-        var current_url = window.location.href;
-        if (current_url.indexOf("page=") > -1) {
-            window.location.replace(current_url.replace(/(page=).*?(&|$)/, '$1' + $(this).data('page-number') + '$2'));
-        }
-        else if (current_url.indexOf('?') > -1) {
-            window.location.replace(current_url + '&page=' + $(this).data('page-number'));
-        }
-        else {
-            window.location.replace(current_url + '?page=' + $(this).data('page-number'));
-        }
+        window.location.replace(get_url_with_get_parameter(window.location.href, 'page', $(this).data('page-number')));
     });
 
     $('.view-type-buttons').each(function () {
@@ -490,6 +491,14 @@ $(document).ready(function () {
             }
         }}).modal('attach events', '#show_upload_job_popup', 'show');
     }
+    if ($('#show_upload_jobtree_popup').length) {
+        $('#upload_jobtree_popup').modal({transition: 'vertical flip', onShow: function () {
+            var parent_identifier = $('#job_identifier');
+            if (parent_identifier.length) {
+                $('#upload_jobtree_parent_id').val(parent_identifier.val());
+            }
+        }}).modal('attach events', '#show_upload_jobtree_popup', 'show');
+    }
 
     $('#upload_marks_start').click(function () {
         var files = $('#upload_marks_file_input')[0].files,
@@ -504,7 +513,7 @@ $(document).ready(function () {
         $('#upload_marks_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: marks_ajax_url + 'upload_marks/',
+            url: '/marks/upload/',
             type: 'POST',
             data: data,
             dataType: 'json',
@@ -516,22 +525,9 @@ $(document).ready(function () {
             },
             success: function (data) {
                 $('#dimmer_of_page').removeClass('active');
-                if (data.status) {
-                    if (data.mark_id.length && data.mark_type.length) {
-                        window.location.href = "/marks/" + data.mark_type + "/view/" + data.mark_id + "/";
-                    }
-                }
-                else {
-                    if (data.messages && data.messages.length) {
-                        for (var i = 0; i < data.messages.length; i++) {
-                            var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
-                            err_notify(err_message);
-                        }
-                    }
-                    else if (data.message && data.message.length) {
-                        err_notify(data.message);
-                    }
-                }
+                if ('error' in data) err_notify(data['error']);
+                else if ('id' in data && 'type' in data) window.location.href = "/marks/" + data['type'] + "/" + data['id'] + "/";
+                else success_notify(data.success);
             }
         });
     });
@@ -570,13 +566,10 @@ $(document).ready(function () {
     });
 
     $('#upload_jobs_start').click(function () {
-        var parent_id = $('#upload_job_parent_id').val();
-        if (!parent_id.length) {
-            err_notify($('#error__parent_required').text());
-            return false;
-        }
-        var files = $('#upload_job_file_input')[0].files,
+        var parent_id = $('#upload_job_parent_id').val(),
+            files = $('#upload_job_file_input')[0].files,
             data = new FormData();
+        if (parent_id.length === 0) parent_id = 'null';
         if (files.length <= 0) {
             err_notify($('#error__no_file_chosen').text());
             return false;
@@ -587,7 +580,7 @@ $(document).ready(function () {
         $('#upload_job_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
+            url: '/jobs/upload_jobs/' + encodeURIComponent(parent_id) + '/',
             type: 'POST',
             data: data,
             dataType: 'json',
@@ -602,10 +595,60 @@ $(document).ready(function () {
                 if ('error' in data) {
                     err_notify(data['error']);
                 }
-                else if ('errors' in data) {
-                    for (var i = 0; i < data['errors'].length; i++) {
-                        err_notify(data['errors'][i]);
-                    }
+                else {
+                    window.location.replace('');
+                }
+            }
+        });
+        return false;
+    });
+
+    $('#upload_jobtree_file_input').on('fileselect', function () {
+        var files = $(this)[0].files,
+            filename_list = $('<ul>');
+        for (var i = 0; i < files.length; i++) {
+            filename_list.append($('<li>', {text: files[i].name}));
+        }
+        $('#upload_jobtree_filename').html(filename_list);
+    });
+
+    $('#upload_jobstree_cancel').click(function () {
+        var file_input = $('#upload_jobtree_file_input');
+        file_input.replaceWith(file_input.clone( true ));
+        $('#upload_jobtree_parent_id').val('');
+        $('#upload_jobtree_filename').empty();
+        $('#upload_jobtree_popup').modal('hide');
+    });
+
+    $('#upload_jobstree_start').click(function () {
+        var parent_id = $('#upload_jobtree_parent_id').val();
+        if (!parent_id.length) {
+            parent_id = '';
+        }
+        var files = $('#upload_jobtree_file_input')[0].files, data = new FormData();
+        if (files.length <= 0) {
+            err_notify($('#error__no_file_chosen').text());
+            return false;
+        }
+        data.append('file', files[0]);
+        data.append('parent_id', parent_id);
+        $('#upload_jobtree_popup').modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        $.ajax({
+            url: '/jobs/upload_jobs_tree/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            mimeType: 'multipart/form-data',
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
+            success: function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                if ('error' in data) {
+                    err_notify(data['error']);
                 }
                 else {
                     window.location.replace('');
@@ -614,6 +657,7 @@ $(document).ready(function () {
         });
         return false;
     });
+
     $('.tag-description-popup').each(function () {
         $(this).popup({
             html: $(this).attr('data-content'),

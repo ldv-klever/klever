@@ -15,37 +15,44 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path
 from reports import views
 
 
 urlpatterns = [
-    url(r'^component/(?P<job_id>[0-9]+)/(?P<report_id>[0-9]+)/$', views.report_component, name='component'),
-    url('^log/(?P<report_id>[0-9]+)/$', views.get_component_log, name='log'),
-    url('^logcontent/(?P<report_id>[0-9]+)/$', views.get_log_content),
+    # ReportComponent page
+    path('component/<int:pk>/', views.ReportComponentView.as_view(), name='component'),
+    path('log/<int:report_id>/', views.ComponentLogView.as_view(), name='log'),
+    path('logcontent/<int:report_id>/', views.ComponentLogContent.as_view()),
+    path('attrdata/<int:pk>/', views.AttrDataFileView.as_view()),
+    path('attrdata-content/<int:pk>/', views.AttrDataContentView.as_view()),
+    path('component/<int:pk>/download_files/', views.DownloadVerifierFiles.as_view(), name='download_files'),
 
-    url(r'^component/(?P<report_id>[0-9]+)/safes/$', views.safes_list, name='safes'),
-    url(r'^component/(?P<report_id>[0-9]+)/unsafes/$', views.unsafes_list, name='unsafes'),
-    url(r'^component/(?P<report_id>[0-9]+)/unknowns/$', views.unknowns_list, name='unknowns'),
+    # List of verdicts
+    path('component/<int:report_id>/safes/', views.SafesListView.as_view(), name='safes'),
+    path('component/<int:report_id>/unsafes/', views.UnsafesListView.as_view(), name='unsafes'),
+    path('component/<int:report_id>/unknowns/', views.UnknownsListView.as_view(), name='unknowns'),
 
-    url(r'^unsafe/(?P<report_id>[0-9]+)/$', views.report_unsafe, name='unsafe'),
-    url(r'^safe/(?P<report_id>[0-9]+)/$', views.report_safe, name='safe'),
-    url(r'^unknown/(?P<report_id>[0-9]+)/$', views.report_unknown, name='unknown'),
-    url(r'^unsafe/(?P<report_id>[0-9]+)/etv/$', views.report_etv_full, name='etv'),
+    # Pages of verdicts
+    path('safe/<int:pk>/', views.ReportSafeView.as_view(), name='safe'),
+    path('unknown/<int:pk>/', views.ReportUnknownView.as_view(), name='unknown'),
+    path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
+    path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
+    path('get_source/<int:unsafe_id>/', views.SourceCodeView.as_view()),
+    path('download-error-trace/<int:unsafe_id>/', views.DownloadErrorTrace.as_view(), name='download_error_trace'),
 
-    url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_comparison, name='comparison'),
-    url(r'^download-error-trace/(?P<report_id>[0-9]+)/$', views.download_error_trace, name='download_error_trace'),
+    # Reports comparison
+    path('fill_compare_cache/<int:job1_id>/<int:job2_id>/', views.FillComparisonCacheView.as_view()),
+    path('comparison/<int:job1_id>/<int:job2_id>/', views.ReportsComparisonView.as_view(), name='comparison'),
+    path('get_compare_jobs_data/<int:info_id>/', views.ReportsComparisonData.as_view()),
 
-    url(r'^upload/$', views.upload_report),
-    url(r'^ajax/get_source/$', views.get_source_code),
-    url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
-    url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
-    url(r'^ajax/clear_verification_files/$', views.clear_verification_files),
-    url(r'^component/(?P<report_id>[0-9]+)/download_verifier_input_files/$',
-        views.download_verifier_input_files, name='download_verifier_input_files'),
-    url(r'^component/(?P<archive_id>[0-9]+)/download_coverage/$', views.download_coverage, name='download_coverage'),
+    # Coverage
+    path('coverage/<int:report_id>/', views.CoverageView.as_view(), name='coverage'),
+    path('coverage-light/<int:report_id>/', views.CoverageLightView.as_view(), name='coverage_light'),
+    path('get-coverage-src/<int:archive_id>/', views.CoverageSrcView.as_view()),
+    path('download_coverage/<int:pk>/', views.DownloadCoverageView.as_view(), name='download_coverage'),
 
-    url(r'^coverage/(?P<report_id>[0-9]+)/$', views.coverage_page, name='coverage'),
-    url(r'^coverage-light/(?P<report_id>[0-9]+)/$', views.coverage_light_page, name='coverage_light'),
-    url(r'^ajax/get-coverage-src/$', views.get_coverage_src),
+    # Utils
+    path('upload/', views.UploadReportView.as_view()),
+    path('clear_verification_files/<int:job_id>/', views.ClearVerificationFiles.as_view())
 ]

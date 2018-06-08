@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Processing requests' %}{% endblock %}
+
+{% block body_block %}
+    {% if data|length %}
+        <table class="ui compact selectable yellow table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Function name' %}</th>
+                    <th>{% trans 'Enter' %}</th>
+                    <th>{% trans 'Waiting lock' %}</th>
+                    <th>{% trans 'Try lock' %}</th>
+                    <th>{% trans 'Execution' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.enter|date:'d.m.y H:i:s.u' }}</td>
+                    <td>{% if row.wait1 %}{{ row.wait1|floatformat:1 }} {% trans 's' %}{% else %}-{% endif %}</td>
+                    <td>{% if row.wait2 %}{{ row.wait2|floatformat:1 }} {% trans 's' %}{% else %}-{% endif %}</td>
+                    <td>{% if row.exec %}{{ row.exec|date:'d.m.y H:i:s.u' }}{% else %}-{% endif %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if locked.count %}
+            <h4>{% trans 'Locked tables' %}:</h4>
+            <div class="ui tiny bulleted list">
+                {% for l in locked %}
+                    <div class="item">{{ l.name }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        <h3>{% trans 'Nothing is in progress' %}</h3>
+    {% endif %}
+{% endblock %}
+
+

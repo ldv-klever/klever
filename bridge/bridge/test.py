@@ -19,11 +19,11 @@ import os
 import json
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from bridge.populate import populate_users
 from bridge.utils import KleverTestCase
-from bridge.vars import JOB_CLASSES, USER_ROLES
+from bridge.vars import USER_ROLES
 
 from users.models import User, Extended
 from jobs.models import Job
@@ -67,11 +67,7 @@ class TestPopulation(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Testing populated jobs
-        self.assertEqual(Job.objects.filter(parent=None).count(), len(JOB_CLASSES))
-        self.assertEqual(
-            Job.objects.exclude(parent=None).count(),
-            len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets')))
-        )
+        self.assertEqual(Job.objects.count(), len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets'))))
 
         # Testing populated users
         self.assertEqual(Extended.objects.filter(user__username='superuser', role=USER_ROLES[2][0]).count(), 1)

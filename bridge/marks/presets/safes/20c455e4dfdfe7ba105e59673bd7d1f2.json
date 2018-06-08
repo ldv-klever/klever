@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "bff71889260f/drivers/staging/iio/adc/mxs-lradc.ko/linux:drivers:clk1"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.17.2"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/staging/iio/adc/mxs-lradc.ko"
+    }
+  ],
+  "description": "All is right.",
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [],
+  "verdict": "0"
+}

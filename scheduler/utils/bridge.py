@@ -109,7 +109,7 @@ class Session:
             except requests.ConnectionError as err:
                 logging.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
-                    time.sleep(1)
+                    time.sleep(0.2)
                 else:
                     logging.warning('Aborting request to Bridge')
                     return None
@@ -172,7 +172,7 @@ class Session:
                 if self.error == 'ZIP error':
                     logging.debug('Could not upload ZIP archive')
                     self.error = None
-                    time.sleep(1)
+                    time.sleep(0.2)
                 elif self.CANCELLED_STATUS.match(self.error):
                     logging.warning("Seems that the job was cancelled and we cannot upload results")
                     ret = False

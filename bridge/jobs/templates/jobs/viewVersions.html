@@ -1,24 +1,24 @@
 {% load i18n %}
 
-<div class="ui brown attached segment" style="max-height: 80vh; overflow-y: auto">
-    <h4 class="ui brown header">{% trans 'Job versions' %}</h4>
-    {% for version in versions %}
-        <div class="version-line">
-            <div class="ui checkbox">
-                <input id="checkbox_version__{{ version.version }}" type="checkbox">
-                <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
+<div class="ui styled accordion fluid">
+    <div class="title"><i class="clock outline icon"></i>{{ versions_title }}</div>
+    <div class="content">
+        {% for version in versions %}
+            <div class="version-line">
+                <div class="ui checkbox">
+                    <input id="checkbox_version__{{ version.version }}" type="checkbox">
+                    <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
+                </div>
+                <br><br>
             </div>
-            <br><br>
+        {% endfor %}
+        <div class="ui bottom attached buttons">
+            <button id="compare_versions" class="ui violet button">{% trans 'Compare' %}</button>
+            <button id="show_remove_versions_modal" class="ui red button">{% trans 'Delete' %}</button>
         </div>
-    {% endfor %}
+        <div>&nbsp;<span id="cant_remove_vers" class="small-text" style="display: none;float: right;padding-top: 5px;">*{% trans "You can't remove first and last versions" %}</span></div>
+    </div>
 </div>
-<div class="ui bottom attached buttons">
-    <button id="compare_versions" class="ui violet button">{% trans 'Compare' %}</button>
-    <button id="show_remove_versions_modal" class="ui red button">{% trans 'Delete' %}</button>
-    <button id="close_versions" class="ui blue button">{% trans 'Cancel' %}</button>
-</div>
-<br>
-<span id="cant_remove_vers" class="small-text" style="display: none;">*{% trans "You can't remove first and last versions" %}</span>
 
 <div id="remove_versions_popup" class="ui basic modal">
     <div class="ui icon header">
@@ -27,7 +27,7 @@
     </div>
     <div class="content">
         <div class="ui center aligned grid">
-            <p>{% trans "You won't be able to restore deleted versions" %}</p>
+            <p>{% trans "You won't be able to restore deleted versions" %}!</p>
         </div>
     </div>
     <div class="actions">
@@ -43,5 +43,7 @@
     <div class="content"></div>
 </div>
 
-<span id="error__no_vers_selected" hidden>{% trans "Nothing to delete" %}</span>
-<span id="error__select_two_vers" hidden>{% trans "Please select exactly two versions to compare" %}</span>
+<div hidden>
+    <span id="error__no_vers_selected">{% trans "Nothing to delete" %}</span>
+    <span id="error__select_two_vers">{% trans "Please select exactly two versions to compare" %}</span>
+</div>

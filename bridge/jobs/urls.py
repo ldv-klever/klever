@@ -15,60 +15,67 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path, re_path
 from jobs import views
 
 
 urlpatterns = [
-    url(r'^$', views.tree_view, name='tree'),
-    url(r'^(?P<job_id>[0-9]+)/$', views.show_job, name='job'),
-    url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file, name='download_file'),
-    url(r'^prepare_run/(?P<job_id>[0-9]+)/$', views.prepare_decision, name='prepare_run'),
-    url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_files_comparison, name='comparison'),
-    url(r'^download_configuration/(?P<runhistory_id>[0-9]+)/$', views.download_configuration),
-    url(r'^create/$', views.copy_new_job, name='create'),
-    url(r'^downloadcompetfile/(?P<job_id>[0-9]+)/$', views.download_files_for_compet, name='download_file_for_compet'),
+    # Main pages
+    path('', views.JobsTree.as_view(), name='tree'),
+    path('<int:pk>/', views.JobPage.as_view(), name='job'),
+    path('decision_results/<int:pk>/', views.DecisionResults.as_view()),
+    path('progress/<int:pk>/', views.JobProgress.as_view()),
+    path('status/<int:pk>/', views.JobStatus.as_view()),
+    path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
 
-    # For ajax requests
-    url(r'^ajax/save_view/$', views.save_view),
-    url(r'^ajax/remove_view/$', views.remove_view),
-    url(r'^ajax/share_view/$', views.share_view),
-    url(r'^ajax/preferable_view/$', views.preferable_view),
-    url(r'^ajax/check_view_name/$', views.check_view_name),
-    url(r'^ajax/removejobs/$', views.remove_jobs),
-    url(r'^ajax/editjob/$', views.edit_job),
-    url(r'^ajax/savejob/$', views.save_job),
-    url(r'^ajax/showjobdata/$', views.showjobdata),
-    url(r'^ajax/upload_file/$', views.upload_file),
-    url(r'^ajax/downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
-    url(r'^ajax/downloadjobs/$', views.download_jobs),
-    url(r'^ajax/check_access/$', views.check_access),
-    url(r'^ajax/upload_job/(?P<parent_id>.*)/$', views.upload_job),
-    url(r'^ajax/getfilecontent/$', views.getfilecontent),
-    url(r'^ajax/get_files_diff/$', views.get_files_diff),
-    url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
-    url(r'^ajax/getversions/$', views.get_job_versions),
-    url(r'^ajax/remove_versions/$', views.remove_versions),
-    url(r'^ajax/compare_versions/$', views.compare_versions),
-    url(r'^ajax/stop_decision/$', views.stop_decision),
-    url(r'^ajax/run_decision/$', views.run_decision),
-    url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
-    url(r'^ajax/lastconf_run_decision/$', views.lastconf_run_decision),
-    url(r'^ajax/get_job_data/$', views.get_job_data),
-    url(r'^ajax/check_compare_access/$', views.check_compare_access),
-    url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
-    url(r'^ajax/collapse_reports/$', views.collapse_reports),
-    url(r'^ajax/do_job_has_children/$', views.do_job_has_children),
-    url(r'^ajax/enable_safe_marks/$', views.enable_safe_marks),
-    url(r'^ajax/upload_reports/$', views.upload_reports),
-    url(r'^ajax/get_job_id/$', views.get_job_id),
-    url(r'^ajax/get_job_identifier/$', views.get_job_identifier),
-    url(r'^ajax/get_job_progress_json/(?P<job_id>[0-9]+)/$', views.get_job_progress_json),
-    url(r'^ajax/get_job_decision_results/(?P<job_id>[0-9]+)/$', views.get_job_decision_results),
-    url(r'^ajax/save_job_copy/(?P<job_id>[0-9]+)/$', views.save_job_copy),
-    url(r'^ajax/copy_job_version/(?P<job_id>[0-9]+)/$', views.copy_job_version),
-    url(r'^ajax/replace_job_file/(?P<job_id>[0-9]+)/$', views.replace_job_file),
+    # Main actions with jobs
+    path('remove/', views.RemoveJobsView.as_view()),
+    path('save_job_copy/<int:pk>/', views.SaveJobCopyView.as_view()),
+    path('decision_results_json/<int:pk>/', views.DecisionResultsJson.as_view()),
 
-    # For Klever Core
-    url(r'^decide_job/$', views.decide_job),
+    # Job form
+    re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
+    path('get_version_data/<int:job_id>/<int:version>/', views.GetJobHistoryData.as_view()),
+    path('get_version_roles/<int:job_id>/<int:version>/', views.GetJobHistoryRoles.as_view()),
+    path('get_version_files/<int:job_id>/<int:version>/', views.GetJobHistoryFiles.as_view()),
+
+    # Actions with job files
+    path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
+    path('upload_file/', views.UploadJobFileView.as_view()),
+    path('getfilecontent/<slug:hashsum>/', views.GetFileContentView.as_view()),
+    path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', views.GetFilesDiffView.as_view()),
+    path('replace_job_file/<int:job_id>/', views.ReplaceJobFileView.as_view()),
+    path('downloadcompetfile/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='download_file_for_compet'),
+
+    # Download/upload actions
+    path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
+    path('downloadjobs/', views.DownloadJobsListView.as_view()),
+    path('downloadtrees/', views.DownloadJobsTreeView.as_view()),
+    path('upload_jobs/<slug:parent_id>/', views.UploadJobsView.as_view()),
+    path('upload_jobs_tree/', views.UploadJobsTreeView.as_view()),
+
+    # Actions with job versions
+    path('remove_versions/<int:pk>/', views.RemoveJobVersions.as_view()),
+    path('compare_versions/<int:pk>/', views.CompareJobVersionsView.as_view()),
+    path('copy_job_version/<int:pk>/', views.CopyJobVersionView.as_view()),
+
+    # Actions with job solving
+    path('prepare_run/<int:job_id>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
+    path('download_configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view()),
+    path('get_def_start_job_val/', views.GetDefStartJobValue.as_view()),
+    path('run_decision/<int:job_id>/', views.StartDecision.as_view()),
+    path('stop_decision/<int:pk>/', views.StopDecisionView.as_view()),
+    path('decide_job/', views.DecideJobServiceView.as_view()),
+
+    # "Utils"
+    path('get_job_field/', views.GetJobFieldView.as_view()),
+    path('do_job_has_children/<int:pk>/', views.DoJobHasChildrenView.as_view()),
+    path('check_download_access/', views.CheckDownloadAccessView.as_view()),
+    path('check_compare_access/', views.CheckCompareAccessView.as_view()),
+    path('get_job_progress_json/<int:pk>/', views.JobProgressJson.as_view()),
+
+    # Actions with reports
+    path('upload_reports/<int:pk>/', views.UploadReportsView.as_view()),
+    path('collapse_reports/<int:pk>/', views.CollapseReportsView.as_view()),
+    path('enable_safe_marks/<int:pk>/', views.EnableSafeMarks.as_view()),
 ]

@@ -42,13 +42,17 @@
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
                         <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
-                        <a class="item" id="show_upload_job_popup">{% trans 'Upload' %}</a>
+                        <a class="item" id="show_upload_job_popup">{% trans 'Upload jobs' %}</a>
+                        {# Only managers can upload trees (USER_ROLES[2][0]) #}
+                        {% if user.extended.role == '2' %}
+                            <a class="item" id="show_upload_jobtree_popup">{% trans 'Upload jobs tree' %}</a>
+                        {% endif %}
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
-                        <a class="item" href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
-                        <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
-                        <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'unknown' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:list' 'safe' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
@@ -99,7 +103,7 @@
         <div id="upload_job_popup" class="ui modal">
             <div class="header">{% trans 'Upload jobs' %}</div>
             <div class="content">
-                <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                <p>{% trans "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
                 <div class="ui grid">
                     <div class="five wide column">
                         <div class="ui fluid input">
@@ -119,7 +123,30 @@
                 <button id="upload_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
             </div>
         </div>
-        <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
+
+        <div id="upload_jobtree_popup" class="ui modal">
+            <div class="header">{% trans 'Upload jobs tree' %}</div>
+            <div class="content">
+                <p>{% trans "Set parent identifier or leave it empty for root jobs from tree to be without a parent." %}</p>
+                <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui fluid input">
+                            <input id="upload_jobtree_parent_id" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
+                        </div>
+                    </div>
+                    <div class="three wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobtree_file_input" type="file"></span>
+                    </div>
+                    <div class="eight wide column">
+                        <span id="upload_jobtree_filename"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_jobstree_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
+                <button id="upload_jobstree_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
         <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
         <span id="error__ajax_error" hidden>{% trans 'Ajax request error. Maybe connection refused.' %}</span>
         <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off, reload the page' %}</span>

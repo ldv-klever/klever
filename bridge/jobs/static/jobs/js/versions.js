@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function checked_versions() {
     var versions = [];
     $('input[id^="checkbox_version__"]:checked').each(function () {
@@ -10,22 +27,19 @@ function remove_versions() {
     $('#remove_versions_popup').modal('hide');
     var versions = checked_versions();
     $.post(
-        job_ajax_url + 'remove_versions/',
+        '/jobs/remove_versions/' + $('#job_id').val() + '/',
         {
-            job_id: $('#job_pk').val(),
             versions: JSON.stringify(versions)
         },
         function (data) {
-            if (data['error']) {
-                err_notify(data['error']);
+            if (data.error) {
+                err_notify(data.error);
             }
             else {
-                success_notify(data['message']);
+                success_notify(data.message);
                 $.each(versions, function (i, val) {
                     var version_line = $("#checkbox_version__" + val).closest('.version-line');
-                    if (version_line.length) {
-                        version_line.remove();
-                    }
+                    if (version_line.length) version_line.remove();
                 });
             }
         },
@@ -43,24 +57,23 @@ function init_file_actions() {
         $('#file_download_btn').attr('href', '#').hide();
         comparison_modal.modal('show');
     });
+    comparison_modal.find('.version-file').each(function () {
+        var file_name = $(this).text(), new_href = $(this).attr('href') + '?name=' + encodeURIComponent(file_name.substring(file_name.lastIndexOf('/') + 1));
+        $(this).attr('href', new_href);
+    });
     comparison_modal.find('.version-file').click(function(event) {
-        var href = $(this).attr('href'), file_name = $(this).text();
+        var file_name = $(this).text(), href = $(this).attr('href');
         if (isFileReadable(file_name)) {
             event.preventDefault();
-            $.ajax({
-                url: job_ajax_url + 'getfilecontent/',
-                data: {file_id: $(this).data('file-id')},
-                type: 'POST',
-                success: function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else {
-                        $('#file_download_btn').attr('href', href).show();
-                        $('#version_file_name').text(file_name);
-                        $('#version_file_content').text(data);
-                        $('#version_file_modal').modal('show');
-                    }
+            $.get('/jobs/getfilecontent/' + $(this).data('hashsum') + '/', {}, function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    $('#file_download_btn').attr('href', href).show();
+                    $('#version_file_name').text(file_name);
+                    $('#version_file_content').text(data.content);
+                    $('#version_file_modal').modal('show');
                 }
             });
         }
@@ -68,69 +81,43 @@ function init_file_actions() {
     comparison_modal.find('.version-diff-files').click(function(event) {
         event.preventDefault();
         var file_name = $(this).closest('li').find('.version-file').first().text();
-        $.post(
-            job_ajax_url + 'get_files_diff/',
-            {
-                name1: 'Old', name2: 'New',
-                file1_id: $(this).data('file1-id'), file2_id: $(this).data('file2-id')
-            },
-            function (data) {
-                if (data.error) {
-                    err_notify(data.error)
-                }
-                else {
-                    $('#file_download_btn').attr('href', '#').hide();
-                    $('#version_file_name').text(file_name);
-                    $('#version_file_content').text(data);
-                    $('#version_file_modal').modal('show');
-                }
+        $.post('/jobs/get_files_diff/' + $(this).data('hashsum1') + '/' + $(this).data('hashsum2') + '/', {}, function (data) {
+            if (data.error) {
+                err_notify(data.error)
             }
-        );
+            else {
+                $('#file_download_btn').attr('href', '#').hide();
+                $('#version_file_name').text(file_name);
+                $('#version_file_content').text(data.content);
+                $('#version_file_modal').modal('show');
+            }
+        });
     });
     return true;
 }
 
 function get_versions_comparison(v1, v2, versions_modal) {
-    $.post(
-        job_ajax_url + 'compare_versions/',
-        {job_id: $('#job_pk').val(), v1: v1, v2: v2},
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-            }
-            else {
-                versions_modal.find('.content').html(data);
-                versions_modal.modal('show');
-                init_file_actions();
-            }
-        }
-    );
-}
-
-function init_versions_list() {
-    $('#edit_job_div').find('.ui.checkbox').checkbox();
-
-    var remove_versions_btn = $('#show_remove_versions_modal');
-    remove_versions_btn.unbind();
-    remove_versions_btn.hover(function () {
-        $('#cant_remove_vers').show();
-    }, function () {
-        $('#cant_remove_vers').hide();
-    });
-
-    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false});
-    remove_versions_btn.click(function () {
-        var versions = checked_versions();
-        if (versions.length === 0) {
-            err_notify($('#error__no_vers_selected').text());
+    $.post('/jobs/compare_versions/' + $('#job_id').val() + '/', {v1: v1, v2: v2}, function (data) {
+        if (data.error) {
+            err_notify(data.error);
         }
         else {
-            $('#remove_versions_popup').modal('show');
+            versions_modal.find('.content').html(data);
+            versions_modal.modal('show');
+            init_file_actions();
         }
     });
-    $('#close_versions').unbind().click(function () {
-        window.location.replace('');
-    });
+}
+
+window.init_versions_list = function() {
+    $('#edit_job_div').find('.ui.checkbox').checkbox();
+
+    $('#show_remove_versions_modal')
+        .unbind()
+        .hover(function () { $('#cant_remove_vers').show() }, function () { $('#cant_remove_vers').hide() })
+        .click(function () { checked_versions().length === 0 ? err_notify($('#error__no_vers_selected').text()) : $('#remove_versions_popup').modal('show') });
+
+    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#cancel_remove_versions').unbind().click(function () {
         $('#remove_versions_popup').modal('hide');
     });
@@ -152,25 +139,4 @@ function init_versions_list() {
         comparison_modal.find('.content').empty();
         comparison_modal.modal('hide');
     });
-}
-
-window.get_versions = function () {
-    $.post(
-        job_ajax_url + 'getversions/',
-        {
-            job_id: $('#job_pk').val()
-        },
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-            }
-            else {
-                $('#remove_versions_popup').remove();
-                $('#version_comparison_modal').remove();
-                $('#version_file_modal').remove();
-                $('#edit_job_div').html(data);
-                init_versions_list();
-            }
-        }
-    );
 };

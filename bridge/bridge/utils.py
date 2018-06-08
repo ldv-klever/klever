@@ -15,26 +15,26 @@
 # limitations under the License.
 #
 
+import hashlib
+import logging
 import os
 import shutil
-import logging
-import hashlib
 import tempfile
 import zipfile
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-
 from django.db.models import Q
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.template import loader
+from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, activate
 
-from bridge.vars import UNKNOWN_ERROR, ERRORS
+from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -83,10 +83,8 @@ def file_get_or_create(fp, filename, table, check_size=False):
     try:
         return table.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
-        db_file = table()
-        db_file.file.save(filename, File(fp))
-        db_file.hash_sum = check_sum
-        db_file.save()
+        db_file = table(hash_sum=check_sum)
+        db_file.file.save(filename, File(fp), save=True)
         return db_file, check_sum
 
 
@@ -226,12 +224,18 @@ class RemoveFilesBeforeDelete:
 
 
 class BridgeException(Exception):
-    def __init__(self, message=None):
-        self.message = message
-        if self.message is None:
+    def __init__(self, message=None, code=None, response_type='html', back=None):
+        self.response_type = response_type
+        self.back = back
+        if code is None and message is None:
+            self.code = 500
             self.message = UNKNOWN_ERROR
-        elif isinstance(self.message, int):
-            self.message = ERRORS.get(self.message, UNKNOWN_ERROR)
+        elif isinstance(code, int):
+            self.code = code
+            self.message = ERRORS.get(code, UNKNOWN_ERROR)
+        else:
+            self.code = None
+            self.message = message
 
     def __str__(self):
         return str(self.message)
@@ -245,3 +249,30 @@ class BridgeErrorResponse(HttpResponseBadRequest):
             loader.get_template('error.html').render({'message': response, 'back': back}),
             *args, **kwargs
         )
+
+
+def get_templated_text(template, **kwargs):
+    return Template(template).render(Context(kwargs))
+
+
+class BridgeMiddlware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.user.extended.role != USER_ROLES[4][0]:
+            activate(request.user.extended.language)
+        response = self.get_response(request)
+        return response
+
+    def process_exception(self, request, exception):
+        if isinstance(exception, BridgeException):
+            if exception.response_type == 'json':
+                return JsonResponse({'error': str(exception.message)})
+            elif exception.response_type == 'html':
+                return HttpResponseBadRequest(loader.get_template('error.html').render({
+                    'user': request.user, 'message': exception.message, 'back': exception.back
+                }))
+        else:
+            logger.exception(exception)
+        return None

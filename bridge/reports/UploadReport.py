@@ -25,22 +25,24 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.timezone import now
 
-from bridge.vars import REPORT_ARCHIVE, JOB_WEIGHT, JOB_STATUS
-from bridge.utils import logger
+from bridge.vars import REPORT_ARCHIVE, JOB_WEIGHT, JOB_STATUS, USER_ROLES
+from bridge.utils import logger, unique_id
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
+from users.models import Extended
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
-    CoverageArchive
+    CoverageArchive, ErrorTraceSource
 from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts
 
 from reports.coverage import FillCoverageCache
+from reports.etv import GetETV
 
 
 AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
@@ -114,6 +116,10 @@ class UploadReport:
                     })
                 except KeyError as e:
                     raise ValueError("property '%s' is required." % e)
+                if 'attr data' in data:
+                    self.data['attr data'] = data['attr data']
+                    if self.data['attr data'] not in self.archives:
+                        raise ValueError("Attr data archive wasn't found in the archives list")
             else:
                 try:
                     self.data.update({
@@ -124,6 +130,10 @@ class UploadReport:
                     raise ValueError("property '%s' is required." % e)
                 if 'attrs' in data:
                     self.data['attrs'] = data['attrs']
+                    if 'attr data' in data:
+                        self.data['attr data'] = data['attr data']
+                        if self.data['attr data'] not in self.archives:
+                            raise ValueError("Attr data archive wasn't found in the archives list")
                 if 'comp' in data:
                     self.data['comp'] = data['comp']
         elif data['type'] == 'finish':
@@ -142,6 +152,10 @@ class UploadReport:
                 self.data['attrs'] = data['attrs']
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+            if 'attr data' in data:
+                self.data['attr data'] = data['attr data']
+                if self.data['attr data'] not in self.archives:
+                    raise ValueError("Attr data archive wasn't found in the archives list")
         elif data['type'] == 'verification':
             try:
                 self.data.update({
@@ -152,6 +166,10 @@ class UploadReport:
                 })
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+            if 'attr data' in data:
+                self.data['attr data'] = data['attr data']
+                if self.data['attr data'] not in self.archives:
+                    raise ValueError("Attr data archive wasn't found in the archives list")
             if 'data' in data:
                 self.data.update({'data': data['data']})
             if 'comp' in data:
@@ -185,6 +203,10 @@ class UploadReport:
                 })
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+            if 'attr data' in data:
+                self.data['attr data'] = data['attr data']
+                if self.data['attr data'] not in self.archives:
+                    raise ValueError("Attr data archive wasn't found in the archives list")
             if 'proof' in data:
                 self.data['proof'] = data['proof']
                 if self.data['proof'] not in self.archives:
@@ -201,17 +223,28 @@ class UploadReport:
                 raise ValueError("Problem description archive wasn't found in the archives list")
             if 'attrs' in data:
                 self.data['attrs'] = data['attrs']
+                if 'attr data' in data:
+                    self.data['attr data'] = data['attr data']
+                    if self.data['attr data'] not in self.archives:
+                        raise ValueError("Attr data archive wasn't found in the archives list")
         elif data['type'] == 'unsafe':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
-                    'error trace': data['error trace'],
+                    'error traces': data['error traces'],
+                    'sources': data['sources'],
                     'attrs': data['attrs'],
                 })
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
-            if self.data['error trace'] not in self.archives:
-                raise ValueError("Error trace archive wasn't found in the archives list")
+            if 'attr data' in data:
+                self.data['attr data'] = data['attr data']
+                if self.data['attr data'] not in self.archives:
+                    raise ValueError("Attr data archive wasn't found in the archives list")
+            if any(x not in self.archives for x in self.data['error traces']):
+                raise ValueError("One of the error traces archives wasn't found in the archives list")
+            if self.data['sources'] not in self.archives:
+                raise ValueError("Error trace sources archive wasn't found in the archives list")
         elif data['type'] == 'data':
             try:
                 self.data.update({'data': data['data']})
@@ -281,7 +314,7 @@ class UploadReport:
             'attrs': self.__update_attrs,
             'verification': self.__create_verification_report,
             'verification finish': self.__finish_verification_report,
-            'unsafe': self.__create_report_unsafe,
+            'unsafe': self.__create_unsafe_reports,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
             'data': self.__update_report_data,
@@ -290,6 +323,7 @@ class UploadReport:
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
         if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+            logger.error("Attributes were redefined. List of attributes that should be unique: %s" % self.ordered_attrs)
             raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
@@ -540,7 +574,8 @@ class UploadReport:
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.problem_description.name)):
             report.delete()
             raise CheckArchiveError('Report archive "problem desc" was not saved')
-        self.__fill_leaf_data(report)
+        self.__create_leaf_attrs(report)
+        self.__fill_leaf_cache(report)
 
     def __create_report_safe(self, identifier):
         try:
@@ -560,48 +595,93 @@ class UploadReport:
                 raise CheckArchiveError('Report archive "proof" was not saved')
         else:
             report.save()
-        self.__fill_leaf_data(report)
+        self.__create_leaf_attrs(report)
+        self.__fill_leaf_cache(report)
 
-    def __create_report_unsafe(self, identifier):
-        try:
-            ReportUnsafe.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            if self.parent.cpu_time is None:
-                raise ValueError('unsafe parent need to be verification report and must have cpu_time')
-            report = ReportUnsafe(
-                identifier=identifier, parent=self.parent, root=self.root,
-                error_trace=self.data['error trace'], cpu_time=self.parent.cpu_time,
-                wall_time=self.parent.wall_time, memory=self.parent.memory
-            )
+    def __create_unsafe_reports(self, identifier):
+        et_archs = {}
+        for arch_name in self.data['error traces']:
+            et_archs[arch_name] = self.archives[arch_name]
+        res = CheckErrorTraces(et_archs, self.archives[self.data['sources']])
 
-        report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[self.data['error trace']], True)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.error_trace.name)):
-            report.delete()
-            raise CheckArchiveError('Report archive "error trace" was not saved')
+        source = ErrorTraceSource(root=self.root)
+        source.add_sources(REPORT_ARCHIVE['sources'], self.archives[self.data['sources']], True)
 
-        self.__fill_leaf_data(report)
+        cnt = 1
+        unsafes = []
+        for arch_name in self.data['error traces']:
+            try:
+                ReportUnsafe.objects.get(identifier=identifier + '/{0}'.format(cnt))
+                raise ValueError('the report with specified identifier already exists')
+            except ObjectDoesNotExist:
+                if self.parent.cpu_time is None:
+                    raise ValueError('unsafe parent need to be verification report and must have cpu_time')
+                report = ReportUnsafe(
+                    identifier=identifier + '/{0}'.format(cnt), parent=self.parent, root=self.root,
+                    trace_id=unique_id(), source=source,
+                    cpu_time=self.parent.cpu_time, wall_time=self.parent.wall_time, memory=self.parent.memory
+                )
 
-    def __fill_leaf_data(self, leaf):
-        attrs_ids = []
+            report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[arch_name], True)
+            if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.error_trace.name)):
+                report.delete()
+                raise CheckArchiveError('Report archive "error trace" was not saved')
+
+            self.__create_leaf_attrs(report, res.add_attrs.get(arch_name))
+            unsafes.append(report)
+            cnt += 1
+        self.__fill_unsafes_cache(unsafes)
+
+    def __create_leaf_attrs(self, leaf, add_attrs=None):
+        self.ordered_attrs = []
+        parent_attrs = []
         for p in self._parents_branch:
-            for ra in p.attrs.order_by('id').values('attr__name__name', 'attr_id'):
-                self.ordered_attrs.append(ra['attr__name__name'])
-                attrs_ids.append(ra['attr_id'])
-        ReportAttr.objects.bulk_create(list(ReportAttr(attr_id=a_id, report=leaf) for a_id in attrs_ids))
+            for ra in p.attrs.order_by('id').select_related('attr__name'):
+                self.ordered_attrs.append(ra.attr.name.name)
+                parent_attrs.append(ReportAttr(
+                    attr_id=ra.attr_id, report=leaf, compare=ra.compare, associate=ra.associate, data_id=ra.data_id
+                ))
+        ReportAttr.objects.bulk_create(parent_attrs)
 
         if 'attrs' in self.data:
             self.ordered_attrs += self.__save_attrs(leaf.id, self.data['attrs'])
+        if add_attrs is not None:
+            self.ordered_attrs += self.__save_attrs(leaf.id, add_attrs)
+
+    def __fill_unsafes_cache(self, reports):
         if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_leaf_parents_branch(leaf)
+            self.__cut_parents_branch()
+            if self.parent.verifier_input or self.parent.covnum > 0:
+                # After verification finish report self.parent.parent will be Core/first-level report
+                self._parents_branch.append(self.parent)
+            else:
+                ReportUnsafe.objects.filter(id__in=list(r.id for r in reports)).update(parent=self._parents_branch[-1])
+
+        leaves = []
+        for p in self._parents_branch:
+            verdict = Verdict.objects.get_or_create(report=p)[0]
+            verdict.unsafe += len(reports)
+            verdict.unsafe_unassociated += len(reports)
+            verdict.save()
+            leaves.extend(list(ReportComponentLeaf(report=p, unsafe=unsafe) for unsafe in reports))
+        ReportComponentLeaf.objects.bulk_create(leaves)
+        for leaf in reports:
+            UnsafeUtils.ConnectReport(leaf)
+        UnsafeUtils.RecalculateTags(reports)
+
+    def __fill_leaf_cache(self, leaf):
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_parents_branch()
+            if self.parent.verifier_input or self.parent.covnum > 0:
+                # After verification finish report self.parent.parent will be Core/first-level report
+                self._parents_branch.append(self.parent)
+            else:
+                leaf.parent = self._parents_branch[-1]
+                leaf.save()
 
         if self.data['type'] == 'unknown':
             self.__fill_unknown_cache(leaf)
             UnknownUtils.ConnectReport(leaf)
-        elif self.data['type'] == 'unsafe':
-            self.__fill_unsafe_cache(leaf)
-            UnsafeUtils.ConnectReport(leaf)
-            UnsafeUtils.RecalculateTags([leaf])
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
             if self.job.safe_marks:
@@ -616,18 +696,8 @@ class UploadReport:
             # Just Core report
             self._parents_branch = self._parents_branch[:1]
 
-    def __cut_leaf_parents_branch(self, leaf):
-        self.__cut_parents_branch()
-        if self.parent.verifier_input or self.parent.covnum > 0:
-            # After verification finish report self.parent.parent will be Core/first-level report
-            self._parents_branch.append(self.parent)
-        else:
-            leaf.parent = self._parents_branch[-1]
-            leaf.save()
-
     def __fill_unknown_cache(self, unknown):
         for p in self._parents_branch:
-            self.__is_not_used()
             verdict = Verdict.objects.get_or_create(report=p)[0]
             verdict.unknown += 1
             verdict.save()
@@ -643,14 +713,6 @@ class UploadReport:
             verdict.safe_unassociated += 1
             verdict.save()
             ReportComponentLeaf.objects.create(report=p, safe=safe)
-
-    def __fill_unsafe_cache(self, unsafe):
-        for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unsafe += 1
-            verdict.unsafe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=p, unsafe=unsafe)
 
     def __update_parent_resources(self, report):
 
@@ -684,21 +746,17 @@ class UploadReport:
             compres.save()
             update_total_resources(p)
 
-    def __attr_children(self, name, val):
+    def __attr_children(self, name, value, compare=False, associate=False, data=None):
         attr_data = []
-        if isinstance(val, list):
-            for v in val:
-                if not isinstance(v, dict) or len(v) != 1:
+        if isinstance(value, list):
+            for v in value:
+                if not isinstance(v, dict) or 'name' not in v or 'value' not in v:
                     raise ValueError('Wrong format of report attribute')
-                nextname = next(iter(v))
-                for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
-                    if len(name) == 0:
-                        new_id = n[0]
-                    else:
-                        new_id = "%s:%s" % (name, n[0])
-                    attr_data.append((new_id, n[1]))
-        elif isinstance(val, str):
-            attr_data = [(name, val)]
+                for n in self.__attr_children(v['name'].replace(':', '_'), v['value'], v.get('compare', False),
+                                              v.get('associate', False), v.get('data')):
+                    attr_data.append(("%s:%s" % (name, n[0]) if len(name) > 0 else n[0], n[1], n[2], n[3], n[4]))
+        elif isinstance(value, str):
+            attr_data = [(name, value, compare, associate, data)]
         else:
             raise ValueError('Wrong format of report attributes')
         return attr_data
@@ -706,11 +764,14 @@ class UploadReport:
     def __save_attrs(self, report_id, attrs):
         if not isinstance(attrs, list):
             return []
-        attrdata = AttrData()
+        attr_archive = None
+        if 'attr data' in self.data:
+            attr_archive = self.archives[self.data['attr data']]
+        attrdata = AttrData(self.root.id, attr_archive)
         attrorder = []
-        for attr, value in self.__attr_children('', attrs):
+        for attr, value, compare, associate, data in self.__attr_children('', attrs):
             attrorder.append(attr)
-            attrdata.add(report_id, attr, value)
+            attrdata.add(report_id, attr, value, compare, associate, data)
         attrdata.upload()
         if isinstance(self.parent, ReportComponent) and self.data['type'] in {'start', 'attrs', 'verification'}:
             names = set(x[0] for x in ReportAttr.objects.filter(report_id=report_id).values_list('attr__name_id'))
@@ -784,3 +845,41 @@ class CollapseReports:
 
         RecalculateLeaves([root])
         RecalculateVerdicts([root])
+
+
+class CheckErrorTraces:
+    def __init__(self, traces, sources):
+        self._traces = traces
+        self._sources = sources
+        self.add_attrs = {}
+        self.__check_traces()
+        self.__exit()
+
+    def __check_traces(self):
+        manager = Extended.objects.filter(role=USER_ROLES[2][0]).first()
+        if not manager:
+            raise ValueError("Can't check error traces without manager in the system")
+
+        files = self.__get_list_of_sources()
+        for tr_name in self._traces:
+            res = GetETV(self.__read_trace(tr_name), manager.user)
+
+            if 'attrs' in res.data:
+                self.add_attrs[tr_name] = res.data['attrs']
+            if 'files' not in res.data:
+                raise ValueError('Wrong format of error trace')
+            if any(x not in files for x in res.data['files']):
+                raise ValueError("Sources doesn't have needed source for error trace")
+
+    def __read_trace(self, trace_name):
+        with zipfile.ZipFile(self._traces[trace_name], mode='r') as zfp:
+            return zfp.read('error trace.json').decode('utf8')
+
+    def __get_list_of_sources(self):
+        with zipfile.ZipFile(self._sources, mode='r') as zfp:
+            return zfp.namelist()
+
+    def __exit(self):
+        for arch in self._traces:
+            self._traces[arch].seek(0)
+        self._sources.seek(0)

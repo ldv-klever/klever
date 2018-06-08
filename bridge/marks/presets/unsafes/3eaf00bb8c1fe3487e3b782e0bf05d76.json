@@ -1,0 +1,117 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "21a018a58f3c/net/tipc/tipc.ko/linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.12.17"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "net/tipc/tipc.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "Different argument signatures are calculated for the same object (fundamental limitation of approach).",
+  "error trace": [
+    [
+      {
+        "tipc_init": [
+          {
+            "tipc_core_start": [
+              {
+                "tipc_socket_init": [
+                  {
+                    "ldv_emg_sock_register": [
+                      {
+                        "ldv_sock_register_create_8_6": [
+                          {
+                            "tipc_sk_create": [
+                              {
+                                "tipc_createport": [
+                                  {
+                                    "ldv_spin_lock_bh_58___1": [
+                                      {
+                                        "ldv_spin_lock_tipc_port_list_lock": [
+                                          {
+                                            "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "ldv_spin_unlock_bh_59___1": [
+                                      {
+                                        "ldv_spin_unlock_tipc_port_list_lock": [
+                                          {
+                                            "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "ldv_spin_unlock_bh_57___0": [
+                                  {
+                                    "ldv_spin_unlock_lock_of_tipc_port": [
+                                      {
+                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [
+    "Rule"
+  ],
+  "verdict": "3"
+}

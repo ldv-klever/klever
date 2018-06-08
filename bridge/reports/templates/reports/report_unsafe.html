@@ -1,17 +1,18 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
 {% load staticfiles %}
 
 {% block title %}{% trans 'Unsafe' %}{% endblock %}
 
-{% block reports_head_block %}
-    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
-    <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
-    <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+{% block head_block %}
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}
@@ -54,7 +55,7 @@
         </div>
         <div class="one wide column right aligned">
             {% if etv %}
-                <a class="ui icon basic mini button" href="{% url 'reports:etv' report.pk %}"><i class="maximize icon"></i></a>
+                <a class="ui icon basic mini button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="maximize icon"></i></a>
             {% endif %}
         </div>
     </div>
@@ -71,7 +72,7 @@
                 <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.viewtitle }}"><i class="setting icon"></i></button>
                 {% if can_mark %}
                     <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
-                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
+                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:mark_form' 'unsafe' report.pk 'create' %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
                 {% endif %}
             </div>
 

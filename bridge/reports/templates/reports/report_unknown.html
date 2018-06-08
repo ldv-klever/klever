@@ -1,9 +1,14 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
 
 {% load i18n %}
 {% load staticfiles %}
 
 {% block title %}{% trans 'Unknown' %}{% endblock %}
+
+{% block head_block %}
+    <script src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
+    <script src="{% static 'reports/js/reportLeaf.js' %}"></script>
+{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
@@ -58,7 +63,8 @@
                 <button id="show_leaf_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
                 <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.viewtitle }}"><i class="setting icon"></i></button>
                 {% if can_mark %}
-                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unknown' report.pk %}" data-content="{% trans 'Create mark' %}"><i class="star icon"></i></a>
+                    <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
+                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:mark_form' 'unknown' report.pk 'create' %}" data-content="{% trans 'Create mark' %}"><i class="star icon"></i></a>
                 {% endif %}
             </div>
 
@@ -93,6 +99,9 @@
             <div id="view_form_segment_{{ MarkTable.view.type }}" class="ui form yellow segment" style="display:none;">
                 {% include 'users/views/UnknownAssMarks.html' with view=MarkTable.view statuses=MarkTable.statuses ass_types=MarkTable.ass_types selected_columns=MarkTable.selected_columns available_columns=MarkTable.available_columns %}
             </div>
+            {% if can_mark %}
+                <div id="inline_mark_form" style="display: none"></div>
+            {% endif %}
         </div>
     </div>
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}

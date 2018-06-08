@@ -15,47 +15,53 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path, re_path
 from marks import views
 
 
 urlpatterns = [
-    url(r'^(?P<mark_type>unsafe|safe|unknown)/create/(?P<report_id>[0-9]+)/$', views.create_mark, name='create_mark'),
-    url(r'^(?P<mtype>unsafe|safe|unknown)/(?P<action>view|edit)/(?P<mark_id>[0-9]+)/$', views.mark_page, name='mark'),
-    url(r'^(?P<mtype>unsafe|safe|unknown)/versions/(?P<mark_id>[0-9]+)/$', views.mark_versions, name='versions'),
+    # Main marks pages
+    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$', views.MarkPage.as_view(), name='mark'),
+    re_path(r'^(?P<type>unsafe|safe|unknown)/association_changes/(?P<association_id>.*)/$',
+            views.AssociationChangesView.as_view()),
+    re_path(r'^(?P<type>unsafe|safe|unknown)/$', views.MarksListView.as_view(), name='list'),
 
-    url(r'^(?P<marks_type>unsafe|safe|unknown)/$', views.mark_list, name='mark_list'),
-    url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
-        views.download_mark, name='download_mark'),
-    url(r'^download-preset/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
-        views.download_preset_mark, name='download_preset_mark'),
-    url(r'^association_changes/(?P<association_id>.*)/$', views.association_changes),
-    url(r'^tags/(?P<tags_type>unsafe|safe)/$', views.show_tags, name='tags'),
-    url(r'^tags/download/(?P<tags_type>unsafe|safe)/$', views.download_tags, name='download_tags'),
+    # Mark form
+    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/(?P<action>create|edit)/$',
+            views.MarkFormView.as_view(), name='mark_form'),
+    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/(?P<action>create|edit)/inline/$',
+            views.InlineMarkForm.as_view()),
 
-    # For ajax requests
-    url(r'^ajax/delete/$', views.delete_marks),
-    url(r'^ajax/save_mark/$', views.save_mark),
-    url(r'^ajax/upload_marks/$', views.upload_marks),
-    url(r'^ajax/get_func_description/$', views.get_func_description),
-    url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
-    url(r'^ajax/check-unknown-mark/$', views.check_unknown_mark),
+    # Mark versions views
+    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/remove_versions/$', views.RemoveVersionsView.as_view()),
+    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/compare_versions/$', views.CompareVersionsView.as_view()),
 
-    url(r'^ajax/get_mark_version_data/$', views.get_mark_version_data),
-    url(r'^ajax/remove_versions/$', views.remove_versions),
-    url(r'^ajax/compare_versions/$', views.compare_versions),
+    # Download/Upload marks
+    re_path(r'^download/(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$',
+            views.DownloadMarkView.as_view(), name='download_mark'),
+    re_path(r'^download-preset/(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$',
+            views.DownloadPresetMarkView.as_view(), name='download_preset_mark'),
+    path('upload/', views.UploadMarksView.as_view()),
+    path('download-all/', views.DownloadAllMarksView.as_view(), name='download_all'),
+    path('upload-all/', views.UploadAllMarksView.as_view()),
 
-    url(r'^ajax/get_tag_data/$', views.get_tag_data),
-    url(r'^ajax/save_tag/$', views.save_tag),
-    url(r'^ajax/remove_tag/$', views.remove_tag),
-    url(r'^ajax/get_tags_data/$', views.get_tags_data),
-    url(r'^ajax/upload_tags/$', views.upload_tags),
+    # Tags
+    path('tags/save_tag/', views.SaveTagView.as_view()),
+    re_path(r'^tags/(?P<type>unsafe|safe)/$', views.TagsTreeView.as_view(), name='tags'),
+    re_path(r'^tags/(?P<type>unsafe|safe)/download/$', views.DownloadTagsView.as_view(), name='download_tags'),
+    re_path(r'^tags/(?P<type>unsafe|safe)/upload/$', views.UploadTagsView.as_view()),
+    re_path(r'^tags/(?P<type>unsafe|safe)/get_tag_data/$', views.TagDataView.as_view()),
+    re_path(r'^tags/(?P<type>unsafe|safe)/delete/(?P<pk>[0-9]+)/$', views.RemoveTagView.as_view()),
+    re_path(r'^(?P<type>unsafe|safe)/tags_data/$', views.MarkTagsView.as_view()),
 
-    url(r'^ajax/confirm-association/$', views.confirm_association),
-    url(r'^ajax/unconfirm-association/$', views.unconfirm_association),
-    url(r'^ajax/like-association/$', views.like_association),
+    # Action with associations
+    re_path(r'^association/(?P<type>unsafe|safe|unknown)/(?P<rid>[0-9]+)/(?P<mid>[0-9]+)/(?P<act>confirm|unconfirm)/$',
+            views.ChangeAssociationView.as_view()),
+    re_path(r'^association/(?P<type>unsafe|safe|unknown)/(?P<rid>[0-9]+)/(?P<mid>[0-9]+)/(?P<act>like|dislike)/$',
+            views.LikeAssociation.as_view()),
 
-    # For service requests
-    url(r'^download-all/$', views.download_all, name='download_all'),
-    url(r'^upload-all/$', views.upload_all, name='upload_all'),
+    # Utils
+    path('delete/', views.DeleteMarksView.as_view()),
+    path('get_func_description/<int:pk>/', views.GetFuncDescription.as_view()),
+    path('check-unknown-mark/<int:pk>/', views.CheckUnknownMarkView.as_view()),
 ]

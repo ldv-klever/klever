@@ -62,7 +62,7 @@ function fill_checked_values() {
 function check_jobs_access(jobs) {
     var status = true;
     $.ajax({
-        url: job_ajax_url + 'check_access/',
+        url: '/jobs/check_download_access/',
         type: 'POST',
         dataType: 'json',
         data: {jobs: JSON.stringify(jobs)},
@@ -77,7 +77,39 @@ function check_jobs_access(jobs) {
     return status;
 }
 
-function compare_jobs() {
+function compare_reports() {
+    var sel_jobs = [];
+    $('input[id^="job_checkbox__"]:checked').each(function () {
+        sel_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
+    });
+    if (sel_jobs.length !== 2) {
+        err_notify($('#error__no_jobs_to_compare').text());
+        return false;
+    }
+    $('#dimmer_of_page').addClass('active');
+    $.post(
+        '/jobs/check_compare_access/',
+        {
+            job1: sel_jobs[0],
+            job2: sel_jobs[1]
+        },
+        function (data) {
+            if (data.error) {
+                $('#dimmer_of_page').removeClass('active');
+                err_notify(data.error);
+            }
+            else {
+                $.post('/reports/fill_compare_cache/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function (data) {
+                    $('#dimmer_of_page').removeClass('active');
+                    data.error ? err_notify(data.error) : window.location.href = '/reports/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
+                }, 'json');
+            }
+        },
+        'json'
+    );
+}
+
+function compare_files() {
     var selected_jobs = [];
     $('input[id^="job_checkbox__"]:checked').each(function () {
         selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
@@ -86,40 +118,7 @@ function compare_jobs() {
         err_notify($('#error__no_jobs_to_compare').text());
         return false;
     }
-    $('#dimmer_of_page').addClass('active');
-    $.post(
-        job_ajax_url + 'check_compare_access/',
-        {
-            job1: selected_jobs[0],
-            job2: selected_jobs[1]
-        },
-        function (data) {
-            if (data.error) {
-                $('#dimmer_of_page').removeClass('active');
-                err_notify(data.error);
-            }
-            else {
-                $.post(
-                    '/reports/ajax/fill_compare_cache/',
-                    {
-                        job1: selected_jobs[0],
-                        job2: selected_jobs[1]
-                    },
-                    function (data) {
-                        $('#dimmer_of_page').removeClass('active');
-                        if (data.error) {
-                            err_notify(data.error);
-                        }
-                        else {
-                            window.location.href = '/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
-                        }
-                    },
-                    'json'
-                );
-            }
-        },
-        'json'
-    );
+    window.location.href = '/jobs/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
 }
 
 $(document).ready(function () {
@@ -146,7 +145,7 @@ $(document).ready(function () {
                 confirm_delete_modal.modal('hide');
                 $('#dimmer_of_page').addClass('active');
                 $.post(
-                    job_ajax_url + 'removejobs/',
+                    '/jobs/remove/',
                     {jobs: JSON.stringify(jobs_for_delete)},
                     function (data) {
                         $('#dimmer_of_page').removeClass('active');
@@ -176,7 +175,7 @@ $(document).ready(function () {
         });
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
-                $.redirectPost(job_ajax_url + 'downloadjobs/', {job_ids: JSON.stringify(job_ids)});
+                $.redirectPost('/jobs/downloadjobs/', {job_ids: JSON.stringify(job_ids)});
             }
         }
         else {
@@ -184,5 +183,24 @@ $(document).ready(function () {
         }
     });
 
-    $('#compare_reports_btn').click(compare_jobs);
+    $('#download_selected_trees').click(function (event) {
+        event.preventDefault();
+
+        $('#jobs_actions_menu').popup('hide');
+        var job_ids = [];
+        $('input[id^="job_checkbox__"]:checked').each(function () {
+            job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
+        });
+        if (job_ids.length) {
+            if (check_jobs_access(job_ids)) {
+                $.redirectPost('/jobs/downloadtrees/', {job_ids: JSON.stringify(job_ids)});
+            }
+        }
+        else {
+            err_notify($('#error__no_jobs_to_download').text());
+        }
+    });
+
+    $('#compare_reports_btn').click(compare_reports);
+    $('#compare_files_btn').click(compare_files);
 });

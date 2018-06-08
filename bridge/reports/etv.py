@@ -308,7 +308,7 @@ class ParseErrorTrace:
         return data
 
     def __return(self, func_id=None, if_possible=False):
-        if self.scope.current_action():
+        if self.scope.current_action() is not None:
             # Return from action first
             self.lines.append(self.__triangle_line(self.scope.remove()))
         if not self.scope.is_return_correct(func_id):
@@ -558,7 +558,7 @@ class GetSource:
         if file_name.startswith('/'):
             file_name = file_name[1:]
         try:
-            source_content = ArchiveFileContent(self.report, 'error_trace', file_name).content.decode('utf8')
+            source_content = ArchiveFileContent(self.report.source, 'archive', file_name).content.decode('utf8')
         except Exception as e:
             raise BridgeException(_("Error while extracting source from archive: %(error)s") % {'error': str(e)})
         cnt = 1

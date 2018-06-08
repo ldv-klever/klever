@@ -63,27 +63,21 @@ class MarkArchiveGenerator:
                     version_data['link'] = markversion.link
             else:
                 version_data['attrs'] = []
-                version_data['tags'] = []
+                for aname, aval, compare in markversion.attrs.order_by('id')\
+                        .values_list('attr__name__name', 'attr__value', 'is_compare'):
+                    version_data['attrs'].append({'attr': aname, 'value': aval, 'is_compare': compare})
+
+                version_data['tags'] = list(tag for tag, in markversion.tags.values_list('tag__tag'))
                 version_data['verdict'] = markversion.verdict
+
                 if self.type == 'unsafe':
                     version_data['function'] = markversion.function.name
                     with markversion.error_trace.file.file as fp:
                         version_data['error_trace'] = fp.read().decode('utf8')
-                for tag in markversion.tags.all():
-                    version_data['tags'].append(tag.tag.tag)
-                for attr in markversion.attrs.order_by('id'):
-                    version_data['attrs'].append({
-                        'attr': attr.attr.name.name,
-                        'value': attr.attr.value,
-                        'is_compare': attr.is_compare
-                    })
+
             content = json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4)
             for data in self.stream.compress_string('version-%s' % markversion.version, content):
                 yield data
-            # if self.type == 'unsafe':
-            #     err_trace_file = os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name)
-            #     for data in self.stream.compress_file(err_trace_file, 'error_trace_%s' % str(markversion.version)):
-            #         yield data
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -104,28 +98,31 @@ class PresetMarkFile:
         self.data = json.dumps(self.__get_mark_data(), indent=2, sort_keys=True).encode('utf8')
         self.filename = "%s.json" % self._mark.identifier
 
-    def __get_mark_data(self):
-        if isinstance(self._mark, MarkUnknown):
-            data = {
-                'status': self._mark.status, 'pattern': self._mark.function,
-                'problem': self._mark.problem_pattern, 'is regexp': self._mark.is_regexp
-            }
-            if self._mark.link:
-                data['link'] = self._mark.link
-            if self._mark.description:
-                data['description'] = self._mark.description
-            return data
+    def __iter__(self):
+        yield self.data
 
+    def __get_mark_data(self):
         data = {
-            'status': self._mark.status, 'verdict': self._mark.verdict, 'is_modifiable': self._mark.is_modifiable,
-            'description': self._mark.description, 'attrs': [], 'tags': []
+            'status': self._mark.status, 'is_modifiable': self._mark.is_modifiable,
+            'description': self._mark.description, 'attrs': []
         }
         last_version = self._mark.versions.get(version=self._mark.version)
         for a_name, a_val, is_compare in last_version.attrs.order_by('id')\
                 .values_list('attr__name__name', 'attr__value', 'is_compare'):
             data['attrs'].append({'attr': a_name, 'value': a_val, 'is_compare': is_compare})
-        for t, in last_version.tags.order_by('id').values_list('tag__tag'):
-            data['tags'].append(t)
+
+        if isinstance(self._mark, MarkUnknown):
+            data.update({
+                'pattern': self._mark.function,
+                'problem': self._mark.problem_pattern,
+                'is regexp': self._mark.is_regexp
+            })
+            if self._mark.link:
+                data['link'] = self._mark.link
+        else:
+            data.update({'verdict': self._mark.verdict, 'tags': []})
+            for t, in last_version.tags.order_by('id').values_list('tag__tag'):
+                data['tags'].append(t)
 
         if isinstance(self._mark, MarkUnsafe):
             data['comparison'] = last_version.function.name

@@ -354,10 +354,23 @@ sys.exit(Command(sys.argv).launch())
         self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
-        self.linux_kernel['attrs'] = [
-            {'Linux kernel': [{'version': self.linux_kernel['version']},
-                              {'architecture': self.linux_kernel['arch']},
-                              {'configuration': self.linux_kernel['conf']}]}]
+        self.linux_kernel['attrs'] = [{
+            'name': 'Linux kernel',
+            'value': [
+                {
+                    'name': 'version',
+                    'value': self.linux_kernel['version']
+                },
+                {
+                    'name': 'architecture',
+                    'value': self.linux_kernel['arch']
+                },
+                {
+                    'name': 'configuration',
+                    'value': self.linux_kernel['conf']
+                }
+            ]
+        }]
 
     def set_shadow_src_tree(self):
         self.logger.info('Set shadow source tree')

@@ -1,4 +1,5 @@
 {
+  "Class": "Verification of Linux kernel modules",
   "Common": {
     "Linux kernel": {
       "configuration": "allmodconfig",
