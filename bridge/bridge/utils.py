@@ -197,7 +197,6 @@ class RemoveFilesBeforeDelete:
             self.__remove(files)
 
     def __remove_task_files(self, task):
-        self.__is_not_used()
         from service.models import Solution
         files = set()
         try:
@@ -273,6 +272,7 @@ class BridgeMiddlware:
                 return HttpResponseBadRequest(loader.get_template('error.html').render({
                     'user': request.user, 'message': exception.message, 'back': exception.back
                 }))
-        else:
-            logger.exception(exception)
-        return None
+        logger.exception(exception)
+        return HttpResponseBadRequest(loader.get_template('error.html').render({
+            'user': request.user, 'message': str(UNKNOWN_ERROR)
+        }))

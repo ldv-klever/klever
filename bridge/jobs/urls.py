@@ -60,7 +60,7 @@ urlpatterns = [
     path('copy_job_version/<int:pk>/', views.CopyJobVersionView.as_view()),
 
     # Actions with job solving
-    path('prepare_run/<int:job_id>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
+    path('prepare_run/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
     path('download_configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view()),
     path('get_def_start_job_val/', views.GetDefStartJobValue.as_view()),
     path('run_decision/<int:job_id>/', views.StartDecision.as_view()),
