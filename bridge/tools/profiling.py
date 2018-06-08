@@ -22,7 +22,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db.models.base import ModelBase
 
-from bridge.utils import BridgeException
+from bridge.utils import BridgeException, logger, unique_id
 from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
@@ -33,24 +33,40 @@ else:
     MAX_WAITING = 300
 
 
+def get_time():
+    while True:
+        try:
+            return time.time()
+        except Exception:
+            pass
+
+
 class ExecLocker:
     lockfile = os.path.join(settings.BASE_DIR, 'media', '.lock')
 
-    def __init__(self, groups):
+    def __init__(self, name, groups):
+        self.call_log = CallLogs.objects.create(name=name, enter_time=get_time())
+        self.call_id = '{0}_{1}'.format(self.call_log.name, unique_id()[:4])
         self.names = self.__get_affected_models(groups)
         self.lock_ids = set()
         # wait1 and wait2
         self.waiting_time = [0, 0]
 
     def lock(self):
+        logger.info('{0}: Executing lock for {1}.'.format(self.call_id, self.call_log.name))
         if len(self.names) == 0:
+            self.__save_exec_time()
+            logger.info('{0}: No tables to lock, return'.format(self.call_id))
             return
         # Lock with file while we locking with DB table
         while True:
+            logger.info('{0}: Trying to create lockfile'.format(self.call_id))
             try:
                 with open(self.lockfile, mode='x'):
+                    logger.info('{0}: Lockfile is created'.format(self.call_id))
                     break
             except FileExistsError:
+                logger.info('{0}: Lockfile exists, sleeping 0.1 seconds'.format(self.call_id))
                 time.sleep(0.1)
                 self.waiting_time[0] += 0.1
                 if self.waiting_time[0] > MAX_WAITING:
@@ -64,17 +80,40 @@ class ExecLocker:
 
         try:
             self.__lock_names()
+        except Exception as e:
+            logger.exception(e)
         finally:
             try:
+                logger.info('{0}: Trying to remove lockfile'.format(self.call_id))
                 os.remove(self.lockfile)
             except FileNotFoundError:
+                logger.info('{0}: Lockfile was not found'.format(self.call_id))
                 pass
+        self.__save_exec_time()
 
-    def unlock(self):
-        if len(self.lock_ids) > 0:
+    def unlock(self, is_failed):
+        self.call_log.execution_delta = get_time() - self.call_log.execution_time
+        self.call_log.is_failed = is_failed
+        if is_failed:
+            logger.info('{0}: Request failed!'.format(self.call_id))
+        else:
+            logger.info('{0}: Request processing is successfully finished!'.format(self.call_id))
+
+        if (not is_failed or settings.UNLOCK_FAILED_REQUESTS) and len(self.lock_ids) > 0:
+            logger.info('{0}: Unlocking {1}.'.format(self.call_id, self.lock_ids))
             LockTable.objects.filter(id__in=self.lock_ids).update(locked=False)
+        self.call_log.return_time = get_time()
+        self.call_log.save()
+        logger.info('{0}: Return.'.format(self.call_id))
+
+    def __save_exec_time(self):
+        self.call_log.execution_time = get_time()
+        self.call_log.wait1 = self.waiting_time[0]
+        self.call_log.wait2 = self.waiting_time[1]
+        self.call_log.save()
 
     def __lock_names(self):
+        logger.info('{0}: Trying to lock tables: {1}'.format(self.call_id, self.names))
         can_lock = True
         names_in_db = set()
         # Get all created models in table with names in self.block
@@ -83,15 +122,18 @@ class ExecLocker:
             self.lock_ids.add(l.id)
             if l.locked:
                 can_lock = False
+                logger.info('{0}: table {1} is locked already!'.format(self.call_id, l.name))
 
         # Are there models which aren't created yet?
         if len(names_in_db) < len(self.names):
             # Will be executed maximum 1 time per view function
             for l_name in set(self.names) - set(names_in_db):
                 self.lock_ids.add(LockTable.objects.create(name=l_name).id)
+        logger.info('{0}: Ids to lock: {1}'.format(self.call_id, self.lock_ids))
 
         if not can_lock:
             while LockTable.objects.filter(id__in=self.lock_ids, locked=True).count() > 0:
+                logger.info('{0}: There are still locked tables, sleeping 0.2 seconds'.format(self.call_id))
                 time.sleep(0.2)
                 self.waiting_time[1] += 0.2
                 if self.waiting_time[1] > MAX_WAITING:
@@ -99,6 +141,7 @@ class ExecLocker:
                         break
                     raise RuntimeError('Not enough time to lock execution of view')
         # Lock
+        logger.info('{0}: Executing tables lock.'.format(self.call_id))
         LockTable.objects.filter(id__in=self.lock_ids).update(locked=True)
 
     def __get_affected_models(self, groups):
@@ -126,34 +169,15 @@ def unparallel_group(groups):
     def __inner(f):
 
         def wait(*args, **kwargs):
-
-            def get_time():
-                while True:
-                    try:
-                        return time.time()
-                    except Exception:
-                        pass
-
-            call_data = CallLogs.objects.create(name=f.__name__, enter_time=get_time())
-            locker = ExecLocker(groups)
+            locker = ExecLocker(f.__name__, groups)
             locker.lock()
-            call_data.execution_time = get_time()
-            call_data.wait1 = locker.waiting_time[0]
-            call_data.wait2 = locker.waiting_time[1]
-            call_data.save()
             try:
                 res = f(*args, **kwargs)
-                call_data.execution_delta = get_time() - call_data.execution_time
             except Exception:
-                if settings.UNLOCK_FAILED_REQUESTS:
-                    locker.unlock()
+                locker.unlock(True)
                 raise
             else:
-                call_data.is_failed = False
-                locker.unlock()
-            finally:
-                call_data.return_time = get_time()
-                call_data.save()
+                locker.unlock(False)
             return res
 
         return wait
@@ -169,33 +193,15 @@ class LoggedCallMixin:
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        def get_time():
-            while True:
-                try:
-                    return time.time()
-                except Exception:
-                    pass
-
-        call_data = CallLogs.objects.create(name=type(self).__name__, enter_time=get_time())
-        locker = ExecLocker(self.unparallel)
+        locker = ExecLocker(type(self).__name__, self.unparallel)
         locker.lock()
-        call_data.execution_time = get_time()
-        call_data.wait1 = locker.waiting_time[0]
-        call_data.wait2 = locker.waiting_time[1]
-        call_data.save()
         try:
             response = getattr(super(), 'dispatch')(request, *args, **kwargs)
-            call_data.execution_delta = get_time() - call_data.execution_time
         except Exception:
-            if settings.UNLOCK_FAILED_REQUESTS:
-                locker.unlock()
+            locker.unlock(True)
             raise
         else:
-            call_data.is_failed = False
-            locker.unlock()
-        finally:
-            call_data.return_time = get_time()
-            call_data.save()
+            locker.unlock(False)
         return response
 
     def is_not_used(self, *args, **kwargs):
