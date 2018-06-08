@@ -55,7 +55,6 @@ class ExecLocker:
     def lock(self):
         logger.info('{0}: Executing lock for {1}.'.format(self.call_id, self.call_log.name))
         if len(self.names) == 0:
-            self.__save_exec_time()
             logger.info('{0}: No tables to lock, return'.format(self.call_id))
             return
         # Lock with file while we locking with DB table
@@ -89,7 +88,6 @@ class ExecLocker:
             except FileNotFoundError:
                 logger.info('{0}: Lockfile was not found'.format(self.call_id))
                 pass
-        self.__save_exec_time()
 
     def unlock(self, is_failed):
         self.call_log.execution_delta = get_time() - self.call_log.execution_time
@@ -106,7 +104,7 @@ class ExecLocker:
         self.call_log.save()
         logger.info('{0}: Return.'.format(self.call_id))
 
-    def __save_exec_time(self):
+    def save_exec_time(self):
         self.call_log.execution_time = get_time()
         self.call_log.wait1 = self.waiting_time[0]
         self.call_log.wait2 = self.waiting_time[1]
@@ -172,7 +170,11 @@ def unparallel_group(groups):
             locker = ExecLocker(f.__name__, groups)
             locker.lock()
             try:
+                locker.save_exec_time()
                 res = f(*args, **kwargs)
+            except BridgeException:
+                locker.unlock(False)
+                raise
             except Exception:
                 locker.unlock(True)
                 raise
@@ -193,10 +195,18 @@ class LoggedCallMixin:
             # This mixin should be used together with View based class
             raise BridgeException()
 
+        get_unparallel = getattr(self, 'get_unparallel', None)
+        if callable(get_unparallel):
+            self.unparallel = get_unparallel()
+
         locker = ExecLocker(type(self).__name__, self.unparallel)
         locker.lock()
         try:
+            locker.save_exec_time()
             response = getattr(super(), 'dispatch')(request, *args, **kwargs)
+        except BridgeException:
+            locker.unlock(False)
+            raise
         except Exception:
             locker.unlock(True)
             raise

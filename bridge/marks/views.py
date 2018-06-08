@@ -137,8 +137,10 @@ class MarkFormView(LoggedCallMixin, DetailView):
     }
     template_name = 'marks/MarkForm.html'
 
-    # TODO: only for post()
-    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+    def get_unparallel(self):
+        if self.request.method == 'POST':
+            return [MarkSafe, MarkUnsafe, MarkUnknown]
+        return []
 
     def post(self, *args, **kwargs):
         self.is_not_used(*args, **kwargs)
@@ -276,7 +278,7 @@ class RemoveVersionsView(LoggedCallMixin, Bview.JsonDetailPostView):
         return {'success': _('Selected versions were successfully deleted')}
 
 
-class CompareVersionsView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.DetailPostView):
+class CompareVersionsView(LoggedCallMixin, Bview.DetailPostView):
     model_map = {
         'safe': (MarkSafe, MarkSafeHistory),
         'unsafe': (MarkUnsafe, MarkUnsafeHistory),
