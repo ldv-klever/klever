@@ -18,7 +18,6 @@
 import os
 import re
 import json
-import time
 import hashlib
 import zipfile
 from io import StringIO
@@ -53,15 +52,6 @@ COLOR = {
 TABLE_STAT_COLOR = ['#f18fa6', '#f1c0b2', '#f9e19b', '#e4f495', '#acf1a8']
 
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
-
-
-def exec_time(func):
-    def inner(*args, **kwargs):
-        t1 = time.time()
-        res = func(*args, **kwargs)
-        print("CALL {}(): {:5.5f}".format(func.__name__, time.time() - t1))
-        return res
-    return inner
 
 
 def coverage_color(curr_cov, max_cov, delta=0):

@@ -645,7 +645,6 @@ class RecalculateConnections:
                     break
                 else:
                     new_verdict = self._marks[mark_id]['verdict']
-                print(safe_id, mark_id, self._marks[mark_id]['tags'])
                 for tag_id in self._marks[mark_id]['tags']:
                     if (safe_id, tag_id) not in safe_tag_cache:
                         safe_tag_cache[(safe_id, tag_id)] = \

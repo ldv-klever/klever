@@ -158,7 +158,8 @@ class CompareTree:
 
     def __fill_cache(self):
         info = CompareJobsInfo.objects.create(
-            user=self.user, root1=self._root1, root2=self._root2, attr_names='|'.join(self._name_ids)
+            user=self.user, root1=self._root1, root2=self._root2,
+            attr_names='|'.join(str(nid) for nid in self._name_ids)
         )
         CompareJobsCache.objects.bulk_create(list(CompareJobsCache(
             info=info, attr_values=x,
