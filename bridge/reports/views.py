@@ -510,7 +510,7 @@ class ReportsComparisonView(LoggedCallMixin, TemplateView):
         }
 
 
-class ReportsComparisonData(LoggedCallMixin, Bview.JSONResponseMixin, Bview.DetailPostView):
+class ReportsComparisonData(LoggedCallMixin, Bview.DetailPostView):
     template_name = 'reports/comparisonData.html'
     model = CompareJobsInfo
     pk_url_kwarg = 'info_id'

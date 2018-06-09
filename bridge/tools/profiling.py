@@ -33,10 +33,19 @@ else:
     MAX_WAITING = 300
 
 
+def get_time():
+    while True:
+        try:
+            return time.time()
+        except Exception:
+            pass
+
+
 class ExecLocker:
     lockfile = os.path.join(settings.BASE_DIR, 'media', '.lock')
 
-    def __init__(self, groups):
+    def __init__(self, name, groups):
+        self.call_log = CallLogs.objects.create(name=name, enter_time=get_time())
         self.names = self.__get_affected_models(groups)
         self.lock_ids = set()
         # wait1 and wait2
@@ -70,9 +79,20 @@ class ExecLocker:
             except FileNotFoundError:
                 pass
 
-    def unlock(self):
-        if len(self.lock_ids) > 0:
+    def unlock(self, is_failed):
+        self.call_log.execution_delta = get_time() - self.call_log.execution_time
+        self.call_log.is_failed = is_failed
+
+        if (not is_failed or settings.UNLOCK_FAILED_REQUESTS) and len(self.lock_ids) > 0:
             LockTable.objects.filter(id__in=self.lock_ids).update(locked=False)
+        self.call_log.return_time = get_time()
+        self.call_log.save()
+
+    def save_exec_time(self):
+        self.call_log.execution_time = get_time()
+        self.call_log.wait1 = self.waiting_time[0]
+        self.call_log.wait2 = self.waiting_time[1]
+        self.call_log.save()
 
     def __lock_names(self):
         can_lock = True
@@ -126,34 +146,19 @@ def unparallel_group(groups):
     def __inner(f):
 
         def wait(*args, **kwargs):
-
-            def get_time():
-                while True:
-                    try:
-                        return time.time()
-                    except Exception:
-                        pass
-
-            call_data = CallLogs.objects.create(name=f.__name__, enter_time=get_time())
-            locker = ExecLocker(groups)
+            locker = ExecLocker(f.__name__, groups)
             locker.lock()
-            call_data.execution_time = get_time()
-            call_data.wait1 = locker.waiting_time[0]
-            call_data.wait2 = locker.waiting_time[1]
-            call_data.save()
             try:
+                locker.save_exec_time()
                 res = f(*args, **kwargs)
-                call_data.execution_delta = get_time() - call_data.execution_time
+            except BridgeException:
+                locker.unlock(False)
+                raise
             except Exception:
-                if settings.UNLOCK_FAILED_REQUESTS:
-                    locker.unlock()
+                locker.unlock(True)
                 raise
             else:
-                call_data.is_failed = False
-                locker.unlock()
-            finally:
-                call_data.return_time = get_time()
-                call_data.save()
+                locker.unlock(False)
             return res
 
         return wait
@@ -169,33 +174,23 @@ class LoggedCallMixin:
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        def get_time():
-            while True:
-                try:
-                    return time.time()
-                except Exception:
-                    pass
+        get_unparallel = getattr(self, 'get_unparallel', None)
+        if callable(get_unparallel):
+            self.unparallel = get_unparallel()
 
-        call_data = CallLogs.objects.create(name=type(self).__name__, enter_time=get_time())
-        locker = ExecLocker(self.unparallel)
+        locker = ExecLocker(type(self).__name__, self.unparallel)
         locker.lock()
-        call_data.execution_time = get_time()
-        call_data.wait1 = locker.waiting_time[0]
-        call_data.wait2 = locker.waiting_time[1]
-        call_data.save()
         try:
+            locker.save_exec_time()
             response = getattr(super(), 'dispatch')(request, *args, **kwargs)
-            call_data.execution_delta = get_time() - call_data.execution_time
+        except BridgeException:
+            locker.unlock(False)
+            raise
         except Exception:
-            if settings.UNLOCK_FAILED_REQUESTS:
-                locker.unlock()
+            locker.unlock(True)
             raise
         else:
-            call_data.is_failed = False
-            locker.unlock()
-        finally:
-            call_data.return_time = get_time()
-            call_data.save()
+            locker.unlock(False)
         return response
 
     def is_not_used(self, *args, **kwargs):
