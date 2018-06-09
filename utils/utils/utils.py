@@ -194,9 +194,9 @@ class Session:
     def start_job_decision(self, job, data_fp):
         job_id = self.__get_job_id(job)
         if data_fp:
-            self.__request('/jobs/ajax/run_decision/', {'job_id': job_id, 'data': data_fp.read()})
+            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'data', 'data': data_fp.read()})
         else:
-            self.__request('/jobs/ajax/fast_run_decision/', {'job_id': job_id})
+            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'fast'})
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)
