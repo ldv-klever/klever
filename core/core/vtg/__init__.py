@@ -546,7 +546,7 @@ class VTG(core.components.Component):
                                 core.utils.reliable_rmtree(self.logger, deldir)
                         del processing_status[vobject][rule_class]
 
-                if len(processing_status[vobject]) == 0:
+                if len(processing_status[vobject]) == 0 and vobject not in initial:
                     self.logger.info("All tasks for verification object {!r} are either solved or failed".
                                      format(vobject))
                     # Verification object is lastly processed
