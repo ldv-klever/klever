@@ -149,7 +149,7 @@ class Session:
             raise ValueError('The parent identifier or its name is not set')
         resp = self.__request('/jobs/get_job_field/', {'job': parent, 'field': 'identifier'})
         resp = self.__request(
-            '/jobs/ajax/upload_job/{0}/'.format(resp.json()['identifier']), {},
+            '/jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), {},
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
         if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
