@@ -181,7 +181,7 @@ class Session:
         return resp.json()['identifier']
 
     def copy_job_version(self, job):
-        self.__request('/jobs/copy_job_version/{0}/'.format(self.__get_job_id(job)))
+        self.__request('/jobs/copy_job_version/{0}/'.format(self.__get_job_id(job)), {})
 
     def replace_files(self, job, new_files):
         for f_name in new_files:

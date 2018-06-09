@@ -406,7 +406,7 @@ class CompareJobVersionsView(LoggedCallMixin, Bviews.JSONResponseMixin, Bviews.D
         return {'data': jobs.utils.CompareJobVersions(*list(job_versions))}
 
 
-class CopyJobVersionView(LoggedCallMixin, Bviews.JsonDetailView):
+class CopyJobVersionView(LoggedCallMixin, Bviews.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -596,7 +596,7 @@ class CheckCompareAccessView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class JobProgressJson(LoggedCallMixin, Bviews.JsonDetailPostView):
+class JobProgressJson(LoggedCallMixin, Bviews.JsonDetailView):
     model = Job
 
     def get_context_data(self, **kwargs):
