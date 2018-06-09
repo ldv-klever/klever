@@ -40,7 +40,7 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
-      "BenchExec=1.11",
+      "BenchExec==1.11",
       "consulate"
     ]
   },
