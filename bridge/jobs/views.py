@@ -98,7 +98,7 @@ class JobPage(LoggedCallMixin, DetailView):
         return context
 
 
-class DecisionResults(LoggedCallMixin, Bviews.JSONResponseMixin, Bviews.DetailPostView):
+class DecisionResults(LoggedCallMixin, Bviews.DetailPostView):
     model = Job
     template_name = 'jobs/DecisionResults.html'
 
@@ -177,8 +177,10 @@ class JobFormPage(LoggedCallMixin, DetailView):
     model = Job
     template_name = 'jobs/jobForm.html'
 
-    # TODO: only for post()
-    unparallel = [Job]
+    def get_unparallel(self):
+        if self.request.method == 'POST':
+            return [Job]
+        return []
 
     def post(self, *args, **kwargs):
         self.is_not_used(*args, **kwargs)
@@ -394,7 +396,7 @@ class RemoveJobVersions(LoggedCallMixin, Bviews.JsonDetailPostView):
         return {'message': _('Selected versions were successfully deleted')}
 
 
-class CompareJobVersionsView(LoggedCallMixin, Bviews.JSONResponseMixin, Bviews.DetailPostView):
+class CompareJobVersionsView(LoggedCallMixin, Bviews.DetailPostView):
     model = Job
     template_name = 'jobs/jobVCmp.html'
 

@@ -95,7 +95,7 @@ class JsonView(JSONResponseMixin, ContextMixin, View):
         pass
 
 
-class DetailPostView(SingleObjectTemplateResponseMixin, SingleObjectMixin, View):
+class DetailPostView(JSONResponseMixin, SingleObjectTemplateResponseMixin, SingleObjectMixin, View):
     def post(self, *args, **kwargs):
         self.__is_not_used(*args, **kwargs)
         self.object = self.get_object()
@@ -119,7 +119,13 @@ class StreamingResponseView(View):
     def get(self, *args, **kwargs):
         self.__is_not_used(*args, **kwargs)
 
-        self.generator = self.get_generator()
+        try:
+            self.generator = self.get_generator()
+        except Exception as e:
+            if not isinstance(e, BridgeException):
+                logger.exception(e)
+                raise BridgeException()
+
         if self.generator is None:
             raise BridgeException()
 
