@@ -72,7 +72,7 @@ case "$1" in
         ppid=`cat ${PIDFILE}`
         pid=`pgrep -P ${ppid}`
         echo ${pid} > ${PIDFILE}
-        start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
+        start-stop-daemon --stop --retry 60 --quiet --oknodo --pidfile ${PIDFILE}
         log_end_msg $?
         rm -f ${PIDFILE}
         ;;
