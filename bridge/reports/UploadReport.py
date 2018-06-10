@@ -74,7 +74,7 @@ class UploadReport:
             logger.info(str(e))
             self.error = 'ZIP error'
         except Exception as e:
-            logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
+            logger.exception(e)
             self.__job_failed(str(e))
             self.error = str(e)
 
@@ -241,6 +241,8 @@ class UploadReport:
                 self.data['attr data'] = data['attr data']
                 if self.data['attr data'] not in self.archives:
                     raise ValueError("Attr data archive wasn't found in the archives list")
+            if len(self.data['error traces']) == 0:
+                raise ValueError("There are no error traces in report")
             if any(x not in self.archives for x in self.data['error traces']):
                 raise ValueError("One of the error traces archives wasn't found in the archives list")
             if self.data['sources'] not in self.archives:
@@ -868,7 +870,9 @@ class CheckErrorTraces:
                 self.add_attrs[tr_name] = res.data['attrs']
             if 'files' not in res.data:
                 raise ValueError('Wrong format of error trace')
-            if any(x not in files for x in res.data['files']):
+
+            trace_files = set(f[1:] if f.startswith('/') else f for f in res.data['files'])
+            if any(x not in files for x in trace_files):
                 raise ValueError("Sources doesn't have needed source for error trace")
 
     def __read_trace(self, trace_name):

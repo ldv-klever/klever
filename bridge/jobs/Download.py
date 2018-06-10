@@ -31,7 +31,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import pytz
 
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
-from bridge.utils import logger, file_get_or_create, unique_id, BridgeException
+from bridge.utils import logger, file_get_or_create, unique_id, BridgeException, OpenFiles
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
@@ -931,18 +931,30 @@ class UploadReports:
 
 
 class UploadReportsWithoutDecision:
+    reports_file = 'reports.json'
+    fields = {
+        'start': ['id', 'parent id', 'name', 'attrs', 'attr data', 'comp'],
+        'finish': ['id', 'data', 'resources', 'log', 'coverage'],
+        'verification': [
+            'id', 'parent id', 'name', 'attrs', 'attr data', 'comp', 'resources',
+            'log', 'coverage', 'input files of static verifiers'
+        ],
+        'verification finish': ['id'],
+        'safe': ['id', 'parent id', 'attrs', 'attr data', 'proof'],
+        'unsafe': ['id', 'parent id', 'attrs', 'attr data', 'sources', 'error traces'],
+        'unknown': ['id', 'parent id', 'attrs', 'attr data', 'problem desc']
+    }
+    files_fields = [
+        'attr data', 'log', 'coverage', 'input files of static verifiers',
+        'proof', 'sources', 'error traces', 'problem desc'
+    ]
+
     def __init__(self, job, user, reports_dir):
         self._job = job
         self._user = user
         self._reports_dir = reports_dir
-        self._data = None
-        self._files = {}
-        self.__read_files()
-        self._tree = {}
-        self.__get_reports_tree()
-
+        self._data = self.__read_reports_data()
         self.__prepare_job()
-        self._job = Job.objects.get(id=self._job.id)
         try:
             self.__upload_children(None)
         except Exception:
@@ -952,23 +964,15 @@ class UploadReportsWithoutDecision:
             raise
         change_job_status(self._job, JOB_STATUS[3][0])
 
-    def __read_files(self):
-        for dir_path, dir_names, file_names in os.walk(self._reports_dir):
-            for file_name in file_names:
-                rel_path = os.path.relpath(os.path.join(dir_path, file_name), self._reports_dir)
-                if rel_path == 'reports.json':
-                    with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
-                        self.data = json.load(fp)
-                else:
-                    self._files[rel_path] = os.path.join(dir_path, file_name)
-
-    def __get_reports_tree(self):
-        if not isinstance(self.data, list) or len(self.data) == 0:
-            raise BridgeException(_('Wrong format of main reports file or it is not found'))
-        indexes = {}
-        for i in range(len(self.data)):
-            self._tree[i] = indexes.get(self.data[i]['parent id'])
-            indexes[self.data[i]['id']] = i
+    def __read_reports_data(self):
+        reports_file = os.path.join(self._reports_dir, self.reports_file)
+        if not os.path.isfile(reports_file):
+            raise BridgeException(_("The archive doesn't contain main reports file"))
+        with open(reports_file, encoding='utf8') as fp:
+            data = json.load(fp)
+        if not isinstance(data, list) or len(data) == 0:
+            raise BridgeException(_('Wrong format of main reports file'))
+        return data
 
     def __prepare_job(self):
         configuration = GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE).configuration
@@ -976,124 +980,53 @@ class UploadReportsWithoutDecision:
             raise ValueError("Can't get default configuration")
         StartJobDecision(self._user, self._job.id, configuration, fake=True)
         change_job_status(self._job, JOB_STATUS[2][0])
+        self._job = Job.objects.get(id=self._job.id)
 
     def __upload_children(self, parent_id):
         actions = {
-            'component': self.__upload_component,
-            'verification': self.__upload_verification,
-            'safe': self.__upload_safe,
-            'unsafe': self.__upload_unsafe,
-            'unknown': self.__upload_unknown
+            'component': self.__upload_component, 'verification': self.__upload_verification,
+            'safe': self.__upload_leaf, 'unsafe': self.__upload_leaf, 'unknown': self.__upload_leaf,
         }
-        for report in self.data:
+        for report in self._data:
             if report['parent id'] == parent_id:
                 actions[report['type']](report)
 
     def __upload_component(self, data):
-        start_report = data.copy()
-        self.__clear_report(['id', 'parent id', 'name', 'attrs', 'comp'], start_report)
-        start_report['type'] = 'start'
-        if start_report['id'] == '/':
-            del start_report['parent id']
-
-        res = UploadReport(self._job, start_report)
-        if res.error is not None:
-            raise ValueError(res.error)
-
+        self.__upload(data, 'start')
         self.__upload_children(data['id'])
-
-        finish_report = data.copy()
-        self.__clear_report(['id', 'data', 'resources', 'log', 'coverage'], finish_report)
-        finish_report['type'] = 'finish'
-        if 'resources' not in finish_report:
-            finish_report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
-
-        archives = {}
-        for arch_type in ['log', 'coverage']:
-            if arch_type in data:
-                try:
-                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
-                except Exception:
-                    for fp in archives.values():
-                        fp.close()
-                    raise
-
-        res = UploadReport(self._job, finish_report, archives=archives)
-        for fp in archives.values():
-            fp.close()
-
-        if res.error is not None:
-            raise ValueError(res.error)
+        self.__upload(data, 'finish')
 
     def __upload_verification(self, data):
-        start_report = data.copy()
-        self.__clear_report(['id', 'parent id', 'name', 'attrs', 'comp', 'resources',
-                             'log', 'coverage', 'input files of static verifiers'], start_report)
-        start_report['type'] = 'verification'
-        if 'resources' not in start_report:
-            start_report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
-
-        archives = {}
-        for arch_type in ['log', 'coverage', 'input files of static verifiers']:
-            if arch_type in data:
-                try:
-                    archives[data[arch_type]] = open(self._files[data[arch_type]], mode='rb')
-                except Exception:
-                    for fp in archives.values():
-                        fp.close()
-                    raise
-
-        res = UploadReport(self._job, start_report, archives=archives)
-        for fp in archives.values():
-            fp.close()
-        if res.error is not None:
-            raise ValueError(res.error)
-
+        self.__upload(data, 'verification')
         self.__upload_children(data['id'])
+        self.__upload(data, 'verification finish')
 
-        res = UploadReport(self._job, {'id': data['id'], 'type': 'verification finish'})
+    def __upload_leaf(self, data):
+        self.__upload(data, data['type'])
+
+    def __upload(self, data, report_type):
+        # Collecting report data
+        report = data.copy()
+        for field in set(report):
+            if field not in self.fields[report_type]:
+                del report[field]
+        if 'resources' in self.fields[report_type] and 'resources' not in report:
+            report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
+        if report_type == 'start' and report['id'] == '/':
+            del report['parent id']
+        report['type'] = report_type
+
+        # Collecting report files
+        files = []
+        for f in self.files_fields:
+            if f in report:
+                if isinstance(report[f], str):
+                    files.append(os.path.join(self._reports_dir, report[f]))
+                elif isinstance(report[f], list):
+                    files.extend(list(os.path.join(self._reports_dir, p) for p in report[f]))
+
+        # Uploading report
+        with OpenFiles(*files, rel_path=self._reports_dir) as archives:
+            res = UploadReport(self._job, report, archives=archives)
         if res.error is not None:
             raise ValueError(res.error)
-
-    def __upload_unsafe(self, data):
-        unsafe_data = data.copy()
-        self.__clear_report(['id', 'parent id', 'attrs', 'error trace'], unsafe_data)
-        unsafe_data['type'] = 'unsafe'
-
-        with open(self._files[data['error trace']], mode='rb') as fp:
-            res = UploadReport(self._job, unsafe_data, archives={data['error trace']: fp})
-        if res.error is not None:
-            raise ValueError(res.error)
-
-    def __upload_safe(self, data):
-        safe_data = data.copy()
-        self.__clear_report(['id', 'parent id', 'attrs', 'proof'], safe_data)
-        safe_data['type'] = 'safe'
-
-        if 'proof' in data:
-            with open(self._files[data['proof']], mode='rb') as fp:
-                res = UploadReport(self._job, safe_data, archives={data['proof']: fp})
-        else:
-            res = UploadReport(self._job, safe_data)
-        if res.error is not None:
-            raise ValueError(res.error)
-
-    def __upload_unknown(self, data):
-        unknown_data = data.copy()
-        self.__clear_report(['id', 'parent id', 'attrs', 'problem desc'], unknown_data)
-        unknown_data['type'] = 'unknown'
-
-        with open(self._files[data['problem desc']], mode='rb') as fp:
-            res = UploadReport(self._job, unknown_data, archives={data['problem desc']: fp})
-        if res.error is not None:
-            raise ValueError(res.error)
-
-    def __clear_report(self, supported_data, report):
-        self.__is_not_used()
-        attrs = set(report)
-        for attr in attrs:
-            if attr not in supported_data:
-                del report[attr]
-
-    def __is_not_used(self):
-        pass
