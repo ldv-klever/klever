@@ -10,9 +10,6 @@
                     {% for coldata in column_row %}
                         <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                     {% endfor %}
-                    {% if can_mark %}
-                        <th>&nbsp;</th>
-                    {% endif %}
                     </tr>
                 {% endfor %}
             </thead>
@@ -44,7 +41,7 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                {% elif v.column == 'buttons' and can_mark %}
+                                {% elif v.column == 'buttons' %}
                                     <div class="ui mini icon buttons">
                                         <button id="inline_edit_mark_{{ v.value.0 }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
                                         {% if v.value.1 != '1' %}

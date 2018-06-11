@@ -38,7 +38,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChan
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
-from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR
+from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR, MarkAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.tags import TagsInfo
 
@@ -170,6 +170,7 @@ class ReportMarkTable:
         self.user = user
         self.report = report
         self.view = view
+        self.can_mark = MarkAccess(user, report).can_create()
         self.statuses = MARK_STATUS
         self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):
@@ -223,7 +224,8 @@ class ReportMarkTable:
         columns = ['mark_num']
         columns.extend(self.view['columns'])
         columns.append('likes')
-        columns.append('buttons')
+        if self.can_mark:
+            columns.append('buttons')
         return columns
 
     def __get_values(self):

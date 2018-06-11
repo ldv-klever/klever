@@ -10,14 +10,24 @@
 {% endblock %}
 
 {% block body_block %}
-    <input id="marks_type" type="hidden" value="{{ tabledata.type }}">
-    <button id="view_show_form_btn_{{ tabledata.view.type }}" data-content="{{ tabledata.view.viewtitle }}" data-position="bottom right" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
-    <button class="ui mini basic icon red button note-popup" id="show_remove_marks_popup" data-position="bottom left" data-content="{% trans 'Delete selected marks' %}"><i class="ui remove icon"></i></button>
-    <br>
+    <div class="ui text small menu">
+        <div class="ui dropdown item">
+            <i class="ui check square outline icon"></i>{% trans 'Selected marks' %}
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                <div id="show_remove_marks_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+            </div>
+        </div>
+        <div class="right menu">
+            <div class="item">
+                <button id="view_show_form_btn_{{ tabledata.view.type }}" class="ui violet button">{{ tabledata.view.viewtitle }}</button>
+            </div>
+        </div>
+    </div>
+
     <div id="view_form_segment_{{ tabledata.view.type }}" class="ui form yellow segment" style="display:none;">
         {% include 'users/views/marksList.html' with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns %}
     </div>
-    <br>
 
     {% if tabledata.values|length %}
         <div>
@@ -66,6 +76,9 @@
     {% else %}
         <h2 class="header" style="text-align:center;">{% trans 'List of marks of the given type is empty, please create them or change the view' %}</h2>
     {% endif %}
+
+    <input id="marks_type" type="hidden" value="{{ tabledata.type }}">
+
     <div id="remove_marks_popup" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>

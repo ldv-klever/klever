@@ -370,7 +370,6 @@ class ReportSafeView(LoggedCallMixin, DetailView):
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
-            'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'main_content': proof_content,
             'MarkTable': ReportMarkTable(self.request.user, self.object,
                                          ViewData(self.request.user, VIEW_TYPES[11][0], self.request.GET))
@@ -391,7 +390,6 @@ class ReportUnknownView(LoggedCallMixin, DetailView):
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
-            'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
             'MarkTable': ReportMarkTable(self.request.user, self.object,
@@ -422,7 +420,6 @@ class ReportUnsafeView(LoggedCallMixin, DetailView):
             'MarkTable': ReportMarkTable(self.request.user, self.object,
                                          ViewData(self.request.user, VIEW_TYPES[10][0], self.request.GET)),
             'etv': etv,
-            'can_mark': MarkAccess(self.request.user, report=self.object).can_create(),
             'include_assumptions': self.request.user.extended.assumptions,
             'include_jquery_ui': True,
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object)
