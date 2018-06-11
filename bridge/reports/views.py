@@ -481,7 +481,7 @@ class FillComparisonCacheView(LoggedCallMixin, Bview.JsonView):
             r1 = ReportRoot.objects.get(job_id=self.kwargs['job1_id'])
             r2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
         except ObjectDoesNotExist:
-            raise BridgeException(code=405)
+            raise BridgeException(code=406)
         if not can_compare(self.request.user, r1.job, r2.job):
             raise BridgeException(code=401)
         try:
@@ -500,7 +500,7 @@ class ReportsComparisonView(LoggedCallMixin, TemplateView):
             root1 = ReportRoot.objects.get(job_id=self.kwargs['job1_id'])
             root2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
         except ObjectDoesNotExist:
-            raise BridgeException(code=405)
+            raise BridgeException(code=406)
         if not can_compare(self.request.user, root1.job, root2.job):
             raise BridgeException(code=401)
         res = ComparisonTableData(self.request.user, root1, root2)

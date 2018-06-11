@@ -31,6 +31,7 @@ ERRORS = {
     401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
+    406: _("One of the selected jobs wasn't found or wasn't decided"),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
     604: _("The mark was not found"),
