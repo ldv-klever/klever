@@ -1,14 +1,6 @@
 {% load i18n %}
 
-<div class="ui icon orange small buttons right attached">
-    <button id="etv_start" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play' %}"><i class="forward icon"></i></button>
-    <button id="etv_play_forward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play from the selected line' %}"><i class="fast forward icon"></i></button>
-    <button id="etv_start_backward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play backward' %}"><i class="backward icon"></i></button>
-    <button id="etv_play_backward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play backward from the selected line' %}"><i class="fast backward icon"></i></button>
-    <button id="etv_next_step" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play one line forward' %}"><i class="step forward icon"></i></button>
-    <button id="etv_prev_step" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play one line backward' %}"><i class="step backward icon"></i></button>
-    <button id="etv_pause_play" class="ui button note-popup" data-position="top left" data-content="{% trans 'Pause' %}"><i class="pause icon"></i></button>
-</div>
+<label for="select_speed"></label>
 <div class="ui small input">
     <select id="select_speed" class="ui dropdown attached">
         <option value="1">1 {% trans 'second per a line' %}</option>
@@ -19,4 +11,13 @@
         <option value="10">10 {% trans 'seconds per a line' %}</option>
     </select>
 </div>
-<label for="select_speed"></label>
+
+<div class="ui icon orange small buttons" style="margin-top: 5px;">
+    <button id="etv_start" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play' %}"><i class="forward icon"></i></button>
+    <button id="etv_play_forward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play from the selected line' %}"><i class="fast forward icon"></i></button>
+    <button id="etv_start_backward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play backward' %}"><i class="backward icon"></i></button>
+    <button id="etv_play_backward" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play backward from the selected line' %}"><i class="fast backward icon"></i></button>
+    <button id="etv_next_step" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play one line forward' %}"><i class="step forward icon"></i></button>
+    <button id="etv_prev_step" class="ui button note-popup" data-position="top left" data-content="{% trans 'Play one line backward' %}"><i class="step backward icon"></i></button>
+    <button id="etv_pause_play" class="ui button note-popup" data-position="top left" data-content="{% trans 'Pause' %}"><i class="pause icon"></i></button>
+</div>

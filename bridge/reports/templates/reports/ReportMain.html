@@ -162,7 +162,7 @@
         </div>
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
-            {% include 'users/views/reportChildren.html' with view=TableData.view %}
+            {% include TableData.view.template with view=TableData.view %}
             {% if TableData.table_data.values|length %}
                 <div>
                     {% if TableData.table_data.values.has_previous %}
@@ -202,7 +202,7 @@
         </div>
         <div class="ui orange segment">
             <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
-            {% include 'users/views/DecisionResults.html' with view=reportdata.view %}
+            {% include reportdata.view.template with view=reportdata.view %}
             <br>
             {% include 'jobs/DecisionResults.html' %}
         </div>

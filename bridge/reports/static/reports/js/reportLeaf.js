@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 $(document).ready(function () {
+    $('.bottom-attached').parent().addClass('with-bottom-attachment');
+
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
 
@@ -31,7 +33,7 @@ $(document).ready(function () {
         attr_table.is(':hidden') ? attr_table.show() : attr_table.hide();
     });
 
-    $('button[id*="_association_"]').click(function () {
+    $('[id*="_association_"]').click(function () {
         var id_arr = $(this).attr('id').split('_'),  // [action, 'association', mark_id]
             url = ['/marks/association', $('#report_type').val(), $('#report_pk').val(), id_arr[2], id_arr[0], ''].join('/');
         $.post(url, {}, function (data) { data.error ? err_notify(data.error) : window.location.replace('') });

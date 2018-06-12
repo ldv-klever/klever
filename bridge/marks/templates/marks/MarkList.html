@@ -26,7 +26,7 @@
     </div>
 
     <div id="view_form_segment_{{ tabledata.view.type }}" class="ui form yellow segment" style="display:none;">
-        {% include 'users/views/marksList.html' with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns %}
+        {% include tabledata.view.template with view=tabledata.view selected_columns=tabledata.selected_columns available_columns=tabledata.available_columns %}
     </div>
 
     {% if tabledata.values|length %}

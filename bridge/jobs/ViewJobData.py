@@ -36,7 +36,7 @@ COLORS = {
 
 
 class ViewJobData:
-    def __init__(self, user, report, view):
+    def __init__(self, user, view, report):
         self.user = user
         self.report = report
         self.view = view

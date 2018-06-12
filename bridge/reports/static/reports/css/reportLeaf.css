@@ -15,6 +15,20 @@
  * limitations under the License.
  */
 
-$(document).ready(function () {
-});
+.bottom-attached {
+    position: absolute;
+    bottom: 15px;
+    width: 100%;
+}
 
+.with-bottom-attachment {
+    padding-bottom: 60px!important;
+}
+.header-row {
+    display: table-row;
+    font-size: 1.15em;
+    font-weight: bold;
+}
+.header-row > .dropdown {
+    margin-left: 5px;
+}

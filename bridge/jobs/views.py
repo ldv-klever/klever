@@ -30,7 +30,7 @@ from django.utils.translation import ugettext as _, override
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
-import bridge.CustomViews as Bviews
+import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
 from bridge.utils import logger, file_get_or_create, extract_archive, get_templated_text,\
@@ -42,7 +42,6 @@ from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
-from users.utils import ViewData
 
 import jobs.utils
 from jobs.jobForm import JobForm, role_info, LoadFilesTree, UserRolesForm
@@ -55,7 +54,7 @@ from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, 
 
 
 @method_decorator(login_required, name='dispatch')
-class JobsTree(LoggedCallMixin, TemplateView):
+class JobsTree(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
     template_name = 'jobs/tree.html'
 
     def get_context_data(self, **kwargs):
@@ -63,54 +62,46 @@ class JobsTree(LoggedCallMixin, TemplateView):
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
             'months': jobs.utils.months_choices(), 'years': jobs.utils.years_choices(),
-            'TableData': TableTree(self.request.user, ViewData(self.request.user, VIEW_TYPES[1][0], self.request.GET))
+            'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1]))
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class JobPage(LoggedCallMixin, DetailView):
+class JobPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = Job
     template_name = 'jobs/viewJob.html'
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
         job_access = jobs.utils.JobAccess(self.request.user, self.object)
         if not job_access.can_view():
             raise BridgeException(code=400)
-
         versions = jobs.utils.JobVersionsData(self.object, self.request.user)
-        if versions.first_version is not None:
-            context['created_by'] = versions.first_version.change_author
-        context['last_version'] = versions.last_version
-        context['versions'] = versions.versions
-        context['parents'] = jobs.utils.get_job_parents(self.request.user, self.object)
-        context['children'] = jobs.utils.get_job_children(self.request.user, self.object)
-        context['progress'] = GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id]
-        context['reportdata'] = ViewJobData(
-            self.request.user,
-            ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
-            ViewData(self.request.user, VIEW_TYPES[2][0], self.request.GET)
-        )
+        if versions.first_version is None:
+            logger.error("There is a job without versions")
+            raise BridgeException()
+        report = ReportComponent.objects.filter(root__job=self.object, parent=None).first()
 
-        context['job_access'] = job_access
-        context['roles'] = role_info(context['last_version'], self.request.user)
-        return context
+        return {
+            'job': self.object, 'job_access': job_access, 'created_by': versions.first_version.change_author,
+            'versions': versions.versions, 'last_version': versions.last_version,
+            'roles': role_info(versions.last_version, self.request.user),
+            'parents': jobs.utils.get_job_parents(self.request.user, self.object),
+            'children': jobs.utils.get_job_children(self.request.user, self.object),
+            'progress': GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id],
+            'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), report)
+        }
 
 
-class DecisionResults(LoggedCallMixin, Bviews.DetailPostView):
+class DecisionResults(LoggedCallMixin, Bview.DataViewMixin, Bview.DetailPostView):
     model = Job
     template_name = 'jobs/DecisionResults.html'
 
     def get_context_data(self, **kwargs):
-        return {'reportdata': ViewJobData(
-            self.request.user,
-            ReportComponent.objects.filter(root__job=self.object, parent=None).first(),
-            ViewData(self.request.user, VIEW_TYPES[2][0], self.request.POST)
-        )}
+        report = ReportComponent.objects.filter(root__job=self.object, parent=None).first()
+        return {'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), report)}
 
 
-class JobProgress(LoggedCallMixin, Bviews.JSONResponseMixin, DetailView):
+class JobProgress(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     model = Job
     template_name = 'jobs/jobProgress.html'
 
@@ -118,7 +109,7 @@ class JobProgress(LoggedCallMixin, Bviews.JSONResponseMixin, DetailView):
         return {'progress': GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id]}
 
 
-class JobStatus(LoggedCallMixin, Bviews.JsonDetailPostView):
+class JobStatus(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
 
     def get_context_data(self, **kwargs):
@@ -141,7 +132,7 @@ class JobsFilesComparison(LoggedCallMixin, TemplateView):
         return {'job1': job1, 'job2': job2, 'data': jobs.utils.CompareFileSet(job1, job2).data}
 
 
-class RemoveJobsView(LoggedCallMixin, Bviews.JsonView):
+class RemoveJobsView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
@@ -149,7 +140,7 @@ class RemoveJobsView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class SaveJobCopyView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class SaveJobCopyView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -158,7 +149,7 @@ class SaveJobCopyView(LoggedCallMixin, Bviews.JsonDetailPostView):
         return {'identifier': newjob.identifier, 'id': newjob.id}
 
 
-class DecisionResultsJson(LoggedCallMixin, Bviews.JsonDetailView):
+class DecisionResultsJson(LoggedCallMixin, Bview.JsonDetailView):
     model = Job
 
     def get_context_data(self, **kwargs):
@@ -199,7 +190,7 @@ class JobFormPage(LoggedCallMixin, DetailView):
         return JobForm(self.request.user, self.object, self.kwargs['action']).get_context()
 
 
-class GetJobHistoryData(LoggedCallMixin, Bviews.JsonDetailView):
+class GetJobHistoryData(LoggedCallMixin, Bview.JsonDetailView):
     model = JobHistory
 
     def get_object(self, queryset=None):
@@ -215,7 +206,7 @@ class GetJobHistoryData(LoggedCallMixin, Bviews.JsonDetailView):
         return {'description': self.object.description}
 
 
-class GetJobHistoryRoles(LoggedCallMixin, Bviews.JSONResponseMixin, DetailView):
+class GetJobHistoryRoles(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     model = JobHistory
     template_name = 'jobs/userRolesForm.html'
 
@@ -232,14 +223,14 @@ class GetJobHistoryRoles(LoggedCallMixin, Bviews.JSONResponseMixin, DetailView):
         return UserRolesForm(self.request.user, self.object).get_context()
 
 
-class GetJobHistoryFiles(LoggedCallMixin, Bviews.JsonView):
+class GetJobHistoryFiles(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         opened = 'opened' not in self.request.POST or json.loads(self.request.POST['opened'])
         return LoadFilesTree(self.kwargs['job_id'], self.kwargs['version'], opened).as_json()
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingResponseView):
+class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = JobFile
     slug_url_kwarg = 'hash_sum'
     slug_field = 'hash_sum'
@@ -253,7 +244,7 @@ class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingRe
         return FileWrapper(self.object.file, 8192)
 
 
-class UploadJobFileView(LoggedCallMixin, Bviews.JsonView):
+class UploadJobFileView(LoggedCallMixin, Bview.JsonView):
     unparallel = [JobFile]
 
     def get_context_data(self, **kwargs):
@@ -265,7 +256,7 @@ class UploadJobFileView(LoggedCallMixin, Bviews.JsonView):
         return {'hashsum': file_get_or_create(self.request.FILES['file'], fname, JobFile, True)[1]}
 
 
-class GetFileContentView(LoggedCallMixin, Bviews.JsonDetailView):
+class GetFileContentView(LoggedCallMixin, Bview.JsonDetailView):
     model = JobFile
     slug_url_kwarg = 'hashsum'
     slug_field = 'hash_sum'
@@ -274,7 +265,7 @@ class GetFileContentView(LoggedCallMixin, Bviews.JsonDetailView):
         return {'content': self.object.file.read().decode('utf8')}
 
 
-class GetFilesDiffView(LoggedCallMixin, Bviews.JsonView):
+class GetFilesDiffView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         try:
             f1 = jobs.utils.JobFile.objects.get(hash_sum=self.kwargs['hashsum1'])
@@ -289,7 +280,7 @@ class GetFilesDiffView(LoggedCallMixin, Bviews.JsonView):
             return {'content': '\n'.join(list(unified_diff(lines1, lines2, fromfile=name1, tofile=name2)))}
 
 
-class ReplaceJobFileView(LoggedCallMixin, Bviews.JsonView):
+class ReplaceJobFileView(LoggedCallMixin, Bview.JsonView):
     unparallel = [FileSystem]
 
     def get_context_data(self, **kwargs):
@@ -298,7 +289,7 @@ class ReplaceJobFileView(LoggedCallMixin, Bviews.JsonView):
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingResponsePostView):
+class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponsePostView):
     model = Job
 
     def get_generator(self):
@@ -311,7 +302,7 @@ class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bviews.Str
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadJobView(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingResponseView):
+class DownloadJobView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = Job
 
     def get_generator(self):
@@ -324,7 +315,7 @@ class DownloadJobView(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingRespon
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadJobsListView(LoggedCallMixin, Bviews.StreamingResponsePostView):
+class DownloadJobsListView(LoggedCallMixin, Bview.StreamingResponsePostView):
     def get_generator(self):
         jobs_list = Job.objects.filter(pk__in=json.loads(self.request.POST['job_ids']))
         for job in jobs_list:
@@ -336,7 +327,7 @@ class DownloadJobsListView(LoggedCallMixin, Bviews.StreamingResponsePostView):
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadJobsTreeView(LoggedCallMixin, Bviews.StreamingResponsePostView):
+class DownloadJobsTreeView(LoggedCallMixin, Bview.StreamingResponsePostView):
     def get_generator(self):
         if self.request.user.extended.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
@@ -344,7 +335,7 @@ class DownloadJobsTreeView(LoggedCallMixin, Bviews.StreamingResponsePostView):
         return JobsTreesGen(json.loads(self.request.POST['job_ids']))
 
 
-class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
+class UploadJobsView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
@@ -370,7 +361,7 @@ class UploadJobsView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class UploadJobsTreeView(LoggedCallMixin, Bviews.JsonView):
+class UploadJobsTreeView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
@@ -385,7 +376,7 @@ class UploadJobsTreeView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class RemoveJobVersions(LoggedCallMixin, Bviews.JsonDetailPostView):
+class RemoveJobVersions(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = ['Job', JobHistory]
 
@@ -396,7 +387,7 @@ class RemoveJobVersions(LoggedCallMixin, Bviews.JsonDetailPostView):
         return {'message': _('Selected versions were successfully deleted')}
 
 
-class CompareJobVersionsView(LoggedCallMixin, Bviews.DetailPostView):
+class CompareJobVersionsView(LoggedCallMixin, Bview.DetailPostView):
     model = Job
     template_name = 'jobs/jobVCmp.html'
 
@@ -408,7 +399,7 @@ class CompareJobVersionsView(LoggedCallMixin, Bviews.DetailPostView):
         return {'data': jobs.utils.CompareJobVersions(*list(job_versions))}
 
 
-class CopyJobVersionView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class CopyJobVersionView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -456,7 +447,7 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
 
 
 @method_decorator(login_required, name='dispatch')
-class DownloadRunConfigurationView(LoggedCallMixin, SingleObjectMixin, Bviews.StreamingResponseView):
+class DownloadRunConfigurationView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = RunHistory
 
     def get_generator(self):
@@ -468,7 +459,7 @@ class DownloadRunConfigurationView(LoggedCallMixin, SingleObjectMixin, Bviews.St
         return FileWrapper(self.object.configuration.file, 8192)
 
 
-class GetDefStartJobValue(LoggedCallMixin, Bviews.JsonView):
+class GetDefStartJobValue(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         name = self.request.POST['name']
         value = self.request.POST['value']
@@ -487,7 +478,7 @@ class GetDefStartJobValue(LoggedCallMixin, Bviews.JsonView):
         raise BridgeException()
 
 
-class StartDecision(LoggedCallMixin, Bviews.JsonView):
+class StartDecision(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
@@ -510,7 +501,7 @@ class StartDecision(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class StopDecisionView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class StopDecisionView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -522,7 +513,7 @@ class StopDecisionView(LoggedCallMixin, Bviews.JsonDetailPostView):
 
 
 class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
-                           Bviews.JSONResponseMixin, Bviews.StreamingResponsePostView):
+                           Bview.JSONResponseMixin, Bview.StreamingResponsePostView):
     model = Job
     unparallel = [Job, 'AttrName']
 
@@ -561,20 +552,20 @@ class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
         return generator
 
 
-class GetJobFieldView(LoggedCallMixin, Bviews.JsonView):
+class GetJobFieldView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         job = jobs.utils.get_job_by_name_or_id(self.request.POST['job'])
         return {self.request.POST['field']: getattr(job, self.request.POST['field'])}
 
 
-class DoJobHasChildrenView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class DoJobHasChildrenView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
 
     def get_context_data(self, **kwargs):
         return {'children': (self.object.children.count() > 0)}
 
 
-class CheckDownloadAccessView(LoggedCallMixin, Bviews.JsonView):
+class CheckDownloadAccessView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         for job_id in json.loads(self.request.POST.get('jobs', '[]')):
             try:
@@ -586,7 +577,7 @@ class CheckDownloadAccessView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class CheckCompareAccessView(LoggedCallMixin, Bviews.JsonView):
+class CheckCompareAccessView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         try:
             j1 = Job.objects.get(id=self.request.POST.get('job1', 0))
@@ -598,7 +589,7 @@ class CheckCompareAccessView(LoggedCallMixin, Bviews.JsonView):
         return {}
 
 
-class JobProgressJson(LoggedCallMixin, Bviews.JsonDetailView):
+class JobProgressJson(LoggedCallMixin, Bview.JsonDetailView):
     model = Job
 
     def get_context_data(self, **kwargs):
@@ -627,7 +618,7 @@ class JobProgressJson(LoggedCallMixin, Bviews.JsonDetailView):
         }, indent=2, sort_keys=True, ensure_ascii=False)}
 
 
-class UploadReportsView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class UploadReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -645,7 +636,7 @@ class UploadReportsView(LoggedCallMixin, Bviews.JsonDetailPostView):
         return {}
 
 
-class CollapseReportsView(LoggedCallMixin, Bviews.JsonDetailPostView):
+class CollapseReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 
@@ -656,7 +647,7 @@ class CollapseReportsView(LoggedCallMixin, Bviews.JsonDetailPostView):
         return {}
 
 
-class EnableSafeMarks(LoggedCallMixin, Bviews.JsonDetailPostView):
+class EnableSafeMarks(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
     unparallel = [Job]
 

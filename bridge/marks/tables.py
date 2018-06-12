@@ -309,7 +309,7 @@ class ReportMarkTable:
                     if len(tags) > 0:
                         val = '; '.join(sorted(tags))
                 elif col == 'ass_type':
-                    val = mark_rep.get_type_display()
+                    val = (mark_rep.mark_id, mark_rep.type, mark_rep.get_type_display())
                     color = ASSOCIATION_TYPE_COLOR[mark_rep.type]
                 elif col == 'ass_author' and mark_rep.author is not None:
                     val = mark_rep.author.get_full_name()
@@ -323,7 +323,7 @@ class ReportMarkTable:
                         list(sorted(dislikes.get(mark_rep.id, [])))
                     )
                 elif col == 'buttons':
-                    val = (mark_rep.mark_id, mark_rep.type)
+                    val = mark_rep.mark_id
                 elif col == 'change_date':
                     val = mark_rep.mark.change_date
                 elif col == 'author':

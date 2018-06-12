@@ -34,11 +34,9 @@ import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import JOB_STATUS, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from users.utils import ViewData
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
-from marks.utils import MarkAccess
 from marks.tables import ReportMarkTable
 from service.models import Task
 from reports.models import ReportRoot, Report, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
@@ -146,7 +144,7 @@ def calculate_validation_stats(validation_results):
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportComponentView(LoggedCallMixin, DetailView):
+class ReportComponentView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     template_name = 'reports/ReportMain.html'
 
@@ -162,13 +160,9 @@ class ReportComponentView(LoggedCallMixin, DetailView):
             'computer': reports.utils.computer_description(self.object.computer.description),
             'SelfAttrsData': reports.utils.ReportAttrsTable(self.object).table_data,
             'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.ReportChildrenTable(
-                self.request.user, self.object, ViewData(self.request.user, VIEW_TYPES[3][0], self.request.GET),
-                page=self.request.GET.get('page', 1)
-            ),
-            'reportdata': ViewJobData(
-                self.request.user, self.object, ViewData(self.request.user, VIEW_TYPES[2][0], self.request.GET)
-            )
+            'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
+            'TableData': reports.utils.ReportChildrenTable(self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
+                                                           page=self.request.GET.get('page', 1))
         }
 
 
@@ -261,7 +255,7 @@ class DownloadVerifierFiles(LoggedCallMixin, SingleObjectMixin, Bview.StreamingR
 
 
 @method_decorator(login_required, name='dispatch')
-class SafesListView(LoggedCallMixin, DetailView):
+class SafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -284,15 +278,13 @@ class SafesListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.SafesListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.SafesTable(
-                self.request.user, self.object,
-                ViewData(self.request.user, VIEW_TYPES[5][0], self.request.GET), **getdata.args
-            )
+            'TableData': reports.utils.SafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[5]),
+                                                  **getdata.args)
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class UnsafesListView(LoggedCallMixin, DetailView):
+class UnsafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -315,15 +307,13 @@ class UnsafesListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.UnsafesListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnsafesTable(
-                self.request.user, self.object,
-                ViewData(self.request.user, VIEW_TYPES[4][0], self.request.GET), **getdata.args
-            )
+            'TableData': reports.utils.UnsafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[4]),
+                                                    **getdata.args)
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class UnknownsListView(LoggedCallMixin, DetailView):
+class UnknownsListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -346,16 +336,14 @@ class UnknownsListView(LoggedCallMixin, DetailView):
         getdata = reports.utils.UnknownsListGetData(self.request.GET)
         return {
             'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnknownsTable(
-                self.request.user, self.object,
-                ViewData(self.request.user, VIEW_TYPES[6][0], self.request.GET), **getdata.args
-            )
+            'TableData': reports.utils.UnknownsTable(self.request.user, self.object, self.get_view(VIEW_TYPES[6]),
+                                                     **getdata.args)
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportSafeView(LoggedCallMixin, DetailView):
-    template_name = 'reports/report_safe.html'
+class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'reports/reportLeaf.html'
     model = ReportSafe
 
     def get_context_data(self, **kwargs):
@@ -366,19 +354,18 @@ class ReportSafeView(LoggedCallMixin, DetailView):
         if self.object.proof:
             proof_content = ArchiveFileContent(self.object, 'proof', PROOF_FILE).content.decode('utf8')
         return {
-            'report': self.object,
+            'report': self.object, 'report_type': 'safe',
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'main_content': proof_content,
-            'MarkTable': ReportMarkTable(self.request.user, self.object,
-                                         ViewData(self.request.user, VIEW_TYPES[11][0], self.request.GET))
+            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportUnknownView(LoggedCallMixin, DetailView):
-    template_name = 'reports/report_unknown.html'
+class ReportUnknownView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'reports/reportLeaf.html'
     model = ReportUnknown
 
     def get_context_data(self, **kwargs):
@@ -386,20 +373,19 @@ class ReportUnknownView(LoggedCallMixin, DetailView):
             raise BridgeException(code=400)
 
         return {
-            'report': self.object,
+            'report': self.object, 'report_type': 'unknown',
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
-            'MarkTable': ReportMarkTable(self.request.user, self.object,
-                                         ViewData(self.request.user, VIEW_TYPES[12][0], self.request.GET))
+            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class ReportUnsafeView(LoggedCallMixin, DetailView):
-    template_name = 'reports/report_unsafe.html'
+class ReportUnsafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'reports/reportLeaf.html'
     model = ReportUnsafe
     slug_url_kwarg = 'trace_id'
     slug_field = 'trace_id'
@@ -414,14 +400,10 @@ class ReportUnsafeView(LoggedCallMixin, DetailView):
             logger.exception(e, stack_info=True)
             etv = None
         return {
-            'report': self.object,
-            'parents': reports.utils.get_parents(self.object),
+            'report': self.object, 'report_type': 'unsafe', 'parents': reports.utils.get_parents(self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
-            'MarkTable': ReportMarkTable(self.request.user, self.object,
-                                         ViewData(self.request.user, VIEW_TYPES[10][0], self.request.GET)),
-            'etv': etv,
-            'include_assumptions': self.request.user.extended.assumptions,
-            'include_jquery_ui': True,
+            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
+            'etv': etv, 'include_assumptions': self.request.user.extended.assumptions, 'include_jquery_ui': True,
             'resources': reports.utils.get_leaf_resources(self.request.user, self.object)
         }
 

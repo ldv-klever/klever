@@ -30,7 +30,7 @@
         </div>
     </div>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
-        {% include 'users/views/jobTree.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
+        {% include TableData.view.template with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
     </div>
 
     <div class="tableScroll" id="jobtable">
