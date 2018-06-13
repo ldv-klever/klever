@@ -296,12 +296,12 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             except subprocess.TimeoutExpired:
                 print('{}: Process {} is still alive ...'.format(os.getpid(), pid))
                 # Lets try it again
-                try:
-                    os.killpg(os.getpgid(pid), signal.SIGTERM)
-                    os.killpg(os.getpgid(pid), signal.SIGINT)
-                    os.kill(pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    terminate()
+                # try:
+                #     os.killpg(os.getpgid(pid), signal.SIGTERM)
+                #     os.killpg(os.getpgid(pid), signal.SIGINT)
+                #     os.kill(pid, signal.SIGKILL)
+                # except ProcessLookupError:
+                #    terminate()
                 # It should not survive after kill, lets wait a couple of seconds
                 time.sleep(10)
 

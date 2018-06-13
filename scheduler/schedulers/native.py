@@ -220,27 +220,29 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         return self._check_solution(identifier, future, mode='job')
 
-    def cancel_job(self, identifier, future):
+    def cancel_job(self, identifier, future, after_term=False):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='job')
+        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
 
-    def cancel_task(self, identifier, future):
+    def cancel_task(self, identifier, future, after_term=False):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='task')
+        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
 
     def terminate(self):
         """
@@ -400,7 +402,7 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         return self._postprocess_solution(identifier, future, mode)
 
-    def _cancel_solution(self, identifier, future, mode='task'):
+    def _cancel_solution(self, identifier, future, mode='task', after_term=False):
         """
         Terminate process solving a process or a task, mark resources as released, clean working directory.
 
@@ -417,7 +419,10 @@ class Scheduler(schedulers.SchedulerExchange):
             process = self._job_processes[identifier] if identifier in self._job_processes else None
         if process and process.pid:
             try:
-                os.kill(process.pid, signal.SIGTERM)
+                if not after_term:
+                    # If the user really sent SIGINT then all children got it anyway and we must just wait.
+                    # If the user pressed a button in Bridge then we have to trigger signal manually.
+                    os.kill(process.pid, signal.SIGTERM)
                 logging.debug("Wait till {} {} become terminated".format(mode, identifier))
                 process.join()
             except Exception as err:
@@ -546,7 +551,6 @@ class Scheduler(schedulers.SchedulerExchange):
         # Kill handler
         mypid = os.getpid()
         with open('info.log', 'a') as lf:
-            print('Executor {!r}: establish signal handlers'.format(mypid), file=lf)
             print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
         ec = utils.execute(args, timeout=timeout)
         with open('info.log', 'a') as lf:

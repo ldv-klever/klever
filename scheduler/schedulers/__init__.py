@@ -593,24 +593,26 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def cancel_job(self, identifier, future):
+    def cancel_job(self, identifier, future, after_term=False):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
         return
 
     @abc.abstractmethod
-    def cancel_task(self, identifier, future):
+    def cancel_task(self, identifier, future, after_term=False):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
@@ -621,14 +623,18 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         Abort solution of all running tasks and any other actions before termination.
         """
-        # Stop tasks
-        for task_id in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"]
-                        in ["PENDING", "PROCESSING"]]:
-            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
         # stop jobs
         for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"]
                        in ["PENDING", "PROCESSING"]]:
-            self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
+            if "future" in self.__jobs[job_id]:
+                self.__jobs[job_id]["future"].cancel()
+            self.__process_future(self.cancel_job, self.__jobs[job_id], job_id, True)
+        # Stop tasks
+        for task_id in [task_id for task_id in self.__tasks
+                        if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"]]:
+            if "future" in self.__tasks[task_id]:
+                self.__tasks[task_id]["future"].cancel()
+            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id, True)
 
     @abc.abstractmethod
     def update_nodes(self, wait_controller=False):
@@ -718,7 +724,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
 
     @staticmethod
-    def __process_future(handler, item, identifier):
+    def __process_future(handler, item, identifier, *args):
         """
         Perform given method for given future object of solving job or task. It can be solving, canceling or anything
         else. It catches SchedulerException and update status to ERROR or in case of success set a new status provided
@@ -727,10 +733,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :param handler: Handler to do something with the job or task. It receives an identifier and future argument as
                         an input and returns new status.
         :param item: It is a value from either self.__tasks or self.__jobs collection.
+        :param args: Additional arguments to handler.
         :param identifier: Identifier of a job or a task.
         """
         try:
-            item["status"] = handler(identifier, item["future"] if "future" in item else None)
+            item["status"] = handler(identifier, item["future"] if "future" in item else None, *args)
             logging.debug("Task {} new status is {}".format(identifier, item["status"]))
             if item["status"] not in ["FINISHED", "ERROR"]:
                 raise ValueError("Scheduler got non-finished status {} for finished task {}".
