@@ -65,7 +65,7 @@ class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     def get_context_data(self, **kwargs):
         if self.object.version == 0:
             raise BridgeException(code=605)
-        view_type_map = {'safe': VIEW_TYPES[14], 'unsafe': VIEW_TYPES[13][0], 'unknown': VIEW_TYPES[15][0]}
+        view_type_map = {'safe': VIEW_TYPES[14], 'unsafe': VIEW_TYPES[13], 'unknown': VIEW_TYPES[15]}
         history_set = self.object.versions.order_by('-version')
 
         versions = []
