@@ -439,10 +439,12 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         if mode == 'task':
             subdir = 'tasks'
-            del self._task_processes[identifier]
+            if identifier in self._task_processes:
+                del self._task_processes[identifier]
         else:
             subdir = 'jobs'
-            del self._job_processes[identifier]
+            if identifier in self._job_processes:
+                del self._job_processes[identifier]
         # Mark resources as released
         del self._reserved[subdir][identifier]
 
@@ -450,7 +452,8 @@ class Scheduler(schedulers.SchedulerExchange):
         work_dir = os.path.join(self.work_dir, subdir, identifier)
 
         # Release resources
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
+                os.path.isdir(work_dir):
             reserved_space = utils.dir_size(work_dir)
         else:
             reserved_space = 0
