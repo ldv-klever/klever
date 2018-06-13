@@ -184,7 +184,7 @@
                 {% endif %}
 
                 {# Data with verification results #}
-                {% include 'users/views/DecisionResults.html' with view=reportdata.view %}
+                {% include reportdata.view.template with view=reportdata.view %}
                 <br>
                 <div id="job_data_div">{% if reportdata %}{% include 'jobs/DecisionResults.html' %}{% endif %}</div>
             </div>

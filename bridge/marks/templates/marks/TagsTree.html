@@ -13,11 +13,19 @@
 
 {% block body_block %}
     <div class="tagsmap">
-        {% if can_create %}<button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>{% endif %}
-        <a id="download_all_tags" class="ui tiny olive basic icon button" href="{% url 'marks:download_tags' tags_type %}" data-content="Download all tags"><i class="ui download icon"></i></a>
-        {% if can_create %}<button id="upload_tags" data-content="Upload tags" class="ui tiny green basic icon button"><i class="ui upload icon"></i></button>{% endif %}
+        {% if can_create %}
+            <div class="ui tiny buttons" style="float: right;">
+                <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:download_tags' tags_type %}"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
+                <button id="upload_tags" class="ui tiny basic violet button"><i class="ui upload icon"></i>{% trans 'Upload tags' %}</button>
+            </div>
+        {% else %}
+            <a id="download_all_tags" class="ui tiny basic violet button" href="{% url 'marks:download_tags' tags_type %}" style="float: right;"><i class="ui download icon"></i>{% trans 'Download tags' %}</a>
+        {% endif %}
+        {% if can_create %}<button id="create_root_tag" class="ui tiny basic blue button"><i class="ui add icon"></i>{% trans 'Create new root tag' %}</button>{% endif %}
+
         <br><br>
-    <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
+        <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
+
         <table>
             {% for row in tags %}
                 <tr>

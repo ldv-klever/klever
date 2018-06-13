@@ -24,7 +24,7 @@
             </div>
         </div>
         <div class="nine wide column">
-            <button id="view_show_form_btn_{{ TableData.view.type }}" data-position="bottom right" data-content="{{ TableData.view.viewtitle }}" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+            <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui tiny violet button" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
 
             <div class="ui breadcrumb">
                 <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
@@ -53,11 +53,7 @@
     </div>
     <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display:none;">
-        {% if TableData.view.type == '6' %}
-            {% include 'users/views/UnknownsList.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
-        {% else %}
-            {% include 'users/views/SafesAndUnsafesList.html' with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
-        {% endif %}
+        {% include TableData.view.template with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
         <br>
     </div>
     {% if TableData.table_data.values|length %}

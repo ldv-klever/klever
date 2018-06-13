@@ -35,7 +35,6 @@ from tools.profiling import LoggedCallMixin
 from bridge.vars import USER_ROLES, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
     VIEW_TYPES, PROBLEM_DESC_FILE
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException
-from users.utils import ViewData
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -56,23 +55,17 @@ def value_type(value):
 
 
 @method_decorator(login_required, name='dispatch')
-class MarkPage(LoggedCallMixin, DetailView):
+class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     template_name = 'marks/Mark.html'
+    model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
 
     def get_queryset(self):
-        if self.kwargs['type'] == 'safe':
-            self.view_type = VIEW_TYPES[14][0]
-            return MarkSafe.objects.all()
-        elif self.kwargs['type'] == 'unsafe':
-            self.view_type = VIEW_TYPES[13][0]
-            return MarkUnsafe.objects.all()
-        else:
-            self.view_type = VIEW_TYPES[15][0]
-            return MarkUnknown.objects.all()
+        return self.model_map[self.kwargs['type']].objects.all()
 
     def get_context_data(self, **kwargs):
         if self.object.version == 0:
             raise BridgeException(code=605)
+        view_type_map = {'safe': VIEW_TYPES[14], 'unsafe': VIEW_TYPES[13], 'unknown': VIEW_TYPES[15]}
         history_set = self.object.versions.order_by('-version')
 
         versions = []
@@ -84,47 +77,44 @@ class MarkPage(LoggedCallMixin, DetailView):
             if len(m.comment) > 0:
                 title += ': ' + m.comment
             versions.append({'version': m.version, 'title': title})
+
         return {
             'mark': self.object, 'access': mutils.MarkAccess(self.request.user, mark=self.object),
-            'markdata': MarkData(self.kwargs['type'], mark_version=history_set.first()),
-            'reports': MarkReportsTable(self.request.user, self.object,
-                                        ViewData(self.request.user, self.view_type, self.request.GET),
-                                        page=self.request.GET.get('page', 1)),
             'versions': versions, 'report_id': self.request.GET.get('report_to_redirect'),
-            'ass_types': ASSOCIATION_TYPE, 'view_tags': True
+            'markdata': MarkData(self.kwargs['type'], mark_version=history_set.first()),
+            'ass_types': ASSOCIATION_TYPE, 'view_tags': True,
+            'reports': MarkReportsTable(self.request.user, self.object,
+                                        self.get_view(view_type_map[self.kwargs['type']]),
+                                        page=self.request.GET.get('page', 1))
         }
 
 
 @method_decorator(login_required, name='dispatch')
-class AssociationChangesView(LoggedCallMixin, DetailView):
+class AssociationChangesView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = MarkAssociationsChanges
     template_name = 'marks/SaveMarkResult.html'
     slug_field = 'identifier'
     slug_url_kwarg = 'association_id'
 
     def get_context_data(self, **kwargs):
-        view_type_map = {'safe': VIEW_TYPES[16][0], 'unsafe': VIEW_TYPES[17][0], 'unknown': VIEW_TYPES[18][0]}
-        return {'TableData': AssociationChangesTable(self.object, ViewData(
-            self.request.user, view_type_map[self.kwargs['type']], self.request.GET
-        ))}
+        view_type_map = {'safe': VIEW_TYPES[16], 'unsafe': VIEW_TYPES[17], 'unknown': VIEW_TYPES[18]}
+        return {'TableData': AssociationChangesTable(self.object, self.get_view(view_type_map[self.kwargs['type']]))}
 
 
 @method_decorator(login_required, name='dispatch')
-class MarksListView(LoggedCallMixin, TemplateView):
+class MarksListView(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
     template_name = 'marks/MarkList.html'
 
     def get_context_data(self, **kwargs):
         context = {'authors': User.objects.all(), 'statuses': MARK_STATUS, 'mark_types': MARK_TYPE}
         if self.kwargs['type'] == 'safe':
-            view_type = VIEW_TYPES[8][0]
             context['verdicts'] = MARK_SAFE
         elif self.kwargs['type'] == 'unsafe':
-            view_type = VIEW_TYPES[7][0]
             context['verdicts'] = MARK_UNSAFE
-        else:
-            view_type = VIEW_TYPES[9][0]
+
+        view_type_map = {'safe': VIEW_TYPES[8], 'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
         context['tabledata'] = MarksList(self.request.user, self.kwargs['type'],
-                                         ViewData(self.request.user, view_type, self.request.GET),
+                                         self.get_view(view_type_map[self.kwargs['type']]),
                                          page=self.request.GET.get('page', 1))
         return context
 
@@ -209,7 +199,10 @@ class MarkFormView(LoggedCallMixin, DetailView):
                 raise BridgeException(_("You don't have an access to create new marks"))
             context['report'] = self.object
             context['markdata'] = MarkData(self.kwargs['type'], report=self.object)
-            context['cancel_url'] = reverse('reports:{0}'.format(self.kwargs['type']), args=[self.object.id])
+            context['cancel_url'] = reverse(
+                'reports:{0}'.format(self.kwargs['type']),
+                args=[self.object.trace_id if self.kwargs['type'] == 'unsafe' else self.object.id]
+            )
         context['access'] = access
         return context
 
@@ -241,7 +234,7 @@ class InlineMarkForm(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
             })
 
     def get_context_data(self, **kwargs):
-        context = {'action': self.kwargs['action'], 'obj_id': self.object.id}
+        context = {'action': self.kwargs['action'], 'obj_id': self.kwargs['pk']}
 
         selected_tags = []
         if self.kwargs['action'] == 'edit':
@@ -399,8 +392,6 @@ class TagsTreeView(LoggedCallMixin, TemplateView):
 
 @method_decorator(login_required, name='dispatch')
 class DownloadTagsView(LoggedCallMixin, Bview.StreamingResponseView):
-    model_map = {'safe': SafeTag, 'unsafe': UnsafeTag}
-
     def get_generator(self):
         generator = mutils.DownloadTags(self.kwargs['type'])
         self.file_name = 'Tags-%s.json' % self.kwargs['type']

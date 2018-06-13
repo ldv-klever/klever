@@ -330,7 +330,8 @@ DEFAULT_VIEW = {
 class ViewData:
     def __init__(self, user, view_type, request_args):
         self.user = user
-        self._type = view_type
+        self._type = view_type[0]
+        self._template = self.__get_template(view_type[1])
         self._title = ''
         self._views = self.__views()
         self._view = None
@@ -344,6 +345,8 @@ class ViewData:
     def __getitem__(self, item):
         if item == 'type':
             return self._type
+        elif item == 'template':
+            return self._template
         elif item == 'viewtitle':
             return self._title
         elif item == 'views':
@@ -351,6 +354,9 @@ class ViewData:
         elif item == 'view_id':
             return self._view_id
         return self._view.get(item)
+
+    def __get_template(self, view_name):
+        return 'users/views/{0}.html'.format(view_name)
 
     def __get_args(self, request_args):
         if request_args.get('view_type') == self._type:

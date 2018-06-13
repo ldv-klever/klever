@@ -130,25 +130,25 @@ SAFE_VERDICTS = (
 )
 
 VIEW_TYPES = (
-    ('0', 'component attributes'),
-    ('1', 'job tree'),
-    ('2', 'job view'),
-    ('3', 'component children list'),
-    ('4', 'unsafes list'),
-    ('5', 'safes list'),
-    ('6', 'unknowns list'),
-    ('7', 'unsafe marks'),
-    ('8', 'safe marks'),
-    ('9', 'unknown marks'),
-    ('10', 'unsafe associated marks'),
-    ('11', 'safe associated marks'),
-    ('12', 'unknown associated marks'),
-    ('13', 'unsafe mark associated reports'),
-    ('14', 'safe mark associated reports'),
-    ('15', 'unknown mark associated reports'),
-    ('16', 'safe association changes'),
-    ('17', 'unsafe association changes'),
-    ('18', 'unknown association changes')
+    ('0', 'component attributes'),  # Currently unused
+    ('1', 'jobTree'),
+    ('2', 'DecisionResults'),  # job page
+    ('3', 'reportChildren'),
+    ('4', 'SafesAndUnsafesList'),  # unsafes list
+    ('5', 'SafesAndUnsafesList'),  # safes list
+    ('6', 'UnknownsList'),  # unknowns list
+    ('7', 'marksList'),  # unsafe marks
+    ('8', 'marksList'),  # safe marks
+    ('9', 'marksList'),  # unknown marks
+    ('10', 'UnsafeAssMarks'),  # unsafe associated marks
+    ('11', 'SafeAssMarks'),  # safe associated marks
+    ('12', 'UnknownAssMarks'),  # unknown associated marks
+    ('13', 'UnsafeAssReports'),  # unsafe mark associated reports
+    ('14', 'SafeAndUnknownAssReports'),  # safe mark associated reports
+    ('15', 'SafeAndUnknownAssReports'),  # unknown mark associated reports
+    ('16', 'AssociationChanges'),  # safe association changes
+    ('17', 'AssociationChanges'),  # unsafe association changes
+    ('18', 'AssociationChanges')  # unknown association changes
 )
 
 SCHEDULER_STATUS = (

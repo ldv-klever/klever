@@ -23,8 +23,10 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.generic.base import View, ContextMixin
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 
-from bridge.vars import UNKNOWN_ERROR
+from bridge.vars import UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger, BridgeException
+
+from users.utils import ViewData
 
 
 # TODO: check if it used anywhere
@@ -150,3 +152,13 @@ class StreamingResponsePostView(StreamingResponseView):
 
     def post(self, *args, **kwargs):
         return super().get(*args, **kwargs)
+
+
+class DataViewMixin:
+    def get_view(self, view_type):
+        if not hasattr(self, 'request'):
+            raise BridgeException()
+        request = getattr(self, 'request')
+        if view_type not in VIEW_TYPES:
+            raise BridgeException()
+        return ViewData(request.user, view_type, request.POST if request.method == 'POST' else request.GET)

@@ -8,22 +8,30 @@
 {% block jobs_head_block %}<script src="{% static 'jobs/js/jobtree.js' %}"></script>{% endblock %}
 
 {% block body_block %}
-    <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ TableData.view.type }}" data-content="{{ TableData.view.viewtitle }}" data-position="bottom right" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
-    <div class="ui mini basic icon buttons">
-        <button class="ui violet button note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
-        <button class="ui purple button note-popup" id="compare_files_btn" data-position="bottom left" data-content="{% trans 'Compare files' %}"><i class="ui columns icon"></i></button>
-        <button class="ui olive button note-popup" id="download_selected_jobs" data-position="bottom left" data-content="{% trans 'Download selected jobs' %}"><i class="ui download icon"></i></button>
-        {# Only managers can upload trees (USER_ROLES[2][0]) #}
-        {% if user.extended.role == '2' %}
-            <button class="ui olive button note-popup" id="download_selected_trees" data-position="bottom left" data-content="{% trans 'Download selected trees' %}"><i class="ui sitemap icon"></i></button>
-        {% endif %}
-        <button class="ui red button note-popup" id="show_remove_jobs_popup" data-position="bottom left" data-content="{% trans 'Delete selected jobs' %}"><i class="ui remove icon"></i></button>
+    <div class="ui text small menu">
+        <div class="ui dropdown item">
+            <i class="ui check square outline icon"></i>{% trans 'Selected jobs' %}
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
+                <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
+                <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
+                {# Only managers can upload trees (USER_ROLES[2][0]) #}
+                {% if user.extended.role == '2' %}
+                    <div id="download_selected_trees" class="item"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
+                {% endif %}
+                <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
+            </div>
+        </div>
+        <div class="right menu">
+            <div class="item">
+                <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui violet button">{{ TableData.view.viewtitle }}</button>
+            </div>
+        </div>
     </div>
-    <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
-        {% include 'users/views/jobTree.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
+        {% include TableData.view.template with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
     </div>
-    <br>
 
     <div class="tableScroll" id="jobtable">
         {% include 'jobs/treeTable.html' %}

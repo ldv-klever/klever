@@ -18,8 +18,6 @@
 $(document).ready(function () {
     drow_connections();
     init_popups();
-    var create_root_btn = $('#create_root_tag');
-    create_root_btn.popup();
 
     // Clear data in create/edit modals
     function clear_modal() {
@@ -212,7 +210,7 @@ $(document).ready(function () {
             create_tag_modal.modal('show');
         });
     }
-    create_root_btn.click(function () {
+    $('#create_root_tag').click(function () {
         create_tag_click(0);
     });
     create_tag_icon.click(function () {
@@ -247,9 +245,7 @@ $(document).ready(function () {
             }
         });
     });
-    $('#download_all_tags').popup();
 
-    $('#upload_tags').popup();
     $('#upload_tags_modal').modal('setting', 'transition', 'vertical flip').modal('attach events', '#upload_tags', 'show');
     $('#upload_tags_start').click(function () {
         var files = $('#upload_tags_file_input')[0].files, data = new FormData();

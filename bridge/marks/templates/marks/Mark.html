@@ -175,11 +175,7 @@
 
             <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
             {# View for associated reports #}
-            {% if reports.view.type == '13' %}
-                {% include 'users/views/UnsafeAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
-            {% else %}
-                {% include 'users/views/SafeAndUnkownAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
-            {% endif %}
+            {% include reports.view.template with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
 
             {# Associated reports table #}
             {% if reports.values|length %}
