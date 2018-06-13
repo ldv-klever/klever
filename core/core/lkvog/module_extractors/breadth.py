@@ -36,6 +36,7 @@ class Breadth:
             for in_file in desc['in']:
                 with open(self.clade.get_file(os.path.join(desc['cwd'], in_file))) as fp:
                     return sum(1 for _ in fp)
+        # todo: why no particular exception here?
         except:
             return 0
 

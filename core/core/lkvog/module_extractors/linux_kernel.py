@@ -41,12 +41,12 @@ class LinuxKernel:
         build_graph = cmd_graph.load()
         kernel_modules = {}
 
-        for id, desc in build_graph.items():
+        for identifier, desc in build_graph.items():
             if desc['type'] == 'LD':
-                full_desc = util.get_full_desc(self.clade, id, desc['type'])
+                full_desc = util.get_full_desc(self.clade, identifier, desc['type'])
                 if full_desc['out'].endswith('.ko'):
                     module = util.create_module(self.clade, id, build_graph,
-                                                full_desc['relative_out']) #.replace('.ko', '.o'))
+                                                full_desc['relative_out'])
                     if self.modules \
                             or set(list(module.values())[0]['canon in files']).intersection(set(self.specific_files)) \
                             or list(module)[0] in self.specific_modules:

@@ -22,6 +22,7 @@ from core.lkvog.strategies.manual import Manual
 from core.lkvog.strategies.advanced import Advanced
 from core.lkvog.strategies.coverage import Coverage
 
+# todo: remove
 strategies_list = {
     'separate modules': SeparateModules,
     'closure': Closure,

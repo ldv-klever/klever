@@ -51,7 +51,12 @@ def __set_model_headers(context):
 
 
 class LKVOG(core.components.Component):
-    def generate_linux_kernel_verification_objects(self):
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False, include_child_resources=False):
+        super(LKVOG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+                                    separate_from_parent, include_child_resources)
+
+        # todo: Why all attributes are public?
         self.clade = None
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_build_cmd_out_file_desc_lock = multiprocessing.Manager().Lock()
@@ -66,10 +71,18 @@ class LKVOG(core.components.Component):
         self.cc_full_descs_files = {}
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
+        self.dependencies = None
+        self.sizes = None
+        self.strategy = None
+        self.module_extractor = None
+        self.modules = None
+        self.cluster = None
+        self.verification_obj_desc = {}
 
         # These dirs are excluded from cleaning by lkvog
         self.dynamic_excluded_clean = multiprocessing.Manager().list()
 
+    def generate_linux_kernel_verification_objects(self):
         self.prepare_strategy()
 
         if not self.conf['Clade']['is base cached']:
@@ -91,6 +104,7 @@ class LKVOG(core.components.Component):
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
     def prepare_strategy(self):
+        # todo: strategies_list can be calculated dinamically instead of static declaration
         strategy_name = self.conf['LKVOG strategy']['name']
         if strategy_name not in strategies_list:
             raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
@@ -202,6 +216,7 @@ class LKVOG(core.components.Component):
         core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
 
     def generate_all_verification_obj_descs(self):
+        # todo: also get the list of all strategies dinamically
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
@@ -237,6 +252,7 @@ class LKVOG(core.components.Component):
         subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
                                  self.conf['Linux kernel'].get('modules', [])))
         self.logger.debug("Subsystems are {0}".format(subsystems))
+        strict = self.conf['Linux kernel'].get('strict subsystems filter', False)
         for module in sorted(self.modules):
             if module not in modules_in_clusters and self.modules[module].get('separate verify', True):
                 if 'all' in self.conf['Linux kernel'].get('modules', []):
@@ -249,13 +265,13 @@ class LKVOG(core.components.Component):
                         self.add_new_clusters(clusters, modules_in_clusters)
                     else:
                         for subsystem in subsystems:
-                            if self.strategy.is_module_in_subsystem(module, subsystem):
+                            if self.strategy.is_module_in_subsystem(module, subsystem, strict):
                                 clusters = self.strategy.divide(module)
                                 self.add_new_clusters(clusters, modules_in_clusters)
                                 break
 
-        for function in self.conf['Linux kernel'].get('functions', []):
-            clusters = self.strategy.divide_by_function(function)
+        for func in self.conf['Linux kernel'].get('functions', []):
+            clusters = self.strategy.divide_by_function(func)
             self.add_new_clusters(clusters, modules_in_clusters)
 
         for cluster in self.all_clusters:
@@ -400,8 +416,8 @@ class LKVOG(core.components.Component):
         self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
                          format(self.module, self.verification_obj_desc_num + 1))
 
-        self.verification_obj_desc = {}
-
+        self.verification_obj_desc = dict()
+        # todo: This mess is linux specific and further code is also should be corrected
         self.verification_obj_desc['id'] = re.sub(r'\.o$', '.ko', self.cluster.root.id)
 
         if len(self.cluster.modules) > 1:
@@ -486,11 +502,9 @@ class LKVOG(core.components.Component):
             for grp in self.verification_obj_desc['grps']:
                 for cc in grp['CCs']:
                     cc_files.update(self.clade.get_cc().load_json_by_id(cc)['in'])
-            self.logger.debug("CC files are {0}".format(cc_files))
-            for function, function_desc in callgraph['callgraph'].items():
                 for file, file_desc in function_desc.items():
                     if file_desc.get('type') == 'global' and file in cc_files:
-                        result.add(function)
+                        result.add(func)
         elif self.conf['Linux kernel']['functions']:
             result = set(self.conf['Linux kernel']['functions']) & set(callgraph['callgraph'].keys())
             self.logger.debug("Functions intersect is {0}".format(result))
@@ -524,40 +538,41 @@ class LKVOG(core.components.Component):
             'typedefs': self._generate_typedefs(allowed_files, call_graph)
         }
 
-    def _generate_callgraph(self, allowed_files, call_graph):
-        call_graph_dict = call_graph.load_callgraph()
+    # todo: functions below are static mostly and required to covert callgraph, so it is better to extract them to a separate file
+    @staticmethod
+    def _generate_callgraph(allowed_files, call_graph):
+        call_graph_dict = call_graph.load_detailed_callgraph(allowed_files)
         group_callgraph = {}
 
+        # todo: Compile a new callgraph especially from allowed files
         for func, files in call_graph_dict.items():
             for file, descs in files.items():
-                if file in allowed_files:
+                # Firstly, copy all desc
+                group_callgraph.setdefault(func, {})
+                group_callgraph[func][file] = dict(descs)
 
-                    # Firstly, copy all desc
-                    group_callgraph.setdefault(func, {})
-                    group_callgraph[func][file] = dict(descs)
+                # Then, for these four types ('declared_in' also) clear and fill with only allowed files
+                for tag in ('called_in', 'calls', 'used_in_func'):
+                    if tag in descs:
+                        group_callgraph[func][file][tag] = {}
+                        for called_func, called_files in descs[tag].items():
+                            for called_file, called_file_descs in called_files.items():
+                                if called_file in allowed_files:
+                                    group_callgraph[func][file][tag].setdefault(called_func, {})
+                                    group_callgraph[func][file][tag][called_func][called_file] = called_file_descs
+                if 'declared_in' in descs:
+                    group_callgraph[func][file]['declared_in'] = {}
+                    for decl_file, decl_descs in descs['declared_in'].items():
+                        if decl_file in allowed_files:
+                            group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
+                            group_callgraph[func][file]['declared_in'][decl_file] = decl_descs
 
-                    # Then, for these four types ('declared_in' also) clear and fill with only allowed files
-                    for type in ('called_in', 'calls', 'used_in_func'):
-                        if type in descs:
-                            group_callgraph[func][file][type] = {}
-                            for called_func, called_files in descs[type].items():
-                                for called_file, called_file_descs in called_files.items():
-                                    if called_file in allowed_files:
-                                        group_callgraph[func][file][type].setdefault(called_func, {})
-                                        group_callgraph[func][file][type][called_func][called_file] = called_file_descs
-                    if 'declared_in' in descs:
-                        group_callgraph[func][file]['declared_in'] = {}
-                        for decl_file, decl_descs in descs['declared_in'].items():
-                            if decl_file in allowed_files:
-                                group_callgraph[func][file]['declared_in'].setdefault(decl_file, {})
-                                group_callgraph[func][file]['declared_in'][decl_file] = decl_descs
-
-                    # Remove if empty
-                    if not group_callgraph[func][file].get('called_in') \
-                            and not group_callgraph[func][file].get('calls') \
-                            and not group_callgraph[func][file].get('declared_in') \
-                            and not group_callgraph[func][file].get('used_in_func'):
-                        group_callgraph[func][file] = {}
+                # Remove if empty
+                if not group_callgraph[func][file].get('called_in') \
+                        and not group_callgraph[func][file].get('calls') \
+                        and not group_callgraph[func][file].get('declared_in') \
+                        and not group_callgraph[func][file].get('used_in_func'):
+                    group_callgraph[func][file] = {}
 
                 # Remove if empty
                 if func in group_callgraph and not group_callgraph[func].get(file, True):
@@ -567,7 +582,8 @@ class LKVOG(core.components.Component):
                 del group_callgraph[func]
         return group_callgraph
 
-    def _generate_variables(self, allowed_files, call_graph):
+    @staticmethod
+    def _generate_variables(allowed_files, call_graph):
         variables_dict = call_graph.load_variables()
         group_variables = []
         for var_desc in variables_dict:
@@ -575,7 +591,8 @@ class LKVOG(core.components.Component):
                 group_variables.append(var_desc)
         return group_variables
 
-    def _generate_macros(self, allowed_files, call_graph):
+    @staticmethod
+    def _generate_macros(allowed_files, call_graph):
         macros_dict = call_graph.load_macros()
         group_macros = {}
         for macro, macro_desc in macros_dict.items():
@@ -587,7 +604,8 @@ class LKVOG(core.components.Component):
                 group_macros[macro] = new_macro_desc
         return group_macros
 
-    def _generate_typedefs(self, allowed_files, call_graph):
+    @staticmethod
+    def _generate_typedefs(allowed_files, call_graph):
         typedefs_dict = call_graph.load_typedefs()
         typedefs = {}
         for file, desc in typedefs_dict.items():
@@ -620,6 +638,7 @@ class LKVOG(core.components.Component):
         return dependencies
 
     def _parse_linux_kernel_mod_function_deps(self):
+        # todo Linux specifics again
         if 'module dependencies file' in self.conf['Linux kernel']:
             deps_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                     self.conf['Linux kernel']['module dependencies file'])
@@ -669,23 +688,23 @@ class LKVOG(core.components.Component):
             return None
 
     def __get_builtin_modules(self):
-        for dir in os.listdir(self.linux_kernel['work src tree']):
+        for subsystem in os.listdir(self.linux_kernel['work src tree']):
             # Skip dirs that doesn't contain Makefile or Kconfig file
-            if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], dir)) \
-                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Makefile')) \
-                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Kconfig')):
+            if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], subsystem)) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], subsystem, 'Makefile')) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], subsystem, 'Kconfig')):
                 # Run script that creates 'modules.builtin' file
                 core.utils.execute(self.logger, ['make', '-f', os.path.join('scripts', 'Makefile.modbuiltin'),
-                                                 'obj={0}'.format(dir), 'srctree=.'],
+                                                 'obj={0}'.format(subsystem), 'srctree=.'],
                                    cwd=self.linux_kernel['work src tree'])
 
         # Just walk through the dirs and process 'modules.builtin' files
         result_modules = set()
-        for dir, dirs, files in os.walk(self.linux_kernel['work src tree']):
-            if os.path.samefile(self.linux_kernel['work src tree'], dir):
+        for subsystem, dirs, files in os.walk(self.linux_kernel['work src tree']):
+            if os.path.samefile(self.linux_kernel['work src tree'], subsystem):
                 continue
             if 'modules.builtin' in files:
-                with open(os.path.join(dir, 'modules.builtin'), 'r', encoding='utf-8') as fp:
+                with open(os.path.join(subsystem, 'modules.builtin'), 'r', encoding='utf-8') as fp:
                     for line in fp:
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
