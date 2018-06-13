@@ -19,6 +19,14 @@
       "samples/kobject/kobject-example.ko"
     ]
   },
+  "Module extractor": {
+      "name": "Linux kernel",
+      "kernel": false,
+      "modules": true
+  },
+  "clade ext file": "clade_extensions.json",
+  "opts file": "scripts/mod/empty.c",
+  "aspect file": "linux/emg/source_analysis.aspect.tmpl",
   "LKVOG strategy": {
     "name": "manual",
     "groups": {

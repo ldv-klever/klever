@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 from core.lkvog.module_extractors import util
 
@@ -24,7 +41,7 @@ class Node:
 
 
 class VertexMerge:
-    def __init__(self, logger, clade, conf):
+    def __init__(self, logger, clade, conf, specified_modules):
         self._logger = logger
         self._clade = clade
         self._conf = conf
@@ -86,7 +103,7 @@ class VertexMerge:
         del self._graph[n2.name]
         self._graph[new_node.name] = new_node
 
-        merged = False # True
+        merged = True
         while merged:
             merged = False
             for child in sorted(new_node.childs):
@@ -99,7 +116,6 @@ class VertexMerge:
 
     @staticmethod
     def _subsystem_nearest(file1, file2):
-        return 0
         file1 = file1.split(os.path.sep)
         file2 = file2.split(os.path.sep)
         r = 0
@@ -133,7 +149,7 @@ class VertexMerge:
         return True
 
     def divide(self):
-        merged = False # True
+        merged = True
         count_merged = 0
 
         while merged:
@@ -151,8 +167,6 @@ class VertexMerge:
                 else:
                     continue
                 break
-        # print(count_merged)
-        # return {i: node.elems for i, node in enumerate(graph.values())}, self._file_graph
         i = None
         for i in range(self._max_iters):
             candidates = None

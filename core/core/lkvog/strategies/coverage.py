@@ -29,59 +29,84 @@ class Coverage(AbstractStrategy):
 
         self.coverage_files = params['coverage files']
         self.work_dirs = params.get('work dirs', [])
-        self.extra_modules = [Module(m) for m in params.get('extra modules', [])]
+        self.max_depth = params.get('max depth', 1)
+        self.extra_modules = [Module(m.replace(".ko", ".o")) for m in params.get('extra modules', [])]
         self.covered_funcs = None
         self.functions_in_file = {}
         self._build_coverage()
 
     def _divide(self, module_name):
         result = set()
-        for file in self.vog_modules[module_name]['CCs']:
+        self.cache = []
+        for i, file in enumerate(self.vog_modules[module_name]['CCs']):
+            self.logger.debug("Processing {0}/{1} CC command".format(i + 1, len(self.vog_modules[module_name]['CCs'])))
             desc = self.clade.get_cc().load_json_by_id(file)
             in_files = desc['in']
-            for in_file in in_files:
-                for func in self.functions_in_file.get(in_file, []):
-                    result.update(self.divide_by_function(func))
+            for j, in_file in enumerate(in_files):
+                self.logger.debug("Processing {0}/{1} C file".format(j + 1, len(in_files)))
+                for k, func in enumerate(self.functions_in_file.get(in_file, [])):
+                    self.logger.debug("Processing {0}/{1} function".format(k + 1, len(self.functions_in_file[in_file])))
+                    try_cache_modules = self.try_from_cache(func)
+                    if try_cache_modules:
+                        self.logger.debug("Cache hit")
+                        result.update(try_cache_modules)
+                    else:
+                        self.logger.debug("Cache Miss")
+                        result.update(self.divide_by_function(func))
+                        self.logger.debug("Cache is {0}".format(self.cache))
         if result:
             return sorted(list(result))
 
         return [Graph([Module(module_name)])]
 
+    def try_from_cache(self, func):
+        file_func = self.get_files_by_func(func)[0]
+        for path in self.cache:
+            for file in path:
+                for pos_file, pos_func in self.callgraph.get((file_func, func)):
+                    if pos_file == file:
+                        return self.make_modules_by_path(path)
+        return None
+
     def divide_by_function(self, func):
         file_func = self.get_files_by_func(func)[0]
-        process = [((file_func, func), [file_func])]
+        process = [((file_func, func), [file_func], 0)]
         processed = set()
         found_path = None
         while process:
-            current, path = process.pop(0)
+            current, path, depth = process.pop(0)
             if current in processed:
                 continue
-            processed.add(current)
             if current in self.covered_funcs:
-                #self.logger.debug("Found path {0}".format(path))
                 found_path = path
                 break
+
+            depth += 1
+            if self.max_depth and self.max_depth <= depth:
+                continue
+
+            processed.add(current)
             for new_func in self.callgraph.get(current, []):
                 new_path = path[:]
                 new_path.append(new_func[0])
-                process.append((new_func, new_path))
+                process.append((new_func, new_path, depth))
 
         if found_path:
-            modules = set()
-            for file in set(found_path):
-                module_file = self.get_module_by_file(file)
-                if module_file:
-                    modules.add(Module(module_file))
-                else:
-                    pass
-                    #self.logger.debug("Module for {0} file not found".format(file))
-            if modules:
-                return [Graph(list(modules) + self.extra_modules)]
-            else:
-                return []
+            self.cache.append(found_path)
+            return self.make_modules_by_path(found_path)
         else:
-            #self.logger.debug("Not found path for {0} {1}".format(func, file_func))
             return [Graph([Module(m)]) for m in self.get_modules_by_func(func) if m]
+
+    def make_modules_by_path(self, found_path):
+        modules = set()
+        for file in set(found_path):
+            module_file = self.get_module_by_file(file)
+            if module_file:
+                modules.add(Module(module_file))
+        if modules:
+            return [Graph(list(modules) + self.extra_modules)]
+        else:
+            return []
 
     def _set_dependencies(self, deps, sizes):
         pass
@@ -172,7 +197,6 @@ class Coverage(AbstractStrategy):
                         continue
                     elif line.startswith('FNDA:'):
                         func = line.split(',')[1]
-                        #self.logger.debug("Covered func is {0}".format((current_file, func)))
                         self.covered_funcs.add((current_file, func))
 
     def _cut_work_dirs(self, file):

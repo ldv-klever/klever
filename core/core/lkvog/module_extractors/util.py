@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 from hashlib import md5
 
@@ -84,7 +101,10 @@ def create_module(desc_files, in_files):
 def create_module_by_ld(clade, id, build_graph, module_id=None):
     desc = get_full_desc(clade, id, build_graph[id]['type'])
     if module_id is None:
-        module_id = desc['relative_out']
+        if 'relative_out' in desc:
+            module_id = desc['relative_out']
+        else:
+            module_id = desc['out']
     ccs = []
     process = build_graph[id]['using'][:]
     in_files = []
@@ -111,10 +131,55 @@ def create_module_by_ld(clade, id, build_graph, module_id=None):
     }
 
 
+def create_module_by_cc(clade, id, build_graph, module_id=None):
+    desc = get_full_desc(clade, id, build_graph[id]['type'])
+    if module_id is None:
+        if 'relative_out' in desc:
+            module_id = desc['relative_out']
+        else:
+            module_id = desc['out']
+    ccs = []
+    process = [id]
+    in_files = []
+    canon_in_files = []
+    while process:
+        current = process.pop(0)
+        current_type = build_graph[current]['type']
+
+        if current_type == 'CC':
+            desc = get_full_desc(clade, current, current_type)
+            if not desc['in'][0].endswith('.S'):
+                ccs.append(current)
+            in_files.extend([os.path.join(desc['cwd'], file) for file in desc['in']])
+            canon_in_files.extend(desc['in'])
+
+        process.extend(sorted(build_graph[current]['using']))
+
+    return {
+        module_id:  {
+            'CCs': ccs,
+            'in files': in_files,
+            'canon in files': canon_in_files
+        }
+    }
+
+
+def create_module(clade, id, build_graph, module_id=None):
+    type = build_graph[id]['type']
+    if type == 'LD':
+        return create_module_by_ld(clade, id, build_graph, module_id)
+    else:
+        return create_module_by_cc(clade, id, build_graph, module_id)
+
+
 def get_full_desc(clade, id, type_desc):
     desc = None
     if type_desc == 'CC':
         desc = clade.get_cc()
     elif type_desc == 'LD':
         desc = clade.get_ld()
+    elif type_desc == 'MV':
+        desc = clade.get_mv()
+    else:
+        raise Exception("Type {0} is not supported".format(type_desc))
     return desc.load_json_by_id(id)

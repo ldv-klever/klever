@@ -298,7 +298,7 @@ class Advanced(AbstractStrategy):
             ret = set()
             for module in sorted(self.modules.keys()):
                 if module.startswith(module_name):
-                    ret.update(self.divide(module))
+                    ret.update(self._divide(module))
             return ret
 
         if module_name not in self.modules:

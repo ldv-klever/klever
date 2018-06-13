@@ -111,6 +111,7 @@ class LKVOG(core.components.Component):
             # Linux kernel source code is not provided in form of file or directory.
             src = self.conf['Linux kernel']['source']
 
+        conf = None
         if 'configuration' in self.conf['Linux kernel']:
             try:
                 conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -128,12 +129,38 @@ class LKVOG(core.components.Component):
             modules_to_build = []
         else:
             modules_to_build, is_build_all_modules = \
-                self.strategy.get_modules_to_build(self.conf['Linux kernel']['modules'])
+                self.strategy.get_modules_to_build((module if 'external modules' not in self.conf['Linux kernel']
+                                                    else 'ext-modules/' + module for module in self.conf['Linux kernel']['modules']))
 
         modules_to_build = [module if not module.startswith('ext-modules/') else module[len('ext-modules/'):]
                             for module in modules_to_build]
 
+        modules_to_build = sorted(set(modules_to_build))
+
         ext_modules = self.prepare_ext_modules()
+
+        clade_extensions_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                            self.conf['clade ext file'])
+
+        with open(clade_extensions_file, encoding='utf-8') as fp:
+            clade_extenstions = json.load(fp)
+
+        extension_params = {
+            'jobs': build_jobs,
+            'architecture': arch,
+            'configuration': conf,
+            'src': src,
+            'model headers': self.mqs["model headers"].get(),
+            'modules': modules_to_build if not is_build_all_modules else ['all'],
+            'use original source tree': self.conf['allow local source directories use'],
+            'Git repository': self.conf['Linux kernel'].get('Git repository'),
+            'external modules': ext_modules,
+        }
+
+        for extension in clade_extenstions:
+            for extension_param, value in extension_params.items():
+                if extension_param in extension and extension[extension_param] is None:
+                    extension[extension_param] = value
 
         clade_conf = {
             'work_dir': self.conf['Clade']['base'],
@@ -154,93 +181,32 @@ class LKVOG(core.components.Component):
                 'kernel/.*?bounds.*?',
                 'arch/x86/tools/relocs',
                 'arch/x86/kernel/asm-offsets.c',
+                '.*/built-in.o',
                 '.*\.mod\.c'
             ],
             'Common.filter_out': [
                 '/dev/null',
                 '.*?\\.cmd$',
-                '.*/built-in.o',
                 'vmlinux'
             ],
             'global_data': {
                 'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
                 'external modules': os.path.abspath(ext_modules) if ext_modules else None,
             },
-            'extensions': [
-                {
-                    'name': 'FetchWorkSrcTree',
-                    'use original source tree': self.conf['allow local source directories use'],
-                    'src': src,
-                    'work_src_tree': 'linux',
-                    'Git repository': self.conf['Linux kernel'].get('Git repository')
-                },
-                {'name': 'MakeCanonicalWorkSrcTree'},
-                {'name': 'CleanLinuxKernelWorkSrcTree'},
-                {
-                    'name': 'Execute',
-                    'command': ['make', '-j', build_jobs, '-s', 'kernelversion'],
-                    'save_output': True,
-                    'output_key': 'Linux kernel version'
-                },
-                {
-                    'name': 'ConfigureLinuxKernel',
-                    'jobs': build_jobs,
-                    'architecture': arch,
-                    'configuration': conf,
-                },
-                {
-                    'name': 'BuildLinuxKernel',
-                    'jobs': build_jobs,
-                    'architecture': arch,
-                    'configuration': conf,
-                    # TODO: indeed LKVOG strategies should set these parameters as well as some other ones.
-                    'kernel': False,
-                    'modules': modules_to_build if not is_build_all_modules else ["all"],
-                    'external modules': ext_modules,
-                    'model headers': self.mqs['model headers'].get(),
-                    'intercept_commands': True,
-                }
-            ]
+            'extensions': clade_extenstions
         }
-
-        """
-        {
-            'name': 'Execute',
-            'command': ['make', 'clean']
-        },
-        # TODO: make in parallel since it helps much!
-        {
-            'name': 'Build',
-            'jobs': build_jobs,
-            'architecture': arch,
-            'modules': modules_to_build if not is_build_all_modules else ["all"],
-            'model headers': self.mqs['model headers'].get(),
-            'intercept_commands': True
-        }
-        """
-        """
-
-            ]
-        }
-        """
 
         with open('clade.json', 'w', encoding='utf8') as fp:
             json.dump(clade_conf, fp, indent=4, sort_keys=True)
 
-        env = os.environ
         core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
 
     def generate_all_verification_obj_descs(self):
         module_extractor_name = self.conf['Module extractor']['name']
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
-        self.strategy.set_clade(self.clade)
 
-        if self.sizes is None:
-            self.sizes = self._get_sizes()
-        if self.dependencies is None and self.strategy.need_dependencies():
-            self.dependencies = self._get_dependencies()
-            self.strategy.set_dependencies(self.dependencies, self.sizes)
+        self.strategy.set_clade(self.clade)
         if self.strategy.need_callgraph():
             callgraph = self.clade.get_callgraph()
             callgraph_dict = callgraph.load_callgraph()
@@ -256,23 +222,29 @@ class LKVOG(core.components.Component):
         self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
                                                                               self.clade,
                                                                               extractor_conf,
-                                                                              self.conf['Linux kernel']['modules'])
+                                                                              self.conf['Linux kernel'].get('modules', []))
         self.modules = self.module_extractor.divide()
-        self.logger.debug("Modules are {0}".format(self.modules))
+        self.logger.debug("Modules are {0}".format(json.dumps(self.modules, indent=4, sort_keys=True)))
         self.strategy.set_modules(self.modules)
+        if self.sizes is None:
+            self.sizes = self._get_sizes()
+        if self.dependencies is None and self.strategy.need_dependencies():
+            self.dependencies = self._get_dependencies()
+            self.strategy.set_dependencies(self.dependencies, self.sizes)
 
         modules_in_clusters = set()
 
         subsystems = list(filter(lambda target: self.strategy.is_subsystem(target),
                                  self.conf['Linux kernel'].get('modules', [])))
-        for module in self.modules:
+        self.logger.debug("Subsystems are {0}".format(subsystems))
+        for module in sorted(self.modules):
             if module not in modules_in_clusters and self.modules[module].get('separate verify', True):
                 if 'all' in self.conf['Linux kernel'].get('modules', []):
                     self.all_clusters.update(self.strategy.divide(module))
                 else:
-                    # TODO: remove replacement
-                    #if module.replace('.o', '.ko') in self.conf['Linux kernel'].get('modules', []):
-                    if module in self.conf['Linux kernel'].get('modules', []):
+                    if module in self.conf['Linux kernel'].get('modules', []) \
+                            or (module.startswith('ext-modules/')
+                                and module[len('ext-modules/'):] in self.conf['Linux kernel'].get('modules', [])):
                         clusters = self.strategy.divide(module)
                         self.add_new_clusters(clusters, modules_in_clusters)
                     else:
@@ -409,27 +381,20 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
 
     def _get_sizes(self):
-        #TODO implement me
-        return None
+        sizes = {}
+        for module in self.modules:
+            current_size = 0
+            for cc in self.modules[module]['CCs']:
+                desc = self.clade.get_cc().load_json_by_id(cc)
+                for in_file in desc['in']:
+                    try:
+                        with open(self.clade.get_file(os.path.join(desc['cwd'], in_file))) as fp:
+                            current_size += sum(1 for _ in fp)
+                    except:
+                        continue
+            sizes[module] = current_size
 
-    def get_modules_from_deps(self, subsystem, deps):
-        # Extract all modules in subsystem from dependencies.
-        ret = set()
-        for module_pred, _, module_succ in deps:
-            if module_pred.startswith(subsystem):
-                ret.add(module_pred)
-            if module_succ.startswith(subsystem):
-                ret.add(module_succ)
-
-        return ret
-
-    def is_part_of_subsystem(self, module, modules):
-        # Returns true if module is a part of subsystem that contains in modules.
-        for module2 in modules:
-            if module.id.startswith(module2):
-                return True
-        else:
-            return False
+        return sizes
 
     def generate_verification_obj_desc(self):
         self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
@@ -454,7 +419,7 @@ class LKVOG(core.components.Component):
             self.verification_obj_desc['grps'].append({'id': module.id, 'CCs': ccs})
             self.verification_obj_desc['deps'][module.id] = \
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
-            self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(ccs)
+            self.loc[self.verification_obj_desc['id']] += self.sizes.get(module.id, 0)
 
         if 'maximum verification object size' in self.conf \
                 and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:
@@ -521,6 +486,7 @@ class LKVOG(core.components.Component):
             for grp in self.verification_obj_desc['grps']:
                 for cc in grp['CCs']:
                     cc_files.update(self.clade.get_cc().load_json_by_id(cc)['in'])
+            self.logger.debug("CC files are {0}".format(cc_files))
             for function, function_desc in callgraph['callgraph'].items():
                 for file, file_desc in function_desc.items():
                     if file_desc.get('type') == 'global' and file in cc_files:
@@ -542,6 +508,12 @@ class LKVOG(core.components.Component):
                 full_desc = cc.load_json_by_id(file)
                 allowed_files.update(full_desc['deps'].values())
                 allowed_files.update(full_desc['in'])
+                """
+                for in_file in full_desc['in']:
+                    if os.path.isabs(in_file) and in_file.startswith(os.path.abspath(os.path.curdir)):
+                        in_file = os.path.relpath(in_file, os.path.abspath(os.path.curdir))
+                    allowed_files.add(in_file)
+                """
 
         allowed_files.add("unknown")
 
@@ -647,24 +619,6 @@ class LKVOG(core.components.Component):
 
         return dependencies
 
-    def __get_module_loc(self, cc_full_desc_files):
-        loc = 0
-        return loc
-        # TODO: get from clade
-        for cc_full_desc_file in cc_full_desc_files:
-            #TODO extract files more accurately
-            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
-            #with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
-                cc_full_desc = json.load(fp)
-            for file in cc_full_desc['in']:
-                # Simple file's line counter
-                #TODO extact files more accurately
-                with open(file) as fp:
-                #with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
-                          #encoding='utf8', errors='ignore') as fp:
-                    loc += sum(1 for _ in fp)
-        return loc
-
     def _parse_linux_kernel_mod_function_deps(self):
         if 'module dependencies file' in self.conf['Linux kernel']:
             deps_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -736,39 +690,3 @@ class LKVOG(core.components.Component):
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
 
-    """
-    def __build_dependencies(self):
-        reverse_provided = {}
-        dependencies = []
-
-        # Build a dictionary for extracting module by export function
-        for module in self.list_modules:
-            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
-                for provided_function in desc.get('provided functions', tuple()):
-                    reverse_provided[provided_function] = module.replace('.ko', '.o')
-
-        for module in self.list_modules:
-            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
-                for required_function in desc.get('required functions', tuple()):
-                    if required_function in reverse_provided:
-                        dependencies.append((reverse_provided[required_function], required_function,
-                                             module.replace('.ko', '.o')))
-
-        self.logger.debug("Going to write deps")
-        with open("dependencies.txt", 'w', encoding='utf-8') as fp:
-            for m1, f, m2 in dependencies:
-                fp.write('{0} needs "{1}": {2}\n'.format(m2, f, m1))
-
-        return sorted(dependencies)
-    """
-
-    """
-    def __get_module_sizes(self):
-        sizes = {}
-
-        for module in self.list_modules:
-            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
-                sizes[module.replace('.ko', '.o')] = desc.get('output size', 0)
-
-        return sizes
-    """

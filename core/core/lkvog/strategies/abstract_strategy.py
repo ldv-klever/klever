@@ -23,11 +23,22 @@ class AbstractStrategy:
         self.logger = logger
         self.clade = None
         self.graphs = None
+        self.graphs_subsystems = set()
         self.is_deps = False
         self.vog_modules = None
 
     def divide(self, module):
+        self.logger.debug("Module is {0}".format(module))
+        self.logger.debug("Graphs is {0}".format(self.graphs))
+        self.logger.debug("Graphs subsystem is {0}".format(self.graphs_subsystems))
         if self.graphs is not None:
+            if module in self.graphs:
+                return self.graphs[module]
+            for subsystem in self.graphs_subsystems:
+                if module.startswith(subsystem):
+                    self.logger.debug("Module in graphs subsystem")
+                    self.logger.debug("{0}".format(self.graphs[subsystem]))
+                    return self.graphs[subsystem]
             return self.graphs.get(module, [Graph([Module(module)])])
         else:
             return self._divide(module)
@@ -41,7 +52,6 @@ class AbstractStrategy:
         if not modules:
             self.logger.debug("Skipping {0} function".format(func))
             return []
-            raise Exception("Function {0} not found in modules".format(func))
         clusters = set()
         for module in modules:
             clusters.update(self.divide(module))
@@ -77,6 +87,8 @@ class AbstractStrategy:
         self.graphs = {}
         for module in modules:
             self.graphs[module] = self._divide(module)
+            if self.is_subsystem(module):
+                self.graphs_subsystems.add(module)
             for graph in self.graphs[module]:
                 for module in graph.modules:
                     to_build.add(module.id)
@@ -139,6 +151,8 @@ class AbstractStrategy:
         for in_file in self.vog_modules[module]['in files']:
             if in_file.startswith(subsystem):
                 return True
+        if module.startswith("ext-modules/"):
+            module = module[len('ext-modules/'):]
         if module.startswith(subsystem):
             return True
         return False

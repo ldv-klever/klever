@@ -27,6 +27,7 @@ class Closure(AbstractStrategy):
         self.cluster_size = params.get('cluster size', 0)
         self.modules = {}
         self.checked_clusters = set()
+        self.checked_modules = set()
 
     def _set_dependencies(self, deps, sizes):
         self.logger.info('Calculate graph of all dependencies between modules')
@@ -45,16 +46,18 @@ class Closure(AbstractStrategy):
         """
 
         # Calculation
+        if module_name in self.checked_modules:
+            return []
         clusters = []
         if module_name == 'all':
             for module in [module for module in self.modules.values() if not module.successors]:
-                clusters.extend(self.divide(module.id))
+                clusters.extend(self._divide(module.id))
             return clusters
-        elif not self.is_subsystem(module_name):
+        elif self.is_subsystem(module_name):
             # This is subsystem
             for module in sorted(self.modules.keys()):
                 if module.startswith(module_name):
-                    clusters.extend(self.divide(module.id))
+                    clusters.extend(self._divide(module))
             return set(clusters)
 
         self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
@@ -80,6 +83,7 @@ class Closure(AbstractStrategy):
             if cluster not in self.checked_clusters:
                 self.checked_clusters.add(cluster)
                 ret_clusters.append(cluster)
+                self.checked_modules.update([module.id for module in cluster.modules])
 
         return ret_clusters
 
@@ -188,7 +192,7 @@ class Closure(AbstractStrategy):
         if not self.is_deps:
             return [], True
         else:
-            return self._collect_to_build(modules), False
+            return self._collect_modules_to_build(modules), False
 
     def need_dependencies(self):
         return True

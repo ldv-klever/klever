@@ -1,0 +1,26 @@
+[
+    {
+        "name": "FetchWorkSrcTree",
+        "work_src_tree": "linux",
+        "src": null,
+        "Git repository": null,
+        "use original source tree": null
+    },
+    {"name": "MakeCanonicalWorkSrcTree"},
+    {
+        "name": "Execute",
+        "command": ["make", "clean"]
+    },
+    {
+        "name": "Execute",
+        "command": ["make", "defconfig"]
+    },
+    {
+        "name": "Build",
+        "jobs": null,
+        "architecture": null,
+        "modules": null,
+        "model headers": null,
+        "intercept_commands": true
+    }
+]
