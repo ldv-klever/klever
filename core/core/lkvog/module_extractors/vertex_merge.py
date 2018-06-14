@@ -193,5 +193,5 @@ class VertexMerge:
             for elem in node.elems:
                 module_in_files.update(self._cc_modules[elem]['in'])
             self._logger.debug('Create module with {0} in files'.format(list(module_in_files)))
-            modules.update(util.create_module(module_desc_files, module_in_files))
+            modules.update(util.create_module_by_desc(module_desc_files, module_in_files))
         return modules

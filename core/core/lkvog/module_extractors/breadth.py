@@ -64,13 +64,13 @@ class Breadth:
                     if len(current_module_in_files) == self._cluster_size \
                             or (self._max_locs and current_locs >= self._max_locs):
                         self.logger.debug('Create module with {0} in files'.format(list(current_module_in_files)))
-                        modules.update(util.create_module(current_module_desc_files, current_module_in_files))
+                        modules.update(util.create_module_by_desc(current_module_desc_files, current_module_in_files))
                         current_locs = 0
 
                 process.extend(sorted(self._dependencies.get(cur, {}).keys()))
 
             if current_module_in_files:
                     self.logger.debug('Create module with {0} in files'.format(list(current_module_in_files)))
-                    modules.update(util.create_module(current_module_desc_files, current_module_in_files))
+                    modules.update(util.create_module_by_desc(current_module_desc_files, current_module_in_files))
 
         return modules

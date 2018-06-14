@@ -65,7 +65,7 @@ class GraphPartitioner:
                 current_module_in_files.update(self._cc_modules[elem]['in'])
             if current_module_in_files:
                 self._logger.debug('Create module with {0} in files'.format(list(current_module_in_files)))
-                modules.update(util.create_module(current_module_desc_files, current_module_in_files))
+                modules.update(util.create_module_by_desc(current_module_desc_files, current_module_in_files))
         return modules
 
     def _deps_to_graph(self):

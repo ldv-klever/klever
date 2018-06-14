@@ -84,7 +84,7 @@ def reachable_files(deps, root_files):
     return reachable
 
 
-def create_module(desc_files, in_files):
+def create_module_by_desc(desc_files, in_files):
     module_id = md5("".join([in_file for in_file in sorted(in_files)]).encode('utf-8')).hexdigest()[:12] + ".o"
     ret = {
         module_id: {

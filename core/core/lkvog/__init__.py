@@ -376,12 +376,9 @@ class LKVOG(core.components.Component):
 
         self.common_prj_attrs = [
             {'Linux kernel': [
-                #{'version': clade_global_data['Linux kernel version'][0]},
-                #{'architecture': clade_global_data['Linux kernel architecture']},
-                #{'configuration': clade_global_data['Linux kernel configuration']}
-                {'version': '1'},
-                {'architecture': '2'},
-                {'configuration': '3'}
+                {'version': clade_global_data.get('Linux kernel version', ['None'])[0]},
+                {'architecture': clade_global_data.get('Linux kernel architecture', 'None')},
+                {'configuration': clade_global_data('Linux kernel configuration', 'None')}
             ]},
             {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
         ]
@@ -502,9 +499,10 @@ class LKVOG(core.components.Component):
             for grp in self.verification_obj_desc['grps']:
                 for cc in grp['CCs']:
                     cc_files.update(self.clade.get_cc().load_json_by_id(cc)['in'])
-                for file, file_desc in function_desc.items():
-                    if file_desc.get('type') == 'global' and file in cc_files:
-                        result.add(func)
+                for function, function_desc in callgraph['callgraph'].items():
+                    for file, file_desc in function_desc.items():
+                        if file_desc.get('type') == 'global' and file in cc_files:
+                            result.add(function)
         elif self.conf['Linux kernel']['functions']:
             result = set(self.conf['Linux kernel']['functions']) & set(callgraph['callgraph'].keys())
             self.logger.debug("Functions intersect is {0}".format(result))
@@ -522,12 +520,6 @@ class LKVOG(core.components.Component):
                 full_desc = cc.load_json_by_id(file)
                 allowed_files.update(full_desc['deps'].values())
                 allowed_files.update(full_desc['in'])
-                """
-                for in_file in full_desc['in']:
-                    if os.path.isabs(in_file) and in_file.startswith(os.path.abspath(os.path.curdir)):
-                        in_file = os.path.relpath(in_file, os.path.abspath(os.path.curdir))
-                    allowed_files.add(in_file)
-                """
 
         allowed_files.add("unknown")
 

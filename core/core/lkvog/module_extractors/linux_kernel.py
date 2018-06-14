@@ -45,7 +45,7 @@ class LinuxKernel:
             if desc['type'] == 'LD':
                 full_desc = util.get_full_desc(self.clade, identifier, desc['type'])
                 if full_desc['out'].endswith('.ko'):
-                    module = util.create_module(self.clade, id, build_graph,
+                    module = util.create_module(self.clade, identifier, build_graph,
                                                 full_desc['relative_out'])
                     if self.modules \
                             or set(list(module.values())[0]['canon in files']).intersection(set(self.specific_files)) \
@@ -67,9 +67,9 @@ class LinuxKernel:
                                 kernel_modules[subsystem].update(module)
                                 break
             if desc['type'] == 'CC':
-                full_desc = util.get_full_desc(self.clade, id, desc['type'])
+                full_desc = util.get_full_desc(self.clade, identifier, desc['type'])
                 if set(full_desc['in']).intersection(set(self.specific_files)):
-                    module = util.create_module(self.clade, id, build_graph, full_desc['out'].replace('.ko', '.o'))
+                    module = util.create_module(self.clade, identifier, build_graph, full_desc['out'].replace('.ko', '.o'))
                     module[list(module)[0]]['separate verify'] = False
                     modules.update(module)
 

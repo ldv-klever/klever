@@ -146,7 +146,7 @@
         "name": "manual",
         "cluster size": 2,
         "groups": {
-          "kernel_library/init.o": [
+          "kernel_library/init.ko": [
             [
               "kernel_library/init.ko",
               "kernel_library/external.ko"
