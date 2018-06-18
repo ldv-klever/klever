@@ -158,7 +158,7 @@ class Klever:
         services = list(mode_services)
         services.extend(('klever-controller', 'klever-native-scheduler'))
 
-        if need_verifiercloud_scheduler(self.deploy_conf):
+        if need_verifiercloud_scheduler(self.prev_deploy_info):
             services.append('klever-verifiercloud-scheduler')
 
         stop_services(self.logger, services, ignore_errors=True)
