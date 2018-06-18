@@ -224,7 +224,7 @@ def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
     for search_dir in search_dirs:
         if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
             return os.path.relpath(abs_path_to_file_or_dir, search_dir)
-    return abs_path_to_file_or_dir
+    return os.path.normpath(abs_path_to_file_or_dir)
 
 
 def get_entity_val(logger, name, cmd):
