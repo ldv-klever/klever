@@ -42,7 +42,7 @@
     },
     {
       "attr": "Error trace identifier",
-      "is_compare": false,
+      "is_compare": true,
       "value": "int__ldv_global_var3"
     }
   ],

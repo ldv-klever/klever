@@ -3,12 +3,12 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev290+ge2ee704f"
+      "value": "0.3.dev600+g21eb8000.d20180618"
     },
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "36/tests/sync/race/unsorted/sync:race"
+      "value": "2/tests/sync/race/unsorted/sync:race"
     },
     {
       "attr": "Linux kernel:Version",
@@ -38,12 +38,12 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/unsorted/FunctionPointerTest.ko"
+      "value": "ext-modules/sync/race/unsorted/RaceTest4.ko"
     },
     {
       "attr": "Error trace identifier",
       "is_compare": true,
-      "value": "struct_ldv_struct_*field3"
+      "value": "int__ldv_true_unsafe"
     }
   ],
   "comparison": "thread_call_forests",
@@ -53,22 +53,34 @@
       {
         "ldv_init": [
           {
-            "ldv_func": []
+            "ldv_main": [
+              {
+                "ldv_func2": []
+              }
+            ]
           }
         ]
       }
     ],
     [
       {
-        "ldv_locker": [
+        "ldv_main": [
           {
-            "ldv_mutex_lock_29": []
+            "ldv_func2": [
+              {
+                "ldv_func1": [
+                  {
+                    "ldv_mutex_lock_27": []
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
     ]
   ],
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": "1",
   "tags": [],
   "verdict": "2"
