@@ -354,7 +354,8 @@ class RP(core.components.Component):
                 for witness in witnesses:
                     self.verdict = 'unsafe'
                     try:
-                        error_trace_sources, error_trace_file = self.process_witness(witness, shadow_src_dir)
+                        error_trace_sources, error_trace_file = self.process_witness(witness, shadow_src_dir,
+                                                                                     get_error_trace_id=True)
                         sources.update(error_trace_sources)
                         error_trace_files.append(error_trace_file)
                     except Exception as e:
