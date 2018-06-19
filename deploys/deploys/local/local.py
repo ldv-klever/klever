@@ -172,9 +172,21 @@ class Klever:
         if os.path.exists('/etc/default/klever'):
             os.unlink('/etc/default/klever')
 
-        if os.path.exists(self.args.deployment_directory):
-            self.logger.info('Remove deployment directory')
-            shutil.rmtree(self.args.deployment_directory)
+        # Removing individual directories and files rather than the whole deployment directory allows to use standard
+        # locations like "/", "/usr" or "/usr/local" for deploying Klever.
+        for path in (
+                'klever',
+                'klever-addons',
+                'klever-conf',
+                'klever-programs',
+                'klever-work',
+                'klever-media',
+                'klever.json'
+        ):
+            path = os.path.join(self.args.deployment_directory, path)
+            if os.path.exists(path):
+                self.logger.info('Remove "{0}"'.format(path))
+                shutil.rmtree(path)
 
         try:
             pwd.getpwnam('postgres')
