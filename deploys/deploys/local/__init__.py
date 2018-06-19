@@ -22,9 +22,12 @@ import os
 import sys
 
 from deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
+from deploys.utils import update_python_path
 
 
 def main():
+    update_python_path()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
     parser.add_argument('mode', choices=['development', 'production', 'testing'],

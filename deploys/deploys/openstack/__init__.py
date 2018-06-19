@@ -20,10 +20,12 @@ import getpass
 import os
 
 from deploys.openstack.openstack import execute_os_entity_action
-from deploys.utils import get_logger
+from deploys.utils import get_logger, update_python_path
 
 
 def main():
+    update_python_path()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
                         help='Action to be executed.')
