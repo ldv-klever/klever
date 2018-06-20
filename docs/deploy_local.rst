@@ -26,7 +26,7 @@ Also, you can try it for other versions of Debian as well as for various
 
 Prior to proceding to :ref:`local_deploy`, it is necessary to perform :ref:`common_deploy`.
 Then you need to choose an appropriate deployment mode.
-One should select *development* only if one is going to develop Klever.
+One should select *development* only if one is going to develop Klever (see :ref:`dev_deploy` in addition).
 Otherwise, please, choose *production*.
 Then you should *install* Klever::
 
