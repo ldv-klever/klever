@@ -9,6 +9,7 @@ before: file("$this")
 
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
+}
 
 around: define(_THIS_IP_)
 {
