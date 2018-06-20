@@ -18,28 +18,15 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 
-void leak(void)
-{
-    char *var1, *var2;
-    var1 = kmalloc(50, GFP_KERNEL);
-    if (!var1) {
-        return;
-    }
-    var2 = kmalloc(50, GFP_KERNEL);
-    if (!var2) {
-        kfree(var1);
-        return;
-    }
-
-    memcpy(var2, var1, 50);
-    kfree(var2);
-    kfree(var1);
-    return;
-}
-
 static int __init ldv_init(void)
 {
-    leak();
+    int* buf;
+    buf = kzalloc(10 * sizeof(int), GFP_KERNEL);
+    if (!buf) {
+        return 0;
+    }
+    kfree(buf);
+    kfree(buf);
     return 0;
 }
 

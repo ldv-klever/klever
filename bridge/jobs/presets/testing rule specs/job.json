@@ -21,6 +21,8 @@
       {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memleak_safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memcpy_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_free_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/free_safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/irq/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/spinlock/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/usb-lock/safe.ko"},

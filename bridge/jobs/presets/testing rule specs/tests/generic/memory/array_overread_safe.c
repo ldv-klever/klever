@@ -24,7 +24,7 @@ static int __init ldv_init(void)
     for (i = 0; i < 10; i++) {
         j += buf[i];
     }
-	return 0;
+    return 0;
 }
 
 module_init(ldv_init);

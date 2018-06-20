@@ -30,7 +30,7 @@ static int __init ldv_init(void)
         j += buf[i];
     }
     kfree(buf);
-	return 0;
+    return 0;
 }
 
 module_init(ldv_init);

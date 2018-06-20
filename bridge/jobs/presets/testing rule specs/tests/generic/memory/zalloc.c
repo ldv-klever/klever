@@ -28,7 +28,7 @@ static int __init ldv_init(void)
     }
     i = *buf[9];
     kfree(buf);
-	return 0;
+    return 0;
 }
 
 module_init(ldv_init);

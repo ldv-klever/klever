@@ -16,7 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/slab.h>
 #include <verifier/memory.h>
 
 void leak(void)
@@ -29,7 +28,7 @@ void leak(void)
 static int __init ldv_init(void)
 {
     leak();
-	return 0;
+    return 0;
 }
 
 module_init(ldv_init);

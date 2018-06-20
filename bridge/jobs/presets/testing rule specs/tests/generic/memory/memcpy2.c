@@ -20,27 +20,27 @@
 
 void leak(void)
 {
-	char *var1, *var2;
-	var1 = kmalloc(49, GFP_KERNEL);
+    char *var1, *var2;
+    var1 = kmalloc(49, GFP_KERNEL);
     if (!var1) {
         return;
     }
-	var2 = kmalloc(50, GFP_KERNEL);
-	if (!var2) {
-	    kfree(var1);
-	    return;
-	}
+    var2 = kmalloc(50, GFP_KERNEL);
+    if (!var2) {
+        kfree(var1);
+        return;
+    }
 
-	memcpy(var2, var1, 50);
-	kfree(var2);
-	kfree(var1);
-	return;
+    memcpy(var2, var1, 50);
+    kfree(var2);
+    kfree(var1);
+    return;
 }
 
 static int __init ldv_init(void)
 {
     leak();
-	return 0;
+    return 0;
 }
 
 module_init(ldv_init);
