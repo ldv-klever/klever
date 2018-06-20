@@ -16,14 +16,17 @@
 #
 
 import argparse
+import errno
 import getpass
 import os
 
-from deploys.openstack.openstack import execute_os_entity_action
-from deploys.utils import get_logger
+from deploys.openstack.openstack import OSKleverBaseImage, OSKleverDeveloperInstance, OSKleverExperimentalInstances
+from deploys.utils import get_logger, update_python_path
 
 
 def main():
+    update_python_path()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove', 'share', 'hide'],
                         help='Action to be executed.')
@@ -67,4 +70,16 @@ def main():
     # TODO: Check the correctness of the provided arguments
     args = parser.parse_args()
 
-    execute_os_entity_action(args, get_logger(__name__))
+    logger = get_logger(__name__)
+
+    logger.info('{0} {1}'.format(args.action.capitalize(), args.entity))
+
+    if args.entity == 'Klever base image':
+        getattr(OSKleverBaseImage(args, logger), args.action)()
+    elif args.entity == 'Klever developer instance':
+        getattr(OSKleverDeveloperInstance(args, logger), args.action)()
+    elif args.entity == 'Klever experimental instances':
+        getattr(OSKleverExperimentalInstances(args, logger), args.action)()
+    else:
+        logger.error('Entity "{0}" is not supported'.format(args.entity))
+        return errno.ENOSYS

@@ -256,3 +256,10 @@ def stop_services(logger, services, ignore_errors=False):
                 pass
             else:
                 raise
+
+
+def update_python_path():
+    # Update PYTHONPATH so that all launched Python scripts will know where to find specific packages.
+    os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
+                                               ':{0}'.format(os.environ['PYTHONPATH'])
+                                               if os.environ.get('PYTHONPATH') else '')

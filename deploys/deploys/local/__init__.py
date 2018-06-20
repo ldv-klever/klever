@@ -17,14 +17,15 @@
 
 import argparse
 import errno
-import logging
 import os
-import sys
 
 from deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
+from deploys.utils import get_logger, update_python_path
 
 
 def main():
+    update_python_path()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['install', 'update', 'uninstall'], help='Action to be executed.')
     parser.add_argument('mode', choices=['development', 'production', 'testing'],
@@ -51,14 +52,7 @@ def main():
                              ' scripts.')
     args = parser.parse_args()
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s',
-                                  "%Y-%m-%d %H:%M:%S")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    logger = get_logger(__name__)
 
     logger.info('{0} Klever for {1}'.format(args.action.capitalize(), args.mode))
 
