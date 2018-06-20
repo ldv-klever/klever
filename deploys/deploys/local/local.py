@@ -128,7 +128,7 @@ class Klever:
         self._read_deploy_conf_file()
 
         self.logger.info('Create deployment directory')
-        os.makedirs(self.args.deployment_directory)
+        os.makedirs(self.args.deployment_directory, exist_ok=True)
 
         self.logger.info('Install init.d scripts')
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
