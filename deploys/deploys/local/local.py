@@ -186,7 +186,10 @@ class Klever:
             path = os.path.join(self.args.deployment_directory, path)
             if os.path.exists(path):
                 self.logger.info('Remove "{0}"'.format(path))
-                shutil.rmtree(path)
+                if os.path.islink(path):
+                    os.remove(path)
+                else:
+                    shutil.rmtree(path)
 
         try:
             pwd.getpwnam('postgres')
