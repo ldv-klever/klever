@@ -49,7 +49,8 @@ case "$1" in
             exit 0
         fi
 
-        # Enable control groups access each time when (re)starting Native Scheduler.
+        # Disable swap and enable control groups access each time when (re)starting Native Scheduler.
+        swapoff -a
         chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
 
         export KLEVER_WORK_DIR=${WORKDIR}
