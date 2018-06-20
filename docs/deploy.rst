@@ -19,6 +19,20 @@ perform some preliminary actions with superuser rights, etc.
 Also, Klever will likely always require several specific addons that can not be deployed in a normal way.
 Please, be ready to spend quite much time if you follow this instruction first time.
 
+Hardware Requirements
+---------------------
+
+We recommend following hardware to deploy and to run Klever:
+
+* 64-bit CPU with 4 cores
+* 16 GB of memory
+* 100 GB of free disk space
+
+Increasing specified hardware characteristics in 2-4 times can reduce total verification time very considerably.
+
+Deployment Variants
+-------------------
+
 There are several variants for deploying Klever:
 
 .. toctree::
