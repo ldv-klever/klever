@@ -24,7 +24,7 @@ Also, you can try it for other versions of Debian as well as for various
 `Debian derivatives <https://wiki.debian.org/Derivatives/>`__, e.g. it works for
 `Ubuntu 18.04 <https://wiki.ubuntu.com/BionicBeaver/ReleaseNotes>`__ as well.
 
-Prior to proceding to :ref:`local_deploy`, it is necessary to perform :ref:`common_deploy`.
+Prior to proceding to :ref:`local_deploy`, it is necessary to perform :ref:`deploy_common`.
 Then you need to choose an appropriate deployment mode.
 One should select *development* only if one is going to develop Klever (see :ref:`dev_deploy` in addition).
 Otherwise, please, choose *production*.

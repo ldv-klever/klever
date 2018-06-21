@@ -18,7 +18,7 @@ OpenStack Deployment
 Althouth we would like to support different `OpenStack <https://www.openstack.org/>`__ environments, at the moment
 :ref:`openstack_deploy` likely works just for the `ISP RAS one <http://www.bigdataopenlab.ru/about.html>`__.
 
-Prior to proceding to :ref:`openstack_deploy`, it is necessary to perform :ref:`common_deploy`.
+Prior to proceding to :ref:`openstack_deploy`, it is necessary to perform :ref:`deploy_common`.
 Additionally you need to install following Python3 packages:
 
 * `cinderclient <https://pypi.python.org/pypi/python-cinderclient>`__.

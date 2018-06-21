@@ -12,7 +12,7 @@
 
 :orphan:
 
-.. _common_deploy:
+.. _deploy_common:
 
 Common Deployment
 =================
@@ -191,7 +191,7 @@ versions straightforwardly without cloning them to temporary directories.
 Structure of Klever Git Repository
 ----------------------------------
 
-After :ref:`common_deploy` the Klever Git repository can look as follows:
+After :ref:`deploy_common` the Klever Git repository can look as follows:
 
 .. code::
 
