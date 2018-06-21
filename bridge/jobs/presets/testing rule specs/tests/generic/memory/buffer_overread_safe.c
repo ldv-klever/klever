@@ -20,17 +20,19 @@
 
 static int __init ldv_init(void)
 {
-    int* buf;
-    int i, j;
-    buf = kzalloc(10 * sizeof(int), GFP_KERNEL);
-    if (!buf) {
-        return 0;
-    }
-    for (i = 0; i < 10; i++) {
-        j += buf[i];
-    }
-    kfree(buf);
-    return 0;
+	int *buf;
+	int i, j;
+
+	buf = kzalloc(10 * sizeof(int), GFP_KERNEL);
+	if (!buf)
+		return 0;
+
+	for (i = 0; i < 10; i++)
+		j += buf[i];
+
+	kfree(buf);
+
+	return 0;
 }
 
 module_init(ldv_init);

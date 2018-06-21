@@ -21,14 +21,16 @@
 void leak(void)
 {
 	char *var;
+
 	var = ldv_malloc_unknown_size();
+
 	return;
 }
 
 static int __init ldv_init(void)
 {
-    leak();
-    return 0;
+	leak();
+	return 0;
 }
 
 module_init(ldv_init);

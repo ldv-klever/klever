@@ -21,14 +21,16 @@
 
 static int __init ldv_init(void)
 {
-    int* buf;
-    buf = ldv_malloc_unknown_size();
-    if (!buf) {
-        return 0;
-    }
-    kfree(buf);
-    kfree(buf);
-    return 0;
+	int *buf;
+
+	buf = ldv_malloc_unknown_size();
+	if (!buf)
+		return 0;
+
+	kfree(buf);
+	kfree(buf);
+
+	return 0;
 }
 
 module_init(ldv_init);

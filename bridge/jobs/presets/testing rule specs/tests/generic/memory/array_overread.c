@@ -19,12 +19,13 @@
 
 static int __init ldv_init(void)
 {
-    int buf[10];
-    int i, j;
-    for (i = 0; i <= 10; i++) {
-        j += buf[i];
-    }
-    return 0;
+	int buf[10];
+	int i, j;
+
+	for (i = 0; i <= 10; i++)
+		j += buf[i];
+
+	return 0;
 }
 
 module_init(ldv_init);
