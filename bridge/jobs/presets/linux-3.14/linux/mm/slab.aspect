@@ -15,16 +15,27 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/slab.h>
-#include <verifier/memory.h>
-
-void *ldv_kmalloc(size_t size, gfp_t flags)
+before: file("$this")
 {
-	void *res;
+#include <linux/ldv/slab.h>
+} 
 
-	ldv_check_alloc_flags(flags);
-	res = ldv_malloc(size);
-	ldv_after_alloc(res);
+around: execution(static inline void *kmalloc(size_t size, gfp_t flags))
+{
+	return ldv_kmalloc(size, flags);
+}
 
-	return res;
+around: execution(static inline void *kcalloc(size_t n, size_t size, gfp_t flags))
+{
+	return ldv_kcalloc(n, size, flags);
+}
+
+around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
+{
+	return ldv_kzalloc(size, flags);
+}
+
+around: execution(static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags))
+{
+	return ldv_kmalloc_array(n, size, flags);
 }

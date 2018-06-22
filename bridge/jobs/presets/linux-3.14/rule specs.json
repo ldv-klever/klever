@@ -77,10 +77,7 @@
             "common models": {
               "linux/drivers/base/dd.c": {"headers": ["linux/device.h"]},
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
-              "linux/mm/kzalloc.c": {},
-              "linux/mm/kcalloc.c": {},
-              "linux/mm/kmalloc.c": {},
-              "linux/mm/kmalloc_array.c": {},
+              "linux/mm/slab.c": {},
               "linux/err.c": {},
               "linux/ldv/common.c": {
                 "headers": {
