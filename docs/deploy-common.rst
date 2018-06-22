@@ -27,6 +27,11 @@ To execute deployment scripts you need to install:
   `git <https://git-scm.com/>`__
   (if you are going to deploy entities from corresponding sources).
 
+To deploy Klever one has to clone its Git repository (below a path to a directory where it is cloned is referred to as
+*$KLEVER_SRC*)::
+
+    git clone --recursive https://forge.ispras.ru/git/klever.git
+
 Then one has to get :ref:`klever_addons` and perhaps :ref:`target_software`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
@@ -37,6 +42,7 @@ Klever Addons
 
 You can provide :ref:`klever_addons` in various forms such as files, directories, archives or Git repositories.
 Deployment scripts will take care of their appropriate extracting.
+At the moment everything should be local, e.g. you can not specify an URL for a Git repository.
 The best place for :ref:`klever_addons` is directory :file:`addons` within *$KLEVER_SRC* (see
 :ref:`klever_git_repo_struct`).
 
@@ -131,11 +137,16 @@ Deployment Configuration File
 
 After getting :ref:`klever_addons` and :ref:`target_software` one needs to describe them within
 :ref:`deploy_conf_file`.
-First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever.json.sample` to some JSON file within
+First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` to some JSON file within
 :file:`$KLEVER_SRC/deploys/conf/` (see :ref:`klever_git_repo_struct`).
-Since deployment scripts use :file:`$KLEVER_SRC/deploys/conf/klever.json` by default this is the best place.
+Since deployment scripts use :file:`$KLEVER_SRC/deploys/conf/klever.json` by default this is the best place for that
+file.
 
 .. note:: Git does not track :file:`$KLEVER_SRC/deploys/conf/*.json`.
+
+.. note:: :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` is so consize as possible.
+          One can find much more examples for describing various entities in
+          :file:`$KLEVER_SRC/deploys/conf/klever-deploy-means.json.sample`
 
 Then you need to fix the sample to describe Klever and all required :ref:`klever_addons` and :ref:`target_software`.
 Generally there are 3 pairs within :ref:`deploy_conf_file` with names *Klever*, *Klever Addons* and *Programs*
@@ -209,7 +220,8 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   │   └── deploy-openstack
     │   ├── conf
     │   │   ├── klever.json
-    │   │   └── klever.json.sample
+    │   │   ├── klever-deploy-means.json.sample
+    │   │   └── klever-minimal.json.sample
     │   └── ...
     ├── programs
     │   ├── linux-3.14.tar.xz
