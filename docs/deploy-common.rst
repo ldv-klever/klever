@@ -137,11 +137,16 @@ Deployment Configuration File
 
 After getting :ref:`klever_addons` and :ref:`target_software` one needs to describe them within
 :ref:`deploy_conf_file`.
-First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever.json.sample` to some JSON file within
+First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` to some JSON file within
 :file:`$KLEVER_SRC/deploys/conf/` (see :ref:`klever_git_repo_struct`).
-Since deployment scripts use :file:`$KLEVER_SRC/deploys/conf/klever.json` by default this is the best place.
+Since deployment scripts use :file:`$KLEVER_SRC/deploys/conf/klever.json` by default this is the best place for that
+file.
 
 .. note:: Git does not track :file:`$KLEVER_SRC/deploys/conf/*.json`.
+
+.. note:: :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` is so consize as possible.
+          One can find much more examples for describing various entities in
+          :file:`$KLEVER_SRC/deploys/conf/klever-deploy-means.json.sample`
 
 Then you need to fix the sample to describe Klever and all required :ref:`klever_addons` and :ref:`target_software`.
 Generally there are 3 pairs within :ref:`deploy_conf_file` with names *Klever*, *Klever Addons* and *Programs*
@@ -215,7 +220,8 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   │   └── deploy-openstack
     │   ├── conf
     │   │   ├── klever.json
-    │   │   └── klever.json.sample
+    │   │   ├── klever-deploy-means.json.sample
+    │   │   └── klever-minimal.json.sample
     │   └── ...
     ├── programs
     │   ├── linux-3.14.tar.xz
