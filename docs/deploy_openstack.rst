@@ -87,12 +87,11 @@ The normal workflow for :ref:`klever_experiment_inst` is ":menuselection:`create
 Deployment Troubleshooting
 --------------------------
 
-If at running *deploy-openstack* script you met the following exception:
+If at running script :file:`deploy-openstack` you met the following exception:
 
-.. code-block:: python
-   :linenos:
+.. code-block:: py3tb
 
-   Traceback (most recent call last):
+ Traceback (most recent call last):
    File "./deploys/bin/deploy-openstack", line 27, in <module>
      sys.exit(deploys.openstack.main())
    File "./deploys/bin/../deploys/openstack/__init__.py", line 80, in main
@@ -103,6 +102,6 @@ If at running *deploy-openstack* script you met the following exception:
      self._setup_keypair()
    File "./deploys/bin/../deploys/openstack/instance.py", line 171, in _setup_keypair
      public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
-   AttributeError: module 'Crypto.PublicKey.RSA' has no attribute 'import_key'.
+ AttributeError: module 'Crypto.PublicKey.RSA' has no attribute 'import_key'.
 
-Then you should check that you have properly installed python package `pycryptodome <https://www.pycryptodome.org>`__.
+Then you should check that you have properly installed Python3 package `pycryptodome <https://www.pycryptodome.org>`__.
