@@ -59,7 +59,7 @@
             ]
           },
           {
-            "kmalloc": [
+            "ldv_kmalloc": [
               {
                 "ldv_check_alloc_flags": [
                   {

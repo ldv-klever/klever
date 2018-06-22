@@ -60,7 +60,7 @@
                               {
                                 "tipc_createport": [
                                   {
-                                    "ldv_spin_lock_bh_58___1": [
+                                    "ldv_spin_lock_bh_61___1": [
                                       {
                                         "ldv_spin_lock_tipc_port_list_lock": [
                                           {
@@ -71,7 +71,7 @@
                                     ]
                                   },
                                   {
-                                    "ldv_spin_unlock_bh_59___1": [
+                                    "ldv_spin_unlock_bh_62___1": [
                                       {
                                         "ldv_spin_unlock_tipc_port_list_lock": [
                                           {
@@ -84,7 +84,7 @@
                                 ]
                               },
                               {
-                                "ldv_spin_unlock_bh_57___0": [
+                                "ldv_spin_unlock_bh_60___0": [
                                   {
                                     "ldv_spin_unlock_lock_of_tipc_port": [
                                       {
