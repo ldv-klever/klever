@@ -42,6 +42,7 @@ Klever Addons
 
 You can provide :ref:`klever_addons` in various forms such as files, directories, archives or Git repositories.
 Deployment scripts will take care of their appropriate extracting.
+At the moment everything should be local, e.g. you can not specify an URL for a Git repository.
 The best place for :ref:`klever_addons` is directory :file:`addons` within *$KLEVER_SRC* (see
 :ref:`klever_git_repo_struct`).
 
