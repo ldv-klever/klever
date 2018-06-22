@@ -27,6 +27,11 @@ To execute deployment scripts you need to install:
   `git <https://git-scm.com/>`__
   (if you are going to deploy entities from corresponding sources).
 
+To deploy Klever one has to clone its Git repository (below a path to a directory where it is cloned is referred to as
+*$KLEVER_SRC*)::
+
+    git clone --recursive https://forge.ispras.ru/git/klever.git
+
 Then one has to get :ref:`klever_addons` and perhaps :ref:`target_software`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
