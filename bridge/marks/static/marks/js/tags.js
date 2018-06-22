@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,10 +63,9 @@ window.activate_tags = function () {
 
     function update_tags(deleted) {
         $.ajax({
-            url: '/marks/ajax/get_tags_data/',
+            url: '/marks/' + $('#tags_type').val() + '/tags_data/',
             type: 'POST',
             data: {
-                tag_type: $('#tags_type').val(),
                 selected_tags: JSON.stringify(get_tags_values()),
                 deleted: deleted
             },

@@ -1,0 +1,83 @@
+<!--
+- Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+- Ivannikov Institute for System Programming of the Russian Academy of Sciences
+-
+- Licensed under the Apache License, Version 2.0 (the "License");
+- you may not use this file except in compliance with the License.
+- You may obtain a copy of the License at
+-
+-    http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+-->
+
+{% load i18n %}
+
+<div class="ui green segment">
+    <div class="ui grid">
+        <div class="eight wide column">
+            <label for="job_global_roles"><strong>{% trans 'Role for all users' %}</strong></label>
+            <div class="ui small input fluid">
+                <select id="job_global_roles" class="ui dropdown mini fluid">
+                    {% for jr in job_roles %}
+                        <option value="{{ jr.0 }}"{% if roles.global.0 == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="eight wide column">
+            <div id="job_user_role_div">
+                <label for="job_available_users"><strong>{% trans 'Add role to user' %}</strong></label>
+                <div class="ui small action input fluid">
+                    <select id="job_available_users" class="ui dropdown fluid">
+                        {% for au in roles.available_users %}
+                            <option value="{{ au.id }}">{{ au.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="add_user_for_role" class="ui green button">{% trans 'Add' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <div id="all_user_roles">
+        {% for ur in roles.user_roles %}
+            <div class="ui grid segment" id="job_user_role__{{ ur.user.id }}">
+                <div class="six wide column right aligned">
+                    <label for="job_user_role_select__{{ ur.user.id }}"><strong>{{ ur.user.name }}</strong></label>
+                </div>
+                <div class="eight wide column fluid">
+                    <select id="job_user_role_select__{{ ur.user.id }}" class="ui dropdown fluid">
+                        {% for jr in job_roles %}
+                            <option value="{{ jr.0 }}"{% if ur.role.val == jr.0 %} selected{% endif %}>{{ jr.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="two wide column">
+                    <button id="remove_user_role__{{ ur.user.id }}" class="ui icon red basic button"><i class="remove icon"></i></button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# Template #}
+<div id="template__user_role" hidden>
+    <div class="six wide column right aligned">
+        <strong><label for="job_user_role_select__"></label></strong>
+    </div>
+    <div class="eight wide column">
+        <select id="job_user_role_select__">
+            {% for jr in job_roles %}
+                <option value="{{ jr.0 }}">{{ jr.1 }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="two wide column">
+        <button id="remove_user_role__" class="ui icon red basic button"><i class="remove icon"></i></button>
+    </div>
+</div>

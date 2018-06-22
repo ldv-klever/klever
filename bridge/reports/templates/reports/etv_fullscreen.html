@@ -1,11 +1,28 @@
-{% extends 'reports/base.html' %}
+<!--
+- Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+- Ivannikov Institute for System Programming of the Russian Academy of Sciences
+-
+- Licensed under the Apache License, Version 2.0 (the "License");
+- you may not use this file except in compliance with the License.
+- You may obtain a copy of the License at
+-
+-    http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+-->
+
+{% extends 'base.html' %}
 
 {% load i18n %}
 {% load staticfiles %}
 
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
-{% block reports_head_block %}
+{% block head_block %}
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
@@ -17,9 +34,9 @@
             {% include 'reports/ETVButtons.html' %}
         </div>
         <div class="one wide column right aligned">
-            <a class="ui icon basic tiny button" href="{% url 'reports:unsafe' report.pk %}"><i class="remove icon"></i></a>
+            <a class="ui icon basic tiny button" href="{% url 'reports:unsafe' report.trace_id %}"><i class="remove icon"></i></a>
         </div>
     </div>
-    {% include 'reports/ETV.html' with fullscreen=True %}
+    {% include 'reports/UnsafeContent.html' with fullscreen=True %}
     <input type="hidden" id="report_pk" value="{{ report.pk }}">
 {% endblock %}

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,10 @@ class Core(core.components.CallbacksCaller):
                                                   'start',
                                                   {
                                                       'id': self.ID,
-                                                      'attrs': [{'Klever Core version': version}],
+                                                      'attrs': [{
+                                                          'name': 'Klever Core version',
+                                                          'value': version
+                                                      }],
                                                       'comp': self.comp
                                                   },
                                                   None,
@@ -83,8 +86,10 @@ class Core(core.components.CallbacksCaller):
                                                       {'build': multiprocessing.Manager().Lock()},
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
-            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {'report id': self.report_id,
-                                                                                    'coverage_finished': multiprocessing.Manager().dict()})
+            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {
+                'report id': self.report_id,
+                'coverage_finished': multiprocessing.Manager().dict()
+            })
         except Exception:
             self.process_exception()
 
@@ -236,8 +241,9 @@ class Core(core.components.CallbacksCaller):
             version = setuptools_scm.get_version(root=git_repo_dir)
         else:
             self.logger.info('Get version on the basis of package information')
-            version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
-                                                 parse=setuptools_scm.hacks.parse_pkginfo)
+            version = setuptools_scm.get_version(
+                os.path.join(os.path.dirname(__file__), os.path.pardir, 'KleverCore.egg-info'),
+                parse=setuptools_scm.hacks.parse_pkginfo)
         self.logger.debug('Klever Core version is "{0}"'.format(version))
         return version
 

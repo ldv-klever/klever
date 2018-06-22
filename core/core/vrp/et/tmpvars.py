@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import re
 
 
@@ -227,7 +228,11 @@ def _parse_func_call_actual_args(actual_args_str):
             # Skip all nested "(...)".
             open_paren_num = 0
             while True:
-                c_next = next(actual_args_str_iter)
+                try:
+                    c_next = next(actual_args_str_iter)
+                except StopIteration:
+                    pass
+
                 actual_arg += c_next
                 if c_next == '(':
                     open_paren_num += 1
@@ -270,7 +275,7 @@ def _remove_aux_functions(logger, error_trace):
     removed_aux_funcs_num = 0
     for edge in error_trace.trace_iterator():
         # Begin to match pattern just for edges that represent calls of auxiliary functions.
-        if 'enter' not in edge or edge['enter'] not in error_trace.aux_funcs:
+        if 'enter' not in edge or edge['enter'] not in error_trace.aux_funcs or 'condition' in edge:
             continue
 
         aux_func_call_edge = edge

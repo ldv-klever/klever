@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,10 @@ import os
 import json
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.db.models import Q
+from django.urls import reverse
 
-from bridge.vars import JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from bridge.vars import JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase
 from bridge.populate import populate_users
 
@@ -54,14 +53,15 @@ class TestJobs(KleverTestCase):
 
         # Creating view
         tree_view = {
-            "columns": ["role", "author", "status", "problem", "safe", "resource"],
-            "orders": ["-date", "status", "-finish_date"],
+            "columns": ['name', 'role', 'author', 'date', 'status', 'resource',
+                        'unsafe:total', 'problem:total', 'safe:total'],
+            "order": ["up", "date"],
             "filters": {
-                "name": {"type": "istartswith", "value": "Validation"},
+                "title": {"type": "istartswith", "value": "Testing"},
                 "format": {"type": "is", "value": "1"}
             }
         }
-        response = self.client.post('/jobs/ajax/save_view/', {
+        response = self.client.post('/users/ajax/save_view/', {
             'view': json.dumps(tree_view), 'view_type': '1', 'title': 'My view'
         })
         self.assertEqual(response.status_code, 200)
@@ -81,11 +81,8 @@ class TestJobs(KleverTestCase):
         self.assertEqual(tree_view, json.loads(view.view))
 
         # Changing view
-        tree_view = {
-            "columns": ["role", "author", "status", "problem", "safe"],
-            "orders": [], "filters": {}
-        }
-        response = self.client.post('/jobs/ajax/save_view/', {
+        tree_view = {"columns": ["role", "author", "status", "problem", "safe"], "order": [], "filters": {}}
+        response = self.client.post('/users/ajax/save_view/', {
             'view': json.dumps(tree_view), 'view_type': '1', 'view_id': view_id
         })
         self.assertEqual(response.status_code, 200)
@@ -105,7 +102,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(tree_view, json.loads(view.view))
 
         # Making view preffered
-        response = self.client.post('/jobs/ajax/preferable_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/preferable_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -117,7 +114,7 @@ class TestJobs(KleverTestCase):
 
         # Share view
         self.assertFalse(view.shared)
-        response = self.client.post('/jobs/ajax/share_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/share_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -127,28 +124,28 @@ class TestJobs(KleverTestCase):
         self.assertTrue(view.shared)
 
         # Testing view name check
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
+        response = self.client.post('/users/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check view deletion
-        response = self.client.post('/jobs/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
+        response = self.client.post('/users/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -157,13 +154,8 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(View.objects.filter(author__username='manager')), 0)
 
     def test_create_edit_job(self):
-        try:
-            job_template = Job.objects.filter(~Q(parent=None))[0]
-        except IndexError:
-            try:
-                job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
-            except ObjectDoesNotExist:
-                self.fail('Job template was not populated')
+        job_template = Job.objects.all().first()
+        self.assertIsNotNone(job_template)
 
         # Requests for template job's page and data for autoupdate
         response = self.client.get(reverse('jobs:job', args=[job_template.pk]))
@@ -306,7 +298,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(Job.objects.filter(id__in={newjob.id, newjob.parent_id}).count(), 0)
 
     def test_files(self):
-        job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
+        job_template = Job.objects.all().first()
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
             'description': 'Description of new job',
@@ -370,13 +362,13 @@ class TestJobs(KleverTestCase):
 
         # Try to download new job and one of the defaults
         response = self.client.post('/jobs/ajax/downloadjobs/', {
-            'job_ids': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+            'job_ids': json.dumps([newjob_pk, Job.objects.filter(parent=None).first().pk])
         })
         self.assertEqual(response.status_code, 200)
 
         # Check access to download job
         response = self.client.post('/jobs/ajax/check_access/', {
-            'jobs': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+            'jobs': json.dumps([newjob_pk, Job.objects.filter(parent=None).first().pk])
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -421,7 +413,7 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response.content, b'My test text')
 
     def test_run_decision(self):
-        job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
+        job_template = Job.objects.all().first()
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
             'description': 'Description of new job',

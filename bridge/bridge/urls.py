@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,22 +15,23 @@
 # limitations under the License.
 #
 
-from django.conf.urls import include, url
-from django.contrib import admin
 from django.conf import settings
+from django.contrib import admin
+from django.urls import include, path
+
 from bridge import views
 from django.views.static import serve
 
 urlpatterns = [
-    url(r'^i18n/', include('django.conf.urls.i18n')),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^users/', include('users.urls', namespace='users')),
-    url(r'^jobs/', include('jobs.urls', namespace='jobs')),
-    url(r'^reports/', include('reports.urls', namespace='reports')),
-    url(r'^marks/', include('marks.urls', namespace='marks')),
-    url(r'^service/', include('service.urls', namespace='service')),
-    url(r'^tools/', include('tools.urls', namespace='tools')),
-    url(r'^$', views.index_page),
-    url(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
-    url(r'^population/$', views.population, name='population')
+    path('i18n/', include('django.conf.urls.i18n')),
+    path('admin/', admin.site.urls),
+    path('users/', include(('users.urls', 'users'), namespace='users')),
+    path('jobs/', include(('jobs.urls', 'jobs'), namespace='jobs')),
+    path('reports/', include(('reports.urls', 'reports'), namespace='reports')),
+    path('marks/', include(('marks.urls', 'marks'), namespace='marks')),
+    path('service/', include(('service.urls', 'service'), namespace='service')),
+    path('tools/', include(('tools.urls', 'tools'), namespace='tools')),
+    path('', views.index_page),
+    path('population/', views.population, name='population'),
+    path('media/<path>', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True})
 ]

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,13 +28,14 @@
 
 DESC="Klever VerifierCloud Scheduler"
 NAME=klever-verifiercloud-scheduler
-DAEMON=/home/debian/klever/scheduler/bin/verifiercloud-scheduler
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-WORKDIR=/home/debian/klever-programs
-CONFFILE=/home/debian/klever-conf/verifiercloud-scheduler.json
 USER=klever
-GROUP=klever
+
+# Read configuration variable file if it is present.
+[ -r /etc/default/klever ] && . /etc/default/klever
+DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/verifiercloud-scheduler
+CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/verifiercloud-scheduler.json
 
 . /lib/lsb/init-functions
 
@@ -48,7 +49,7 @@ case "$1" in
         fi
 
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+            --exec ${DAEMON} -- ${CONFFILE}
         then
             rc=0
             sleep 1
@@ -68,7 +69,7 @@ case "$1" in
         ;;
     stop)
         log_daemon_msg "Stopping $DESC"
-        start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
+        start-stop-daemon --stop --retry 3 --quiet --oknodo --pidfile ${PIDFILE}
         log_end_msg $?
         rm -f ${PIDFILE}
         ;;

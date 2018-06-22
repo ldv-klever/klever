@@ -1,0 +1,219 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "7ce77510c9c7~/drivers/usb/serial/opticon.ko/linux:alloc:irq"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.2.64"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:alloc:irq"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/usb/serial/opticon.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "All is right.",
+  "error trace": [
+    [
+      {
+        "ldv_usb_serial_scenario_attach_3_10": [
+          {
+            "opticon_startup": [
+              {
+                "ldv_kzalloc": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "ldv_usb_alloc_urb_24": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kmalloc": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_usb_serial_scenario_open_3_20": [
+          {
+            "opticon_open": [
+              {
+                "send_control_msg": [
+                  {
+                    "ldv_kzalloc": [
+                      {
+                        "ldv_check_alloc_flags": [
+                          {
+                            "ldv_in_interrupt_context": []
+                          },
+                          {
+                            "ldv_assert_linux_alloc_irq__wrong_flags": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "ldv_usb_submit_urb_20": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "send_control_msg": [
+                  {
+                    "ldv_kzalloc": [
+                      {
+                        "ldv_check_alloc_flags": [
+                          {
+                            "ldv_in_interrupt_context": []
+                          },
+                          {
+                            "ldv_assert_linux_alloc_irq__wrong_flags": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "ldv_usb_serial_scenario_irq_write_3_34": [
+          {
+            "opticon_write": [
+              {
+                "kmalloc": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "ldv_usb_alloc_urb_21": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kmalloc": [
+                  {
+                    "ldv_check_alloc_flags": [
+                      {
+                        "ldv_in_interrupt_context": []
+                      },
+                      {
+                        "ldv_assert_linux_alloc_irq__wrong_flags": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [],
+  "verdict": "2"
+}

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,30 @@
 #
 
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils.translation import ugettext as _, activate
 
 from tools.profiling import unparallel_group
-from bridge.populate import Population
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR
 from bridge.utils import logger, BridgeErrorResponse, BridgeException
+from bridge.populate import Population
+
 from users.models import Extended
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
+from reports.models import AttrName
 
 
 def index_page(request):
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('jobs:tree'))
     return HttpResponseRedirect(reverse('users:login'))
 
 
-@unparallel_group(['Job', 'MarkUnknown', 'Scheduler', 'Component'])
+@unparallel_group(['Job', 'Scheduler', 'MarkUnsafeCompare', 'MarkUnsafeConvert',
+                   MarkSafe, MarkUnsafe, MarkUnknown, AttrName])
 @login_required
 def population(request):
     try:
@@ -66,6 +70,5 @@ def population(request):
         except Exception as e:
             logger.exception(e)
             return render(request, 'Population.html', {'error': str(UNKNOWN_ERROR)})
-        else:
-            return render(request, 'Population.html', {'changes': changes})
+        return render(request, 'Population.html', {'changes': changes})
     return render(request, 'Population.html', {'need_manager': need_manager, 'need_service': need_service})

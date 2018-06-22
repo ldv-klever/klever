@@ -1,5 +1,5 @@
 {
     "name": "Testing verifiers",
     "description": "<h3>Preset configurations and specifications for testing verifiers</h3>",
-    "class": "0"
+    "safe marks": true
 }

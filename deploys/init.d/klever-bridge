@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          klever-bridge
-# Required-Start:    nginx
-# Required-Stop:     nginx
+# Required-Start:    postgresql
+# Required-Stop:     postgresql
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Klever web-interface
@@ -47,8 +47,9 @@ case "$1" in
         fi
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile  --chuid ${USER} \
             --group ${GROUP} --chdir ${WORKDIR} --exec ${DAEMON} \
-            -- --timeout 86400 --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
-            --bind unix:media/gunicorn.sock bridge.wsgi:application
+            -- --timeout 86400 --graceful-timeout 86400 \
+               --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
+               --bind unix:media/gunicorn.sock bridge.wsgi:application
         then
             rc=0
             sleep 1
@@ -68,7 +69,7 @@ case "$1" in
         ;;
     stop)
         log_daemon_msg "Stopping $DESC"
-        start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
+        start-stop-daemon --stop --retry 60 --quiet --oknodo --pidfile ${PIDFILE}
         log_end_msg $?
         rm -f ${PIDFILE}
         ;;

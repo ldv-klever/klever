@@ -1,5 +1,5 @@
-.. Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-   Institute for System Programming of the Russian Academy of Sciences
+.. Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+   Ivannikov Institute for System Programming of the Russian Academy of Sciences
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -10,10 +10,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-Developer documentation
+Developer Documentation
 =======================
 
-How to write this documentation
+How to Write This Documentation
 -------------------------------
 
 This documentation is created using `Sphinx <http://sphinx-doc.org>`__ from
@@ -44,7 +44,7 @@ To develop documentation it is recommended to use some visual editor.
    If you are a newbie then examine carefully the existing documentation and create the new one on that basis.
    Just if you are a guru then you can suggest to improve the existing documentation.
 
-Using Git repository
+Using Git Repository
 --------------------
 
 Klever source code resides in the `Git <https://git-scm.com/>`__ repository.
@@ -54,7 +54,8 @@ This section describes just rules specific for the given project.
 Update
 ^^^^^^
 
-#. Periodically synchronize your local repository with the main development repository::
+#. Periodically synchronize your local repository with the main development repository (it is available just internally
+   at ISP RAS)::
 
     branch $ git fetch origin
     branch $ git remote prune origin
@@ -70,7 +71,7 @@ Update
 
 #. Resolve conflicts if so.
 
-Fixing bugs and implementing new features
+Fixing Bugs and Implementing New Features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. One must create a new branch to fix each individual bug or implement a new feature::
@@ -81,7 +82,7 @@ Fixing bugs and implementing new features
                 Otherwise other developers will need to wait or to make some tricky things like cherry-picking and
                 merging of non-master branches.
                 Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken because
-                of one will suddenly add bad code their by merging his/her branch based on another non working branch.
+                of one will merge there a branch based on another non working branch.
 
 #. Push all new branches to the main development repository.
    As well re-push them at least one time a day if you make some commits::
@@ -96,13 +97,12 @@ Fixing bugs and implementing new features
 
    .. note:: Do not merge remote-tracking branches.
 
-#. Ask Evgeny Novikov or/and Ilja Zakharov (novikov@ispras.ru) to review and to merge branches to the master branch when
-   corresponding bugs/features are fixed/implemented.
+#. Ask senior developers to review and to merge branches to the master branch when corresponding bugs/features are
+   fixed/implemented.
 
-#. Delete merged branches locally and remotely::
+#. Delete merged branches::
 
     master $ git branch -d fix-conf
-    master $ git push origin :fix-conf
 
 Releases
 --------
@@ -123,40 +123,46 @@ This branch will start from a commit corresponding to the given release.
 It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
 corresponding merge window.
 
+.. _dev_deploy:
+
+Deployment for Development Purposes
+-----------------------------------
+
+To deploy Klever for development purposes in addition to using mode *development* (see :ref:`local_deploy`) one needs
+to specify command-line option *--allow-symbolic-links*.
+
 Using PyCharm IDE
 -----------------
 
-To use PyCharm IDE to develop Klever follow the following steps.
+To use PyCharm IDE for developing Klever follow the following steps.
 
 Installation
 ^^^^^^^^^^^^
 
-#. Download PyCharm Professional from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given
-   for version 2017.1.1, you have to adapt them for your version by yourself).
+#. Download PyCharm Community from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given for
+   version 2017.1.1, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
-#. Activate the PyCharm license using your JetBrains account (request for the license from Evgeny Novikov
-   novikov@ispras.ru).
-#. Specify your preferences at the "Welcome to PyCharm" window.
 
-Setting project
+Setting Project
 ^^^^^^^^^^^^^^^
 
 At the "Welcome to PyCharm" window:
 
+#. Specify your preferences.
 #. :menuselection:`Open`.
-#. Specify the absolute path to directory :file:`bridge` from the root directory of the main development repository.
+#. Specify the absolute path to directory :file:`$KLEVER_SRC/bridge`.
 #. :menuselection:`OK`.
 
-Configuring the Python interpreter
+Configuring the Python Interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`File --> Settings --> Project: Bridge --> Project Interpreter --> Settings --> More..`.
 #. Select Python 3.4 or higher from the list and press :kbd:`Enter`.
 #. Input *Python 3* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. Ditto for *core*, *docs* and *scheduler*.
+#. Ditto for *core*, *deploys*, *docs*, *scheduler* and *utils*.
 
-Setting run/debug configuration
+Setting Run/Debug Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Common run/debug configurations are included into the Klever project.
@@ -166,8 +172,10 @@ If you want to adjust configurations with names that not starting with **$** you
 
 #. :menuselection:`Run --> Edit Configurations...`.
 
-Klever Bridge run/debug configuration
+Klever Bridge Run/Debug Configuration
 """""""""""""""""""""""""""""""""""""
+
+.. note:: This is available just for PyCharm Professional.
 
 * Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
 * Specify your preferred port in field :guilabel:`Port`.
@@ -175,7 +183,7 @@ Klever Bridge run/debug configuration
 .. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
           accordingly.
 
-Klever Core run/debug configuration
+Klever Core Run/Debug Configuration
 """""""""""""""""""""""""""""""""""
 
 This run/debug configuration is only useful if you are going to debug Klever Core.
@@ -188,9 +196,11 @@ This run/debug configuration is only useful if you are going to debug Klever Cor
    .. note:: Place Klever Core working directory somewhere outside the main development repository.
 
    .. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
-             Besides you can provide this file by passing its name as a first parameter to the script.
+             Thus, the best workflow to debug Klever Core is to set its working directory to the one created previously
+             when it was run without debugging.
+             Besides, you can provide this file by passing its name as a first parameter to the script.
 
-Documentation run/debug configuration
+Documentation Run/Debug Configuration
 """""""""""""""""""""""""""""""""""""
 
 Specify another representation of documenation in field :guilabel:`Command` if you need it.
@@ -198,8 +208,10 @@ Specify another representation of documenation in field :guilabel:`Command` if y
 Testing
 ^^^^^^^
 
-Klever Bridge testing
+Klever Bridge Testing
 """""""""""""""""""""
+
+.. note:: This is available just for PyCharm Professional.
 
 #. :menuselection:`Tools --> Run manage.py Task...`::
 
@@ -224,85 +236,3 @@ Additional documentation
 
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `site <https://www.jetbrains.com/pycharm/documentation/>`__.
-
-..
-    TODO
-    ----
-
-    The rest should be totally revised!
-
-    Creating Klever Core working directory
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    Create **work_dir**.
-
-    Specifying Klever Core configuration
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    #. Copy Klever Core configuration file :file:`core/core.json` to **work_dir**.
-    #. Edit the copied file:
-        * Specify the identifier of the job you are going to solve (the value of property *identifier*).
-        * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,
-          *Klever Bridge.user* and *Klever Bridge.password* correspondingly).
-          The specified Klever Bridge user should have service rights.
-        * Switch values of properties *debug* and *allow local source directories use* to *true*.
-
-    Fetching Linux kernel source code
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    Get somehow source code of some version of the Linux kernel and place it to **work_dir**.
-
-    .. note:: The value of property *Linux kernel.src* of the specified job configuration should be the name of the
-              directory where you will place Linux kernel source code.
-
-    Run
-    ^^^
-
-    To run press :kbd:`Shift+F10`.
-
-    .. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove file
-              :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
-
-    Debug
-    ^^^^^
-
-    To debug press :kbd:`Shift+F9`.
-
-    Run Klever Bridge manage.py tasks
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    To run manage.py tasks:
-
-    #. :menuselection:`Tools --> Run manage.py Task...`.
-    #. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
-
-    Run cloud tools in PyCharm
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    To be able to solve tasks on your machine you need to run Klever client-controller and native scheduler tools. Follow
-    the steps:
-
-    #. First install all requirements and prepare configuration properties according to the installation documentation.
-       Do it after you have working Klever Bridge server.
-       All additional tools and configuration files should be outside from the Klever sources and corresponding working
-       directories.
-
-    #. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
-       configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
-       for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
-       directory you will get a visualization of all checks at *http://localhost:8500/ui*.
-
-    #. Run native scheduler after you have running controller and Klever Bridge server. Run script
-       :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
-       that you have chosen clean working directory outside of sources for an execution.
-
-       .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
-              :file:`/usr/lib64/jvm/java-1.7.0-openjdk/jre/bin/java`.
-
-    #. TODO: not only this command but 3 more! Moreover this should be placed somewhere else as well as all run instructions.
-       Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
-       swap runnning *sudo swapoff -a*) and available cgroup subsystems (it is often necessary to run
-       *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
-
-    #. Check out at client-controller consul web-UI that all checks are passing now. The address by defauilt is
-       `localhost:8500 <http://localhost:8500/ui>`__.

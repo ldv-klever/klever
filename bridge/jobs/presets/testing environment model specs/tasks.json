@@ -1,1 +1,8 @@
-../testing rule specs/tasks.json
+{
+  "wall time": 1000,
+  "CPU time": "5min",
+  "memory size": "3GB",
+  "CPU model": null,
+  "number of CPU cores": 0,
+  "disk memory size": "1GB"
+}

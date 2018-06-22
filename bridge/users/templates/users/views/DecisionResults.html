@@ -1,0 +1,259 @@
+<!--
+- Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+- Ivannikov Institute for System Programming of the Russian Academy of Sciences
+-
+- Licensed under the Apache License, Version 2.0 (the "License");
+- you may not use this file except in compliance with the License.
+- You may obtain a copy of the License at
+-
+-    http://www.apache.org/licenses/LICENSE-2.0
+-
+- Unless required by applicable law or agreed to in writing, software
+- distributed under the License is distributed on an "AS IS" BASIS,
+- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- See the License for the specific language governing permissions and
+- limitations under the License.
+-->
+
+{% load i18n %}
+
+<div id="job_filters_accordion" class="ui styled accordion fluid">
+    <div class="title"><i class="setting icon"></i>{{ view.viewtitle }}</div>
+    <div class="content ui small form">
+        {% include 'users/views/viewButtons.html' %}
+        <div class="ui divider"></div>
+
+        {# Data to display (like columns) #}
+        <input id="view_data_{{ view.type }}__data" value="checkboxes" type="hidden">
+        <div class="ui grid">
+            <div class="six wide column">
+                <h3>{% trans 'Data' %}</h3>
+                <div class="ui divider"></div>
+
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__unsafes"{% if 'unsafes' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__unsafes">{% trans 'Unsafes' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__safes"{% if 'safes' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__safes">{% trans 'Safes' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__unknowns"{% if 'unknowns' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__unknowns">{% trans 'Unknowns' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__resources"{% if 'resources' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__resources">{% trans 'Consumed resources' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__tags_safe"{% if 'tags_safe' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__tags_safe">{% trans 'Tags' %}/{% trans 'Safe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__tags_unsafe"{% if 'tags_unsafe' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__tags_unsafe">{% trans 'Tags' %}/{% trans 'Unsafe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__unsafes_attr_stat"{% if 'unsafes_attr_stat' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__unsafes_attr_stat">{% trans 'Statistics' %}/{% trans 'Unsafe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__safes_attr_stat"{% if 'safes_attr_stat' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__safes_attr_stat">{% trans 'Statistics' %}/{% trans 'Safe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__unknowns_attr_stat"{% if 'unknowns_attr_stat' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__unknowns_attr_stat">{% trans 'Statistics' %}/{% trans 'Unknown' %}</label>
+                </div>
+                <div class="ui divider"></div>
+
+                <input id="view_data_{{ view.type }}__attr_stat" value="list_if_attr_stat" data-list="attr_stat_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__attr_stat"{% if 'attr_stat' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__attr_stat">{% trans 'Statistic attribute name' %}</label>
+                </div>
+                <br><br>
+                <div class="field" style="margin-left: 15px;">
+                    <input id="view_{{ view.type }}__attr_stat_name" type="text"{% if 'attr_stat' in view %} value="{{ view.attr_stat.0 }}"{% endif %}>
+                    <label for="view_{{ view.type }}__attr_stat_name"></label>
+                </div>
+            </div>
+            <div class="ten wide column">
+                <h3>{% trans 'Filters' %}</h3>
+                <div class="ui divider"></div>
+
+                {# Hide data #}
+                <input id="view_data_{{ view.type }}__hidden" value="checkboxes" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__hidden__unknowns_nomark"{% if 'unknowns_nomark' in view.hidden %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__hidden__unknowns_nomark">{% trans 'Hide problems without marks' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__hidden__unknowns_total"{% if 'unknowns_total' in view.hidden %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__hidden__unknowns_total">{% trans 'Hide total of unknowns' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__hidden__resource_total"{% if 'resource_total' in view.hidden %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__hidden__resource_total">{% trans 'Hide total of consumed resources' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__hidden__confirmed_marks"{% if 'confirmed_marks' in view.hidden %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed verdicts number' %}</label>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Unknown component #}
+                <input id="view_data_{{ view.type }}__unknown_component" value="list_if_unknown_component" data-list="unknown_component_type__unknown_component_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__unknown_component"{% if 'unknown_component' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__unknown_component">{% trans 'Unknown component name' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__unknown_component_type" class="ui dropdown">
+                            <option value="iexact"{% if 'unknown_component' in view and view.unknown_component.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'unknown_component' in view and view.unknown_component.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'unknown_component' in view and view.unknown_component.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__unknown_component_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__unknown_component_name" type="text"{% if 'unknown_component' in view %} value="{{ view.unknown_component.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__unknown_component_name"></label>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Unknown problem #}
+                <input id="view_data_{{ view.type }}__unknown_problem" value="list_if_unknown_problem" data-list="unknown_problem_type__unknown_problem_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__unknown_problem"{% if 'unknown_problem' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__unknown_problem">{% trans 'Unknown problem name' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__unknown_problem_type" class="ui dropdown">
+                            <option value="iexact"{% if 'unknown_problem' in view and view.unknown_problem.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'unknown_problem' in view and view.unknown_problem.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'unknown_problem' in view and view.unknown_problem.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__unknown_problem_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__unknown_problem_name" type="text"{% if 'unknown_problem' in view %} value="{{ view.unknown_problem.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__unknown_problem_name"></label>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Resources component #}
+                <input id="view_data_{{ view.type }}__resource_component" value="list_if_resource_component" data-list="resource_component_type__resource_component_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__resource_component"{% if 'resource_component' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__resource_component">{% trans 'Consumed resources component name' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__resource_component_type" class="ui dropdown">
+                            <option value="iexact"{% if 'resource_component' in view and view.resource_component.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'resource_component' in view and view.resource_component.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'resource_component' in view and view.resource_component.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__resource_component_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__resource_component_name" type="text"{% if 'resource_component' in view %} value="{{ view.resource_component.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__resource_component_name"></label>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Safe tags #}
+                <input id="view_data_{{ view.type }}__safe_tag" value="list_if_safe_tag" data-list="safe_tag_type__safe_tag_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__safe_tag"{% if 'safe_tag' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__safe_tag">{% trans 'Safe tag' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__safe_tag_type" class="ui dropdown">
+                            <option value="iexact"{% if 'safe_tag' in view and view.safe_tag.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'safe_tag' in view and view.safe_tag.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'safe_tag' in view and view.safe_tag.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__safe_tag_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__safe_tag_name" type="text"{% if 'safe_tag' in view %} value="{{ view.safe_tag.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__safe_tag_name"></label>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Filters for unsafe tags #}
+                <input id="view_data_{{ view.type }}__unsafe_tag" value="list_if_unsafe_tag" data-list="unsafe_tag_type__unsafe_tag_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__unsafe_tag"{% if 'unsafe_tag' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__unsafe_tag">{% trans 'Unsafe tag' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__unsafe_tag_type" class="ui dropdown">
+                            <option value="iexact"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'unsafe_tag' in view and view.unsafe_tag.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__unsafe_tag_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__unsafe_tag_name" type="text"{% if 'unsafe_tag' in view %} value="{{ view.unsafe_tag.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__unsafe_tag_name"></label>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+
+                {# Filter for attributes statistic #}
+                <input id="view_data_{{ view.type }}__attr_stat_filter" value="list_if_attr_stat_enable" data-list="attr_stat_type__attr_stat_value" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__attr_stat_enable"{% if 'attr_stat_filter' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__attr_stat_enable">{% trans 'Calculate statistic just if attribute value' %}</label>
+                </div>
+                <br><br>
+                <div class="inline fields" style="margin-left: 15px;">
+                    <div class="field">
+                        <select id="view_{{ view.type }}__attr_stat_type" class="ui dropdown">
+                            <option value="iexact"{% if 'attr_stat_filter' in view and view.attr_stat_filter.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if 'attr_stat_filter' in view and view.attr_stat_filter.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                            <option value="icontains"{% if 'attr_stat_filter' in view and view.attr_stat_filter.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                        </select>
+                        <label for="view_{{ view.type }}__attr_stat_type"></label>
+                    </div>
+                    <div class="field">
+                        <input id="view_{{ view.type }}__attr_stat_value" type="text"{% if 'attr_stat_filter' in view %} value="{{ view.attr_stat_filter.1 }}"{% endif %}>
+                        <label for="view_{{ view.type }}__attr_stat_value"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
+        {% include 'users/views/viewCreateForm.html' %}
+    </div>
+</div>

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from core.vrp.et.error_trace import get_original_file, get_original_start_line
 
 
@@ -157,6 +158,11 @@ def _set_main(data, main, error_trace):
         return
 
     for edge in error_trace.trace_iterator():
+        if edge.get("source", "") == "Begin program execution":
+            edge["file"] = data['file']
+            edge["line"] = data['begin'] - 1
+            return
+
         if _inside_this_control_function(data, edge['file'], edge['start line']):
             # Got it!
             if edge["file"] != data['file']:
