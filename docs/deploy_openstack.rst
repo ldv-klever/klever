@@ -83,3 +83,26 @@ For :ref:`klever_experiment_inst` you can execute actions *show*, *create* and *
 The normal workflow for :ref:`klever_experiment_inst` is ":menuselection:`create --> remove`"::
 
     $ $KLEVER_SRC/deploys/bin/deploy-openstack --ssh-rsa-private-key-file $SSH_RSA_PRIVATE_KEY_FILE --instances $INSTANCES create "Klever experimental instances"
+
+Deployment Troubleshooting
+--------------------------
+
+If at running *deploy-openstack* script you met the following exception:
+
+.. code-block:: python
+   :linenos:
+
+   Traceback (most recent call last):
+   File "./deploys/bin/deploy-openstack", line 27, in <module>
+     sys.exit(deploys.openstack.main())
+   File "./deploys/bin/../deploys/openstack/__init__.py", line 80, in main
+     getattr(OSKleverDeveloperInstance(args, logger), args.action)()
+   File "./deploys/bin/../deploys/openstack/openstack.py", line 296, in create
+     base_image=base_image, flavor_name=self.args.flavor) as self.instance:
+   File "./deploys/bin/../deploys/openstack/instance.py", line 75, in __enter__
+     self._setup_keypair()
+   File "./deploys/bin/../deploys/openstack/instance.py", line 171, in _setup_keypair
+     public_key = RSA.import_key(private_key).publickey().exportKey('OpenSSH')
+   AttributeError: module 'Crypto.PublicKey.RSA' has no attribute 'import_key'.
+
+Then you should check that you have properly installed python package `pycryptodome <https://www.pycryptodome.org>`__.
