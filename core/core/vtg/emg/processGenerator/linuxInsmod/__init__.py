@@ -138,6 +138,14 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
     ep.process = ''
     ep.pretty_id = 'linux/initialization'
 
+    initialize_rules = Condition('rules_init')
+    initialize_rules.comment = 'Initialize rule models.'
+    initialize_rules.statements = [
+        'ldv_initialize();'
+    ]
+    ep.actions[initialize_rules.name] = initialize_rules
+    ep.process += '<{}>.'.format(initialize_rules.name)
+
     if len(kernel_initializations) > 0:
         body = [
             "int ret;"
