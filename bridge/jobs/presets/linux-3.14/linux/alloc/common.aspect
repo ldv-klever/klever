@@ -64,10 +64,6 @@ pointcut ALLOC: execution(static inline struct page *alloc_pages(.., gfp_t flags
 				execution(static inline void *dma_zalloc_coherent(.., gfp_t flags, ..)) ||
 				execution(static inline void *dma_alloc_coherent(.., gfp_t flags, ..))
 
-pointcut ALLOC_KNOWN_SIZE: execution(static inline void *kcalloc(..)) ||
-                           call(static inline void *kmalloc_array(..)) ||
-                           execution(static inline void *kmalloc(..))
-
 pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, ..)) ||
 						   call(int usb_submit_urb(.., gfp_t flags, ..)) ||
 						   call(int mempool_resize(.., gfp_t flags, ..)) ||
@@ -95,15 +91,6 @@ around: ALLOC
 {
 	ldv_check_alloc_flags(flags);
 	return ldv_malloc_unknown_size();
-}
-
-around: ALLOC_KNOWN_SIZE
-{
-	void *res;
-	ldv_check_alloc_flags(flags);
-	res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
-	return res;
 }
 
 around: ALLOC_RETURN_INT

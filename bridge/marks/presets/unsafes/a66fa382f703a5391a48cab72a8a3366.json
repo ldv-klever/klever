@@ -3,7 +3,7 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev623+g6e8971279"
+      "value": "0.3.dev629+g4c1e4a8e.d20180622"
     },
     {
       "attr": "Name",
@@ -38,10 +38,30 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/generic/memory/memcpy.ko"
+      "value": "ext-modules/generic/memory/memleak.ko"
     }
   ],
+  "comparison": "thread_call_forests",
   "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "leak": [
+              {
+                "ldv_kmalloc": [
+                  {
+                    "ldv_malloc": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
   "is_modifiable": true,
   "status": "1",
   "tags": [],

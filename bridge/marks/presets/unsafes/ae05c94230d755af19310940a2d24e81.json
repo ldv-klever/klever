@@ -72,7 +72,7 @@
                   {
                     "kaweth_control": [
                       {
-                        "kmalloc": [
+                        "ldv_kmalloc": [
                           {
                             "ldv_check_alloc_flags": []
                           }
@@ -116,7 +116,7 @@
                   {
                     "kaweth_control": [
                       {
-                        "kmalloc": [
+                        "ldv_kmalloc": [
                           {
                             "ldv_check_alloc_flags": []
                           }
@@ -160,7 +160,7 @@
                   {
                     "kaweth_control": [
                       {
-                        "kmalloc": [
+                        "ldv_kmalloc": [
                           {
                             "ldv_check_alloc_flags": []
                           }
@@ -204,7 +204,7 @@
                   {
                     "kaweth_control": [
                       {
-                        "kmalloc": [
+                        "ldv_kmalloc": [
                           {
                             "ldv_check_alloc_flags": []
                           }
@@ -356,7 +356,7 @@
                               {
                                 "kaweth_control": [
                                   {
-                                    "kmalloc": [
+                                    "ldv_kmalloc": [
                                       {
                                         "ldv_check_alloc_flags": []
                                       }
@@ -423,7 +423,7 @@
                   {
                     "kaweth_control": [
                       {
-                        "kmalloc": [
+                        "ldv_kmalloc": [
                           {
                             "ldv_check_alloc_flags": []
                           }
