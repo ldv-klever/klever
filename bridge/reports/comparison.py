@@ -121,7 +121,7 @@ class CompareTree:
 
         self._name_ids = self.__get_attr_names()
         self.tree1 = ReportTree(self._root1, self._name_ids)
-        self.tree2 = ReportTree(self._root1, self._name_ids)
+        self.tree2 = ReportTree(self._root2, self._name_ids)
 
         self.attr_values = {}
         self.__compare_values()
