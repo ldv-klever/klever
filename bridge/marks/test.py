@@ -35,7 +35,7 @@ from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportCompon
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
     SafeTag, UnsafeTag, ReportSafeTag, ReportUnsafeTag, MarkSafeTag, MarkUnsafeTag, SafeReportTag, UnsafeReportTag,\
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkUnsafeCompare, UnknownProblem, \
-    ComponentMarkUnknownProblem, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
+    SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 from reports.test import DecideJobs, SJC_1
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -1076,20 +1076,6 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(UnknownProblem.objects.filter(name='KeyE: attr')), 1)
         self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
 
-        try:
-            cmup = ComponentMarkUnknownProblem.objects.get(
-                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
-            )
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-        except ObjectDoesNotExist:
-            self.fail('Reports cache was not filled')
-
         # Associations changes
         response = self.client.get('/marks/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
@@ -1139,20 +1125,6 @@ class TestMarks(KleverTestCase):
         self.assertEqual(mark_version.function, mark.function)
         self.assertEqual(len(UnknownProblem.objects.filter(name='KeyE: attr')), 1)
         self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
-
-        try:
-            cmup = ComponentMarkUnknownProblem.objects.get(
-                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
-            )
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-        except ObjectDoesNotExist:
-            self.fail('Reports tags cache was not filled')
 
         # Associations changes
         response = self.client.get('/marks/association_changes/%s/' % cache_id)
@@ -1225,7 +1197,6 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', res)
         self.assertEqual(len(MarkUnknown.objects.all()), 0)
         self.assertEqual(len(MarkUnknownReport.objects.all()), 0)
-        self.assertEqual(len(ComponentMarkUnknownProblem.objects.filter(problem__name='KeyE: attr')), 0)
 
         # Upload mark
         with open(os.path.join(settings.MEDIA_ROOT, self.unknown_archive), mode='rb') as fp:
@@ -1251,20 +1222,6 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnknownReport.objects.filter(mark=newmark, report=unknown)), 1)
         self.assertEqual(len(MarkUnknownReport.objects.filter(report=unknown)), 1)
         self.assertEqual(len(UnknownProblem.objects.filter(name='KeyE: attr')), 1)
-
-        try:
-            cmup = ComponentMarkUnknownProblem.objects.get(
-                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
-            )
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-        except ObjectDoesNotExist:
-            self.fail('Reports tags cache was not filled')
 
         # Check non-regexp function
         response = self.client.post('/marks/ajax/check-unknown-mark/', {
@@ -1295,19 +1252,6 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        try:
-            cmup = ComponentMarkUnknownProblem.objects.get(
-                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
-            )
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
-            self.assertEqual(cmup.component, parent.component)
-            self.assertEqual(cmup.problem.name, 'KeyE: attr')
-            self.assertEqual(cmup.number, 1)
-        except ObjectDoesNotExist:
-            self.fail('Reports tags cache was not filled')
 
         # Some more mark changes
         for i in range(4, 6):

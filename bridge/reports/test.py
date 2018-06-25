@@ -1055,8 +1055,8 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'name': 'Rule specification', 'value': subjob['rule']},
-                {'name': 'Verification object', 'value': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule'], 'compare': True, 'associate': True},
+                {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
@@ -1066,8 +1066,8 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             rp = self.__upload_start_report('RP', vrp, [
-                {'name': 'Rule specification', 'value': subjob['rule']},
-                {'name': 'Verification object', 'value': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule'], 'compare': True, 'associate': True},
+                {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -1093,8 +1093,8 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'name': 'Rule specification', 'value': chunk['rule']},
-                {'name': 'Verification object', 'value': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule'], 'compare': True, 'associate': True},
+                {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp), finish=True)
@@ -1106,8 +1106,8 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             rp = self.__upload_start_report('RP', vrp, [
-                {'name': 'Rule specification', 'value': chunk['rule']},
-                {'name': 'Verification object', 'value': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule'], 'compare': True, 'associate': True},
+                {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)

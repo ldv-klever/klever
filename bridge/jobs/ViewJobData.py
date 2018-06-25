@@ -15,15 +15,15 @@
 # limitations under the License.
 #
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, Count, Case, When
+from django.db.models import Q, Count, Case, When, BooleanField, Value
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException
 
-from reports.models import ReportComponentLeaf, ReportAttr, ComponentInstances
+from reports.models import ReportAttr, ComponentInstances, ReportUnknown
+from marks.models import MarkUnknownReport
 
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 
@@ -41,24 +41,17 @@ class ViewJobData:
         self.report = report
         self.view = view
 
-        self.safes_total = None
-        self.unsafes_total = None
-        self.unknowns_total = None
-        self.data = {}
-        self.problems = []
-
         if self.report is None:
             return
-        try:
-            self.__get_view_data()
-        except ObjectDoesNotExist:
-            return
-        if len(self.problems) > 0:
-            self.problems.append((_('Without marks'), '0_0'))
+
+        self.totals = self.__get_totals()
+        self.problems = self.__get_problems()
+        self.data = self.__get_view_data()
 
     def __get_view_data(self):
         if 'data' not in self.view:
-            return
+            return {}
+        data = {}
         actions = {
             'safes': self.__safes_info,
             'unsafes': self.__unsafes_info,
@@ -72,7 +65,29 @@ class ViewJobData:
         }
         for d in self.view['data']:
             if d in actions:
-                self.data[d] = actions[d]()
+                data[d] = actions[d]()
+        return data
+
+    def __get_totals(self):
+        return self.report.leaves.aggregate(
+            safes=Count(Case(When(~Q(safe=None), then=1))),
+            safes_confirmed=Count(Case(When(safe__has_confirmed=True, then=1))),
+            unsafes=Count(Case(When(~Q(unsafe=None), then=1))),
+            unsafes_confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1))),
+            unknowns=Count(Case(When(~Q(unknown=None), then=1)))
+        )
+
+    def __get_problems(self):
+        queryset = MarkUnknownReport.objects.filter(Q(report__root=self.report.root) & ~Q(type=ASSOCIATION_TYPE[2][0]))\
+            .values_list('problem_id', 'problem__name', 'report__component_id', 'report__component__name')\
+            .distinct().order_by('report__component__name', 'problem__name')
+
+        problems = []
+        for p_id, p_name, c_id, c_name in queryset:
+            problems.append(('{0}/{1}'.format(c_name, p_name), '{0}_{1}'.format(c_id, p_id)))
+        if len(problems) > 0:
+            problems.append((_('Without marks'), '0_0'))
+        return problems
 
     def __safe_tags_info(self):
         safe_tag_filter = {}
@@ -167,94 +182,78 @@ class ViewJobData:
         return resource_data
 
     def __unknowns_info(self):
+        url = reverse('reports:unknowns', args=[self.report.pk])
+        no_mark_hidden = 'hidden' in self.view and 'unknowns_nomark' in self.view['hidden']
+        total_hidden = 'hidden' in self.view and 'unknowns_total' in self.view['hidden']
 
-        unknowns_filters = {}
-        components_filters = {}
+        # ==========================
+        # Get querysets for unknowns
+        queryset_fields = ['component_id', 'component__name', 'markreport_set__problem_id',
+                           'markreport_set__problem__name', 'number', 'unconfirmed']
+        order_by_fields = ['component__name', 'markreport_set__problem__name']
+        queryset = ReportUnknown.objects.filter(leaves__report=self.report)
         if 'unknown_component' in self.view:
-            components_filters['component__name__' + self.view['unknown_component'][0]] = \
-                self.view['unknown_component'][1]
-            unknowns_filters.update(components_filters)
+            queryset = queryset.filter(**{
+                'component__name__' + self.view['unknown_component'][0]: self.view['unknown_component'][1]
+            })
+        queryset_total = queryset.values('component_id').annotate(number=Count('id'))\
+            .values_list('component_id', 'component__name', 'number')
+
+        if no_mark_hidden:
+            queryset = queryset.filter(markreport_set__type__in=[ASSOCIATION_TYPE[0][0], ASSOCIATION_TYPE[1][0]])
+            unconfirmed = Value(False, output_field=BooleanField())
+        else:
+            unconfirmed = Case(When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
+                               default=False, output_field=BooleanField())
+
+        queryset = queryset.values('component_id', 'markreport_set__problem_id')\
+            .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed)
 
         if 'unknown_problem' in self.view:
-            unknowns_filters['problem__name__' + self.view['unknown_problem'][0]] = self.view['unknown_problem'][1]
+            queryset = queryset.filter(**{
+                'markreport_set__problem__name__' + self.view['unknown_problem'][0]: self.view['unknown_problem'][1]
+            })
+        queryset = queryset.values_list(*queryset_fields).order_by(*order_by_fields)
+        # ==========================
 
         unknowns_data = {}
-        for cmup in self.report.mark_unknowns_cache.filter(~Q(problem=None) & Q(**unknowns_filters))\
-                .select_related('component', 'problem'):
-            if cmup.component.name not in unknowns_data:
-                unknowns_data[cmup.component.name] = {}
-            problem_tuple = (
-                cmup.component.name + '/' + cmup.problem.name,
-                "%s_%s" % (cmup.component_id, cmup.problem_id)
-            )
-            if problem_tuple not in self.problems:
-                self.problems.append(problem_tuple)
-            unknowns_data[cmup.component.name][cmup.problem.name] = (
-                cmup.number, '%s?component=%s&problem=%s' % (
-                    reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id, cmup.problem_id
-                )
-            )
+        unmarked = {}
+        # Get marked unknowns
+        for c_id, c_name, p_id, p_name, number, unconfirmed in queryset:
+            if p_id is None or unconfirmed:
+                if c_name not in unmarked:
+                    unmarked[c_name] = [0, c_id]
+                unmarked[c_name][0] += number
+            else:
+                if c_name not in unknowns_data:
+                    unknowns_data[c_name] = []
+                unknowns_data[c_name].append({'num': number, 'problem': p_name,
+                                              'href': '{0}?component={1}&problem={2}'.format(url, c_id, p_id)})
 
-        unknowns_sorted = {}
-        for comp in unknowns_data:
-            problems_sorted = []
-            for probl in sorted(unknowns_data[comp]):
-                problems_sorted.append({
-                    'num': unknowns_data[comp][probl][0],
-                    'problem': probl,
-                    'href': unknowns_data[comp][probl][1],
-                })
-            unknowns_sorted[comp] = problems_sorted
-
-        if 'hidden' not in self.view or 'unknowns_nomark' not in self.view['hidden']:
-            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters))\
-                    .select_related('component'):
-                if cmup.component.name not in unknowns_sorted:
-                    unknowns_sorted[cmup.component.name] = []
-                unknowns_sorted[cmup.component.name].append({
-                    'problem': _('Without marks'),
-                    'num': cmup.number,
-                    'href': '%s?component=%s&problem=%s' % (
-                        reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id, 0
-                    )
-                })
-
-        if 'hidden' not in self.view or 'unknowns_total' not in self.view['hidden']:
-            for cmup in self.report.unknowns_cache.filter(**components_filters).select_related('component'):
-                if cmup.component.name not in unknowns_sorted:
-                    unknowns_sorted[cmup.component.name] = []
-                unknowns_sorted[cmup.component.name].append({
-                    'problem': 'total',
-                    'num': cmup.number,
-                    'href': '%s?component=%s' % (reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id)
-                })
-            try:
-                self.unknowns_total = {
-                    'num': self.report.verdict.unknown,
-                    'href': reverse('reports:unknowns', args=[self.report.pk])
-                }
-            except ObjectDoesNotExist:
-                self.unknowns_total = None
-
-        unknowns_sorted_by_comp = []
-        for comp in sorted(unknowns_sorted):
-            unknowns_sorted_by_comp.append({
-                'component': comp,
-                'problems': unknowns_sorted[comp]
+        # Get unmarked unknowns
+        for c_name in unmarked:
+            if c_name not in unknowns_data:
+                unknowns_data[c_name] = []
+            unknowns_data[c_name].append({
+                'num': unmarked[c_name][0], 'problem': _('Without marks'),
+                'href': '{0}?component={1}&problem=0'.format(url, unmarked[c_name][1])
             })
-        self.problems.sort()
-        return unknowns_sorted_by_comp
+
+        if not total_hidden:
+            # Get total unknowns for each component
+            for c_id, c_name, number in queryset_total:
+                if c_name not in unknowns_data:
+                    unknowns_data[c_name] = []
+                unknowns_data[c_name].append({
+                    'num': number, 'problem': 'total', 'href': '{0}?component={1}'.format(url, c_id)
+                })
+        return list({'component': c_name, 'problems': unknowns_data[c_name]} for c_name in sorted(unknowns_data))
 
     def __safes_info(self):
         safes_numbers = {}
-        total_safes = 0
-        total_confirmed = 0
         for verdict, confirmed, total in self.report.leaves.exclude(safe=None).values('safe__verdict').annotate(
                 total=Count('id'), confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
         ).values_list('safe__verdict', 'confirmed', 'total'):
-            total_safes += total
-            total_confirmed += confirmed
-
             href = [None, None]
             if total > 0:
                 href[1] = '%s?verdict=%s' % (reverse('reports:safes', args=[self.report.pk]), verdict)
@@ -300,24 +299,13 @@ class ViewJobData:
             safe_name = 'safe:' + safe_name
             if safe_name in safes_numbers:
                 safes_data.append(safes_numbers[safe_name])
-        if total_safes > 0:
-            self.safes_total = (total_safes, reverse('reports:safes', args=[self.report.pk]))
-            self.safes_total = {
-                'total': (total_safes, reverse('reports:safes', args=[self.report.pk])),
-                'confirmed': (total_confirmed, '%s?confirmed=1' % reverse('reports:safes', args=[self.report.pk]))
-            }
         return safes_data
 
     def __unsafes_info(self):
         unsafes_numbers = {}
-        total_unsafes = 0
-        total_confirmed = 0
         for verdict, confirmed, total in self.report.leaves.exclude(unsafe=None).values('unsafe__verdict').annotate(
                 total=Count('id'), confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))
         ).values_list('unsafe__verdict', 'confirmed', 'total'):
-            total_unsafes += total
-            total_confirmed += confirmed
-
             href = [None, None]
             if total > 0:
                 href[1] = '%s?verdict=%s' % (reverse('reports:unsafes', args=[self.report.pk]), verdict)
@@ -365,11 +353,6 @@ class ViewJobData:
             unsafe_name = 'unsafe:' + unsafe_name
             if unsafe_name in unsafes_numbers:
                 unsafes_data.append(unsafes_numbers[unsafe_name])
-        if total_unsafes > 0:
-            self.unsafes_total = {
-                'total': (total_unsafes, reverse('reports:unsafes', args=[self.report.pk])),
-                'confirmed': (total_confirmed, '%s?confirmed=1' % reverse('reports:unsafes', args=[self.report.pk]))
-            }
         return unsafes_data
 
     def __safes_attrs_statistic(self):
@@ -394,30 +377,39 @@ class ViewJobData:
             raise BridgeException()
 
     def __attr_statistic(self, report_type):
-        reports = set(rid for rid, in ReportComponentLeaf.objects.filter(report=self.report)
-                      .exclude(**{report_type: None}).values_list('%s_id' % report_type))
+        if report_type not in {'safe', 'unsafe', 'unknown'}:
+            return []
+        leaf_column = '"cache_report_component_leaf"."{0}_id"'.format(report_type)
+        queryset = ReportAttr.objects.raw("""
+SELECT "report_attrs"."id", "report_attrs"."attr_id" as "a_id",
+       "attr"."value" as "a_val", "attr_name"."name" as "a_name"
+  FROM "report_attrs"
+  INNER JOIN "cache_report_component_leaf" ON ("report_attrs"."report_id" = {0})
+  INNER JOIN "attr" ON ("report_attrs"."attr_id" = "attr"."id")
+  INNER JOIN "attr_name" ON ("attr"."name_id" = "attr_name"."id")
+  WHERE "cache_report_component_leaf"."report_id" = {1};""".format(leaf_column, self.report.id))
+
         if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
             return []
         attr_name = self.view['attr_stat'][0]
 
+        a_tmpl = None
         if 'attr_stat_filter' in self.view:
             a_tmpl = self.view['attr_stat_filter'][1].lower()
 
         attr_stat_data = {}
-        for a_id, ra_val, a_name in ReportAttr.objects.filter(report_id__in=list(reports))\
-                .values_list('attr_id', 'attr__value', 'attr__name__name'):
-            if a_name != attr_name:
+        for ra in queryset:
+            if ra.a_name != attr_name:
                 continue
             if 'attr_stat_filter' in self.view:
-                a_low = ra_val.lower()
+                a_low = ra.a_val.lower()
                 if self.view['attr_stat_filter'][0] == 'iexact' and a_low != a_tmpl \
                         or self.view['attr_stat_filter'][0] == 'istartswith' and not a_low.startswith(a_tmpl) \
                         or self.view['attr_stat_filter'][0] == 'icontains' and not a_low.__contains__(a_tmpl):
                     continue
 
-            if ra_val not in attr_stat_data:
-                attr_stat_data[ra_val] = {
-                    'num': 0, 'href': '%s?attr=%s' % (reverse('reports:%ss' % report_type, args=[self.report.pk]), a_id)
-                }
-            attr_stat_data[ra_val]['num'] += 1
+            if ra.a_val not in attr_stat_data:
+                attr_stat_data[ra.a_val] = {'num': 0, 'href': '{0}?attr={1}'.format(
+                    reverse('reports:%ss' % report_type, args=[self.report.pk]), ra.a_id)}
+            attr_stat_data[ra.a_val]['num'] += 1
         return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))

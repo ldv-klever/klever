@@ -16,6 +16,7 @@
 #
 
 import json
+from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -23,7 +24,7 @@ from django.db.models import Q, F, Count, Case, When
 from django.template import loader
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import now
 
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
@@ -170,7 +171,7 @@ class ReportMarkTable:
         self.user = user
         self.report = report
         self.view = view
-        self.can_mark = MarkAccess(user, report).can_create()
+        self.can_mark = MarkAccess(user, report=report).can_create()
         self.statuses = MARK_STATUS
         self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):

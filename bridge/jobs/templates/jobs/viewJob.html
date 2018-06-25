@@ -186,7 +186,7 @@
                 {# Data with verification results #}
                 {% include reportdata.view.template with view=reportdata.view %}
                 <br>
-                <div id="job_data_div">{% if reportdata %}{% include 'jobs/DecisionResults.html' %}{% endif %}</div>
+                <div id="job_data_div">{% include 'jobs/DecisionResults.html' %}</div>
             </div>
         </div>
 
@@ -280,21 +280,21 @@
                 <div class="content">
                     <div class="ui grid">
                         <div class="six wide column">
-                            {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.tags_unsafe|length %}
+                            {% if reportdata.totals.unsafes > 0 %}
                                 <div class="ui checkbox">
                                     <label for="dfc__u">{% trans 'Unsafes' %}</label>
                                     <input id="dfc__u" type="checkbox">
                                 </div>
                                 <br>
                             {% endif %}
-                            {% if reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.tags_safe|length %}
+                            {% if reportdata.totals.safes > 0 %}
                                 <div class="ui checkbox">
                                     <label for="dfc__s">{% trans 'Safes' %}</label>
                                     <input id="dfc__s" type="checkbox">
                                 </div>
                                 <br>
                             {% endif %}
-                            {% if reportdata.view_data.unknowns|length %}
+                            {% if reportdata.totals.unknowns > 0 %}
                                 <div class="ui checkbox">
                                     <label for="dfc__f">{% trans 'Unknowns' %}</label>
                                     <input id="dfc__f" type="checkbox">

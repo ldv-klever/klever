@@ -343,16 +343,6 @@ class UnknownAssociationLike(models.Model):
         db_table = "mark_unknown_association_like"
 
 
-class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='mark_unknowns_cache')
-    component = models.ForeignKey(Component, models.PROTECT, related_name='+')
-    problem = models.ForeignKey(UnknownProblem, models.PROTECT, null=True)
-    number = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_mark_unknown_problem'
-
-
 class MarkAssociationsChanges(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     identifier = models.CharField(max_length=255, unique=True)

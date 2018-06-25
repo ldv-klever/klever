@@ -30,7 +30,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from users.models import User
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory,\
     SafeTag, UnsafeTag, ConvertedTraces, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 
@@ -338,7 +338,6 @@ def delete_marks(user, marks_type, mark_ids, report_id=None):
         return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
 
 
-
 class DownloadTags:
     def __init__(self, tags_type):
         self._type = tags_type
@@ -370,6 +369,7 @@ class UpdateAssociationCache:
     def __init__(self, association, recalc):
         self._association = association
         self._recalc = recalc
+        self.__update()
 
     def __update(self):
         if isinstance(self._association, MarkSafeReport):

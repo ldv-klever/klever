@@ -31,7 +31,7 @@ from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE,
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
 
 from users.models import User
-from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
+from reports.models import ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, MarkUnsafeAttr,\
     MarkUnsafeTag, UnsafeTag, UnsafeReportTag, ReportUnsafeTag,\
     MarkUnsafeCompare, ConvertedTraces, UnsafeAssociationLike
@@ -401,11 +401,19 @@ class ConnectMarks:
             old_verdict = unsafe.verdict
             new_verdict = self.__calc_verdict(unsafe_verdicts[unsafe])
             if old_verdict != new_verdict:
-                unsafes_to_update[unsafe] = new_verdict
+                if new_verdict not in unsafes_to_update:
+                    unsafes_to_update[new_verdict] = set()
+                unsafes_to_update[new_verdict].add(unsafe.id)
                 for mark_id in self.changes:
                     if unsafe in self.changes[mark_id]:
                         self.changes[mark_id][unsafe]['verdict2'] = new_verdict
         self.__new_verdicts(unsafes_to_update)
+
+    @transaction.atomic
+    def __new_verdicts(self, unsafes_to_update):
+        self.__is_not_used()
+        for v in unsafes_to_update:
+            ReportUnsafe.objects.filter(id__in=unsafes_to_update[v]).update(verdict=v)
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
@@ -417,27 +425,6 @@ class ConnectMarks:
             else:
                 new_verdict = v
         return new_verdict
-
-    @transaction.atomic
-    def __new_verdicts(self, unsafes):
-        self.__is_not_used()
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        for unsafe in unsafes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=unsafe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[unsafe.verdict]: 0}) \
-                .update(**{verdict_attrs[unsafe.verdict]: F(verdict_attrs[unsafe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[unsafes[unsafe]]: F(verdict_attrs[unsafes[unsafe]]) + 1
-            })
-            unsafe.verdict = unsafes[unsafe]
-            unsafe.save()
 
     def __is_not_used(self):
         pass
@@ -505,24 +492,8 @@ class ConnectReport:
             else:
                 new_verdict = v
         if self._unsafe.verdict != new_verdict:
-            self.__new_verdict(new_verdict)
-
-    @transaction.atomic
-    def __new_verdict(self, new):
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=self._unsafe))
-        Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[self._unsafe.verdict]: 0}) \
-            .update(**{verdict_attrs[self._unsafe.verdict]: F(verdict_attrs[self._unsafe.verdict]) - 1})
-        Verdict.objects.filter(report_id__in=reports).update(**{verdict_attrs[new]: F(verdict_attrs[new]) + 1})
-        self._unsafe.verdict = new
-        self._unsafe.save()
+            self._unsafe.verdict = new_verdict
+            self._unsafe.save()
 
 
 class RecalculateTags:
@@ -612,11 +583,19 @@ class UpdateVerdicts:
             old_verdict = unsafe.verdict
             new_verdict = self.__calc_verdict(unsafe_verdicts[unsafe])
             if old_verdict != new_verdict:
-                unsafes_to_update[unsafe] = new_verdict
+                if new_verdict not in unsafes_to_update:
+                    unsafes_to_update[new_verdict] = set()
+                unsafes_to_update[new_verdict].add(unsafe.id)
                 for mark_id in self.changes:
                     if unsafe in self.changes[mark_id]:
                         self.changes[mark_id][unsafe]['verdict2'] = new_verdict
         self.__new_verdicts(unsafes_to_update)
+
+    @transaction.atomic
+    def __new_verdicts(self, unsafes_to_update):
+        self.__is_not_used()
+        for v in unsafes_to_update:
+            ReportUnsafe.objects.filter(id__in=unsafes_to_update[v]).update(verdict=v)
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
@@ -628,27 +607,6 @@ class UpdateVerdicts:
             else:
                 new_verdict = v
         return new_verdict
-
-    @transaction.atomic
-    def __new_verdicts(self, unsafes):
-        self.__is_not_used()
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        for unsafe in unsafes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=unsafe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[unsafe.verdict]: 0}) \
-                .update(**{verdict_attrs[unsafe.verdict]: F(verdict_attrs[unsafe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[unsafes[unsafe]]: F(verdict_attrs[unsafes[unsafe]]) + 1
-            })
-            unsafe.verdict = unsafes[unsafe]
-            unsafe.save()
 
     def __is_not_used(self):
         pass
@@ -664,10 +622,6 @@ class RecalculateConnections:
         UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
         ReportUnsafe.objects.filter(root__in=self._roots).update(verdict=UNSAFE_VERDICTS[5][0], has_confirmed=False)
-        Verdict.objects.filter(report__root__in=self._roots).update(
-            unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
-            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
-        )
         unsafes = []
         for unsafe in ReportUnsafe.objects.filter(root__in=self._roots):
             ConnectReport(unsafe)

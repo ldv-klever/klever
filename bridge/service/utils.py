@@ -216,7 +216,6 @@ class FinishJobDecision:
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
-        ComponentInstances.objects.filter(report__root__job=self.job, in_progress__gt=0).update(in_progress=0)
         change_job_status(self.job, self.status)
 
     def __remove_tasks(self):

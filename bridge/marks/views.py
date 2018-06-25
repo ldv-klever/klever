@@ -258,7 +258,7 @@ class RemoveVersionsView(LoggedCallMixin, Bview.JsonDetailPostView):
     def get_context_data(self, **kwargs):
         if self.object.version == 0:
             raise BridgeException(_('The mark is being deleted'))
-        if not mutils.MarkAccess(self.request.user, self.object).can_edit():
+        if not mutils.MarkAccess(self.request.user, mark=self.object).can_edit():
             raise BridgeException(_("You don't have an access to edit this mark"))
 
         checked_versions = self.object.versions.filter(version__in=json.loads(self.request.POST['versions']))
@@ -478,10 +478,9 @@ class ChangeAssociationView(LoggedCallMixin, Bview.JsonDetailPostView):
         if queryset is None:
             queryset = self.get_queryset()
         try:
-            obj = queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
+            return queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
         except queryset.model.DoesNotExist:
             raise Http404(_("The accosiation was not found"))
-        return obj
 
     def get_context_data(self, **kwargs):
         recalc = (self.kwargs['act'] == 'unconfirm' or self.object.type == ASSOCIATION_TYPE[2][0])

@@ -21,7 +21,7 @@ import json
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, JOB_WEIGHT
+from bridge.vars import JOB_WEIGHT
 from bridge.utils import BridgeException, logger
 
 import marks.SafeUtils as SafeUtils
@@ -32,7 +32,7 @@ from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR, ConvertedTraces
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ComponentUnknown, Verdict, ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
+    ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
 
 from reports.coverage import FillCoverageCache
 
@@ -109,21 +109,6 @@ class RecalculateLeaves:
         self._leaves.upload()
 
 
-class RecalculateVerdicts:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__recalc()
-
-    def __recalc(self):
-        Verdict.objects.filter(report__root__in=self._roots).delete()
-        ComponentUnknown.objects.filter(report__root__in=self._roots).delete()
-        data = VerdictsData()
-        for leaf in ReportComponentLeaf.objects.filter(report__root__in=self._roots)\
-                .select_related('safe', 'unsafe', 'unknown'):
-            data.add(leaf)
-        data.upload()
-
-
 class RecalculateComponentInstances:
     def __init__(self, roots):
         self.roots = roots
@@ -179,9 +164,7 @@ class Recalculation:
         return roots
 
     def __recalc(self):
-        if self.type == 'verdicts':
-            RecalculateVerdicts(self._roots)
-        elif self.type == 'leaves':
+        if self.type == 'leaves':
             RecalculateLeaves(self._roots)
         elif self.type == 'unsafe':
             UnsafeUtils.RecalculateConnections(self._roots)
@@ -200,7 +183,6 @@ class Recalculation:
             UnsafeUtils.RecalculateConnections(self._roots)
             SafeUtils.RecalculateConnections(self._roots)
             UnknownUtils.RecalculateConnections(self._roots)
-            RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
             RecalculateComponentInstances(self._roots)
             RecalculateCoverageCache(self._roots)
@@ -209,7 +191,6 @@ class Recalculation:
             UnsafeUtils.RecalculateConnections(self._roots)
             SafeUtils.RecalculateConnections(self._roots)
             UnknownUtils.RecalculateConnections(self._roots)
-            RecalculateVerdicts(self._roots)
             RecalculateComponentInstances(self._roots)
             RecalculateCoverageCache(self._roots)
         else:
@@ -344,57 +325,4 @@ class LeavesData(object):
             for unknown in self._data[rep_id]['unknowns']:
                 new_leaves.append(ReportComponentLeaf(report_id=rep_id, unknown_id=unknown))
         ReportComponentLeaf.objects.bulk_create(new_leaves)
-        self.__init__()
-
-
-class VerdictsData(object):
-    def __init__(self):
-        self._verdicts = {}
-        self._unknowns = {}
-
-    def add(self, leaf):
-        if not isinstance(leaf, ReportComponentLeaf):
-            return
-        if leaf.report_id not in self._verdicts:
-            self._verdicts[leaf.report_id] = Verdict(report_id=leaf.report_id)
-        if leaf.safe is not None:
-            self._verdicts[leaf.report_id].safe += 1
-            if leaf.safe.verdict == SAFE_VERDICTS[0][0]:
-                self._verdicts[leaf.report_id].safe_unknown += 1
-            elif leaf.safe.verdict == SAFE_VERDICTS[1][0]:
-                self._verdicts[leaf.report_id].safe_incorrect_proof += 1
-            elif leaf.safe.verdict == SAFE_VERDICTS[2][0]:
-                self._verdicts[leaf.report_id].safe_missed_bug += 1
-            elif leaf.safe.verdict == SAFE_VERDICTS[3][0]:
-                self._verdicts[leaf.report_id].safe_inconclusive += 1
-            elif leaf.safe.verdict == SAFE_VERDICTS[4][0]:
-                self._verdicts[leaf.report_id].safe_unassociated += 1
-        elif leaf.unsafe is not None:
-            self._verdicts[leaf.report_id].unsafe += 1
-            if leaf.unsafe.verdict == UNSAFE_VERDICTS[0][0]:
-                self._verdicts[leaf.report_id].unsafe_unknown += 1
-            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[1][0]:
-                self._verdicts[leaf.report_id].unsafe_bug += 1
-            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[2][0]:
-                self._verdicts[leaf.report_id].unsafe_target_bug += 1
-            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[3][0]:
-                self._verdicts[leaf.report_id].unsafe_false_positive += 1
-            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[4][0]:
-                self._verdicts[leaf.report_id].unsafe_inconclusive += 1
-            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[5][0]:
-                self._verdicts[leaf.report_id].unsafe_unassociated += 1
-        elif leaf.unknown is not None:
-            self._verdicts[leaf.report_id].unknown += 1
-            if (leaf.report_id, leaf.unknown.component_id) not in self._unknowns:
-                self._unknowns[(leaf.report_id, leaf.unknown.component_id)] = 0
-            self._unknowns[(leaf.report_id, leaf.unknown.component_id)] += 1
-
-    def upload(self):
-        Verdict.objects.bulk_create(list(self._verdicts.values()))
-        unknowns_cache = []
-        for u in self._unknowns:
-            unknowns_cache.append(
-                ComponentUnknown(report_id=u[0], component_id=u[1], number=self._unknowns[u])
-            )
-        ComponentUnknown.objects.bulk_create(unknowns_cache)
         self.__init__()

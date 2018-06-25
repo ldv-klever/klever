@@ -264,10 +264,11 @@ class SafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
         values = context['TableData'].table_data['values']
+        number_of_objects = context['TableData'].paginated_values.paginator.count
 
         # If there is only one element in table, and first column of table is link, redirect to this link
         if request.GET.get('view_type') != VIEW_TYPES[5][0] \
-                and values.paginator.count == 1 and isinstance(values[0], list) \
+                and number_of_objects == 1 and isinstance(values[0], list) \
                 and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
             return HttpResponseRedirect(values[0][0]['href'])
         return self.render_to_response(context)

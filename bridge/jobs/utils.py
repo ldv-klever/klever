@@ -23,12 +23,13 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Case, When, IntegerField
+from django.db.models import Count, Case, When, IntegerField, F, BooleanField
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, pytz
 
 from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS, USER_ROLES, JOB_ROLES,\
-    SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
+    SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS,\
+    ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException, file_get_or_create, get_templated_text
 from users.notifications import Notify
 
@@ -64,6 +65,7 @@ TITLES = {
     'author': _('Last change author'),
     'date': _('Last change date'),
     'status': _('Decision status'),
+
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
     'safe:incorrect': _('Incorrect proof'),
@@ -71,6 +73,7 @@ TITLES = {
     'safe:inconclusive': _('Incompatible marks'),
     'safe:unassociated': _('Without marks'),
     'safe:total': _('Total'),
+
     'unsafe': _('Unsafes'),
     'unsafe:bug': _('Bugs'),
     'unsafe:target_bug': _('Target bugs'),
@@ -79,8 +82,10 @@ TITLES = {
     'unsafe:inconclusive': _('Incompatible marks'),
     'unsafe:unassociated': _('Without marks'),
     'unsafe:total': _('Total'),
+
     'problem': _('Unknowns'),
     'problem:total': _('Total'),
+
     'resource': _('Consumed resources'),
     'resource:total': _('Total'),
     'tag': _('Tags'),
@@ -167,16 +172,16 @@ class JobAccess:
     def __init__(self, user, job=None):
         self.user = user
         self.job = job
-        self.__is_author = False
-        self.__job_role = None
-        self.__user_role = user.extended.role
-        self.__is_manager = (self.__user_role == USER_ROLES[2][0])
-        self.__is_expert = (self.__user_role == USER_ROLES[3][0])
-        self.__is_service = (self.__user_role == USER_ROLES[4][0])
-        self.__is_operator = False
+        self._is_author = False
+        self._job_role = None
+        self._user_role = user.extended.role
+        self._is_manager = (self._user_role == USER_ROLES[2][0])
+        self._is_expert = (self._user_role == USER_ROLES[3][0])
+        self._is_service = (self._user_role == USER_ROLES[4][0])
+        self._is_operator = False
         try:
             if self.job is not None:
-                self.__is_operator = (user == self.job.reportroot.user)
+                self._is_operator = (user == self.job.reportroot.user)
         except ObjectDoesNotExist:
             pass
         self.__get_prop(user)
@@ -184,36 +189,52 @@ class JobAccess:
     def klever_core_access(self):
         if self.job is None:
             return False
-        return self.__is_manager or self.__is_service
+        return self._is_manager or self._is_service
 
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_upload_reports(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
         if self.job is None:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role != JOB_ROLES[0][0] or self.__is_expert
+        return self._is_manager or self._is_author or self._job_role != JOB_ROLES[0][0] or self._is_expert
+
+    def can_view_jobs(self, filters=None):
+        queryset = Job.objects.all()
+        if isinstance(filters, dict):
+            queryset = queryset.filter(**filters)
+        elif filters is not None:
+            queryset = queryset.filter(filters)
+        queryset = queryset.only('id')
+
+        all_jobs = set(j_id for j_id, in queryset.values_list('id'))
+
+        if self._is_manager or self._is_expert:
+            return all_jobs
+        author_of = list(jh.job_id for jh in JobHistory.objects.filter(version=1, change_author=self.user))
+        jobs_with_no_access = self.__get_jobs_with_roles([JOB_ROLES[0][0]])
+        return all_jobs - (jobs_with_no_access - author_of)
 
     def can_create(self):
-        return self.__user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
+        return self._user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
 
     def can_edit(self):
         if self.job is None:
             return False
         return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]] \
-            and (self.__is_author or self.__is_manager)
+            and (self._is_author or self._is_manager)
 
     def can_stop(self):
         if self.job is None:
             return False
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_operator or self.__is_manager):
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self._is_operator or self._is_manager):
             return True
         return False
 
@@ -223,11 +244,11 @@ class JobAccess:
         for ch in self.job.children.all():
             if not JobAccess(self.user, ch).can_delete():
                 return False
-        if self.__is_manager and self.job.status == JOB_STATUS[3]:
+        if self._is_manager and self.job.status == JOB_STATUS[3]:
             return True
         if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        return self.__is_author or self.__is_manager
+        return self._is_author or self._is_manager
 
     def can_download(self):
         return self.job is not None and self.job.status != JOB_STATUS[2][0]
@@ -236,12 +257,12 @@ class JobAccess:
         if self.job is None:
             return False
         return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]} \
-            and (self.__is_author or self.__is_manager) and self.job.weight == JOB_WEIGHT[0][0]
+            and (self._is_author or self._is_manager) and self.job.weight == JOB_WEIGHT[0][0]
 
     def can_clear_verifications(self):
         if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}:
             return False
-        if not (self.__is_author or self.__is_manager):
+        if not (self._is_author or self._is_manager):
             return False
         try:
             return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
@@ -252,6 +273,17 @@ class JobAccess:
     def can_dfc(self):
         return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
 
+    def __get_jobs_with_roles(self, roles):
+        jobs = set()
+        for j_id, in UserRole.objects.filter(user=self.user, job__version=F('job__job__version'), role__in=roles) \
+                .values_list('job__job_id'):
+            jobs.add(j_id)
+        for j_id, role in JobHistory.objects.exclude(job_id__in=jobs)\
+                .filter(version=F('job__version'), global_role__in=roles) \
+                .values_list('job_id', 'global_role'):
+            jobs.add(j_id)
+        return jobs
+
     def __get_prop(self, user):
         if self.job is not None:
             try:
@@ -259,12 +291,12 @@ class JobAccess:
                 last_version = self.job.versions.get(version=self.job.version)
             except ObjectDoesNotExist:
                 return
-            self.__is_author = (first_version.change_author == user)
+            self._is_author = (first_version.change_author == user)
             last_v_role = last_version.userrole_set.filter(user=user)
             if len(last_v_role) > 0:
-                self.__job_role = last_v_role[0].role
+                self._job_role = last_v_role[0].role
             else:
-                self.__job_role = last_version.global_role
+                self._job_role = last_version.global_role
 
 
 def get_job_by_identifier(identifier):
@@ -1184,6 +1216,9 @@ class CompareJobVersions:
 
 
 class GetJobDecisionResults:
+    no_mark = 'Without marks'
+    total = 'Total'
+
     def __init__(self, job):
         self.job = job
         try:
@@ -1209,9 +1244,9 @@ class GetJobDecisionResults:
         # Obtaining safes information
         total_safes = 0
         confirmed_safes = 0
-        for verdict, confirmed, total in self._report.leaves.exclude(safe=None).values('safe__verdict').annotate(
-                total=Count('id'), confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
-        ).values_list('safe__verdict', 'confirmed', 'total'):
+        for verdict, total, confirmed in ReportSafe.objects.filter(root=self._report.root).values('verdict')\
+                .annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('verdict', 'total', 'confirmed'):
             data['safes'][verdict] = [confirmed, total]
             confirmed_safes += confirmed
             total_safes += total
@@ -1220,24 +1255,36 @@ class GetJobDecisionResults:
         # Obtaining unsafes information
         total_unsafes = 0
         confirmed_unsafes = 0
-        for verdict, confirmed, total in self._report.leaves.exclude(unsafe=None).values('unsafe__verdict').annotate(
-                total=Count('id'), confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))
-        ).values_list('unsafe__verdict', 'confirmed', 'total'):
+        for verdict, total, confirmed in ReportUnsafe.objects.filter(root=self._report.root).values('verdict')\
+                .annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('verdict', 'total', 'confirmed'):
             data['unsafes'][verdict] = [confirmed, total]
             confirmed_unsafes += confirmed
             total_unsafes += total
         data['unsafes']['total'] = [confirmed_unsafes, total_unsafes]
 
-        # Obtaining unknowns information
-        for cmup in self._report.mark_unknowns_cache.select_related('component', 'problem'):
-            if cmup.component.name not in data['unknowns']:
-                data['unknowns'][cmup.component.name] = {}
-            data['unknowns'][cmup.component.name][cmup.problem.name if cmup.problem else 'Without marks'] = cmup.number
-        for cmup in self._report.unknowns_cache.select_related('component'):
-            if cmup.component.name not in data['unknowns']:
-                data['unknowns'][cmup.component.name] = {}
-            data['unknowns'][cmup.component.name]['Total'] = cmup.number
+        # Marked/Unmarked unknowns
+        unconfirmed = Case(When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
+                           default=False, output_field=BooleanField())
+        queryset = ReportUnknown.objects.filter(root=self._report.root)\
+            .values('component_id', 'markreport_set__problem_id')\
+            .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed)\
+            .values_list('component__name', 'markreport_set__problem__name', 'number', 'unconfirmed')
+        for c_name, p_name, number, unconfirmed in queryset:
+            if p_name is None or unconfirmed:
+                p_name = self.no_mark
+            if c_name not in data['unknowns']:
+                data['unknowns'][c_name] = {}
+            if p_name not in data['unknowns'][c_name]:
+                data['unknowns'][c_name][p_name] = 0
+            data['unknowns'][c_name][p_name] += number
 
+        # Total unknowns for each component
+        for component, number in ReportUnknown.objects.filter(root=self._report.root) \
+                .values('component_id').annotate(number=Count('id')).values_list('component__name', 'number'):
+            if component not in data['unknowns']:
+                data['unknowns'][component] = {}
+            data['unknowns'][component][self.total] = number
         return data
 
     def __get_resources(self):
@@ -1267,7 +1314,9 @@ class GetJobDecisionResults:
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):
             reports[r_id]['attrs'].append([aname, aval])
 
-        for identifier, tag in MarkSafeTag.objects.filter(mark_version__mark__identifier__in=marks) \
+        for identifier, tag in MarkSafeTag.objects\
+                .filter(mark_version__mark__identifier__in=marks,
+                        mark_version__version=F('mark_version__mark__version'))\
                 .order_by('tag__tag').values_list('mark_version__mark__identifier', 'tag__tag'):
             marks[identifier]['tags'].append(tag)
         report_data = []
@@ -1297,7 +1346,9 @@ class GetJobDecisionResults:
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):
             reports[r_id]['attrs'].append([aname, aval])
 
-        for identifier, tag in MarkUnsafeTag.objects.filter(mark_version__mark__identifier__in=marks)\
+        for identifier, tag in MarkUnsafeTag.objects\
+                .filter(mark_version__mark__identifier__in=marks,
+                        mark_version__version=F('mark_version__mark__version'))\
                 .order_by('tag__tag').values_list('mark_version__mark__identifier', 'tag__tag'):
             marks[identifier]['tags'].append(tag)
         report_data = []
