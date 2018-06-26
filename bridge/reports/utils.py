@@ -173,7 +173,7 @@ class SafesListGetData:
             self.args['tag'] = tag
         elif 'attr' in data:
             try:
-                attr = Attr.objects.get(id=data['attr'])
+                attr = Attr.objects.select_related('name').get(id=data['attr'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The attribute was not found"))
             self.title = _('Safes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
@@ -208,7 +208,7 @@ class UnsafesListGetData:
             self.args['tag'] = tag
         elif 'attr' in data:
             try:
-                attr = Attr.objects.get(id=data['attr'])
+                attr = Attr.objects.select_related('name').get(id=data['attr'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The attribute was not found"))
             self.title = _('Unsafes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
@@ -238,12 +238,10 @@ class UnknownsListGetData:
                 self.args['problem'] = problem
         elif 'attr' in data:
             try:
-                attr = Attr.objects.values('name__name', 'value').get(id=data['attr'])
+                attr = Attr.objects.select_related('name').get(id=data['attr'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The attribute was not found"))
-            self.title = _('Unknowns where %(a_name)s is %(a_val)s') % {
-                'a_name': attr['name__name'], 'a_val': attr['value']
-            }
+            self.title = _('Unknowns where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
             self.args['attr'] = attr
 
 
