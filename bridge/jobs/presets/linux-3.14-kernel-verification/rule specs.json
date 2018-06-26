@@ -42,6 +42,8 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
+            "initialize rules": true,
+            "check final state": false,
             "source analysis": {
               "callstack deep search": 3
             },
@@ -79,7 +81,6 @@
                 "linuxInsmod": {
                   "init": "module_init",
                   "exit": "module_exit",
-                  "check final state": false,
                   "add functions as initialization": {
                     "console_initcall": ["console_init"],
                     "fs_initcall": ["tty_init"],
@@ -254,6 +255,8 @@
       "EMG" : {
         "specifications directory": "linux/",
         "entry point": "main",
+        "initialize rules": true,
+        "check final state": false,
         "source analysis": {
           "callstack deep search": 3
         },
@@ -291,7 +294,6 @@
             "linuxInsmod": {
               "init": "module_init",
               "exit": "module_exit",
-              "check final state": false,
               "kernel_initialization": [
                 "early_initcall",
                 "pure_initcall",

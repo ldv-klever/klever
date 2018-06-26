@@ -476,6 +476,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Insert new action and replace this one
             new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
                                         conditions, code, comment)
+            new.trace_relevant = True
 
             if generated_callbacks == 0:
                 process.insert_action(call.name, "<{}>".format(new.name), position='instead')

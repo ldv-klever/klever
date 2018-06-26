@@ -138,14 +138,6 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
     ep.process = ''
     ep.pretty_id = 'linux/initialization'
 
-    initialize_rules = Condition('rules_init')
-    initialize_rules.comment = 'Initialize rule models.'
-    initialize_rules.statements = [
-        'ldv_initialize();'
-    ]
-    ep.actions[initialize_rules.name] = initialize_rules
-    ep.process += '<{}>.'.format(initialize_rules.name)
-
     if len(kernel_initializations) > 0:
         body = [
             "int ret;"
@@ -185,6 +177,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
         ep.add_definition('environment model', 'ldv_kernel_init', addon)
         ki_subprocess = ep.add_condition('kernel_initialization', [], ["%ret% = ldv_kernel_init();"],
                                          'Kernel initialization stage.')
+        ki_subprocess.trace_relevant = True
         ki_success = ep.add_condition('kerninit_success', ["%ret% == 0"], [], "Kernel initialization is successful.")
         ki_failed = ep.add_condition('kerninit_failed', ["%ret% != 0"], [], "Kernel initialization is unsuccessful.")
     if len(inits) > 0:
@@ -198,6 +191,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
                 "%ret% = {}();".format(new_name),
                 "%ret% = ldv_post_init(%ret%);"
             ]
+            init_subprocess.trace_relevant = True
             logger.debug("Found init function {}".format(init_name))
             ep.actions[init_subprocess.name] = init_subprocess
 
@@ -216,6 +210,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
                 model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
                 "{}();".format(new_name)
             ]
+            exit_subprocess.trace_relevant = True
             logger.debug("Found exit function {}".format(exit_name))
             ep.actions[exit_subprocess.name] = exit_subprocess
 
@@ -240,14 +235,9 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
 
     for _, exit_name in exits:
         process += "<{}>.".format(exit_name)
+    # Remove the last dot
+    process = process[:-1]
 
-    if get_conf_property(conf, "check final state"):
-        final_statments = ["ldv_check_final_state();"]
-    else:
-        final_statments = []
-    final_statments += ["ldv_assume(0);"]
-    final = ep.add_condition('final', [], final_statments, "Check rule model state at the exit if required.")
-    process += '<{}>'.format(final.name)
     process += ")" * len(inits)
 
     if len(kernel_initializations) > 0 and len(inits) > 0:
@@ -255,8 +245,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
     elif len(kernel_initializations) == 0 and len(inits) > 0:
         ep.process += process
     elif len(kernel_initializations) > 0 and len(inits) == 0:
-        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process) + \
-                      '.<{}>'.format(final.name)
+        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
     else:
         raise NotImplementedError("There is no both kernel initilization functions and module initialization functions")
     return ep

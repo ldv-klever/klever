@@ -430,6 +430,7 @@ class Action:
         self.name = name
         self.comment = None
         self.condition = None
+        self.trace_relevant = False
 
 
 class Subprocess(Action):

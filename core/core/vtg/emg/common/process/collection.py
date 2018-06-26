@@ -52,6 +52,7 @@ class ProcessCollection:
         'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
+        'entry point': 'trace_relevant'
     }
 
     def __init__(self, logger, conf):
@@ -172,6 +173,8 @@ class ProcessCollection:
                 d['comment'] = action.comment
             if action.condition:
                 d['condition'] = action.condition
+            if action.trace_relevant:
+                d['entry point'] = action.trace_relevant
 
             if isinstance(action, Subprocess):
                 d['process'] = action.process

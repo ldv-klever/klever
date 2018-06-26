@@ -49,7 +49,8 @@ class AbstractProcessImporter(ProcessCollection):
         'pre-call': 'pre_call',
         'post-call': 'post_call',
         'callback': None,
-        'callback return value': 'retlabel'
+        'callback return value': 'retlabel',
+        'entry point': 'trace_relevant'
 
     }
 

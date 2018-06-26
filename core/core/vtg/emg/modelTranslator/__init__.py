@@ -113,8 +113,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     cmodel.add_headers(entry_file, get_necessary_conf_property(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
-    entry_fsa = Automaton(processes.entry, 0)
-    identifier_cnt = 1
+    entry_fsa = Automaton(processes.entry, 1)
+    identifier_cnt = 2
     model_fsa = []
     main_fsa = []
     for process in processes.models.values():
