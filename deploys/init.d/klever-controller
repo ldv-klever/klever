@@ -48,7 +48,7 @@ case "$1" in
             exit 0
         fi
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --exec ${DAEMON} -- ${CONFFILE}
+            --exec "${DAEMON}" -- "${CONFFILE}"
         then
             rc=0
             sleep 1

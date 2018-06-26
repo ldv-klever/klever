@@ -46,7 +46,7 @@ case "$1" in
             log_end_msg 0
             exit 0
         fi
-        if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile  --chdir ${WORKDIR} \
+        if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile  --chdir "${WORKDIR}" \
             --exec ${DAEMON} -- runserver 0.0.0.0:8998
         then
             rc=0
