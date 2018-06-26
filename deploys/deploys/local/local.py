@@ -138,7 +138,7 @@ class Klever:
                 execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
 
         with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\n'.format(os.path.realpath(self.args.deployment_directory)))
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
