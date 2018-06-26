@@ -163,7 +163,7 @@ function get_comparison_by_attrs(attrs, page_num) {
         hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
         hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
     };
-    $.post('/reports/ajax/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
+    $.post('/reports/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
         if (data.error) {
             err_notify(data.error);
             $('#compare_data').empty();
