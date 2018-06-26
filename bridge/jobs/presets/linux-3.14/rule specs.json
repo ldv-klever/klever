@@ -177,7 +177,8 @@
                   "Linux 3.2": {
                     "exclude": [
                       "linux/iio/iio.h",
-                      "linux/iio/triggered_buffer.h"
+                      "linux/iio/triggered_buffer.h",
+                      "target/target_core_backend.h"
                     ]
                   },
                   "Linux 2.6.33": {
