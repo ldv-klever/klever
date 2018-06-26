@@ -121,7 +121,8 @@ class CModel:
             prefix = 'AUX_FUNC'
         self._function_definitions[file][function.name] = list(function.get_definition())
         if not function.control_function:
-            self._function_definitions[file][function.name] += ['/* {} {} */\n'.format(prefix, function.name)]
+            self._function_definitions[file][function.name] = ['/* {} {} */\n'.format(prefix, function.name)] + \
+                                                              self._function_definitions[file][function.name]
 
         self.add_function_declaration(file, function, extern=False)
 
