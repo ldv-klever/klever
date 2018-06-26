@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2018 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ class Klever:
         self._read_deploy_conf_file()
 
         self.logger.info('Create deployment directory')
-        os.makedirs(self.args.deployment_directory)
+        os.makedirs(self.args.deployment_directory, exist_ok=True)
 
         self.logger.info('Install init.d scripts')
         for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
@@ -138,7 +138,7 @@ class Klever:
                 execute_cmd(self.logger, 'update-rc.d', filename, 'defaults')
 
         with open('/etc/default/klever', 'w') as fp:
-            fp.write('KLEVER_DEPLOYMENT_DIRECTORY={0}\n'.format(os.path.realpath(self.args.deployment_directory)))
+            fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
@@ -172,9 +172,24 @@ class Klever:
         if os.path.exists('/etc/default/klever'):
             os.unlink('/etc/default/klever')
 
-        if os.path.exists(self.args.deployment_directory):
-            self.logger.info('Remove deployment directory')
-            shutil.rmtree(self.args.deployment_directory)
+        # Removing individual directories and files rather than the whole deployment directory allows to use standard
+        # locations like "/", "/usr" or "/usr/local" for deploying Klever.
+        for path in (
+                'klever',
+                'klever-addons',
+                'klever-conf',
+                'klever-programs',
+                'klever-work',
+                'klever-media',
+                'klever.json'
+        ):
+            path = os.path.join(self.args.deployment_directory, path)
+            if os.path.exists(path) or os.path.islink(path):
+                self.logger.info('Remove "{0}"'.format(path))
+                if os.path.islink(path) or os.path.isfile(path):
+                    os.remove(path)
+                else:
+                    shutil.rmtree(path)
 
         try:
             pwd.getpwnam('postgres')

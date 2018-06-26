@@ -51,7 +51,7 @@
             "ldv_usb_lock_device_for_reset": []
           },
           {
-            "kmalloc": [
+            "ldv_kmalloc": [
               {
                 "ldv_check_alloc_flags": [
                   {

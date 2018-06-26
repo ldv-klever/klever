@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,24 @@
  * limitations under the License.
  */
 
-#include <linux/ldv/slab.h>
-#include <verifier/memory.h>
+#include <linux/module.h>
+#include <linux/slab.h>
 
-void *ldv_kzalloc(size_t size, gfp_t flags)
+static int __init ldv_init(void)
 {
-	void *res;
+	int *buf;
+	int i, j;
 
-	ldv_check_alloc_flags(flags);
-	res = ldv_zalloc(size);
-	ldv_after_alloc(res);
+	buf = kzalloc(10 * sizeof(int), GFP_KERNEL);
+	if (!buf)
+		return 0;
 
-	return res;
+	for (i = 0; i < 10; i++)
+		j += buf[i];
+
+	kfree(buf);
+
+	return 0;
 }
+
+module_init(ldv_init);

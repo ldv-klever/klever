@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2017-2018 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -555,17 +555,3 @@ class OSKleverExperimentalInstances(OSEntity):
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
-
-
-def execute_os_entity_action(args, logger):
-    logger.info('{0} {1}'.format(args.action.capitalize(), args.entity))
-
-    if args.entity == 'Klever base image':
-        getattr(OSKleverBaseImage(args, logger), args.action)()
-    elif args.entity == 'Klever developer instance':
-        getattr(OSKleverDeveloperInstance(args, logger), args.action)()
-    elif args.entity == 'Klever experimental instances':
-        getattr(OSKleverExperimentalInstances(args, logger), args.action)()
-    else:
-        logger.error('Entity "{0}" is not supported'.format(args.entity))
-        return errno.ENOSYS

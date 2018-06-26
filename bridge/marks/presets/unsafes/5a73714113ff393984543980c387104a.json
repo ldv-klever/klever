@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv_rtnl_lock_6": [
+            "ldv_rtnl_lock_9": [
               {
                 "ldv_past_rtnl_lock": [
                   {
@@ -59,7 +59,7 @@
             ]
           },
           {
-            "ldv_rtnl_lock_7": [
+            "ldv_rtnl_lock_10": [
               {
                 "ldv_past_rtnl_lock": [
                   {
