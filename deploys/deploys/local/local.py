@@ -184,7 +184,7 @@ class Klever:
                 'klever.json'
         ):
             path = os.path.join(self.args.deployment_directory, path)
-            if os.path.exists(path):
+            if os.path.exists(path) or os.path.islink(path):
                 self.logger.info('Remove "{0}"'.format(path))
                 if os.path.islink(path) or os.path.isfile(path):
                     os.remove(path)
