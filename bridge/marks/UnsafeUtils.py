@@ -322,7 +322,8 @@ class ConnectMarks:
             if mark_id not in marks_attrs:
                 marks_attrs[mark_id] = set()
             marks_attrs[mark_id].add(attr_id)
-        for m_id, f_name, pattern_id in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
+        for m_id, f_name, pattern_id in MarkUnsafeHistory.objects\
+                .filter(mark_id__in=marks_attrs, version=F('mark__version'))\
                 .values_list('mark_id', 'function__name', 'error_trace_id'):
             self._functions[m_id] = f_name
             self._patterns[m_id] = pattern_id
