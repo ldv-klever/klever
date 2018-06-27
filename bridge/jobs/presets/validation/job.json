@@ -20,7 +20,8 @@
       },
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
       "Linux kernel": {
@@ -29,7 +30,8 @@
       },
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
       "Linux kernel": {
@@ -37,7 +39,8 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "60b35930067d~"}
     },
     {
       "Linux kernel": {
@@ -45,7 +48,8 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "60b35930067d~"}
     },
     {
       "Linux kernel": {
@@ -53,7 +57,8 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "214c97a12f1f"}
     },
     {
       "Linux kernel": {
@@ -61,7 +66,8 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "214c97a12f1f"}
     },
     {
       "Linux kernel": {
@@ -70,7 +76,8 @@
       },
       "specifications set": "Linux 3.5",
       "rule specifications": ["linux:alloc:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
       "Linux kernel": {
@@ -79,9 +86,8 @@
       },
       "specifications set": "Linux 3.5",
       "rule specifications": ["linux:alloc:spinlock"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
       "Linux kernel": {
@@ -89,7 +95,8 @@
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "448356262f56~"}
     },
     {
       "Linux kernel": {
@@ -97,7 +104,8 @@
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "448356262f56~"}
     },
     {
       "Linux kernel": {
@@ -105,7 +113,8 @@
         "modules": ["drivers/spi/spi-imx.ko"]
       },
       "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
       "Linux kernel": {
@@ -113,7 +122,8 @@
         "modules": ["drivers/spi/spi-imx.ko"]
       },
       "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
       "Linux kernel": {
@@ -121,7 +131,8 @@
         "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
       },
       "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "bff71889260f~"}
     },
     {
       "Linux kernel": {
@@ -129,7 +140,8 @@
         "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
       },
       "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "bff71889260f~"}
     },
     {
       "Linux kernel": {
@@ -137,7 +149,8 @@
         "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
       },
       "rule specifications": ["linux:drivers:clk2"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
       "Linux kernel": {
@@ -145,7 +158,8 @@
         "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
       },
       "rule specifications": ["linux:drivers:clk2"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
       "Linux kernel": {
@@ -153,9 +167,8 @@
         "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
       },
       "rule specifications": ["linux:drivers:clk2"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
       "Linux kernel": {
@@ -163,9 +176,8 @@
         "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
       },
       "rule specifications": ["linux:drivers:clk2"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
       "Linux kernel": {
@@ -173,9 +185,8 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "5c256d215753~"}
     },
     {
       "Linux kernel": {
@@ -183,7 +194,8 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "5c256d215753~"}
     },
     {
       "Linux kernel": {
@@ -191,9 +203,8 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
       "Linux kernel": {
@@ -201,7 +212,8 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
       "Linux kernel": {
@@ -213,9 +225,8 @@
         "drivers/leds/leds-lp5521.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "ac4de081312a~"}
     },
     {
       "Linux kernel": {
@@ -227,7 +238,8 @@
         "drivers/leds/leds-lp5521.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "ac4de081312a~"}
     },
     {
       "Linux kernel": {
@@ -239,9 +251,8 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "ac4de081312a~"}
     },
     {
       "Linux kernel": {
@@ -253,7 +264,8 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "ac4de081312a~"}
     },
     {
       "Linux kernel": {
@@ -265,9 +277,8 @@
         "drivers/w1/masters/ds2482.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
       "Linux kernel": {
@@ -279,7 +290,8 @@
         "drivers/w1/masters/ds2482.ko"
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
       "Linux kernel": {
@@ -287,9 +299,8 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "ae3f34854485~"}
     },
     {
       "Linux kernel": {
@@ -297,9 +308,8 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "ae3f34854485~"}
     },
     {
       "Linux kernel": {
@@ -307,9 +317,8 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:kernel:module"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "44f694330e1e~"}
     },
     {
       "Linux kernel": {
@@ -317,9 +326,8 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:kernel:module"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "44f694330e1e~"}
     },
     {
       "Linux kernel": {
@@ -331,9 +339,8 @@
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
       "Linux kernel": {
@@ -345,9 +352,8 @@
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "ideal verdicts": [{
-        "ideal verdict": "safe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
       "Linux kernel": {
@@ -360,9 +366,8 @@
       ]]}},
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:kernel:locking:spinlock"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe"
-      }]
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "data": {"bug identifier": "9aaf9678ea3e~"}
     },
     {
       "Linux kernel": {
@@ -375,7 +380,8 @@
       ]]}},
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:kernel:locking:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
+      "data": {"bug identifier": "9aaf9678ea3e~"}
     }
   ],
   "Source code > 25 KLOC": [
