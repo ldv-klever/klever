@@ -207,16 +207,7 @@ $(document).ready(function () {
     });
     $('#search_by_attrs').click(function () {
         var attrs = [];
-        $('select[id^="attr_value__"]').each(function () {
-            if ($(this).val() != '0') {
-                attrs.push($(this).val());
-            }
-            else {
-                attrs.push("__REGEXP_ANY__");
-            }
-        });
-        if (attrs) {
-            get_comparison_by_attrs(JSON.stringify(attrs), 1);
-        }
+        $('select[id^="attr_value__"]').each(function () { attrs.push($(this).val()) });
+        if (attrs) get_comparison_by_attrs(JSON.stringify(attrs), 1);
     });
 });
