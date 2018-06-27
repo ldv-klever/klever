@@ -10,6 +10,7 @@
         {"-setprop": "cpa.arg.witness.exportSourcecode=true"},
         {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "limits.time.cpu=%ldv:CPU time:0.9:s%s"},
+        {"-setprop": "analysis.machineModel=LINUX64"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ]
     },
