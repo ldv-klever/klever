@@ -336,8 +336,8 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
             new_marks.append((res.type, res.mark.id))
 
         if len(new_marks) == 1:
-            return JsonResponse({'type': new_marks[0][0], 'id': str(new_marks[0][1])})
-        return JsonResponse({'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}})
+            return {'type': new_marks[0][0], 'id': str(new_marks[0][1])}
+        return {'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}}
 
 
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
