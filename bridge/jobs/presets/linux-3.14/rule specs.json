@@ -676,6 +676,8 @@
       "EMG": {
         "specifications directory": "linux/",
         "entry point": "main",
+        "initialize rules": true,
+        "check final state": false,
         "source analysis": {
           "callstack deep search": 3
         },
@@ -713,7 +715,6 @@
             "linuxInsmod": {
               "init": "module_init",
               "exit": "module_exit",
-              "check final state": true,
               "kernel_initialization": [
                 "early_initcall",
                 "pure_initcall",
