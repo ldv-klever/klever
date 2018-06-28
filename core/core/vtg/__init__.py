@@ -283,7 +283,6 @@ def collect_plugin_callbacks(conf, logger):
     # Find appropriate classes for plugins if so.
     for rule_spec_desc in _rule_spec_descs:
         for plugin_desc in rule_spec_desc['plugins']:
-            logger.info('Load plugin "{0}"'.format(plugin_desc['name']))
             try:
                 plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtg'),
                                  plugin_desc['name'])
