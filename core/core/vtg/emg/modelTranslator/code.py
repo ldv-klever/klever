@@ -343,9 +343,10 @@ class CModel:
 
         if get_conf_property(self._conf, "initialize rules"):
             body += [
-                '/* LDV {"action": "INIT", "type": "CONDITION_BEGIN", "comment": "Initialize rule models."} */',
+                '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
+                '"comment": "Initialize rule models."} */',
                 'ldv_initialize();',
-                '/* LDV {"action": "INIT", "type": "CONDITION_END"} */'
+                '/* LDV {"action": "INIT", "type": "CALL_END"} */'
             ]
 
         body += ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_BEGIN", '
@@ -354,10 +355,10 @@ class CModel:
 
         if get_conf_property(self._conf, "check final state"):
             body += [
-                '/* LDV {"action": "FINAL", "type": "CONDITION_BEGIN", '
+                '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
                 '"comment": "Check rule model state at the exit if required."} */',
                 'ldv_check_final_state();',
-                '/* LDV {"action": "FINAL", "type": "CONDITION_END"} */'
+                '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
             ]
 
         body.append('return 0;')
