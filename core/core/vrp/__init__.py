@@ -193,7 +193,7 @@ class VRP(core.components.Component):
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
             finally:
                 self.mqs['processed tasks'].put((vo, rule))
-                self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
+                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -469,7 +469,7 @@ class RP(core.components.Component):
 
         # Save coverage in 'total coverages' dir
         coverage_info_dir = os.path.join('total coverages',
-                                         self.conf['sub-job identifier'],
+                                         self.conf['job identifier'].replace('/', '-'),
                                          self.rule_specification.replace('/', '-'))
         os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
@@ -485,7 +485,7 @@ class RP(core.components.Component):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
                                                         list(self.verification_coverage.arcnames.keys()),
                                                         arcnames=self.verification_coverage.arcnames)
-            self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
+            self.vals['coverage_finished'][self.conf['job identifier']] = False
 
         core.utils.report(self.logger,
                           'verification',
