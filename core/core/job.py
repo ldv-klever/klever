@@ -473,7 +473,7 @@ class JCR(core.components.Component):
                     break
 
                 sub_job_id = coverage_info['sub-job identifier']
-                self.logger.debug('Get coverage for job {!r}'.format(sub_job_id))
+                self.logger.debug('Get coverage for sub-job {!r}'.format(sub_job_id))
                 if 'coverage info file' in coverage_info:
                     if sub_job_id not in total_coverage_infos:
                         total_coverage_infos[sub_job_id] = dict()
