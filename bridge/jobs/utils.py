@@ -1062,7 +1062,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
             return False
-        if len(self.configuration[3][1].strip()) == 0 or len(self.configuration[3][3].strip()) == 0:
+        if len(self.configuration[3][1].strip()) == 0 or len(self.configuration[3][3].strip()):
             return False
         if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
             return False
