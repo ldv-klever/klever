@@ -28,8 +28,9 @@ from bridge.utils import BridgeException
 
 from users.models import User
 from jobs.models import Job
-from reports.models import AttrName, Attr, ReportAttr, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    ReportComponentLeaf, CompareJobsInfo, CompareJobsCache
+from reports.models import AttrName, Attr, ReportAttr, ReportComponentLeaf, CompareJobsInfo, CompareJobsCache,\
+    Report, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
 from jobs.utils import JobAccess
@@ -53,16 +54,19 @@ class ReportTree:
         self.__get_tree(root)
 
     def __get_tree(self, root):
+        core_id = None
+        for r_id, p_id in Report.objects.filter(root=root).values_list('id', 'parent_id'):
+            self._report_tree[r_id] = p_id
+            if p_id is None:
+                core_id = r_id
+
         leaves_fields = {'u': 'unsafe_id', 's': 'safe_id', 'f': 'unknown_id'}
-        only = list(leaves_fields.values())
-        only.append('report__parent_id')
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root).select_related('report').only(*only):
-            # There is often safes > unknowns > unsafes
+        # core has all leaves of the job
+        for leaf in ReportComponentLeaf.objects.filter(report_id=core_id).values('safe_id', 'unsafe_id', 'unknown_id'):
+            # There is often number of safes > unknowns > unsafes
             for l_type in 'sfu':
-                l_id = leaf.__getattribute__(leaves_fields[l_type])
+                l_id = leaf[leaves_fields[l_type]]
                 if l_id is not None:
-                    self._report_tree[l_id] = leaf.report_id
-                    self._report_tree[leaf.report_id] = leaf.report.parent_id
                     self._leaves[l_type].add(l_id)
                     break
 
@@ -121,7 +125,7 @@ class CompareTree:
 
         self._name_ids = self.__get_attr_names()
         self.tree1 = ReportTree(self._root1, self._name_ids)
-        self.tree2 = ReportTree(self._root1, self._name_ids)
+        self.tree2 = ReportTree(self._root2, self._name_ids)
 
         self.attr_values = {}
         self.__compare_values()
