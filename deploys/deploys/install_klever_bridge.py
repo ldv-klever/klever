@@ -41,7 +41,7 @@ def _install_klever_bridge(logger):
     logger.info('Migrate database')
     execute_cmd(logger, './manage.py', 'migrate')
 
-    logger.info('Populate databace')
+    logger.info('Populate database')
     execute_cmd(logger, './manage.py', 'PopulateUsers', '--exist-ok',
                 '--admin', '{"username": "admin", "password": "admin"}',
                 '--manager', '{"username": "manager", "password": "manager"}',
