@@ -1039,7 +1039,8 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][1] not in set(x[0] for x in SCHEDULER_TYPE):
             return False
-        if not isinstance(self.configuration[0][2], int) or self.configuration[0][2] < 1:
+        if not isinstance(self.configuration[0][2], int) or \
+                (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
             return False
         for i in range(4):
             if not isinstance(self.configuration[1][i], (float, int)):
@@ -1061,8 +1062,6 @@ class GetConfiguration(object):
         if self.configuration[3][2] not in settings.LOGGING_LEVELS:
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
-            return False
-        if len(self.configuration[3][1].strip()) == 0 or len(self.configuration[3][3].strip()):
             return False
         if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
             return False
