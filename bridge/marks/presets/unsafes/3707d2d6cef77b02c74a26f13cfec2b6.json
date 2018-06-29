@@ -49,15 +49,11 @@
         "ldv_switch_to_interrupt_context": []
       },
       {
-        "ldv_interrupt_scenario_handler_2_5": [
+        "ldv_handler": [
           {
-            "ldv_handler": [
+            "ldv_check_alloc_nonatomic": [
               {
-                "ldv_check_alloc_nonatomic": [
-                  {
-                    "ldv_assert_linux_alloc_irq__nonatomic": []
-                  }
-                ]
+                "ldv_assert_linux_alloc_irq__nonatomic": []
               }
             ]
           }

@@ -54,43 +54,39 @@
                   {
                     "ldv_emg_sock_register": [
                       {
-                        "ldv_sock_register_create_8_6": [
+                        "tipc_sk_create": [
                           {
-                            "tipc_sk_create": [
+                            "tipc_createport": [
                               {
-                                "tipc_createport": [
+                                "ldv_spin_lock_bh_61___1": [
                                   {
-                                    "ldv_spin_lock_bh_61___1": [
+                                    "ldv_spin_lock_tipc_port_list_lock": [
                                       {
-                                        "ldv_spin_lock_tipc_port_list_lock": [
-                                          {
-                                            "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "ldv_spin_unlock_bh_62___1": [
-                                      {
-                                        "ldv_spin_unlock_tipc_port_list_lock": [
-                                          {
-                                            "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
-                                          }
-                                        ]
+                                        "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_lock": []
                                       }
                                     ]
                                   }
                                 ]
                               },
                               {
-                                "ldv_spin_unlock_bh_60___0": [
+                                "ldv_spin_unlock_bh_62___1": [
                                   {
-                                    "ldv_spin_unlock_lock_of_tipc_port": [
+                                    "ldv_spin_unlock_tipc_port_list_lock": [
                                       {
                                         "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
                                       }
                                     ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ldv_spin_unlock_bh_60___0": [
+                              {
+                                "ldv_spin_unlock_lock_of_tipc_port": [
+                                  {
+                                    "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
                                   }
                                 ]
                               }

@@ -46,13 +46,9 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_net_sock__all_locked_sockets_must_be_released": []
-              }
-            ]
+            "ldv_assert_linux_net_sock__all_locked_sockets_must_be_released": []
           }
         ]
       }
@@ -63,7 +59,7 @@
           {
             "lock_sock": [
               {
-                "ldv_lock_sock_nested_6": [
+                "ldv_lock_sock_nested_9": [
                   {
                     "ldv_past_lock_sock_nested": []
                   }

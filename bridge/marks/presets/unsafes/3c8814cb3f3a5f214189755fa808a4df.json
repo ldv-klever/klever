@@ -46,29 +46,21 @@
   "error trace": [
     [
       {
-        "ldv_main_12": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_drivers_clk1__more_at_exit": []
-              },
-              {
-                "ldv_assert_linux_drivers_clk1__more_at_exit": []
-              }
-            ]
+            "ldv_assert_linux_drivers_clk1__more_at_exit": []
+          },
+          {
+            "ldv_assert_linux_drivers_clk1__more_at_exit": []
           }
         ]
       }
     ],
     [
       {
-        "ldv_platform_instance_probe_4_14": [
+        "mxs_lradc_probe": [
           {
-            "mxs_lradc_probe": [
-              {
-                "ldv_clk_enable_clk_of_mxs_lradc": []
-              }
-            ]
+            "ldv_clk_enable_clk_of_mxs_lradc": []
           }
         ]
       }
