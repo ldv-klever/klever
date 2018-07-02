@@ -42,7 +42,7 @@
     }
   ],
   "comparison": "thread_call_forests",
-  "description": "Different argument signatures are calculated for the same object (fundamental limitation of approach).",
+  "description": "Verifier needs model for vzalloc() to bypass this false alarm.",
   "error trace": [
     [
       {
@@ -107,7 +107,7 @@
   "is_modifiable": true,
   "status": "2",
   "tags": [
-    "Rule"
+    "KernelModel"
   ],
   "verdict": "3"
 }
