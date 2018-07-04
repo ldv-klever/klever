@@ -33,8 +33,7 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
-from bridge.utils import logger, file_get_or_create, extract_archive, get_templated_text,\
-    BridgeException
+from bridge.utils import logger, file_get_or_create, extract_archive, BridgeException
 
 from users.models import User
 from reports.models import ReportComponent, ReportRoot
@@ -51,6 +50,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen,\
     UploadReportsWithoutDecision, JobsTreesGen, UploadTree
+from jobs.configuration import get_configuration_value, GetConfiguration, StartDecisionData
 
 
 @method_decorator(login_required, name='dispatch')
@@ -426,27 +426,20 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
             raise BridgeException(back=reverse('jobs:prepare_run', args=[self.object.pk]))
 
     def get_context_data(self, **kwargs):
+        context = {'job': self.object}
         if self.request.method == 'POST':
-            conf_name = self.request.POST['conf_name']
-            if conf_name == 'file_conf':
-                if 'file_conf' not in self.request.FILES:
-                    raise BridgeException(code=301)
-                configuration = jobs.utils.GetConfiguration(
-                    file_conf=json.loads(self.request.FILES['file_conf'].read().decode('utf8'))
-                ).configuration
-            else:
-                configuration = jobs.utils.GetConfiguration(conf_name=conf_name).configuration
-        else:
-            conf_name = settings.DEF_KLEVER_CORE_MODE
-            configuration = jobs.utils.GetConfiguration(conf_name=conf_name).configuration
-        if configuration is None:
-            raise BridgeException(_('Configuration is wrong'))
+            context['current_conf'] = self.request.POST['conf_name']
 
-        return {
-            'job': self.object, 'current_conf': conf_name,
-            'configurations': jobs.utils.get_default_configurations(),
-            'data': jobs.utils.StartDecisionData(self.request.user, configuration)
-        }
+            if context['current_conf'] == 'file_conf':
+                conf_args = {'file_conf': self.request.FILES['file_conf']}
+            else:
+                conf_args = {'conf_name': context['current_conf']}
+        else:
+            context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
+            conf_args = {'conf_name': context['current_conf']}
+
+        context['data'] = StartDecisionData(self.request.user, **conf_args)
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -464,43 +457,26 @@ class DownloadRunConfigurationView(LoggedCallMixin, SingleObjectMixin, Bview.Str
 
 class GetDefStartJobValue(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
-        name = self.request.POST['name']
-        value = self.request.POST['value']
-
-        if name == 'formatter' and value in settings.KLEVER_CORE_LOG_FORMATTERS:
-            return {'value': settings.KLEVER_CORE_LOG_FORMATTERS[value]}
-
-        parallelism_names = ['sub_jobs_proc_parallelism', 'build_parallelism',
-                             'tasks_gen_parallelism', 'results_processing_parallelism']
-        for i in range(len(parallelism_names)):
-            if name == parallelism_names[i] and value in settings.KLEVER_CORE_PARALLELISM_PACKS:
-
-                return {'value': get_templated_text(
-                    '{% load l10n %}{{ val|localize }}', val=settings.KLEVER_CORE_PARALLELISM_PACKS[value][i]
-                )}
-        raise BridgeException()
+        return get_configuration_value(self.request.POST['name'], self.request.POST['value'])
 
 
 class StartDecision(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
-        getconf_args = {}
+        getconf_kwargs = {}
 
         if self.request.POST['mode'] == 'data':
-            getconf_args['user_conf'] = json.loads(self.request.POST['data'])
+            getconf_kwargs['user_conf'] = json.loads(self.request.POST['data'])
         elif self.request.POST['mode'] == 'fast':
-            getconf_args['conf_name'] = settings.DEF_KLEVER_CORE_MODE
+            getconf_kwargs['conf_name'] = settings.DEF_KLEVER_CORE_MODE
         elif self.request.POST['mode'] == 'lastconf':
             last_run = RunHistory.objects.filter(job_id=self.kwargs['job_id']).order_by('date').last()
             if last_run is None:
                 raise BridgeException(_('The job was not decided before'))
-            with last_run.configuration.file as fp:
-                getconf_args['file_conf'] = json.loads(fp.read().decode('utf8'))
+            getconf_kwargs['last_run'] = last_run
 
-        StartJobDecision(
-            self.request.user, self.kwargs['job_id'], jobs.utils.GetConfiguration(**getconf_args).configuration
-        )
+        StartJobDecision(self.request.user, self.kwargs['job_id'], GetConfiguration(**getconf_kwargs).configuration)
         return {}
 
 

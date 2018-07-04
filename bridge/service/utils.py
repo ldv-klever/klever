@@ -807,13 +807,13 @@ class NodesData(object):
 
 
 class StartJobDecision:
-    def __init__(self, user, job_id, data, fake=False):
+    def __init__(self, user, job_id, configuration, fake=False):
         self.operator = user
-        self.data = data
         self._fake = fake
+        self.configuration = configuration
         self.job = self.__get_job(job_id)
         self.job_scheduler = self.__get_scheduler()
-        self.klever_core_data = self.__get_klever_core_data()
+
         self.__check_schedulers()
         self.progress = self.__create_solving_progress()
         try:
@@ -822,77 +822,12 @@ class StartJobDecision:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.weight = self.data[4][8]
+        self.job.weight = self.configuration.weight
         self.job.save()
-
-    def __get_klever_core_data(self):
-        scheduler = SCHEDULER_TYPE[0][1]
-        for sch in SCHEDULER_TYPE:
-            if sch[0] == self.data[0][1]:
-                scheduler = sch[1]
-                break
-        return {
-            'identifier': self.job.identifier,
-            'priority': self.data[0][0],
-            'max solving tasks per sub-job': self.data[0][2],
-            'task scheduler': scheduler,
-            'resource limits': {
-                'memory size': int(self.data[2][0] * 10**9),
-                'number of CPU cores': self.data[2][1],
-                'disk memory size': int(self.data[2][2] * 10**9),
-                'CPU model': self.data[2][3] if isinstance(self.data[2][3], str) and len(self.data[2][3]) > 0 else None,
-                'CPU time': int(self.data[2][4] * 60) if self.data[2][4] is not None else None,
-                'wall time': int(self.data[2][5] * 60) if self.data[2][5] is not None else None
-            },
-            'keep intermediate files': self.data[4][0],
-            'upload input files of static verifiers': self.data[4][1],
-            'upload other intermediate files': self.data[4][2],
-            'allow local source directories use': self.data[4][3],
-            'ignore other instances': self.data[4][4],
-            'ignore failed sub-jobs': self.data[4][5],
-            'collect total code coverage': self.data[4][6],
-            'generate makefiles': self.data[4][7],
-            'weight': self.data[4][8],
-            'logging': {
-                'formatters': [
-                    {
-                        'name': 'brief',
-                        'value': self.data[3][1]
-                    },
-                    {
-                        'name': 'detailed',
-                        'value': self.data[3][3]
-                    }
-                ],
-                'loggers': [
-                    {
-                        'name': 'default',
-                        'handlers': [
-                            {
-                                'formatter': 'brief',
-                                'level': self.data[3][0],
-                                'name': 'console'
-                            },
-                            {
-                                'formatter': 'detailed',
-                                'level': self.data[3][2],
-                                'name': 'file'
-                            }
-                        ]
-                    }
-                ]
-            },
-            'parallelism': {
-                'Sub-jobs processing': self.data[1][0],
-                'Build': self.data[1][1],
-                'Tasks generation': self.data[1][2],
-                'Results processing': self.data[1][3]
-            }
-        }
 
     def __get_scheduler(self):
         try:
-            return Scheduler.objects.get(type=self.data[0][1])
+            return Scheduler.objects.get(type=self.configuration.scheduler)
         except ObjectDoesNotExist:
             raise BridgeException(_('The scheduler was not found'))
 
@@ -911,23 +846,23 @@ class StartJobDecision:
             self.job.jobprogress.delete()
         except ObjectDoesNotExist:
             pass
-        self.__save_configuration()
+        conf = self.__save_configuration()
         return SolvingProgress.objects.create(
-            job=self.job, priority=self.data[0][0], scheduler=self.job_scheduler, fake=self._fake,
-            configuration=json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+            job=self.job, priority=self.configuration.priority, scheduler=self.job_scheduler, fake=self._fake,
+            # TODO:
+            conf_file=conf, configuration=b''
         )
 
     def __save_configuration(self):
-        m = BytesIO(json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
+        m = BytesIO(self.configuration.as_json(self.job.identifier).encode('utf8'))
         check_sum = file_checksum(m)
         try:
             db_file = JobFile.objects.get(hash_sum=check_sum)
         except ObjectDoesNotExist:
-            db_file = JobFile()
-            db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
-            db_file.hash_sum = check_sum
-            db_file.save()
+            db_file = JobFile(hash_sum=check_sum)
+            db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m), save=True)
         RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, date=now())
+        return db_file
 
     def __check_schedulers(self):
         try:

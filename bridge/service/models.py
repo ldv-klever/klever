@@ -21,7 +21,7 @@ from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from bridge.utils import RemoveFilesBeforeDelete
-from jobs.models import Job
+from jobs.models import Job, JobFile
 
 FILE_DIR = 'Service'
 
@@ -106,7 +106,9 @@ class SolvingProgress(models.Model):
     tasks_cancelled = models.PositiveIntegerField(default=0)
     solutions = models.PositiveIntegerField(default=0)
     error = models.CharField(max_length=1024, null=True)
+    # TODO: mode configurations to files
     configuration = models.BinaryField()
+    conf_file = models.ForeignKey(JobFile, models.CASCADE, null=True)
     fake = models.BooleanField(default=False)
 
     class Meta:

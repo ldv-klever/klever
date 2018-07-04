@@ -103,6 +103,18 @@ function set_actions_for_scheduler_user() {
 $(document).ready(function () {
     $('.note-popup').popup();
 
+    function collect_parallelism() {
+        var parallelism_values = [];
+        $('.parallelism-values').each(function () { parallelism_values.push($(this).val()) });
+        return parallelism_values;
+    }
+
+    function collect_boolean() {
+        var bool_values = [];
+        $('.boolean-value').each(function () { bool_values.push($(this).is(':checked')) });
+        return bool_values;
+    }
+
     function collect_data() {
         return {
             mode: 'data',
@@ -110,14 +122,10 @@ $(document).ready(function () {
                 [
                     $('input[name="priority"]:checked').val(),
                     $('input[name="scheduler"]:checked').val(),
-                    parseInt($('#max_tasks').val())
+                    parseInt($('#max_tasks').val()),
+                    $('input[name=job_weight]:checked').val()
                 ],
-                [
-                    $('#sub_jobs_proc_parallelism__value').val(),
-                    $('#build_parallelism__value').val(),
-                    $('#tasks_gen_parallelism__value').val(),
-                    $('#results_processing_parallelism__value').val()
-                ],
+                collect_parallelism(),
                 [
                     parseFloat($('#max_ram').val().replace(/,/, '.')),
                     parseInt($('#max_cpus').val()),
@@ -132,17 +140,7 @@ $(document).ready(function () {
                     $('#file_logging_level').val(),
                     $('#file_log_formatter__value').val()
                 ],
-                [
-                    $('#keep_files_checkbox').is(':checked'),
-                    $('#upload_verifier_checkbox').is(':checked'),
-                    $('#upload_other_checkbox').is(':checked'),
-                    $('#allow_localdir_checkbox').is(':checked'),
-                    $('#ignore_core_checkbox').is(':checked'),
-                    $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
-                    $('#collect_total_code_coverage_checkbox').is(':checked'),
-                    $('#generate_makefiles_checkbox').is(':checked'),
-                    $('input[name=job_weight]:checked').val()
-                ]
+                collect_boolean()
             ])
         }
     }
@@ -241,10 +239,13 @@ $(document).ready(function () {
                 success: function (data) {
                     if (data.error) {
                         err_notify(data.error);
+                        return false;
                     }
-                    else {
-                        $('#' + attr_input.attr('class') + '__value').val(data.value);
-                    }
+                    console.log(data);
+                    Object.keys(data).forEach(function(key) {
+                        $('#' + key + '__value').val(data[key]);
+                        console.log(key, data[key]);
+                    });
                 }
             });
         });
