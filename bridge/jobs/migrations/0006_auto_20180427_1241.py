@@ -21,7 +21,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    dependencies = [('jobs', '0002_remove_job_type')]
+    dependencies = [('jobs', '0005_remove_job_type')]
 
     operations = [
         migrations.RemoveField(model_name='jobhistory', name='parent'),

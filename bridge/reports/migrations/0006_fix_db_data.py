@@ -77,7 +77,7 @@ def split_trace_and_source(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0002_20180427_1241')]
+    dependencies = [('reports', '0005_20180427_1241')]
 
     operations = [
         migrations.RunPython(attrs_migrate),

@@ -19,7 +19,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0004_alter_fields'), ('marks', '0001_initial')]
+    dependencies = [('reports', '0001_initial'), ('marks', '0002')]
 
     operations = [
         migrations.CreateModel(

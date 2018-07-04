@@ -21,7 +21,7 @@ import reports.models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0001_initial')]
+    dependencies = [('reports', '0004')]
 
     operations = [
         migrations.CreateModel(

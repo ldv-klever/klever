@@ -19,7 +19,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0003_fix_db_data')]
+    dependencies = [('reports', '0006_fix_db_data')]
 
     operations = [
         migrations.AlterField(
