@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import json
 
 from core.vtg.emg.common import get_conf_property
@@ -37,7 +38,10 @@ def model_comment(comment_type, text, other=None):
 
 def action_model_comment(action, text, begin=None, callback=False):
     if action:
-        type_comment = type(action).__name__.upper()
+        if action.trace_relevant:
+            type_comment = 'CALL'
+        else:
+            type_comment = type(action).__name__.upper()
         if begin is True:
             type_comment += '_BEGIN'
         elif begin is False:
@@ -49,7 +53,7 @@ def action_model_comment(action, text, begin=None, callback=False):
         name_comment = None
 
     data = {'action': name_comment}
-    if callback:
+    if callback or (begin is True and action and action.trace_relevant):
         data['callback'] = True
     return model_comment(type_comment, text, data)
 

@@ -46,13 +46,9 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_usb_gadget__usb_gadget_registered_at_exit": []
-              }
-            ]
+            "ldv_assert_linux_usb_gadget__usb_gadget_registered_at_exit": []
           }
         ]
       }
@@ -61,7 +57,7 @@
       {
         "ldv_init": [
           {
-            "ldv_usb_gadget_probe_driver_10": [
+            "ldv_usb_gadget_probe_driver_13": [
               {
                 "ldv_register_usb_gadget": [
                   {

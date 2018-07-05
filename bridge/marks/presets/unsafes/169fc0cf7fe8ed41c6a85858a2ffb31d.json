@@ -51,7 +51,7 @@
             "ldv_usb_trylock_device": []
           },
           {
-            "kmalloc": [
+            "ldv_kmalloc": [
               {
                 "ldv_check_alloc_flags": [
                   {

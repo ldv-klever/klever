@@ -47,6 +47,8 @@
               }
             },
             "translation options": {
+              "initialize rules": true,
+              "check final state": true,
               "dump automata graphs": false,
               "implicit callback calls": true,
               "direct control functions calls": true,
@@ -77,7 +79,7 @@
             "common models": {
               "linux/drivers/base/dd.c": {"headers": ["linux/device.h"]},
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
-              "linux/mm/kzalloc.c": {},
+              "linux/mm/slab.c": {},
               "linux/err.c": {},
               "linux/ldv/common.c": {
                 "headers": {
@@ -184,6 +186,8 @@
       "template": "Linux kernel modules",
       "EMG" : {
         "translation options": {
+          "initialize rules": true,
+          "check final state": true,
           "dump automata graphs": false,
           "direct control functions calls": true,
           "nested automata": true,
@@ -544,6 +548,8 @@
       "template": "Linux kernel modules",
       "EMG": {
          "translation options": {
+           "initialize rules": true,
+           "check final state": true,
            "dump automata graphs": false,
            "implicit callback calls": false,
            "direct control functions calls": false,

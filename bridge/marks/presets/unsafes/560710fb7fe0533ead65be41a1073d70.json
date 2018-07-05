@@ -46,22 +46,18 @@
   "error trace": [
     [
       {
-        "ldv_ldv_pre_probe_12": [
+        "ldv_ldv_pre_probe_15": [
           {
             "ldv_reset_error_counter": []
           }
         ]
       },
       {
-        "ldv_usb_scenario_probe_2_14": [
+        "ldv_usb_probe": [
           {
-            "ldv_usb_probe": [
+            "ldv_emg_register_netdev": [
               {
-                "ldv_emg_register_netdev": [
-                  {
-                    "ldv_failed_register_netdev": []
-                  }
-                ]
+                "ldv_failed_register_netdev": []
               }
             ]
           }

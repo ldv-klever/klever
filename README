@@ -13,4 +13,5 @@ Then you can open generated documentation index "docs/_build/html/index.html" in
 a web browser.
 
 Note that this Klever documentation does not contain any user documentation
-since we plan to incorporate it directly into Klever web interface.
+except for deployment instructions. We plan to incorporate other user
+documentation directly into the Klever web interface.

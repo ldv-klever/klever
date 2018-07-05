@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ class Session:
         return resp.json()['id']
 
     def download_job(self, job, archive):
-        return self.__download_archive('/jobs/ajax/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
+        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
 
     def upload_job(self, parent, archive):
         if len(parent) == 0:

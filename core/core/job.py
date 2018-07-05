@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -211,7 +211,8 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
             work_dir=sub_job_work_dir,
             attrs=[{
                 'name': 'name',
-                'value': sub_job_id
+                'value': sub_job_id,
+                'compare': True
             }],
             separate_from_parent=True,
             include_child_resources=False,

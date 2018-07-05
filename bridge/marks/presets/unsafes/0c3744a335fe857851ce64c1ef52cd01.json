@@ -49,20 +49,16 @@
         "ldv_switch_to_interrupt_context": []
       },
       {
-        "ldv_interrupt_scenario_handler_2_5": [
+        "ldv_handler": [
           {
-            "ldv_handler": [
+            "ldv_kmalloc": [
               {
-                "kmalloc": [
+                "ldv_check_alloc_flags": [
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
                   }
                 ]
               }

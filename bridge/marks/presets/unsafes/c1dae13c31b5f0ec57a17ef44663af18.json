@@ -46,13 +46,9 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_kernel_module__more_initial_at_exit": []
-              }
-            ]
+            "ldv_assert_linux_kernel_module__more_initial_at_exit": []
           }
         ]
       }
@@ -67,7 +63,11 @@
             "ldv_module_get": []
           },
           {
-            "ldv_module_refcount": []
+            "ldv_module_refcount_7": [
+              {
+                "ldv_module_refcount": []
+              }
+            ]
           }
         ]
       }

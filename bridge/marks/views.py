@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -336,8 +336,8 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
             new_marks.append((res.type, res.mark.id))
 
         if len(new_marks) == 1:
-            return JsonResponse({'type': new_marks[0][0], 'id': str(new_marks[0][1])})
-        return JsonResponse({'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}})
+            return {'type': new_marks[0][0], 'id': str(new_marks[0][1])}
+        return {'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}}
 
 
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):

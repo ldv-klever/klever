@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,22 @@
  * limitations under the License.
  */
 
-before: file("$this")
-{
-#include <linux/ldv/slab.h>
-} 
+#include <linux/module.h>
+#include <verifier/memory.h>
 
-around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
+void leak(void)
 {
-	return ldv_kzalloc(size, flags);
+	char *var;
+
+	var = ldv_malloc_unknown_size();
+
+	return;
 }
+
+static int __init ldv_init(void)
+{
+	leak();
+	return 0;
+}
+
+module_init(ldv_init);

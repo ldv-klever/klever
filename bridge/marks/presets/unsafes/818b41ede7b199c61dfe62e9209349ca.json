@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv_usb_gadget_unregister_driver_10": [
+            "ldv_usb_gadget_unregister_driver_13": [
               {
                 "ldv_unregister_usb_gadget": [
                   {

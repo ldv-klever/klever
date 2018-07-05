@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ class SSH:
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            self.logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
-                              ' --ssh-rsa-private-key-file')
+            logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
+                         ' --ssh-rsa-private-key-file')
             sys.exit(errno.EINVAL)
 
         self.args = args

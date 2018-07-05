@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,10 +64,6 @@ pointcut ALLOC: execution(static inline struct page *alloc_pages(.., gfp_t flags
 				execution(static inline void *dma_zalloc_coherent(.., gfp_t flags, ..)) ||
 				execution(static inline void *dma_alloc_coherent(.., gfp_t flags, ..))
 
-pointcut ALLOC_KNOWN_SIZE: execution(static inline void *kcalloc(..)) ||
-                           call(static inline void *kmalloc_array(..)) ||
-                           execution(static inline void *kmalloc(..))
-
 pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, ..)) ||
 						   call(int usb_submit_urb(.., gfp_t flags, ..)) ||
 						   call(int mempool_resize(.., gfp_t flags, ..)) ||
@@ -95,15 +91,6 @@ around: ALLOC
 {
 	ldv_check_alloc_flags(flags);
 	return ldv_malloc_unknown_size();
-}
-
-around: ALLOC_KNOWN_SIZE
-{
-	void *res;
-	ldv_check_alloc_flags(flags);
-	res = ldv_malloc_unknown_size();
-	ldv_after_alloc(res);
-	return res;
 }
 
 around: ALLOC_RETURN_INT

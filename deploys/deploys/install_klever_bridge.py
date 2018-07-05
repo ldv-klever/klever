@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ def _install_klever_bridge(logger):
     logger.info('Migrate database')
     execute_cmd(logger, './manage.py', 'migrate')
 
-    logger.info('Populate databace')
+    logger.info('Populate database')
     execute_cmd(logger, './manage.py', 'PopulateUsers', '--exist-ok',
                 '--admin', '{"username": "admin", "password": "admin"}',
                 '--manager', '{"username": "manager", "password": "manager"}',
@@ -59,7 +59,7 @@ def install_klever_bridge_development(logger, deploy_dir):
     if not os.path.islink(os.path.join(deploy_dir, 'klever')):
         logger.info('Prepare media directory')
         media = os.path.join(deploy_dir, 'klever/bridge/media')
-        media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
+        media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
         shutil.rmtree(media)
         execute_cmd(logger, 'mkdir', '-p', media_real)
         execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
@@ -89,7 +89,7 @@ def install_klever_bridge_production(logger, deploy_dir):
 
     logger.info('Prepare media directory')
     media = '/var/www/klever-bridge/media'
-    media_real = os.path.join(os.path.realpath(deploy_dir), 'media')
+    media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
     shutil.rmtree(media)
     execute_cmd(logger, 'mkdir', '-p', media_real)
     execute_cmd(logger, 'ln', '-s', '-T', media_real, media)

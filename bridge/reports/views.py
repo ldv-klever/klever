@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -500,7 +500,7 @@ class ReportsComparisonData(LoggedCallMixin, Bview.DetailPostView):
             raise BridgeException()
         res = ComparisonData(
             self.object, int(self.request.POST.get('page_num', 1)),
-            self.request.POST.get('hide_attrs', 0), self.request.POST.get('hide_attrs', 0),
+            self.request.POST.get('hide_attrs', 0), self.request.POST.get('hide_components', 0),
             self.request.POST.get('verdict'), self.request.POST.get('attrs')
         )
         return {
