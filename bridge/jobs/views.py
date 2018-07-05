@@ -470,6 +470,8 @@ class StartDecision(LoggedCallMixin, Bview.JsonView):
         # If self.request.POST['mode'] == 'fast' or any other then default configuration is used
         if self.request.POST['mode'] == 'data':
             getconf_kwargs['user_conf'] = json.loads(self.request.POST['data'])
+        elif self.request.POST['mode'] == 'file_conf':
+            getconf_kwargs['file_conf'] = self.request.FILES['file_conf']
         elif self.request.POST['mode'] == 'lastconf':
             last_run = RunHistory.objects.filter(job_id=self.kwargs['job_id']).order_by('date').last()
             if last_run is None:

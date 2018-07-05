@@ -194,7 +194,10 @@ class Session:
     def start_job_decision(self, job, data_fp):
         job_id = self.__get_job_id(job)
         if data_fp:
-            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'data', 'data': data_fp.read()})
+            self.__request(
+                '/jobs/run_decision/{0}/'.format(job_id), {'mode': 'file_conf'},
+                files=[('file_conf', data_fp)], stream=True
+            )
         else:
             self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'fast'})
 
