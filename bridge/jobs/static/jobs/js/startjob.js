@@ -241,10 +241,8 @@ $(document).ready(function () {
                         err_notify(data.error);
                         return false;
                     }
-                    console.log(data);
                     Object.keys(data).forEach(function(key) {
                         $('#' + key + '__value').val(data[key]);
-                        console.log(key, data[key]);
                     });
                 }
             });

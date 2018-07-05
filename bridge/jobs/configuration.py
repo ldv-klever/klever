@@ -22,9 +22,75 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 
 from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, SCHEDULER_STATUS
-from bridge.utils import get_templated_text, logger, BridgeException
+from bridge.utils import logger, BridgeException
 
 from service.models import Scheduler, SchedulerUser
+
+# Each Klever Core mode represents sets of values for following sets of attributes:
+#   scheduling and decision weight:
+#     job priority - see bridge.vars.PRIORITY for available values,
+#     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
+#     max solving tasks per sub-job - positive number,
+#     weight of decision - see vars.JOB_WEIGHT for available values,
+#   parallelism:
+#     pack - the identifier of default parallelism (see Parallelism.parallelism_packs for available values)
+#       or parallelism values,
+#     Example: ['slow'] or [1, 1, 1, 1]
+#   limits:
+#     memory size - in GB,
+#     number of CPU cores - if number <= 0 then any,
+#     disk memory size - in GB,
+#     CPU model,
+#     CPU time - in minutes,
+#     wall time - in minutes,
+#   logging:
+#     console log level - see documentation for Python 3 and ConfigurationLogging.logging_levels
+#       for available values,
+#     console log formatter - one of formatters' identifiers from ConfigurationLogging.default_formatters,
+#     file log level - like console log level,
+#     file log formatter - like console log formatter,
+#   various boolean values:
+#     keep intermediate files,
+#     upload input files of static verifiers,
+#     upload other intermediate files,
+#     allow local source directories use,
+#     ignore other instances,
+#     ignore failed sub-jobs,
+#     collect total code coverage,
+#     generate makefiles.
+# id 'file_conf' is reserved
+KLEVER_CORE_DEF_MODES = [
+    {
+        'id': 'production', 'name': _('Production'),
+        'values': [
+            ['LOW', '0', 100, '1'],
+            ['slow'],
+            [1.0, 0, 100.0, None, None, None],
+            ['NONE', 'brief', 'NONE', 'brief'],
+            [False, False, False, False, False, False, True, False]
+        ]
+    },
+    {
+        'id': 'development', 'name': _('Development'),
+        'values': [
+            ['IDLE', '0', 100, '0'],
+            ['quick'],
+            [1.0, 0, 100.0, None, None, None],
+            ['INFO', 'detailed', 'DEBUG', 'detailed'],
+            [True, True, False, True, True, True, True, True]
+        ]
+    },
+    {
+        'id': 'paranoid development', 'name': _('Paranoid development'),
+        'values': [
+            ['IDLE', '0', 100, '0'],
+            ['quick'],
+            [1.0, 0, 100.0, None, None, None],
+            ['INFO', 'detailed', 'DEBUG', 'paranoid'],
+            [True, True, True, True, True, True, True, True]
+        ]
+    },
+]
 
 
 def str_to_int_or_float(value):
@@ -77,21 +143,21 @@ class Parallelism:
         # Dictionary: {<json key>: <pack value>}
         return dict((self.parallelism_names[i][1], self.values[i]) for i in range(len(self.parallelism_names)))
 
-    def for_response(self):
+    def for_request(self):
         # Dictionary: {<html identifier>: <pack value>}
-        return dict((self.parallelism_names[i][0], self.values[i]) for i in range(len(self.parallelism_names)))
+        return dict((self.parallelism_names[i][0], str(self.values[i])) for i in range(len(self.parallelism_names)))
 
     def __get_default_values(self, pack_name):
         if not isinstance(pack_name, str):
-            raise ValueError('unsupported parallelism pack identifier type is in values: {0}'.format(type(pack_name)))
+            raise ValueError('Unsupported parallelism pack identifier type is in values: {0}'.format(type(pack_name)))
         for i in range(len(self.parallelism_packs)):
             if self.parallelism_packs[i][0] == pack_name:
                 return self.parallelism_packs[i][2]
-        raise ValueError('unsupported parallelism pack identifier is in values: "{0}"'.format(pack_name))
+        raise ValueError('Unsupported parallelism pack identifier is in values: "{0}"'.format(pack_name))
 
     def __get_values(self, *args):
         if len(args) != len(self.parallelism_names):
-            raise ValueError('wrong number of parallelism values: {0} expected, got {1}; values: {2}'
+            raise ValueError('Wrong number of parallelism values: {0} expected, got {1}; values: {2}'
                              .format(len(self.parallelism_names), len(args), args))
         return tuple(str_to_int_or_float(a) for a in args)
 
@@ -113,7 +179,7 @@ class ConfigurationLogging:
 
     def __get_log_level(self, level):
         if level not in self.logging_levels:
-            raise ValueError('logging level is not supported: "{0}"'.format(level))
+            raise ValueError('Logging level is not supported: "{0}"'.format(level))
         return level
 
     def __get_formatter(self, formatter):
@@ -121,6 +187,8 @@ class ConfigurationLogging:
         for i in range(len(self.default_formatters)):
             if possible_name == self.default_formatters[i][0]:
                 return self.default_formatters[i][2]
+        if len(formatter) == 0:
+            raise ValueError('Formatter is empty')
         return formatter
 
     def for_template(self):
@@ -149,9 +217,9 @@ class ConfigurationLogging:
             for i in range(len(self.default_formatters)):
                 if self.default_formatters[i][0] == args[0]:
                     return [self.default_formatters[i][2]]  # Just a formatter value
-            raise ValueError('unsupported formatter identifier: {0}'.format(args[0]))
+            raise ValueError('Unsupported formatter identifier: {0}'.format(args[0]))
         elif len(args) != 4:
-            raise ValueError('wrong number of logging arguments: {0}'.format(len(args)))
+            raise ValueError('Wrong number of logging arguments: {0}'.format(len(args)))
         return [
             self.__get_log_level(args[0]),  # Console log level
             self.__get_formatter(args[1]),  # Console log formatter
@@ -176,10 +244,10 @@ class BooleanValues:
 
     def __init__(self, *args):
         if len(args) != len(self.boolean_names):
-            raise ValueError('Configuration error: expected {0} of boolean values, got {1}'
+            raise ValueError('Expected {0} of boolean values, got {1}'
                              .format(len(self.boolean_names), len(args)))
         if any(not isinstance(x, bool) for x in args):
-            raise ValueError('Configuration error: all boolean values must be boolean; got "{0}"'.format(args))
+            raise ValueError('All boolean values must be boolean; got "{0}"'.format(args))
         self.values = args
 
     def names(self):
@@ -211,8 +279,8 @@ class Configuration:
         ]
         :param boolean: list with boolean values. See BooleanValues.boolean_names.
         """
-        if len(scheduling) != 5:
-            raise ValueError('wrong number of scheduling parameters: {0}'.format(scheduling))
+        if len(scheduling) != 4:
+            raise ValueError('Wrong number of scheduling parameters: {0}'.format(scheduling))
         self.priority = self.__value_from_tuples_list(PRIORITY, scheduling[0])
         self.scheduler = self.__value_from_tuples_list(SCHEDULER_TYPE, scheduling[1])
         self.max_tasks = self.__integer_value(scheduling[2])
@@ -228,14 +296,14 @@ class Configuration:
             if list_with_tuples[i][0] == value:
                 return value
         else:
-            raise ValueError('unknown value "{0}" for list {1}'.format(value, list_with_tuples))
+            raise ValueError('Unknown value "{0}" for list {1}'.format(value, list_with_tuples))
 
     def __integer_value(self, value, null=False, positive=True):
         if null and value is None:
             return value
         if not isinstance(value, int) or (positive and value <= 0):
-            raise ValueError('{0}integer expected, got value "{1}" of type {2}'
-                             .format('positive ' if positive else '', value, type(value)))
+            raise ValueError('{0} expected, got value "{1}" of type {2}'
+                             .format('Positive integer' if positive else 'Integer', value, type(value)))
         return value
 
     def __float_value(self, value, null=False, positive=True):
@@ -244,18 +312,18 @@ class Configuration:
         if isinstance(value, int):
             value = float(value)
         if not isinstance(value, float) or (positive and value <= 0):
-            raise ValueError('{0}float expected, got value "{1}" of type {2}'
-                             .format('positive ' if positive else '', value, type(value)))
+            raise ValueError('{0} expected, got value "{1}" of type {2}'
+                             .format('Positive float' if positive else 'Float', value, type(value)))
         return value
 
     def __string_value(self, value, null=False, empty=False):
         if null and value is None:
             return value
         if not isinstance(value, str):
-            raise ValueError('string expected, got "{0}"'.format(type(value)))
+            raise ValueError('String expected, got "{0}"'.format(type(value)))
         value = value.strip()
         if not empty and len(value) == 0:
-            raise ValueError('non-empty string expected')
+            raise ValueError('Non-empty string expected')
         return value
 
     def __get_resources(self, max_ram, max_cpus, max_disk, cpu_model, max_cpu_time, max_wall_time):
@@ -263,8 +331,14 @@ class Configuration:
         if cpu_model is not None and len(cpu_model) == 0:
             cpu_model = None
 
-        return [self.__float_value(max_ram), self.__integer_value(max_cpus), self.__float_value(max_disk), cpu_model,
-                self.__float_value(max_cpu_time, null=True), self.__float_value(max_wall_time, null=True)]
+        return [
+            self.__float_value(max_ram),
+            self.__integer_value(max_cpus, positive=False),
+            self.__float_value(max_disk),
+            cpu_model,
+            self.__float_value(max_cpu_time, null=True),
+            self.__float_value(max_wall_time, null=True)
+        ]
 
     def as_json(self, job_identifier):
         data = {
@@ -291,7 +365,7 @@ class Configuration:
 
 def get_configuration_value(name, value):
     if name == 'parallelism':
-        return Parallelism(value).for_response()
+        return Parallelism(value).for_request()
     elif name in {'console_log_formatter', 'file_log_formatter'}:
         return ConfigurationLogging(value).for_request(name)
 
@@ -300,71 +374,6 @@ def get_configuration_value(name, value):
 
 
 class GetConfiguration:
-    # Each Klever Core mode represents sets of values for following sets of attributes:
-    #   scheduling and decision weight:
-    #     job priority - see bridge.vars.PRIORITY for available values,
-    #     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
-    #     max solving tasks per sub-job - positive number,
-    #     weight of decision - see vars.JOB_WEIGHT for available values,
-    #   parallelism:
-    #     pack - the identifier of default parallelism (see Parallelism.parallelism_packs for available values)
-    #       or parallelism values,
-    #     Example: ['slow'] or [1, 1, 1, 1]
-    #   limits:
-    #     memory size - in GB,
-    #     number of CPU cores,
-    #     disk memory size - in GB,
-    #     CPU model,
-    #     CPU time - in minutes,
-    #     wall time - in minutes,
-    #   logging:
-    #     console log level - see documentation for Python 3 logging for available values,
-    #     console log formatter - one of formatters from KLEVER_CORE_LOG_FORMATTERS,
-    #     file log level - like console log level,
-    #     file log formatter - like console log formatter,
-    #   various boolean values:
-    #     keep intermediate files,
-    #     upload input files of static verifiers,
-    #     upload other intermediate files,
-    #     allow local source directories use,
-    #     ignore other instances,
-    #     ignore failed sub-jobs,
-    #     collect total code coverage,
-    #     generate makefiles.
-    # id 'file_conf' is reserved
-    default_modes = [
-        {
-            'id': 'production', 'name': _('Production'),
-            'values': [
-                ['LOW', '0', 100, '1'],
-                ['slow'],
-                [1.0, 0, 100.0, None, None, None],
-                ['NONE', 'brief', 'NONE', 'brief'],
-                [False, False, False, False, False, False, True, False]
-            ]
-        },
-        {
-            'id': 'development', 'name': _('Development'),
-            'development': [
-                ['IDLE', '0', 100, '0'],
-                ['quick'],
-                [1.0, 0, 100.0, None, None, None],
-                ['INFO', 'detailed', 'DEBUG', 'detailed'],
-                [True, True, False, True, True, True, True, True]
-            ]
-        },
-        {
-            'id': 'paranoid development', 'name': _('Paranoid development'),
-            'paranoid development': [
-                ['IDLE', '0', 100, '0'],
-                ['quick'],
-                [1.0, 0, 100.0, None, None, None],
-                ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-                [True, True, True, True, True, True, True, True]
-            ]
-        },
-    ]
-
     def __init__(self, conf_name=None, file_conf=None, user_conf=None, last_run=None):
         if conf_name is not None:
             conf_args = self.__get_default_conf_args(conf_name)
@@ -376,12 +385,12 @@ class GetConfiguration:
             with last_run.configuration.file as fp:
                 conf_args = self.__conf_args_from_json(fp)
         else:
-            raise ValueError("Can't get configuration with specified arguments")
+            conf_args = self.__get_default_conf_args(settings.DEF_KLEVER_CORE_MODE)
         self.configuration = Configuration(*conf_args)
-        self.modes = list((m['id'], m['name']) for m in self.default_modes)
+        self.modes = list((m['id'], m['name']) for m in KLEVER_CORE_DEF_MODES)
 
-    def __get_default_conf_args(self, name=None):
-        for mode in self.default_modes:
+    def __get_default_conf_args(self, name):
+        for mode in KLEVER_CORE_DEF_MODES:
             if name == mode['id']:
                 return mode['values']
         raise ValueError('Unsupported default configuration identifier: "{0}"'.format(name))
@@ -439,7 +448,7 @@ class StartDecisionData:
         try:
             res = GetConfiguration(**kwargs)
         except Exception as e:
-            logger.exception(e)
+            logger.exception('Configuration error: %s' % e)
             raise BridgeException(_('Configuration has wrong format'))
 
         self.conf = res.configuration

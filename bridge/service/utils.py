@@ -386,8 +386,8 @@ class GetTasks:
                 elif progress.job.identifier in data['jobs']['error']:
                     FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
                 else:
-                    self._data['job configurations'][progress.job.identifier] = \
-                        json.loads(progress.configuration.decode('utf8'))
+                    with progress.configuration.file as fp:
+                        self._data['job configurations'][progress.job.identifier] = json.loads(fp.read().decode('utf8'))
                     self._data['job configurations'][progress.job.identifier]['task resource limits'] = \
                         self.__get_tasks_limits(progress.job_id)
                     self._data['jobs']['pending'].append(progress.job.identifier)
@@ -846,11 +846,9 @@ class StartJobDecision:
             self.job.jobprogress.delete()
         except ObjectDoesNotExist:
             pass
-        conf = self.__save_configuration()
         return SolvingProgress.objects.create(
-            job=self.job, priority=self.configuration.priority, scheduler=self.job_scheduler, fake=self._fake,
-            # TODO:
-            conf_file=conf, configuration=b''
+            job=self.job, priority=self.configuration.priority, scheduler=self.job_scheduler,
+            fake=self._fake, configuration=self.__save_configuration()
         )
 
     def __save_configuration(self):

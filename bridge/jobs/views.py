@@ -427,6 +427,7 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = {'job': self.object}
+        conf_args = {}
         if self.request.method == 'POST':
             context['current_conf'] = self.request.POST['conf_name']
 
@@ -435,8 +436,8 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
             else:
                 conf_args = {'conf_name': context['current_conf']}
         else:
+            # Default configuration will be used by default
             context['current_conf'] = settings.DEF_KLEVER_CORE_MODE
-            conf_args = {'conf_name': context['current_conf']}
 
         context['data'] = StartDecisionData(self.request.user, **conf_args)
         return context
@@ -466,10 +467,9 @@ class StartDecision(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         getconf_kwargs = {}
 
+        # If self.request.POST['mode'] == 'fast' or any other then default configuration is used
         if self.request.POST['mode'] == 'data':
             getconf_kwargs['user_conf'] = json.loads(self.request.POST['data'])
-        elif self.request.POST['mode'] == 'fast':
-            getconf_kwargs['conf_name'] = settings.DEF_KLEVER_CORE_MODE
         elif self.request.POST['mode'] == 'lastconf':
             last_run = RunHistory.objects.filter(job_id=self.kwargs['job_id']).order_by('date').last()
             if last_run is None:
