@@ -313,6 +313,7 @@ class VTG(core.components.Component):
                                   separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.rule_spec_descs = None
+        self.problem_tasks = dict()
 
     def generate_verification_tasks(self):
         self.rule_spec_descs = _rule_spec_descs
@@ -407,6 +408,56 @@ class VTG(core.components.Component):
 
         self.mqs['model CC opts'].close()
 
+    def __already_scheduled(self, vobject, rule_name):
+        if vobject in self.problem_tasks and rule_name in self.problem_tasks:
+            return True
+        else:
+            return False
+
+    def __inc_problem_task(self, vobject, rule_name):
+        if vobject not in self.problem_tasks:
+            self.problem_tasks[vobject] = dict()
+        if rule_name not in self.problem_tasks[vobject]:
+            self.problem_tasks[vobject][rule_name] = 0
+
+        self.problem_tasks[vobject][rule_name] += 1
+
+    def __dec_problem_task(self, vobject, rule_name):
+        if self.__already_scheduled(vobject, rule_name):
+            del self.problem_tasks[vobject][rule_name]
+            if len(self.problem_tasks[vobject]) == 0:
+                del self.problem_tasks[vobject]
+
+    def __have_time(self):
+        # todo: check that according to the 
+        return True
+
+    def __check_solution(self, vobject, rule_name, solution):
+        status, resources, reason = solution
+        if status == 'error' and not self.__already_scheduled(vobject, rule_name):
+            self.__inc_problem_task(vobject, rule_name)
+            return True
+        elif status == 'error' and self.__already_scheduled(vobject, rule_name):
+            self.__dec_problem_task(vobject, rule_name)
+            return False
+        elif status == 'finished':
+            # todo: Save resource limitations
+
+            if reason and reason == 'OUT OF MEMORY':
+                pass
+            elif reason and reason == 'TIMEOUT':
+                pass
+            else:
+                self.__dec_problem_task(vobject, rule_name)
+                return False
+        return True
+
+    def __new_resource_limitations(self, vobject, rule_name, solution):
+        # todo: change resource limits if necessary
+        # todo: return True to accept soultion
+        # todo: return False to reschedule task
+        return {}
+
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
@@ -453,13 +504,19 @@ class VTG(core.components.Component):
 
             # Process them
             for solution in solutions:
-                vobject, rule_name = solution
+                vobject, rule_name, status_info = solution
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
+                # todo: here we need to make rescheduling
                 if rule_class:
-                    processing_status[vobject][rule_class][rule_name] = True
-                    active_tasks -= 1
+                    if self.__check_solution(vobject, rule_name, status_info):
+                        processing_status[vobject][rule_class][rule_name] = True
+                        active_tasks -= 1
+                    else:
+                        rl = self.__new_resource_limitations(vobject, rule_name, status_info)
+                        rule = [r for r in _rule_spec_classes[rule_class] if r['id'] == rule_name][0]
+                        self.mqs['prepare verification objects'].put((vobject, rule, rl))
 
             # Fetch object
             if expect_objects:
@@ -498,7 +555,7 @@ class VTG(core.components.Component):
                         rule_name = _rule_spec_classes[rule_class][0]['id']
                         self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
                                          format(vo, rule_name))
-                        self.mqs['prepare verification objects'].put((vobject, _rule_spec_classes[rule_class][0]))
+                        self.mqs['prepare verification objects'].put((vobject, _rule_spec_classes[rule_class][0], None))
 
                         # Set status
                         if vo not in processing_status:
@@ -523,7 +580,7 @@ class VTG(core.components.Component):
                                 self.logger.info("Submit next verification task after having cached plugin results for "
                                                  "verification object {!r} and rule {!r}".format(vobject, rule['id']))
                                 self.mqs['prepare verification objects'].put(
-                                    (vo_descriptions[vobject], rule))
+                                    (vo_descriptions[vobject], rule, None))
                                 processing_status[vobject][rule_class][rule['id']] = None
                                 active_tasks += 1
                             else:
@@ -608,7 +665,8 @@ class VTGWL(core.components.Component):
                             "value": element[0]['id']
                         }
                     ],
-                    separate_from_parent=True, verification_object=element[0], rule_spec=element[1])
+                    separate_from_parent=True, verification_object=element[0], rule_spec=element[1],
+                    override_limits=element[2])
 
     main = task_generating_loop
 
@@ -616,17 +674,20 @@ class VTGWL(core.components.Component):
 class VTGW(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None):
+                 separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None,
+                 override_limits=None):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.verification_object = verification_object
         self.rule_specification = rule_spec
         self.abstract_task_desc_file = None
+        self.override_limits = override_limits
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def tasks_generator_worker(self):
         try:
-            self.generate_abstact_verification_task_desc(self.verification_object, self.rule_specification)
+            self.generate_abstact_verification_task_desc(self.verification_object, self.rule_specification,
+                                                         self.override_limits)
             if not self.vals['task solving flag'].value:
                 with self.vals['task solving flag'].get_lock():
                     self.vals['task solving flag'].value = 1
@@ -638,7 +699,7 @@ class VTGW(core.components.Component):
 
     main = tasks_generator_worker
 
-    def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+    def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc, override_limits):
         """Has a callback!"""
         self.logger.info("Start generating tasks for verification object {!r} and rule specification {!r}".
                          format(verification_obj_desc['id'], rule_spec_desc['id']))
@@ -679,74 +740,86 @@ class VTGW(core.components.Component):
             plugin_work_dir = plugin_desc['name'].lower()
             out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
 
-            if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                    plugin_desc['name'] in ['SA', 'EMG']:
-                # Expect that there is a work directory which has all prepared
-                # Make symlinks to the pilot rule work dir
-                self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
-                                 "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification, pilot_rule))
-                pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
-                pilot_abstract_task_desc_file = os.path.join(
-                    pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
-                os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir), out_abstract_task_desc_file)
-                os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
-            else:
-                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+            if not override_limits:
+                if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                        plugin_desc['name'] in ['SA', 'EMG']:
+                    # Expect that there is a work directory which has all prepared
+                    # Make symlinks to the pilot rule work dir
+                    self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
+                                     "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification,
+                                                                        pilot_rule))
+                    pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
+                    pilot_abstract_task_desc_file = os.path.join(
+                        pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
+                    os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir),
+                               out_abstract_task_desc_file)
+                    os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
+                else:
+                    self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-                # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-                # specification and information on rule specification itself. In addition put either initial or current
-                # description of abstract verification task into plugin configuration.
-                plugin_conf = copy.deepcopy(self.conf)
-                if 'options' in plugin_desc:
-                    plugin_conf.update(plugin_desc['options'])
-                if 'bug kinds' in rule_spec_desc:
-                    plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
-                plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
-                                                                            self.conf[
-                                                                                'main working directory'])
-                plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
-                                                                             self.conf[
-                                                                                 'main working directory'])
+                    # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+                    # specification and information on rule specification itself. In addition put either initial or
+                    # current description of abstract verification task into plugin configuration.
+                    plugin_conf = copy.deepcopy(self.conf)
+                    if 'options' in plugin_desc:
+                        plugin_conf.update(plugin_desc['options'])
+                    if 'bug kinds' in rule_spec_desc:
+                        plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
+                    plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
+                                                                                self.conf[
+                                                                                    'main working directory'])
+                    plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
+                                                                                 self.conf[
+                                                                                     'main working directory'])
 
-                plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
-                self.logger.debug(
-                    'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
-                                                                             plugin_conf_file))
-                with open(plugin_conf_file, 'w', encoding='utf8') as fp:
-                    json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                    plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
+                    self.logger.debug(
+                        'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
+                                                                                 plugin_conf_file))
+                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                try:
-                    p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                              self.locks, self.vals, plugin_desc['name'],
-                                              plugin_work_dir, separate_from_parent=True,
-                                              include_child_resources=True)
-                    p.start()
-                    p.join()
-                except core.components.ComponentError:
-                    self.plugin_fail_processing()
-                    break
+                    try:
+                        p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
+                                                  self.locks, self.vals, plugin_desc['name'],
+                                                  plugin_work_dir, separate_from_parent=True,
+                                                  include_child_resources=True)
+                        p.start()
+                        p.join()
+                    except core.components.ComponentError:
+                        self.plugin_fail_processing()
+                        break
 
-                if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                        plugin_desc['name'] == 'EMG':
-                    self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
-                                      "further use".format(pilot_rule))
-                    self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
+                    if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                            plugin_desc['name'] == 'EMG':
+                        self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
+                                          "further use".format(pilot_rule))
+                        self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
             final_abstract_task_desc_file = 'final abstract task.json'
-            self.logger.debug(
-                'Put final abstract verification task description to file "{0}"'.format(
-                    final_abstract_task_desc_file))
-            # Final abstract verification task description equals to abstract verification task description received
-            # from last plugin.
-            os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
-                       final_abstract_task_desc_file)
+            if not override_limits:
+                self.logger.debug(
+                    'Put final abstract verification task description to file "{0}"'.format(
+                        final_abstract_task_desc_file))
+                # Final abstract verification task description equals to abstract verification task description received
+                # from last plugin.
+                os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
+                           final_abstract_task_desc_file)
 
-            # VTG will consume this abstract verification task description file.
-            self.abstract_task_desc_file = out_abstract_task_desc_file
-            shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                          self.conf['shadow source tree']))
+                # VTG will consume this abstract verification task description file.
+                self.abstract_task_desc_file = out_abstract_task_desc_file
+                shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                              self.conf['shadow source tree']))
+            else:
+                # Now set new resource limits
+                with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
+                    final_task_data = json.load(fp)
+                    final_task_data["resource limits"] = override_limits
+                with open(self.abstract_task_desc_file, 'w', encoding='utf8') as fp:
+                    data = json.dumps(final_task_data)
+                    fp.write(data)
 
             if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
@@ -767,14 +840,14 @@ class VTGW(core.components.Component):
             else:
                 self.logger.warning("There is no verification task generated by the last plugin, expect {}".
                                     format(os.path.join(plugin_work_dir, 'task.json')))
-                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
+                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
                 self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
         self.logger.debug("VTGW that processed {!r}, {!r} failed".
                           format(self.verification_object, self.rule_specification))
-        self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
+        self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
         self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
     def join(self, timeout=None, stopped=False):

@@ -170,6 +170,7 @@ class VRP(core.components.Component):
             rule = data[3]
             new_id = "{}/{}/RP".format(vo, rule)
             workdir = os.path.join(vo, rule)
+            solution = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
                         workdir, [
@@ -189,10 +190,11 @@ class VRP(core.components.Component):
                         element=element)
                 rp.start()
                 rp.join()
+                solution = [rp.status, rp.resources, self.limit_reason]
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
             finally:
-                self.mqs['processed tasks'].put((vo, rule))
+                self.mqs['processed tasks'].put((vo, rule, solution))
                 self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
         self.logger.info("VRP fetcher finishes its work")
@@ -219,6 +221,9 @@ class RP(core.components.Component):
         self.task_error = None
         self.verification_coverage = None
         self.__exception = None
+        self.status = None
+        self.resources = None
+        self.limit_reason = None
 
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
@@ -234,7 +239,7 @@ class RP(core.components.Component):
         task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
-
+        self.status = status
         self.logger.debug("Prcess results of task {}".format(task_id))
 
         try:
@@ -408,7 +413,9 @@ class RP(core.components.Component):
                     log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
+                    self.limit_reason = decision_results['status']
 
+                # todo: Do we need to send the report always and rewrite it or add in case of rescheduling
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
@@ -460,6 +467,7 @@ class RP(core.components.Component):
             'name': verifier,
             'resources': decision_results['resources'],
         }
+        self.resources = decision_results['resources']
 
         if not self.logger.disabled and log_file:
             report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
