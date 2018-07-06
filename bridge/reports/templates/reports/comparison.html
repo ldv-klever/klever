@@ -123,7 +123,7 @@
             {% for attr in attrs %}
                 <label for="attr_value__{{ attr.name }}" style="font-weight: bold;">{{ attr.name }}</label>
                 <select id="attr_value__{{ attr.name }}" class="ui small search selection dropdown fluid attrs-dropdown">
-                    <option value="0">{% trans 'Any' %}</option>
+                    <option value="__REGEXP_ANY__">{% trans 'Any' %}</option>
                     {% for av in attr.values %}
                         <option value="{{ av.0 }}">{{ av.1 }}</option>
                     {% endfor %}

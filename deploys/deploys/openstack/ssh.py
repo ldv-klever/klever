@@ -38,8 +38,8 @@ class SSH:
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            self.logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
-                              ' --ssh-rsa-private-key-file')
+            logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
+                         ' --ssh-rsa-private-key-file')
             sys.exit(errno.EINVAL)
 
         self.args = args

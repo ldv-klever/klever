@@ -330,6 +330,7 @@ class OSKleverDeveloperInstance(OSEntity):
             'Verification Backends': False
         }
 
+        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
         if deps:
             ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
                             (' --update-packages' if self.args.update_packages else '') +

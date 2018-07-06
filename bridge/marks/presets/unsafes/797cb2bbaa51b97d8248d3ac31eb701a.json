@@ -46,13 +46,9 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_net_rtnetlink__lock_on_exit": []
-              }
-            ]
+            "ldv_assert_linux_net_rtnetlink__lock_on_exit": []
           }
         ]
       }
@@ -61,7 +57,7 @@
       {
         "ldv_init": [
           {
-            "ldv_rtnl_lock_6": [
+            "ldv_rtnl_lock_9": [
               {
                 "ldv_past_rtnl_lock": [
                   {
