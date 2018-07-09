@@ -160,6 +160,10 @@ class VRP(core.components.Component):
 
     def __loop_worker(self):
         self.logger.info("VRP fetcher is ready to work")
+
+        # First get QOS resource limitations
+        qos_resource_limits = core.utils.read_max_resource_limitations(self.logger, self.conf)
+
         while True:
             element = self.mqs['processing tasks'].get()
             if element is None:
@@ -186,11 +190,13 @@ class VRP(core.components.Component):
                                 "compare": True,
                                 "associate": True
                             }
-                        ], separate_from_parent=True,
+                        ],
+                        separate_from_parent=True,
+                        qos_resource_limits=qos_resource_limits,
                         element=element)
                 rp.start()
                 rp.join()
-                solution = [rp.status, rp.resources, self.limit_reason]
+                solution = [rp.status, rp.resources, rp.limit_reason]
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
             finally:
@@ -212,18 +218,19 @@ class VRP(core.components.Component):
 class RP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, element=None):
+                 separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, element=None):
         # Read this in a callback
         self.element = element
         self.verdict = None
         self.rule_specification = None
         self.verification_object = None
         self.task_error = None
-        self.verification_coverage = None
-        self.__exception = None
         self.status = None
         self.resources = None
         self.limit_reason = None
+        self.verification_coverage = None
+        self.__exception = None
+        self.__qos_resource_limit = qos_resource_limits
 
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
@@ -288,13 +295,13 @@ class RP(core.components.Component):
 
         return sources, error_trace_file
 
-    def report_unsafe(self, sources, error_trace_files):
+    def report_unsafe(self, sources, error_trace_files, attrs):
         core.utils.report(self.logger,
                           'unsafe',
                           {
                               'id': "{}/verification/unsafe".format(self.id),
                               'parent id': "{}/verification".format(self.id),
-                              'attrs': [],
+                              'attrs': attrs,
                               'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
                               'error traces': [core.utils.ReportFiles([error_trace_file],
                                                                       arcnames={error_trace_file: 'error trace.json'})
@@ -328,6 +335,12 @@ class RP(core.components.Component):
 
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
+        attrs = []
+        if (decision_results['resource limits']['CPU time'] > self.__qos_resource_limit['CPU time']) or \
+                (decision_results['resource limits']['wall time'] > self.__qos_resource_limit['wall time']):
+            # If CPU or wall limits are increased add a specific attribute
+            attrs.append({'improved results': True})
+
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
         # not upload all witnesses that can be properly processed as well as information on all such failures.
         # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
@@ -337,7 +350,7 @@ class RP(core.components.Component):
                               {
                                   'id': "{}/verification/safe".format(self.id),
                                   'parent id': "{}/verification".format(self.id),
-                                  'attrs': []
+                                  'attrs': attrs
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   # 'proof': None
                               },
@@ -375,7 +388,7 @@ class RP(core.components.Component):
                         else:
                             self.__exception = e
 
-                self.report_unsafe(sources, error_trace_files)
+                self.report_unsafe(sources, error_trace_files, attrs)
             if re.match('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
@@ -385,7 +398,7 @@ class RP(core.components.Component):
                                             format(len(witnesses)))
 
                     sources, error_trace_file = self.process_witness(witnesses[0], shadow_src_dir)
-                    self.report_unsafe(sources, [error_trace_file])
+                    self.report_unsafe(sources, [error_trace_file], attrs)
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.verdict = 'non-verifier unknown'
@@ -409,26 +422,35 @@ class RP(core.components.Component):
                 else:
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
+                send_report = True
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
                     self.limit_reason = decision_results['status']
 
-                # todo: Do we need to send the report always and rewrite it or add in case of rescheduling
-                core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'id': "{}/verification/unknown".format(self.id),
-                                      'parent id': "{}/verification".format(self.id),
-                                      'attrs': [],
-                                      'problem desc': core.utils.ReportFiles(
-                                          [verification_problem_desc], {verification_problem_desc: 'problem desc.txt'})
-                                  },
-                                  self.mqs['report files'],
-                                  self.vals['report id'],
-                                  self.conf['main working directory'],
-                                  'verification')
+                    if decision_results['resource limits']['memory size'] < self.__qos_resource_limit['memory size']:
+                        # We do not send the report since such result with the reduced limit is temporary
+                        self.logger.info("Do not send report since memory limitation {} is lower than QOS one {}".
+                                         format(decision_results['resource limits']['memory size'],
+                                                self.__qos_resource_limit['memory size']))
+                        send_report = False
+
+                if send_report:
+                    core.utils.report(self.logger,
+                                      'unknown',
+                                      {
+                                          'id': "{}/verification/unknown".format(self.id),
+                                          'parent id': "{}/verification".format(self.id),
+                                          'attrs': attrs,
+                                          'problem desc': core.utils.ReportFiles(
+                                              [verification_problem_desc],
+                                              {verification_problem_desc: 'problem desc.txt'})
+                                      },
+                                      self.mqs['report files'],
+                                      self.vals['report id'],
+                                      self.conf['main working directory'],
+                                      'verification')
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""
@@ -482,7 +504,7 @@ class RP(core.components.Component):
         os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
-                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
+                                               "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
         self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
                                           self.conf['main working directory'], opts.get('coverage', None),

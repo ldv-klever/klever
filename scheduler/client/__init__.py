@@ -183,6 +183,7 @@ def solve_task(logger, conf, server):
             shutil.move(entry, 'output')
 
     decision_results = process_task_results(logger)
+    decision_results['resource limits'] = conf["resource limits"]
     submit_task_results(logger, server, conf["identifier"], decision_results, os.path.curdir)
 
     return exit_code

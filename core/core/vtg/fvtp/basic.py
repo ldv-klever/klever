@@ -22,6 +22,7 @@ from xml.dom import minidom
 from xml.etree import ElementTree
 
 import core.vtg.fvtp.common as common
+import core.utils as utils
 
 
 class Basic:
@@ -177,7 +178,7 @@ class Basic:
 
         :return: Dictionary with resource limitations.
         """
-        max_limitations = common.read_max_resource_limitations(self.logger, self.conf)
+        max_limitations = utils.read_max_resource_limitations(self.logger, self.conf)
         return max_limitations
 
     def _cleanup(self):
