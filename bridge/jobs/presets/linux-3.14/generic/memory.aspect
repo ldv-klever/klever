@@ -24,6 +24,7 @@ before: file("$this")
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
+extern struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev);
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
 }
@@ -36,9 +37,7 @@ around: define(_THIS_IP_)
 //This function makes kzalloc()!
 around: call(struct fb_info *framebuffer_alloc(..))
 {
-	void *res = ldv_zalloc(sizeof(struct fb_info) + $arg1);
-	ldv_after_alloc(res);
-	return res;
+	return ldv_framebuffer_alloc($arg1, $arg2);
 }
 
 around: call(void *kmemdup(..))
