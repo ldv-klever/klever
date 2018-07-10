@@ -775,23 +775,24 @@ class VTGW(core.components.Component):
             self.abstract_task_desc_file = out_abstract_task_desc_file
             shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
                                                           self.conf['shadow source tree']))
-            if self.override_limits:
-                # Now set new resource limits
-                with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
-                    final_task_data = json.load(fp)
-                    final_task_data["resource limits"] = self.override_limits
-                with open(self.abstract_task_desc_file, 'w', encoding='utf8') as fp:
-                    data = json.dumps(final_task_data)
-                    fp.write(data)
-
             if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
+
+                if self.override_limits:
+                    # Now set new resource limits
+                    with open(os.path.join(plugin_work_dir, 'task.json'), 'r', encoding='utf8') as fp:
+                        final_task_data = json.load(fp)
+                        final_task_data["resource limits"] = self.override_limits
+                    with open(os.path.join(plugin_work_dir, 'task.json'), 'w', encoding='utf8') as fp:
+                        data = json.dumps(final_task_data)
+                        fp.write(data)
+
                 task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
                                                      os.path.join(plugin_work_dir, 'task files.zip'))
                 with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
                     final_task_data = json.load(fp)
 
-                # Plan for checking staus
+                # Plan for checking status
                 self.mqs['pending tasks'].put([str(task_id),
                                                final_task_data["result processing"],
                                                self.verification_object,
