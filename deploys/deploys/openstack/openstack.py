@@ -209,6 +209,114 @@ class OSKleverInstance(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+    def _create(self, is_dev):
+        base_image = self._get_base_image(self.args.klever_base_image)
+
+        klever_developer_instances = self._get_instances(self.name)
+
+        if klever_developer_instances:
+            self.logger.error('Klever developer instance matching "{0}" already exists'.format(self.name))
+            sys.exit(errno.EINVAL)
+
+        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
+                        base_image=base_image, flavor_name=self.args.flavor) as self.instance:
+            with SSH(args=self.args, logger=self.logger, name=self.name,
+                     floating_ip=self.instance.floating_ip['floating_ip_address']) as ssh:
+                # TODO: looks like deploys/local/local.py too much.
+                self.logger.info('Install init.d scripts')
+                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                  os.path.pardir, 'init.d')):
+                    # TODO: putting files one by one is extremely slow.
+                    for filename in filenames:
+                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
+                                     sudo=True, directory=os.path.sep)
+                        ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
+
+                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
+                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
+                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
+                    fp.flush()
+                    ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
+
+                with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
+                                          'creation of Klever developer instance'):
+                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
+                    self._create_or_update(ssh, is_dev, deps=False)
+
+                # Preserve instance if everything above went well.
+                self.instance.keep_on_exit = True
+
+    def _create_or_update(self, ssh, is_dev, deps=True):
+        with open(self.args.deployment_configuration_file) as fp:
+            deploy_conf = json.load(fp)
+
+        is_update = {
+            'Klever': False,
+            'Controller & Schedulers': False,
+            'Verification Backends': False
+        }
+
+        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
+        if deps:
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
+                            (' --update-packages' if self.args.update_packages else '') +
+                            (' --update-python3-packages' if self.args.update_python3_packages else ''))
+
+        with ssh.sftp.file('klever-inst/klever.json') as fp:
+            prev_deploy_info = json.loads(fp.read().decode('utf8'))
+
+        def cmd_fn(*args):
+            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
+
+        def install_fn(src, dst, allow_symlink=False, ignore=None):
+            # To avoid warnings. This parameter is actually used in corresponding function in deploys/local/local.py.
+            del allow_symlink
+            self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
+            ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
+
+        is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
+                                                           prev_deploy_info, cmd_fn, install_fn)
+
+        def dump_cur_deploy_info():
+            with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
+                json.dump(prev_deploy_info, nested_fp, sort_keys=True, indent=4)
+                nested_fp.flush()
+                ssh.execute_cmd('sudo rm klever-inst/klever.json')
+                ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
+
+        if is_update['Klever']:
+            dump_cur_deploy_info()
+
+        try:
+            is_update['Controller & Schedulers'], is_update['Verification Backends'] = \
+                install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn)
+        # Without this we won't store information on successfully installed/updated extra dependencies and following
+        # installation/update will fail.
+        finally:
+            if is_update['Controller & Schedulers'] or is_update['Verification Backends']:
+                dump_cur_deploy_info()
+
+        is_update_programs = False
+        try:
+            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
+                                                  install_fn)
+        # Like above.
+        finally:
+            if is_update_programs:
+                dump_cur_deploy_info()
+
+        if is_update['Klever']:
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
+                            .format(' --development' if is_dev else ''))
+
+        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
+                                                                                             if is_dev else '')
+        if is_update['Klever'] or is_update['Controller & Schedulers']:
+            ssh.execute_cmd(cmd)
+
+        if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
+            ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+
     def _get_instance(self, instance_name):
         self.logger.info('Get instance matching "{0}"'.format(instance_name))
 
@@ -281,117 +389,14 @@ class OSKleverDeveloperInstance(OSKleverInstance):
             self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
 
     def create(self):
-        base_image = self._get_base_image(self.args.klever_base_image)
-
-        klever_developer_instances = self._get_instances(self.name)
-
-        if klever_developer_instances:
-            self.logger.error('Klever developer instance matching "{0}" already exists'.format(self.name))
-            sys.exit(errno.EINVAL)
-
-        with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
-                        base_image=base_image, flavor_name=self.args.flavor) as self.instance:
-            with SSH(args=self.args, logger=self.logger, name=self.name,
-                     floating_ip=self.instance.floating_ip['floating_ip_address']) as ssh:
-                # TODO: looks like deploys/local/local.py too much.
-                self.logger.info('Install init.d scripts')
-                for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                  os.path.pardir, 'init.d')):
-                    # TODO: putting files one by one is extremely slow.
-                    for filename in filenames:
-                        ssh.sftp_put(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename),
-                                     sudo=True, directory=os.path.sep)
-                        ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
-
-                with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
-                    # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
-                    fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
-                    fp.flush()
-                    ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
-
-                with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                          'creation of Klever developer instance'):
-                    ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
-                    self._do_update(ssh, deps=False)
-
-                # Preserve instance if everything above went well.
-                self.instance.keep_on_exit = True
-
-    def _do_update(self, ssh, deps=True):
-        with open(self.args.deployment_configuration_file) as fp:
-            deploy_conf = json.load(fp)
-
-        is_update = {
-            'Klever': False,
-            'Controller & Schedulers': False,
-            'Verification Backends': False
-        }
-
-        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
-        if deps:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
-                            (' --update-packages' if self.args.update_packages else '') +
-                            (' --update-python3-packages' if self.args.update_python3_packages else ''))
-
-        with ssh.sftp.file('klever-inst/klever.json') as fp:
-            prev_deploy_info = json.loads(fp.read().decode('utf8'))
-
-        def cmd_fn(*args):
-            ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
-
-        def install_fn(src, dst, allow_symlink=False, ignore=None):
-            # To avoid warnings. This parameter is actually used in corresponding function in deploys/local/local.py.
-            del allow_symlink
-            self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
-            ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
-
-        is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
-                                                           prev_deploy_info, cmd_fn, install_fn)
-
-        def dump_cur_deploy_info():
-            with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
-                json.dump(prev_deploy_info, nested_fp, sort_keys=True, indent=4)
-                nested_fp.flush()
-                ssh.execute_cmd('sudo rm klever-inst/klever.json')
-                ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
-
-        if is_update['Klever']:
-            dump_cur_deploy_info()
-
-        try:
-            is_update['Controller & Schedulers'], is_update['Verification Backends'] = \
-                install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn)
-        # Without this we won't store information on successfully installed/updated extra dependencies and following
-        # installation/update will fail.
-        finally:
-            if is_update['Controller & Schedulers'] or is_update['Verification Backends']:
-                dump_cur_deploy_info()
-
-        is_update_programs = False
-        try:
-            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
-                                                  install_fn)
-        # Like above.
-        finally:
-            if is_update_programs:
-                dump_cur_deploy_info()
-
-        if is_update['Klever']:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py')
-
-        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py'
-        if is_update['Klever'] or is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd)
-
-        if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+        self._create(True)
 
     def update(self):
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                       'update of Klever developer instance'):
-                self._do_update(ssh)
+                self._create_or_update(ssh, True)
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
@@ -504,7 +509,6 @@ class OSKleverExperimentalInstances(OSKleverInstance):
 
         self.logger.info(
             'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
-        master_instance = None
         master_image = None
         self.args.name = self.name
         # TODO: it would be better to detect shis automatically since it can change.
@@ -512,11 +516,9 @@ class OSKleverExperimentalInstances(OSKleverInstance):
         flavor = self.args.flavor
         self.args.flavor = 'keystone.xlarge'
         try:
-            klever_developer_instance = OSKleverDeveloperInstance(self.args, self.logger)
-            klever_developer_instance.create()
-            master_instance = klever_developer_instance.instance
+            self._create(False)
             self.args.flavor = flavor
-            master_instance.create_image()
+            self.instance.create_image()
             master_image = self._get_base_image(self.name)
 
             instance_id = 1
@@ -532,8 +534,8 @@ class OSKleverExperimentalInstances(OSKleverInstance):
         # Always remove master instance in case of failures. Klever experimental instances should be removed via
         # OSKleverExperimentalInstances#remove.
         finally:
-            if master_instance:
-                master_instance.remove()
+            if self.instance:
+                self.instance.remove()
             if master_image:
                 self.logger.info('Remove master image "{0}"'.format(self.name))
                 # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
@@ -550,6 +552,7 @@ class OSKleverExperimentalInstances(OSKleverInstance):
             self.logger.info('Remove instance "{0}"'.format(klever_experimental_instance.name))
             self.clients.nova.servers.delete(klever_experimental_instance.id)
 
+    # TODO: this shouldn't work and thus should be removed.
     def ssh(self):
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
