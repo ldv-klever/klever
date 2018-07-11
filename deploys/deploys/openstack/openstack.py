@@ -212,10 +212,10 @@ class OSKleverInstance(OSEntity):
     def _create(self, is_dev):
         base_image = self._get_base_image(self.args.klever_base_image)
 
-        klever_developer_instances = self._get_instances(self.name)
+        klever_instances = self._get_instances(self.name)
 
-        if klever_developer_instances:
-            self.logger.error('Klever developer instance matching "{0}" already exists'.format(self.name))
+        if klever_instances:
+            self.logger.error('Klever instance(s) matching "{0}" already exists'.format(self.name))
             sys.exit(errno.EINVAL)
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
