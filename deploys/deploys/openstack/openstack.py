@@ -507,39 +507,43 @@ class OSKleverExperimentalInstances(OSKleverInstance):
                               ' command-line option --instances')
             sys.exit(errno.EINVAL)
 
-        self.logger.info(
-            'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
-        master_image = None
-        self.args.name = self.name
-        # TODO: it would be better to detect shis automatically since it can change.
-        # Use the same flavor for creating master instance as for creating Klever base image.
-        flavor = self.args.flavor
-        self.args.flavor = 'keystone.xlarge'
-        try:
+        # Often users will need to create a single Klever experimental instance, so, do that in a more optimal way.
+        if self.args.instances == 1:
             self._create(False)
-            self.args.flavor = flavor
-            self.instance.create_image()
-            master_image = self._get_base_image(self.name)
+        else:
+            self.logger.info(
+                'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
+            master_image = None
+            self.args.name = self.name
+            # TODO: it would be better to detect shis automatically since it can change.
+            # Use the same flavor for creating master instance as for creating Klever base image.
+            flavor = self.args.flavor
+            self.args.flavor = 'keystone.xlarge'
+            try:
+                self._create(False)
+                self.args.flavor = flavor
+                self.instance.create_image()
+                master_image = self._get_base_image(self.name)
 
-            instance_id = 1
-            while instance_id <= self.args.instances:
-                instance_name = '{0}-{1}'.format(self.name, instance_id)
-                self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
+                instance_id = 1
+                while instance_id <= self.args.instances:
+                    instance_name = '{0}-{1}'.format(self.name, instance_id)
+                    self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
-                with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
-                                base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
-                    pass
+                    with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
+                                    base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
+                        pass
 
-                instance_id += 1
-        # Always remove master instance in case of failures. Klever experimental instances should be removed via
-        # OSKleverExperimentalInstances#remove.
-        finally:
-            if self.instance:
-                self.instance.remove()
-            if master_image:
-                self.logger.info('Remove master image "{0}"'.format(self.name))
-                # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
-                self.clients.glance.images.delete(master_image.id)
+                    instance_id += 1
+            # Always remove master instance and image if so. Klever experimental instances should be removed via
+            # OSKleverExperimentalInstances#remove.
+            finally:
+                if self.instance:
+                    self.instance.remove()
+                if master_image:
+                    self.logger.info('Remove master image "{0}"'.format(self.name))
+                    # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
+                    self.clients.glance.images.delete(master_image.id)
 
     def remove(self):
         klever_experimental_instances = self._get_instances(self.name_pattern)
