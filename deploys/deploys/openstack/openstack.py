@@ -507,6 +507,11 @@ class OSKleverExperimentalInstances(OSKleverInstance):
                               ' command-line option --instances')
             sys.exit(errno.EINVAL)
 
+        klever_experimental_instances = self._get_instances(self.name_pattern)
+        if klever_experimental_instances:
+            self.logger.error('Klever experimental instances matching "{0}" already exist'.format(self.name_pattern))
+            sys.exit(errno.EINVAL)
+
         # Often users will need to create a single Klever experimental instance, so, do that in a more optimal way.
         if self.args.instances == 1:
             self._create(False)
