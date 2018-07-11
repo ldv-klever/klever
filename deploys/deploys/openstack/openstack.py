@@ -78,6 +78,15 @@ class OSEntity:
 
         return base_images[0]
 
+    def _get_images(self, image_name):
+        images = []
+
+        for image in self.clients.glance.images.list():
+            if re.fullmatch(image_name, image.name):
+                images.append(image)
+
+        return images
+
     def __connect(self):
         self.logger.info('Sign in to OpenStack')
         auth = v2.Password(**{
@@ -194,15 +203,6 @@ class OSKleverBaseImage(OSEntity):
             sys.exit(errno.EINVAL)
 
         self.clients.glance.images.delete(klever_base_images[0].id)
-
-    def _get_images(self, image_name):
-        images = []
-
-        for image in self.clients.glance.images.list():
-            if re.fullmatch(image_name, image.name):
-                images.append(image)
-
-        return images
 
 
 class OSKleverInstance(OSEntity):
