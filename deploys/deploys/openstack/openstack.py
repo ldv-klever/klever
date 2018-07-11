@@ -20,7 +20,6 @@ import json
 import os
 import re
 import shlex
-import subprocess
 import sys
 import tempfile
 
@@ -57,37 +56,11 @@ class OSEntity:
 
         self.kind = args.entity
 
-        self.clients = self._connect()
+        self.clients = self.__connect()
 
     def __getattr__(self, name):
         self.logger.error('You can not {0} "{1}"'.format(name, self.kind))
         sys.exit(errno.ENOSYS)
-
-    def _connect(self):
-        self.logger.info('Sign in to OpenStack')
-        auth = v2.Password(**{
-            'auth_url': self.args.os_auth_url,
-            'username': self.args.os_username,
-            'password': get_password(self.logger, 'OpenStack password for authentication: '),
-            'tenant_name': self.args.os_tenant_name
-        })
-        sess = session.Session(auth=auth)
-
-        try:
-            # Perform a request to OpenStack in order to check the correctness of provided username and password.
-            sess.get_auth_headers()
-        except keystoneauth1.exceptions.http.Unauthorized:
-            self.logger.error('Sign in failed: invalid username or password')
-            sys.exit(errno.EACCES)
-
-        return OSClients(self.logger, sess)
-
-    def _execute_cmd(self, *args, get_output=False):
-        self.logger.info('Execute command "{0}"'.format(' '.join(args)))
-        if get_output:
-            return subprocess.check_output(args).decode('utf8')
-        else:
-            subprocess.check_call(args)
 
     def _get_base_image(self, base_image_name):
         self.logger.info('Get base image matching "{0}"'.format(base_image_name))
@@ -105,61 +78,24 @@ class OSEntity:
 
         return base_images[0]
 
-    def _get_images(self, image_name):
-        images = []
+    def __connect(self):
+        self.logger.info('Sign in to OpenStack')
+        auth = v2.Password(**{
+            'auth_url': self.args.os_auth_url,
+            'username': self.args.os_username,
+            'password': get_password(self.logger, 'OpenStack password for authentication: '),
+            'tenant_name': self.args.os_tenant_name
+        })
+        sess = session.Session(auth=auth)
 
-        for image in self.clients.glance.images.list():
-            if re.fullmatch(image_name, image.name):
-                images.append(image)
+        try:
+            # Perform a request to OpenStack in order to check the correctness of provided username and password.
+            sess.get_auth_headers()
+        except keystoneauth1.exceptions.http.Unauthorized:
+            self.logger.error('Sign in failed: invalid username or password')
+            sys.exit(errno.EACCES)
 
-        return images
-
-    def _get_instance(self, instance_name):
-        self.logger.info('Get instance matching "{0}"'.format(instance_name))
-
-        instances = self._get_instances(instance_name)
-
-        if len(instances) == 0:
-            self.logger.error('There are no intances matching "{0}"'.format(instance_name))
-            sys.exit(errno.EINVAL)
-
-        if len(instances) > 1:
-            self.logger.error('There are several instances matching "{0}", please, resolve this conflict manually'
-                              .format(instance_name))
-            sys.exit(errno.EINVAL)
-
-        return instances[0]
-
-    def _get_instance_floating_ip(self, instance):
-        self.logger.info('Get instance floating IP')
-
-        floating_ip = None
-        for network_addresses in instance.addresses.values():
-            for address in network_addresses:
-                if address.get('OS-EXT-IPS:type') == 'floating':
-                    floating_ip = address.get('addr')
-                    break
-            if floating_ip:
-                break
-
-        if not floating_ip:
-            self.logger.error('There are no floating IPs, please, resolve this manually')
-            sys.exit(errno.EINVAL)
-
-        return floating_ip
-
-    def _get_instances(self, instance_name):
-        instances = []
-
-        for instance in self.clients.nova.servers.list():
-            if re.fullmatch(instance_name, instance.name):
-                instances.append(instance)
-
-        return instances
-
-    def _show_instance(self, instance):
-        return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
-                                                   self._get_instance_floating_ip(instance))
+        return OSClients(self.logger, sess)
 
 
 class DeployConfAndScripts:
@@ -259,8 +195,69 @@ class OSKleverBaseImage(OSEntity):
 
         self.clients.glance.images.delete(klever_base_images[0].id)
 
+    def _get_images(self, image_name):
+        images = []
 
-class OSKleverDeveloperInstance(OSEntity):
+        for image in self.clients.glance.images.list():
+            if re.fullmatch(image_name, image.name):
+                images.append(image)
+
+        return images
+
+
+class OSKleverInstance(OSEntity):
+    def __init__(self, args, logger):
+        super().__init__(args, logger)
+
+    def _get_instance(self, instance_name):
+        self.logger.info('Get instance matching "{0}"'.format(instance_name))
+
+        instances = self._get_instances(instance_name)
+
+        if len(instances) == 0:
+            self.logger.error('There are no intances matching "{0}"'.format(instance_name))
+            sys.exit(errno.EINVAL)
+
+        if len(instances) > 1:
+            self.logger.error('There are several instances matching "{0}", please, resolve this conflict manually'
+                              .format(instance_name))
+            sys.exit(errno.EINVAL)
+
+        return instances[0]
+
+    def _get_instance_floating_ip(self, instance):
+        self.logger.info('Get instance floating IP')
+
+        floating_ip = None
+        for network_addresses in instance.addresses.values():
+            for address in network_addresses:
+                if address.get('OS-EXT-IPS:type') == 'floating':
+                    floating_ip = address.get('addr')
+                    break
+            if floating_ip:
+                break
+
+        if not floating_ip:
+            self.logger.error('There are no floating IPs, please, resolve this manually')
+            sys.exit(errno.EINVAL)
+
+        return floating_ip
+
+    def _get_instances(self, instance_name):
+        instances = []
+
+        for instance in self.clients.nova.servers.list():
+            if re.fullmatch(instance_name, instance.name):
+                instances.append(instance)
+
+        return instances
+
+    def _show_instance(self, instance):
+        return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
+                                                   self._get_instance_floating_ip(instance))
+
+
+class OSKleverDeveloperInstance(OSKleverInstance):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
@@ -476,7 +473,7 @@ class OSKleverDeveloperInstance(OSEntity):
         sys.exit(errno.EINVAL)
 
 
-class OSKleverExperimentalInstances(OSEntity):
+class OSKleverExperimentalInstances(OSKleverInstance):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
@@ -510,6 +507,7 @@ class OSKleverExperimentalInstances(OSEntity):
         master_instance = None
         master_image = None
         self.args.name = self.name
+        # TODO: it would be better to detect shis automatically since it can change.
         # Use the same flavor for creating master instance as for creating Klever base image.
         flavor = self.args.flavor
         self.args.flavor = 'keystone.xlarge'
