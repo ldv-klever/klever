@@ -98,9 +98,6 @@ def common_initialization(tool, conf=None):
         with open(args.config, encoding="utf8") as fp:
             conf = json.load(fp)
 
-    # TODO: Do we need use version of the scheduler further?
-    # TODO: Do we need any checks of exclusive execution?
-
     # Check common configuration
     if "common" not in conf:
         raise KeyError("Provide configuration property 'common' as an JSON-object")
@@ -111,29 +108,33 @@ def common_initialization(tool, conf=None):
     else:
         conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
 
-    if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
-        logging.info("Keep working directory from the previous run")
-    else:
-        logging.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
+    clean_dir = False
+    if not conf["common"].get("keep working directory", False):
+        clean_dir = True
         shutil.rmtree(conf["common"]['working directory'], True)
-
-    logging.debug("Create working dir: {0}".format(conf["common"]['working directory']))
-    os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
-
-    # Go to the working directory to avoid creating files elsewhere
+        os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
     os.chdir(conf["common"]['working directory'])
 
-    # Start logging
+    # Configure logging
     if "logging" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
     logging.config.dictConfig(conf["common"]['logging'])
+    logger = logging.getLogger()
+
+    # Report about the dir
+    if clean_dir:
+        # Go to the working directory to avoid creating files elsewhere
+        logger.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
+        logger.debug("Create working dir: {0}".format(conf["common"]['working directory']))
+    else:
+        logger.info("Keep working directory from the previous run")
 
     def handle_exception(exc_type, exc_value, exc_traceback):
-        logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
 
-    return conf
+    return conf, logger
 
 
 def split_archive_name(path):
@@ -568,5 +569,3 @@ def time_units_converter(num, outunit=''):
     }
 
     return __converter(num, units_in_seconds, 'time', outunit)
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

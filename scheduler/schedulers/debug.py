@@ -16,7 +16,6 @@
 #
 
 import time
-import logging
 import os
 import shutil
 
@@ -73,7 +72,7 @@ class Scheduler(schedulers.native.Scheduler):
         else:
             reserved_space = 0
 
-        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
+        self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
                 self._manager.release_resources(identifier, self._node_name, True if mode == 'job' else False,
@@ -81,19 +80,19 @@ class Scheduler(schedulers.native.Scheduler):
                 result = future.result()
                 if result != 0:
                     msg = "Work has been interrupted"
-                    logging.warning(msg)
+                    self.logger.warning(msg)
                     raise schedulers.SchedulerException(msg)
             else:
-                logging.debug("Seems that {} {} has not been started".format(mode, identifier))
+                self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
-            logging.warning(error_msg)
+            self.logger.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
             if "keep working directory" not in self.conf["scheduler"] or \
                     not self.conf["scheduler"]["keep working directory"]:
-                logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
+                self.logger.debug("Clean task working directory {} for {}".format(work_dir, identifier))
                 shutil.rmtree(work_dir)
 
         return "FINISHED"

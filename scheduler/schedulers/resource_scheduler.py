@@ -729,4 +729,6 @@ class ResourceManager:
 
         return [f(cpu_number), f(ram_memory), f(disk_memory)]
 
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+
