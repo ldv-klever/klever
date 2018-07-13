@@ -677,6 +677,9 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
+        # Currently we will use rule specification name as a solution class to accumulate statistics and adjust resource
+        # limitations
+        initial_abstract_task_desc['solution class'] = self.rule_specification
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []

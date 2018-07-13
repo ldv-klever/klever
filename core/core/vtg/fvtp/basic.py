@@ -131,6 +131,9 @@ class Basic:
             }
         )
 
+        # Save to task its class
+        task_desc['solution class'] = self.abstract_task_desc['solution class']
+
         return task_desc
 
     def _prepare_run_definition(self, benchmark_definition, options):
