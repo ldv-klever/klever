@@ -352,7 +352,7 @@
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
