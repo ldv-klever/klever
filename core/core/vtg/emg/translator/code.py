@@ -120,8 +120,8 @@ class CModel:
         else:
             prefix = 'AUX_FUNC'
         self._function_definitions[file][function.name] = list(function.get_definition())
-        if not function.control_function:
-            self._function_definitions[file][function.name] += ['/* {} {} */\n'.format(prefix, function.name)]
+        self._function_definitions[file][function.name] = ['/* {} {} */\n'.format(prefix, function.name)] + \
+                                                          self._function_definitions[file][function.name]
 
         self.add_function_declaration(file, function, extern=False)
 
@@ -292,7 +292,26 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        body += given_body
+        if get_conf_property(self._conf, "initialize rules"):
+            body += [
+                '/* LDV {"action": "INIT", "callback": true, "type": "CALL_BEGIN", '
+                '"comment": "Initialize rule models."} */',
+                'ldv_initialize();',
+                '/* LDV {"action": "INIT", "type": "CALL_END"} */'
+            ]
+
+        body += ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_BEGIN", '
+                 '"comment": "Begin Environment model scenarios."} */'] + given_body + \
+                ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
+
+        if get_conf_property(self._conf, "check final state"):
+            body += [
+                '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
+                '"comment": "Check rule model state at the exit if required."} */',
+                'ldv_check_final_state();',
+                '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
+            ]
+
         body.append('return 0;')
         body.append('/* LDV {' + '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END",'
                     ' "function": "{0}"'.format(self.entry_name) + '} */')

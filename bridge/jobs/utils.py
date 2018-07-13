@@ -1039,7 +1039,8 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][1] not in set(x[0] for x in SCHEDULER_TYPE):
             return False
-        if not isinstance(self.configuration[0][2], int) or self.configuration[0][2] < 1:
+        if not isinstance(self.configuration[0][2], int) or \
+                (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
             return False
         for i in range(4):
             if not isinstance(self.configuration[1][i], (float, int)):
@@ -1061,8 +1062,6 @@ class GetConfiguration(object):
         if self.configuration[3][2] not in settings.LOGGING_LEVELS:
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
-            return False
-        if len(self.configuration[3][1].strip()) == 0 or len(self.configuration[3][3].strip()) == 0:
             return False
         if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
             return False
@@ -1282,8 +1281,8 @@ class GetJobDecisionResults:
 
         for mr in MarkUnsafeReport.objects.filter(report__root=self.job.reportroot).select_related('mark'):
             if mr.report_id not in reports:
-                reports[mr.report_id] = {'attrs': [], 'marks': []}
-            reports[mr.report_id]['marks'].append(mr.mark.identifier)
+                reports[mr.report_id] = {'attrs': [], 'marks': {}}
+            reports[mr.report_id]['marks'][mr.mark.identifier] = mr.result
             if mr.mark.identifier not in marks:
                 marks[mr.mark.identifier] = {
                     'verdict': mr.mark.verdict, 'status': mr.mark.status,
@@ -1292,7 +1291,8 @@ class GetJobDecisionResults:
 
         for u_id, in ReportUnsafe.objects.filter(root=self.job.reportroot, verdict=UNSAFE_VERDICTS[5][0])\
                 .values_list('id'):
-            reports[u_id] = {'attrs': [], 'marks': []}
+            if u_id not in reports:
+                reports[u_id] = {'attrs': [], 'marks': {}}
 
         for r_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports)\
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):

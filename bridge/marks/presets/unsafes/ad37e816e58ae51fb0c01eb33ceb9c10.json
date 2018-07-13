@@ -46,11 +46,7 @@
   "error trace": [
     [
       {
-        "ldv_main_5": [
-          {
-            "ldv_initialize": []
-          }
-        ]
+        "ldv_initialize": []
       }
     ],
     [

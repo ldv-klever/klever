@@ -24,9 +24,9 @@ before: file("$this")
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
+extern struct fb_info *ldv_framebuffer_alloc(size_t size, struct device *dev);
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
-void ldv_memory_free(void);
 }
 
 around: define(_THIS_IP_)
@@ -37,9 +37,7 @@ around: define(_THIS_IP_)
 //This function makes kzalloc()!
 around: call(struct fb_info *framebuffer_alloc(..))
 {
-	void *res = ldv_zalloc(sizeof(struct fb_info) + $arg1);
-	ldv_after_alloc(res);
-	return res;
+	return ldv_framebuffer_alloc($arg1, $arg2);
 }
 
 around: call(void *kmemdup(..))
@@ -229,22 +227,15 @@ around: FREE
 
 around: call(void framebuffer_release(..))
 {
-	if ($arg1 != 0) {
-		if ($arg1->apertures != 0) {
-			ldv_memory_free();
-		}
-		ldv_memory_free();
-	}
+    ldv_free($arg1->apertures);
+    ldv_free($arg1);
 }
 
 around: call(void rsi_91x_deinit(..))
 {
-	if ($arg1->rsi_dev != 0) {
-		ldv_memory_free();
-	}
-	if ($arg1 != 0) {
-		ldv_memory_free();
-	}
+    ldv_free($arg1->priv);
+    ldv_free($arg1->rsi_dev);
+    ldv_free($arg1);
 }
 
 // Workaround to find exactly the bug described in commit c0cc359.

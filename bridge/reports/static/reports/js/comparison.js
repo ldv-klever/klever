@@ -163,7 +163,7 @@ function get_comparison_by_attrs(attrs, page_num) {
         hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
         hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
     };
-    $.post('/reports/ajax/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
+    $.post('/reports/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
         if (data.error) {
             err_notify(data.error);
             $('#compare_data').empty();
@@ -207,16 +207,7 @@ $(document).ready(function () {
     });
     $('#search_by_attrs').click(function () {
         var attrs = [];
-        $('select[id^="attr_value__"]').each(function () {
-            if ($(this).val() != '0') {
-                attrs.push($(this).val());
-            }
-            else {
-                attrs.push("__REGEXP_ANY__");
-            }
-        });
-        if (attrs) {
-            get_comparison_by_attrs(JSON.stringify(attrs), 1);
-        }
+        $('select[id^="attr_value__"]').each(function () { attrs.push($(this).val()) });
+        if (attrs) get_comparison_by_attrs(JSON.stringify(attrs), 1);
     });
 });

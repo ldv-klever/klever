@@ -47,6 +47,8 @@
               }
             },
             "translation options": {
+              "initialize rules": true,
+              "check final state": true,
               "dump automata graphs": false,
               "implicit callback calls": true,
               "direct control functions calls": true,
@@ -184,6 +186,8 @@
       "template": "Linux kernel modules",
       "EMG" : {
         "translation options": {
+          "initialize rules": true,
+          "check final state": true,
           "dump automata graphs": false,
           "direct control functions calls": true,
           "nested automata": true,
@@ -206,7 +210,7 @@
           "allocate external": true
         }
       },
-      "RSG": {"models": {"generic/memory.c": {}}},
+      "RSG": {"models": {"generic/memory.c": {"headers": ["linux/fb.h"]}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {
@@ -544,6 +548,8 @@
       "template": "Linux kernel modules",
       "EMG": {
          "translation options": {
+           "initialize rules": true,
+           "check final state": true,
            "dump automata graphs": false,
            "implicit callback calls": false,
            "direct control functions calls": false,

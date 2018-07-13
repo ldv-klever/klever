@@ -79,10 +79,7 @@ class EntryProcessGenerator:
         ep.self_parallelism = False
         ep.category = "main"
         ep.identifier = 0
-
-        # Add register
-        init = ep.add_condition('init', [], ["ldv_initialize();"], "Initialize rule models.")
-        ep.process = '({}).'.format(init.name)
+        ep.process = ''
 
         # Add default dispatches
         if default_dispatches:
@@ -98,11 +95,6 @@ class EntryProcessGenerator:
             derd.comment = 'Stop environment model scenarios.'
             ep.actions[derd.name] = derd
             ep.process += "[{}].[{}]".format(regd.name, derd.name)
-
-        # Generate final
-        final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
-                                 "Check rule model state at the exit.")
-        ep.process += '.<{}>'.format(final.name)
 
         self.__logger.debug("Main process is generated")
         return ep

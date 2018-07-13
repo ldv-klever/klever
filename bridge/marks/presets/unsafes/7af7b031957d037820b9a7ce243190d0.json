@@ -46,9 +46,57 @@
   "error trace": [
     [
       {
-        "ldv_usb_serial_scenario_attach_3_10": [
+        "opticon_startup": [
           {
-            "opticon_startup": [
+            "ldv_kzalloc": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_usb_alloc_urb_24": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "ldv_kmalloc": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "opticon_open": [
+          {
+            "send_control_msg": [
               {
                 "ldv_kzalloc": [
                   {
@@ -62,65 +110,27 @@
                     ]
                   }
                 ]
-              },
+              }
+            ]
+          },
+          {
+            "ldv_usb_submit_urb_20": [
               {
-                "ldv_usb_alloc_urb_24": [
+                "ldv_check_alloc_flags": [
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "kmalloc": [
+                    "ldv_in_interrupt_context": []
+                  },
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
                   }
                 ]
               }
             ]
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_usb_serial_scenario_open_3_20": [
+          },
           {
-            "opticon_open": [
+            "send_control_msg": [
               {
-                "send_control_msg": [
-                  {
-                    "ldv_kzalloc": [
-                      {
-                        "ldv_check_alloc_flags": [
-                          {
-                            "ldv_in_interrupt_context": []
-                          },
-                          {
-                            "ldv_assert_linux_alloc_irq__wrong_flags": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "ldv_usb_submit_urb_20": [
+                "ldv_kzalloc": [
                   {
                     "ldv_check_alloc_flags": [
                       {
@@ -128,24 +138,6 @@
                       },
                       {
                         "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "send_control_msg": [
-                  {
-                    "ldv_kzalloc": [
-                      {
-                        "ldv_check_alloc_flags": [
-                          {
-                            "ldv_in_interrupt_context": []
-                          },
-                          {
-                            "ldv_assert_linux_alloc_irq__wrong_flags": []
-                          }
-                        ]
                       }
                     ]
                   }
@@ -161,48 +153,44 @@
         "ldv_switch_to_interrupt_context": []
       },
       {
-        "ldv_usb_serial_scenario_irq_write_3_34": [
+        "opticon_write": [
           {
-            "opticon_write": [
+            "ldv_kmalloc": [
               {
-                "kmalloc": [
+                "ldv_check_alloc_flags": [
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
                   }
                 ]
-              },
+              }
+            ]
+          },
+          {
+            "ldv_usb_alloc_urb_21": [
               {
-                "ldv_usb_alloc_urb_21": [
+                "ldv_check_alloc_flags": [
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
                   }
                 ]
-              },
+              }
+            ]
+          },
+          {
+            "ldv_kmalloc": [
               {
-                "kmalloc": [
+                "ldv_check_alloc_flags": [
                   {
-                    "ldv_check_alloc_flags": [
-                      {
-                        "ldv_in_interrupt_context": []
-                      },
-                      {
-                        "ldv_assert_linux_alloc_irq__wrong_flags": []
-                      }
-                    ]
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
                   }
                 ]
               }

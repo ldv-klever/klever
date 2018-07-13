@@ -142,7 +142,7 @@ class Session:
         return resp.json()['id']
 
     def download_job(self, job, archive):
-        return self.__download_archive('/jobs/ajax/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
+        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
 
     def upload_job(self, parent, archive):
         if len(parent) == 0:

@@ -419,31 +419,28 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         self.object = self.get_object()
         try:
             return self.render_to_response(self.get_context_data(object=self.object))
-        except BridgeException as e:
-            raise BridgeException(e, back=reverse('jobs:prepare_run', args=[self.object.pk]))
         except Exception as e:
             logger.exception(e)
             raise BridgeException(back=reverse('jobs:prepare_run', args=[self.object.pk]))
 
     def get_context_data(self, **kwargs):
+        current_conf = settings.DEF_KLEVER_CORE_MODE
+        configuration = None
+
         if self.request.method == 'POST':
-            conf_name = self.request.POST['conf_name']
-            if conf_name == 'file_conf':
+            current_conf = self.request.POST.get('conf_name', current_conf)
+            if current_conf == 'file_conf':
                 if 'file_conf' not in self.request.FILES:
                     raise BridgeException(code=301)
                 configuration = jobs.utils.GetConfiguration(
                     file_conf=json.loads(self.request.FILES['file_conf'].read().decode('utf8'))
                 ).configuration
-            else:
-                configuration = jobs.utils.GetConfiguration(conf_name=conf_name).configuration
-        else:
-            conf_name = settings.DEF_KLEVER_CORE_MODE
-            configuration = jobs.utils.GetConfiguration(conf_name=conf_name).configuration
+
         if configuration is None:
-            raise BridgeException(_('Configuration is wrong'))
+            configuration = jobs.utils.GetConfiguration(conf_name=current_conf).configuration
 
         return {
-            'job': self.object, 'current_conf': conf_name,
+            'job': self.object, 'current_conf': current_conf,
             'configurations': jobs.utils.get_default_configurations(),
             'data': jobs.utils.StartDecisionData(self.request.user, configuration)
         }
