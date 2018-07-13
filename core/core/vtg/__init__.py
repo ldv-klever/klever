@@ -412,14 +412,13 @@ class VTG(core.components.Component):
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
         processing_status = dict()
-        limit_tasks = dict()
         initial = dict()
         delete_ready = dict()
         total_vo_descriptions = 0
-        balancer = Balancer(self.conf, self.logger, processing_status, limit_tasks)
+        balancer = Balancer(self.conf, self.logger, processing_status)
 
         def submit_task(vobj, rlcl, rlda, rescheduling=False):
-            resource_limitations = balancer.resource_limitations(vobj, rlcl, rlda['id'])
+            resource_limitations = balancer.resource_limitations(vobj['id'], rlcl, rlda['id'])
             self.mqs['prepare verification objects'].put((vobj, rlda, resource_limitations, rescheduling))
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
@@ -482,8 +481,9 @@ class VTG(core.components.Component):
                     self.logger.info("No verification objects will be generated")
 
                     # Drop a line to a progress watcher
-                    self.mqs['total tasks'].put([self.conf['job identifier'],
-                                                 int(total_vo_descriptions * len(self.rule_spec_descs))])
+                    total_tasks = int(total_vo_descriptions * len(self.rule_spec_descs))
+                    balancer.set_total_tasks(total_tasks)
+                    self.mqs['total tasks'].put([self.conf['job identifier'], total_tasks])
 
                 for verification_obj_desc_file in verification_obj_desc_files:
                     with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
@@ -545,15 +545,15 @@ class VTG(core.components.Component):
                             solved += 1
 
                     # Check that we should reschedule tasks
-                    if not expect_objects and balancer.rescheduling:
-                        for rule in (r for r in _rule_spec_classes[rule_class] if
-                                     r['id'] in processing_status[vobject][rule_class] and
-                                     not processing_status[vobject][rule_class][r['id']]):
-                            if balancer.need_rescheduling(vobject, rule_class, rule['id']):
-                                submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=True)
-                                active_tasks += 1
-                            elif balancer.neednot_rescheduling(vobject, rule_class, rule['id']):
-                                processing_status[vobject][rule_class][rule['id']] = True
+                    for rule in (r for r in _rule_spec_classes[rule_class] if
+                                 r['id'] in processing_status[vobject][rule_class] and
+                                 not processing_status[vobject][rule_class][r['id']] and
+                                 balancer.is_there(vobject, rule_class, r['id'])):
+                        if balancer.do_rescheduling(vobject, rule_class, rule['id']):
+                            submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=True)
+                            active_tasks += 1
+                        elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
+                            processing_status[vobject][rule_class][rule['id']] = True
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
                         (self.conf['keep intermediate files'] or (vobject in delete_ready and
@@ -692,72 +692,78 @@ class VTGW(core.components.Component):
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
                 initial_abstract_task_desc_file))
+        initial_abstract_task_desc['resource limits'] = self.override_limits
         with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
             json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
         cur_abstract_task_desc_file = initial_abstract_task_desc_file
         out_abstract_task_desc_file = None
-        for plugin_desc in rule_spec_desc['plugins']:
+        if self.rerun:
+            # Get only the last, and note that the last one prepares tasks and otherwise rerun should not be set
+            plugins = list(rule_spec_desc['plugins'][-1])
+        else:
+            plugins = rule_spec_desc['plugins']
+
+        for plugin_desc in plugins:
             # Here plugin will put modified abstract verification task description.
             plugin_work_dir = plugin_desc['name'].lower()
             out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
 
-            if not self.rerun:
-                if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                        plugin_desc['name'] in ['SA', 'EMG']:
-                    # Expect that there is a work directory which has all prepared
-                    # Make symlinks to the pilot rule work dir
-                    self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
-                                     "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification,
-                                                                        pilot_rule))
-                    pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
-                    pilot_abstract_task_desc_file = os.path.join(
-                        pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
-                    os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir),
-                               out_abstract_task_desc_file)
-                    os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
-                else:
-                    self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+            if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                    plugin_desc['name'] in ['SA', 'EMG']:
+                # Expect that there is a work directory which has all prepared
+                # Make symlinks to the pilot rule work dir
+                self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
+                                 "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification,
+                                                                    pilot_rule))
+                pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
+                pilot_abstract_task_desc_file = os.path.join(
+                    pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
+                os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir),
+                           out_abstract_task_desc_file)
+                os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
+            else:
+                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-                    # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-                    # specification and information on rule specification itself. In addition put either initial or
-                    # current description of abstract verification task into plugin configuration.
-                    plugin_conf = copy.deepcopy(self.conf)
-                    if 'options' in plugin_desc:
-                        plugin_conf.update(plugin_desc['options'])
-                    if 'bug kinds' in rule_spec_desc:
-                        plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
-                    plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
-                                                                                self.conf[
-                                                                                    'main working directory'])
-                    plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
-                                                                                 self.conf[
-                                                                                     'main working directory'])
+                # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+                # specification and information on rule specification itself. In addition put either initial or
+                # current description of abstract verification task into plugin configuration.
+                plugin_conf = copy.deepcopy(self.conf)
+                if 'options' in plugin_desc:
+                    plugin_conf.update(plugin_desc['options'])
+                if 'bug kinds' in rule_spec_desc:
+                    plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
+                plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
+                                                                            self.conf[
+                                                                                'main working directory'])
+                plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
+                                                                             self.conf[
+                                                                                 'main working directory'])
 
-                    plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
-                    self.logger.debug(
-                        'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
-                                                                                 plugin_conf_file))
-                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
-                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
+                self.logger.debug(
+                    'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
+                                                                             plugin_conf_file))
+                with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                    json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                    try:
-                        p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                                  self.locks, self.vals, plugin_desc['name'],
-                                                  plugin_work_dir, separate_from_parent=True,
-                                                  include_child_resources=True)
-                        p.start()
-                        p.join()
-                    except core.components.ComponentError:
-                        self.plugin_fail_processing()
-                        break
+                try:
+                    p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
+                                              self.locks, self.vals, plugin_desc['name'],
+                                              plugin_work_dir, separate_from_parent=True,
+                                              include_child_resources=True)
+                    p.start()
+                    p.join()
+                except core.components.ComponentError:
+                    self.plugin_fail_processing()
+                    break
 
-                    if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                            plugin_desc['name'] == 'EMG':
-                        self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
-                                          "further use".format(pilot_rule))
-                        self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
+                if self.rule_specification in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                        plugin_desc['name'] == 'EMG':
+                    self.logger.debug("Signal to VTG that the cache preapred for the rule {!r} is ready for the "
+                                      "further use".format(pilot_rule))
+                    self.mqs['prepared verification tasks'].put((self.verification_object, self.rule_specification))
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
@@ -777,16 +783,6 @@ class VTGW(core.components.Component):
                                                           self.conf['shadow source tree']))
             if os.path.isfile(os.path.join(plugin_work_dir, 'task.json')) and \
                os.path.isfile(os.path.join(plugin_work_dir, 'task files.zip')):
-
-                if self.override_limits:
-                    # Now set new resource limits
-                    with open(os.path.join(plugin_work_dir, 'task.json'), 'r', encoding='utf8') as fp:
-                        final_task_data = json.load(fp)
-                        final_task_data["resource limits"] = self.override_limits
-                    with open(os.path.join(plugin_work_dir, 'task.json'), 'w', encoding='utf8') as fp:
-                        data = json.dumps(final_task_data)
-                        fp.write(data)
-
                 task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
                                                      os.path.join(plugin_work_dir, 'task files.zip'))
                 with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:

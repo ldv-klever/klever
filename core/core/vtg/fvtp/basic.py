@@ -178,8 +178,9 @@ class Basic:
 
         :return: Dictionary with resource limitations.
         """
-        max_limitations = utils.read_max_resource_limitations(self.logger, self.conf)
-        return max_limitations
+        limitations = self.abstract_task_desc.get('resource limits',
+                                                  utils.read_max_resource_limitations(self.logger, self.conf))
+        return limitations
 
     def _cleanup(self):
         """

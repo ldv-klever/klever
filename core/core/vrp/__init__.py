@@ -163,7 +163,7 @@ class VRP(core.components.Component):
 
         # First get QOS resource limitations
         qos_resource_limits = core.utils.read_max_resource_limitations(self.logger, self.conf)
-
+        self.vals['task solution triples'] = multiprocessing.Manager().dict()
         while True:
             element = self.mqs['processing tasks'].get()
             if element is None:
@@ -174,7 +174,7 @@ class VRP(core.components.Component):
             rule = data[3]
             new_id = "{}/{}/RP".format(vo, rule)
             workdir = os.path.join(vo, rule)
-            solution = [None, None, None]
+            self.vals['task solution triples']['{}:{}'.format(vo, rule)] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
                         workdir, [
@@ -196,10 +196,11 @@ class VRP(core.components.Component):
                         element=element)
                 rp.start()
                 rp.join()
-                solution = [rp.status, rp.resources, rp.limit_reason]
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
             finally:
+                solution = list(self.vals['task solution triples'].get('{}:{}'.format(vo, rule)))
+                del self.vals['task solution triples']['{}:{}'.format(vo, rule)]
                 self.mqs['processed tasks'].put((vo, rule, solution))
                 self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
@@ -225,9 +226,6 @@ class RP(core.components.Component):
         self.rule_specification = None
         self.verification_object = None
         self.task_error = None
-        self.status = None
-        self.resources = None
-        self.limit_reason = None
         self.verification_coverage = None
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
@@ -246,8 +244,13 @@ class RP(core.components.Component):
         task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
-        self.status = status
+        self.results_key = '{}:{}'.format(self.verification_object, self.rule_specification)
         self.logger.debug("Prcess results of task {}".format(task_id))
+
+        # Update solution status
+        data = list(self.vals['task solution triples'][self.results_key])
+        data[0] = status
+        self.vals['task solution triples'][self.results_key] = data
 
         try:
             if status == 'finished':
@@ -427,8 +430,10 @@ class RP(core.components.Component):
                     log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
-                    self.limit_reason = decision_results['status']
 
+                    data = list(self.vals['task solution triples'][self.results_key])
+                    data[2] = decision_results['status']
+                    self.vals['task solution triples'][self.results_key] = data
                     if decision_results['resource limits']['memory size'] < self.__qos_resource_limit['memory size']:
                         # We do not send the report since such result with the reduced limit is temporary
                         self.logger.info("Do not send report since memory limitation {} is lower than QOS one {}".
@@ -489,7 +494,11 @@ class RP(core.components.Component):
             'name': verifier,
             'resources': decision_results['resources'],
         }
-        self.resources = decision_results['resources']
+
+        # Update solution progress. It is necessary to update the whole list to sync changes
+        data = list(self.vals['task solution triples'][self.results_key])
+        data[1] = decision_results['resources']
+        self.vals['task solution triples'][self.results_key] = data
 
         if not self.logger.disabled and log_file:
             report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
@@ -517,6 +526,7 @@ class RP(core.components.Component):
                                                         arcnames=self.verification_coverage.arcnames)
             self.vals['coverage_finished'][self.conf['job identifier']] = False
 
+        # todo: This should be cheked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
                           'verification',
                           report,

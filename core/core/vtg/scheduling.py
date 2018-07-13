@@ -16,6 +16,7 @@
 #
 
 import math
+import time
 
 from core.utils import read_max_resource_limitations
 
@@ -40,126 +41,242 @@ def devn(cursum, n):
 
 class Balancer:
 
-    def __init__(self, conf, logger, precessing, problem_tasks):
-        self.processing = precessing
-        self.interrupted = problem_tasks
+    def __init__(self, conf, logger, precessing):
         self.conf = conf
         self.logger = logger
-        self.qos_limit = read_max_resource_limitations(logger, conf)
+        self.processing = precessing
 
-        # Data for interval calculation
-        self.statistics = dict()
+        # Stores current execution status
+        self._problematic = dict()
+        # Stores limitations for running and timeout tasks
+        self._issued_limits = dict()
+        # Total number of tasks
+        self._total_tasks = None
+        # Number of successfully(!) solved tasks for which resource caclulation statistics is available
+        self._solved = 0
+
+        # Read maximum limitations
+        self._qos_limit = read_max_resource_limitations(logger, conf)
+
+        # If options with wall limit are given we will try to improve timeout results
+        if self.conf.get('wall time limit'):
+            self.logger.debug("We will have probably extra time to solve timeout tasks")
+            self._walllimit = time.time() + self.conf['wall time limit']
+            self._minstep = self.conf.get('min increaded limit', 1.2)
+            self.logger.debug("Minimal time limit increasing step is {}%".format(int(round(self._minstep * 100))))
+        else:
+            self.logger.debug("We will not have extra time to solve timeout tasks")
+            self._walllimit = None
+
+        # Data for interval calculation with statistical values
+        self._statistics = dict()
+
+    @property
+    def limitation_tasks(self):
+        """Iterate over all tracking tasks."""
+        for vo, classes in self._problematic.items():
+            for rules in classes.values():
+                for rule, task in rules.items():
+                    yield (self._issued_limits[vo][rule], task)
 
     @property
     def rescheduling(self):
+        """Check that all rest tasks are limits"""
         # Check that there is no any task that is not finished and it is not timeout or out of mem
-        for vo in self.processing:
-            if vo not in self.interrupted:
+        for vo, ruleclasses in self.processing.items():
+            if vo not in self._problematic:
                 return False
             else:
-                for rc in self.processing[vo]:
-                    if rc not in self.interrupted[vo]:
+                for rc, rules in ruleclasses.items():
+                    if rc not in self._problematic[vo]:
                         return False
                     else:
-                        for rule in self.processing[vo][rc]:
-                            if rule not in self.interrupted[vo][rc]:
-                                return False
-
+                        if set(rules.keys()).difference(set(self._problematic[vo][rc].keys())):
+                            return False
         return True
 
     def is_there(self, vobject, rule_class, rule_name):
-        if vobject in self.processing and rule_class in self.processing[vobject] and rule_name in \
-                self.processing[vobject][rule_class]:
+        """Check that task is tracked as a limit."""
+        if self._problematic.get('vobject') and self._problematic[vobject].get(rule_class) and \
+                self._problematic[vobject][rule_class].get(rule_name):
             return True
+        return False
+
+    def do_rescheduling(self, vobject, rule_class, rule_name):
+        """Check that we rihgt now can reschedule this task if it is a timeout or memory limit."""
+        if self.is_there(vobject, rule_class, rule_name) and \
+                not self._problematic[vobject][rule_class][rule_name]['running']:
+            element = self._is_there_or_init(vobject, rule_class, rule_name)
+            assert not element['running']
+
+            limitation = self._issued_limits[vobject][rule_name]
+            self.logger.debug("Going to increass CPU time limitations for {}:{}".format(vobject, rule_name))
+            if (limitation.get('memory size', 0) < self._qos_limit.get('memory size', 0)) or \
+                    (limitation.get('CPU time', 0) < self._qos_limit.get('CPU time', 0)):
+                self._issued_limits[vobject][rule_name] = self._qos_limit
+                self.logger.debug("Reschedule {}:{} with QOS limit".format(vobject, rule_name))
+                return True
+            elif self.rescheduling and self._qos_limit.get('CPU time', 0) > 0:
+                have_time = self._have_time(limitation)
+                if have_time > 0:
+                    factor = self._increasing_factor
+                    new_limit = int(round(limitation['CPU time'] * factor))
+                    limitation.update({'CPU time': new_limit})
+                    new_wall_limit = 0  # For logging message
+                    if limitation.get('wall time', 0) > 0:
+                        new_wall_limit = int(round((limitation['wall time'] / limitation['CPU time']) * new_limit))
+                        limitation.update({'wall time': new_wall_limit})
+                    self.logger.debug("Reschedule {}:{} with increased CPU and wall time limit: {}, {}".
+                                      format(vobject, rule_name, new_limit, new_wall_limit))
+                    return True
+
+        return False
+
+    def need_rescheduling(self, vobject, rule_class, rule_name):
+        """
+        Check that in general this task need rescheduling but such rescheduling can be either done now or postponed.
+        """
+        if self.is_there(vobject, rule_class, rule_name):
+            issued_limit = self._issued_limits[vobject][rule_name]
+            if (issued_limit.get('memory size', 0) < self._qos_limit.get('memory size', 0) or
+                    (issued_limit.get('CPU time', 0) < self._qos_limit.get('CPU time', 0))):
+                return True
+            elif self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
+                return True
+        return False
+
+    def resource_limitations(self, vobject, rule_class, rule_name):
+        """
+        Issue a resource limitation for the task. If it is a timeout then previous method should already modify and
+        increase the limitations.
+        """
+
+        # First set QoS limit
+        limits = dict()
+        limits.update(self._qos_limit)
+
+        # Check do we have some statistics already
+        if limits.get('memory size', 0) > 0 and not self.is_there(vobject, rule_class, rule_name) and \
+                self._total_tasks and self._solved > 3:
+                # self._total_tasks and self._solved > (0.1 * self._total_tasks):
+            statistics = self._statistics[rule_class]
+            limits['memory size'] = statistics['mean mem'] + statistics['memdev']
+            self.logger.debug("Issue less memory limit for for {}:{}: {}".
+                              format(vobject, rule_name, limits['memory size']))
+        elif self.is_there(vobject, rule_class, rule_name):
+            limits = self._issued_limits[vobject][rule_name]
+            self.logger.debug("Issue existing limitation for {}:{}".format(vobject, rule_name))
         else:
-            return False
+            self.logger.debug("Issue QOS limit for {}:{}".format(vobject, rule_name))
 
-    def is_there_or_init(self, vobject, rule_class, rule_name):
-        if not self.is_there(vobject, rule_class, rule_name):
-            if vobject not in self.processing:
-                self.processing[vobject] = {rule_class: {rule_name: {'error': False, 'status': None}}}
-            elif rule_class not in self.processing[vobject]:
-                self.processing[vobject][rule_class] = {rule_name: {'error': False, 'status': None}}
-            else:
-                self.processing[vobject][rule_class][rule_name] = {'error': False, 'status': None}
-        return self.processing[vobject][rule_class][rule_name]
-
-    def del_run(self, vobject, rule_class, rule_name):
-        del self.processing[vobject][rule_class][rule_name]
-        if len(self.processing[vobject][rule_class]) == 0:
-            del self.processing[vobject][rule_class]
-        if len(self.processing[vobject]) == 0:
-            del self.processing[vobject]
+        self._add_limit(vobject, rule_name, limits)
+        return limits
 
     def add_solution(self, vobject, rule_class, rule_name, status_info):
         """Save solution and return is this solution is final or not"""
         status, resources, limit_reason = status_info
 
-        # Update statistics
+        # Check that it is an error from scheduler
         if status == 'error':
+            self.logger.debug("Task {}:{} failed".format(vobject, rule_name))
             if self.is_there(vobject, rule_class, rule_name):
-                element = self.is_there_or_init(vobject, rule_class, rule_name)
-                if element['error']:
-                    element['error'] = False
-                    if not element['status']:
-                        # Delete it if it is not a limitation problem
-                        self.del_run(vobject, rule_class, rule_name)
-                else:
-                    element['error'] = True
-                    return False
+                self._del_run(vobject, rule_class, rule_name)
+            self._remove_limit(vobject, rule_name)
+        elif resources:
+            self.logger.debug("Task {}:{} finished".format(vobject, rule_name))
+            self._solved += 1
+            if rule_class not in self._statistics:
+                self._statistics[rule_class] = {
+                    'mean mem': resources['memory size'],
+                    'memsum': 0,
+                    'memdev': 0,
+                    'mean time': resources['CPU time'],
+                    'timesum': 0,
+                    'timedev': 0,
+                    'number': 1
+                }
             else:
-                element = self.is_there_or_init(vobject, rule_class, rule_name)
-                element['error'] = True
+                statistics = self._statistics[rule_class]
+                statistics['number'] += 1
+                # First save data for CPU
+                newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'])
+                newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'])
+                timedev = devn(newsum, statistics['number'])
+                statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
+
+                # Then memory
+                newmean = incmean(statistics['mean mem'], statistics['number'], resources['memory size'])
+                newsum = incsum(statistics['memsum'], statistics['mean mem'], newmean, resources['memory size'])
+                memdev = devn(newsum, statistics['number'])
+                statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
+
+            if limit_reason in ('CPU time exhausted', 'memory exhausted'):
+                self.logger.debug("Task {}:{} has been terminated due to limit".format(vobject, rule_name))
+                element = self._is_there_or_init(vobject, rule_class, rule_name)
+                element['status'] = limit_reason
+                element['running'] = False
+                # We need to check can we solve it again later
                 return False
+            elif self.is_there(vobject, rule_class, rule_name):
+                # Ok ,we solved this timelimit or memory limit
+                self._del_run(vobject, rule_class, rule_name)
+                self._remove_limit(vobject, rule_name)
+            else:
+                self._remove_limit(vobject, rule_name)
         else:
-            if resources:
-                if rule_class not in self.statistics:
-                    self.statistics[rule_class] = {
-                        'mean mem': resources['memory size'],
-                        'memsum': 0,
-                        'memdev': 0,
-                        'mean time': resources['CPU time'],
-                        'timesum': 0,
-                        'timedev': 0,
-                        'number': 1
-                    }
-                else:
-                    self.statistics['number'] += 1
-                    # First CPU
-                    newmean = incmean(self.statistics[rule_class]['mean time'], self.statistics[rule_class]['number'],
-                                      resources['CPU time'])
-                    newsum = incsum(self.statistics[rule_class]['timesum'], self.statistics[rule_class]['mean time'],
-                                    newmean, resources['CPU time'])
-                    timedev = devn(newsum, self.statistics[rule_class]['number'])
-                    self.statistics[rule_class]['mean time'] = newmean
-                    self.statistics[rule_class]['timesum'] = newsum
-                    self.statistics[rule_class]['timedev'] = timedev
-
-                    # Then memory
-                    newmean = incmean(self.statistics[rule_class]['mean mem'], self.statistics[rule_class]['number'],
-                                      resources['memory size'])
-                    newsum = incsum(self.statistics[rule_class]['memsum'], self.statistics[rule_class]['mean mem'],
-                                    newmean, resources['memory size'])
-                    timedev = devn(newsum, self.statistics[rule_class]['number'])
-                    self.statistics[rule_class]['mean mem'] = newmean
-                    self.statistics[rule_class]['memsum'] = newsum
-                    self.statistics[rule_class]['memdev'] = timedev
-
-                if limit_reason in ('CPU time exhausted', 'memory exhausted'):
-                    element = self.is_there_or_init(vobject, rule_class, rule_name)
-                    element['status'] = limit_reason
-                    return False
-                elif self.is_there(vobject, rule_class, rule_name):
-                    # Ok ,we solved this timelimit or memory limit
-                    self.del_run(vobject, rule_class, rule_name)
+            self.logger.debug("Task {}:{} failed and not even being solved".format(vobject, rule_name))
+            self._remove_limit(vobject, rule_name)
 
         return True
 
-    def need_rescheduling(self, vobject, rule_class, rule):
-        return False
+    def set_total_tasks(self, number):
+        """When total number of tasks becomes known save it to the corresponding attribute"""
+        self.logger.debug("Total number of tasks will be {}".format(number))
+        self._total_tasks = number
 
-    def neednot_rescheduling(self, vobject, rule_class, rule):
-        return False
+    @property
+    def _increasing_factor(self):
+        """Estimate can we increase timelimit for timeout more that a user recommended."""
+        min_time = sum((l['CPU time'] for l, t in self.limitation_tasks if not t['running']))
+        increased_time = int(min_time * self._minstep)
+        have_time = self._have_time()
+        if increased_time >= have_time:
+            return self._minstep
+        else:
+            return have_time / min_time
 
-    def resource_limitations(self, vobject, rule_class, rule):
-        return self.qos_limit
+    def _add_limit(self, vobject, rule_name, limit):
+        """Save resource limitation for a task."""
+        rules = self._issued_limits.setdefault(vobject, dict())
+        rules.update({rule_name: limit})
+
+    def _remove_limit(self, vobject, rule_name):
+        """Drop resource limitation for a task."""
+        del self._issued_limits[vobject][rule_name]
+        if len(self._issued_limits[vobject]) == 0:
+            del self._issued_limits[vobject]
+
+    def _is_there_or_init(self, vobject, rule_class, rule_name):
+        """Check that task is tracked as a time limit or otherwise start tracking it."""
+        classes = self._problematic.setdefault(vobject, dict())
+        rules = classes.setdefault(rule_class, dict())
+        return rules.setdefault(rule_name, {'status': None, 'running': False})
+
+    def _del_run(self, vobject, rule_class, rule_name):
+        """Stop tracking error or limit task."""
+        del self._problematic[vobject][rule_class][rule_name]
+        if len(self._problematic[vobject][rule_class]) == 0:
+            del self._problematic[vobject][rule_class]
+        if len(self._problematic[vobject]) == 0:
+            del self._problematic[vobject]
+
+    def _have_time(self, limitation=None):
+        """
+        Check that we have time to solve timelimits. Note that this is not show that the time to solve them is
+        actually is. We just check that if wall limitation for a job is given it is not come still.
+        """
+        if self._walllimit:
+            rest = self._walllimit - time.time()
+            if rest > 0 and ((limitation and rest > int(limitation['CPU time'] * self._minstep)) or (not limitation)):
+                return int(rest)
+        return 0
