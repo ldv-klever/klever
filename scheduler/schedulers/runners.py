@@ -22,11 +22,6 @@ from schedulers import SchedulerException
 class Runner:
     """Class provide general scheduler API."""
 
-    @staticmethod
-    def scheduler_type():
-        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
-        return "Klever"
-
     def __init__(self, conf, logger, work_dir, server):
         """
         Get configuration and prepare working directory.
@@ -41,7 +36,12 @@ class Runner:
         self.work_dir = work_dir
         self.server = server
         self.init()
-        utils.clear_resources(self.logger)
+        utils.clear_resources(self.logger, self.scheduler_type())
+
+    @staticmethod
+    def scheduler_type():
+        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
+        raise NotImplementedError
 
     def is_solving(self, item):
         """
@@ -220,7 +220,7 @@ class Runner:
                 self.logger.warning(msg)
                 item.update({"status": "ERROR", "error": msg})
             finally:
-                utils.clear_resources(self.logger, identifier)
+                utils.clear_resources(self.logger, self.scheduler_type(), identifier)
                 del item["future"]
                 return True
         else:

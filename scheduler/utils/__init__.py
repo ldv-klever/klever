@@ -430,13 +430,14 @@ def process_task_results(logger):
     return decision_results
 
 
-def submit_task_results(logger, server, identifier, decision_results, solution_path):
+def submit_task_results(logger, server, scheduler_type, identifier, decision_results, solution_path):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
 
     :param logger: Logger object.
     :param server: server.AbstractServer object.
+    :param scheduler_type: Scheduler type.
     :param identifier: Task identifier.
     :param decision_results: Dictionary with decision results and measured resources.
     :param solution_path: Path to the directory with solution files.
@@ -460,7 +461,7 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
             os.fsync(zfp.fp)
 
     ret = server.submit_solution(identifier, decision_results, results_archive)
-    upload_resources(logger, identifier, decision_results.get("resources"))
+    upload_resources(logger, identifier, scheduler_type, decision_results.get("resources"))
     return ret
 
 
@@ -574,36 +575,37 @@ def time_units_converter(num, outunit=''):
     return __converter(num, units_in_seconds, 'time', outunit)
 
 
-def upload_resources(logger, identifier, dataset):
+def upload_resources(logger, identifier, scheduler_type, dataset):
     """
     Upload data to controller storage.
 
     :param logger: Logger object.
     :param identifier: Task identifier.
+    :param scheduler_type: Scheduler type.
     :param dataset: Data to save about the solution. This should be dictionary.
     :return: None
     """
     try:
         session = consulate.Session()
-        session.kv['solutions/' + identifier] = json.dumps(dataset)
+        session.kv['solutions/{}/{}'.format(scheduler_type, identifier)] = json.dumps(dataset)
     except (AttributeError, KeyError):
         logger.warning("Key-value storage is inaccessible")
 
 
-def clear_resources(logger, identifier=None):
+def clear_resources(logger, scheduler_type, identifier=None):
     """
     Upload data to controller storage.
 
     :param logger: Logger object.
     :param identifier: Task identifier.
-    :param dataset: Data to save about the solution. This should be dictionary.
+    :param scheduler_type: Type of the scheduler to avoif races.
     :return: None
     """
-    try:
-        session = consulate.Session()
-        if identifier:
-            del session.kv['solutions/' + identifier]
-        else:
-            del session.kv['solutions']
-    except (AttributeError, KeyError):
-        logger.warning("Key-value storage is inaccessible")
+    #try:
+    session = consulate.Session()
+    if isinstance(identifier, str):
+        session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
+    else:
+        session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
+    #except (AttributeError, KeyError):
+    #    logger.warning("Key-value storage is inaccessible")

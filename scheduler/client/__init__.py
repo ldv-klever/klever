@@ -184,7 +184,7 @@ def solve_task(logger, conf, server):
 
     decision_results = process_task_results(logger)
     decision_results['resource limits'] = conf["resource limits"]
-    submit_task_results(logger, server, conf["identifier"], decision_results, os.path.curdir)
+    submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir)
 
     return exit_code
 
