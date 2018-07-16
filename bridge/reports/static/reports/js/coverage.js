@@ -243,7 +243,7 @@ $(document).ready(function () {
     function sortByNumOfCalls(a, b) {
         var n1 = parseInt($(a).find('.COVIsFC').data('number'), 10),
             n2 = parseInt($(b).find('.COVIsFC').data('number'), 10);
-        return (n1 < n2) ? -1 : (n1 > n2) ? 1 : 0;
+        return (n1 > n2) ? -1 : (n1 < n2) ? 1 : 0;
     }
     function getElemIndex(array) {
         for (var i = 0; i < array.length; i++) {
