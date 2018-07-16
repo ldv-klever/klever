@@ -560,9 +560,3 @@ class OSKleverExperimentalInstances(OSKleverInstance):
         for klever_experimental_instance in klever_experimental_instances:
             self.logger.info('Remove instance "{0}"'.format(klever_experimental_instance.name))
             self.clients.nova.servers.delete(klever_experimental_instance.id)
-
-    # TODO: this shouldn't work and thus should be removed.
-    def ssh(self):
-        with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
-            ssh.open_shell()
