@@ -102,6 +102,8 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+ALLOWED_HOSTS = ['*']
+
 # Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
 # WARNING!!! Change also KLEVER_CORE_FORMATTERS from bridge.vars when you change these packs
 KLEVER_CORE_LOG_FORMATTERS = {
