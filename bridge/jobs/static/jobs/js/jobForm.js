@@ -95,4 +95,9 @@ $(document).ready(function () {
             commit_btn.addClass('disabled');
         }
     });
+
+    $('#job_name').on('input', function () {
+        $(this).parent().removeClass('error');
+        $('#title_should_be_changed').remove();
+    });
 });

@@ -48,9 +48,10 @@
             {# Title, parent and description #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
-                <div class="ui fluid input field">
+                <div class="ui fluid input {% if copy %}error {% endif %}field">
                     <input id="job_name" type="text" value="{{ name }}">
                 </div>
+                {% if copy %}<p id="title_should_be_changed" class="error-comment">{% trans 'The title is used by the parent job' %}</p>{% endif %}
                 <br>
                 <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui fluid input field">
