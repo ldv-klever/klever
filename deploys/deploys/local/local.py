@@ -211,16 +211,16 @@ class Klever:
         else:
             execute_cmd(self.logger, 'userdel', 'klever')
 
-    def _post_install_or_update(self):
+    def _post_install_or_update(self, is_dev=False):
         if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
-            configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
+            configure_controller_and_schedulers(self.logger, is_dev, self.args.deployment_directory,
                                                 self.prev_deploy_info)
 
         if self.is_update['Verification Backends'] and not self.is_update['Klever'] \
                 and not self.is_update['Controller & Schedulers']:
             # It is enough to reconfigure controller and schedulers since they automatically reread
             # configuration files holding changes of verification backends.
-            configure_native_scheduler_task_worker(self.logger, self.args.mode, self.args.deployment_directory,
+            configure_native_scheduler_task_worker(self.logger, is_dev, self.args.deployment_directory,
                                                    self.prev_deploy_info)
 
 
@@ -235,12 +235,12 @@ class KleverDevelopment(Klever):
     def install(self):
         self._pre_install()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(is_dev=True)
 
     def update(self):
         self._pre_update()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(is_dev=True)
 
     def uninstall(self):
         self._pre_uninstall(('klever-bridge-development',))
