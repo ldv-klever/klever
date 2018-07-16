@@ -364,7 +364,7 @@ def run(selflogger, args, conf, logger=None):
             with open('client-log.log', encoding="utf8") as log:
                 for line in log.readlines():
                     # Warnings can be added to the file only from RunExec
-                    if re.search(r'WARNING', line):
+                    if re.search(r'WARNING - (.*)', line):
                         selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
                     elif re.search(r'runexec: error: .*', line):
                         selflogger.error(re.search(r'runexec: error: .*', line).group(0))
