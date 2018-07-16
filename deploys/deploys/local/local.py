@@ -51,7 +51,7 @@ class Klever:
             self.prev_deploy_info = {}
 
     def __getattr__(self, name):
-        self.logger.error('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
+        self.logger.error('Action "{0}" is not supported for Klever "{1}"'.format(name, self.args.mode))
         sys.exit(errno.ENOSYS)
 
     def _dump_cur_deploy_info(self):

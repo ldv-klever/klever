@@ -18,6 +18,7 @@
 import argparse
 import errno
 import os
+import sys
 
 from deploys.local.local import KleverDevelopment, KleverProduction, KleverTesting
 from deploys.utils import get_logger, update_python_path
@@ -54,14 +55,21 @@ def main():
 
     logger = get_logger(__name__)
 
-    logger.info('{0} Klever for {1}'.format(args.action.capitalize(), args.mode))
+    logger.info('Start execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))
 
-    if args.mode == 'development':
-        getattr(KleverDevelopment(args, logger), args.action)()
-    elif args.mode == 'production':
-        getattr(KleverProduction(args, logger), args.action)()
-    elif args.mode == 'testing':
-        getattr(KleverTesting(args, logger), args.action)()
-    else:
-        logger.error('Mode "{0}" is not supported'.format(args.mode))
-        return errno.ENOSYS
+    try:
+        if args.mode == 'development':
+            getattr(KleverDevelopment(args, logger), args.action)()
+        elif args.mode == 'production':
+            getattr(KleverProduction(args, logger), args.action)()
+        elif args.mode == 'testing':
+            getattr(KleverTesting(args, logger), args.action)()
+        else:
+            logger.error('Mode "{0}" is not supported'.format(args.mode))
+            sys.exit(errno.ENOSYS)
+    except SystemExit:
+        logger.error('Could not execute action "{0}" for Klever "{1}" (analyze error messages above for details)'
+                     .format(args.action, args.mode))
+        raise
+
+    logger.info('Finish execution of action "{0}" for Klever "{1}"'.format(args.action, args.mode))

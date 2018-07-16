@@ -59,7 +59,7 @@ class OSEntity:
         self.clients = self.__connect()
 
     def __getattr__(self, name):
-        self.logger.error('You can not {0} "{1}"'.format(name, self.kind))
+        self.logger.error('Action "{0}" is not supported for "{1}"'.format(name, self.kind))
         sys.exit(errno.ENOSYS)
 
     def _get_base_image(self, base_image_name):
