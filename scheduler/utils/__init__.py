@@ -31,6 +31,7 @@ import re
 import glob
 import multiprocessing
 import sys
+import consulate
 from xml.etree import ElementTree
 
 
@@ -458,7 +459,9 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
                               os.path.join(os.path.relpath(dirpath, solution_path), filename))
             os.fsync(zfp.fp)
 
-    return server.submit_solution(identifier, decision_results, results_archive)
+    ret = server.submit_solution(identifier, decision_results, results_archive)
+    upload_resources(logger, identifier, decision_results.get("resources"))
+    return ret
 
 
 def extract_cpu_cores_info():
@@ -569,3 +572,38 @@ def time_units_converter(num, outunit=''):
     }
 
     return __converter(num, units_in_seconds, 'time', outunit)
+
+
+def upload_resources(logger, identifier, dataset):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param identifier: Task identifier.
+    :param dataset: Data to save about the solution. This should be dictionary.
+    :return: None
+    """
+    try:
+        session = consulate.Session()
+        session.kv['solutions/' + identifier] = json.dumps(dataset)
+    except (AttributeError, KeyError):
+        logger.warning("Key-value storage is inaccessible")
+
+
+def clear_resources(logger, identifier=None):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param identifier: Task identifier.
+    :param dataset: Data to save about the solution. This should be dictionary.
+    :return: None
+    """
+    try:
+        session = consulate.Session()
+        if identifier:
+            del session.kv['solutions/' + identifier]
+        else:
+            del session.kv['solutions']
+    except (AttributeError, KeyError):
+        logger.warning("Key-value storage is inaccessible")

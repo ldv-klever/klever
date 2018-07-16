@@ -26,6 +26,7 @@ os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.par
 
 
 import schedulers.verifiercloud as verifiercloud
+from schedulers import Scheduler
 import utils as utils
 
 if __name__ == "__main__":
@@ -36,7 +37,8 @@ if __name__ == "__main__":
     if "Klever Bridge" not in conf:
         raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
 
-    scheduler_impl = verifiercloud.Scheduler(conf, logger, conf["common"]["working directory"] + "/scheduler/")
+    scheduler_impl = Scheduler(conf, logger, conf["common"]["working directory"] + "/scheduler/",
+                               verifiercloud.VerifierCloud)
     scheduler_impl.launch()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

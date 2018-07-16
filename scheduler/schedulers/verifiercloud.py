@@ -26,21 +26,20 @@ import uuid
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import schedulers as schedulers
+import schedulers.runners as runners
 import utils
 
 
 class Run:
     """Class represents VerifierCloud scheduler for task forwarding to the cloud."""
 
-    def __init__(self, logger, work_dir, description):
+    def __init__(self, work_dir, description):
         """
         Initialize Run object.
 
-        :param logger: Logger object.
         :param work_dir: A path to the directory from which paths given in description are relative.
         :param description: Dictionary with a task description.
         """
-        self.logger = logger
         self.branch = None
         self.revision = None
         self.version = None
@@ -60,10 +59,6 @@ class Run:
             else:
                 self.revision = self.version
 
-        # Check priority
-        if description["priority"] not in ["LOW", "IDLE"]:
-            self.logger.warning("Task {} has priority higher than LOW".format(description["id"]))
-            self.priority = "LOW"
         self.priority = description["priority"]
 
         # Set limits
@@ -115,7 +110,7 @@ class Run:
         return "{}:{}".format(user, password)
 
 
-class Scheduler(schedulers.SchedulerExchange):
+class VerifierCloud(runners.Runner):
     """
     Implement scheduler which is based on VerifierCloud web-interface. The scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
@@ -123,19 +118,19 @@ class Scheduler(schedulers.SchedulerExchange):
 
     wi = None
 
-    def __init__(self, conf, logger, work_dir):
+    def __init__(self, conf, logger, work_dir, server):
         """Do VerifierCloud specific initialization"""
-        super(Scheduler, self).__init__(conf, logger, work_dir)
+        super(VerifierCloud, self).__init__(conf, logger, work_dir, server)
         self.wi = None
         self.__tasks = None
-        self.init_scheduler()
+        self.init()
 
-    def init_scheduler(self):
+    def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Scheduler, self).init_scheduler()
+        super(VerifierCloud, self).init()
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
@@ -167,7 +162,39 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         return [pending_tasks["id"] for pending_tasks in pending_tasks], []
 
-    def prepare_task(self, identifier, description):
+    def flush(self):
+        """Start solution explicitly of all recently submitted tasks."""
+        self.wi.flush_runs()
+
+    def terminate(self):
+        """
+        Abort solution of all running tasks and any other actions before termination.
+        """
+        self.logger.info("Terminate all runs")
+        # This is not reliable library as it is developed separaetly of Schedulers
+        try:
+            self.wi.shutdown()
+        except Exception:
+            self.logger.warning("Web interface wrapper raised an exception: \n{}".
+                                format(traceback.format_exc().rstrip()))
+
+    def update_nodes(self, wait_controller=False):
+        """
+        Update statuses and configurations of available nodes and push them to the server.
+
+        :param wait_controller: Ignore KV fails until it become working.
+        :return: Return True if nothing has changes.
+        """
+        return super(VerifierCloud, self).update_nodes()
+
+    def update_tools(self):
+        """
+        Generate a dictionary with available verification tools and push it to the server.
+        """
+        # TODO: Implement proper revisions sending
+        return
+
+    def _prepare_task(self, identifier, description):
         """
         Prepare a working directory before starting the solution.
 
@@ -197,13 +224,14 @@ class Scheduler(schedulers.SchedulerExchange):
         self.logger.debug("Prepare arguments of the task {}".format(identifier))
         task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
         try:
-            run = Run(self.logger, task_data_dir, description)
+            assert description["priority"] in ["LOW", "IDLE"]
+            run = Run(task_data_dir, description)
         except Exception as err:
             raise schedulers.SchedulerException('Cannot prepare task description on base of given benchmark.xml: {}'.
                                                 format(err))
         self.__tasks[identifier] = run
 
-    def prepare_job(self, identifier, configuration):
+    def _prepare_job(self, identifier, configuration):
         """
         Prepare a working directory before starting the solution.
 
@@ -214,7 +242,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Cannot be called
         raise NotImplementedError("VerifierCloud cannot handle jobs.")
 
-    def solve_task(self, identifier, description, user, password):
+    def _solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
 
@@ -237,7 +265,7 @@ class Scheduler(schedulers.SchedulerExchange):
                               svn_revision=run.revision,
                               meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
-    def solve_job(self, identifier, configuration):
+    def _solve_job(self, identifier, configuration):
         """
         Solve given verification job.
 
@@ -247,11 +275,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('VerifierCloud cannot start jobs.')
 
-    def flush(self):
-        """Start solution explicitly of all recently submitted tasks."""
-        self.wi.flush_runs()
-
-    def process_task_result(self, identifier, future):
+    def _process_task_result(self, identifier, future, description):
         """
         Process result and send results to the server.
 
@@ -292,8 +316,7 @@ class Scheduler(schedulers.SchedulerExchange):
                                  "{}.log".format(os.path.basename(run.sourcefiles[0]))))
 
         try:
-            solution_identifier, solution_description = \
-                self.__extract_description(task_solution_dir)
+            solution_identifier, solution_description = self.__extract_description(task_solution_dir)
             self.logger.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
         except Exception as err:
             self.logger.warning("Cannot extract results from a solution: {}".format(err))
@@ -302,6 +325,9 @@ class Scheduler(schedulers.SchedulerExchange):
         # Make fake BenchExec XML report
         self.__make_fake_benchexec(solution_description, os.path.join(task_work_dir, 'solution', 'output',
                                    "benchmark.results.xml"))
+
+        # Add actual restrictions
+        solution_description['resource limits'] = description["resource limits"]
 
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
@@ -328,7 +354,7 @@ class Scheduler(schedulers.SchedulerExchange):
         self.logger.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def process_job_result(self, identifier, future):
+    def _process_job_result(self, identifier, future):
         """
         Process future object status and send results to the server.
 
@@ -339,7 +365,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('There cannot be any running jobs in VerifierCloud')
 
-    def cancel_job(self, identifier, future, after_term=False):
+    def _cancel_job(self, identifier, future):
         """
         Stop the job solution.
 
@@ -351,7 +377,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
 
-    def cancel_task(self, identifier, future, after_term=False):
+    def _cancel_task(self, identifier, future):
         """
         Stop the task solution.
 
@@ -363,39 +389,11 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super(Scheduler, self).cancel_task(identifier, future, after_term)
+        super(VerifierCloud, self).cancel_task(identifier, future)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
         if identifier in self.__tasks:
             del self.__tasks[identifier]
-
-    def terminate(self):
-        """
-        Abort solution of all running tasks and any other actions before termination.
-        """
-        self.logger.info("Terminate all runs")
-        # This is not reliable library as it is developed separaetly of Schedulers
-        try:
-            self.wi.shutdown()
-        except Exception:
-            self.logger.warning("Web interface wrapper raised an exception: \n{}".
-                                format(traceback.format_exc().rstrip()))
-
-    def update_nodes(self, wait_controller=False):
-        """
-        Update statuses and configurations of available nodes and push them to the server.
-
-        :param wait_controller: Ignore KV fails until it become working.
-        :return: Return True if nothing has changes.
-        """
-        return super(Scheduler, self).update_nodes()
-
-    def update_tools(self):
-        """
-        Generate a dictionary with available verification tools and push it to the server.
-        """
-        # TODO: Implement proper revisions sending
-        return
 
     def __extract_description(self, solution_dir):
         """

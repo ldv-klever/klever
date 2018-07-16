@@ -23,7 +23,6 @@ import traceback
 import zipfile
 import shutil
 import re
-import consulate
 
 from utils import execute, process_task_results, submit_task_results, memory_units_converter, time_units_converter
 from server.bridge import Server
@@ -186,7 +185,6 @@ def solve_task(logger, conf, server):
     decision_results = process_task_results(logger)
     decision_results['resource limits'] = conf["resource limits"]
     submit_task_results(logger, server, conf["identifier"], decision_results, os.path.curdir)
-    upload_resources(logger, conf, decision_results.get("resources"))
 
     return exit_code
 
@@ -349,11 +347,11 @@ def run(selflogger, args, conf, logger=None):
         dcp = None
         dl = None
 
-    selflogger.info("Start task execution with the following options: {}".format(str(args)))
+    selflogger.info("Start execution with the following options: {}".format(str(args)))
     if logger:
         ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
         if ec != 0:
-            selflogger.info("BenchExec exited with non-zero exit code {}".format(ec))
+            selflogger.info("Executor exited with non-zero exit code {}".format(ec))
         return ec
     else:
         with open('client-log.log', 'a', encoding="utf8") as ste, \
@@ -394,19 +392,3 @@ def run(selflogger, args, conf, logger=None):
             ec = job_exit
 
         return ec
-
-
-def upload_resources(logger, conf, dataset):
-    """
-    Upload data to controller storage.
-
-    :param logger: Logger object.
-    :param conf: Configuration dictionary.
-    :param dataset: Data to save about the solution. This should be dictionary.
-    :return: None
-    """
-    try:
-        session = consulate.Session()
-        session.kv['solutions/' + conf['identifier']] = json.dumps(dataset)
-    except (AttributeError, KeyError):
-        logger.warning("Key-value storage is inaccessible")

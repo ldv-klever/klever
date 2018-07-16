@@ -25,7 +25,7 @@ import schedulers.resource_scheduler
 import utils
 
 
-class Scheduler(schedulers.native.Scheduler):
+class Debug(schedulers.native.Native):
     """
     Implement the scheduler which is used for debugging and prepares jobs but runs nothing.
     """
@@ -42,7 +42,7 @@ class Scheduler(schedulers.native.Scheduler):
         original_executor = self._process_starter
         if mode == 'job':
             self._process_starter = self._fake_starter
-        super(Scheduler, self)._prepare_solution(identifier, configuration, mode)
+        super(Debug, self)._prepare_solution(identifier, configuration, mode)
         if mode == 'job':
             self._process_starter = original_executor
 

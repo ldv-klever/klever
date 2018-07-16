@@ -23,11 +23,12 @@ import shutil
 import signal
 
 import schedulers as schedulers
+import schedulers.runners as runners
 import schedulers.resource_scheduler
 import utils
 
 
-class Scheduler(schedulers.SchedulerExchange):
+class Native(runners.Runner):
     """
     Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
@@ -47,23 +48,23 @@ class Scheduler(schedulers.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
 
-    def __init__(self, conf, logger, work_dir):
+    def __init__(self, conf, logger, work_dir, server):
         """Do native scheduler specific initialization"""
-        super(Scheduler, self).__init__(conf, logger, work_dir)
+        super(Native, self).__init__(conf, logger, work_dir, server)
         self._kv_url = None
         self._job_conf_prototype = None
         self._pool = None
         self._client_bin = None
         self._manager = None
         self._log_file = 'info.log'
-        self.init_scheduler()
+        self.init()
 
-    def init_scheduler(self):
+    def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Scheduler, self).init_scheduler()
+        super(Native, self).init()
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
@@ -149,102 +150,6 @@ class Scheduler(schedulers.SchedulerExchange):
         new_tasks, new_jobs = self._manager.schedule(pending_tasks, pending_jobs)
         return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
-    def prepare_task(self, identifier, description):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param description: Dictionary with task description.
-        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, description, mode='task')
-
-    def prepare_job(self, identifier, configuration):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param configuration: Job configuration.
-        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, configuration, mode='job')
-
-    def solve_task(self, identifier, description, user, password):
-        """
-        Solve given verification task.
-
-        :param identifier: Verification task identifier.
-        :param description: Verification task description dictionary.
-        :param user: User name.
-        :param password: Password.
-        :return: Return Future object.
-        """
-        self.logger.debug("Start solution of task {!r}".format(identifier))
-        self._manager.claim_resources(identifier, description, self._node_name, job=False)
-        return self._pool.submit(self._execute, self._log_file, self._task_processes[identifier])
-
-    def solve_job(self, identifier, configuration):
-        """
-        Solve given verification job.
-
-        :param identifier: Job identifier.
-        :param configuration: Job configuration.
-        :return: Return Future object.
-        """
-        self.logger.debug("Start solution of job {!r}".format(identifier))
-        self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
-        return self._pool.submit(self._execute, self._log_file, self._job_processes[identifier])
-
-    def flush(self):
-        """Start solution explicitly of all recently submitted tasks."""
-        super(Scheduler, self).flush()
-
-    def process_task_result(self, identifier, future):
-        """
-        Process result and send results to the server.
-
-        :param identifier: Task identifier string.
-        :param future: Future object.
-        :return: status of the task after solution: FINISHED.
-        :raise SchedulerException: in case of ERROR status.
-        """
-        return self._check_solution(identifier, future, mode='task')
-
-    def process_job_result(self, identifier, future):
-        """
-        Process future object status and send results to the server.
-
-        :param identifier: Job identifier string.
-        :param future: Future object.
-        :return: status of the job after solution: FINISHED.
-        :raise SchedulerException: in case of ERROR status.
-        """
-        return self._check_solution(identifier, future, mode='job')
-
-    def cancel_job(self, identifier, future, after_term=False):
-        """
-        Stop the job solution.
-
-        :param identifier: Verification task ID.
-        :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
-        """
-        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
-
-    def cancel_task(self, identifier, future, after_term=False):
-        """
-        Stop the task solution.
-
-        :param identifier: Verification task ID.
-        :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
-        """
-        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
-
     def terminate(self):
         """
         Abort solution of all running tasks and any other actions before termination.
@@ -255,7 +160,7 @@ class Scheduler(schedulers.SchedulerExchange):
         self.server.submit_nodes(configurations, looping=True)
 
         # Terminate
-        super(Scheduler, self).terminate()
+        super(Native, self).terminate()
 
         # Be sure that workers are killed
         self._pool.shutdown(wait=False)
@@ -286,6 +191,103 @@ class Scheduler(schedulers.SchedulerExchange):
 
             # Submit tools
             self.server.submit_tools(verification_tools)
+
+    def _prepare_task(self, identifier, description):
+        """
+        Prepare a working directory before starting the solution.
+
+        :param identifier: Verification task identifier.
+        :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
+        """
+        self._prepare_solution(identifier, description, mode='task')
+
+    def _prepare_job(self, identifier, configuration):
+        """
+        Prepare a working directory before starting the solution.
+
+        :param identifier: Verification task identifier.
+        :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
+        """
+        self._prepare_solution(identifier, configuration, mode='job')
+
+    def _solve_task(self, identifier, description, user, password):
+        """
+        Solve given verification task.
+
+        :param identifier: Verification task identifier.
+        :param description: Verification task description dictionary.
+        :param user: User name.
+        :param password: Password.
+        :return: Return Future object.
+        """
+        self.logger.debug("Start solution of task {!r}".format(identifier))
+        self._manager.claim_resources(identifier, description, self._node_name, job=False)
+        return self._pool.submit(self._execute, self._log_file, self._task_processes[identifier])
+
+    def _solve_job(self, identifier, configuration):
+        """
+        Solve given verification job.
+
+        :param identifier: Job identifier.
+        :param configuration: Job configuration.
+        :return: Return Future object.
+        """
+        self.logger.debug("Start solution of job {!r}".format(identifier))
+        self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
+        return self._pool.submit(self._execute, self._log_file, self._job_processes[identifier])
+
+    def flush(self):
+        """Start solution explicitly of all recently submitted tasks."""
+        super(Native, self).flush()
+
+    def _process_task_result(self, identifier, future, description):
+        """
+        Process result and send results to the server.
+
+        :param identifier: Task identifier string.
+        :param future: Future object.
+        :param description: Verification task description dictionary.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
+        """
+        return self._check_solution(identifier, future, mode='task')
+
+    def _process_job_result(self, identifier, future):
+        """
+        Process future object status and send results to the server.
+
+        :param identifier: Job identifier string.
+        :param future: Future object.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
+        """
+        return self._check_solution(identifier, future, mode='job')
+
+    def _cancel_job(self, identifier, future, after_term=False):
+        """
+        Stop the job solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
+
+    def _cancel_task(self, identifier, future, after_term=False):
+        """
+        Stop the task solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
 
     def _prepare_solution(self, identifier, configuration, mode='task'):
         """
