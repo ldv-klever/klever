@@ -425,7 +425,6 @@ class RP(core.components.Component):
                 else:
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
 
-                send_report = True
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     log_file = 'problem desc.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:
@@ -434,28 +433,21 @@ class RP(core.components.Component):
                     data = list(self.vals['task solution triples'][self.results_key])
                     data[2] = decision_results['status']
                     self.vals['task solution triples'][self.results_key] = data
-                    if decision_results['resource limits']['memory size'] < self.__qos_resource_limit['memory size']:
-                        # We do not send the report since such result with the reduced limit is temporary
-                        self.logger.info("Do not send report since memory limitation {} is lower than QOS one {}".
-                                         format(decision_results['resource limits']['memory size'],
-                                                self.__qos_resource_limit['memory size']))
-                        send_report = False
 
-                if send_report:
-                    core.utils.report(self.logger,
-                                      'unknown',
-                                      {
-                                          'id': "{}/verification/unknown".format(self.id),
-                                          'parent id': "{}/verification".format(self.id),
-                                          'attrs': attrs,
-                                          'problem desc': core.utils.ReportFiles(
-                                              [verification_problem_desc],
-                                              {verification_problem_desc: 'problem desc.txt'})
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'],
-                                      'verification')
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': "{}/verification/unknown".format(self.id),
+                                      'parent id': "{}/verification".format(self.id),
+                                      'attrs': attrs,
+                                      'problem desc': core.utils.ReportFiles(
+                                          [verification_problem_desc],
+                                          {verification_problem_desc: 'problem desc.txt'})
+                                  },
+                                  self.mqs['report files'],
+                                  self.vals['report id'],
+                                  self.conf['main working directory'],
+                                  'verification')
 
     def process_failed_task(self, task_id):
         """The function has a callback at Job module."""

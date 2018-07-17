@@ -426,11 +426,13 @@ def process_task_results(logger):
                     decision_results["resources"]["memory size"] = int(value)
                 elif name == "exitcode":
                     decision_results["exit code"] = int(value)
+                elif name == "status":
+                    decision_results["status"] = str(value)
 
     return decision_results
 
 
-def submit_task_results(logger, server, scheduler_type, identifier, decision_results, solution_path):
+def submit_task_results(logger, server, scheduler_type, identifier, decision_results, solution_path, speculative=False):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
@@ -441,6 +443,7 @@ def submit_task_results(logger, server, scheduler_type, identifier, decision_res
     :param identifier: Task identifier.
     :param decision_results: Dictionary with decision results and measured resources.
     :param solution_path: Path to the directory with solution files.
+    :param speculative: Do not upload solution to Bridge.
     :return: None
     """
 
@@ -460,8 +463,12 @@ def submit_task_results(logger, server, scheduler_type, identifier, decision_res
                               os.path.join(os.path.relpath(dirpath, solution_path), filename))
             os.fsync(zfp.fp)
 
-    ret = server.submit_solution(identifier, decision_results, results_archive)
-    upload_resources(logger, identifier, scheduler_type, decision_results.get("resources"))
+    if not speculative:
+        ret = server.submit_solution(identifier, decision_results, results_archive)
+    else:
+        ret = True
+        logger.info("Do not upload speculative solution")
+    kv_upload_solution(logger, identifier, scheduler_type, decision_results)
     return ret
 
 
@@ -575,7 +582,7 @@ def time_units_converter(num, outunit=''):
     return __converter(num, units_in_seconds, 'time', outunit)
 
 
-def upload_resources(logger, identifier, scheduler_type, dataset):
+def kv_upload_solution(logger, identifier, scheduler_type, dataset):
     """
     Upload data to controller storage.
 
@@ -585,27 +592,46 @@ def upload_resources(logger, identifier, scheduler_type, dataset):
     :param dataset: Data to save about the solution. This should be dictionary.
     :return: None
     """
+    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
+    session = consulate.Session()
     try:
-        session = consulate.Session()
-        session.kv['solutions/{}/{}'.format(scheduler_type, identifier)] = json.dumps(dataset)
+        session.kv[key] = json.dumps(dataset)
+        return
     except (AttributeError, KeyError):
-        logger.warning("Key-value storage is inaccessible")
+        logger.warning("Cannot save key {!r} to key-value storage".format(key))
 
 
-def clear_resources(logger, scheduler_type, identifier=None):
+def kv_get_solution(logger, scheduler_type, identifier):
     """
     Upload data to controller storage.
 
     :param logger: Logger object.
-    :param identifier: Task identifier.
     :param scheduler_type: Type of the scheduler to avoif races.
+    :param identifier: Task identifier.
     :return: None
     """
-    #try:
+    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
     session = consulate.Session()
-    if isinstance(identifier, str):
-        session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
-    else:
-        session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
-    #except (AttributeError, KeyError):
-    #    logger.warning("Key-value storage is inaccessible")
+    try:
+        return json.loads(session.kv[key])
+    except (AttributeError, KeyError) as err:
+        logger.warning("Cannot obtain key {!r} from key-value storage: {!r}".format(key, err))
+
+
+def kv_clear_solutions(logger, scheduler_type, identifier=None):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param scheduler_type: Type of the scheduler to avoif races.
+    :param identifier: Task identifier.
+    :return: None
+    """
+    try:
+        session = consulate.Session()
+        if isinstance(identifier, str):
+            session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
+        else:
+            session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
+    except (AttributeError, KeyError):
+        logger.warning("Key-value storage is inaccessible")

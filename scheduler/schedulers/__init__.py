@@ -197,6 +197,10 @@ class Scheduler:
                         self.__report_error_server_state(ser_ste,
                                                          "Missed tag {} in a received server state".format(missed_tag))
 
+                    if 'jobs progress' in ser_ste:
+                        for job_id, progress in [(i, d) for i, d in ser_ste['jobs progress'].items() if i in jbs]:
+                            self.runner.add_job_progress(job_id, jbs[job_id], progress)
+
                     # Remove finished or error tasks which have been already submitted
                     self.logger.debug("Remove tasks with statuses FINISHED and ERROR which have been submitted")
                     for task_id in set(sch_ste["tasks"]["finished"] + sch_ste["tasks"]["error"]):

@@ -15,28 +15,9 @@
 # limitations under the License.
 #
 
-import math
 import time
 
 from core.utils import read_max_resource_limitations
-
-
-def incmean(prevmean, n, x):
-    """Calculate incremental mean"""
-    newmean = prevmean + int(round((x - prevmean) / n))
-    return newmean
-
-
-def incsum(prevsum, prevmean, mean, x):
-    """Caclulate incremental sum of square deviations"""
-    newsum = prevsum + (x - prevmean) * (x - mean)
-    return newsum
-
-
-def devn(cursum, n):
-    """Caclulate incremental standart deviation"""
-    deviation = int(round(math.sqrt(cursum / n)))
-    return deviation
 
 
 class Balancer:
@@ -111,12 +92,7 @@ class Balancer:
 
             limitation = self._issued_limits[vobject][rule_name]
             self.logger.debug("Going to increass CPU time limitations for {}:{}".format(vobject, rule_name))
-            if (limitation.get('memory size', 0) < self._qos_limit.get('memory size', 0)) or \
-                    (limitation.get('CPU time', 0) < self._qos_limit.get('CPU time', 0)):
-                self._issued_limits[vobject][rule_name] = self._qos_limit
-                self.logger.debug("Reschedule {}:{} with QOS limit".format(vobject, rule_name))
-                return True
-            elif self.rescheduling and self._qos_limit.get('CPU time', 0) > 0:
+            if self.rescheduling and self._qos_limit.get('CPU time', 0) > 0:
                 have_time = self._have_time(limitation)
                 if have_time > 0:
                     factor = self._increasing_factor
@@ -138,10 +114,7 @@ class Balancer:
         """
         if self.is_there(vobject, rule_class, rule_name):
             issued_limit = self._issued_limits[vobject][rule_name]
-            if (issued_limit.get('memory size', 0) < self._qos_limit.get('memory size', 0) or
-                    (issued_limit.get('CPU time', 0) < self._qos_limit.get('CPU time', 0))):
-                return True
-            elif self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
+            if self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
                 return True
         return False
 
@@ -156,14 +129,7 @@ class Balancer:
         limits.update(self._qos_limit)
 
         # Check do we have some statistics already
-        if limits.get('memory size', 0) > 0 and not self.is_there(vobject, rule_class, rule_name) and \
-                self._total_tasks and self._solved > 3:
-                # self._total_tasks and self._solved > (0.1 * self._total_tasks):
-            statistics = self._statistics[rule_class]
-            limits['memory size'] = statistics['mean mem'] + statistics['memdev']
-            self.logger.debug("Issue less memory limit for for {}:{}: {}".
-                              format(vobject, rule_name, limits['memory size']))
-        elif self.is_there(vobject, rule_class, rule_name):
+        if self.is_there(vobject, rule_class, rule_name):
             limits = self._issued_limits[vobject][rule_name]
             self.logger.debug("Issue existing limitation for {}:{}".format(vobject, rule_name))
         else:
@@ -185,30 +151,6 @@ class Balancer:
         elif resources:
             self.logger.debug("Task {}:{} finished".format(vobject, rule_name))
             self._solved += 1
-            if rule_class not in self._statistics:
-                self._statistics[rule_class] = {
-                    'mean mem': resources['memory size'],
-                    'memsum': 0,
-                    'memdev': 0,
-                    'mean time': resources['CPU time'],
-                    'timesum': 0,
-                    'timedev': 0,
-                    'number': 1
-                }
-            else:
-                statistics = self._statistics[rule_class]
-                statistics['number'] += 1
-                # First save data for CPU
-                newmean = incmean(statistics['mean time'], statistics['number'], resources['CPU time'])
-                newsum = incsum(statistics['timesum'], statistics['mean time'], newmean, resources['CPU time'])
-                timedev = devn(newsum, statistics['number'])
-                statistics.update({'mean time': newmean, 'timesum': newsum, 'timedev': timedev})
-
-                # Then memory
-                newmean = incmean(statistics['mean mem'], statistics['number'], resources['memory size'])
-                newsum = incsum(statistics['memsum'], statistics['mean mem'], newmean, resources['memory size'])
-                memdev = devn(newsum, statistics['number'])
-                statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
             if limit_reason in ('CPU time exhausted', 'memory exhausted'):
                 self.logger.debug("Task {}:{} has been terminated due to limit".format(vobject, rule_name))

@@ -28,7 +28,7 @@ import schedulers.resource_scheduler
 import utils
 
 
-class Native(runners.Runner):
+class Native(runners.Speculative):
     """
     Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
@@ -265,29 +265,27 @@ class Native(runners.Runner):
         """
         return self._check_solution(identifier, future, mode='job')
 
-    def _cancel_job(self, identifier, future, after_term=False):
+    def _cancel_job(self, identifier, future):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
+        return self._cancel_solution(identifier, future, mode='job')
 
-    def _cancel_task(self, identifier, future, after_term=False):
+    def _cancel_task(self, identifier, future):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
+        return self._cancel_solution(identifier, future, mode='task')
 
     def _prepare_solution(self, identifier, configuration, mode='task'):
         """
@@ -345,6 +343,10 @@ class Native(runners.Runner):
             client_conf["common"]["working directory"] = work_dir
             for name in ("verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
+
+            # Speculative flag
+            if configuration.get('speculative', False):
+                client_conf["speculative"] = True
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
@@ -405,7 +407,7 @@ class Native(runners.Runner):
         self.logger.info("Going to prepare execution of the {} {}".format(mode, identifier))
         return self._postprocess_solution(identifier, future, mode)
 
-    def _cancel_solution(self, identifier, future, mode='task', after_term=False):
+    def _cancel_solution(self, identifier, future, mode='task'):
         """
         Terminate process solving a process or a task, mark resources as released, clean working directory.
 
@@ -422,11 +424,9 @@ class Native(runners.Runner):
             process = self._job_processes[identifier] if identifier in self._job_processes else None
         if process and process.pid:
             try:
-                if not after_term:
-                    # If the user really sent SIGINT then all children got it anyway and we must just wait.
-                    # If the user pressed a button in Bridge then we have to trigger signal manually.
-                    os.kill(process.pid, signal.SIGTERM)
-                self.logger.debug("Wait till {} {} become terminated".format(mode, identifier))
+                # If the user really sent SIGINT then all children got it anyway and we must just wait.
+                # If the user pressed a button in Bridge then we have to trigger signal manually.
+                os.kill(process.pid, signal.SIGTERM)
                 process.join()
             except Exception as err:
                 self.logger.warning('Cannot terminate process {}: {}'.format(process.pid, err))

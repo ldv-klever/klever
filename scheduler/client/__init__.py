@@ -154,6 +154,9 @@ def solve_task(logger, conf, server):
     logger.debug("Add {!r} of version {!r} bin location {!r} to PATH".format(tool, version, path))
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
+    if os.path.isdir('output'):
+        shutil.rmtree('output', ignore_errors=True)
+
     logger.debug("Download task")
     ret = server.pull_task(conf["identifier"], "task files.zip")
     if not ret:
@@ -184,7 +187,14 @@ def solve_task(logger, conf, server):
 
     decision_results = process_task_results(logger)
     decision_results['resource limits'] = conf["resource limits"]
-    submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir)
+    if conf.get('speculative', False) and decision_results.get('status', True) in ('OUT OF MEMORY', 'TIMEOUT'):
+        logger.info("Do not upload solution since limits are reduced and we got: {!r}".
+                    format(decision_results['status']))
+        speculative = True
+    else:
+        speculative = False
+    submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir,
+                        speculative=speculative)
 
     return exit_code
 

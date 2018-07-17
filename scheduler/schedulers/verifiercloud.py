@@ -371,7 +371,6 @@ class VerifierCloud(runners.Runner):
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
@@ -383,7 +382,6 @@ class VerifierCloud(runners.Runner):
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
