@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.parse
 
 
 class Cd:
@@ -39,10 +40,13 @@ class Cd:
         os.chdir(self.prev_path)
 
 
-def execute_cmd(logger, *args, stdin=None, get_output=False, username=None):
+def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, username=None):
     logger.info('Execute command "{0}"'.format(' '.join(args)))
 
-    kwargs = {'stdin': stdin}
+    kwargs = {
+        'stdin': stdin,
+        'stderr': stderr
+    }
 
     def demote(uid, gid):
         def set_ids():
@@ -100,20 +104,29 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         logger.error('Path is not specified for entity "{0}"'.format(name))
         sys.exit(errno.EINVAL)
 
-    path = desc['path'] if os.path.isabs(desc['path']) \
-        else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, desc['path'])
+    path = desc['path']
 
-    if not os.path.exists(path):
-        logger.error('Path "{0}" does not exist'.format(path))
-        sys.exit(errno.ENOENT)
-
-    is_git_repo = False
-
-    if os.path.isdir(path) and os.path.isdir(os.path.join(path, '.git')):
+    refs = {}
+    try:
+        ref_strs = execute_cmd(logger, 'git', 'ls-remote', '--refs', path, stderr=subprocess.DEVNULL,
+                               get_output=True).rstrip().split('\n')
         is_git_repo = True
-        if version != 'CURRENT':
-            # Use commit hash to uniquely identify entity version if it is provided as Git repository.
-            version = execute_cmd(logger, 'git', '-C', path, 'rev-list', '-n', '1', version, get_output=True).rstrip()
+        for ref_str in ref_strs:
+            commit, ref = ref_str.split('\t')
+            refs[ref] = commit
+    except subprocess.CalledProcessError:
+        is_git_repo = False
+
+    if is_git_repo and version != 'CURRENT':
+        # Version can be either some reference or commit hash. In the former case we need to get corresponding commit
+        # hash since it can differ from the previous one installed before for the same reference. In the latter case we
+        # will fail below one day if commit hash isn't valid.
+        # Note that here we can use just Git commands working with remote repositories since we didn't clone them yet
+        # and we don't want do this if update isn't necessary.
+        for prefix in ('refs/heads/', 'refs/tags/'):
+            if prefix + version in refs:
+                version = refs[prefix + version]
+                break
 
     prev_version = prev_deploy_info[name]['version'] if name in prev_deploy_info else None
 
@@ -130,51 +143,80 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
     if prev_version:
         cmd_fn('rm', '-rf', deploy_dir)
 
-    if is_git_repo:
-        if version == 'CURRENT':
+    # Install new version of entity.
+    o = urllib.parse.urlparse(path)
+    tmp_file = None
+    tmp_dir = None
+    try:
+        if o[0] == 'git' or is_git_repo:
+            tmp_dir = tempfile.mkdtemp()
+            execute_cmd(logger, 'git', 'clone', '-q', '--recursive', path, tmp_dir)
+            path = tmp_dir
+        elif o[0] in ('http', 'https', 'ftp'):
+            _, tmp_file = tempfile.mkstemp()
+            execute_cmd(logger, 'wget', '-O', tmp_file, '-q', path)
+            path = tmp_file
+        elif o[0]:
+            logger.error('Entity is provided in unsupported form "{0}"'.format(o[0]))
+            sys.exit(errno.EINVAL)
+        else:
+            if not os.path.isabs(path):
+                path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
+
+            if not os.path.exists(path):
+                logger.error('Path "{0}" does not exist'.format(path))
+                sys.exit(errno.ENOENT)
+
+        if is_git_repo:
+            if version == 'CURRENT':
+                install_fn(path, deploy_dir, allow_symlink=True)
+            else:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    # Checkout specified version within local Git repository if this is allowed or clone local Git
+                    # repository to temporary directory and checkout specified version there.
+                    if desc.get('allow use local Git repository'):
+                        tmp_path = path
+                        execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-fq', version)
+                        execute_cmd(logger, 'git', '-C', tmp_path, 'clean', '-xfdq')
+                    else:
+                        tmp_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(path)))
+                        execute_cmd(logger, 'git', 'clone', '-q', path, tmp_path)
+                        execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
+
+                    # Remember actual Klever Core version since this won't be able after ignoring ".git" below.
+                    if name == 'Klever':
+                        with Cd(os.path.join(tmp_path, 'core')):
+                            execute_cmd(logger, './setup.py', 'egg_info')
+
+                    # Directory .git can be quite large so ignore it during installing except one needs it.
+                    install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
+        elif os.path.isfile(path) and tarfile.is_tarfile(path):
+            archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
+            install_fn(path, archive)
+            cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
+            cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
+            cmd_fn('rm', '-rf', '{0}'.format(archive))
+        elif os.path.isfile(path) or os.path.isdir(path):
             install_fn(path, deploy_dir, allow_symlink=True)
         else:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                # Checkout specified version within local Git repository if this is allowed or clone local Git
-                # repository to temporary directory and checkout specified version there.
-                if desc.get('allow use local Git repository'):
-                    tmp_path = path
-                    execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-fq', version)
-                    execute_cmd(logger, 'git', '-C', tmp_path, 'clean', '-xfdq')
-                else:
-                    tmp_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(path)))
-                    execute_cmd(logger, 'git', 'clone', '-q', path, tmp_path)
-                    execute_cmd(logger, 'git', '-C', tmp_path, 'checkout', '-q', version)
+            logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
+            sys.exit(errno.ENOSYS)
 
-                # Remember actual Klever Core version since this won't be able after ignoring ".git" below.
-                if name == 'Klever':
-                    with Cd(os.path.join(tmp_path, 'core')):
-                        execute_cmd(logger, './setup.py', 'egg_info')
+        # Remember what extra dependencies were installed just if everything went well.
+        prev_deploy_info[name] = {
+            'version': version,
+            'directory': deploy_dir
+        }
+        for attr in ('name', 'executable path'):
+            if attr in desc:
+                prev_deploy_info[name][attr] = desc[attr]
 
-                # Directory .git can be quite large so ignore it during installing except one needs it.
-                install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
-    elif os.path.isfile(path) and tarfile.is_tarfile(path):
-        archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
-        install_fn(path, archive)
-        cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
-        cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
-        cmd_fn('rm', '-rf', '{0}'.format(archive))
-    elif os.path.isfile(path) or os.path.isdir(path):
-        install_fn(path, deploy_dir, allow_symlink=True)
-    else:
-        logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
-        sys.exit(errno.ENOSYS)
-
-    # Remember what extra dependencies were installed just if everything went well.
-    prev_deploy_info[name] = {
-        'version': version,
-        'directory': deploy_dir
-    }
-    for attr in ('name', 'executable path'):
-        if attr in desc:
-            prev_deploy_info[name][attr] = desc[attr]
-
-    return True
+        return True
+    finally:
+        if tmp_file:
+            os.unlink(tmp_file)
+        if tmp_dir:
+            shutil.rmtree(tmp_dir)
 
 
 def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):

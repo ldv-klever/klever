@@ -51,23 +51,23 @@
   "Klever Addons": {
     "CIF": {
       "version": "d95cdf0",
-      "path": "addons/cif-d95cdf0.tar.gz",
+      "path": "https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz",
       "executable path": "bin"
     },
     "CIL": {
       "version": "1.5.1-ldv",
-      "path": "addons/cil-1.5.1.tar.gz",
+      "path": "https://forge.ispras.ru/attachments/download/5827/cil-1.5.1.tar.gz",
       "executable path": "obj/x86_LINUX"
     },
     "Consul": {
-      "version": "0.9.2",
+      "version": "https://releases.hashicorp.com/consul/0.9.2/",
       "path": "addons/consul"
     },
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
         "version": "trunk:27946",
-        "path": "addons/CPAchecker-1.7-svn 27946-unix.tar.gz",
+        "path": "https://forge.ispras.ru/attachments/download/5828/CPAchecker-1.7-svn 27946-unix.tar.gz",
         "executable path": "scripts"
       }
     }
