@@ -336,8 +336,8 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
             new_marks.append((res.type, res.mark.id))
 
         if len(new_marks) == 1:
-            return JsonResponse({'type': new_marks[0][0], 'id': str(new_marks[0][1])})
-        return JsonResponse({'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}})
+            return {'type': new_marks[0][0], 'id': str(new_marks[0][1])}
+        return {'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}}
 
 
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
@@ -363,10 +363,8 @@ class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
             raise BridgeException("You don't have an access to upload marks")
-        return UploadAllMarks(
-            self.request.user, extract_archive(self.request.FILES['file']).name,
-            bool(int(self.request.POST.get('delete', 0)))
-        ).numbers
+        marks_dir = extract_archive(self.request.FILES['file'])
+        return UploadAllMarks(self.request.user, marks_dir.name, bool(int(self.request.POST.get('delete', 0)))).numbers
 
 
 class SaveTagView(LoggedCallMixin, Bview.JsonView):

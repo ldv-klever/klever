@@ -20,7 +20,6 @@ import json
 import os
 import re
 import shlex
-import subprocess
 import sys
 import tempfile
 
@@ -57,37 +56,11 @@ class OSEntity:
 
         self.kind = args.entity
 
-        self.clients = self._connect()
+        self.clients = self.__connect()
 
     def __getattr__(self, name):
-        self.logger.error('You can not {0} "{1}"'.format(name, self.kind))
+        self.logger.error('Action "{0}" is not supported for "{1}"'.format(name, self.kind))
         sys.exit(errno.ENOSYS)
-
-    def _connect(self):
-        self.logger.info('Sign in to OpenStack')
-        auth = v2.Password(**{
-            'auth_url': self.args.os_auth_url,
-            'username': self.args.os_username,
-            'password': get_password(self.logger, 'OpenStack password for authentication: '),
-            'tenant_name': self.args.os_tenant_name
-        })
-        sess = session.Session(auth=auth)
-
-        try:
-            # Perform a request to OpenStack in order to check the correctness of provided username and password.
-            sess.get_auth_headers()
-        except keystoneauth1.exceptions.http.Unauthorized:
-            self.logger.error('Sign in failed: invalid username or password')
-            sys.exit(errno.EACCES)
-
-        return OSClients(self.logger, sess)
-
-    def _execute_cmd(self, *args, get_output=False):
-        self.logger.info('Execute command "{0}"'.format(' '.join(args)))
-        if get_output:
-            return subprocess.check_output(args).decode('utf8')
-        else:
-            subprocess.check_call(args)
 
     def _get_base_image(self, base_image_name):
         self.logger.info('Get base image matching "{0}"'.format(base_image_name))
@@ -114,52 +87,24 @@ class OSEntity:
 
         return images
 
-    def _get_instance(self, instance_name):
-        self.logger.info('Get instance matching "{0}"'.format(instance_name))
+    def __connect(self):
+        self.logger.info('Sign in to OpenStack')
+        auth = v2.Password(**{
+            'auth_url': self.args.os_auth_url,
+            'username': self.args.os_username,
+            'password': get_password(self.logger, 'OpenStack password for authentication: '),
+            'tenant_name': self.args.os_tenant_name
+        })
+        sess = session.Session(auth=auth)
 
-        instances = self._get_instances(instance_name)
+        try:
+            # Perform a request to OpenStack in order to check the correctness of provided username and password.
+            sess.get_auth_headers()
+        except keystoneauth1.exceptions.http.Unauthorized:
+            self.logger.error('Sign in failed: invalid username or password')
+            sys.exit(errno.EACCES)
 
-        if len(instances) == 0:
-            self.logger.error('There are no intances matching "{0}"'.format(instance_name))
-            sys.exit(errno.EINVAL)
-
-        if len(instances) > 1:
-            self.logger.error('There are several instances matching "{0}", please, resolve this conflict manually'
-                              .format(instance_name))
-            sys.exit(errno.EINVAL)
-
-        return instances[0]
-
-    def _get_instance_floating_ip(self, instance):
-        self.logger.info('Get instance floating IP')
-
-        floating_ip = None
-        for network_addresses in instance.addresses.values():
-            for address in network_addresses:
-                if address.get('OS-EXT-IPS:type') == 'floating':
-                    floating_ip = address.get('addr')
-                    break
-            if floating_ip:
-                break
-
-        if not floating_ip:
-            self.logger.error('There are no floating IPs, please, resolve this manually')
-            sys.exit(errno.EINVAL)
-
-        return floating_ip
-
-    def _get_instances(self, instance_name):
-        instances = []
-
-        for instance in self.clients.nova.servers.list():
-            if re.fullmatch(instance_name, instance.name):
-                instances.append(instance)
-
-        return instances
-
-    def _show_instance(self, instance):
-        return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
-                                                   self._get_instance_floating_ip(instance))
+        return OSClients(self.logger, sess)
 
 
 class DeployConfAndScripts:
@@ -260,36 +205,17 @@ class OSKleverBaseImage(OSEntity):
         self.clients.glance.images.delete(klever_base_images[0].id)
 
 
-class OSKleverDeveloperInstance(OSEntity):
+class OSKleverInstance(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
-        self.name = self.args.name or '{0}-klever-dev'.format(self.args.os_username)
-
-        # For external users like OSKleverExperimentalInstances#create.
-        self.instance = None
-
-    def show(self):
-        klever_developer_instances = self._get_instances(self.name)
-
-        if len(klever_developer_instances) == 1:
-            self.logger.info('There is Klever developer instance "{0}" matching "{1}"'
-                             .format(self._show_instance(klever_developer_instances[0]), self.name))
-        elif len(klever_developer_instances) > 1:
-            self.logger.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
-                             .format(len(klever_developer_instances), self.name,
-                                     '\n* '.join([self._show_instance(instance)
-                                                 for instance in klever_developer_instances])))
-        else:
-            self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
-
-    def create(self):
+    def _create(self, is_dev):
         base_image = self._get_base_image(self.args.klever_base_image)
 
-        klever_developer_instances = self._get_instances(self.name)
+        klever_instances = self._get_instances(self.name)
 
-        if klever_developer_instances:
-            self.logger.error('Klever developer instance matching "{0}" already exists'.format(self.name))
+        if klever_instances:
+            self.logger.error('Klever instance(s) matching "{0}" already exists'.format(self.name))
             sys.exit(errno.EINVAL)
 
         with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=self.name,
@@ -315,12 +241,12 @@ class OSKleverDeveloperInstance(OSEntity):
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever developer instance'):
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
-                    self._do_update(ssh, deps=False)
+                    self._create_or_update(ssh, is_dev, deps=False)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
-    def _do_update(self, ssh, deps=True):
+    def _create_or_update(self, ssh, is_dev, deps=True):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
@@ -330,6 +256,7 @@ class OSKleverDeveloperInstance(OSEntity):
             'Verification Backends': False
         }
 
+        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
         if deps:
             ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
                             (' --update-packages' if self.args.update_packages else '') +
@@ -379,21 +306,100 @@ class OSKleverDeveloperInstance(OSEntity):
                 dump_cur_deploy_info()
 
         if is_update['Klever']:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py')
+            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
+                            .format(' --development' if is_dev else ''))
 
-        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py'
+        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
+                                                                                             if is_dev else '')
         if is_update['Klever'] or is_update['Controller & Schedulers']:
             ssh.execute_cmd(cmd)
 
         if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
             ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
 
-    def update(self):
-        with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
+    def _get_instance(self, instance_name):
+        self.logger.info('Get instance matching "{0}"'.format(instance_name))
+
+        instances = self._get_instances(instance_name)
+
+        if len(instances) == 0:
+            self.logger.error('There are no intances matching "{0}"'.format(instance_name))
+            sys.exit(errno.EINVAL)
+
+        if len(instances) > 1:
+            self.logger.error('There are several instances matching "{0}", please, resolve this conflict manually'
+                              .format(instance_name))
+            sys.exit(errno.EINVAL)
+
+        return instances[0]
+
+    def _get_instance_floating_ip(self, instance):
+        self.logger.info('Get instance floating IP')
+
+        floating_ip = None
+        for network_addresses in instance.addresses.values():
+            for address in network_addresses:
+                if address.get('OS-EXT-IPS:type') == 'floating':
+                    floating_ip = address.get('addr')
+                    break
+            if floating_ip:
+                break
+
+        if not floating_ip:
+            self.logger.error('There are no floating IPs, please, resolve this manually')
+            sys.exit(errno.EINVAL)
+
+        return floating_ip
+
+    def _get_instances(self, instance_name):
+        instances = []
+
+        for instance in self.clients.nova.servers.list():
+            if re.fullmatch(instance_name, instance.name):
+                instances.append(instance)
+
+        return instances
+
+    def _show_instance(self, instance):
+        return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
+                                                   self._get_instance_floating_ip(instance))
+
+    def _update(self, instance):
+        with SSH(args=self.args, logger=self.logger, name=instance.name,
+                 floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                       'update of Klever developer instance'):
-                self._do_update(ssh)
+                self._create_or_update(ssh, True)
+
+
+class OSKleverDeveloperInstance(OSKleverInstance):
+    def __init__(self, args, logger):
+        super().__init__(args, logger)
+
+        self.name = self.args.name or '{0}-klever-dev'.format(self.args.os_username)
+
+        # For external users like OSKleverExperimentalInstances#create.
+        self.instance = None
+
+    def show(self):
+        klever_developer_instances = self._get_instances(self.name)
+
+        if len(klever_developer_instances) == 1:
+            self.logger.info('There is Klever developer instance "{0}" matching "{1}"'
+                             .format(self._show_instance(klever_developer_instances[0]), self.name))
+        elif len(klever_developer_instances) > 1:
+            self.logger.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
+                             .format(len(klever_developer_instances), self.name,
+                                     '\n* '.join([self._show_instance(instance)
+                                                 for instance in klever_developer_instances])))
+        else:
+            self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
+
+    def create(self):
+        self._create(True)
+
+    def update(self):
+        self._update(self._get_instance(self.name))
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
@@ -475,7 +481,7 @@ class OSKleverDeveloperInstance(OSEntity):
         sys.exit(errno.EINVAL)
 
 
-class OSKleverExperimentalInstances(OSEntity):
+class OSKleverExperimentalInstances(OSKleverInstance):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
@@ -504,41 +510,60 @@ class OSKleverExperimentalInstances(OSEntity):
                               ' command-line option --instances')
             sys.exit(errno.EINVAL)
 
-        self.logger.info(
-            'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
-        master_instance = None
-        master_image = None
-        self.args.name = self.name
-        # Use the same flavor for creating master instance as for creating Klever base image.
-        flavor = self.args.flavor
-        self.args.flavor = 'keystone.xlarge'
-        try:
-            klever_developer_instance = OSKleverDeveloperInstance(self.args, self.logger)
-            klever_developer_instance.create()
-            master_instance = klever_developer_instance.instance
-            self.args.flavor = flavor
-            master_instance.create_image()
-            master_image = self._get_base_image(self.name)
+        klever_experimental_instances = self._get_instances(self.name_pattern)
+        if klever_experimental_instances:
+            self.logger.error('Klever experimental instances matching "{0}" already exist'.format(self.name_pattern))
+            sys.exit(errno.EINVAL)
 
-            instance_id = 1
-            while instance_id <= self.args.instances:
-                instance_name = '{0}-{1}'.format(self.name, instance_id)
-                self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
+        # Often users will need to create a single Klever experimental instance, so, do that in a more optimal way.
+        if self.args.instances == 1:
+            self._create(False)
+        else:
+            self.logger.info(
+                'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
+            master_image = None
+            self.args.name = self.name
+            # TODO: it would be better to detect shis automatically since it can change.
+            # Use the same flavor for creating master instance as for creating Klever base image.
+            flavor = self.args.flavor
+            self.args.flavor = 'crawler.mini'
+            try:
+                self._create(False)
+                self.args.flavor = flavor
+                self.instance.create_image()
+                master_image = self._get_base_image(self.name)
 
-                with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
-                                base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
-                    pass
+                instance_id = 1
+                while instance_id <= self.args.instances:
+                    instance_name = '{0}-{1}'.format(self.name, instance_id)
+                    self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
 
-                instance_id += 1
-        # Always remove master instance in case of failures. Klever experimental instances should be removed via
-        # OSKleverExperimentalInstances#remove.
-        finally:
-            if master_instance:
-                master_instance.remove()
-            if master_image:
-                self.logger.info('Remove master image "{0}"'.format(self.name))
-                # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
-                self.clients.glance.images.delete(master_image.id)
+                    with OSInstance(logger=self.logger, clients=self.clients, args=self.args, name=instance_name,
+                                    base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
+                        pass
+
+                    instance_id += 1
+            # Always remove master instance and image if so. Klever experimental instances should be removed via
+            # OSKleverExperimentalInstances#remove.
+            finally:
+                if self.instance:
+                    self.instance.remove()
+                if master_image:
+                    self.logger.info('Remove master image "{0}"'.format(self.name))
+                    # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
+                    self.clients.glance.images.delete(master_image.id)
+
+    def update(self):
+        klever_experimental_instances = self._get_instances(self.name_pattern)
+        if not klever_experimental_instances:
+            self.logger.error('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
+            sys.exit(errno.EINVAL)
+
+        self.logger.warning('Please, do not keep Klever experimental instances for a long period of time'
+                            ' (these updates are intended just for fixing initial deployment issues)')
+
+        for klever_experimental_instance in klever_experimental_instances:
+            self._update(klever_experimental_instance)
 
     def remove(self):
         klever_experimental_instances = self._get_instances(self.name_pattern)
@@ -550,8 +575,3 @@ class OSKleverExperimentalInstances(OSEntity):
         for klever_experimental_instance in klever_experimental_instances:
             self.logger.info('Remove instance "{0}"'.format(klever_experimental_instance.name))
             self.clients.nova.servers.delete(klever_experimental_instance.id)
-
-    def ssh(self):
-        with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
-            ssh.open_shell()

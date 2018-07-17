@@ -46,13 +46,9 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_check_final_state": [
           {
-            "ldv_check_final_state": [
-              {
-                "ldv_error": []
-              }
-            ]
+            "ldv_error": []
           }
         ]
       }

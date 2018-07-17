@@ -269,6 +269,26 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
     $('#upload_file_modal').modal({transition: 'fly left'});
     $('.close-modal').click(function () {$('.ui.modal').modal('hide')});
 
+    function open_first_found_file() {
+        var instance = $(tree_div_id).jstree(true),
+            tree_data = instance._model.data,
+            root_id = tree_data['#']['children'][0],
+            first_file;
+        for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
+            var child_id = tree_data[root_id]['children'][i];
+            if (tree_data[child_id]['type'] == 'file') {
+                if (tree_data[child_id]['text'] == def_file_to_open) {
+                    first_file = tree_data[root_id]['children'][i];
+                    break;
+                }
+                else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
+                    first_file = tree_data[root_id]['children'][i];
+                }
+            }
+        }
+        if (first_file) instance.select_node(first_file);
+    }
+
     $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {}, function (json) {
         if (json.error) {
             err_notify(json.error);
@@ -294,25 +314,10 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
         }).on('select_node.jstree', function (e, data) {
             clear_editfile_area();
             if (data.node.type == 'file') load_file_content(data.node);
-        }).on('ready.jstree', function () {
-            var instance = $(tree_div_id).jstree(true),
-                tree_data = instance._model.data,
-                root_id = tree_data['#']['children'][0],
-                first_file;
-            for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
-                var child_id = tree_data[root_id]['children'][i];
-                if (tree_data[child_id]['type'] == 'file') {
-                    if (tree_data[child_id]['text'] == def_file_to_open) {
-                        first_file = tree_data[root_id]['children'][i];
-                        break;
-                    }
-                    else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
-                        first_file = tree_data[root_id]['children'][i];
-                    }
-                }
-            }
-            if (first_file) instance.select_node(first_file);
-        }).on('delete_node.jstree', clear_editfile_area);
+        })
+            .on('ready.jstree', open_first_found_file)
+            .on('refresh.jstree', open_first_found_file)
+            .on('delete_node.jstree', clear_editfile_area);
     }, 'json');
 
     $('#commit_file_changes').click(function () { commit_file_changes(tree_div_id) });
@@ -331,7 +336,8 @@ window.refresh_files_tree = function (tree_div_id, job_id, version) {
             err_notify(json.error);
             return false;
         }
-        $(tree_div_id).jstree(true).settings.core.data = [json];
-        $(tree_div_id).jstree(true).refresh();
+        var tree_inst = $(tree_div_id).jstree(true);
+        tree_inst.settings.core.data = [json];
+        tree_inst.refresh();
     }, 'json');
 };

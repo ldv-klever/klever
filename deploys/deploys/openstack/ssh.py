@@ -18,16 +18,13 @@
 import errno
 import os
 import paramiko
-import select
-import socket
+import subprocess
 import sys
 import tarfile
 import tempfile
-import termios
 import time
-import tty
 
-from deploys.utils import get_password
+from deploys.utils import execute_cmd, get_password
 
 
 class SSH:
@@ -38,8 +35,8 @@ class SSH:
 
     def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            self.logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
-                              ' --ssh-rsa-private-key-file')
+            logger.error('Please specify path to SSH RSA private key file with help of command-line option' +
+                         ' --ssh-rsa-private-key-file')
             sys.exit(errno.EINVAL)
 
         self.args = args
@@ -132,41 +129,9 @@ class SSH:
 
     def open_shell(self):
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
-        self.logger.warning(
-            'Just simple operations can be peformed, for the complex ones, please, run "{0}"'
-            .format('ssh -o StrictHostKeyChecking=no -i {0} {1}@{2}'
-                    .format(self.args.ssh_rsa_private_key_file, self.args.ssh_username, self.floating_ip)))
 
-        chan = self.ssh.get_transport().open_session()
-        chan.get_pty()
-        chan.invoke_shell()
-
-        # https://github.com/paramiko/paramiko/blob/master/demos/interactive.py (commit 15aa741).
-        oldtty = termios.tcgetattr(sys.stdin)
-
-        try:
-            tty.setraw(sys.stdin.fileno())
-            tty.setcbreak(sys.stdin.fileno())
-            chan.settimeout(0.0)
-
-            while True:
-                r, w, e = select.select([chan, sys.stdin], [], [])
-                if chan in r:
-                    try:
-                        x = chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
-                        if len(x) == 0:
-                            break
-                        sys.stdout.write(x)
-                        sys.stdout.flush()
-                    except socket.timeout:
-                        pass
-                if sys.stdin in r:
-                    x = sys.stdin.read(1)
-                    if len(x) == 0:
-                        break
-                    chan.send(x)
-        finally:
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+        execute_cmd(self.logger, 'ssh', '-o', 'StrictHostKeyChecking=no', '-i', self.args.ssh_rsa_private_key_file,
+                    '{0}@{1}'.format(self.args.ssh_username, self.floating_ip))
 
     def sftp_put(self, host_path, instance_path, sudo=False, directory=None, ignore=None):
         self.logger.info('Copy "{0}" to "{1}"'

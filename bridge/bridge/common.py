@@ -102,6 +102,8 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+ALLOWED_HOSTS = ['*']
+
 # Klever core configuration parameters are moved to jobs/configuration.py
 
 DEF_USER = {

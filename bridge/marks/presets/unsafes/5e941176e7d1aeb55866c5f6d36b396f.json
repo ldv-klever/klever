@@ -3,17 +3,17 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev290+ge2ee704f"
+      "value": "0.3.dev649+g8df2dbfb4"
     },
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "14/tests/linux/kernel/locking/mutex/linux:kernel:locking:mutex"
+      "value": "0/tests/acda82a/linux:emg:test"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.14.0"
+      "is_compare": true,
+      "value": "2.6.33.20"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -33,12 +33,12 @@
     {
       "attr": "Rule specification",
       "is_compare": true,
-      "value": "linux:kernel:locking:mutex"
+      "value": "linux:emg:test"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/linux/kernel/locking/mutex/double-unlock.ko"
+      "value": "ext-modules/net_device_ops_v.1/setup_invoke.ko"
     }
   ],
   "comparison": "thread_call_forests",
@@ -53,9 +53,21 @@
       {
         "ldv_init": [
           {
-            "ldv_mutex_unlock_ldv_lock": [
+            "ldv_invoke_test": []
+          },
+          {
+            "ldv_register": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_setup": [
+          {
+            "ldv_invoke_reached": [
               {
-                "ldv_assert_linux_kernel_locking_mutex__one_thread_double_unlock": []
+                "ldv_assert_linux_emg_test": []
               }
             ]
           }
@@ -63,7 +75,7 @@
       }
     ]
   ],
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": "1",
   "tags": [],
   "verdict": "2"

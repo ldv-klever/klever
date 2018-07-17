@@ -110,6 +110,12 @@ body {
     font-style: italic;
 }
 
+.error-comment {
+    color: #9f3a38;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
 .pre-space {
     white-space: pre;
 }

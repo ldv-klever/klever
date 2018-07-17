@@ -46,16 +46,14 @@
   "error trace": [
     [
       {
-        "ldv_main_3": [
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_check_final_state": [
           {
-            "ldv_initialize": []
-          },
-          {
-            "ldv_check_final_state": [
-              {
-                "ldv_assert_linux_kernel_locking_mutex__one_thread_locked_at_exit": []
-              }
-            ]
+            "ldv_assert_linux_kernel_locking_mutex__one_thread_locked_at_exit": []
           }
         ]
       }

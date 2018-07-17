@@ -53,15 +53,11 @@
         ]
       },
       {
-        "ldv_usb_scenario_probe_2_14": [
+        "ldv_usb_probe": [
           {
-            "ldv_usb_probe": [
+            "ldv_emg_register_netdev": [
               {
-                "ldv_emg_register_netdev": [
-                  {
-                    "ldv_failed_register_netdev": []
-                  }
-                ]
+                "ldv_failed_register_netdev": []
               }
             ]
           }

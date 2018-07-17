@@ -499,7 +499,7 @@ class ReportsComparisonData(LoggedCallMixin, Bview.DetailPostView):
             raise BridgeException()
         res = ComparisonData(
             self.object, int(self.request.POST.get('page_num', 1)),
-            self.request.POST.get('hide_attrs', 0), self.request.POST.get('hide_attrs', 0),
+            self.request.POST.get('hide_attrs', 0), self.request.POST.get('hide_components', 0),
             self.request.POST.get('verdict'), self.request.POST.get('attrs')
         )
         return {

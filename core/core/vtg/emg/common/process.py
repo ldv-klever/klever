@@ -484,6 +484,7 @@ class Action:
     def __init__(self, name):
         self.name = name
         self.comment = None
+        self.trace_relevant = False
 
 
 class Subprocess(Action):
@@ -531,6 +532,7 @@ class Call(Action):
         self.retlabel = None
         self.pre_call = []
         self.post_call = []
+        self.trace_relevant = True
 
 
 class CallRetval(Action):

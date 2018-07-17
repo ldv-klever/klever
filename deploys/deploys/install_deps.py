@@ -16,8 +16,10 @@
 # limitations under the License.
 #
 
+import errno
 import json
 import os
+import sys
 
 from deploys.utils import execute_cmd, get_logger
 
@@ -38,6 +40,16 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         for val in pckgs.values():
             _pckgs.extend(val)
         return _pckgs
+
+    # We can skip installation/update of dependencies if nothing is specified, but most likely one prepares
+    # deployment configuration file incorrectly.
+    if 'Packages' not in deploy_conf:
+        logger.error('Deployment configuration file does not describe packages to be installed/updated')
+        sys.exit(errno.EINVAL)
+
+    if 'Python3 Packages' not in deploy_conf:
+        logger.error('Deployment configuration file does not describe Python3 packages to be installed/updated')
+        sys.exit(errno.EINVAL)
 
     new_pckgs = get_pckgs(deploy_conf['Packages'])
     new_py_pckgs = get_pckgs(deploy_conf['Python3 Packages'])

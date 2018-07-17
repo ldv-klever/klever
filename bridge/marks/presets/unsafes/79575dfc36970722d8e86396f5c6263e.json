@@ -12,8 +12,8 @@
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "2.6.33.20"
+      "is_compare": true,
+      "value": "3.14.0"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -46,11 +46,7 @@
   "error trace": [
     [
       {
-        "ldv_main_7": [
-          {
-            "ldv_initialize": []
-          }
-        ]
+        "ldv_initialize": []
       }
     ],
     [
@@ -60,18 +56,17 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_register": []
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_setup": [
-          {
-            "ldv_invoke_reached": [
+            "ldv_emg_alloc_netdev_mqs": [
               {
-                "ldv_assert_linux_emg_test": []
+                "ldv_setup": [
+                  {
+                    "ldv_invoke_reached": [
+                      {
+                        "ldv_assert_linux_emg_test": []
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
