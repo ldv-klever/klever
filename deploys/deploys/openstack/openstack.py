@@ -364,6 +364,13 @@ class OSKleverInstance(OSEntity):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
                                                    self._get_instance_floating_ip(instance))
 
+    def _update(self, instance):
+        with SSH(args=self.args, logger=self.logger, name=instance.name,
+                 floating_ip=self._get_instance_floating_ip(instance)) as ssh:
+            with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
+                                      'update of Klever developer instance'):
+                self._create_or_update(ssh, True)
+
 
 class OSKleverDeveloperInstance(OSKleverInstance):
     def __init__(self, args, logger):
@@ -392,11 +399,7 @@ class OSKleverDeveloperInstance(OSKleverInstance):
         self._create(True)
 
     def update(self):
-        with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
-            with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                      'update of Klever developer instance'):
-                self._create_or_update(ssh, True)
+        self._update(self._get_instance(self.name))
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
@@ -523,7 +526,7 @@ class OSKleverExperimentalInstances(OSKleverInstance):
             # TODO: it would be better to detect shis automatically since it can change.
             # Use the same flavor for creating master instance as for creating Klever base image.
             flavor = self.args.flavor
-            self.args.flavor = 'keystone.xlarge'
+            self.args.flavor = 'crawler.mini'
             try:
                 self._create(False)
                 self.args.flavor = flavor
@@ -549,6 +552,18 @@ class OSKleverExperimentalInstances(OSKleverInstance):
                     self.logger.info('Remove master image "{0}"'.format(self.name))
                     # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
                     self.clients.glance.images.delete(master_image.id)
+
+    def update(self):
+        klever_experimental_instances = self._get_instances(self.name_pattern)
+        if not klever_experimental_instances:
+            self.logger.error('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
+            sys.exit(errno.EINVAL)
+
+        self.logger.warning('Please, do not keep Klever experimental instances for a long period of time'
+                            ' (these updates are intended just for fixing initial deployment issues)')
+
+        for klever_experimental_instance in klever_experimental_instances:
+            self._update(klever_experimental_instance)
 
     def remove(self):
         klever_experimental_instances = self._get_instances(self.name_pattern)
