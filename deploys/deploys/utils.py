@@ -105,6 +105,9 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         sys.exit(errno.EINVAL)
 
     path = desc['path']
+    o = urllib.parse.urlparse(path)
+    if not o[0] and not os.path.isabs(path):
+        path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
 
     refs = {}
     try:
@@ -144,7 +147,6 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         cmd_fn('rm', '-rf', deploy_dir)
 
     # Install new version of entity.
-    o = urllib.parse.urlparse(path)
     tmp_file = None
     tmp_dir = None
     try:
@@ -159,13 +161,9 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         elif o[0]:
             logger.error('Entity is provided in unsupported form "{0}"'.format(o[0]))
             sys.exit(errno.EINVAL)
-        else:
-            if not os.path.isabs(path):
-                path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
-
-            if not os.path.exists(path):
-                logger.error('Path "{0}" does not exist'.format(path))
-                sys.exit(errno.ENOENT)
+        elif not os.path.exists(path):
+            logger.error('Path "{0}" does not exist'.format(path))
+            sys.exit(errno.ENOENT)
 
         if is_git_repo:
             if version == 'CURRENT':
