@@ -150,10 +150,12 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
     tmp_file = None
     tmp_dir = None
     try:
-        if o[0] == 'git' or is_git_repo:
+        # Clone remote Git repository.
+        if (o[0] == 'git' or is_git_repo) and not os.path.exists(path):
             tmp_dir = tempfile.mkdtemp()
             execute_cmd(logger, 'git', 'clone', '-q', '--recursive', path, tmp_dir)
             path = tmp_dir
+        # Download remote file.
         elif o[0] in ('http', 'https', 'ftp'):
             _, tmp_file = tempfile.mkstemp()
             execute_cmd(logger, 'wget', '-O', tmp_file, '-q', path)
