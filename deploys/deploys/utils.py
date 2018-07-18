@@ -147,9 +147,9 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
     else:
         logger.info('Install "{0}" (version: "{1}")'.format(name, version))
 
-    # Remove previous version of entity if so.
-    if prev_version:
-        cmd_fn('rm', '-rf', deploy_dir)
+    # Remove previous version of entity if so. Do not make this in depend on previous version since it can be unset
+    # while entity is deployed. For instance, this can be the case when entity deployment fails somewhere in the middle.
+    cmd_fn('rm', '-rf', deploy_dir)
 
     # Install new version of entity.
     tmp_file = None
