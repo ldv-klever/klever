@@ -122,9 +122,11 @@ class Scheduler:
                 sch_ste = {
                     "tasks": {
                         "pending": [task_id for task_id in tks if "status" in tks[task_id] and
-                                    tks[task_id]["status"] == "PENDING"],
+                                    tks[task_id]["status"] == "PENDING" and not tks[task_id].get("rescheduled", False)],
                         "processing": [task_id for task_id in tks if "status" in tks[task_id] and
-                                       tks[task_id]["status"] == "PROCESSING"],
+                                       tks[task_id]["status"] == "PROCESSING" or
+                                       (tks[task_id]["status"] == "PENDING" and
+                                        tks[task_id].get("rescheduled", False))],
                         "finished": [task_id for task_id in tks if "status" in tks[task_id] and
                                      tks[task_id]["status"] == "FINISHED"],
                         "error": [task_id for task_id in tks if "status" in tks[task_id] and
@@ -316,11 +318,13 @@ class Scheduler:
 
                     # Update tasks processing status
                     for task_id in ser_ste["tasks"]["processing"]:
-                        if task_id in tks:
-                            if not self.runner.is_solving(tks[task_id]) or tks[task_id]["status"] != "PROCESSING":
+                        if task_id in tks and \
+                                (not (tks[task_id].get("rescheduled", False) and tks[task_id]["status"] == 'PENDING')
+                                 and (not self.runner.is_solving(tks[task_id]) or
+                                      tks[task_id]["status"] != "PROCESSING")):
                                 raise ValueError("Scheduler has lost information about task {} with PROCESSING status.".
                                                  format(task_id))
-                        else:
+                        elif task_id not in tks:
                             self.logger.warning("Task {} has status PROCESSING but it was not running actually".
                                                 format(task_id))
                             tks[task_id] = {

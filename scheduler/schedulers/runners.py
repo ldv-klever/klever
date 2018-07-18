@@ -348,6 +348,7 @@ class Runner:
         try:
             if item.get("future", False) and not item["future"].cancel():
                 item["status"] = self._cancel_task(identifier, item["future"])
+                self.logger.debug("Cancelled task {} finished with status: {!r}".format(identifier, item["status"]))
                 assert item["status"] not in ["FINISHED", "ERROR"]
             else:
                 item["status"] = "ERROR"
@@ -469,7 +470,10 @@ class Speculative(Runner):
                 # We need to prepare task again to set new resource limitations to configuration files and solve it
                 # once again
                 self.prepare_task(identifier, item)
+                self.logger.info("Reschedule task {} of category {!r} due to underapproximated memory limit".
+                                 format(identifier, item["description"]["solution class"]))
                 item["status"] = "PENDING"
+                item["rescheduled"] = True
         elif status and not solution:
             self.logger.info('Missing decision results for task {}:{}'.
                              format(item["description"]["solution class"], identifier))
@@ -487,6 +491,19 @@ class Speculative(Runner):
         """
         status = super(Speculative, self).process_job_result(identifier, item, task_items)
         if status:
+            # Add log and asserts
+            jd = self._track_job(identifier)
+            assert sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0
+            self.logger.debug("Job {} max task number was given as {}".format(identifier, jd.get("total tasks", 0)))
+            for att, attd in jd["limits"].items():
+                self.logger.info(
+                    "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
+                    "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
+                    "CPU time consumption deviation: {}s".
+                    format(att, attd["solved"], attd["statistics"].get("mean mem", 0),
+                           attd["statistics"].get("memdev", 0), int(attd["statistics"].get("mean time", 0) / 1000),
+                           int(attd["statistics"].get("timedev", 0)) / 1000))
+
             self.del_job(identifier)
         return status
 
@@ -631,7 +648,7 @@ class Speculative(Runner):
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
             if limits['memory size'] < qos['memory size']:
-                self.logger.debug("Issue less memory limit for for {}:{}: {}".
+                self.logger.debug("Issue less memory limit for for {}:{}: {}B".
                                   format(attribute, identifier, limits['memory size']))
                 speculative = True
             else:
@@ -665,6 +682,9 @@ class Speculative(Runner):
             lim = element["limitation"]
             qos = job["QoS limit"]
             job["limits"][attribute]["solved"] += 1
+            self.logger.debug(
+                "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
+                format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))
             if not job["limits"][attribute]["statistics"]:
                 job["limits"][attribute]["statistics"] = {
                     'mean mem': resources['memory size'],
