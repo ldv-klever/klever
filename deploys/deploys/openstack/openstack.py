@@ -479,6 +479,7 @@ class OSKleverDeveloperInstance(OSKleverInstance):
         sys.exit(errno.EINVAL)
 
 
+# TODO: Refactor this! This class shouldn't inherit OSKleverInstance as it corresponds to one or more OSKleverInstance. Because of this inheritance there is tricky mess of methods of this class and OSKleverInstance. Besides, refactoring is required for OSEntity (that indeed doesn't correspond to any single entity) and for OSKleverInstance as it also has some methods for dealing with many entities rather than a single instance.
 class OSKleverExperimentalInstances(OSKleverInstance):
     def __init__(self, args, logger):
         super().__init__(args, logger)
