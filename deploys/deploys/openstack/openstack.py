@@ -241,12 +241,12 @@ class OSKleverInstance(OSEntity):
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever instance'):
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
-                    self._create_or_update(ssh, is_dev, deps=False)
+                    self._create_or_update(ssh, is_dev)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
-    def _create_or_update(self, ssh, is_dev, deps=True):
+    def _create_or_update(self, ssh, is_dev):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
@@ -256,11 +256,9 @@ class OSKleverInstance(OSEntity):
             'Verification Backends': False
         }
 
-        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
-        if deps:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
-                            (' --update-packages' if self.args.update_packages else '') +
-                            (' --update-python3-packages' if self.args.update_python3_packages else ''))
+        ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
+                        (' --update-packages' if self.args.update_packages else '') +
+                        (' --update-python3-packages' if self.args.update_python3_packages else ''))
 
         with ssh.sftp.file('klever-inst/klever.json') as fp:
             prev_deploy_info = json.loads(fp.read().decode('utf8'))
