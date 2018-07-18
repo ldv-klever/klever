@@ -239,7 +239,7 @@ class OSKleverInstance(OSEntity):
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                          'creation of Klever developer instance'):
+                                          'creation of Klever instance'):
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
                     self._create_or_update(ssh, is_dev, deps=False)
 
@@ -364,12 +364,12 @@ class OSKleverInstance(OSEntity):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
                                                    self._get_instance_floating_ip(instance))
 
-    def _update(self, instance):
+    def _update(self, instance, is_dev):
         with SSH(args=self.args, logger=self.logger, name=instance.name,
                  floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                      'update of Klever developer instance'):
-                self._create_or_update(ssh, True)
+                                      'update of Klever instance'):
+                self._create_or_update(ssh, is_dev)
 
 
 class OSKleverDeveloperInstance(OSKleverInstance):
@@ -399,7 +399,7 @@ class OSKleverDeveloperInstance(OSKleverInstance):
         self._create(True)
 
     def update(self):
-        self._update(self._get_instance(self.name))
+        self._update(self._get_instance(self.name), True)
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
@@ -563,7 +563,7 @@ class OSKleverExperimentalInstances(OSKleverInstance):
                             ' (these updates are intended just for fixing initial deployment issues)')
 
         for klever_experimental_instance in klever_experimental_instances:
-            self._update(klever_experimental_instance)
+            self._update(klever_experimental_instance, False)
 
     def remove(self):
         klever_experimental_instances = self._get_instances(self.name_pattern)
