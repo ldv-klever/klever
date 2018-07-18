@@ -202,7 +202,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
             sys.exit(errno.ENOSYS)
 
-        # Remember what extra dependencies were installed just if everything went well.
+        # Remember what extra dependency or program was installed just if everything went well.
         prev_deploy_info[name] = {
             'version': version,
             'directory': deploy_dir
@@ -219,10 +219,10 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             shutil.rmtree(tmp_dir)
 
 
-def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn, dump_cur_deploy_info_fn):
     is_update_controller_and_schedulers = False
     is_update_verification_backends = False
-    
+
     if 'Klever Addons' in deploy_conf:
         deploy_addons_conf = deploy_conf['Klever Addons']
 
@@ -249,10 +249,14 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
                     and addon in ('CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
                 is_update_controller_and_schedulers = True
 
-    return is_update_controller_and_schedulers, is_update_verification_backends
+    if is_update_controller_and_schedulers:
+        to_update(prev_deploy_info, 'Controller & Schedulers', dump_cur_deploy_info_fn)
+
+    if is_update_verification_backends:
+        to_update(prev_deploy_info, 'Verification Backends', dump_cur_deploy_info_fn)
 
 
-def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn, dump_cur_deploy_info_fn):
     is_update_programs = False
 
     if 'Programs' in deploy_conf:
@@ -271,7 +275,8 @@ def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, 
                 # Allow using local source directories.
                 cmd_fn('chown', '-LR', 'klever', program_deploy_dir)
 
-    return is_update_programs
+    if is_update_programs:
+        dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def need_verifiercloud_scheduler(prev_deploy_info):
@@ -298,6 +303,14 @@ def stop_services(logger, services, ignore_errors=False):
                 pass
             else:
                 raise
+
+
+def to_update(prev_deploy_info, entity, dump_cur_deploy_info_fn):
+    if 'To update' not in prev_deploy_info:
+        prev_deploy_info['To update'] = {}
+
+    prev_deploy_info['To update'][entity] = True
+    dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def update_python_path():

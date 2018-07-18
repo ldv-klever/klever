@@ -34,7 +34,7 @@ import cinderclient.client
 
 from deploys.openstack.instance import OSInstance
 from deploys.openstack.ssh import SSH
-from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs
+from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs, to_update
 
 
 class OSClients:
@@ -256,14 +256,12 @@ class OSKleverInstance(OSEntity):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
-        is_update = {
-            'Klever': False,
-            'Controller & Schedulers': False,
-            'Verification Backends': False
-        }
+        # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
+        def get_prev_deploy_info():
+            with ssh.sftp.file('klever-inst/klever.json') as fp:
+                return json.loads(fp.read().decode('utf8'))
 
-        with ssh.sftp.file('klever-inst/klever.json') as fp:
-            prev_deploy_info = json.loads(fp.read().decode('utf8'))
+        prev_deploy_info = get_prev_deploy_info()
 
         def cmd_fn(*args):
             ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
@@ -274,48 +272,46 @@ class OSKleverInstance(OSEntity):
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
             ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
 
-        is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
-                                                           prev_deploy_info, cmd_fn, install_fn)
-
-        def dump_cur_deploy_info():
+        def dump_cur_deploy_info(cur_deploy_info):
             with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
-                json.dump(prev_deploy_info, nested_fp, sort_keys=True, indent=4)
+                json.dump(cur_deploy_info, nested_fp, sort_keys=True, indent=4)
                 nested_fp.flush()
                 ssh.execute_cmd('sudo rm klever-inst/klever.json')
                 ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
-        if is_update['Klever']:
-            dump_cur_deploy_info()
+        if install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf, prev_deploy_info,
+                                        cmd_fn, install_fn):
+            to_update(prev_deploy_info, 'Klever', dump_cur_deploy_info)
 
-        try:
-            is_update['Controller & Schedulers'], is_update['Verification Backends'] = \
-                install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn)
-        # Without this we won't store information on successfully installed/updated extra dependencies and following
-        # installation/update will fail.
-        finally:
-            if is_update['Controller & Schedulers'] or is_update['Verification Backends']:
-                dump_cur_deploy_info()
+        install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                           dump_cur_deploy_info)
+        install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                         dump_cur_deploy_info)
 
-        is_update_programs = False
-        try:
-            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
-                                                  install_fn)
-        # Like above.
-        finally:
-            if is_update_programs:
-                dump_cur_deploy_info()
+        prev_deploy_info = get_prev_deploy_info()
 
-        if is_update['Klever']:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
-                            .format(' --development' if is_dev else ''))
+        # Keeping entities to be updated in previous deployment information allows to properly deal when somethiing
+        # went wrong above. For instance, script can update Klever but then fail when, say, installing programs. After
+        # fixing issues with programs script will skip updating Klever and install them successfully. But also it will
+        # perform actions required after updating Klever that happened at the first iteration since we remember that
+        # Klever should be updated.
+        if 'To update' in prev_deploy_info:
+            if 'Klever' in prev_deploy_info['To update']:
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
+                                .format(' --development' if is_dev else ''))
 
-        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
-                                                                                             if is_dev else '')
-        if is_update['Klever'] or is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd)
+            cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
+                                                                                                 if is_dev else '')
 
-        if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+            if 'Klever' in prev_deploy_info['To update'] or 'Controller & Schedulers' in prev_deploy_info['To update']:
+                ssh.execute_cmd(cmd)
+            elif 'Verification Backends' in prev_deploy_info['To update']:
+                ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+
+            # Although we can forget to update entities step by step it is simpler and safer to forget about everything
+            # at once. Indeed, there will be very rare failures above.
+            del prev_deploy_info['To update']
+            dump_cur_deploy_info(prev_deploy_info)
 
     def _get_instance(self, instance_name):
         self.logger.info('Get instance matching "{0}"'.format(instance_name))
