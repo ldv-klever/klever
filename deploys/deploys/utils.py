@@ -106,8 +106,13 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
     path = desc['path']
     o = urllib.parse.urlparse(path)
-    if not o[0] and not os.path.isabs(path):
-        path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
+    if not o[0]:
+        if not os.path.isabs(path):
+            path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
+
+        # Avoid paths as symbolic links for all further operations. Some of them deal with symbolic links as we need,
+        # but other ones can perform unexpected things.
+        path = os.path.realpath(path)
 
     refs = {}
     try:
