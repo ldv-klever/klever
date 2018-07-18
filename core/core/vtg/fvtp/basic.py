@@ -132,7 +132,7 @@ class Basic:
         )
 
         # Save to task its class
-        task_desc['solution class'] = self.abstract_task_desc['solution class']
+        task_desc['solution class'] = self.conf['solution class']
 
         return task_desc
 
@@ -181,8 +181,10 @@ class Basic:
 
         :return: Dictionary with resource limitations.
         """
-        limitations = self.abstract_task_desc.get('resource limits',
-                                                  utils.read_max_resource_limitations(self.logger, self.conf))
+        if self.conf.get('override resource limits'):
+            self.logger.info("Choose resource limitations provided by VTG instead of QoS")
+        limitations = self.conf.get('override resource limits',
+                                    utils.read_max_resource_limitations(self.logger, self.conf))
         return limitations
 
     def _cleanup(self):

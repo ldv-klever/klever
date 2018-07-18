@@ -494,13 +494,14 @@ class Speculative(Runner):
             # Add log and asserts
             jd = self._track_job(identifier)
             assert sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0
-            self.logger.debug("Job {} max task number was given as {}".format(identifier, jd.get("total tasks", 0)))
+            self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
+                              format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
             for att, attd in jd["limits"].items():
                 self.logger.info(
                     "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
                     "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
                     "CPU time consumption deviation: {}s".
-                    format(att, attd["solved"], attd["statistics"].get("mean mem", 0),
+                    format(att, attd["statistics"].get("number", 0), attd["statistics"].get("mean mem", 0),
                            attd["statistics"].get("memdev", 0), int(attd["statistics"].get("mean time", 0) / 1000),
                            int(attd["statistics"].get("timedev", 0)) / 1000))
 
@@ -580,7 +581,6 @@ class Speculative(Runner):
         attd = jd["limits"].setdefault(attribute,
                                        {
                                            "tasks": dict(),
-                                           "solved": 0,
                                            "statistics": None
                                        })
         task = attd["tasks"].setdefault(identifier, {"limitation": None, "status": None})
@@ -609,7 +609,8 @@ class Speculative(Runner):
                                       {
                                           "limits": dict(),
                                           "total tasks": None,
-                                          "QoS limit": None
+                                          "QoS limit": None,
+                                          "solved": 0
                                       })
 
     def del_job(self, job_identifier):
@@ -644,7 +645,8 @@ class Speculative(Runner):
         if limits.get('memory size', 0) > 0 and \
                 ((limits.get('CPU time', None) and limits['CPU time'] <= qos['CPU time']) or
                  not limits.get('CPU time', None)) and not self._is_there(job_identifier, attribute, identifier) and \
-                job.get("total tasks", 0) and job["limits"][attribute]["solved"] > (0.1 * job.get("total tasks")):
+                job.get("total tasks", 0) and job["solved"] > (0.1 * job.get("total tasks")) and \
+                job["limits"][attribute]["statistics"]["number"] > 5:
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
             if limits['memory size'] < qos['memory size']:
@@ -681,7 +683,7 @@ class Speculative(Runner):
             self.logger.debug("Task {}:{} finished".format(attribute, identifier))
             lim = element["limitation"]
             qos = job["QoS limit"]
-            job["limits"][attribute]["solved"] += 1
+            job["solved"] += 1
             self.logger.debug(
                 "Task {} from category {!r} solved with status {!r} and required {}B of memory and {}s of CPU time".
                 format(identifier, attribute, status, resources['memory size'], int(resources['CPU time'] / 1000)))

@@ -679,7 +679,6 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
         # Currently we will use rule specification name as a solution class to accumulate statistics and adjust resource
         # limitations
-        initial_abstract_task_desc['solution class'] = self.rule_specification
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
@@ -695,7 +694,6 @@ class VTGW(core.components.Component):
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
                 initial_abstract_task_desc_file))
-        initial_abstract_task_desc['resource limits'] = self.override_limits
         with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
             json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -743,6 +741,8 @@ class VTGW(core.components.Component):
                 plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
                                                                              self.conf[
                                                                                  'main working directory'])
+                plugin_conf['solution class'] = self.rule_specification
+                plugin_conf['override resource limits'] = self.override_limits
 
                 plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
                 self.logger.debug(
