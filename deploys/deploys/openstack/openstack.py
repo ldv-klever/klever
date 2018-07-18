@@ -209,6 +209,11 @@ class OSKleverInstance(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+    def _install_or_update_deps(self, ssh):
+        ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
+                        (' --update-packages' if self.args.update_packages else '') +
+                        (' --update-python3-packages' if self.args.update_python3_packages else ''))
+
     def _create(self, is_dev):
         base_image = self._get_base_image(self.args.klever_base_image)
 
@@ -240,6 +245,7 @@ class OSKleverInstance(OSEntity):
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                           'creation of Klever instance'):
+                    self._install_or_update_deps(ssh)
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
                     self._create_or_update(ssh, is_dev)
 
@@ -255,10 +261,6 @@ class OSKleverInstance(OSEntity):
             'Controller & Schedulers': False,
             'Verification Backends': False
         }
-
-        ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
-                        (' --update-packages' if self.args.update_packages else '') +
-                        (' --update-python3-packages' if self.args.update_python3_packages else ''))
 
         with ssh.sftp.file('klever-inst/klever.json') as fp:
             prev_deploy_info = json.loads(fp.read().decode('utf8'))
@@ -367,6 +369,7 @@ class OSKleverInstance(OSEntity):
                  floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
                                       'update of Klever instance'):
+                self._install_or_update_deps(ssh)
                 self._create_or_update(ssh, is_dev)
 
 
