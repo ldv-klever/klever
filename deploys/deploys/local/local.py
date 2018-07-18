@@ -58,7 +58,7 @@ class Klever:
         with open(self.prev_deploy_info_file, 'w') as fp:
             json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
 
-    def _pre_do_install_or_update(self):
+    def _pre_install_or_update(self):
         def cmd_fn(*args):
             execute_cmd(self.logger, *args)
 
@@ -142,7 +142,7 @@ class Klever:
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
-        self._pre_do_install_or_update()
+        self._pre_install_or_update()
 
     def _pre_update(self):
         if not self.prev_deploy_info:
@@ -152,7 +152,7 @@ class Klever:
 
         self._read_deploy_conf_file()
         self._install_or_update_deps()
-        self._pre_do_install_or_update()
+        self._pre_install_or_update()
 
     def _pre_uninstall(self, mode_services):
         services = list(mode_services)
