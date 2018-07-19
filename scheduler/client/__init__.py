@@ -243,7 +243,6 @@ def prepare_task_arguments(conf):
     """
     Prepare arguments for solution of a verification task with BenchExec.
 
-    :param logger: Logger.
     :param conf: Configuration dictionary.
     :return: List with options.
     """
@@ -269,8 +268,12 @@ def prepare_task_arguments(conf):
         memorylimit = '{}MB'.format(int(numerical))
 
         args.extend(['--memorylimit', memorylimit])
-    if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
+
+    # todo: Set this limit only if we are going to reduce limitations according to some speculative strategy (it is not implemented)
+    # todo: Remember that this option rewrites both a soft and hard limits
+    # if conf.get('speculative', False):
+    #     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
+    #         args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
