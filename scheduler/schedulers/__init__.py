@@ -156,18 +156,18 @@ class Scheduler:
                     transition_done = True
 
                 # Add task errors
-                self.logger.debug("Add task {} error descriptions".format(len(sch_ste["tasks"]["error"])))
-                if len(sch_ste["tasks"]["error"]):
+                if len(sch_ste["tasks"]["error"]) > 0:
+                    self.logger.info("Add task {} error descriptions".format(len(sch_ste["tasks"]["error"])))
                     sch_ste["task errors"] = {}
-                for task_id in sch_ste["tasks"]["error"]:
-                    sch_ste["task errors"][task_id] = str(tks[task_id]["error"])
+                    for task_id in sch_ste["tasks"]["error"]:
+                        sch_ste["task errors"][task_id] = str(tks[task_id]["error"])
 
                 # Add jobs errors
-                self.logger.debug("Add job {} error descriptions".format(len(sch_ste["jobs"]["error"])))
-                if len(sch_ste["jobs"]["error"]):
+                if len(sch_ste["jobs"]["error"]) > 0:
+                    self.logger.info("Add job {} error descriptions".format(len(sch_ste["jobs"]["error"])))
                     sch_ste["job errors"] = {}
-                for job_id in sch_ste["jobs"]["error"]:
-                    sch_ste["job errors"][job_id] = str(jbs[job_id]["error"])
+                    for job_id in sch_ste["jobs"]["error"]:
+                        sch_ste["job errors"][job_id] = str(jbs[job_id]["error"])
 
                 # Submit scheduler state and receive server state
                 if transition_done or self.__need_exchange:
@@ -204,16 +204,20 @@ class Scheduler:
                             self.runner.add_job_progress(job_id, jbs[job_id], progress)
 
                     # Remove finished or error tasks which have been already submitted
-                    self.logger.debug("Remove tasks with statuses FINISHED and ERROR which have been submitted")
-                    for task_id in set(sch_ste["tasks"]["finished"] + sch_ste["tasks"]["error"]):
-                        self.logger.debug("Delete task {} with status {}".format(task_id, tks[task_id]["status"]))
-                        del tks[task_id]
+                    to_remove = set(sch_ste["tasks"]["finished"] + sch_ste["tasks"]["error"])
+                    if len(to_remove) > 0:
+                        self.logger.debug("Remove tasks with statuses FINISHED and ERROR which have been submitted")
+                        for task_id in to_remove:
+                            self.logger.debug("Delete task {} with status {}".format(task_id, tks[task_id]["status"]))
+                            del tks[task_id]
 
                     # Remove finished or error jobs
-                    self.logger.debug("Remove jobs with statuses FINISHED and ERROR")
-                    for job_id in set(sch_ste["jobs"]["finished"] + sch_ste["jobs"]["error"]):
-                        self.logger.debug("Delete job {} with status {}".format(job_id, jbs[job_id]["status"]))
-                        del jbs[job_id]
+                    to_remove = set(sch_ste["jobs"]["finished"] + sch_ste["jobs"]["error"])
+                    if len(to_remove) > 0:
+                        self.logger.debug("Remove jobs with statuses FINISHED and ERROR")
+                        for job_id in to_remove:
+                            self.logger.debug("Delete job {} with status {}".format(job_id, jbs[job_id]["status"]))
+                            del jbs[job_id]
 
                     # Add new PENDING tasks
                     for task_id in [task_id for task_id in ser_ste["tasks"]["pending"] if task_id not in tks]:
@@ -372,23 +376,24 @@ class Scheduler:
                     pending_jobs = sorted(pending_jobs, key=lambda i: sort_priority(i['configuration']['priority']))
                     pending_tasks = sorted(pending_tasks, key=lambda i: sort_priority(i['description']['priority']))
                     tasks_to_start, jobs_to_start = self.runner.schedule(pending_tasks, pending_jobs)
-                    self.logger.info("Going to start {} new tasks and {} jobs".
-                                     format(len(tasks_to_start), len(jobs_to_start)))
+                    if len(tasks_to_start) > 0 or len(jobs_to_start) > 0:
+                        self.logger.info("Going to start {} new tasks and {} jobs".
+                                         format(len(tasks_to_start), len(jobs_to_start)))
 
-                    for job_id in jobs_to_start:
-                        if self.runner.is_solving(jbs[job_id]) or jbs[job_id]["status"] != "PENDING":
-                            raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
-                        if self.runner.solve_job(job_id, jbs[job_id]):
-                            transition_done = True
+                        for job_id in jobs_to_start:
+                            if self.runner.is_solving(jbs[job_id]) or jbs[job_id]["status"] != "PENDING":
+                                raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
+                            if self.runner.solve_job(job_id, jbs[job_id]):
+                                transition_done = True
 
-                    for task_id in tasks_to_start:
-                        # This check is very helpful for debugging
-                        self.runner.solve_task(task_id, tks[task_id])
+                        for task_id in tasks_to_start:
+                            # This check is very helpful for debugging
+                            self.runner.solve_task(task_id, tks[task_id])
 
                     # Flushing tasks
                     if len(tasks_to_start) > 0 or \
                             len([True for task_id in tks if tks[task_id]["status"] == "PROCESSING"]) > 0:
-                        self.logger.debug("Flush submitted tasks and jobs")
+                        self.logger.info("Flush submitted tasks and jobs")
                         self.runner.flush()
                 else:
                     self.logger.warning(
