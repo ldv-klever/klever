@@ -477,7 +477,8 @@ class Speculative(Runner):
         elif status and not solution:
             self.logger.info('Missing decision results for task {}:{}'.
                              format(item["description"]["solution class"], identifier))
-            self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
+            if self._is_there(item["description"]["job id"], item["description"]["solution class"], identifier):
+                self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
         return status
 
     def process_job_result(self, identifier, item, task_items):
@@ -496,7 +497,7 @@ class Speculative(Runner):
             assert sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0
             self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
                               format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
-            for att, attd in jd["limits"].items():
+            for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics', None) is not None):
                 self.logger.info(
                     "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
                     "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
@@ -583,7 +584,7 @@ class Speculative(Runner):
                                            "tasks": dict(),
                                            "statistics": None
                                        })
-        task = attd["tasks"].setdefault(identifier, {"limitation": None, "status": None})
+        task = attd["tasks"].setdefault(identifier, {"limitation": dict(), "status": None})
         return task
 
     def _del_task(self, job_identifier, attribute, identifier):
@@ -712,7 +713,8 @@ class Speculative(Runner):
                 memdev = devn(newsum, statistics['number'])
                 statistics.update({'mean mem': newmean, 'memsum': newsum, 'memdev': memdev})
 
-            if status in ('OUT OF MEMORY', 'TIMEOUT') and (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
+            if status in ('OUT OF MEMORY', 'TIMEOUT') and lim and \
+                    (lim.get('memory size', 0) < qos.get('memory size', 0)) or \
                     (lim.get('CPU time', 0) < qos.get('CPU time', 0)):
                 return False
 
