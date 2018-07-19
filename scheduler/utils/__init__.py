@@ -34,6 +34,10 @@ import sys
 import consulate
 from xml.etree import ElementTree
 
+# This should prevent rumbling of urllib3
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("consulate").setLevel(logging.WARNING)
+
 
 class StreamQueue:
     """
