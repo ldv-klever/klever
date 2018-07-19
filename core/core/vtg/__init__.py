@@ -466,6 +466,8 @@ class VTG(core.components.Component):
                 if rule_class:
                     final = balancer.add_solution(vobject, rule_class, rule_name, status_info)
                     if final:
+                        self.mqs['finished and failed tasks'].\
+                            put([self.conf['job identifier'], 'finished' if status_info[0] == 'finished' else 'failed'])
                         processing_status[vobject][rule_class][rule_name] = True
                     active_tasks -= 1
 
@@ -531,7 +533,6 @@ class VTG(core.components.Component):
                             if active_tasks < max_tasks:
                                 self.logger.info("Submit next verification task after having cached plugin results for "
                                                  "verification object {!r} and rule {!r}".format(vobject, rule['id']))
-
                                 submit_task(vo_descriptions[vobject], rule_class, rule)
                                 processing_status[vobject][rule_class][rule['id']] = None
                                 active_tasks += 1
@@ -549,10 +550,14 @@ class VTG(core.components.Component):
                                  r['id'] in processing_status[vobject][rule_class] and
                                  not processing_status[vobject][rule_class][r['id']] and
                                  balancer.is_there(vobject, rule_class, r['id'])):
-                        if balancer.do_rescheduling(vobject, rule_class, rule['id']):
-                            submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=True)
+                        attempt = balancer.do_rescheduling(vobject, rule_class, rule['id'])
+                        if attempt:
+                            self.logger.info("Submit task {}:{} again to solve it again".format(vobject, rule['id']))
+                            submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=attempt)
                             active_tasks += 1
                         elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
+                            self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
+                            self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
                             processing_status[vobject][rule_class][rule['id']] = True
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
@@ -615,20 +620,33 @@ class VTGWL(core.components.Component):
         self.logger.info("Terminate VTGL worker")
 
     def vtgw_constructor(self, element):
+        attrs = [
+            {
+                "name": "Rule specification",
+                "value": element[1]['id']
+            },
+            {
+                "name": "Verification object",
+                "value": element[0]['id']
+            }
+        ]
+        if element[3]:
+            identifier = "{}/{}/{}/VTGW".format(element[0]['id'], element[1]['id'], element[3])
+            workdir = os.path.join(element[0]['id'], element[1]['id'], str(element[3]))
+            attrs.append(
+                {
+                    "name": "Rescheduling attempt",
+                    "value": str(element[3]),
+                    "compare": False,
+                    "associate": False
+                }
+            )
+        else:
+            identifier = "{}/{}/VTGW".format(element[0]['id'], element[1]['id'])
+            workdir = os.path.join(element[0]['id'], element[1]['id'])
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                    self.locks, self.vals, "{}/{}/VTGW".format(element[0]['id'], element[1]['id']),
-                    os.path.join(element[0]['id'], element[1]['id']),
-                    attrs=[
-                        {
-                            "name": "Rule specification",
-                            "value": element[1]['id']
-                        },
-                        {
-                            "name": "Verification object",
-                            "value": element[0]['id']
-                        }
-                    ],
-                    separate_from_parent=True, verification_object=element[0], rule_spec=element[1],
+                    self.locks, self.vals, identifier, workdir,
+                    attrs=attrs, separate_from_parent=True, verification_object=element[0], rule_spec=element[1],
                     resource_limits=element[2], rerun=element[3])
 
     main = task_generating_loop
@@ -702,7 +720,7 @@ class VTGW(core.components.Component):
         out_abstract_task_desc_file = None
         if self.rerun:
             # Get only the last, and note that the last one prepares tasks and otherwise rerun should not be set
-            plugins = list(rule_spec_desc['plugins'][-1])
+            plugins = [rule_spec_desc['plugins'][-1]]
         else:
             plugins = rule_spec_desc['plugins']
 
@@ -710,6 +728,13 @@ class VTGW(core.components.Component):
             # Here plugin will put modified abstract verification task description.
             plugin_work_dir = plugin_desc['name'].lower()
             out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
+            if self.rerun:
+                self.logger.info("Instead of running the {!r} plugin for the {!r} rule in the same dir obtain "
+                                 "results for the original run".format(plugin_desc['name'], self.rule_specification))
+                cur_abstract_task_desc_file = \
+                    os.path.join(os.pardir, out_abstract_task_desc_file)
+                os.symlink(os.path.relpath(cur_abstract_task_desc_file, os.path.curdir),
+                           out_abstract_task_desc_file)
 
             if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
                     plugin_desc['name'] in ['SA', 'EMG']:
@@ -792,26 +817,24 @@ class VTGW(core.components.Component):
                     final_task_data = json.load(fp)
 
                 # Plan for checking status
-                self.mqs['pending tasks'].put([str(task_id),
-                                               final_task_data["result processing"],
-                                               self.verification_object,
-                                               self.rule_specification,
-                                               final_task_data['verifier'],
-                                               shadow_src_dir])
+                self.mqs['pending tasks'].put(
+                    [
+                        [str(task_id), final_task_data["result processing"], self.verification_object,
+                         self.rule_specification, final_task_data['verifier'], shadow_src_dir],
+                        self.rerun
+                    ])
                 self.logger.info("Submitted successfully verification task {} for solution".
                                  format(os.path.join(plugin_work_dir, 'task.json')))
             else:
                 self.logger.warning("There is no verification task generated by the last plugin, expect {}".
                                     format(os.path.join(plugin_work_dir, 'task.json')))
                 self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
-                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
         self.logger.debug("VTGW that processed {!r}, {!r} failed".
                           format(self.verification_object, self.rule_specification))
         self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
-        self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
 
     def join(self, timeout=None, stopped=False):
         try:

@@ -72,8 +72,11 @@ class Basic:
         benchmark = ElementTree.Element("benchmark", {
             "tool": self.conf['verifier']['name'].lower()
         })
-        if "CPU time" in resource_limits and isinstance(resource_limits["CPU time"], int):
-            benchmark.set('timelimit', str(int(int(resource_limits["CPU time"]) * 0.9)))
+        if resource_limits.get("CPU time", False):
+            benchmark.set('hardtimelimit', str(int(resource_limits["CPU time"])))
+            if resource_limits.get("soft CPU time", False):
+                benchmark.set('timelimit',
+                              str(int(int(resource_limits["CPU time"]) * float(resource_limits["soft CPU time"]))))
 
         opts, safe_prps = common.get_verifier_opts_and_safe_prps(self.logger, resource_limits, self.conf)
 

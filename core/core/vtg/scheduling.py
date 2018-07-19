@@ -17,7 +17,7 @@
 
 import time
 
-from core.utils import read_max_resource_limitations
+from core.utils import read_max_resource_limitations, time_units_converter
 
 
 class Balancer:
@@ -42,7 +42,7 @@ class Balancer:
         # If options with wall limit are given we will try to improve timeout results
         if self.conf.get('wall time limit'):
             self.logger.debug("We will have probably extra time to solve timeout tasks")
-            self._walllimit = time.time() + self.conf['wall time limit']
+            self._walllimit = time.time() + time_units_converter(self.conf['wall time limit'])[0]
             self._minstep = self.conf.get('min increaded limit', 1.2)
             self.logger.debug("Minimal time limit increasing step is {}%".format(int(round(self._minstep * 100))))
         else:
@@ -78,7 +78,7 @@ class Balancer:
 
     def is_there(self, vobject, rule_class, rule_name):
         """Check that task is tracked as a limit."""
-        if self._problematic.get('vobject') and self._problematic[vobject].get(rule_class) and \
+        if self._problematic.get(vobject) and self._problematic[vobject].get(rule_class) and \
                 self._problematic[vobject][rule_class].get(rule_name):
             return True
         return False
@@ -100,12 +100,12 @@ class Balancer:
                     limitation.update({'CPU time': new_limit})
                     new_wall_limit = 0  # For logging message
                     if limitation.get('wall time', 0) > 0:
-                        new_wall_limit = int(round((limitation['wall time'] / limitation['CPU time']) * new_limit))
+                        new_wall_limit = int(round(((limitation['wall time'] / limitation['CPU time']) * new_limit)))
                         limitation.update({'wall time': new_wall_limit})
                     self.logger.debug("Reschedule {}:{} with increased CPU and wall time limit: {}, {}".
                                       format(vobject, rule_name, new_limit, new_wall_limit))
-                    return True
-
+                    return element['attempt']
+            self.logger.debug("We cannot now run {}:{}".format(vobject, rule_name))
         return False
 
     def need_rescheduling(self, vobject, rule_class, rule_name):
@@ -113,8 +113,14 @@ class Balancer:
         Check that in general this task need rescheduling but such rescheduling can be either done now or postponed.
         """
         if self.is_there(vobject, rule_class, rule_name):
-            issued_limit = self._issued_limits[vobject][rule_name]
-            if self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
+            element = self._is_there_or_init(vobject, rule_class, rule_name)
+            if not element["running"]:
+                issued_limit = self._issued_limits[vobject][rule_name]
+                if self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
+                    self.logger.info("Task {}:{} will be solved again".format(vobject, rule_name))
+                    return True
+            else:
+                self.logger.info("Task {}:{} is still running".format(vobject, rule_name))
                 return True
         return False
 
@@ -130,10 +136,11 @@ class Balancer:
 
         # Check do we have some statistics already
         if self.is_there(vobject, rule_class, rule_name):
+            element = self._is_there_or_init(vobject, rule_class, rule_name)
             limits = self._issued_limits[vobject][rule_name]
-            self.logger.debug("Issue existing limitation for {}:{}".format(vobject, rule_name))
-        else:
-            self.logger.debug("Issue QOS limit for {}:{}".format(vobject, rule_name))
+            element['running'] = True
+            element['attempt'] += 1
+            self.logger.debug("Issue an increased limitation for {}:{}".format(vobject, rule_name))
 
         self._add_limit(vobject, rule_name, limits)
         return limits
@@ -143,16 +150,11 @@ class Balancer:
         status, resources, limit_reason = status_info
 
         # Check that it is an error from scheduler
-        if status == 'error':
-            self.logger.debug("Task {}:{} failed".format(vobject, rule_name))
-            if self.is_there(vobject, rule_class, rule_name):
-                self._del_run(vobject, rule_class, rule_name)
-            self._remove_limit(vobject, rule_name)
-        elif resources:
+        if resources:
             self.logger.debug("Task {}:{} finished".format(vobject, rule_name))
             self._solved += 1
 
-            if limit_reason in ('CPU time exhausted', 'memory exhausted'):
+            if limit_reason in ('OUT OF MEMORY', 'TIMEOUT'):
                 self.logger.debug("Task {}:{} has been terminated due to limit".format(vobject, rule_name))
                 element = self._is_there_or_init(vobject, rule_class, rule_name)
                 element['status'] = limit_reason
@@ -166,7 +168,9 @@ class Balancer:
             else:
                 self._remove_limit(vobject, rule_name)
         else:
-            self.logger.debug("Task {}:{} failed and not even being solved".format(vobject, rule_name))
+            self.logger.debug("Task {}:{} failed".format(vobject, rule_name))
+            if self.is_there(vobject, rule_class, rule_name):
+                self._del_run(vobject, rule_class, rule_name)
             self._remove_limit(vobject, rule_name)
 
         return True
@@ -202,7 +206,7 @@ class Balancer:
         """Check that task is tracked as a time limit or otherwise start tracking it."""
         classes = self._problematic.setdefault(vobject, dict())
         rules = classes.setdefault(rule_class, dict())
-        return rules.setdefault(rule_name, {'status': None, 'running': False})
+        return rules.setdefault(rule_name, {'status': None, 'running': False, 'attempt': 1})
 
     def _del_run(self, vobject, rule_class, rule_name):
         """Stop tracking error or limit task."""
@@ -220,5 +224,7 @@ class Balancer:
         if self._walllimit:
             rest = self._walllimit - time.time()
             if rest > 0 and ((limitation and rest > int(limitation['CPU time'] * self._minstep)) or (not limitation)):
+                self.logger.debug("We have for solution of timeouts {}s".format(int(rest)))
                 return int(rest)
+        self.logger.debug("We have no extra time to solve timeouts")
         return 0
