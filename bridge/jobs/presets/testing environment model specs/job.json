@@ -69,6 +69,8 @@
           "ext-modules/timer_v.1/setup_timer_invoke.ko",
           "ext-modules/timer_v.2/init_timer_invoke.ko",
           "ext-modules/timer_v.2/setup_timer_invoke.ko",
+          "ext-modules/timer_v.3/init_timer_invoke.ko",
+          "ext-modules/timer_v.3/setup_timer_invoke.ko",
           "ext-modules/tty_v.1/tty_operations_invoke.ko",
           "ext-modules/tty_v.1/tty_port_operations_invoke.ko",
           "ext-modules/tty_v.2/tty_operations_invoke.ko",
@@ -82,6 +84,12 @@
           "ext-modules/workqueue_v.1/queue_delayed_work_on_invoke.ko",
           "ext-modules/workqueue_v.1/queue_work_invoke.ko",
           "ext-modules/workqueue_v.1/queue_work_on_invoke.ko",
+          "ext-modules/workqueue_v.2/flush_delayed_work_invoke.ko",
+          "ext-modules/workqueue_v.2/flush_work_invoke.ko",
+          "ext-modules/workqueue_v.2/queue_delayed_work_invoke.ko",
+          "ext-modules/workqueue_v.2/queue_delayed_work_on_invoke.ko",
+          "ext-modules/workqueue_v.2/queue_work_invoke.ko",
+          "ext-modules/workqueue_v.2/queue_work_on_invoke.ko",
           "ext-modules/tasklet_v.1/__tasklet_hi_schedule_first_invoke.ko",
           "ext-modules/tasklet_v.1/__tasklet_hi_schedule_invoke.ko",
           "ext-modules/tasklet_v.1/__tasklet_schedule_invoke.ko",
@@ -236,6 +244,37 @@
       "rule specifications": [
         "linux:emg:test:fp"
       ]
+    },
+    {
+      "specifications set": "Linux 4.15",
+      "Linux kernel": {
+        "source": "linux-fix_klever_compilation",
+        "external modules": "tests",
+        "modules": [
+          "block_device_operations_v.1",
+          "class_v.1",
+          "devm_threaded_irq_v.1",
+          "ethtool_ops_v.2",
+          "file_operations_v.1",
+          "hid_v.1",
+          "ieee80211_ops_v.1",
+          "iio_triggered_buffer_v.1",
+          "irq_v.2",
+          "net_device_ops_v.2",
+          "pci_driver_v.1",
+          "percpu_irq_v.1",
+          "platform_driver_v.1",
+          "proto_v.2",
+          "rtc_class_ops_v.1",
+          "scsi_host_template_v.1",
+          "seq_operations_v.1",
+          "serial_core_v.1",
+          "target_backend_v1",
+          "tty_v.2",
+          "usb_driver_v.1",
+          "usb_serial_driver_v.2"
+        ]
+      }
     }
   ],
   "Default": [
