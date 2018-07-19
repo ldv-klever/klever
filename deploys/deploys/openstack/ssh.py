@@ -148,9 +148,8 @@ class SSH:
             fp.seek(0)
             self.sftp.putfo(fp, instance_archive)
 
-        # TODO: get rid of numerous warnings like "tar: ...: time stamp 2018-06-04 11:14:25 is 109.824694369 s in the future".
         # Use sudo to allow extracting archives outside home directory.
-        self.execute_cmd('{0} -xf {1}'
+        self.execute_cmd('{0} --warning=no-timestamp -xf {1}'
                          .format(('sudo ' if sudo else '') + 'tar' + (' -C ' + directory if directory else ''),
                                  instance_archive))
         self.execute_cmd('rm ' + instance_archive)

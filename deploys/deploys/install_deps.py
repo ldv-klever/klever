@@ -126,16 +126,12 @@ def main():
     parser.add_argument('--update-python3-packages', default=False, action='store_true')
     args = parser.parse_args()
 
-    # TODO: this code duplicates code from deploys.local.local.Klever#__init__.
     with open(args.deployment_configuration_file) as fp:
         deploy_conf = json.load(fp)
 
     prev_deploy_info_file = os.path.join(args.deployment_directory, 'klever.json')
-    if os.path.exists(prev_deploy_info_file):
-        with open(prev_deploy_info_file) as fp:
-            prev_deploy_info = json.load(fp)
-    else:
-        prev_deploy_info = {}
+    with open(prev_deploy_info_file) as fp:
+        prev_deploy_info = json.load(fp)
 
     install_deps(get_logger(__name__), deploy_conf, prev_deploy_info, args.non_interactive, args.update_packages,
                  args.update_python3_packages)
