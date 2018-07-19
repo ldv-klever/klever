@@ -61,7 +61,7 @@ if vc_out and vc_out != '':
 if "schedulers" in consul.kv:
     kv_status = json.loads(consul.kv["schedulers"])
     if kv_status["Klever"] != status["Klever"] or kv_status["VerifierCloud"] != status["VerifierCloud"]:
-        set_status(status)
+        set_status(logging, status)
         consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
 else:
     try:
