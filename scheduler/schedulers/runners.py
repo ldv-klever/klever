@@ -234,7 +234,7 @@ class Runner:
             try:
                 item["status"] = self._process_task_result(identifier, item["future"], item["description"])
                 self.logger.debug("Task {} new status is {!r}".format(identifier, item["status"]))
-                assert item["status"] not in ["FINISHED", "ERROR"]
+                assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
                 msg = "Task failed {}: {!r}".format(identifier, err)
                 self.logger.warning(msg)
@@ -272,7 +272,7 @@ class Runner:
             try:
                 item["status"] = self._process_job_result(identifier, item["future"])
                 self.logger.debug("Job {} new status is {!r}".format(identifier, item["status"]))
-                assert item["status"] not in ["FINISHED", "ERROR"]
+                assert item["status"] in ["FINISHED", "ERROR"]
             except SchedulerException as err:
                 msg = "Job failed {}: {!r}".format(identifier, err)
                 self.logger.warning(msg)
@@ -310,7 +310,7 @@ class Runner:
         try:
             if item.get("future", False) and not item["future"].cancel():
                 item["status"] = self._cancel_job(identifier, item["future"])
-                assert item["status"] not in ["FINISHED", "ERROR"]
+                assert item["status"] in ["FINISHED", "ERROR"]
             else:
                 item["status"] = "ERROR"
                 item["error"] = "Task has been cancelled before execution"
@@ -349,7 +349,7 @@ class Runner:
             if item.get("future", False) and not item["future"].cancel():
                 item["status"] = self._cancel_task(identifier, item["future"])
                 self.logger.debug("Cancelled task {} finished with status: {!r}".format(identifier, item["status"]))
-                assert item["status"] not in ["FINISHED", "ERROR"]
+                assert item["status"] in ["FINISHED", "ERROR"]
             else:
                 item["status"] = "ERROR"
                 item["error"] = "Task has been cancelled before execution"
@@ -477,8 +477,7 @@ class Speculative(Runner):
         elif status and not solution:
             self.logger.info('Missing decision results for task {}:{}'.
                              format(item["description"]["solution class"], identifier))
-            if self._is_there(item["description"]["job id"], item["description"]["solution class"], identifier):
-                self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
+            self._del_task(item["description"]["job id"], item["description"]["solution class"], identifier)
         return status
 
     def process_job_result(self, identifier, item, task_items):
@@ -597,7 +596,8 @@ class Speculative(Runner):
         :return: None
         """
         job = self._track_job(job_identifier)
-        del job["limits"][attribute]["tasks"][identifier]
+        if attribute in job["limits"]:
+            del job["limits"][attribute]["tasks"][identifier]
 
     def _track_job(self, job_identifier):
         """
@@ -647,7 +647,7 @@ class Speculative(Runner):
                 ((limits.get('CPU time', None) and limits['CPU time'] <= qos['CPU time']) or
                  not limits.get('CPU time', None)) and not self._is_there(job_identifier, attribute, identifier) and \
                 job.get("total tasks", 0) and job["solved"] > (0.1 * job.get("total tasks")) and \
-                job["limits"][attribute]["statistics"]["number"] > 5:
+                job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
             statistics = job["limits"][attribute]["statistics"]
             limits['memory size'] = statistics['mean mem'] + 2*statistics['memdev']
             if limits['memory size'] < qos['memory size']:
