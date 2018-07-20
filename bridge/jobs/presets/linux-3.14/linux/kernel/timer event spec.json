@@ -197,13 +197,6 @@
               "timer.timer_list"
             ]
           },
-          "data": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "timer.data"
-            ]
-          },
           "function": {
             "callback": true,
             "parameter": true,
@@ -224,8 +217,6 @@
             "statements": [
               "%timer_list% = $ARG1;",
               "%function% = $ARG2",
-              "%data% = $ARG3",
-              "%timer_list.data%=%data%;",
               "%timer_list.function%=%function%;"
             ]
           }
@@ -288,7 +279,7 @@
             "comment": "Time has come: call the timer callback.",
             "callback": "%container.handler%",
             "parameters": [
-              "%container.data%"
+              "%container%"
             ]
           }
         }

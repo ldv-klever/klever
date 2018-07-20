@@ -58,10 +58,6 @@
         "declaration": "int mod_timer(*%timer.timer_list%, unsigned long expires)",
         "header": "linux/timer.h"
       },
-      "mod_timer_pinned": {
-        "declaration": "int mod_timer_pinned(*%timer.timer_list%, unsigned long expires)",
-        "header": "linux/timer.h"
-      },
       "mod_timer_pending": {
         "declaration": "int mod_timer_pending(*%timer.timer_list%, unsigned long expires)",
         "header": "linux/timer.h"
@@ -86,19 +82,13 @@
             "declaration": "struct timer_list list",
             "header": "linux/timer.h",
             "fields": {
-              "data": "%timer.data%",
               "function": "%timer.handler%"
             }
           }
         },
-        "resources": {
-          "data": {
-            "declaration": "long unsigned int data"
-          }
-        },
         "callbacks": {
           "handler": {
-            "declaration": "void (*handler)(%timer.data%)",
+            "declaration": "void (*handler)(*%timer.timer_list%)",
             "interrupt context": true
           }
         }
