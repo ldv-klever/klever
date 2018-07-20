@@ -330,7 +330,7 @@ class Native(runners.Speculative):
                     format(os.path.abspath(work_dir), current_space,
                            configuration["resource limits"]['disk memory size']))
 
-        if configuration["resource limits"]["CPU time"]:
+        if configuration["resource limits"].get("CPU time", None):
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
         else:

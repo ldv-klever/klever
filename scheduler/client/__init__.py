@@ -269,11 +269,14 @@ def prepare_task_arguments(conf):
 
         args.extend(['--memorylimit', memorylimit])
 
-    # todo: Set this limit only if we are going to reduce limitations according to some speculative strategy (it is not implemented)
-    # todo: Remember that this option rewrites both a soft and hard limits
-    # if conf.get('speculative', False):
-    #     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-    #         args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
+    if not conf["resource limits"].get('CPU time', 0) and not conf["resource limits"].get('soft CPU time', 0):
+        # Disable explicitly time limitations
+        args.extend(['--timelimit', '-1'])
+    if conf["resource limits"].get('wall time', 0):
+        args.extend(['--walltimelimit', time_units_converter(conf["resource limits"]["wall time"], "s")[1]])
+    else:
+        # As we cannot just disable the limit set a very large value
+        args.extend(['--walltimelimit', str(60 * 60 * 24 * 365 * 100)])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
@@ -308,8 +311,6 @@ def prepare_job_arguments(conf):
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
         args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
-    if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], "s")[1]])
 
     # Check container mode
     if "runexec container mode" in conf['client'] and conf['client']["runexec container mode"]:
