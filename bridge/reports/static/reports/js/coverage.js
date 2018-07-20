@@ -27,6 +27,7 @@ $(document).ready(function () {
         cov_attr_table = $('#CoverageAttrTable');
 
     function show_src_code(filename) {
+        src_code_content.empty();
         $.ajax({
             method: 'post',
             url: '/reports/get-coverage-src/' + $('#cov_arch_id').val() + '/',
@@ -168,6 +169,142 @@ $(document).ready(function () {
         }
         else {
             window.location.href = '/reports/coverage-light/' + $('#report_id').val() + '?archive=' + $(this).val();
+        }
+    });
+
+    $('#next_cov_btn').click(function () {
+        var selected_line = $('.selected-funcline'), next_span;
+        if (selected_line.length) {
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+            next_span = selected_line.nextAll('.func-covered').first();
+        }
+        if (!next_span || !next_span.length) {
+            next_span = src_code_content.children('.func-covered').first();
+        }
+        if (next_span.length) {
+            next_span.addClass('selected-funcline');
+            next_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + next_span.position().top - src_code_content.height() * 0.3);
+        }
+    });
+
+    $('#prev_cov_btn').click(function () {
+        var selected_line = $('.selected-funcline'), prev_span;
+        if (selected_line.length) {
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+            prev_span = selected_line.prevAll('.func-covered').first();
+        }
+        if (!prev_span || !prev_span.length) {
+            prev_span = src_code_content.children('.func-covered').last();
+        }
+        if (prev_span.length) {
+            prev_span.addClass('selected-funcline');
+            prev_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + prev_span.position().top - src_code_content.height() * 0.3);
+        }
+    });
+
+    $('#next_uncov_btn').click(function () {
+        var selected_line = $('.selected-funcline'), next_span;
+        if (selected_line.length) {
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+            next_span = selected_line.nextAll('.func-uncovered').first();
+        }
+        if (!next_span || !next_span.length) {
+            next_span = src_code_content.children('.func-uncovered').first();
+        }
+        if (next_span.length) {
+            next_span.addClass('selected-funcline');
+            next_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + next_span.position().top - src_code_content.height() * 0.3);
+        }
+    });
+
+    $('#prev_uncov_btn').click(function () {
+        var selected_line = $('.selected-funcline'), prev_span;
+        if (selected_line.length) {
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+            prev_span = selected_line.prevAll('.func-uncovered').first();
+        }
+        if (!prev_span || !prev_span.length) {
+            prev_span = src_code_content.children('.func-uncovered').last();
+        }
+        if (prev_span.length) {
+            prev_span.addClass('selected-funcline');
+            prev_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + prev_span.position().top - src_code_content.height() * 0.3);
+        }
+    });
+
+    function sortByNumOfCalls(a, b) {
+        var n1 = parseInt($(a).find('.COVIsFC').data('number'), 10),
+            n2 = parseInt($(b).find('.COVIsFC').data('number'), 10);
+        return (n1 > n2) ? -1 : (n1 < n2) ? 1 : 0;
+    }
+    function getElemIndex(array) {
+        for (var i = 0; i < array.length; i++) {
+            if ($(array.get(i)).hasClass('selected-funcline')) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    $('#next_srt_btn').click(function () {
+        var selected_line = $('.selected-funcline'), next_span;
+        var sorted_elements = src_code_content.children('.func-covered').sort(sortByNumOfCalls);
+
+        if (selected_line.length && sorted_elements.length) {
+            var selected_index = getElemIndex(sorted_elements);
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+
+            if (sorted_elements.length == selected_index + 1) {
+                next_span = sorted_elements.get(0);
+            }
+            else {
+                next_span = sorted_elements.get(selected_index + 1);
+            }
+        }
+        else if (sorted_elements.length) {
+            next_span = sorted_elements.get(0);
+        }
+        if (next_span) {
+            next_span = $(next_span);
+            next_span.addClass('selected-funcline');
+            next_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + next_span.position().top - src_code_content.height() * 0.3);
+        }
+    });
+
+    $('#prev_srt_btn').click(function () {
+        var selected_line = $('.selected-funcline'), prev_span;
+        var sorted_elements = src_code_content.children('.func-covered').sort(sortByNumOfCalls);
+
+        if (selected_line.length && sorted_elements.length) {
+            var selected_index = getElemIndex(sorted_elements);
+            selected_line.removeClass('selected-funcline');
+            selected_line.find('.COVLine').removeClass('COVLineSelected');
+
+            if (selected_index == 0) {
+                prev_span = sorted_elements.get(sorted_elements.length - 1);
+            }
+            else {
+                prev_span = sorted_elements.get(selected_index - 1);
+            }
+        }
+        else if (sorted_elements.length) {
+            prev_span = sorted_elements.get(sorted_elements.length - 1);
+        }
+        if (prev_span) {
+            prev_span = $(prev_span);
+            prev_span.addClass('selected-funcline');
+            prev_span.find('.COVLine').addClass('COVLineSelected');
+            src_code_content.scrollTop(src_code_content.scrollTop() + prev_span.position().top - src_code_content.height() * 0.3);
         }
     });
 });

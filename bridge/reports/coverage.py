@@ -255,6 +255,7 @@ class GetCoverageSrcHTML:
         return loader.get_template('reports/coverage/coverageFile.html').render({'linedata': data})
 
     def __get_line_data(self, line, code):
+        lineclass = None
         line_num = {
             'class': 'COVLine', 'static': True, 'data': [],
             'content': (' ' * (self._total_lines - len(str(line))) + str(line))
@@ -272,8 +273,10 @@ class GetCoverageSrcHTML:
         if line in self._func_coverage:
             func_cov['data'] = [('number', self._func_coverage[line])]
             if self._func_coverage[line] == 0:
+                lineclass = 'func-uncovered'
                 func_cov['content'] = '<i class="ui mini red remove icon"></i>'
             else:
+                lineclass = 'func-covered'
                 func_cov['content'] = '<i class="ui mini blue checkmark icon"></i>'
                 func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
 
@@ -283,7 +286,7 @@ class GetCoverageSrcHTML:
             line_num['class'] += ' COVWithData'
         linedata.append(func_cov)
         linedata.append(code)
-        return linedata
+        return {'linedata': linedata, 'lineclass': lineclass}
 
     def __parse_line(self, line):
         if self._is_comment:

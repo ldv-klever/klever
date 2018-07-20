@@ -348,7 +348,7 @@ class RA(core.components.Component):
     def __match_ideal_verdict(verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
-                                   (isinstance(ideal_attr, list) and attr in ideal_attr)):
+                               (isinstance(ideal_attr, list) and attr in ideal_attr)):
                 return True
 
             return False

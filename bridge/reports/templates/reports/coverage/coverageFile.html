@@ -16,7 +16,7 @@
 {% endcomment %}
 
 {% for line in linedata %}
-    <span>
-        <span class="COVStatic">{% for l in line %}{% if not l.static %}</span>{% endif %}<span class="{{ l.class }}"{% if l.color %} style="background-color: {{ l.color }};"{% endif %}{% if l.data %}{% for d in l.data %} data-{{ d.0 }}="{{ d.1 }}"{% endfor %}{% endif %}>{{ l.content|safe }}</span>{% endfor %}
+    <span{% if line.lineclass %} class="{{ line.lineclass }}"{% endif %}>
+        <span class="COVStatic">{% for l in line.linedata %}{% if not l.static %}</span>{% endif %}<span class="{{ l.class }}"{% if l.color %} style="background-color: {{ l.color }};"{% endif %}{% if l.data %}{% for d in l.data %} data-{{ d.0 }}="{{ d.1 }}"{% endfor %}{% endif %}>{{ l.content|safe }}</span>{% endfor %}
     </span>
 {% endfor %}
