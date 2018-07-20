@@ -449,7 +449,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                       'unknown',
                                       {
                                           'id': self.id + '/unknown',
-                                          'parent id': self.parent_id,
+                                          'parent id': self.id,
                                           'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
