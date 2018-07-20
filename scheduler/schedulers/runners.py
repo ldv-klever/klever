@@ -493,17 +493,17 @@ class Speculative(Runner):
         if status:
             # Add log and asserts
             jd = self._track_job(identifier)
-            assert sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0
-            self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
-                              format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
-            for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics', None) is not None):
-                self.logger.info(
-                    "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
-                    "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
-                    "CPU time consumption deviation: {}s".
-                    format(att, attd["statistics"].get("number", 0), attd["statistics"].get("mean mem", 0),
-                           attd["statistics"].get("memdev", 0), int(attd["statistics"].get("mean time", 0) / 1000),
-                           int(attd["statistics"].get("timedev", 0)) / 1000))
+            if sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0:
+                self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
+                                  format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
+                for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics', None) is not None):
+                    self.logger.info(
+                        "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
+                        "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
+                        "CPU time consumption deviation: {}s".
+                        format(att, attd["statistics"].get("number", 0), attd["statistics"].get("mean mem", 0),
+                               attd["statistics"].get("memdev", 0), int(attd["statistics"].get("mean time", 0) / 1000),
+                               int(attd["statistics"].get("timedev", 0)) / 1000))
 
             self.del_job(identifier)
         return status
