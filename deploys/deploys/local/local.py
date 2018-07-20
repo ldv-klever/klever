@@ -231,6 +231,10 @@ class KleverDevelopment(Klever):
 
 
 class KleverProduction(Klever):
+    # This allows to install development version of schedulers within deploys.local.local.KleverTesting without
+    # redefining methods.
+    _IS_DEV = False
+
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
@@ -241,12 +245,12 @@ class KleverProduction(Klever):
     def install(self):
         self._pre_install()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(self._IS_DEV)
 
     def update(self):
         self._pre_update()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(self._IS_DEV)
 
     def uninstall(self):
         self._pre_uninstall(('nginx', 'klever-bridge'))
@@ -263,6 +267,8 @@ class KleverProduction(Klever):
 
 
 class KleverTesting(KleverProduction):
+    _IS_DEV = True
+
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
