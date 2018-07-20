@@ -51,7 +51,8 @@ def configure_native_scheduler_task_worker(logger, development, deploy_dir, prev
 
 
 def configure_controller_and_schedulers(logger, development, deploy_dir, prev_deploy_info):
-    logger.info('(Re)configure Klever Controller and Klever schedulers')
+    logger.info('(Re)configure {0} Klever Controller and Klever schedulers'
+                .format('development' if development else 'production'))
 
     services = ['klever-controller', 'klever-native-scheduler']
     if need_verifiercloud_scheduler(prev_deploy_info):
