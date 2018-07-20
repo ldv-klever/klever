@@ -114,9 +114,10 @@ def common_initialization(tool, conf=None):
         conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
 
     clean_dir = False
-    if not conf["common"].get("keep working directory", False):
+    if os.path.isdir(conf["common"]['working directory']) and not conf["common"].get("keep working directory", False):
         clean_dir = True
         shutil.rmtree(conf["common"]['working directory'], True)
+    elif not os.path.isdir(conf["common"]['working directory']):
         os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
     os.chdir(conf["common"]['working directory'])
 
