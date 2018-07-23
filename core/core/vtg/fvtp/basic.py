@@ -188,6 +188,10 @@ class Basic:
             self.logger.info("Choose resource limitations provided by VTG instead of QoS")
         limitations = self.conf.get('override resource limits',
                                     utils.read_max_resource_limitations(self.logger, self.conf))
+
+        if 'memory size' not in limitations:
+            raise KeyError("User should provide memory limitation for verification tasks")
+
         return limitations
 
     def _cleanup(self):
