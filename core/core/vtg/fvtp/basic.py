@@ -72,9 +72,9 @@ class Basic:
         benchmark = ElementTree.Element("benchmark", {
             "tool": self.conf['verifier']['name'].lower()
         })
-        if resource_limits.get("CPU time", False):
+        if resource_limits.get("CPU time"):
             benchmark.set('hardtimelimit', str(int(resource_limits["CPU time"])))
-            if resource_limits.get("soft CPU time", False):
+            if resource_limits.get("soft CPU time"):
                 benchmark.set('timelimit',
                               str(int(int(resource_limits["CPU time"]) * float(resource_limits["soft CPU time"]))))
 

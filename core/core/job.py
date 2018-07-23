@@ -62,15 +62,6 @@ def start_jobs(core_obj, locks, vals):
         common_components_conf.update(common_components_conf['Common'])
         del (common_components_conf['Common'])
 
-    if 'Sub-jobs' not in common_components_conf:
-        try:
-            rlf = core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'resource limit.json')
-            with open(rlf, encoding='utf8') as fp:
-                resource_limit = json.load(fp)
-                common_components_conf.update(resource_limit)
-        except FileNotFoundError:
-            core_obj.logger.warning("Desirable time for verification has not been set")
-
     subcomponents = []
     try:
         queues_to_terminate = []

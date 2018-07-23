@@ -394,7 +394,7 @@ class RP(core.components.Component):
                                 self.__exception = e
                         else:
                             self.__exception = e
-		# Do not report unsafe if processing of all witnesses failed.
+                # Do not report unsafe if processing of all witnesses failed.
                 if error_trace_files:
                     self.report_unsafe(sources, error_trace_files, [])
             if re.search('false', decision_results['status']) and \

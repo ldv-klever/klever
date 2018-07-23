@@ -633,14 +633,12 @@ class VTGWL(core.components.Component):
         if element[3]:
             identifier = "{}/{}/{}/VTGW".format(element[0]['id'], element[1]['id'], element[3])
             workdir = os.path.join(element[0]['id'], element[1]['id'], str(element[3]))
-            attrs.append(
-                {
-                    "name": "Rescheduling attempt",
-                    "value": str(element[3]),
-                    "compare": False,
-                    "associate": False
-                }
-            )
+            attrs.append({
+                "name": "Rescheduling attempt",
+                "value": str(element[3]),
+                "compare": False,
+                "associate": False
+            })
         else:
             identifier = "{}/{}/VTGW".format(element[0]['id'], element[1]['id'])
             workdir = os.path.join(element[0]['id'], element[1]['id'])
@@ -731,8 +729,7 @@ class VTGW(core.components.Component):
             if self.rerun:
                 self.logger.info("Instead of running the {!r} plugin for the {!r} rule in the same dir obtain "
                                  "results for the original run".format(plugin_desc['name'], self.rule_specification))
-                cur_abstract_task_desc_file = \
-                    os.path.join(os.pardir, out_abstract_task_desc_file)
+                cur_abstract_task_desc_file = os.path.join(os.pardir, out_abstract_task_desc_file)
                 os.symlink(os.path.relpath(cur_abstract_task_desc_file, os.path.curdir),
                            out_abstract_task_desc_file)
 
@@ -817,12 +814,11 @@ class VTGW(core.components.Component):
                     final_task_data = json.load(fp)
 
                 # Plan for checking status
-                self.mqs['pending tasks'].put(
-                    [
-                        [str(task_id), final_task_data["result processing"], self.verification_object,
-                         self.rule_specification, final_task_data['verifier'], shadow_src_dir],
-                        self.rerun
-                    ])
+                self.mqs['pending tasks'].put([
+                    [str(task_id), final_task_data["result processing"], self.verification_object,
+                     self.rule_specification, final_task_data['verifier'], shadow_src_dir],
+                    self.rerun
+                ])
                 self.logger.info("Submitted successfully verification task {} for solution".
                                  format(os.path.join(plugin_work_dir, 'task.json')))
             else:

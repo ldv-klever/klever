@@ -268,7 +268,7 @@ class Runner:
         :param task_items: Verification tasks description to cancel them if necessary.
         :return: Bool if status of the job has changed.
         """
-        if item.get("future", None) and item["future"].done():
+        if item.get("future") and item["future"].done():
             try:
                 item["status"] = self._process_job_result(identifier, item["future"])
                 self.logger.debug("Job {} new status is {!r}".format(identifier, item["status"]))
@@ -308,7 +308,7 @@ class Runner:
         :param task_items: Verification tasks description to cancel them if necessary.
         """
         try:
-            if item.get("future", False) and not item["future"].cancel():
+            if item.get("future") and not item["future"].cancel():
                 item["status"] = self._cancel_job(identifier, item["future"])
                 assert item["status"] in ["FINISHED", "ERROR"]
             else:
@@ -346,7 +346,7 @@ class Runner:
         :param item: Task description.
         """
         try:
-            if item.get("future", False) and not item["future"].cancel():
+            if item.get("future") and not item["future"].cancel():
                 item["status"] = self._cancel_task(identifier, item["future"])
                 self.logger.debug("Cancelled task {} finished with status: {!r}".format(identifier, item["status"]))
                 assert item["status"] in ["FINISHED", "ERROR"]
@@ -496,7 +496,7 @@ class Speculative(Runner):
             if sum([len([jd["limits"][att]["tasks"] for att in jd["limits"]])]) > 0:
                 self.logger.debug("Job {} max task number was given as {} and solved successfully {}".
                                   format(identifier, jd.get("total tasks", 0), jd.get("solved", 0)))
-                for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics', None) is not None):
+                for att, attd in ((a, d) for a, d in jd["limits"].items() if d.get('statistics') is not None):
                     self.logger.info(
                         "Task category {!r} statistics:\n\tsolved: {}\n\tmean memory consumption: {}B\n\t"
                         "memory consumption deviation: {}B\n\tmean CPU time consumption: {}s\n\t"
@@ -644,8 +644,8 @@ class Speculative(Runner):
         # Check do we have some statistics already
         speculative = False
         if limits.get('memory size', 0) > 0 and \
-                ((limits.get('CPU time', None) and limits['CPU time'] <= qos['CPU time']) or
-                 not limits.get('CPU time', None)) and not self._is_there(job_identifier, attribute, identifier) and \
+                ((limits.get('CPU time') and limits['CPU time'] <= qos['CPU time']) or
+                 not limits.get('CPU time')) and not self._is_there(job_identifier, attribute, identifier) and \
                 job.get("total tasks", 0) and job["solved"] > (0.1 * job.get("total tasks")) and \
                 job["limits"][attribute]["statistics"] and job["limits"][attribute]["statistics"]["number"] > 5:
             statistics = job["limits"][attribute]["statistics"]

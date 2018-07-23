@@ -264,10 +264,8 @@ def prepare_task_arguments(conf):
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
         numerical, string = memory_units_converter(conf["resource limits"]['memory size'], 'MB')
-        # We neednot use precision more than one MB but the function can return float which can confuse BenchExec
-        memorylimit = '{}MB'.format(int(numerical))
-
-        args.extend(['--memorylimit', memorylimit])
+        # We do not need using precision more than one MB but the function can return float which can confuse BenchExec
+        args.extend(['--memorylimit', '{}MB'.format(int(numerical))])
 
     if not conf["resource limits"].get('CPU time', 0) and not conf["resource limits"].get('soft CPU time', 0):
         # Disable explicitly time limitations

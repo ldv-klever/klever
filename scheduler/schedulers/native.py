@@ -330,7 +330,7 @@ class Native(runners.Speculative):
                     format(os.path.abspath(work_dir), current_space,
                            configuration["resource limits"]['disk memory size']))
 
-        if configuration["resource limits"].get("CPU time", None):
+        if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
         else:
@@ -345,7 +345,7 @@ class Native(runners.Speculative):
                 client_conf[name] = configuration[name]
 
             # Speculative flag
-            if configuration.get('speculative', False):
+            if configuration.get('speculative'):
                 client_conf["speculative"] = True
 
             # Do verification versions check
