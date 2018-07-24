@@ -300,7 +300,7 @@ def check_components(logger, components):
     if isinstance(components, list):
         for mc in (m for m in components if not m.is_alive()):
             # Here we expect an exception
-            logger.info("Some of the subcomponents running in the background failed")
+            logger.info("Some of the subcomponents running in the background exited: {!r}".format(mc.id))
             mc.join()
 
 

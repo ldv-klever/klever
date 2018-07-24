@@ -31,7 +31,7 @@ from core.vrp.et import import_error_trace
 import core.components
 import core.session
 import core.utils
-from core.vrp.coverage_parser import LCOV
+from core.coverage import LCOV
 
 
 @core.components.before_callback
@@ -476,7 +476,7 @@ class RP(core.components.Component):
         os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
-                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
+                                               "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
         self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), shadow_src_dir,
                                           self.conf['main working directory'], opts.get('coverage', None),
