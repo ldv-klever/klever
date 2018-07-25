@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Processing requests' %}{% endblock %}
+
+{% block body_block %}
+    {% if data|length %}
+        <table class="ui compact selectable yellow table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Function name' %}</th>
+                    <th>{% trans 'Enter' %}</th>
+                    <th>{% trans 'Waiting lock' %}</th>
+                    <th>{% trans 'Try lock' %}</th>
+                    <th>{% trans 'Execution' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.enter|date:'d.m.y H:i:s.u' }}</td>
+                    <td>{% if row.wait1 %}{{ row.wait1|floatformat:1 }} {% trans 's' %}{% else %}-{% endif %}</td>
+                    <td>{% if row.wait2 %}{{ row.wait2|floatformat:1 }} {% trans 's' %}{% else %}-{% endif %}</td>
+                    <td>{% if row.exec %}{{ row.exec|date:'d.m.y H:i:s.u' }}{% else %}-{% endif %}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if locked.count %}
+            <h4>{% trans 'Locked tables' %}:</h4>
+            <div class="ui tiny bulleted list">
+                {% for l in locked %}
+                    <div class="item">{{ l.name }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        <h3>{% trans 'Nothing is in progress' %}</h3>
+    {% endif %}
+{% endblock %}
+
+

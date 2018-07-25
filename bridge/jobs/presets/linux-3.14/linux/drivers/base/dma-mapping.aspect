@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,32 +17,30 @@
 
 before: file("$this")
 {
-extern void ldv_dma_map_page(void);
-extern void ldv_dma_map_single(void);
-extern void ldv_dma_map_single_attrs(void);
-extern void ldv_dma_mapping_error(void);
+#include <linux/types.h>
+
+extern dma_addr_t ldv_dma_map_page(void);
+extern dma_addr_t ldv_dma_map_single(void);
+extern dma_addr_t ldv_dma_map_single_attrs(void);
+extern int ldv_dma_mapping_error(void);
 }
 
 around: call(static inline dma_addr_t dma_map_page(struct device *dev, struct page *page, size_t offset, size_t size, enum dma_data_direction dir))
 {
-	ldv_dma_map_page();
-	return ldv_undef_int();
+	return ldv_dma_map_page();
 }
 
 around: call(dma_addr_t dma_map_single(struct device *dev, void *cpu_addr, size_t size, enum dma_data_direction dir))
 {
-	ldv_dma_map_single();
-	return ldv_undef_int();
+	return ldv_dma_map_single();
 }
 
 around: execution(static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr))
 {
-	ldv_dma_mapping_error();
-	return ldv_undef_int();
+	return ldv_dma_mapping_error();
 }
 
 around: execution(static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr, size_t size, enum dma_data_direction dir, struct dma_attrs *attrs))
 {
-	ldv_dma_map_single_attrs();
-	return ldv_undef_int();
+	return ldv_dma_map_single_attrs();
 }

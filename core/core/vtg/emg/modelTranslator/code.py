@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import os
 import re
 
@@ -340,10 +341,29 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        body += given_body
+        if get_conf_property(self._conf, "initialize rules"):
+            body += [
+                '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
+                '"comment": "Initialize rule models."} */',
+                'ldv_initialize();',
+                '/* LDV {"action": "INIT", "type": "CALL_END"} */'
+            ]
+
+        body += ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_BEGIN", '
+                 '"comment": "Begin Environment model scenarios."} */'] + given_body + \
+                ['/* LDV {"action": "SCENARIOS", "type": "CONDITION_END"} */']
+
+        if get_conf_property(self._conf, "check final state"):
+            body += [
+                '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
+                '"comment": "Check rule model state at the exit if required."} */',
+                'ldv_check_final_state();',
+                '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
+            ]
+
         body.append('return 0;')
         body.append('/* LDV {' + '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END",'
-                    ' "function": "{0}"'.format(self.entry_name) + '} */')
+                                 ' "function": "{0}"'.format(self.entry_name) + '} */')
 
         ep.body = body
         self.add_function_definition(ep)

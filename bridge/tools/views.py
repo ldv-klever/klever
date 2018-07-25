@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -178,6 +178,15 @@ def call_statistic(request):
         else:
             data = ProfileData().get_statistic_around(float(request.POST['date']))
     return render(request, "tools/CallStatistic.html", {'data': data})
+
+
+def processing_list(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    return render(request, "tools/ProcessingRequests.html", {
+        'data': ProfileData().processing(), 'locked': LockTable.objects.filter(locked=True)
+    })
 
 
 def clear_call_logs(request):

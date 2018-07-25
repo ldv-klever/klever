@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,28 +15,28 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path
 from service import views
 
 
 urlpatterns = [
     # TESTS
-    url(r'^test/$', views.test, name='test'),
-    url(r'^ajax/fill_session/$', views.fill_session),
-    url(r'^ajax/process_job/$', views.process_job),
+    path('test/', views.test, name='test'),
+    path('ajax/fill_session/', views.fill_session),
+    path('ajax/process_job/', views.process_job),
 
-    url(r'^set_schedulers_status/$', views.set_schedulers_status),
-    url(r'^get_jobs_and_tasks/$', views.get_jobs_and_tasks),
-    url(r'^schedule_task/$', views.schedule_task),
-    url(r'^update_tools/$', views.update_tools),
-    url(r'^get_tasks_statuses/$', views.get_tasks_statuses),
-    url(r'^remove_task/$', views.remove_task),
-    url(r'^cancel_task/$', views.cancel_task),
-    url(r'^upload_solution/$', views.upload_solution),
-    url(r'^download_solution/$', views.download_solution),
-    url(r'^download_task/$', views.download_task),
-    url(r'^update_nodes/$', views.update_nodes),
-    url(r'^update_progress/$', views.update_progress),
-    url(r'^schedulers/$', views.schedulers_info, name='schedulers'),
-    url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user)
+    path('set_schedulers_status/', views.set_schedulers_status),
+    path('get_jobs_and_tasks/', views.get_jobs_and_tasks),
+    path('schedule_task/', views.schedule_task),
+    path('update_tools/', views.update_tools),
+    path('get_tasks_statuses/', views.get_tasks_statuses),
+    path('remove_task/', views.remove_task),
+    path('cancel_task/', views.cancel_task),
+    path('upload_solution/', views.upload_solution),
+    path('download_solution/', views.download_solution),
+    path('download_task/', views.download_task),
+    path('update_nodes/', views.update_nodes),
+    path('update_progress/', views.update_progress),
+    path('schedulers/', views.schedulers_info, name='schedulers'),
+    path('ajax/add_scheduler_user/', views.add_scheduler_user)
 ]

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import concurrent.futures
 import json
 import logging
@@ -115,12 +116,13 @@ class Scheduler(schedulers.SchedulerExchange):
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
                 data = utils.extract_cpu_cores_info()
-                # Evaluate as a number of virtual cores
-                max_processes = int(max_processes * sum((len(data[a]) for a in data)))
+                # Evaluate as a number of virtual cores. Allow 2 processes at least that hits when there is the only
+                # CPU core.
+                max_processes = max(2, int(max_processes * sum((len(data[a]) for a in data))))
         else:
             max_processes = self.conf["scheduler"]["processes"]
             if isinstance(max_processes, float):
-                max_processes = int(max_processes * self._cpu_cores)
+                max_processes = max(2, int(max_processes * self._cpu_cores))
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
@@ -219,27 +221,29 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         return self._check_solution(identifier, future, mode='job')
 
-    def cancel_job(self, identifier, future):
+    def cancel_job(self, identifier, future, after_term=False):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='job')
+        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
 
-    def cancel_task(self, identifier, future):
+    def cancel_task(self, identifier, future, after_term=False):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        return self._cancel_solution(identifier, future, mode='task')
+        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
 
     def terminate(self):
         """
@@ -248,7 +252,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Submit an empty configuration
         logging.debug("Submit an empty configuration list before shutting down")
         configurations = []
-        self.server.submit_nodes(configurations, looping=False)
+        self.server.submit_nodes(configurations, looping=True)
 
         # Terminate
         super(Scheduler, self).terminate()
@@ -403,7 +407,7 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         return self._postprocess_solution(identifier, future, mode)
 
-    def _cancel_solution(self, identifier, future, mode='task'):
+    def _cancel_solution(self, identifier, future, mode='task', after_term=False):
         """
         Terminate process solving a process or a task, mark resources as released, clean working directory.
 
@@ -420,7 +424,10 @@ class Scheduler(schedulers.SchedulerExchange):
             process = self._job_processes[identifier] if identifier in self._job_processes else None
         if process and process.pid:
             try:
-                os.kill(process.pid, signal.SIGTERM)
+                if not after_term:
+                    # If the user really sent SIGINT then all children got it anyway and we must just wait.
+                    # If the user pressed a button in Bridge then we have to trigger signal manually.
+                    os.kill(process.pid, signal.SIGTERM)
                 logging.debug("Wait till {} {} become terminated".format(mode, identifier))
                 process.join()
             except Exception as err:
@@ -437,10 +444,12 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         if mode == 'task':
             subdir = 'tasks'
-            del self._task_processes[identifier]
+            if identifier in self._task_processes:
+                del self._task_processes[identifier]
         else:
             subdir = 'jobs'
-            del self._job_processes[identifier]
+            if identifier in self._job_processes:
+                del self._job_processes[identifier]
         # Mark resources as released
         del self._reserved[subdir][identifier]
 
@@ -448,7 +457,8 @@ class Scheduler(schedulers.SchedulerExchange):
         work_dir = os.path.join(self.work_dir, subdir, identifier)
 
         # Release resources
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
+                os.path.isdir(work_dir):
             reserved_space = utils.dir_size(work_dir)
         else:
             reserved_space = 0
@@ -549,7 +559,6 @@ class Scheduler(schedulers.SchedulerExchange):
         # Kill handler
         mypid = os.getpid()
         with open('info.log', 'a') as lf:
-            print('Executor {!r}: establish signal handlers'.format(mypid), file=lf)
             print('Executor {!r}: execute: {!r}'.format(mypid, ' '.join(args)), file=lf)
         ec = utils.execute(args, timeout=timeout)
         with open('info.log', 'a') as lf:

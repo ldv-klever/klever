@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 import os
 import re
 import json
-import time
 import hashlib
 import zipfile
 from io import StringIO
@@ -30,8 +29,7 @@ from django.template import loader
 
 from bridge.vars import COVERAGE_FILE
 
-from reports.models import ReportComponent, CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics,\
-    CoverageArchive
+from reports.models import CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics, CoverageArchive
 
 from reports.utils import get_parents
 from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
@@ -54,15 +52,6 @@ COLOR = {
 TABLE_STAT_COLOR = ['#f18fa6', '#f1c0b2', '#f9e19b', '#e4f495', '#acf1a8']
 
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
-
-
-def exec_time(func):
-    def inner(*args, **kwargs):
-        t1 = time.time()
-        res = func(*args, **kwargs)
-        print("CALL {}(): {:5.5f}".format(func.__name__, time.time() - t1))
-        return res
-    return inner
 
 
 def coverage_color(curr_cov, max_cov, delta=0):
@@ -153,13 +142,12 @@ def json_to_html(data):
 
 
 class GetCoverage:
-    def __init__(self, report_id, cov_arch_id, with_data):
+    def __init__(self, report, cov_arch_id, with_data):
+        self.report = report
         if cov_arch_id is None:
-            self.report = ReportComponent.objects.get(id=report_id)
             self.cov_arch = self.report.coverages.order_by('identifier').first()
         else:
-            self.cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
-            self.report = self.cov_arch.report
+            self.cov_arch = CoverageArchive.objects.get(id=cov_arch_id, report=report)
         self.coverage_archives = self.report.coverages.order_by('identifier').values_list('id', 'identifier')
         self.job = self.report.root.job
 
@@ -167,17 +155,14 @@ class GetCoverage:
         self._statistic = CoverageStatistics(self.cov_arch)
         self.statistic_table = self._statistic.table_data
         if self._statistic.first_file:
-            self.first_file = GetCoverageSrcHTML(self.cov_arch.id, self._statistic.first_file, with_data)
+            self.first_file = GetCoverageSrcHTML(self.cov_arch, self._statistic.first_file, with_data)
         if with_data:
             self.data_statistic = DataStatistic(self.cov_arch.id).table_html
 
-    def __is_not_used(self):
-        pass
-
 
 class GetCoverageSrcHTML:
-    def __init__(self, cov_arch_id, filename, with_data):
-        self._cov_arch = CoverageArchive.objects.get(id=cov_arch_id)
+    def __init__(self, cov_arch, filename, with_data):
+        self._cov_arch = cov_arch
         self.filename = os.path.normpath(filename).replace('\\', '/')
         try:
             self._covfile = CoverageFile.objects.get(archive=self._cov_arch, name=self.filename)

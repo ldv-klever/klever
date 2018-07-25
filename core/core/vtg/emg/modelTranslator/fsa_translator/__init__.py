@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import abc
 from operator import attrgetter
 
@@ -335,7 +336,6 @@ class FSATranslator:
                         body.extend(['\t\t' + stm for stm in blocks[index]])
                         body.append('\t\tbreak;')
                         body.append('\t};')
-                    body.append('\tdefault: ldv_assume(0);')
                     body.append('};')
 
                 if len(function_parameters) > 0:

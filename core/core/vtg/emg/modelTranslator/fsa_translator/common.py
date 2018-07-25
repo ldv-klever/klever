@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import json
 
 from core.vtg.emg.common import get_conf_property
@@ -43,7 +44,7 @@ def model_comment(comment_type, text, other=None):
     return "/* LDV {} */".format(string)
 
 
-def action_model_comment(action, text, begin=None, callback=False):
+def action_model_comment(action, text, begin=None):
     """
     Model comment for identifying an action.
 
@@ -54,7 +55,10 @@ def action_model_comment(action, text, begin=None, callback=False):
     :return: Model comment string.
     """
     if action:
-        type_comment = type(action).__name__.upper()
+        if action.trace_relevant:
+            type_comment = 'CALL'
+        else:
+            type_comment = type(action).__name__.upper()
         if begin is True:
             type_comment += '_BEGIN'
         elif begin is False:
@@ -66,7 +70,7 @@ def action_model_comment(action, text, begin=None, callback=False):
         name_comment = None
 
     data = {'action': name_comment}
-    if callback:
+    if action and action.trace_relevant and begin is True:
         data['callback'] = True
     return model_comment(type_comment, text, data)
 
@@ -81,11 +85,9 @@ def control_function_comment_begin(function_name, comment, identifier=None):
     :return: Model comment string.
     """
     data = {'function': function_name}
-    if identifier:
-        data['thread'] = identifier
-    return model_comment('CONTROL_FUNCTION_BEGIN',
-                         comment,
-                         data)
+    if isinstance(identifier, int):
+        data['thread'] = identifier + 1
+    return model_comment('CONTROL_FUNCTION_BEGIN', comment, data)
 
 
 def control_function_comment_end(function_name, name):

@@ -1,3 +1,20 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
 {% load tz %}
 {% load i18n %}
 
@@ -92,11 +109,11 @@
 
 {% if data.paths|length %}
     <h5>{% trans "Files' paths were changed" %}</h5>
-    {% for f1_id, f2_id, fp1, fp2 in data.paths %}
+    {% for hashsum1, hashsum2, fp1, fp2 in data.paths %}
         <p>
-            <i class="ui red minus icon"></i> {% if f1_id %}<a class="version-file" href="{% url 'jobs:download_file' f1_id %}" data-file-id="{{ f1_id }}">{{ fp1 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+            <i class="ui red minus icon"></i> {% if hashsum1 %}<a class="version-file" href="{% url 'jobs:download_file' hashsum1 %}" data-hashsum="{{ hashsum1 }}">{{ fp1 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
             <br>
-            <i class="ui green plus icon"></i> {% if f2_id %}<a class="version-file" href="{% url 'jobs:download_file' f2_id %}" data-file-id="{{ f2_id }}">{{ fp2 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
+            <i class="ui green plus icon"></i> {% if hashsum2 %}<a class="version-file" href="{% url 'jobs:download_file' hashsum2 %}" data-hashsum="{{ hashsum2 }}">{{ fp2 }}</a>{% else %}<i class="ui ban red icon"></i>{% endif %}
         </p>
     {% endfor %}
     <div class="ui divider"></div>
@@ -105,10 +122,10 @@
 {% if data.files|length %}
     <h5>{% trans "Files were changed" %}</h5>
     <ul>
-        {% for has_diff, fp, f1_id, f2_id in data.files %}
+        {% for has_diff, fp, hashsum1, hashsum2 in data.files %}
             <li>
-                <a class="version-file" href="{% url 'jobs:download_file' f1_id %}" data-file-id="{{ f1_id }}">{{ fp }}</a> <i class="ui long arrow right icon"></i> <a class="version-file" href="{% url 'jobs:download_file' f2_id %}" data-file-id="{{ f2_id }}">{{ fp }}</a>
-                {% if has_diff %}(<a class="version-diff-files" href="#" data-file1-id="{{ f1_id }}" data-file2-id="{{ f2_id }}">{% trans 'diff' %}</a>){% endif %}
+                <a class="version-file" href="{% url 'jobs:download_file' hashsum1 %}" data-hashsum="{{ hashsum1 }}">{{ fp }}</a> <i class="ui long arrow right icon"></i> <a class="version-file" href="{% url 'jobs:download_file' hashsum2 %}" data-hashsum="{{ hashsum2 }}">{{ fp }}</a>
+                {% if has_diff %}(<a class="version-diff-files" href="#" data-hashsum1="{{ hashsum1 }}" data-hashsum2="{{ hashsum2 }}">{% trans 'diff' %}</a>){% endif %}
             </li>
         {% endfor %}
     </ul>

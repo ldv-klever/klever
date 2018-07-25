@@ -1,0 +1,51 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "ac4de081312a~/drivers/leds/leds-lp5521.ko/linux:kernel:locking:mutex"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.12.7"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "manual"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/leds/leds-lp5521.ko4a892a357763"
+    }
+  ],
+  "description": "One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers",
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [
+    "KernelModel"
+  ],
+  "verdict": "2"
+}

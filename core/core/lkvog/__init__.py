@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -117,8 +117,13 @@ class LKVOG(core.components.Component):
 
         self.linux_kernel_verification_objs_gen['attrs'] = self.mqs['Linux kernel attrs'].get()
         self.mqs['Linux kernel attrs'].close()
-        self.linux_kernel_verification_objs_gen['attrs'].extend(
-            [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
+        self.linux_kernel_verification_objs_gen['attrs'].extend([{
+            'name': 'LKVOG strategy',
+            'value': [{
+                'name': 'name',
+                'value': self.conf['LKVOG strategy']['name']
+            }]
+        }])
 
     def get_modules_from_deps(self, subsystem, deps):
         # Extract all modules in subsystem from dependencies.
@@ -283,6 +288,11 @@ class LKVOG(core.components.Component):
                     # Remove clusters that will be checked.
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
+                elif self.module.startswith('ext-modules'):
+                    # External module
+                    self.all_modules.add(self.module)
+                    self.checked_modules.add(strategy_utils.Module(self.module))
+                    module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module)]))
                 else:
                     # This module hasn't specified. But it may be in subsystem
                     for subsystem in subsystems:

@@ -1,40 +1,56 @@
 {
+  "Class": "Verification of Linux kernel modules",
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
       "configuration": "allmodconfig",
       "architecture": "x86_64",
-      "modules": ["all"]
+      "external modules": "tests/"
     },
-    "LKVOG strategy": {"name": "separate modules"},
+    "LKVOG strategy": {
+      "name": "separate modules"
+    },
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
-    "rule specifications": ["test"],
+    "rule specifications": [
+      "test"
+    ],
     "ideal verdicts": [
-      {
-        "ideal verdict": "safe",
-        "verification object": "ext-modules/safe.ko"
-      },
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/dd/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/spi/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/err/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/ldv/common/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mm/gfp/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mm/slab/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/common/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/gcc/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/map/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/memory/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/nondet/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/counter/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/flag/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/nonnegative-counter/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/thread/safe.ko"},
       {"ideal verdict": "unsafe"}
     ]
   },
   "Sub-jobs": [
-    {"Linux kernel": {"external modules": "tests/linux/drivers/base/dd"}},
-    {"Linux kernel": {"external modules": "tests/linux/drivers/spi"}},
-    {"Linux kernel": {"external modules": "tests/linux/err"}},
-    {"Linux kernel": {"external modules": "tests/linux/ldv/common"}},
-    {"Linux kernel": {"external modules": "tests/linux/mm/gfp"}},
-    {"Linux kernel": {"external modules": "tests/linux/mm/slab"}},
-    {"Linux kernel": {"external modules": "tests/verifier/common"}},
-    {"Linux kernel": {"external modules": "tests/verifier/gcc"}},
-    {"Linux kernel": {"external modules": "tests/verifier/map"}},
-    {"Linux kernel": {"external modules": "tests/verifier/memory"}},
-    {"Linux kernel": {"external modules": "tests/verifier/nondet"}},
-    {"Linux kernel": {"external modules": "tests/verifier/set/counter"}},
-    {"Linux kernel": {"external modules": "tests/verifier/set/flag"}},
-    {"Linux kernel": {"external modules": "tests/verifier/set/nonnegative-counter"}},
-    {"Linux kernel": {"external modules": "tests/verifier/thread"}}
+    {"Linux kernel": {"modules": ["linux/drivers/base/dd"]}},
+    {"Linux kernel": {"modules": ["linux/drivers/spi"]}},
+    {"Linux kernel": {"modules": ["linux/err"]}},
+    {"Linux kernel": {"modules": ["linux/ldv/common"]}},
+    {"Linux kernel": {"modules": ["linux/mm/gfp"]}},
+    {"Linux kernel": {"modules": ["linux/mm/slab"]}},
+    {"Linux kernel": {"modules": ["verifier/common"]}},
+    {"Linux kernel": {"modules": ["verifier/gcc"]}},
+    {"Linux kernel": {"modules": ["verifier/map"]}},
+    {"Linux kernel": {"modules": ["verifier/memory"]}},
+    {"Linux kernel": {"modules": ["verifier/nondet"]}},
+    {"Linux kernel": {"modules": ["verifier/set/counter"]}},
+    {"Linux kernel": {"modules": ["verifier/set/flag"]}},
+    {"Linux kernel": {"modules": ["verifier/set/nonnegative-counter"]}},
+    {"Linux kernel": {"modules": ["verifier/thread"]}}
   ]
 }

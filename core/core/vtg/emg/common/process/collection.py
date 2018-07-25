@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import json
 
 from core.vtg.emg.common.c.types import import_declaration
@@ -51,6 +52,7 @@ class ProcessCollection:
         'peers': None,
         'pre-call': 'pre_call',
         'post-call': 'post_call',
+        'entry point': 'trace_relevant'
     }
 
     def __init__(self, logger, conf):
@@ -171,6 +173,8 @@ class ProcessCollection:
                 d['comment'] = action.comment
             if action.condition:
                 d['condition'] = action.condition
+            if action.trace_relevant:
+                d['entry point'] = action.trace_relevant
 
             if isinstance(action, Subprocess):
                 d['process'] = action.process

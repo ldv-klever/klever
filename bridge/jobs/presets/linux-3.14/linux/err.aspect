@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,13 @@ around: execution(static inline long IS_ERR(..))
 	return ldv_is_err($arg1);
 }
 
+around: execution(static inline bool IS_ERR(..))
+{
+	long ret;
+	ret = ldv_is_err($arg1);
+	return (bool)ret;
+}
+
 around: execution(static inline void *ERR_PTR(..))
 {
 	return ldv_err_ptr($arg1);
@@ -40,7 +47,9 @@ around: execution(static inline long IS_ERR_OR_NULL(..))
 	return ldv_is_err_or_null($arg1);
 }
 
-around: call(void panic(..))
+around: execution(static inline bool IS_ERR_OR_NULL(..))
 {
-    ldv_panic();
+	long ret;
+	ret = ldv_is_err_or_null($arg1);
+	return (bool)ret;
 }

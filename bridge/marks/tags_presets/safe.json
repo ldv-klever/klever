@@ -1,94 +1,19 @@
 [
   {
-    "name": "safe:tag:1"
+    "description": "Active environment model contains inaccuracies",
+    "name": "EMG"
   },
   {
-    "name": "safe:tag:2",
-    "description": "Description of the tag:2<br><a href=\"http://google.com/\">Link</a> to the google",
-    "parent": "safe:tag:1"
+    "description": "Specification for EMG is incomplete",
+    "name": "EnvSpec",
+    "parent": "EMG"
   },
   {
-    "name": "safe:tag:3",
-    "parent": "safe:tag:1"
+    "description": "Kernel model is inaccurate or absent",
+    "name": "KernelModel"
   },
   {
-    "name": "safe:tag:4",
-    "parent": "safe:tag:3"
-  },
-  {
-    "name": "safe:tag:5",
-    "parent": "safe:tag:2"
-  },
-  {
-    "name": "safe:tag:6",
-    "parent": "safe:tag:3"
-  },
-  {
-    "name": "safe:tag:7",
-    "parent": "safe:tag:5"
-  },
-  {
-    "name": "safe:tag:8",
-    "parent": "safe:tag:5"
-  },
-  {
-    "name": "safe:tag:9",
-    "parent": "safe:tag:5"
-  },
-  {
-    "name": "safe:tag:10",
-    "parent": "safe:tag:9"
-  },
-  {
-    "name": "safe:tag:11",
-    "parent": "safe:tag:9"
-  },
-  {
-    "name": "safe:tag:12",
-    "parent": "safe:tag:2"
-  },
-  {
-    "name": "safe:tag:13",
-    "parent": "safe:tag:12"
-  },
-  {
-    "name": "safe:tag:14",
-    "parent": "safe:tag:12"
-  },
-  {
-    "name": "safe:tag:15",
-    "parent": "safe:tag:12"
-  },
-  {
-    "name": "safe:tag:16",
-    "parent": "safe:tag:14"
-  },
-  {
-    "name": "safe:tag:17",
-    "parent": "safe:tag:14"
-  },
-  {
-    "name": "safe:tag:18",
-    "parent": "safe:tag:23"
-  },
-  {
-    "name": "safe:tag:19",
-    "parent": "safe:tag:23"
-  },
-  {
-    "name": "safe:tag:20",
-    "parent": "safe:tag:18"
-  },
-  {
-    "name": "safe:tag:21",
-    "parent": "safe:tag:19"
-  },
-  {
-    "name": "safe:tag:22",
-    "parent": "safe:tag:19"
-  },
-  {
-    "name": "safe:tag:23",
-    "parent": "safe:tag:6"
+    "description": "The implementation of the Rule is inaccurate",
+    "name": "Rule"
   }
 ]

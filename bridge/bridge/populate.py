@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import override, ungettext_lazy
+from django.utils.translation import ungettext_lazy
 
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
-from bridge.utils import file_get_or_create, unique_id, BridgeException
+from bridge.vars import SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
+from bridge.utils import logger, file_get_or_create, unique_id, BridgeException
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
@@ -37,7 +37,7 @@ from jobs.models import Job, JobFile
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
 from service.models import Scheduler
 
-from jobs.utils import create_job
+from jobs.jobForm import JobForm
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace, CONVERSION
 from marks.tags import CreateTagsFromFile
@@ -58,6 +58,8 @@ def extend_user(user, role=USER_ROLES[1][0]):
 
 
 class Population:
+    jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
+
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {'marks': {}}
         self.user = user
@@ -78,14 +80,11 @@ class Population:
             except ObjectDoesNotExist:
                 extend_user(self.user)
         self.__populate_functions()
-        if len(Job.objects.filter(parent=None)) < len(JOB_CLASSES):
-            self.__populate_jobs()
-        self.__populate_default_jobs()
+        self.changes['jobs'] = self.__populate_jobs()
+        self.changes['tags'] = self.__populate_tags()
         self.__populate_unknown_marks()
-        self.__populate_tags()
         self.__populate_unsafe_marks()
-        if settings.ENABLE_SAFE_MARKS:
-            self.__populate_safe_marks()
+        self.__populate_safe_marks()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
@@ -171,95 +170,63 @@ class Population:
         user.save()
         return password
 
-    def __populate_jobs(self):
-        args = {
-            'author': self.manager,
-            'global_role': JOB_ROLES[1][0],
-        }
-        for i in range(len(JOB_CLASSES)):
+    def __check_job_name(self, name):
+        if not isinstance(name, str) or len(name) == 0:
+            raise BridgeException('Default job name is required')
+        job_name = name
+        cnt = 1
+        while True:
             try:
-                Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
+                Job.objects.get(name=job_name)
             except ObjectDoesNotExist:
-                with override(settings.DEFAULT_LANGUAGE):
-                    args['name'] = JOB_CLASSES[i][1]
-                    args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
-                    args['type'] = JOB_CLASSES[i][0]
-                    create_job(args)
-                    self.changes['jobs'] = True
+                break
+            cnt += 1
+            job_name = "%s #%s" % (name, cnt)
+        return job_name
 
-    def __populate_default_jobs(self):
-        default_jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
-        for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
+    def __populate_jobs(self):
+        created_jobs = []
+        for jobdir in [os.path.join(self.jobs_dir, x) for x in os.listdir(self.jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                raise BridgeException('There is default job without settings file (%s)' % jobdir)
+                raise BridgeException('Default job require settings file: {0}'.format(jobdir))
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
-                    raise BridgeException('The default job settings file is wrong json: %s' % e)
-            if any(x not in job_settings for x in ['name', 'class', 'description']):
-                raise BridgeException(
-                    'Default job settings must contain name, class and description. Job in "%s" has %s' % (
-                        jobdir, str(list(job_settings))
-                    )
-                )
-            if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                raise BridgeException(
-                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
-                )
-            if len(job_settings['name']) == 0:
-                raise BridgeException('Default job name is required')
+                    logger.exception(e)
+                    raise BridgeException('The default job settings file is wrong json. Job: {0}'.format(jobdir))
+            if 'description' not in job_settings:
+                raise BridgeException('Default job description is required. Job: {0}'.format(jobdir))
+
             try:
-                parent = Job.objects.get(parent=None, type=job_settings['class'])
-            except ObjectDoesNotExist:
-                raise BridgeException(
-                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
-                )
-            job = create_job({
-                'author': self.manager,
-                'global_role': '1',
-                'name': job_settings['name'],
-                'description': job_settings['description'],
-                'parent': parent,
-                'filedata': self.__get_filedata(jobdir)
+                job_name = self.__check_job_name(job_settings.get('name'))
+            except BridgeException as e:
+                raise BridgeException("{0}. Job: {1}".format(str(e), jobdir))
+
+            job = JobForm(self.manager, None, 'copy').save({
+                'identifier': job_settings.get('identifier'), 'name': job_name,
+                'description': job_settings['description'], 'global_role': JOB_ROLES[1][0],
+                'file_data': self.__get_files_tree(jobdir), 'safe marks': bool(job_settings.get('safe marks')),
             })
-            if 'default_jobs' not in self.changes:
-                self.changes['default_jobs'] = []
-            self.changes['default_jobs'].append([job.name, job.identifier])
+            created_jobs.append([job.name, job.identifier])
+        return created_jobs
 
-    def __get_filedata(self, d):
-        self.cnt = 0
-        self.dir_info = {d: None}
+    def __get_children(self, root):
+        children = []
+        for fname in os.listdir(root):
+            if fname == JOB_SETTINGS_FILE:
+                continue
+            path = os.path.join(root, fname)
+            if os.path.isfile(path):
+                with open(path, mode='rb') as fp:
+                    hashsum = file_get_or_create(fp, fname, JobFile, True)[1]
+                children.append({'type': 'file', 'text': fname, 'data': {'hashsum': hashsum}})
+            elif os.path.isdir(path):
+                children.append({'type': 'folder', 'text': fname, 'children': self.__get_children(path)})
+        return children
 
-        def get_fdata(directory):
-            fdata = []
-            for f in [os.path.join(directory, x) for x in os.listdir(directory)]:
-                parent_name, base_f = os.path.split(f)
-                if base_f == JOB_SETTINGS_FILE:
-                    continue
-                self.cnt += 1
-                if os.path.isfile(f):
-                    with open(f, mode='rb') as fp:
-                        check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
-                    fdata.append({
-                        'id': self.cnt,
-                        'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': check_sum,
-                        'title': base_f,
-                        'type': '1'
-                    })
-                elif os.path.isdir(f):
-                    self.dir_info[f] = self.cnt
-                    fdata.append({
-                        'id': self.cnt,
-                        'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': None,
-                        'title': base_f,
-                        'type': '0'
-                    })
-                    fdata += get_fdata(f)
-            return fdata
-        return get_fdata(d)
+    def __get_files_tree(self, root):
+        return json.dumps([{'type': 'root', 'text': 'Root', 'children': self.__get_children(root)}], ensure_ascii=False)
 
     def __populate_unknown_marks(self):
         res = UnknownUtils.PopulateMarks(self.manager)
@@ -279,17 +246,18 @@ class Population:
             self.changes['marks']['unsafe'] = (new_num, res.total)
 
     def __populate_tags(self):
-        self.changes['tags'] = []
+        created_tags = []
         num_of_new = self.__create_tags('unsafe')
         if num_of_new > 0:
-            self.changes['tags'].append(ungettext_lazy(
+            created_tags.append(ungettext_lazy(
                 '%(count)d new unsafe tag uploaded.', '%(count)d new unsafe tags uploaded.', num_of_new
             ) % {'count': num_of_new})
         num_of_new = self.__create_tags('safe')
         if num_of_new > 0:
-            self.changes['tags'].append(ungettext_lazy(
+            created_tags.append(ungettext_lazy(
                 '%(count)d new safe tag uploaded.', '%(count)d new safe tags uploaded.', num_of_new
             ) % {'count': num_of_new})
+        return created_tags
 
     def __create_tags(self, tag_type):
         self.__is_not_used()
@@ -308,66 +276,62 @@ class Population:
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
-# last_name and first_name are not required; username and password are required (for admin password is not required)z
+# last_name and first_name are not required; username and password are required. email can be set for admin.
 # Returns None if everything is OK, str (error text) in other cases.
-def populate_users(admin=None, manager=None, service=None):
+def populate_users(admin=None, manager=None, service=None, exist_ok=False):
+
+    def check_user_data(userdata):
+        if not isinstance(userdata, dict):
+            return '{0} data has wrong format'
+        if 'username' not in userdata or not isinstance(userdata['username'], str) or len(userdata['username']) == 0:
+            return '{0} username is required'
+        if 'password' not in userdata or not isinstance(userdata['password'], str) or len(userdata['password']) == 0:
+            return '{0} password is required'
+        if 'last_name' not in userdata:
+            userdata['last_name'] = 'Lastname'
+        if 'first_name' not in userdata:
+            userdata['first_name'] = 'Firstname'
+        try:
+            User.objects.get(username=userdata['username'])
+            userdata['exists'] = True
+            return '{0} with specified username already exists'
+        except ObjectDoesNotExist:
+            return None
+
     if admin is not None:
-        if not isinstance(admin, dict):
-            return 'Wrong administrator format'
-        if 'username' not in admin or not isinstance(admin['username'], str):
-            return 'Administator username is required'
-        if 'last_name' not in admin:
-            admin['last_name'] = 'Lastname'
-        if 'first_name' not in manager:
-            admin['first_name'] = 'Firstname'
-        try:
-            user = User.objects.get(username=admin['username'])
-            user.first_name = admin['first_name']
-            user.last_name = admin['last_name']
-            user.save()
+        res = check_user_data(admin)
+        if res is not None:
+            if not admin.get('exists') or not exist_ok:
+                return res.format('Administrator')
+        else:
+            user = User.objects.create_superuser(
+                username=admin['username'], email=admin.get('email', ''), password=admin['password'],
+                first_name=admin['first_name'], last_name=admin['last_name']
+            )
             Extended.objects.create(user=user, role=USER_ROLES[1][0])
-        except ObjectDoesNotExist:
-            return 'Administrator with specified username does not exist'
+
     if manager is not None:
-        if not isinstance(manager, dict):
-            return 'Wrong manager format'
-        if 'password' not in manager or not isinstance(manager['password'], str):
-            return 'Manager password is required'
-        if 'username' not in manager or not isinstance(manager['username'], str):
-            return 'Manager username is required'
-        if 'last_name' not in manager:
-            manager['last_name'] = 'Lastname'
-        if 'first_name' not in manager:
-            manager['first_name'] = 'Firstname'
-        try:
-            User.objects.get(username=manager['username'])
-            return 'Manager with specified username already exists'
-        except ObjectDoesNotExist:
-            newuser = User(
-                username=manager['username'], first_name=manager['first_name'], last_name=manager['last_name']
+        res = check_user_data(manager)
+        if res is not None:
+            if not manager.get('exists') or not exist_ok:
+                return res.format('Manager')
+        else:
+            user = User.objects.create_user(
+                username=manager['username'], password=manager['password'],
+                first_name=manager['first_name'], last_name=manager['last_name']
             )
-            newuser.set_password(manager['password'])
-            newuser.save()
-            Extended.objects.create(user=newuser, role=USER_ROLES[2][0])
+            Extended.objects.create(user=user, role=USER_ROLES[2][0])
+
     if service is not None:
-        if not isinstance(service, dict):
-            return 'Wrong service format'
-        if 'password' not in service or not isinstance(service['password'], str):
-            return 'Service password is required'
-        if 'username' not in service or not isinstance(service['username'], str):
-            return 'Service username is required'
-        if 'last_name' not in service:
-            service['last_name'] = 'Lastname'
-        if 'first_name' not in service:
-            service['first_name'] = 'Firstname'
-        try:
-            User.objects.get(username=service['username'])
-            return 'Service with specified username already exists'
-        except ObjectDoesNotExist:
-            newuser = User(
-                username=service['username'], last_name=service['last_name'], first_name=service['first_name']
+        res = check_user_data(service)
+        if res is not None:
+            if not manager.get('exists') or not exist_ok:
+                return res.format('Service user')
+        else:
+            user = User.objects.create_user(
+                username=service['username'], password=service['password'],
+                first_name=service['first_name'], last_name=service['last_name']
             )
-            newuser.set_password(service['password'])
-            newuser.save()
-            Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
+            Extended.objects.create(user=user, role=USER_ROLES[4][0])
+
     return None

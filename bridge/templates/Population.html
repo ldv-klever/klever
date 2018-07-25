@@ -1,4 +1,20 @@
 {% extends 'base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
 
 {% load i18n %}
 
@@ -38,16 +54,11 @@
                 <h2 class="ui teal header">{% trans 'Error traces conversion and comparison functions were updated' %}</h2>
             </div>
         {% endif %}
-        {% if changes.jobs %}
-            <div class="ui green segment">
-                <h2 class="ui green header">{% trans 'New root jobs were uploaded' %}</h2>
-            </div>
-        {% endif %}
-        {% if changes.default_jobs %}
+        {% if changes.jobs and changes.jobs|length %}
             <div class="ui green segment">
                 <h2 class="ui green header">{% trans 'New preset jobs were uploaded' %}:</h2>
                 <ul>
-                    {% for j in changes.default_jobs %}
+                    {% for j in changes.jobs %}
                         <li><span style="color: #3fd148">{{ j.0 }}</span> ({{ j.1 }})</li>
                     {% endfor %}
                 </ul>

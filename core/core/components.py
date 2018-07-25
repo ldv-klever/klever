@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -275,9 +275,12 @@ def launch_queue_workers(logger, queue, constructor, number, fail_tolerant, moni
             if finished > 0:
                 logger.debug("Finished {} workers".format(finished))
 
-            # Check that we can quit
-            if len(components) == 0 and len(elements) == 0 and not active:
-                break
+            # Check that we can quit or must wait
+            if len(components) == 0 and len(elements) == 0:
+                if not active:
+                    break
+                else:
+                    time.sleep(1)
     finally:
         for p in components:
             if p.is_alive():
@@ -576,4 +579,3 @@ class Component(multiprocessing.Process, CallbacksCaller):
             subcomponent_processes.append(p)
         # Wait for their termination
         launch_workers(self.logger, subcomponent_processes)
-

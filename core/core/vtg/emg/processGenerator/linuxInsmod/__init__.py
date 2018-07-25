@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import collections
 
 from core.vtg.emg.common import model_comment, get_necessary_conf_property, get_conf_property
@@ -108,7 +109,17 @@ def __import_inits_exits(logger, conf, avt, source):
                         same_list.append((module, call[0]))
             if name in extra:
                 for func in (source.get_source_function(f) for f in extra[name] if source.get_source_function(f)):
-                    same_list.append((func.definition_file, func.name))
+                    if func.definition_file:
+                        file = func.definition_file
+                    elif len(func.declaration_files) > 0:
+                        file = list(func.declaration_files)[0]
+                    else:
+                        file = None
+
+                    if file:
+                        same_list.append((file, func.name))
+                    else:
+                        logger.warning("Cannot find file to place alias for {!r}".format(func.name))
             if len(same_list) > 0:
                 kernel_initializations.append((name, same_list))
 
@@ -166,6 +177,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
         ep.add_definition('environment model', 'ldv_kernel_init', addon)
         ki_subprocess = ep.add_condition('kernel_initialization', [], ["%ret% = ldv_kernel_init();"],
                                          'Kernel initialization stage.')
+        ki_subprocess.trace_relevant = True
         ki_success = ep.add_condition('kerninit_success', ["%ret% == 0"], [], "Kernel initialization is successful.")
         ki_failed = ep.add_condition('kerninit_failed', ["%ret% != 0"], [], "Kernel initialization is unsuccessful.")
     if len(inits) > 0:
@@ -179,6 +191,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
                 "%ret% = {}();".format(new_name),
                 "%ret% = ldv_post_init(%ret%);"
             ]
+            init_subprocess.trace_relevant = True
             logger.debug("Found init function {}".format(init_name))
             ep.actions[init_subprocess.name] = init_subprocess
 
@@ -197,6 +210,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
                 model_comment('callback', exit_name, {'call': "{}();".format(exit_name)}),
                 "{}();".format(new_name)
             ]
+            exit_subprocess.trace_relevant = True
             logger.debug("Found exit function {}".format(exit_name))
             ep.actions[exit_subprocess.name] = exit_subprocess
 
@@ -221,14 +235,9 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
 
     for _, exit_name in exits:
         process += "<{}>.".format(exit_name)
+    # Remove the last dot
+    process = process[:-1]
 
-    if get_conf_property(conf, "check final state"):
-        final_statments = ["ldv_check_final_state();"]
-    else:
-        final_statments = []
-    final_statments += ["ldv_assume(0);"]
-    final = ep.add_condition('final', [], final_statments, "Check rule model state at the exit if required.")
-    process += '<{}>'.format(final.name)
     process += ")" * len(inits)
 
     if len(kernel_initializations) > 0 and len(inits) > 0:
@@ -236,8 +245,7 @@ def __generate_insmod_process(logger, conf, source, inits, exits, kernel_initial
     elif len(kernel_initializations) == 0 and len(inits) > 0:
         ep.process += process
     elif len(kernel_initializations) > 0 and len(inits) == 0:
-        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process) + \
-                      '.<{}>'.format(final.name)
+        ep.process += "<{}>.(<{}> | <{}>)".format(ki_subprocess.name, ki_failed.name, ki_success.name, process)
     else:
         raise NotImplementedError("There is no both kernel initilization functions and module initialization functions")
     return ep

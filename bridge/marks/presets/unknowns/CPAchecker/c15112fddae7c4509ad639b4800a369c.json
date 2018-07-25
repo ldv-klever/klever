@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": true,
+      "value": "c822fb57ba12~/drivers/spi/spi-pxa2xx-platform.ko/linux:drivers:clk2"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.10.59"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/spi/spi-pxa2xx-platform.ko"
+    }
+  ],
+  "description": "Too many and long value refinements.",
+  "is regexp": true,
+  "pattern": "Analysis interrupted",
+  "problem": "Interruption",
+  "status": "1"
+}

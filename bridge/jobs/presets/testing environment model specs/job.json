@@ -1,18 +1,15 @@
 {
+  "Class": "Verification of Linux kernel modules",
   "Common": {
     "Linux kernel": {
       "configuration": "allmodconfig",
       "architecture": "x86_64"
     },
-    "LKVOG strategy": {
-      "name": "separate modules"
-    },
+    "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
-    "rule specifications": [
-      "linux:emg:test"
-    ],
+    "rule specifications": ["linux:emg:test"],
     "ideal verdicts": [
       {
         "ideal verdict": "safe"
@@ -258,9 +255,7 @@
         ]
       },
       "ideal verdicts": [
-        {
-          "ideal verdict": "safe"
-        },
+        {"ideal verdict": "safe"},
         {
           "ideal verdict": "unsafe",
           "verification object": [

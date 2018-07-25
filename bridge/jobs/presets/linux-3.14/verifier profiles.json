@@ -8,7 +8,9 @@
         {"-setprop": "counterexample.export.exportExtendedWitness=true"},
         {"-setprop": "counterexample.export.compressWitness=false"},
         {"-setprop": "cpa.arg.witness.exportSourcecode=true"},
+        {"-setprop": "cpa.arg.witness.removeInsufficientEdges=false"},
         {"-setprop": "limits.time.cpu=%ldv:CPU time:0.9:s%s"},
+        {"-setprop": "analysis.machineModel=LINUX64"},
         {"-heap": "%ldv:memory size:0.8:MB%m"}
       ]
     },
@@ -78,23 +80,23 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:27583": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:27946": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
       "CPAchecker": {
-        "trunk:27583": {"inherit": "CPAchecker BAM reachability FP"}
+        "trunk:27946": {"inherit": "CPAchecker BAM reachability FP"}
       }
     },
     "race checking": {
-      "CPAchecker": {"CPALockator:25964": {"inherit": "CPALockator"}}
+      "CPAchecker": {"CPALockator:26692": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
-      "CPAchecker": {"trunk:27583": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"trunk:27946": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking ARM": {
-      "CPAchecker": {"trunk:27583": {
+      "CPAchecker": {"trunk:27946": {
           "inherit": "CPAchecker SMG memory checking",
           "add options": [{"-setprop": "analysis.machineModel=ARM"}],
           "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]

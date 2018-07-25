@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 
 @unparallel_group([SolvingProgress])
 def schedule_task(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -70,7 +70,7 @@ def schedule_task(request):
 
 @unparallel_group([])
 def get_tasks_statuses(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -91,7 +91,7 @@ def get_tasks_statuses(request):
 
 @unparallel_group([])
 def download_solution(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -119,7 +119,7 @@ def download_solution(request):
 
 @unparallel_group([Task])
 def remove_task(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -140,7 +140,7 @@ def remove_task(request):
 
 @unparallel_group([SolvingProgress])
 def cancel_task(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -160,7 +160,7 @@ def cancel_task(request):
 
 @unparallel_group([Job])
 def get_jobs_and_tasks(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -184,7 +184,7 @@ def get_jobs_and_tasks(request):
 
 @unparallel_group([])
 def download_task(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -211,7 +211,7 @@ def download_task(request):
 
 @unparallel_group([SolvingProgress])
 def upload_solution(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -240,7 +240,7 @@ def upload_solution(request):
 
 @unparallel_group([NodesConfiguration, Workload])
 def update_nodes(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -259,7 +259,7 @@ def update_nodes(request):
 
 @unparallel_group([VerificationTool])
 def update_tools(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in {USER_ROLES[2][0], USER_ROLES[4][0]}:
         return JsonResponse({'error': 'No access'})
@@ -279,7 +279,7 @@ def update_tools(request):
 
 @unparallel_group([Scheduler, Job])
 def set_schedulers_status(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
@@ -367,7 +367,7 @@ def add_scheduler_user(request):
 
 @unparallel_group([Job])
 def update_progress(request):
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})

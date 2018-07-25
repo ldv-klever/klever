@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 
 import copy
 import re
-import json
 
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property, \
     model_comment
@@ -340,7 +339,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
         return_expression = ret_expression()
 
         # Determine label params
-        external_parameters = [external_parameters[i] for i in external_parameters.keys()]
+        external_parameters = [external_parameters[i] for i in sorted(list(external_parameters.keys()))]
 
         true_invoke = return_expression + '{}'.format(inv) + '(' + ', '.join(external_parameters) + ');'
         if true_call:
@@ -457,14 +456,27 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Generate comment
             comment = call.comment.format(field, structure_name)
             conditions = call.condition if call.condition and len(call.condition) > 0 else list()
-            if check:
-                conditions.append(invoke)
             new_code, pre_action, post_action = make_action(signature, invoke)
             code.extend(new_code)
+
+            # Generate if wrapper around code invoke
+            # Note, that it is a bad idea to add condition to the conditions since it might prevent execution of all
+            # next code after the translation since we do not know is this action influence branch chose or it does not
+            if check:
+                ret = ret_expression()
+                if ret != '':
+                    if isinstance(signature.points.return_value, Pointer):
+                        ret += ' ldv_undef_ptr();'
+                    else:
+                        ret += ' ldv_undef_int();'
+
+                code = ["if ({}) ".format(invoke) + "{"] + ['\t' + stm for stm in code] + \
+                       (["} else {", ret, "}"] if ret != '' else ['}'])
 
             # Insert new action and replace this one
             new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
                                         conditions, code, comment)
+            new.trace_relevant = True
 
             if generated_callbacks == 0:
                 process.insert_action(call.name, "<{}>".format(new.name), position='instead')

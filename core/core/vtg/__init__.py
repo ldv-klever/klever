@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -536,22 +536,24 @@ class VTG(core.components.Component):
                             solved += 1
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
-                            (self.conf['keep intermediate files'] or
-                             (vobject in delete_ready and solved == len(delete_ready[vobject]))):
+                            (self.conf['keep intermediate files'] or (vobject in delete_ready and
+                             solved == len([rule for rule in processing_status[vobject][rule_class]
+                                            if rule in delete_ready[vobject]]))):
                         self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
                                 deldir = os.path.join(vobject, rule)
                                 core.utils.reliable_rmtree(self.logger, deldir)
-                            del delete_ready[vobject]
                         del processing_status[vobject][rule_class]
 
-                if len(processing_status[vobject]) == 0:
+                if len(processing_status[vobject]) == 0 and vobject not in initial:
                     self.logger.info("All tasks for verification object {!r} are either solved or failed".
                                      format(vobject))
                     # Verification object is lastly processed
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
+                    if vobject in delete_ready:
+                        del delete_ready[vobject]
 
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
@@ -596,7 +598,16 @@ class VTGWL(core.components.Component):
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
                     self.locks, self.vals, "{}/{}/VTGW".format(element[0]['id'], element[1]['id']),
                     os.path.join(element[0]['id'], element[1]['id']),
-                    attrs=[{"Rule specification": element[1]['id']}, {"Verification object": element[0]['id']}],
+                    attrs=[
+                        {
+                            "name": "Rule specification",
+                            "value": element[1]['id']
+                        },
+                        {
+                            "name": "Verification object",
+                            "value": element[0]['id']
+                        }
+                    ],
                     separate_from_parent=True, verification_object=element[0], rule_spec=element[1])
 
     main = task_generating_loop

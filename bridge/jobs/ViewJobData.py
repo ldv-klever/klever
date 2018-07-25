@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 #
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException
 
 from reports.models import ReportComponentLeaf, ReportAttr, ComponentInstances
 
-from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 
 
@@ -37,11 +36,10 @@ COLORS = {
 
 
 class ViewJobData:
-    def __init__(self, user, report, view=None, view_id=None):
+    def __init__(self, user, view, report):
         self.user = user
         self.report = report
-
-        self.view = ViewData(self.user, VIEW_TYPES[2][0], view=view, view_id=view_id)
+        self.view = view
 
         self.safes_total = None
         self.unsafes_total = None
@@ -209,7 +207,8 @@ class ViewJobData:
             unknowns_sorted[comp] = problems_sorted
 
         if 'hidden' not in self.view or 'unknowns_nomark' not in self.view['hidden']:
-            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters)):
+            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters))\
+                    .select_related('component'):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
@@ -221,7 +220,7 @@ class ViewJobData:
                 })
 
         if 'hidden' not in self.view or 'unknowns_total' not in self.view['hidden']:
-            for cmup in self.report.unknowns_cache.filter(**components_filters):
+            for cmup in self.report.unknowns_cache.filter(**components_filters).select_related('component'):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({

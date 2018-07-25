@@ -1,4 +1,5 @@
 {
+  "Class": "Validation on commits in Linux kernel Git repositories",
   "Common": {
     "Linux kernel": {
       "source": "linux-stable",
@@ -19,15 +20,6 @@
       },
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "specifications set": "Linux 3.5",
-      "rule specifications": ["linux:fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
@@ -94,8 +86,7 @@
       },
       "rule specifications": ["linux:drivers:clk2"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Non-target bug"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -105,15 +96,6 @@
       },
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "specifications set": "Linux 3.5",
-      "rule specifications": ["linux:fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
@@ -140,8 +122,7 @@
       "specifications set": "Linux 3.5",
       "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "Non-target bug"
+        "ideal verdict": "safe"
       }]
     },
     {
@@ -183,8 +164,7 @@
       },
       "rule specifications": ["linux:drivers:clk2"],
       "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "See comment for unsafe"
+        "ideal verdict": "safe"
       }]
     },
     {
@@ -194,8 +174,7 @@
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "CPAchecker spends all time when treating call to function containing target bug from module itself while target bug can be reached just when that function is called from environment model later. Some time ago target bug was found."
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -205,8 +184,7 @@
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -220,8 +198,7 @@
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Kernel model] One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -235,8 +212,7 @@
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "See comment for drivers/leds/leds-lp5521.ko"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -250,8 +226,7 @@
       ]]}},
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Kernel model] Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -261,8 +236,7 @@
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Environment model] EMG doesn't generate environment model since the number of generated instances is more than it is allowed by configuration (<a href='https://forge.ispras.ru/issues/7547'>feature #7547</a>). Any way this is incredibly complex module with great number of process instances and large call stack to target bug."
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -272,8 +246,7 @@
       },
       "rule specifications": ["linux:kernel:module"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Environment model] EMG doesn't generate environment model since the number of generated instances is more than it is allowed by configuration (<a href='https://forge.ispras.ru/issues/7547'>feature #7547</a>)"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -287,8 +260,7 @@
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -303,8 +275,7 @@
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
+        "ideal verdict": "unsafe"
       }]
     },
     {
@@ -366,8 +337,7 @@
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "See comment for unsafe"
+        "ideal verdict": "safe"
       }]
     },
     {
@@ -377,8 +347,7 @@
       },
       "rule specifications": ["linux:kernel:module"],
       "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "See comment for unsafe"
+        "ideal verdict": "safe"
       }]
     },
     {
@@ -392,8 +361,7 @@
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
       "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "See comment for unsafe"
+        "ideal verdict": "safe"
       }]
     },
     {
@@ -523,6 +491,26 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    }
+  ],
+  "Staging rules": [
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38~"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:fs:char_dev"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:fs:char_dev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ],

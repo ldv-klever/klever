@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -341,29 +341,31 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('There cannot be any running jobs in VerifierCloud')
 
-    def cancel_job(self, identifier, future):
+    def cancel_job(self, identifier, future, after_term=False):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
         raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
 
-    def cancel_task(self, identifier, future):
+    def cancel_task(self, identifier, future, after_term=False):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
+        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
         logging.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super(Scheduler, self).cancel_task(identifier)
+        super(Scheduler, self).cancel_task(identifier, future, after_term)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
         if identifier in self.__tasks:
@@ -482,7 +484,14 @@ class Scheduler(schedulers.SchedulerExchange):
                 if glob.glob(os.path.join(solution_dir, "output", "witness.*.graphml")):
                     description["status"] = "false"
                 else:
-                    description["status"] = "true"
+                    # Check that soft limit has not activated
+                    status_checker = 'grep -F "Verification result: UNKNOWN" -m 1 -c {}'.\
+                        format(os.path.join(solution_dir, "output", "benchmark.logfiles", "*.log"))
+                    number = int(utils.get_output(status_checker))
+                    if number > 0:
+                        description["status"] = "unknown"
+                    else:
+                        description["status"] = "true"
             else:
                 description["status"] = "unknown"
         else:

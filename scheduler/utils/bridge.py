@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,9 +107,9 @@ class Session:
                 else:
                     return resp
             except requests.ConnectionError as err:
-                logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+                logging.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
-                    time.sleep(1)
+                    time.sleep(0.2)
                 else:
                     logging.warning('Aborting request to Bridge')
                     return None
@@ -172,7 +172,7 @@ class Session:
                 if self.error == 'ZIP error':
                     logging.debug('Could not upload ZIP archive')
                     self.error = None
-                    time.sleep(1)
+                    time.sleep(0.2)
                 elif self.CANCELLED_STATUS.match(self.error):
                     logging.warning("Seems that the job was cancelled and we cannot upload results")
                     ret = False
@@ -208,5 +208,5 @@ class Session:
         :return: Nothing
         """
         logging.info('Finish session at {}'.format(self.name))
-        self.__request('users/service_signout/', looping=False)
+        self.__request('users/service_signout/', looping=True)
 

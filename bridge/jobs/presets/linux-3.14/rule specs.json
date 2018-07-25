@@ -42,6 +42,8 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
+            "initialize rules": true,
+            "check final state": true,
             "source analysis": {
               "callstack deep search": 3
             },
@@ -79,7 +81,6 @@
                 "linuxInsmod": {
                   "init": "module_init",
                   "exit": "module_exit",
-                  "check final state": true,
                   "kernel_initialization": [
                     "early_initcall",
                     "pure_initcall",
@@ -134,7 +135,7 @@
             "common models": {
               "linux/drivers/base/dd.c": {"headers": ["linux/device.h"]},
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
-              "linux/mm/kzalloc.c": {},
+              "linux/mm/slab.c": {},
               "linux/err.c": {},
               "linux/arch/atomic.c": {},
               "linux/ldv/common.c": {
@@ -208,7 +209,7 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:27583"
+              "version": "trunk:27946"
             },
             "result processing": {
               "coverage": "lightweight"
@@ -249,6 +250,8 @@
       "EMG" : {
         "specifications directory": "linux/",
         "entry point": "main",
+        "initialize rules": true,
+        "check final state": true,
         "source analysis": {
           "callstack deep search": 3
         },
@@ -286,7 +289,6 @@
             "linuxInsmod": {
               "init": "module_init",
               "exit": "module_exit",
-              "check final state": true,
               "kernel_initialization": [
                 "early_initcall",
                 "pure_initcall",
@@ -340,7 +342,7 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "trunk:27583"
+          "version": "trunk:27946"
         }
       }
     },
@@ -644,6 +646,7 @@
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {
+          "linux/arch/atomic.c": {},
           "linux/usb/dev.c": {"bug kinds": [
             "linux:usb:dev::unincremented counter decrement",
             "linux:usb:dev::less initial decrement",
@@ -685,6 +688,8 @@
       "EMG": {
         "specifications directory": "linux/",
         "entry point": "main",
+        "initialize rules": true,
+        "check final state": false,
         "source analysis": {
           "callstack deep search": 3
         },
@@ -722,7 +727,6 @@
             "linuxInsmod": {
               "init": "module_init",
               "exit": "module_exit",
-              "check final state": true,
               "kernel_initialization": [
                 "early_initcall",
                 "pure_initcall",
@@ -778,7 +782,7 @@
         "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:25964"
+          "version": "CPALockator:26692"
         },
         "result processing": {
           "expect several witnesses": true

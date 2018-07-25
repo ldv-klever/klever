@@ -1,4 +1,20 @@
 {% extends 'base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
 
 {% load i18n %}
 {% load staticfiles %}
@@ -12,10 +28,11 @@
 {% endblock %}
 
 {% block body_block %}
-    <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ TableData.view.type }}" data-content="{{ TableData.view.viewtitle }}" data-position="bottom right" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+    <button type="button" class="ui tiny violet button" id="view_show_form_btn_{{ TableData.view.type }}" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
+    <a href="{{ TableData.href }}" class="ui tiny green button">{% trans 'Show mark' %}</a>
     <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
-        {% include 'users/views/AssociationChanges.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns verdicts=TableData.verdicts %}
+        {% include TableData.view.template with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns verdicts=TableData.verdicts %}
     </div>
     <br>
     {% if TableData.values|length %}
@@ -51,5 +68,4 @@
         <h1 class="header" style="text-align:center;">{% trans 'No changes with total expert evaluations or the view has filtered all results' %}</h1>
     {% endif %}
     <br>
-    <a href="{{ TableData.href }}" class="ui green button" style="float: right">{% trans 'Show mark' %}</a>
 {% endblock %}

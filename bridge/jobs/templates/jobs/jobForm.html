@@ -1,0 +1,188 @@
+{% extends 'jobs/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{% if copy %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
+
+{% block jobs_head_block %}
+    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
+    <link href="{% static 'jobs/css/linedTextEditor.css' %}" rel="stylesheet">
+
+    <script src="{% static 'jstree/jstree.min.js' %}"></script>
+    <script src="{% static 'jobs/js/linedTextEditor.js' %}"></script>
+    <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
+    <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
+    <script src="{% static 'jobs/js/jobForm.js' %}"></script>
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="seven wide column">
+
+            {# Versions #}
+            <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
+            <select id="job_version_selector" class="ui dropdown fluid">
+                {% for jv in versions %}
+                    <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
+                {% endfor %}
+            </select>
+            <br>
+
+            {# Title, parent and description #}
+            <div class="ui violet segment" style="margin-bottom: 0;">
+                <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
+                <div class="ui fluid input field">
+                    <input id="job_name" type="text" value="{{ name }}">
+                </div>
+                <br>
+                <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
+                <div class="ui fluid input field">
+                    <input id="parent_identifier" maxlength="32" type="text" value="{{ parent }}">
+                </div>
+                <br>
+                <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
+                <div class="ui form">
+                    <textarea id="description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ description }}</textarea>
+                </div>
+            </div>
+
+            {# Files table #}
+            <div id="filestree"></div>
+
+            {# Roles #}
+            <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;"></div>
+
+            {# Comment for editing job only #}
+            {% if not copy %}
+                <label for="job_comment"><strong>{% trans "Change comment" %}</strong></label>
+                <div class="ui input fluid">
+                    <input id="job_comment" type="text" placeholder="{% trans 'Comment' %}">
+                </div>
+            {% endif %}
+
+            {# Action Buttons #}
+            <br>
+            <button id="save_job_btn" type="submit" class="ui olive button">{% trans 'Save' %}</button>
+            <a href="{% url 'jobs:job' job_id %}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
+        </div>
+        <div class="nine wide column">
+
+            {# File cotent #}
+            <label for="editfile_area" class="purple-title">{% trans 'File content' %}</label>
+            <textarea id="editfile_area" disabled></textarea>
+            <button id="commit_file_changes" class="ui violet button disabled" style="float: right;">{% trans 'Commit changes' %}</button>
+        </div>
+    </div>
+    <input id="job_id" value="{{ job_id }}" type="hidden">
+
+    {# Translatable text for javascript #}
+    <div hidden>
+        <span id="jstree_new_label">{% trans 'New' %}</span>
+        <span id="jstree_new_folder_label">{% trans 'Folder' %}</span>
+        <span id="jstree_new_file_label">{% trans 'File' %}</span>
+        <span id="jstree_new_upload_label">{% trans 'Upload' %}</span>
+        <span id="jstree_rename_label">{% trans 'Rename' %} (F2)</span>
+        <span id="jstree_delete_label">{% trans 'Delete' %}</span>
+        <span id="jstree_edit_replace_label">{% trans 'Replace' %}</span>
+        <span id="jstree_download_label">{% trans 'Download' %}</span>
+
+        <span id="success__file_commited">{% trans 'The file was commited' %}</span>
+        <span id="error__nofile_selected">{% trans "Please choose the file" %}</span>
+        <span id="error__title_required">{% trans 'Title is required' %}</span>
+        <span id="error__filename_not_ascii" hidden>{% trans "Names with non-ASCII characters must be less than 30 characters" %}</span>
+    </div>
+
+    {# Warning modal for saving job without commiting file changes #}
+    <div id="file_not_commited_modal" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid"><p>{% trans 'The file you changed is not commited' %}</p></div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button id="close_save_job_btn" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                <button id="confirm_save_job_btn" type="button" class="ui red basic inverted button">{% trans 'Confirm' %}</button>
+            </div>
+        </div>
+    </div>
+
+    {# Upload file modal #}
+    <div id="upload_file_modal" class="ui small dinamic modal">
+        <div class="ui header">{% trans 'New file' %}</div>
+        <div class="content">
+            <div class="ui grid">
+                <div class="three wide column">
+                    <br>
+                    <span id="upload_file_input_btn" class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_file_input" type="file"></span>
+                </div>
+                <div class="seven wide column">
+                    <label for="upload_file_name"><strong>{% trans 'Name' %}</strong></label>
+                    <div class="ui input fluid">
+                        <input id="upload_file_name" type="text">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui grid">
+                <div class="eight wide column left aligned">
+                    <button type="button" class="ui violet button close-modal">{% trans 'Cancel' %}</button>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="upload_file_confirm" type="button" class="ui olive button">{% trans 'Upload' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Replace file modal #}
+    <div id="replace_file_modal" class="ui small dinamic modal">
+        <div class="ui header">{% trans 'Replace' %} '<span id="replaced_file_name"></span>'</div>
+        <div class="content">
+            <div class="ui grid">
+                <div class="ten wide column right aligned">
+                    <label for="new_file_name"></label>
+                    <div class="ui action input">
+                        <div class="ui input">
+                            <input id="replace_file_name" type="text" placeholder="{% trans 'Name' %}">
+                        </div>
+                        <span id="replace_file_input_btn" class="ui violet button btn-file">{% trans 'Browse' %}<input id="replace_file_input" type="file"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui grid">
+                <div class="eight wide column left aligned">
+                    <button type="button" class="ui violet button close-modal">{% trans 'Cancel' %}</button>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="replace_file_confirm" type="button" class="ui orange button">{% trans 'Replace' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Cached opened files #}
+    <div id="cached_files" hidden></div>
+{% endblock %}

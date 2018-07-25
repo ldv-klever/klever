@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,6 +105,7 @@ $(document).ready(function () {
 
     function collect_data() {
         return {
+            mode: 'data',
             data: JSON.stringify([
                 [
                     $('input[name="priority"]:checked').val(),
@@ -142,8 +143,7 @@ $(document).ready(function () {
                     $('#generate_makefiles_checkbox').is(':checked'),
                     $('input[name=job_weight]:checked').val()
                 ]
-            ]),
-            job_id: $('#job_pk').val()
+            ])
         }
     }
     $('#default_configs').dropdown({
@@ -214,7 +214,7 @@ $(document).ready(function () {
             return false;
         }
         $.ajax({
-            url: job_ajax_url + 'run_decision/',
+            url: '/jobs/run_decision/' + $('#job_pk').val() + '/',
             data: collect_data(),
             type: 'POST',
             success: function (data) {
@@ -232,7 +232,7 @@ $(document).ready(function () {
         $(this).find('input').each(function () {
             var attr_input = $(this);
             $.ajax({
-                url: job_ajax_url + 'get_def_start_job_val/',
+                url: '/jobs/get_def_start_job_val/',
                 data: {
                     name: attr_input.attr('name'),
                     value: attr_input.val()

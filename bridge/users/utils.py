@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 #
 
 import json
+
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
+
 from users.models import View
+
 
 DEF_NUMBER_OF_ELEMENTS = 18
 
@@ -176,7 +179,7 @@ SAFE_MARKS_VIEW = {
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
-    # order: [up|down, change_date|num_of_links]
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
@@ -184,6 +187,7 @@ UNKNOWN_MARKS_VIEW = {
     # component: [is|startswith, <any text>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -236,6 +240,7 @@ UNKNOWN_ASS_MARKS_VIEW = {
 }
 
 UNSAFE_MARK_ASS_REPORTS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['job', 'similarity', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
@@ -248,6 +253,7 @@ UNSAFE_MARK_ASS_REPORTS_VIEW = {
 }
 
 SAFE_MARK_ASS_REPORTS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['job', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
@@ -258,6 +264,7 @@ SAFE_MARK_ASS_REPORTS_VIEW = {
 }
 
 UNKNOWN_MARK_ASS_REPORTS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['job', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
@@ -321,13 +328,16 @@ DEFAULT_VIEW = {
 
 
 class ViewData:
-    def __init__(self, user, view_type, view=None, view_id=None):
+    def __init__(self, user, view_type, request_args):
         self.user = user
-        self._type = view_type
+        self._type = view_type[0]
+        self._template = self.__get_template(view_type[1])
         self._title = ''
         self._views = self.__views()
+        self._view = None
         self._view_id = None
-        self._view = self.__get_view(view, view_id)
+        self.__get_args(request_args)
+        self.__get_view()
 
     def __contains__(self, item):
         return item in self._view
@@ -335,6 +345,8 @@ class ViewData:
     def __getitem__(self, item):
         if item == 'type':
             return self._type
+        elif item == 'template':
+            return self._template
         elif item == 'viewtitle':
             return self._title
         elif item == 'views':
@@ -343,31 +355,38 @@ class ViewData:
             return self._view_id
         return self._view.get(item)
 
+    def __get_template(self, view_name):
+        return 'users/views/{0}.html'.format(view_name)
+
+    def __get_args(self, request_args):
+        if request_args.get('view_type') == self._type:
+            self._view = request_args.get('view')
+            self._view_id = request_args.get('view_id')
+
     def __views(self):
         return View.objects.filter(Q(type=self._type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
-    def __get_view(self, view, view_id):
-        if view is not None:
+    def __get_view(self):
+        if self._view is not None:
             self._title = string_concat(_('View'), ' (', _('unsaved'), ')')
-            return json.loads(view)
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self._type)
-            if len(pref_view) > 0:
-                self._title = string_concat(_('View'), ' (%s)' % pref_view[0].view.name)
-                self._view_id = pref_view[0].view_id
-                return json.loads(pref_view[0].view.view)
-        elif view_id == 'default':
-            self._title = string_concat(_('View'), ' (', _('Default'), ')')
-            self._view_id = 'default'
-            return DEFAULT_VIEW[self._type]
-        else:
+            self._view = json.loads(self._view)
+            return
+        if self._view_id is None:
+            pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
+            if pref_view:
+                self._title = string_concat(_('View'), ' (%s)' % pref_view.view.name)
+                self._view_id = pref_view.view_id
+                self._view = json.loads(pref_view.view.view)
+                return
+        elif self._view_id != 'default':
             user_view = View.objects.filter(
-                Q(id=view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
+                Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
             ).first()
             if user_view:
                 self._title = string_concat(_('View'), ' (%s)' % user_view.name)
                 self._view_id = user_view.id
-                return json.loads(user_view.view)
+                self._view = json.loads(user_view.view)
+                return
         self._title = string_concat(_('View'), ' (', _('Default'), ')')
         self._view_id = 'default'
-        return DEFAULT_VIEW[self._type]
+        self._view = DEFAULT_VIEW[self._type]

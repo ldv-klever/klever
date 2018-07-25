@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,9 +38,4 @@ long ldv_ptr_err(const void *ptr)
 long ldv_is_err_or_null(const void *ptr)
 {
 	return !ptr || ldv_is_err((unsigned long)ptr);
-}
-
-void ldv_panic(void)
-{
-    ldv_assume(0);
 }

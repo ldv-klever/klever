@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import re
 
 from core.vtg.emg.common.process.Parser import parse_process
@@ -370,6 +371,9 @@ class Process:
         :param strings: Strings with the definition.
         :return: None.
         """
+        if file is None:
+            raise ValueError("You have to give file name to add definition of function {!r}".format(name))
+
         if file not in self.definitions:
             self.definitions[file] = dict()
 
@@ -426,6 +430,7 @@ class Action:
         self.name = name
         self.comment = None
         self.condition = None
+        self.trace_relevant = False
 
 
 class Subprocess(Action):
