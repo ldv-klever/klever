@@ -304,9 +304,11 @@ class OSKleverInstance(OSEntity):
                                                                                                  if is_dev else '')
 
             if 'Klever' in prev_deploy_info['To update'] or 'Controller & Schedulers' in prev_deploy_info['To update']:
-                ssh.execute_cmd(cmd)
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'
+                                .format(' --development' if is_dev else ''))
             elif 'Verification Backends' in prev_deploy_info['To update']:
-                ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py''
+                                ' --just-native-scheduler-task-worker')
 
             # Although we can forget to update entities step by step it is simpler and safer to forget about everything
             # at once. Indeed, there will be very rare failures above.
