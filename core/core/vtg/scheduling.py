@@ -35,6 +35,8 @@ class Balancer:
         self._total_tasks = None
         # Number of successfully(!) solved tasks for which resource caclulation statistics is available
         self._solved = 0
+        # Indicator that rescheduling is possible
+        self._rescheduling = False
 
         # Read maximum limitations
         self._qos_limit = read_max_resource_limitations(logger, conf)
@@ -64,17 +66,25 @@ class Balancer:
     def rescheduling(self):
         """Check that all rest tasks are limits"""
         # Check that there is no any task that is not finished and it is not timeout or out of mem
-        for vo, ruleclasses in self.processing.items():
-            if vo not in self._problematic:
-                return False
-            else:
-                for rc, rules in ruleclasses.items():
-                    if rc not in self._problematic[vo]:
-                        return False
-                    else:
-                        if set(rules.keys()).difference(set(self._problematic[vo][rc].keys())):
+        if self._rescheduling:
+            return True
+        else:
+            for vo, ruleclasses in self.processing.items():
+                if vo not in self._problematic:
+                    return False
+                else:
+                    for rc, rules in ruleclasses.items():
+                        if rc not in self._problematic[vo]:
                             return False
-        return True
+                        else:
+                            # Here we check that we do not have rules for this VO for which we have unsolved runs, but it is
+                            # Ok to have unfinished timeouts
+                            rules = {r for r, v in rules.items() if v is not True}
+                            trules = set(self._problematic[vo][rc].keys())
+                            if len(rules.difference(trules)) > 0:
+                                return False
+            self._rescheduling = True
+            return True
 
     def is_there(self, vobject, rule_class, rule_name):
         """Check that task is tracked as a limit."""
@@ -122,6 +132,9 @@ class Balancer:
             else:
                 self.logger.info("Task {}:{} is still running".format(vobject, rule_name))
                 return True
+
+            # If we got there then this is a timelimit that will not be rescheduled ever, remove it
+            self._del_run(vobject, rule_class, rule_name)
         return False
 
     def resource_limitations(self, vobject, rule_class, rule_name):

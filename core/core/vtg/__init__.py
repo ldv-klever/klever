@@ -550,15 +550,16 @@ class VTG(core.components.Component):
                                  r['id'] in processing_status[vobject][rule_class] and
                                  not processing_status[vobject][rule_class][r['id']] and
                                  balancer.is_there(vobject, rule_class, r['id'])):
-                        attempt = balancer.do_rescheduling(vobject, rule_class, rule['id'])
-                        if attempt:
-                            self.logger.info("Submit task {}:{} again to solve it again".format(vobject, rule['id']))
-                            submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=attempt)
-                            active_tasks += 1
-                        elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
-                            self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
-                            self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
-                            processing_status[vobject][rule_class][rule['id']] = True
+                        if active_tasks < max_tasks:
+                            attempt = balancer.do_rescheduling(vobject, rule_class, rule['id'])
+                            if attempt:
+                                self.logger.info("Submit task {}:{} to solve it again".format(vobject, rule['id']))
+                                submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=attempt)
+                                active_tasks += 1
+                            elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
+                                self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
+                                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
+                                processing_status[vobject][rule_class][rule['id']] = True
 
                     if solved == len(_rule_spec_classes[rule_class]) and \
                         (self.conf['keep intermediate files'] or (vobject in delete_ready and
