@@ -77,8 +77,8 @@ class Balancer:
                         if rc not in self._problematic[vo]:
                             return False
                         else:
-                            # Here we check that we do not have rules for this VO for which we have unsolved runs, but it is
-                            # Ok to have unfinished timeouts
+                            # Here we check that we do not have rules for this VO for which we have unsolved runs,
+                            # but it is Ok to have unfinished timeouts
                             rules = {r for r, v in rules.items() if v is not True}
                             trules = set(self._problematic[vo][rc].keys())
                             if len(rules.difference(trules)) > 0:
