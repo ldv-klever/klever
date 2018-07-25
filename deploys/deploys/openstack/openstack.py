@@ -258,8 +258,8 @@ class OSKleverInstance(OSEntity):
 
         # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
         def get_prev_deploy_info():
-            with ssh.sftp.file('klever-inst/klever.json') as fp:
-                return json.loads(fp.read().decode('utf8'))
+            with ssh.sftp.file('klever-inst/klever.json') as nested_fp:
+                return json.loads(nested_fp.read().decode('utf8'))
 
         prev_deploy_info = get_prev_deploy_info()
 
@@ -300,14 +300,11 @@ class OSKleverInstance(OSEntity):
                 ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
                                 .format(' --development' if is_dev else ''))
 
-            cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
-                                                                                                 if is_dev else '')
-
             if 'Klever' in prev_deploy_info['To update'] or 'Controller & Schedulers' in prev_deploy_info['To update']:
                 ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'
                                 .format(' --development' if is_dev else ''))
             elif 'Verification Backends' in prev_deploy_info['To update']:
-                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py''
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py'
                                 ' --just-native-scheduler-task-worker')
 
             # Although we can forget to update entities step by step it is simpler and safer to forget about everything

@@ -136,7 +136,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
                 json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info)
 
     start_services(logger, services)
 
