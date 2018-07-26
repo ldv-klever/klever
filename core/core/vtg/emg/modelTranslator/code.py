@@ -92,16 +92,10 @@ class CModel:
         :return: None.
         """
         if file not in self._headers:
-            self._headers[file] = headers
+            self._headers[file] = [headers]
         else:
             # This is to avoid dependencies broken
-            if len(headers) > 1:
-                if not all([True if h in self._headers[file] else False for h in headers]):
-                    for h in [h for h in headers if h in self._headers[file]]:
-                        self._headers[file].remove(h)
-                    self._headers[file].extend(headers)
-            elif headers[0] not in self._headers[file]:
-                self._headers[file].append(headers[0])
+            self._headers[file].append(headers)
 
     def add_function_definition(self, func):
         """
@@ -221,7 +215,8 @@ class CModel:
             # Check headers
             if file == self.entry_file:
                 if self.entry_file in self._headers:
-                    lines.extend(['#include <{}>\n'.format(h) for h in self._headers[self.entry_file]])
+                    lines.extend(['#include <{}>\n'.format(h) for h in
+                                  self._collapse_headers_sets(self._headers[self.entry_file])])
                 lines.append("\n")
 
                 for tp in self.types:
@@ -369,6 +364,24 @@ class CModel:
         self.add_function_definition(ep)
 
         return body
+
+    def _collapse_headers_sets(self, sets):
+        final_list = []
+        sortd = sorted(sets, key=lambda f: len(f))
+        while len(sortd) > 0:
+            data = sortd.pop()
+            difference = set(data).difference(set(final_list))
+            if len(difference) > 0 and len(difference) == len(data):
+                # All headers are new
+                final_list.extend(data)
+            elif len(difference) > 0:
+                position = len(final_list)
+                for header in reversed(data):
+                    if header not in difference:
+                        position = final_list.index(header)
+                    else:
+                        final_list.insert(position, header)
+        return final_list
 
 
 class FunctionModels:
