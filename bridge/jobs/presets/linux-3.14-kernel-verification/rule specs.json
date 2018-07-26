@@ -140,9 +140,10 @@
             "common models": {
               "linux/drivers/base/dd.c": {"headers": ["linux/device.h"]},
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
-              "linux/mm/kzalloc.c": {},
+              "linux/mm/slab.c": {},
               "linux/err.c": {},
               "linux/kernel/panic.c": {},
+              "linux/arch/atomic.c": {},
               "linux/ldv/common.c": {
                 "headers": {
                   "Linux 3.14 (base)": [
@@ -214,10 +215,10 @@
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
-              "version": "trunk:27583"
+              "version": "trunk:27946"
             },
             "result processing": {
-              "coverage": "full"
+              "coverage": "lightweight"
             }
           }
         }
@@ -353,7 +354,7 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "trunk:27583"
+          "version": "trunk:27946"
         }
       }
     },
@@ -365,6 +366,18 @@
       "description": "Rule specification intended for testing environment model specifications and generator",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
+    },
+    "linux:emg:test:fp": {
+      "description": "Rule specification intended for testing environment model specifications and the generator with function pointer analysis",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}},
+      "FVTP": {
+        "verifier profile": "reachability with function pointers",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "trunk:27946"
+        }
+      }
     },
     "linux:alloc:irq": {
       "description": "...",
@@ -781,7 +794,7 @@
         "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:25964"
+          "version": "CPALockator:26692"
         },
         "result processing": {
           "expect several witnesses": true

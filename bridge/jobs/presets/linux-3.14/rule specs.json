@@ -11,7 +11,7 @@
           "SA": {
             "template aspect": "linux/emg/source_analysis.aspect.tmpl",
             "max arguments number": 30,
-            "remove only inline functions": true,
+            "remove only inline functions": false,
             "keep macros": [
               "module_init",
               "early_initcall",
@@ -107,7 +107,7 @@
               }
             ],
             "translation options": {
-              "debug output": false,
+              "debug output": true,
               "self parallel processes": false,
               "self parallel model": false,
               "always sequential processes": ["linux/initialization"],
@@ -137,6 +137,7 @@
               "linux/drivers/spi.c": {"headers": ["linux/spi/spi.h"]},
               "linux/mm/slab.c": {},
               "linux/err.c": {},
+              "linux/kernel/panic.c": {},
               "linux/arch/atomic.c": {},
               "linux/ldv/common.c": {
                 "headers": {
@@ -363,7 +364,7 @@
         "verifier profile": "reachability with function pointers",
         "verifier": {
           "name": "CPAchecker",
-          "version": "trunk:27583"
+          "version": "trunk:27946"
         }
       }
     },
