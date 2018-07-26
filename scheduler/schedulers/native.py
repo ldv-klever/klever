@@ -21,6 +21,7 @@ import multiprocessing
 import os
 import shutil
 import signal
+import re
 
 import schedulers as schedulers
 import schedulers.runners as runners
@@ -479,6 +480,15 @@ class Native(runners.Speculative):
                 if os.path.isfile(errors_file):
                     with open(errors_file, mode='r', encoding="utf8") as f:
                         errors = f.readlines()
+                    if result == 0 and self.conf["scheduler"].get("ignore BenchExec warnings"):
+                        for msg in list(errors):
+                            match = re.search(r'WARNING - (.*)', msg)
+                            if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
+                                  (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
+                                   any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
+                                errors.remove(msg)
+                            elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                                errors.remove(msg)
                 else:
                     errors = []
 

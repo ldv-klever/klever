@@ -377,9 +377,9 @@ def run(selflogger, args, conf, logger=None):
                 for line in log.readlines():
                     # Warnings can be added to the file only from RunExec
                     if re.search(r'WARNING - (.*)', line):
-                        selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
+                        selflogger.warning(line.strip())
                     elif re.search(r'runexec: error: .*', line):
-                        selflogger.error(re.search(r'runexec: error: .*', line).group(0))
+                        selflogger.error(line.strip())
 
         job_exit = None
         if ec == 0 and os.path.isfile('runexec stdout.log'):
