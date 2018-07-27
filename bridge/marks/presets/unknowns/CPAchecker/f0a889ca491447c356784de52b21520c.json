@@ -43,7 +43,7 @@
   ],
   "description": "Relevant code is covered, but CPAchecker cannot handle driver. Previously there was a non-target bug.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }
