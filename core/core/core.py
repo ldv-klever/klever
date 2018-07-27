@@ -169,8 +169,8 @@ class Core(core.components.CallbacksCaller):
                         self.logger.info('Release working directory')
                     os.remove(self.is_solving_file)
 
-                # Remove dir if needed
-                if not self.conf['keep intermediate files']:
+                # Remove the whole working directory after all if needed.
+                if self.conf and not self.conf['keep intermediate files']:
                     shutil.rmtree(os.path.abspath('.'))
 
                 if self.logger:
