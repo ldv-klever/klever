@@ -556,10 +556,11 @@ class VTG(core.components.Component):
                                 processing_status[vobject][rule_class][rule['id']] = True
 
                     # Number of solved tasks
-                    solved = sum((1 if processing_status[vobject][rule_class][r['id']] else 0
+                    solved = sum((1 if processing_status[vobject][rule_class].get(r['id']) else 0
                                   for r in _rule_spec_classes[rule_class]))
                     # Number of rules which are ready to delete
-                    deletable = len((r for r in processing_status[vobject][rule_class] if r in delete_ready[vobject]))
+                    deletable = len([r for r in processing_status[vobject][rule_class]
+                                     if vobject in delete_ready and r in delete_ready[vobject]])
                     # Total tasks for rules
                     total = len(_rule_spec_classes[rule_class])
 
