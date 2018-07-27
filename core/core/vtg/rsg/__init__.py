@@ -19,7 +19,7 @@ import json
 import os
 import re
 
-from clade import Clade
+# from clade import Clade
 
 import core.utils
 import core.vtg.plugins

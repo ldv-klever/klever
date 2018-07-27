@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ElementTree
 import zipfile
 import multiprocessing
 
-from clade import Clade
+# from clade import Clade
 
 from core.vrp.et import import_error_trace
 
@@ -230,13 +230,13 @@ class RP(core.components.Component):
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
         # Obtain file prefix that can be removed from file paths.
-        clade = Clade()
-        clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        self.storage = self.conf['Clade']['storage']
-        clade_global_data = clade.get_global_data()
-        self.work_src_tree = clade_global_data['working source tree']
-        self.search_dirs = clade_global_data['search directories']
-        self.ext_modules_dir = clade_global_data['external modules']
+        # clade = Clade()
+        # clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        # self.storage = self.conf['Clade']['storage']
+        # clade_global_data = clade.get_global_data()
+        # self.work_src_tree = clade_global_data['working source tree']
+        # self.search_dirs = clade_global_data['search directories']
+        # self.ext_modules_dir = clade_global_data['external modules']
 
 
     def fetcher(self):

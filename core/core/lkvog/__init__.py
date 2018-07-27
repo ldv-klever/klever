@@ -22,7 +22,7 @@ import re
 import shutil
 import tarfile
 
-from clade import Clade
+# from clade import Clade
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure

@@ -27,7 +27,7 @@ import core.components
 import core.utils
 import core.session
 
-from clade import Clade
+# from clade import Clade
 
 
 @core.components.before_callback
@@ -596,8 +596,8 @@ class VTGW(core.components.Component):
         self.rule_specification = rule_spec
         self.abstract_task_desc_file = None
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        self.clade = Clade()
-        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        # self.clade = Clade()
+        # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
     def tasks_generator_worker(self):
         try:
@@ -632,12 +632,12 @@ class VTGW(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
 
-            for cc in grp['CCs']:
-                in_file = self.clade.get_cc().load_json_by_id(cc)['in'][0]
-                grp['Extra CCs'].append({
-                    'CC': cc,
-                    'in file': (self.conf['Clade']['storage'] + in_file) if os.path.isabs(in_file) else in_file
-                })
+            # for cc in grp['CCs']:
+            #     in_file = self.clade.get_cc().load_json_by_id(cc)['in'][0]
+            #     grp['Extra CCs'].append({
+            #         'CC': cc,
+            #         'in file': (self.conf['Clade']['storage'] + in_file) if os.path.isabs(in_file) else in_file
+            #     })
 
             del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'
