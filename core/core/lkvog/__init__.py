@@ -153,29 +153,6 @@ class LKVOG(core.components.Component):
 
         ext_modules = self.prepare_ext_modules()
 
-        clade_extensions_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                            self.conf['clade ext file'])
-
-        with open(clade_extensions_file, encoding='utf-8') as fp:
-            clade_extenstions = json.load(fp)
-
-        extension_params = {
-            'jobs': build_jobs,
-            'architecture': arch,
-            'configuration': conf,
-            'src': src,
-            'model headers': self.mqs["model headers"].get(),
-            'modules': modules_to_build if not is_build_all_modules else ['all'],
-            'use original source tree': self.conf['allow local source directories use'],
-            'Git repository': self.conf['Linux kernel'].get('Git repository'),
-            'external modules': ext_modules,
-        }
-
-        for extension in clade_extenstions:
-            for extension_param, value in extension_params.items():
-                if extension_param in extension and extension[extension_param] is None:
-                    extension[extension_param] = value
-
         clade_conf = {
             'work_dir': self.conf['Clade']['base'],
             'remove_existing_work_dir': True,
@@ -206,8 +183,7 @@ class LKVOG(core.components.Component):
             'global_data': {
                 'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
                 'external modules': os.path.abspath(ext_modules) if ext_modules else None,
-            },
-            'extensions': clade_extenstions
+            }
         }
 
         with open('clade.json', 'w', encoding='utf8') as fp:
