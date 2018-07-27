@@ -1,8 +1,29 @@
-{% extends 'reports/base.html' %}
+{% extends 'base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{{ title }}{% endblock %}
+
+{% block head_block %}
+    <script type="text/javascript" src="{% static 'reports/js/reportsList.js' %}"></script>
+{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
@@ -19,7 +40,7 @@
             </div>
         </div>
         <div class="nine wide column">
-            <button id="view_show_form_btn_{{ TableData.view.type }}" data-position="bottom right" data-content="{{ TableData.view.viewtitle }}" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+            <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui tiny violet button" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
 
             <div class="ui breadcrumb">
                 <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
@@ -48,11 +69,7 @@
     </div>
     <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display:none;">
-        {% if TableData.view.type == '6' %}
-            {% include 'users/views/UnknownsList.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
-        {% else %}
-            {% include 'users/views/SafesAndUnsafesList.html' with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
-        {% endif %}
+        {% include TableData.view.template with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
         <br>
     </div>
     {% if TableData.table_data.values|length %}

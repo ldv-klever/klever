@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
+from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
 
 JOBFILE_DIR = 'Job'
 
@@ -46,14 +46,13 @@ def jobfile_delete_signal(**kwargs):
 
 
 class Job(models.Model):
-    name = models.CharField(max_length=150, unique=True, db_index=True)
-    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='+')
-    format = models.PositiveSmallIntegerField(default=FORMAT)
-    type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
-    version = models.PositiveSmallIntegerField(default=1)
-    change_date = models.DateTimeField(auto_now=True)
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     identifier = models.CharField(max_length=255, unique=True, db_index=True)
-    parent = models.ForeignKey('self', null=True, related_name='children')
+    version = models.PositiveSmallIntegerField(default=1)
+    format = models.PositiveSmallIntegerField(default=FORMAT)
+    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
+    change_date = models.DateTimeField()
+    name = models.CharField(max_length=150, unique=True, db_index=True)
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
     safe_marks = models.BooleanField(default=False)
@@ -66,25 +65,24 @@ class Job(models.Model):
 
 
 class RunHistory(models.Model):
-    job = models.ForeignKey(Job)
-    operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
-    configuration = models.ForeignKey(JobFile)
+    job = models.ForeignKey(Job, models.CASCADE)
+    operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     date = models.DateTimeField()
     status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])
+    configuration = models.ForeignKey(JobFile, models.CASCADE)
 
     class Meta:
         db_table = 'job_run_history'
 
 
 class JobHistory(models.Model):
-    job = models.ForeignKey(Job, related_name='versions')
-    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='+')
+    job = models.ForeignKey(Job, models.CASCADE, related_name='versions')
     version = models.PositiveSmallIntegerField()
-    change_date = models.DateTimeField()
-    comment = models.CharField(max_length=255, default='')
-    parent = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name='+')
+    change_author = models.ForeignKey(User, models.SET_NULL, blank=True, null=True, related_name='+')
+    change_date = models.DateTimeField(auto_now=True)
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default='0')
     description = models.TextField(default='')
+    comment = models.CharField(max_length=255, default='')
 
     class Meta:
         db_table = 'jobhistory'
@@ -92,10 +90,10 @@ class JobHistory(models.Model):
 
 
 class FileSystem(models.Model):
-    job = models.ForeignKey(JobHistory)
-    file = models.ForeignKey(JobFile, null=True)
+    job = models.ForeignKey(JobHistory, models.CASCADE)
+    file = models.ForeignKey(JobFile, models.CASCADE, null=True)
     name = models.CharField(max_length=128)
-    parent = models.ForeignKey('self', null=True, related_name='children')
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
 
     def __str__(self):
         return self.name
@@ -105,8 +103,8 @@ class FileSystem(models.Model):
 
 
 class UserRole(models.Model):
-    user = models.ForeignKey(User)
-    job = models.ForeignKey(JobHistory)
+    user = models.ForeignKey(User, models.CASCADE)
+    job = models.ForeignKey(JobHistory, models.CASCADE)
     role = models.CharField(max_length=1, choices=JOB_ROLES)
 
     class Meta:

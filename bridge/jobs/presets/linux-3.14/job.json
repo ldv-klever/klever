@@ -1,4 +1,5 @@
 {
+  "Class": "Verification of Linux kernel modules",
   "Linux kernel": {
     "source": "busybox-1.28.3",
     "architecture": "x86_64",

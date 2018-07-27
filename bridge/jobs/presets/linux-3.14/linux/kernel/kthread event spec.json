@@ -1,57 +1,48 @@
 {
   "Linux 3.14 (base)": {
-    "functions models": {
-      "kthread_create_on_node": {
-        "comment": "Call the function provided via kthread_run.",
-        "labels": {
-          "handler": {
-            "callback": true,
-            "parameter": true,
-            "interface": [
-              "kthread.handler"
-            ]
-          },
-          "data": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "kthread.data"
-            ]
-          },
-          "retstruct": {
-            "declaration": "struct task_struct *a"
-          }
-        },
-        "process": "<assign>.[call].<success> | <fail>",
-        "actions": {
-          "call": {
-            "callback": "%handler%",
-            "parameters": [
-              "%data%"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to call function kthread",
-            "statements": [
-              "return ldv_err_ptr(-ENOMEM);"
-            ]
-          },
-          "assign": {
-            "comment": "Get timer representing structure.",
-            "statements": [
-              "%handler% = $ARG1;",
-              "%data% = $ARG2;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully modified a timer's timeout",
-            "statements": [
-              "return $ALLOC(%retstruct%);"
-            ]
-          }
-        }
-      }
-    },
-    "environment processes": {}
+  	"functions models": {
+  		"kthread_create_on_node, kthread_create": {
+  			"comment": "Create a kthread.",
+	        "labels": {
+	          "data": {
+	            "parameter": true,
+	            "interface": "kthread.data"
+	          },
+	          "threadfn": {
+	          	"parameter": true,
+	          	"interface": "kthread.threadfn"
+	          },
+	          "ptr": {
+	          	"declaration": "void *ptr"
+	          }
+	        },
+	        "process": "<assign>.[callback].<return>",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the kthread callback.",
+	            "callback": "%threadfn%",
+	            "parameters": [
+	              "%data%"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the data from arguments.",
+	            "statements": [
+	              "%data% = $ARG2;",
+	              "%threadfn% = $ARG1;"
+	            ]
+	          },
+	          "return": {
+	            "comment": "Kthread has been created.",
+	            "statements": [
+	              "%ptr% = ldv_undef_ptr();",
+	              "ldv_assume(ldv_is_err(%ptr%));",
+	              "return %ptr%;"
+	            ]
+	          }
+	        }
+  		}
+  	},
+  	"environment processes": {}
   }
 }

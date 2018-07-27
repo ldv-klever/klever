@@ -1,0 +1,79 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "15/tests/linux/kernel/locking/rwlock/linux:kernel:locking:rwlock"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.14.0"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:kernel:locking:rwlock"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "ext-modules/linux/kernel/locking/rwlock/runlock.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_read_lock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__read_lock_on_write_lock": []
+              }
+            ]
+          },
+          {
+            "ldv_read_unlock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__more_read_unlocks": []
+              }
+            ]
+          },
+          {
+            "ldv_read_unlock": [
+              {
+                "ldv_assert_linux_kernel_locking_rwlock__more_read_unlocks": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

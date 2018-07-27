@@ -1,0 +1,70 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "10/tests/linux/drivers/clk1/linux:drivers:clk1"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.14.0"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "ext-modules/linux/drivers/clk1/unsafe.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_drivers_clk1__more_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_clk_enable_clk": []
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

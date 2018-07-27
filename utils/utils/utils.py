@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -138,18 +138,18 @@ class Session:
     def __get_job_id(self, job):
         if len(job) == 0:
             raise ValueError('The job identifier or its name is not set')
-        resp = self.__request('/jobs/ajax/get_job_id/', {'job': job})
+        resp = self.__request('/jobs/get_job_field/', {'job': job, 'field': 'id'})
         return resp.json()['id']
 
     def download_job(self, job, archive):
-        return self.__download_archive('/jobs/ajax/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
+        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
 
     def upload_job(self, parent, archive):
         if len(parent) == 0:
             raise ValueError('The parent identifier or its name is not set')
-        resp = self.__request('/jobs/ajax/get_job_identifier/', {'job': parent})
+        resp = self.__request('/jobs/get_job_field/', {'job': parent, 'field': 'identifier'})
         resp = self.__request(
-            '/jobs/ajax/upload_job/{0}/'.format(resp.json()['identifier']), {},
+            '/jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), {},
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
         if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
@@ -159,44 +159,44 @@ class Session:
 
     def upload_reports(self, job, archive):
         self.__request(
-            '/jobs/ajax/upload_reports/', {'job_id': self.__get_job_id(job)},
+            '/jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), {},
             files=[('archive', open(archive, 'rb', buffering=0))], stream=True
         )
 
     def job_progress(self, job, filename):
-        resp = self.__request('/jobs/ajax/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('/jobs/get_job_progress_json/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
     def decision_results(self, job, filename):
-        resp = self.__request('/jobs/ajax/get_job_decision_results/{0}/'.format(self.__get_job_id(job)))
+        resp = self.__request('/jobs/decision_results_json/{0}/'.format(self.__get_job_id(job)))
         with open(filename, mode='w', encoding='utf8') as fp:
             fp.write(resp.json()['data'])
 
     def copy_job(self, job, name=None):
         if isinstance(name, str) and len(name) > 0:
-            resp = self.__request('/jobs/ajax/save_job_copy/{0}/'.format(self.__get_job_id(job)), {'name': name})
+            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {'name': name})
         else:
-            resp = self.__request('/jobs/ajax/save_job_copy/{0}/'.format(self.__get_job_id(job)))
+            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {})
         return resp.json()['identifier']
 
     def copy_job_version(self, job):
-        self.__request('/jobs/ajax/copy_job_version/{0}/'.format(self.__get_job_id(job)))
+        self.__request('/jobs/copy_job_version/{0}/'.format(self.__get_job_id(job)), {})
 
     def replace_files(self, job, new_files):
         for f_name in new_files:
             with open(new_files[f_name], mode='rb', buffering=0) as fp:
                 self.__request(
-                    '/jobs/ajax/replace_job_file/{0}/'.format(self.__get_job_id(job)),
+                    '/jobs/replace_job_file/{0}/'.format(self.__get_job_id(job)),
                     {'name': f_name}, files=[('file', fp)], stream=True
                 )
 
     def start_job_decision(self, job, data_fp):
         job_id = self.__get_job_id(job)
         if data_fp:
-            self.__request('/jobs/ajax/run_decision/', {'job_id': job_id, 'data': data_fp.read()})
+            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'data', 'data': data_fp.read()})
         else:
-            self.__request('/jobs/ajax/fast_run_decision/', {'job_id': job_id})
+            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'fast'})
 
     def download_all_marks(self, archive):
         return self.__download_archive('/marks/download-all/', None, archive)

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import os
 from core.utils import find_file_or_dir
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property
@@ -112,8 +113,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     cmodel.add_headers(entry_file, get_necessary_conf_property(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
-    entry_fsa = Automaton(processes.entry, 0)
-    identifier_cnt = 1
+    entry_fsa = Automaton(processes.entry, 1)
+    identifier_cnt = 2
     model_fsa = []
     main_fsa = []
     for process in processes.models.values():

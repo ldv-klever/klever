@@ -2,8 +2,12 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "kthread_create_on_node": {
-        "declaration": "struct task_struct *kthread_create_on_node(%kthread.handler%, %kthread.data%, int node, const char *namefmt, ...)",
-        "header": "linux/kthread.h"
+        "declaration": "struct task_struct *kthread_create_on_node(%kthread.threadfn%, %kthread.data%, int node, const char namefmt[], ...);",
+        "header":"linux/kthread.h"
+      },
+      "kthread_create": {
+        "declaration": "struct task_struct *kthread_create(%kthread.threadfn%, %kthread.data%, const char namefmt[], ...);",
+        "header":"linux/kthread.h"
       }
     },
     "categories": {
@@ -14,7 +18,7 @@
           }
         },
         "callbacks": {
-          "handler": {
+          "threadfn": {
             "declaration": "int (*threadfn)(%kthread.data%)",
             "interrupt context": false
           }

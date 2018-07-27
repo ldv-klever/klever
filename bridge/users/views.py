@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,22 +21,23 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, models
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
-from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR
+from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger
 from bridge.populate import extend_user
 
 from jobs.models import Job
 
 from users.forms import UserExtendedForm, UserForm, EditUserForm
-from users.models import Notifications, Extended, User
+from users.models import Notifications, Extended, User, View, PreferableView
 
 
 @unparallel_group(['User'])
@@ -193,7 +194,7 @@ def show_profile(request, user_id):
             'act_type': act_type,
             'act_color': act_color,
             'obj_type': _('Job'),
-            'obj_link': act.name
+            'obj_link': act.job.name
         }
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
@@ -217,7 +218,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Safes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['safe', 'view', act.mark_id]),
+            'href': reverse('marks:mark', args=['safe', act.mark_id]),
         })
     for act in MarkUnsafeHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -238,7 +239,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unsafes mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['unsafe', 'view', act.mark_id])
+            'href': reverse('marks:mark', args=['unsafe', act.mark_id])
         })
     for act in MarkUnknownHistory.objects.filter(author=target).order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -259,7 +260,7 @@ def show_profile(request, user_id):
             'act_color': act_color,
             'obj_type': _('Unknowns mark'),
             'obj_link': act.mark.identifier,
-            'href': reverse('marks:mark', args=['unknown', 'view', act.mark_id])
+            'href': reverse('marks:mark', args=['unknown', act.mark_id])
         })
     return render(request, 'users/showProfile.html', {
         'target': target,
@@ -332,3 +333,138 @@ def save_notifications(request):
         new_ntf.save()
         return JsonResponse({'message': _('Saved')})
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+
+@unparallel_group([PreferableView, 'View'])
+def preferable_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    view_id = request.POST.get('view_id', None)
+    view_type = request.POST.get('view_type', None)
+    if view_id is None or view_type is None or view_type not in set(x[0] for x in VIEW_TYPES):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    if view_id == 'default':
+        pref_views = request.user.preferableview_set.filter(view__type=view_type)
+        if len(pref_views):
+            pref_views.delete()
+            return JsonResponse({'message': _("The default view was made preferred")})
+        return JsonResponse({'error': _("The default view is already preferred")})
+
+    try:
+        user_view = View.objects.get(Q(id=view_id, type=view_type) & (Q(author=request.user) | Q(shared=True)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The view was not found")})
+    request.user.preferableview_set.filter(view__type=view_type).delete()
+    PreferableView.objects.create(user=request.user, view=user_view)
+    return JsonResponse({'message': _("The preferred view was successfully changed")})
+
+
+@unparallel_group(['View'])
+def check_view_name(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    view_name = request.POST.get('view_title', None)
+    view_type = request.POST.get('view_type', None)
+    if view_name is None or view_type is None:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    if view_name == '':
+        return JsonResponse({'error': _("The view name is required")})
+
+    if view_name == str(_('Default')) or request.user.view_set.filter(type=view_type, name=view_name).count():
+        return JsonResponse({'error': _("Please choose another view name")})
+    return JsonResponse({})
+
+
+@unparallel_group([View])
+def save_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    view_data = request.POST.get('view', None)
+    view_name = request.POST.get('title', '')
+    view_id = request.POST.get('view_id', None)
+    view_type = request.POST.get('view_type', None)
+    if view_data is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    if view_id == 'default':
+        return JsonResponse({'error': _("You can't edit the default view")})
+    elif view_id is not None:
+        try:
+            new_view = request.user.view_set.get(pk=int(view_id))
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
+    elif len(view_name) > 0:
+        new_view = View(name=view_name, type=view_type, author=request.user)
+    else:
+        return JsonResponse({'error': _('The view name is required')})
+    new_view.view = view_data
+    new_view.save()
+    return JsonResponse({
+        'view_id': new_view.id, 'view_name': new_view.name,
+        'message': _("The view was successfully saved")
+    })
+
+
+@unparallel_group([View])
+def remove_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    v_id = request.POST.get('view_id', 0)
+    view_type = request.POST.get('view_type', None)
+    if view_type is None:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    if v_id == 'default':
+        return JsonResponse({'error': _("You can't remove the default view")})
+    try:
+        View.objects.get(id=v_id, author=request.user, type=view_type).delete()
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
+    return JsonResponse({'message': _("The view was successfully removed")})
+
+
+@unparallel_group([View])
+def share_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': _('You are not signing in')})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+
+    v_id = request.POST.get('view_id', 0)
+    view_type = request.POST.get('view_type', None)
+    if view_type is None:
+        return JsonResponse({'error': 'Unknown error'})
+    if v_id == 'default':
+        return JsonResponse({'error': _("You can't share the default view")})
+    try:
+        view = View.objects.get(author=request.user, pk=v_id, type=view_type)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
+    view.shared = not view.shared
+    view.save()
+    if view.shared:
+        return JsonResponse({'message': _("The view was successfully shared")})
+    PreferableView.objects.filter(view=view).exclude(user=request.user).delete()
+    return JsonResponse({'message': _("The view was hidden from other users")})

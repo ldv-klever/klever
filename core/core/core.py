@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import setuptools_scm.hacks
 import shutil
 import time
 import traceback
+import queue
 
 import core.job
 import core.session
@@ -64,7 +65,10 @@ class Core(core.components.CallbacksCaller):
                                                   'start',
                                                   {
                                                       'id': self.ID,
-                                                      'attrs': [{'Klever Core version': version}],
+                                                      'attrs': [{
+                                                          'name': 'Klever Core version',
+                                                          'value': version
+                                                      }],
                                                       'comp': self.comp
                                                   },
                                                   None,
@@ -83,8 +87,10 @@ class Core(core.components.CallbacksCaller):
                                                       {'build': multiprocessing.Manager().Lock()},
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
-            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {'report id': self.report_id,
-                                                                                    'coverage_finished': multiprocessing.Manager().dict()})
+            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {
+                'report id': self.report_id,
+                'coverage_finished': multiprocessing.Manager().dict()
+            })
         except Exception:
             self.process_exception()
 
@@ -236,8 +242,9 @@ class Core(core.components.CallbacksCaller):
             version = setuptools_scm.get_version(root=git_repo_dir)
         else:
             self.logger.info('Get version on the basis of package information')
-            version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
-                                                 parse=setuptools_scm.hacks.parse_pkginfo)
+            version = setuptools_scm.get_version(
+                os.path.join(os.path.dirname(__file__), os.path.pardir, 'KleverCore.egg-info'),
+                parse=setuptools_scm.hacks.parse_pkginfo)
         self.logger.debug('Klever Core version is "{0}"'.format(version))
         return version
 
@@ -279,29 +286,46 @@ class Reporter(core.components.Component):
 
     def send_reports(self):
         while True:
-            # TODO: replace MQ with "reports and report file archives".
-            report_and_report_file_archives = self.mqs['report files'].get()
+            # Report batches of reports each 3 seconds. This reduces the number of requests quite considerably.
+            time.sleep(3)
 
-            if report_and_report_file_archives is None:
-                self.logger.debug('Report files message queue was terminated')
+            reports_and_report_file_archives = []
+            is_finish = False
+            while True:
+                try:
+                    # TODO: replace MQ with "reports and report file archives".
+                    report_and_report_file_archives = self.mqs['report files'].get_nowait()
+
+                    if report_and_report_file_archives is None:
+                        self.logger.debug('Report files message queue was terminated')
+                        is_finish = True
+                        break
+
+                    reports_and_report_file_archives.append(report_and_report_file_archives)
+                except queue.Empty:
+                    break
+
+            if reports_and_report_file_archives:
+                for report_and_report_file_archives in reports_and_report_file_archives:
+                    report_file_archives = report_and_report_file_archives.get('report file archives')
+                    self.logger.debug('Upload report file "{0}"{1}'.format(
+                        report_and_report_file_archives['report file'],
+                        ' with report file archives:\n{0}'
+                        .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
+                        if report_file_archives else ''))
+
+                self.session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
+
+                # Remove reports and report file archives if needed.
+                if not self.conf['keep intermediate files']:
+                    for report_and_report_file_archives in reports_and_report_file_archives:
+                        os.remove(report_and_report_file_archives['report file'])
+                        report_file_archives = report_and_report_file_archives.get('report file archives')
+                        if report_file_archives:
+                            for archive in report_file_archives:
+                                os.remove(archive)
+
+            if is_finish:
                 break
-
-            report_file = report_and_report_file_archives['report file']
-            report_file_archives = report_and_report_file_archives.get('report file archives')
-
-            self.logger.debug('Upload report file "{0}"{1}'.format(
-                report_file,
-                ' with report file archives:\n{0}'
-                .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
-                if report_file_archives else ''))
-
-            self.session.upload_report(report_file, report_file_archives)
-
-            # Remove report if needed
-            if not self.conf['keep intermediate files']:
-                os.remove(report_file)
-                if report_file_archives:
-                    for archive in report_file_archives:
-                        os.remove(archive)
 
     main = send_reports

@@ -1,73 +1,90 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
 {% load i18n %}
 
 {% if MarkTable.values|length %}
-    <h4 class="header">{% trans 'Associated marks' %}</h4>
-    <div style="overflow-x:auto;">
-        <table class="ui celled compact pink selectable table alternate-color">
-            <thead>
-                {% for column_row in MarkTable.header %}
-                    <tr>
-                    {% for coldata in column_row %}
-                        <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                    {% endfor %}
-                    {% if can_mark %}
-                        <th>&nbsp;</th>
-                    {% endif %}
-                    </tr>
+    <table class="ui celled compact pink selectable table alternate-color">
+        <thead>
+            {% for column_row in MarkTable.header %}
+                <tr>
+                {% for coldata in column_row %}
+                    <th style="background: {% if tabledata.view.type == '7' %}#fff1df{% elif tabledata.view.type == '8' %}#dcffed{% elif tabledata.view.type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                 {% endfor %}
-            </thead>
-            <tbody>
-                {% for row_data in MarkTable.values %}
-                    <tr>
-                        {% for v in row_data %}
-                            <td>
-                                {% if v.column == 'likes' %}
-                                    <div class="ui mini basic buttons">
-                                        <button id="like_association_{{ v.value.0 }}" class="ui green basic icon button {% if v.value.1|length %} like-popup{% endif %}">
-                                            <i class="ui thumbs up icon"></i>{{ v.value.1|length }}
-                                        </button>
-                                        {% if v.value.1|length %}
-                                            <div class="ui popup">
-                                                {% for like in v.value.1 %}
-                                                    <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
-                                        <button id="dislike_association_{{ v.value.0 }}" class="ui red icon basic right attached button {% if v.value.2|length %} like-popup{% endif %}">
-                                            <i class="ui thumbs down icon"></i>{{ v.value.2|length }}
-                                        </button>
-                                        {% if v.value.2|length %}
-                                            <div class="ui popup">
-                                                {% for dislike in v.value.2 %}
-                                                    <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
-                                                {% endfor %}
-                                            </div>
-                                        {% endif %}
+                </tr>
+            {% endfor %}
+        </thead>
+        <tbody>
+            {% for row_data in MarkTable.values %}
+                <tr>
+                    {% for v in row_data %}
+                        <td>
+                            {% if v.column == 'likes' %}
+                                <div class="ui mini basic buttons">
+                                    <button id="like_association_{{ v.value.0 }}" class="ui green basic icon button {% if v.value.1|length %} like-popup{% endif %}">
+                                        <i class="ui thumbs up icon"></i>{{ v.value.1|length }}
+                                    </button>
+                                    {% if v.value.1|length %}
+                                        <div class="ui popup">
+                                            {% for like in v.value.1 %}
+                                                <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <button id="dislike_association_{{ v.value.0 }}" class="ui red icon basic right attached button {% if v.value.2|length %} like-popup{% endif %}">
+                                        <i class="ui thumbs down icon"></i>{{ v.value.2|length }}
+                                    </button>
+                                    {% if v.value.2|length %}
+                                        <div class="ui popup">
+                                            {% for dislike in v.value.2 %}
+                                                <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% elif v.column == 'buttons' %}
+                                <button id="inline_edit_mark_{{ v.value }}" class="ui blue mini icon button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                            {% elif v.column == 'description' %}
+                                {{ v.value|safe }}
+                            {% elif v.column == 'ass_type' %}
+                                <div class="ui dropdown">
+                                    <div style="white-space: nowrap;">
+                                        <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value.2 }}</span><i style="margin-left: 5px;" class="ui dropdown icon"></i>
                                     </div>
-                                {% elif v.column == 'buttons' and can_mark %}
-                                    <div class="ui mini icon buttons">
-                                        <button id="inline_edit_mark_{{ v.value.0 }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                                    <div class="menu">
                                         {% if v.value.1 != '1' %}
-                                            <button id="confirm_association_{{ v.value.0 }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
+                                            <a id="confirm_association_{{ v.value.0 }}" class="item"><i class="legal green icon"></i>{% trans 'Confirm' %}</a>
                                         {% endif %}
                                         {% if v.value.1 != '2' %}
-                                            <button id="unconfirm_association_{{ v.value.0 }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
+                                            <a id="unconfirm_association_{{ v.value.0 }}" class="item"><i class="trash red icon"></i>{% trans 'Unconfirm' %}</a>
                                         {% endif %}
                                     </div>
-                                {% elif v.column == 'description' %}
-                                    {{ v.value|safe }}
-                                {% elif v.href %}
-                                    <a href="{{ v.href }}">{{ v.value }}</a>
-                                {% else %}
-                                    <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-                    </tr>
-                {%  endfor %}
-            </tbody>
-        </table>
-    </div>
+                                </div>
+                            {% elif v.href %}
+                                <a href="{{ v.href }}">{{ v.value }}</a>
+                            {% else %}
+                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {%  endfor %}
+        </tbody>
+    </table>
 {% else %}
-    <h4>{% trans 'The list of associated marks is empty. Maybe it is because of the selected view.' %}</h4>
+    <h5>{% trans 'The list of associated marks is empty. Maybe it is because of the selected view.' %}</h5>
 {% endif %}

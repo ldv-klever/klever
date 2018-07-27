@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,13 +28,15 @@
 
 DESC="Klever Native Scheduler"
 NAME=klever-native-scheduler
-DAEMON=/home/debian/klever/scheduler/bin/native-scheduler
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-WORKDIR=/home/debian/klever-programs
-CONFFILE=/home/debian/klever-conf/native-scheduler.json
 USER=klever
-GROUP=klever
+
+# Read configuration variable file if it is present.
+[ -r /etc/default/klever ] && . /etc/default/klever
+DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/native-scheduler
+WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-programs
+CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/native-scheduler.json
 
 . /lib/lsb/init-functions
 
@@ -47,12 +49,13 @@ case "$1" in
             exit 0
         fi
 
-        # Enable control groups access each time when (re)starting Native Scheduler.
-        chmod o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
+        # Disable swap and enable control groups access each time when (re)starting Native Scheduler.
+        swapoff -a
+        chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
 
-        export KLEVER_WORK_DIR=${WORKDIR}
+        export KLEVER_WORK_DIR="${WORKDIR}"
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
+            --exec "${DAEMON}" -- "${CONFFILE}"
         then
             rc=0
             sleep 1
@@ -72,7 +75,7 @@ case "$1" in
         ;;
     stop)
         log_daemon_msg "Stopping $DESC"
-        start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
+        start-stop-daemon --stop --retry 3 --quiet --oknodo --pidfile ${PIDFILE}
         log_end_msg $?
         rm -f ${PIDFILE}
         ;;

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,17 +15,24 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
+from django.urls import path
 from users import views
 
 
 urlpatterns = [
-    url(r'^signin/$', views.user_signin, name='login'),
-    url(r'^signout/$', views.user_signout, name='logout'),
-    url(r'^register/$', views.register, name='register'),
-    url(r'^edit/$', views.edit_profile, name='edit_profile'),
-    url(r'^profile/(?P<user_id>[0-9]+)$', views.show_profile, name='show_profile'),
-    url(r'^service_signin/$', views.service_signin),
-    url(r'^service_signout/$', views.service_signout),
-    url(r'^ajax/save_notifications/$', views.save_notifications)
+    path('signin/', views.user_signin, name='login'),
+    path('signout/', views.user_signout, name='logout'),
+    path('register/', views.register, name='register'),
+    path('edit/', views.edit_profile, name='edit_profile'),
+    path('profile/<int:user_id>', views.show_profile, name='show_profile'),
+    path('service_signin/', views.service_signin),
+    path('service_signout/', views.service_signout),
+    path('ajax/save_notifications/', views.save_notifications),
+
+    # View actions
+    path('ajax/save_view/', views.save_view),
+    path('ajax/remove_view/', views.remove_view),
+    path('ajax/share_view/', views.share_view),
+    path('ajax/preferable_view/', views.preferable_view),
+    path('ajax/check_view_name/', views.check_view_name),
 ]

@@ -1,0 +1,73 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+<div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
+    <div id="etv-trace">
+        <div style="margin: 10px;">
+            <div class="ui grid">
+                <div class="sixteen wide column center aligned">
+                    <h3><a id="error_trace_options" href="{% url 'reports:download_error_trace' report.pk %}">{% trans 'Error trace' %}</a></h3>
+                </div>
+            </div>
+            {% if etv %}
+                {% include 'reports/ErrorTrace.html' with etv=etv %}
+            {% else %}
+                <div class="ui divider"></div>
+                <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
+            {% endif %}
+        </div>
+    </div>
+    <div id="etv-source"{% if include_assumptions %} style="height:70%;"{% endif %}>
+        <div style="margin: 10px;">
+            <div class="ETVTitleBlock">
+                <h4 id="ETVSourceTitle" class="header" data-position="top right" style="padding-bottom: 7px;float: left;"></h4>
+                <div class="ui popup very wide">
+                    <p id="ETVSourceTitleFull"></p>
+                </div>
+            </div>
+            <div class="filecontent" id="ETV_source_code"></div>
+        </div>
+    </div>
+    <div id="etv-divider"></div>
+    {% if include_assumptions %}
+        <div id="etv-assumes">
+            <div id="ETV_assumes">
+            </div>
+        </div>
+        <div id="etv-divider-2"></div>
+    {% endif %}
+</div>
+
+{% if etv %}
+    {% if etv.attributes|length %}
+        <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
+            <div class="ui grid">
+                <div class="sixteen wide column left aligned">
+                    {% for attribute in etv.attributes %}
+                        <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
+    <span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>
+    <span id="play_finished" hidden>{% trans 'Play of the error trace was completed' %}</span>
+{% endif %}

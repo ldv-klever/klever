@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -476,6 +476,7 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
             # Insert new action and replace this one
             new = process.add_condition("{}_{}".format(call.name, action_identifiers.__next__()),
                                         conditions, code, comment)
+            new.trace_relevant = True
 
             if generated_callbacks == 0:
                 process.insert_action(call.name, "<{}>".format(new.name), position='instead')

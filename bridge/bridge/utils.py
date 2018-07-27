@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,26 +15,27 @@
 # limitations under the License.
 #
 
+import hashlib
+import logging
 import os
 import shutil
-import logging
-import hashlib
 import tempfile
+import time
 import zipfile
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-
 from django.db.models import Q
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.template import loader
+from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, activate
 
-from bridge.vars import UNKNOWN_ERROR, ERRORS
+from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -55,6 +56,15 @@ class InfoFilter(object):
 for h in logger.handlers:
     if h.name == 'other':
         h.addFilter(InfoFilter(logging.INFO))
+
+
+def exec_time(func):
+    def inner(*args, **kwargs):
+        t1 = time.time()
+        res = func(*args, **kwargs)
+        print("CALL {}(): {:5.5f}".format(func.__name__, time.time() - t1))
+        return res
+    return inner
 
 
 def file_checksum(f):
@@ -83,10 +93,8 @@ def file_get_or_create(fp, filename, table, check_size=False):
     try:
         return table.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
-        db_file = table()
-        db_file.file.save(filename, File(fp))
-        db_file.hash_sum = check_sum
-        db_file.save()
+        db_file = table(hash_sum=check_sum)
+        db_file.file.save(filename, File(fp), save=True)
         return db_file, check_sum
 
 
@@ -119,6 +127,10 @@ def tests_logging_conf():
                 settings.MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
             cnt += 1
     return tests_logging
+
+
+def get_templated_text(template, **kwargs):
+    return Template(template).render(Context(kwargs))
 
 
 # Logging overriding does not work (does not override it for tests but override it after tests done)
@@ -163,6 +175,41 @@ class ArchiveFileContent:
                 return zfp.read(self._name)
 
 
+class OpenFiles:
+    def __init__(self, *args, mode='rb', rel_path=None):
+        self._files = {}
+        self._mode = mode
+        self._rel_path = rel_path
+        self._paths = self.__check_files(*args)
+
+    def __enter__(self):
+        try:
+            for p in self._paths:
+                dict_key = p
+                if isinstance(self._rel_path, str) and os.path.isdir(self._rel_path):
+                    dict_key = os.path.relpath(dict_key, self._rel_path)
+                dict_key = dict_key.replace('\\', '/')
+                if dict_key not in self._files:
+                    self._files[dict_key] = File(open(p, mode=self._mode))
+        except Exception as e:
+            self.__exit__(type(e), str(e), e.__traceback__)
+        return self._files
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for fp in self._files.values():
+            fp.close()
+
+    def __check_files(self, *args):
+        paths = set()
+        for arg in args:
+            if not isinstance(arg, str):
+                raise ValueError('Unsupported argument: {0}'.format(arg))
+            if not os.path.isfile(arg):
+                raise FileNotFoundError("The file doesn't exist: {0}".format(arg))
+            paths.add(arg)
+        return paths
+
+
 class RemoveFilesBeforeDelete:
     def __init__(self, obj):
         model_name = getattr(obj, '_meta').object_name
@@ -199,7 +246,6 @@ class RemoveFilesBeforeDelete:
             self.__remove(files)
 
     def __remove_task_files(self, task):
-        self.__is_not_used()
         from service.models import Solution
         files = set()
         try:
@@ -226,12 +272,18 @@ class RemoveFilesBeforeDelete:
 
 
 class BridgeException(Exception):
-    def __init__(self, message=None):
-        self.message = message
-        if self.message is None:
+    def __init__(self, message=None, code=None, response_type='html', back=None):
+        self.response_type = response_type
+        self.back = back
+        if code is None and message is None:
+            self.code = 500
             self.message = UNKNOWN_ERROR
-        elif isinstance(self.message, int):
-            self.message = ERRORS.get(self.message, UNKNOWN_ERROR)
+        elif isinstance(code, int):
+            self.code = code
+            self.message = ERRORS.get(code, UNKNOWN_ERROR)
+        else:
+            self.code = None
+            self.message = message
 
     def __str__(self):
         return str(self.message)
@@ -245,3 +297,27 @@ class BridgeErrorResponse(HttpResponseBadRequest):
             loader.get_template('error.html').render({'message': response, 'back': back}),
             *args, **kwargs
         )
+
+
+class BridgeMiddlware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated and request.user.extended.role != USER_ROLES[4][0]:
+            activate(request.user.extended.language)
+        response = self.get_response(request)
+        return response
+
+    def process_exception(self, request, exception):
+        if isinstance(exception, BridgeException):
+            if exception.response_type == 'json':
+                return JsonResponse({'error': str(exception.message)})
+            elif exception.response_type == 'html':
+                return HttpResponseBadRequest(loader.get_template('error.html').render({
+                    'user': request.user, 'message': exception.message, 'back': exception.back
+                }))
+        logger.exception(exception)
+        return HttpResponseBadRequest(loader.get_template('error.html').render({
+            'user': request.user, 'message': str(UNKNOWN_ERROR)
+        }))

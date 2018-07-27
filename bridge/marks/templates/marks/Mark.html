@@ -1,4 +1,20 @@
 {% extends 'base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
 
 {% load i18n %}
 {% load tz %}
@@ -13,29 +29,21 @@
     <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
     <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
-    <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/mark.js' %}"></script>
-    {% block mark_head_block %}{% endblock %}
 {% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">
-            <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
-            <input id="mark_type" type="hidden" value="{{ markdata.type }}">
-            {% if report_id %}
-                <input id="report_id" type="hidden" value="{{ report_id }}">
-            {% endif %}
-            <div class="ui buttons top attached">
-                <a href="{% url 'marks:download_mark' markdata.type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
-                <a href="{% url 'marks:download_preset_mark' markdata.type mark.pk %}" class="ui teal button note-popup" data-position="bottom center" data-content="{% trans 'Download in preset format' %}"><i class="file powerpoint outline icon"></i></a>
-                {% if access.can_edit %}
-                    <a href="{% url 'marks:versions' markdata.type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Versions' %}"><i class="recycle icon"></i></a>
-                    <a href="{% url 'marks:mark' markdata.type 'edit' mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui blue button note-popup" data-position="bottom center" data-content="{% trans 'Edit' %}"><i class="write icon"></i></a>
-                {% endif %}
-                {% if access.can_delete %}
-                    <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
-                {% endif %}
+            {# Mark menu #}
+            <div class="ui violet inverted menu top attached">
+                <a class="browse item">{% trans 'Mark' %}<i class="dropdown icon"></i></a>
+                <div class="ui inverted popup bottom left transition hidden">
+                    <a href="{% url 'marks:download_mark' markdata.type mark.pk %}" class="item">{% trans 'Download' %}</a>
+                    <a href="{% url 'marks:download_preset_mark' markdata.type mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
+                    <a href="{% url 'marks:mark_form' markdata.type mark.pk 'edit' %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
+                    <a id="show_remove_mark_popup" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
+                </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
                 <tbody>
@@ -81,19 +89,122 @@
                             {% endif %}
                         </td>
                     </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Status' %}</th>
+                        <td>
+                            {% for s in markdata.statuses %}
+                                {% if s.checked %}<strong style="color: {{ s.color }};text-shadow: 1px 1px 1px black;">{{ s.title }}</strong>{% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% if markdata.type == 'unknown' %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Problem' %}</th>
+                            <td>
+                                {% if markdata.unknown_data.2 %}
+                                    <a class="violet-link" href="{{ markdata.unknown_data.2 }}">{{ markdata.unknown_data.1 }}</a>
+                                {% else %}
+                                    <span>{{ markdata.unknown_data.1 }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Verdict' %}</th>
+                            <td>
+                                {% for v in markdata.verdicts %}
+                                    {% if v.checked %}<strong style="color: {{ v.color }};text-shadow: 1px 1px 1px black;">{{ v.title }}</strong>{% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if markdata.description|length > 0 %}
+                        <tr><th class="right aligned">{% trans 'Description' %}</th><td>{{ markdata.description|safe }}</td></tr>
+                    {% endif %}
                 </tbody>
             </table>
             <br>
-
-            {% if reports.view.type == '13' %}
-                {% include 'users/views/UnsafeAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+            {% if markdata.type == 'unknown' %}
+                <div class="ui purple segment" style="margin-top: 0">
+                    <div class="ui top left attached purple label">{% trans 'Pattern' %}{% if markdata.unknown_data.3 %} (regexp){% endif %}</div>
+                    <div class="filecontent">{{ markdata.unknown_data.0 }}</div>
+                </div>
             {% else %}
-                {% include 'users/views/SafeAndUnkownAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+                <div class="ui horizontal segments" style="margin-top: 0">
+                    <div class="ui pink segment">
+                        <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                        {% include 'marks/MarkTags.html' with tags=markdata.tags.table available=markdata.tags.available selected=markdata.tags.selected %}
+                    </div>
+                </div>
+                {% if markdata.type == 'unsafe' %}
+                    <div class="ui teal segment">
+                        <h4 class="header ui teal">{% trans 'Error traces comparison function and converted error trace' %}</h4>
+                        <div class="ui teal raised segment">
+                            <span class="ui teal ribbon label">{{ markdata.selected_func.name }}</span>
+                            <p class="func-description">{{ markdata.selected_func.description }}</p>
+                            <h5>{{ markdata.selected_func.convert.name }}</h5>
+                            <p class="func-description">{{ markdata.selected_func.convert.description }}</p>
+                        </div>
+                        <div class="ui styled accordion fluid">
+                            <div class="title"><i class="file outline icon"></i>{% trans 'Converted error trace' %}</div>
+                            <div class="content">
+                                <div class="filecontent" style="max-height:40vh;">{{ markdata.error_trace }}</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
             {% endif %}
-            <br>
+            {# Attributes #}
+            <div class="ui styled accordion fluid">
+                <div class="title">
+                    <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                </div>
+                <div class="content">
+                    <div style="overflow-x:auto;">
+                        <table class="ui celled compact purple table">
+                            <tbody>
+                                {% for v in markdata.attributes %}
+                                    <tr>
+                                        <th class="collapsing">{{ v.0 }}</th>
+                                        <td class="collapsing">
+                                            {% if v.2 %}
+                                                <i class="ui green small checkmark icon"></i>
+                                            {% else %}
+                                                <i class="ui red small remove icon"></i>
+                                            {% endif %}
+                                            {{ v.1 }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="nine wide column">
+            {# Mark versions list #}
+            {% if access.can_edit %}
+                {% trans 'Mark versions' as versions_title %}
+                {% include 'jobs/viewVersions.html' with versions=versions title=versions_title %}
+            {% endif %}
 
+            <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
+            {# View for associated reports #}
+            {% include reports.view.template with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+
+            {# Associated reports table #}
             {% if reports.values|length %}
-                <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
+                <br>
+                <div>
+                    {% if reports.values.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ reports.values.previous_page_number }}"></i>
+                    {% endif %}
+                    <span>{% blocktrans with n1=reports.values.number n2=reports.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if reports.values.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ reports.values.next_page_number }}"></i>
+                    {% endif %}
+                </div>
                 <div style="overflow-x: auto;">
                     <table class="ui compact teal celled selectable table alternate-color">
                         <thead>
@@ -123,10 +234,9 @@
                     </table>
                 </div>
             {% else %}
-                <h4>{% trans 'The list of associated reports is empty. Maybe it is because of the selected view.' %}</h4>
+                <h5>{% trans 'The list of associated reports is empty. Maybe it is because of the selected view.' %}</h5>
             {% endif %}
         </div>
-        <div id="edit_mark_div" class="nine wide column">{% block edit_mark_block %}{% endblock %}</div>
     </div>
 
     {% if access.can_delete %}
@@ -147,5 +257,10 @@
                 </div>
             </div>
         </div>
+    {% endif %}
+    <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
+    <input id="mark_type" type="hidden" value="{{ markdata.type }}">
+    {% if report_id %}
+        <input id="report_id" type="hidden" value="{{ report_id }}">
     {% endif %}
 {% endblock %}

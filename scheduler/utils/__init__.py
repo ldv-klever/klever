@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import logging
 import logging.config
 import argparse
@@ -243,7 +244,7 @@ def dir_size(dir):
     return res
 
 
-def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
+def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stderr, stdout=sys.stdout,
             disk_limitation=None, disk_checking_period=30):
     """
     Execute given command in a separate process catching its stderr if necessary.
@@ -296,12 +297,12 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
             except subprocess.TimeoutExpired:
                 print('{}: Process {} is still alive ...'.format(os.getpid(), pid))
                 # Lets try it again
-                try:
-                    os.killpg(os.getpgid(pid), signal.SIGTERM)
-                    os.killpg(os.getpgid(pid), signal.SIGINT)
-                    os.kill(pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    terminate()
+                # try:
+                #     os.killpg(os.getpgid(pid), signal.SIGTERM)
+                #     os.killpg(os.getpgid(pid), signal.SIGINT)
+                #     os.kill(pid, signal.SIGKILL)
+                # except ProcessLookupError:
+                #    terminate()
                 # It should not survive after kill, lets wait a couple of seconds
                 time.sleep(10)
 
@@ -354,7 +355,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                 raise RuntimeError(
                     'STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
             last_try = not err_q.finished
-            time.sleep(timeout if isinstance(timeout, int) else 0)
+            time.sleep(timeout)
 
             output = []
             while True:

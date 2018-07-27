@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARKS_COMPARE_ATTRS,\
-    MARK_TYPE, ASSOCIATION_TYPE
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARK_TYPE,\
+    ASSOCIATION_TYPE
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
 
 from users.models import User
@@ -96,7 +96,7 @@ class NewMark:
     def create_mark(self, report):
         error_trace = GetConvertedErrorTrace(self._comparison.convert, report).converted
         mark = MarkUnsafe.objects.create(
-            identifier=unique_id(), author=self._user, format=report.root.job.format,
+            identifier=unique_id(), author=self._user, change_date=now(), format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')), function=self._comparison,
             verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable']
         )
@@ -126,6 +126,7 @@ class NewMark:
         last_v = MarkUnsafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
+        mark.change_date = now()
         mark.status = self._args['status']
         mark.description = str(self._args.get('description', ''))
         mark.version += 1
@@ -185,8 +186,8 @@ class NewMark:
             json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
         ).encode('utf8')), ET_FILE_NAME, ConvertedTraces)[0]
         mark = MarkUnsafe.objects.create(
-            identifier=self._args['identifier'], author=self._user, format=self._args['format'], type=MARK_TYPE[2][0],
-            function=self._comparison, description=str(self._args.get('description', '')),
+            identifier=self._args['identifier'], author=self._user, change_date=now(), format=self._args['format'],
+            type=MARK_TYPE[2][0], function=self._comparison, description=str(self._args.get('description', '')),
             verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable']
         )
 
@@ -208,7 +209,7 @@ class NewMark:
     def __create_version(self, mark, error_trace):
         markversion = MarkUnsafeHistory.objects.create(
             mark=mark, version=mark.version, status=mark.status, verdict=mark.verdict,
-            change_date=mark.change_date, comment=self._args['comment'], author=mark.author,
+            author=mark.author, change_date=mark.change_date, comment=self._args['comment'],
             error_trace=error_trace, function=mark.function, description=mark.description
         )
         MarkUnsafeTag.objects.bulk_create(
@@ -230,7 +231,8 @@ class NewMark:
         need_recalc = False
         new_attrs = []
         if isinstance(inst, ReportUnsafe):
-            for a_id, a_name in inst.attrs.order_by('id').values_list('attr_id', 'attr__name__name'):
+            for a_id, a_name, associate in inst.attrs.order_by('id')\
+                    .values_list('attr_id', 'attr__name__name', 'associate'):
                 if 'attrs' in self._args:
                     for a in self._args['attrs']:
                         if a['attr'] == a_name:
@@ -241,9 +243,7 @@ class NewMark:
                     else:
                         raise ValueError('Not enough attributes in args')
                 else:
-                    is_compare = (inst.root.job.type not in MARKS_COMPARE_ATTRS
-                                  or a_name in MARKS_COMPARE_ATTRS[inst.root.job.type])
-                    new_attrs.append(MarkUnsafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=is_compare))
+                    new_attrs.append(MarkUnsafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=associate))
         elif isinstance(inst, MarkUnsafeHistory):
             for a_id, a_name, is_compare in inst.attrs.order_by('id')\
                     .values_list('attr_id', 'attr__name__name', 'is_compare'):
@@ -322,7 +322,8 @@ class ConnectMarks:
             if mark_id not in marks_attrs:
                 marks_attrs[mark_id] = set()
             marks_attrs[mark_id].add(attr_id)
-        for m_id, f_name, pattern_id in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
+        for m_id, f_name, pattern_id in MarkUnsafeHistory.objects\
+                .filter(mark_id__in=marks_attrs, version=F('mark__version'))\
                 .values_list('mark_id', 'function__name', 'error_trace_id'):
             self._functions[m_id] = f_name
             self._patterns[m_id] = pattern_id
@@ -461,7 +462,8 @@ class ConnectReport:
             if mark_id not in marks_attrs:
                 marks_attrs[mark_id] = set()
             marks_attrs[mark_id].add(attr_id)
-        for m_id, f_name, pattern_id, verdict in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
+        for m_id, f_name, pattern_id, verdict in MarkUnsafeHistory.objects\
+                .filter(mark_id__in=marks_attrs, version=F('mark__version'))\
                 .values_list('mark_id', 'function__name', 'error_trace_id', 'verdict'):
             self._marks[m_id] = {'function': f_name, 'pattern': pattern_id, 'verdict': verdict}
         return marks_attrs
@@ -720,7 +722,9 @@ class PopulateMarks:
                 if a['attr'] in attrnames:
                     a['attr'] = attrnames[a['attr']]
                 else:
-                    a['attr'] = AttrName.objects.create(name=a['attr']).id
+                    newname = AttrName.objects.get_or_create(name=a['attr'])[0]
+                    a['attr'] = newname.id
+                    attrnames[newname.name] = newname.id
 
     def __get_attrs(self):
         attrs_in_db = {}
@@ -731,6 +735,7 @@ class PopulateMarks:
             for a in self._marks_data[mid]['attrs']:
                 if (a['attr'], a['value']) not in attrs_in_db:
                     attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
+                    attrs_in_db[(a['attr'], a['value'])] = None
         if len(attrs_to_create) > 0:
             Attr.objects.bulk_create(attrs_to_create)
             self.__get_attrs()
@@ -761,7 +766,7 @@ class PopulateMarks:
             created_marks[mark.identifier] = mark
             marks_versions.append(MarkUnsafeHistory(
                 mark=mark, verdict=mark.verdict, status=mark.status, description=mark.description,
-                version=mark.version, author=mark.author, change_date=now(), comment='',
+                version=mark.version, author=mark.author, change_date=mark.change_date, comment='',
                 function_id=self._marks_data[mark.identifier]['f_id'],
                 error_trace=file_get_or_create(
                     self._marks_data[mark.identifier]['error trace'], ET_FILE_NAME, ConvertedTraces
@@ -806,7 +811,7 @@ class PopulateMarks:
             if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
                 raise BridgeException(_('Corrupted preset unsafe mark: not enough data'))
             if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
-                raise BridgeException(_('Corrupted preset unsafe mark: attributes or tags is ot a list'))
+                raise BridgeException(_('Corrupted preset unsafe mark: attributes or tags is not a list'))
             if any(not isinstance(x, dict) for x in data['attrs']):
                 raise BridgeException(_('Corrupted preset unsafe mark: one of attributes has wrong format'))
             if any(x not in y for x in ['attr', 'value', 'is_compare'] for y in data['attrs']):
@@ -827,8 +832,8 @@ class PopulateMarks:
                 raise BridgeException(_('Preset unsafe mark comparison fucntion is not supported'))
 
             new_marks.append(MarkUnsafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
+                identifier=identifier, author=self._author, change_date=now(), is_modifiable=data['is_modifiable'],
+                verdict=data['verdict'], status=data['status'], description=data['description'], type=MARK_TYPE[1][0],
                 function_id=self._functions[data['comparison']]
             ))
             self._marks_data[identifier] = {
@@ -862,48 +867,6 @@ def delete_marks(marks):
     RecalculateTags(unsafes_changes)
     update_confirmed_cache(list(unsafes_changes))
     return unsafes_changes
-
-
-def unconfirm_association(author, report_id, mark_id):
-    mark_id = int(mark_id)
-    try:
-        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The mark association was not found'))
-    mr.type = ASSOCIATION_TYPE[2][0]
-    mr.author = author
-    mr.save()
-
-    changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
-        .changes.get(mark_id, {})
-    RecalculateTags(list(changes))
-    update_confirmed_cache([mr.report])
-
-
-def confirm_association(author, report_id, mark_id):
-    mark_id = int(mark_id)
-    try:
-        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The mark association was not found'))
-    mr.author = author
-    old_type = mr.type
-    mr.type = ASSOCIATION_TYPE[1][0]
-    mr.save()
-    if old_type == ASSOCIATION_TYPE[2][0]:
-        changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
-            .changes.get(mark_id, {})
-        RecalculateTags(list(changes))
-    update_confirmed_cache([mr.report])
-
-
-def like_association(author, report_id, mark_id, dislike):
-    try:
-        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The mark association was not found'))
-    UnsafeAssociationLike.objects.filter(association=mr, author=author).delete()
-    UnsafeAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))
 
 
 def update_confirmed_cache(unsafes):

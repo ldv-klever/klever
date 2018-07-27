@@ -1,0 +1,87 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "0/tests/acda82a/linux:emg:test"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "2.6.33.20"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Rule specification",
+      "is_compare": true,
+      "value": "linux:emg:test"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "ext-modules/devm_threaded_irq_v.1/devm_thread_invoke.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_initialize": []
+      }
+    ],
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_invoke_test": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "ldv_switch_to_process_context": []
+      }
+    ],
+    [
+      {
+        "irq_thread": [
+          {
+            "ldv_invoke_reached": [
+              {
+                "ldv_assert_linux_emg_test": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-static struct workqueue_struct *queue;
 static struct delayed_work work;
+static struct workqueue_struct *queue;
 
 static void ldv_handler(struct work_struct *work)
 {
@@ -30,18 +30,12 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
-	int flip_a_coin = ldv_undef_int();
-	int delay = ldv_undef_int();
 	ldv_invoke_test();
 	queue = create_workqueue("ldv_queue");
 	if (!queue)
 		return -ENOMEM;
-
 	INIT_DELAYED_WORK(&work, ldv_handler);
-	queue_delayed_work(queue, &work, delay);
-
-	if (flip_a_coin)
-		flush_delayed_work(&work);
+	flush_delayed_work(&work);
 	return 0;
 }
 

@@ -1,13 +1,15 @@
 {
+  "Class": "Verification of Linux kernel modules",
   "Common": {
-    "Clade": {"storage": "0c7b762"},
     "Linux kernel": {
       "source": "linux-3.14",
       "configuration": "allmodconfig",
       "architecture": "x86_64",
-      "modules": ["all"]
+      "external modules": "tests"
     },
-    "LKVOG strategy": {"name": "separate modules"},
+    "LKVOG strategy": {
+      "name": "separate modules"
+    },
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
@@ -42,209 +44,94 @@
                        "security_initcall",
                        "module_exit"],
     "ideal verdicts": [
-      {
-        "ideal verdict": "safe",
-        "verification object": "ext-modules/safe.ko"
-      },
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/array_overread_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/buffer_overread_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memleak_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memcpy_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_free_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/free_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/irq/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/spinlock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/usb-lock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/arch/io/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/genhd/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/queue/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/request/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/class/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/dma-mapping/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/clk1/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/clk2/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/empty/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/fs/sysfs/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/locking/mutex/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/locking/rwlock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/locking/spinlock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/module/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/rcu/srcu/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/rcu/update/lock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/rcu/update/lock-bh/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/rcu/update/lock-sched/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/sched/completion/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/sched/completion-no-lockdep/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/lib/find_bit/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/lib/idr/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/register/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/rtnetlink/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/sock/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/coherent/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/dev/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/gadget/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/register/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/urb/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/lock-reduce/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/simple/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/memory/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/fs/char_dev/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mmc/safe.ko"},
       {"ideal verdict": "unsafe"}
     ]
   },
   "Sub-jobs": [
-    {
-      "Clade": {"base": "358d552"},
-      "Linux kernel": {"external modules": "tests/generic/memory"},
-      "rule specifications": ["generic:memory"]
-    },
-    {
-      "Clade": {"base": "42bec55"},
-      "Linux kernel": {"external modules": "tests/linux/alloc/irq"},
-      "rule specifications": ["linux:alloc:irq"]
-    },
-    {
-      "Clade": {"base": "95c9a1d"},
-      "Linux kernel": {"external modules": "tests/linux/alloc/spinlock"},
-      "rule specifications": ["linux:alloc:spinlock"]
-    },
-    {
-      "Clade": {"base": "a2b9e8f"},
-      "Linux kernel": {"external modules": "tests/linux/alloc/usb-lock"},
-      "rule specifications": ["linux:alloc:usb lock"]
-    },
-    {
-      "Clade": {"base": "f2a711f"},
-      "Linux kernel": {"external modules": "tests/linux/arch/io"},
-      "rule specifications": ["linux:arch:io"]
-    },
-    {
-      "Clade": {"base": "7d8fb71"},
-      "Linux kernel": {"external modules": "tests/linux/block/genhd"},
-      "rule specifications": ["linux:block:genhd"]
-    },
-    {
-      "Clade": {"base": "5b8fe93"},
-      "Linux kernel": {"external modules": "tests/linux/block/queue"},
-      "rule specifications": ["linux:block:queue"]
-    },
-    {
-      "Clade": {"base": "0b09609"},
-      "Linux kernel": {"external modules": "tests/linux/block/request"},
-      "rule specifications": ["linux:block:request"]
-    },
-    {
-      "Clade": {"base": "372b020"},
-      "Linux kernel": {"external modules": "tests/linux/drivers/base/class"},
-      "rule specifications": ["linux:drivers:base:class"]
-    },
-    {
-      "Clade": {"base": "4dc7587"},
-      "Linux kernel": {"external modules": "tests/linux/drivers/base/dma-mapping"},
-      "rule specifications": ["linux:drivers:base:dma-mapping"]
-    },
-    {
-      "Clade": {"base": "7a92f4f"},
-      "Linux kernel": {"external modules": "tests/linux/drivers/clk1"},
-      "rule specifications": ["linux:drivers:clk1"]
-    },
-    {
-      "Clade": {"base": "3450e44"},
-      "Linux kernel": {"external modules": "tests/linux/drivers/clk2"},
-      "rule specifications": ["linux:drivers:clk2"]
-    },
-    {
-      "Clade": {"base": "f910a3e"},
-      "Linux kernel": {"external modules": "tests/linux/empty"},
-      "rule specifications": [
-        "linux:alloc:irq",
-        "linux:alloc:spinlock",
-        "linux:alloc:usb lock",
-        "linux:kernel:locking:spinlock",
-        "linux:kernel:locking:rwlock",
-        "linux:kernel:locking:mutex"
-      ]
-    },
-    {
-      "Clade": {"base": "0b6e9a5"},
-      "Linux kernel": {"external modules": "tests/linux/fs/sysfs"},
-      "rule specifications": ["linux:fs:sysfs"]
-    },
-    {
-      "Clade": {"base": "c3c6bf4"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/locking/mutex"},
-      "rule specifications": ["linux:kernel:locking:mutex"]
-    },
-    {
-      "Clade": {"base": "1b07f7e"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/locking/rwlock"},
-      "rule specifications": ["linux:kernel:locking:rwlock"]
-    },
-    {
-      "Clade": {"base": "d5d9888"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/locking/spinlock"},
-      "rule specifications": ["linux:kernel:locking:spinlock"]
-    },
-    {
-      "Clade": {"base": "30f2e43"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/module"},
-      "rule specifications": ["linux:kernel:module"]
-    },
-    {
-      "Clade": {"base": "9b28dbc"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/srcu"},
-      "rule specifications": ["linux:kernel:rcu:srcu"]
-    },
-    {
-      "Clade": {"base": "44be1b5"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock"},
-      "rule specifications": ["linux:kernel:rcu:update:lock"]
-    },
-    {
-      "Clade": {"base": "8f9ed73"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock-bh"},
-      "rule specifications": ["linux:kernel:rcu:update:lock bh"]
-    },
-    {
-      "Clade": {"base": "b6d50ed"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/rcu/update/lock-sched"},
-      "rule specifications": ["linux:kernel:rcu:update:lock sched"]
-    },
-    {
-      "Clade": {"base": "ccf1e4d"},
-      "Linux kernel": {"external modules": "tests/linux/kernel/sched/completion"},
-      "rule specifications": ["linux:kernel:sched:completion"]
-    },
-    {
-      "Clade": {"base": "fbca671"},
-      "Linux kernel": {
-        "config file": "configs/no-lockdep",
-        "external modules": "tests/linux/kernel/sched/completion-no-lockdep"
-      },
-      "rule specifications": ["linux:kernel:sched:completion"]
-    },
-    {
-      "Clade": {"base": "33af9b4"},
-      "Linux kernel": {"external modules": "tests/linux/lib/find_bit"},
-      "rule specifications": ["linux:lib:find_bit"]
-    },
-    {
-      "Clade": {"base": "77dba23"},
-      "Linux kernel": {"external modules": "tests/linux/lib/idr"},
-      "rule specifications": ["linux:lib:idr"]
-    },
-    {
-      "Clade": {"base": "d20a249"},
-      "Linux kernel": {"external modules": "tests/linux/net/register"},
-      "rule specifications": ["linux:net:register"]
-    },
-    {
-      "Clade": {"base": "77dba23"},
-      "Linux kernel": {"external modules": "tests/linux/net/rtnetlink"},
-      "rule specifications": ["linux:net:rtnetlink"]
-    },
-    {
-      "Clade": {"base": "d20a249"},
-      "Linux kernel": {"external modules": "tests/linux/net/sock"},
-      "rule specifications": ["linux:net:sock"]
-    },
-    {
-      "Clade": {"base": "05cca66"},
-      "Linux kernel": {"external modules": "tests/linux/usb/coherent"},
-      "rule specifications": ["linux:usb:coherent"]
-    },
-    {
-      "Clade": {"base": "520906b"},
-      "Linux kernel": {"external modules": "tests/linux/usb/dev"},
-      "rule specifications": ["linux:usb:dev"]
-    },
-    {
-      "Clade": {"base": "fae2a9c"},
-      "Linux kernel": {"external modules": "tests/linux/usb/gadget"},
-      "rule specifications": ["linux:usb:gadget"]
-    },
-    {
-      "Clade": {"base": "35cd7ba"},
-      "Linux kernel": {"external modules": "tests/linux/usb/register"},
-      "rule specifications": ["linux:usb:register"]
-    },
-    {
-      "Clade": {"base": "5888ad6"},
-      "Linux kernel": {"external modules": "tests/linux/usb/urb"},
-      "rule specifications": ["linux:usb:urb"]
-    },
-    {
-      "Clade": {"base": "644b740"},
-      "Linux kernel": {"external modules": "tests/sync/race/lock-reduce"},
-      "rule specifications": ["sync:race"]
-    },
-    {
-      "Clade": {"base": "8a1bfaf"},
-      "Linux kernel": {"external modules": "tests/sync/race/simple"},
-      "rule specifications": ["sync:race"]
-    },
-    {
-      "Clade": {"base": "4adddb6"},
-      "Linux kernel": {"external modules": "tests/sync/race/unsorted"},
-      "rule specifications": ["sync:race"]
-    }
+    {"Linux kernel": {"modules": ["generic/memory"]}, "rule specifications": ["generic:memory"]},
+    {"Linux kernel": {"modules": ["linux/alloc/irq"]}, "rule specifications": ["linux:alloc:irq"]},
+    {"Linux kernel": {"modules": ["linux/alloc/spinlock"]}, "rule specifications": ["linux:alloc:spinlock"]},
+    {"Linux kernel": {"modules": ["linux/alloc/usb-lock"]}, "rule specifications": ["linux:alloc:usb lock"]},
+    {"Linux kernel": {"modules": ["linux/arch/io"]}, "rule specifications": ["linux:arch:io"]},
+    {"Linux kernel": {"modules": ["linux/block/genhd"]}, "rule specifications": ["linux:block:genhd"]},
+    {"Linux kernel": {"modules": ["linux/block/queue"]}, "rule specifications": ["linux:block:queue"]},
+    {"Linux kernel": {"modules": ["linux/block/request"]}, "rule specifications": ["linux:block:request"]},
+    {"Linux kernel": {"modules": ["linux/drivers/base/class"]}, "rule specifications": ["linux:drivers:base:class"]},
+    {"Linux kernel": {"modules": ["linux/drivers/base/dma-mapping"]}, "rule specifications": ["linux:drivers:base:dma-mapping"]},
+    {"Linux kernel": {"modules": ["linux/drivers/clk1"]}, "rule specifications": ["linux:drivers:clk1"]},
+    {"Linux kernel": {"modules": ["linux/drivers/clk2"]}, "rule specifications": ["linux:drivers:clk2"]},
+    {"Linux kernel": {"modules": ["linux/empty"]}, "rule specifications": ["linux:alloc:irq", "linux:alloc:spinlock", "linux:alloc:usb lock", "linux:kernel:locking:spinlock", "linux:kernel:locking:rwlock", "linux:kernel:locking:mutex"]},
+    {"Linux kernel": {"modules": ["linux/fs/sysfs"]}, "rule specifications": ["linux:fs:sysfs"]},
+    {"Linux kernel": {"modules": ["linux/kernel/locking/mutex"]}, "rule specifications": ["linux:kernel:locking:mutex"]},
+    {"Linux kernel": {"modules": ["linux/kernel/locking/rwlock"]}, "rule specifications": ["linux:kernel:locking:rwlock"]},
+    {"Linux kernel": {"modules": ["linux/kernel/locking/spinlock"]}, "rule specifications": ["linux:kernel:locking:spinlock"]},
+    {"Linux kernel": {"modules": ["linux/kernel/module"]}, "rule specifications": ["linux:kernel:module"]},
+    {"Linux kernel": {"modules": ["linux/kernel/rcu/srcu"]}, "rule specifications": ["linux:kernel:rcu:srcu"]},
+    {"Linux kernel": {"modules": ["linux/kernel/rcu/update/lock"]}, "rule specifications": ["linux:kernel:rcu:update:lock"]},
+    {"Linux kernel": {"modules": ["linux/kernel/rcu/update/lock-bh"]}, "rule specifications": ["linux:kernel:rcu:update:lock bh"]},
+    {"Linux kernel": {"modules": ["linux/kernel/rcu/update/lock-sched"]}, "rule specifications": ["linux:kernel:rcu:update:lock sched"]},
+    {"Linux kernel": {"modules": ["linux/kernel/sched/completion"]}, "rule specifications": ["linux:kernel:sched:completion"]},
+    {"Linux kernel": {"config file": "configs/no-lockdep", "modules": ["linux/kernel/sched/completion-no-lockdep"]}, "rule specifications": ["linux:kernel:sched:completion"]},
+    {"Linux kernel": {"modules": ["linux/lib/find_bit"]}, "rule specifications": ["linux:lib:find_bit"]},
+    {"Linux kernel": {"modules": ["linux/lib/idr"]}, "rule specifications": ["linux:lib:idr"]},
+    {"Linux kernel": {"modules": ["linux/net/register"]}, "rule specifications": ["linux:net:register"]},
+    {"Linux kernel": {"modules": ["linux/net/rtnetlink"]}, "rule specifications": ["linux:net:rtnetlink"]},
+    {"Linux kernel": {"modules": ["linux/net/sock"]}, "rule specifications": ["linux:net:sock"]},
+    {"Linux kernel": {"modules": ["linux/usb/coherent"]}, "rule specifications": ["linux:usb:coherent"]},
+    {"Linux kernel": {"modules": ["linux/usb/dev"]}, "rule specifications": ["linux:usb:dev"]},
+    {"Linux kernel": {"modules": ["linux/usb/gadget"]}, "rule specifications": ["linux:usb:gadget"]},
+    {"Linux kernel": {"modules": ["linux/usb/register"]}, "rule specifications": ["linux:usb:register"]},
+    {"Linux kernel": {"modules": ["linux/usb/urb"]}, "rule specifications": ["linux:usb:urb"]},
+    {"Linux kernel": {"modules": ["sync/race/lock-reduce"]}, "rule specifications": ["sync:race"]},
+    {"Linux kernel": {"modules": ["sync/race/simple"]}, "rule specifications": ["sync:race"]},
+    {"Linux kernel": {"modules": ["sync/race/unsorted"]}, "rule specifications": ["sync:race"]}
   ],
   "Sub-jobs staging": [
     {

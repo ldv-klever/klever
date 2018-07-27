@@ -1,0 +1,37 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "usb_unlink_urb": {
+        "declaration": "int usb_unlink_urb(*%urb.urb%);",
+        "header":"linux/usb.h"
+      },
+      "usb_kill_urb": {
+        "declaration": "int usb_kill_urb(*%urb.urb%);",
+        "header":"linux/usb.h"
+      },
+      "usb_poison_urb": {
+        "declaration": "int usb_poison_urb(*%urb.urb%);",
+        "header":"linux/usb.h"
+      }
+    },
+    "categories": {
+      "urb": {
+        "containers": {
+          "urb": {
+            "declaration": "struct urb urb",
+            "header": "linux/usb.h",
+            "fields": {
+              "complete": "%urb.complete%"
+            }
+          }
+        },
+        "callbacks": {
+          "complete": {
+            "declaration": "void (*complete)(struct urb *)",
+            "interrupt context": false
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -174,7 +174,20 @@ class VRP(core.components.Component):
             workdir = os.path.join(vo, rule)
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
-                        workdir, [{"Rule specification": rule}, {"Verification object": vo}], separate_from_parent=True,
+                        workdir, [
+                            {
+                                "name": "Rule specification",
+                                "value": rule,
+                                "compare": True,
+                                "associate": True
+                            },
+                            {
+                                "name": "Verification object",
+                                "value": vo,
+                                "compare": True,
+                                "associate": True
+                            }
+                        ], separate_from_parent=True,
                         element=element)
                 rp.start()
                 rp.join()
@@ -254,6 +267,50 @@ class RP(core.components.Component):
 
     main = fetcher
 
+    def process_witness(self, witness, get_error_trace_id=False):
+        error_trace = import_error_trace(self.logger, witness)
+        sources = self.__trim_file_names(error_trace['files'])
+        error_trace['files'] = [sources[file] for file in error_trace['files']]
+
+        if get_error_trace_id:
+            match = re.search(r'witness\.(.+)\.graphml', witness)
+            if not match:
+                raise ValueError('Witness "{0}" does not encode error trace identifier'.format(witness))
+            error_trace_id = match.group(1)
+
+            error_trace['attrs'] = [{
+                'name': 'Error trace identifier',
+                'value': error_trace_id,
+                'compare': True,
+                'associate': True
+            }]
+
+            error_trace_file = 'error trace {0}.json'.format(error_trace_id)
+        else:
+            error_trace_file = 'error trace.json'
+
+        self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
+        with open(error_trace_file, 'w', encoding='utf8') as fp:
+            json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        return sources, error_trace_file
+
+    def report_unsafe(self, sources, error_trace_files):
+        core.utils.report(self.logger,
+                          'unsafe',
+                          {
+                              'id': "{}/verification/unsafe".format(self.id),
+                              'parent id': "{}/verification".format(self.id),
+                              'attrs': [],
+                              'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
+                              'error traces': [core.utils.ReportFiles([error_trace_file],
+                                                                      arcnames={error_trace_file: 'error trace.json'})
+                                               for error_trace_file in error_trace_files]
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
+
     def process_single_verdict(self, decision_results, opts, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
@@ -302,44 +359,16 @@ class RP(core.components.Component):
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
-                os.mkdir('error traces')
-
+                # Collect all sources referred by all error traces. Different error traces can refer almost the same
+                # sources, so reporting them separately is redundant.
+                sources = {}
+                error_trace_files = []
                 for witness in witnesses:
                     self.verdict = 'unsafe'
                     try:
-                        error_trace = import_error_trace(self.logger, witness)
-                        arcnames = self.__trim_file_names(error_trace['files'])
-                        error_trace['files'] = [arcnames[file] for file in error_trace['files']]
-
-                        match = re.search(r'witness\.(.+)\.graphml', witness)
-                        if not match:
-                            raise ValueError('Witness "{0}" does not encode error trace identifier'.format(witness))
-                        error_trace_id = match.group(1)
-
-                        error_trace_dir = os.path.join('error traces', error_trace_id)
-                        os.mkdir(error_trace_dir)
-
-                        error_trace_file = os.path.join(error_trace_dir, 'error trace.json')
-                        arcnames[error_trace_file] = 'error trace.json'
-
-                        self.logger.info('Write processed witness to "{0}"'.format(error_trace_file))
-                        with open(error_trace_file, 'w', encoding='utf8') as fp:
-                            json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-                        core.utils.report(self.logger,
-                                          'unsafe',
-                                          {
-                                              'id': "{}/verification/unsafe {}".format(self.id, error_trace_id),
-                                              'parent id': "{}/verification".format(self.id),
-                                              'attrs': [{"Error trace identifier": error_trace_id}],
-                                              'error trace': core.utils.ReportFiles([error_trace_file]
-                                                                                    + list(arcnames.keys()),
-                                                                                    arcnames=arcnames)
-                                          },
-                                          self.mqs['report files'],
-                                          self.vals['report id'],
-                                          self.conf['main working directory'],
-                                          error_trace_dir)
+                        error_trace_sources, error_trace_file = self.process_witness(witness, get_error_trace_id=True)
+                        sources.update(error_trace_sources)
+                        error_trace_files.append(error_trace_file)
                     except Exception as e:
                         self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                         self.verdict = 'non-verifier unknown'
@@ -352,6 +381,9 @@ class RP(core.components.Component):
                         else:
                             self.__exception = e
 
+                # Do not report unsafe if processing of all witnesses failed.
+                if error_trace_files:
+                    self.report_unsafe(sources, error_trace_files)
             if re.match('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
@@ -360,27 +392,8 @@ class RP(core.components.Component):
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
                                             format(len(witnesses)))
 
-                    error_trace = et.import_error_trace(self.logger, witnesses[0])
-                    arcnames = self.__trim_file_names(error_trace['files'])
-                    error_trace['files'] = [arcnames[file] for file in error_trace['files']]
-
-                    self.logger.info('Write processed witness to "error trace.json"')
-                    with open('error trace.json', 'w', encoding='utf8') as fp:
-                        json.dump(error_trace, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-                    core.utils.report(self.logger,
-                                      'unsafe',
-                                      {
-                                          'id': "{}/verification/unsafe".format(self.id),
-                                          'parent id': "{}/verification".format(self.id),
-                                          'attrs': [],
-                                          'error trace': core.utils.ReportFiles(['error trace.json']
-                                                                                + list(arcnames.keys()),
-                                                                                arcnames=arcnames)
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'])
+                    sources, error_trace_file = self.process_witness(witnesses[0])
+                    self.report_unsafe(sources, [error_trace_file])
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.verdict = 'non-verifier unknown'
@@ -471,8 +484,7 @@ class RP(core.components.Component):
         coverage_info_dir = os.path.join('total coverages',
                                          self.conf['job identifier'].replace('/', '-'),
                                          self.rule_specification.replace('/', '-'))
-        if not os.path.exists(os.path.join(self.conf['main working directory'], coverage_info_dir)):
-            os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir))
+        os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))

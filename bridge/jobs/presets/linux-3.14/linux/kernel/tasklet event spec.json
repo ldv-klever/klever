@@ -1,0 +1,108 @@
+{
+  "Linux 3.14 (base)": {
+  	"functions models": {
+  		"tasklet_init": {
+  			"comment": "Init tasklet_struct fields.",
+  			"process": "<set>",
+  			"actions": {
+  				"set": {
+		            "comment": "Set func and data.",
+		            "statements": [
+		              "$ARG1->func = $ARG2;",
+		              "$ARG1->data = $ARG3;",
+		              "$ARG1->count.counter = 0;"
+		            ]
+		        }
+  			}
+  		},
+  		"__tasklet_schedule": {
+  			"comment": "Schedule a tasklet.",
+	        "labels": {
+	          "tasklet_struct": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "tasklet.tasklet_struct"
+	          }
+	        },
+	        "process": "<assign>.[callback]",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the tasklet callback.",
+	            "callback": "%tasklet_struct.func%",
+	            "parameters": [
+	            	"%tasklet_struct%"
+	            ],
+	            "condition": [
+	            	"%tasklet_struct.count%.counter == 0"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the tasklet structure from arguments.",
+	            "statements": [
+	              "%tasklet_struct% = $ARG1;"
+	            ]
+	          }
+	        }
+  		},
+  		"__tasklet_hi_schedule": {
+  			"comment": "Schedule a high priority tasklet.",
+	        "labels": {
+	          "tasklet_struct": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "tasklet.tasklet_struct"
+	          }
+	        },
+	        "process": "<assign>.[callback]",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the tasklet callback.",
+	            "callback": "%tasklet_struct.func%",
+	            "parameters": [
+	            	"%tasklet_struct%"
+	            ],
+	            "condition": [
+	            	"%tasklet_struct.count%.counter == 0"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the tasklet structure from arguments.",
+	            "statements": [
+	              "%tasklet_struct% = $ARG1;"
+	            ]
+	          }
+	        }
+  		},
+  		"__tasklet_hi_schedule_first": {
+  			"comment": "Schedule a high priority tasklet.",
+	        "labels": {
+	          "tasklet_struct": {
+	            "container": true,
+	            "parameter": true,
+	            "interface": "tasklet.tasklet_struct"
+	          }
+	        },
+	        "process": "<assign>.[callback]",
+	        "actions": {
+	          "callback": {
+	            "comment": "Call the tasklet callback.",
+	            "callback": "%tasklet_struct.func%",
+	            "parameters": [
+	            	"%tasklet_struct%"
+	            ],
+	            "condition": [
+	            	"%tasklet_struct.count%.counter == 0"
+	            ]
+	          },
+	          "assign": {
+	            "comment": "Get the tasklet structure from arguments.",
+	            "statements": [
+	              "%tasklet_struct% = $ARG1;"
+	            ]
+	          }
+	        }
+  		}
+  	},
+  	"environment processes": {}
+  }
+}

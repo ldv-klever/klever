@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,32 +15,33 @@
 # limitations under the License.
 #
 
-import os
 import json
-import mimetypes
-from io import BytesIO
-from urllib.parse import unquote
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import F
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
-from django.shortcuts import render
+from django.http import JsonResponse, Http404
 from django.template.defaulttags import register
 from django.template.loader import get_template
-from django.utils.translation import ugettext as _, activate
+from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.utils.translation import ugettext as _, override
 from django.utils.timezone import pytz
+from django.views.generic.base import TemplateView
+from django.views.generic.detail import SingleObjectMixin, DetailView
 
-from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
+import bridge.CustomViews as Bview
+from tools.profiling import LoggedCallMixin
+from bridge.vars import USER_ROLES, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
     VIEW_TYPES, PROBLEM_DESC_FILE
-from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
+from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
     MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkAssociationsChanges,\
+    SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
@@ -53,837 +54,496 @@ def value_type(value):
     return str(type(value))
 
 
-@login_required
-@unparallel_group([])
-def create_mark(request, mark_type, report_id):
-    activate(request.user.extended.language)
+@method_decorator(login_required, name='dispatch')
+class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'marks/Mark.html'
+    model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
 
-    report_table = {'safe': ReportSafe, 'unsafe': ReportUnsafe, 'unknown': ReportUnknown}
-    try:
-        report = report_table[mark_type].objects.get(id=int(report_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(504)
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
 
-    if not mutils.MarkAccess(request.user, report=report).can_create():
-        return BridgeErrorResponse(_("You don't have an access to create new marks"))
+    def get_context_data(self, **kwargs):
+        if self.object.version == 0:
+            raise BridgeException(code=605)
+        view_type_map = {'safe': VIEW_TYPES[14], 'unsafe': VIEW_TYPES[13], 'unknown': VIEW_TYPES[15]}
+        history_set = self.object.versions.order_by('-version')
 
-    problem_desc = None
-    if mark_type == 'unknown':
-        try:
-            problem_desc = ArchiveFileContent(report, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
-        except Exception as e:
-            logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
-            return BridgeErrorResponse(500)
-
-    try:
-        markdata = MarkData(mark_type, report=report)
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-
-    return render(request, 'marks/CreateMark.html', {
-        'report': report, 'markdata': markdata,
-        'access': mutils.MarkAccess(request.user),
-        'problem_description': problem_desc
-    })
-
-
-@login_required
-def mark_page(request, mtype, action, mark_id):
-    activate(request.user.extended.language)
-
-    mtable = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
-    try:
-        mark = mtable[mtype].objects.get(id=int(mark_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-
-    if mark.version == 0:
-        return BridgeErrorResponse(605)
-
-    access = mutils.MarkAccess(request.user, mark=mark)
-    if action == 'edit' and not access.can_edit():
-        return BridgeErrorResponse(_("You don't have an access to edit this mark"))
-
-    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
-    view_add_args = {}
-    view_type = request.GET.get('view_type')
-    if view_type in view_type_map and view_type_map[view_type] == mtype:
-        view_add_args['view_id'] = request.GET.get('view_id')
-        view_add_args['view'] = request.GET.get('view')
-
-    history_set = mark.versions.order_by('-version')
-    versions = []
-    if action == 'edit':
+        versions = []
         for m in history_set:
-            if m.version == mark.version:
-                title = _("Current version")
-            else:
-                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-                title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                if m.author is not None:
-                    title += " (%s)" % m.author.get_full_name()
+            mark_time = m.change_date.astimezone(pytz.timezone(self.request.user.extended.timezone))
+            title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
+            if m.author is not None:
+                title += " (%s)" % m.author.get_full_name()
+            if len(m.comment) > 0:
                 title += ': ' + m.comment
             versions.append({'version': m.version, 'title': title})
 
-    try:
-        markdata = MarkData(mtype, mark_version=history_set.first())
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-    if action == 'view':
-        template = 'marks/ViewMark.html'
-    else:
-        template = 'marks/EditMark.html'
-    return render(request, template, {
-        'mark': mark, 'markdata': markdata, 'access': access, 'versions': versions,
-        'reports': MarkReportsTable(request.user, mark, **view_add_args),
-        'report_id': request.GET.get('report_to_redirect'),
-        'ass_types': ASSOCIATION_TYPE, 'view_tags': (action == 'view')
-    })
-
-
-@login_required
-def mark_versions(request, mtype, mark_id):
-    activate(request.user.extended.language)
-
-    mtable = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
-    try:
-        mark = mtable[mtype].objects.get(id=int(mark_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-
-    if mark.version == 0:
-        return BridgeErrorResponse(605)
-
-    access = mutils.MarkAccess(request.user, mark=mark)
-    if not access.can_edit():
-        return BridgeErrorResponse(_("You don't have an access to edit this mark"))
-
-    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
-    view_add_args = {}
-    view_type = request.GET.get('view_type')
-    if view_type in view_type_map and view_type_map[view_type] == mtype:
-        view_add_args['view_id'] = request.GET.get('view_id')
-        view_add_args['view'] = request.GET.get('view')
-
-    history_set = mark.versions.order_by('-version')
-    versions = []
-    for m in history_set:
-        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-        title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        if m.author is not None:
-            title += " (%s)" % m.author.get_full_name()
-        title += ': ' + m.comment
-        versions.append({'version': m.version, 'title': title})
-
-    try:
-        markdata = MarkData(mtype, mark_version=history_set.first())
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-
-    return render(request, 'marks/markVersions.html', {
-        'mark': mark, 'markdata': markdata, 'access': access, 'versions': versions,
-        'reports': MarkReportsTable(request.user, mark, **view_add_args),
-        'report_id': request.GET.get('report_to_redirect'),
-        'ass_types': ASSOCIATION_TYPE
-    })
-
-
-@login_required
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def save_mark(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        savedata = json.loads(unquote(request.POST.get('savedata', '{}')))
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        res = mutils.NewMark(request.user, savedata)
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception("Error while saving/creating mark: %s" % e, stack_info=True)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        return JsonResponse({'cache_id': MarkChangesTable(request.user, res.mark, res.changes).cache_id})
-    except Exception as e:
-        logger.exception('Error while saving changes of mark associations: %s' % e, stack_info=True)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-
-@login_required
-@unparallel_group([])
-def get_func_description(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    func_id = int(request.POST.get('func_id', '0'))
-    try:
-        func = MarkUnsafeCompare.objects.get(pk=func_id)
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _('The error traces comparison function was not found')})
-    return JsonResponse({
-        'compare_desc': func.description,
-        'convert_desc': func.convert.description,
-        'convert_name': func.convert.name
-    })
-
-
-@login_required
-@unparallel_group([])
-def get_mark_version_data(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return HttpResponse('')
-    if int(request.POST.get('version', '0')) == 0:
-        return JsonResponse({'error': _('The mark is being deleted')})
-
-    mark_type = request.POST.get('type', None)
-    if mark_type not in ['safe', 'unsafe', 'unknown']:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    error_trace = None
-    try:
-        if mark_type == 'unsafe':
-            mark_version = MarkUnsafeHistory.objects.get(
-                version=int(request.POST.get('version', '0')),
-                mark_id=int(request.POST.get('mark_id', '0'))
-            )
-            with mark_version.error_trace.file as fp:
-                error_trace = fp.read().decode('utf8')
-        elif mark_type == 'safe':
-            mark_version = MarkSafeHistory.objects.get(
-                version=int(request.POST.get('version', '0')),
-                mark_id=int(request.POST.get('mark_id', '0'))
-            )
-        else:
-            mark_version = MarkUnknownHistory.objects.get(
-                version=int(request.POST.get('version', '0')),
-                mark_id=int(request.POST.get('mark_id', '0'))
-            )
-    except ObjectDoesNotExist:
-        return JsonResponse({
-            'error': _('Your version is expired, please reload the page')
-        })
-    if not mutils.MarkAccess(request.user, mark=mark_version.mark).can_edit():
-        return JsonResponse({
-            'error': _("You don't have an access to edit this mark")
-        })
-    if mark_type == 'unknown':
-        unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
-        data = unknown_data_tmpl.render({
-            'markdata': MarkData(mark_type, mark_version=mark_version)
-        }, request)
-    else:
-        data_templ = get_template('marks/MarkAddData.html')
-        try:
-            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in mark_version.tags.all()))
-        except BridgeException as e:
-            return JsonResponse({'error': str(e)})
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-        data = data_templ.render({
-            'markdata': MarkData(mark_type, mark_version=mark_version),
-            'tags': tags,
-            'can_edit': True,
-            'error_trace': error_trace
-        }, request)
-    return JsonResponse({'data': data})
-
-
-@login_required
-@unparallel_group([])
-def mark_list(request, marks_type):
-    activate(request.user.extended.language)
-
-    verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
-
-    view_type_map = {VIEW_TYPES[7][0]: 'unsafe', VIEW_TYPES[8][0]: 'safe', VIEW_TYPES[9][0]: 'unknown'}
-    view_add_args = {'page': request.GET.get('page', 1)}
-    view_type = request.GET.get('view_type')
-    if view_type in view_type_map and view_type_map[view_type] == marks_type:
-        view_add_args['view_id'] = request.GET.get('view_id')
-        view_add_args['view'] = request.GET.get('view')
-
-    return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(request.user, marks_type, **view_add_args),
-        'type': marks_type,
-        'statuses': MARK_STATUS,
-        'mark_types': MARK_TYPE,
-        'verdicts': verdicts[marks_type],
-        'authors': User.objects.all()
-    })
-
-
-@login_required
-@unparallel_group([])
-def download_mark(request, mark_type, mark_id):
-
-    if request.method == 'POST':
-        return HttpResponse('')
-    try:
-        if mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=int(mark_id))
-        elif mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=int(mark_id))
-        else:
-            mark = MarkUnknown.objects.get(pk=int(mark_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-    if mark.version == 0:
-        return BridgeErrorResponse(605)
-
-    generator = MarkArchiveGenerator(mark)
-    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
-    response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
-    return response
-
-
-@login_required
-@unparallel_group([])
-def download_preset_mark(request, mark_type, mark_id):
-    if request.method == 'POST':
-        return HttpResponse('')
-    try:
-        if mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=int(mark_id))
-        elif mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=int(mark_id))
-        else:
-            mark = MarkUnknown.objects.get(pk=int(mark_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-    if mark.version == 0:
-        return BridgeErrorResponse(605)
-
-    generator = PresetMarkFile(mark)
-    response = HttpResponse(content_type=mimetypes.guess_type(os.path.basename(generator.filename))[0])
-    response["Content-Disposition"] = "attachment; filename=%s" % generator.filename
-    response.write(generator.data)
-
-    return response
-
-
-@login_required
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def upload_marks(request):
-    activate(request.user.extended.language)
-
-    if not mutils.MarkAccess(request.user).can_create():
-        return JsonResponse({'status': False, 'message': _("You don't have access to create new marks")})
-
-    failed_marks = []
-    mark_id = None
-    mark_type = None
-    num_of_new_marks = 0
-    for f in request.FILES.getlist('file'):
-        try:
-            res = UploadMark(request.user, f)
-        except BridgeException as e:
-            failed_marks.append([str(e), f.name])
-        except Exception as e:
-            logger.exception(e)
-            failed_marks.append([str(UNKNOWN_ERROR), f.name])
-        else:
-            num_of_new_marks += 1
-            mark_id = res.mark.id
-            mark_type = res.type
-    if len(failed_marks) > 0:
-        return JsonResponse({'status': False, 'messages': failed_marks})
-    if num_of_new_marks == 1:
-        return JsonResponse({
-            'status': True, 'mark_id': str(mark_id), 'mark_type': mark_type
-        })
-    return JsonResponse({'status': True})
-
-
-@login_required
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def delete_marks(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST' or 'type' not in request.POST or 'ids' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        mutils.delete_marks(request.user, request.POST['type'], json.loads(request.POST['ids']))
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
-
-
-@login_required
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def remove_versions(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'mark_type', 'versions']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    mark_id = int(request.POST['mark_id'])
-    mark_type = request.POST['mark_type']
-    mark_table = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
-    if mark_type not in mark_table:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        mark = mark_table[mark_type].objects.get(pk=mark_id)
-        if mark.version == 0:
-            return JsonResponse({'error': _('The mark is being deleted')})
-        mark_history = mark.versions.all()
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _('The mark was not found')})
-    if not mutils.MarkAccess(request.user, mark).can_edit():
-        return JsonResponse({'error': _("You don't have an access to edit this mark")})
-
-    checked_versions = mark_history.filter(version__in=json.loads(request.POST['versions']))
-    for mark_version in checked_versions:
-        if not mutils.MarkAccess(request.user, mark=mark).can_remove_version(mark_version):
-            return JsonResponse({'error': _("You don't have an access to remove one of the selected version")})
-
-    if len(checked_versions) > 0:
-        checked_versions.delete()
-        return JsonResponse({'message': _('Selected versions were successfully deleted')})
-    return JsonResponse({'error': _('There is nothing to delete')})
-
-
-@login_required
-def compare_versions(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'mark_type', 'v1', 'v2']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        return render(request, 'marks/markVCmp.html', {'data': mutils.CompareMarkVersions(
-            request.POST['mark_id'], request.POST['mark_type'], [int(request.POST['v1']), int(request.POST['v2'])]
-        )})
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-
-@login_required
-@unparallel_group([])
-def association_changes(request, association_id):
-    activate(request.user.extended.language)
-
-    view_add_args = {}
-    if request.GET.get('view_type') in {VIEW_TYPES[16][0], VIEW_TYPES[17][0], VIEW_TYPES[18][0]}:
-        view_add_args['view'] = request.GET.get('view')
-        view_add_args['view_id'] = request.GET.get('view_id')
-
-    try:
-        data = AssociationChangesTable(request.user, association_id, **view_add_args)
-    except BridgeException as e:
-        return BridgeErrorResponse(str(e))
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-    return render(request, 'marks/SaveMarkResult.html', {'TableData': data})
-
-
-@login_required
-@unparallel_group([])
-def show_tags(request, tags_type):
-    activate(request.user.extended.language)
-
-    if tags_type == 'unsafe':
-        page_title = "Unsafe tags"
-    else:
-        page_title = "Safe tags"
-    try:
-        tags_data = GetTagsData(tags_type, user=request.user)
-    except Exception as e:
-        logger.exception(e)
-        return BridgeErrorResponse(500)
-    return render(request, 'marks/TagsTree.html', {
-        'title': page_title,
-        'tags': tags_data.table.data,
-        'tags_type': tags_type,
-        'can_create': TagAccess(request.user, None).create()
-    })
-
-
-@login_required
-@unparallel_group([])
-def get_tag_data(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    user_access = {'access_edit': [], 'access_child': [], 'all': []}
-
-    if request.user.extended.role == USER_ROLES[2][0]:
-        for u in User.objects.exclude(extended__role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
-            user_access['all'].append([u.id, u.get_full_name()])
-
-    if 'tag_id' not in request.POST:
-        if request.POST['tag_type'] == 'unsafe':
-            return JsonResponse({
-                'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
-                                      ensure_ascii=False, sort_keys=True, indent=4),
-                'access': json.dumps(user_access, ensure_ascii=False)
-            })
-        else:
-            return JsonResponse({
-                'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
-                                      ensure_ascii=False, sort_keys=True, indent=4),
-                'access': json.dumps(user_access, ensure_ascii=False)
-            })
-    try:
-        res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    if request.user.extended.role == USER_ROLES[2][0]:
-        tag_access_model = {'safe': SafeTagAccess, 'unsafe': UnsafeTagAccess}
-        for tag_access in tag_access_model[request.POST['tag_type']].objects.filter(tag=res.tag):
-            if tag_access.modification:
-                user_access['access_edit'].append(tag_access.user_id)
-            elif tag_access.child_creation:
-                user_access['access_child'].append(tag_access.user_id)
-
-    return JsonResponse({
-        'parents': json.dumps(res.parents_ids, ensure_ascii=False),
-        'current': res.tag.parent_id if res.tag.parent_id is not None else 0,
-        'access': json.dumps(user_access, ensure_ascii=False)
-    })
-
-
-@login_required
-@unparallel_group([UnsafeTag, SafeTag])
-def save_tag(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        SaveTag(request.user, request.POST)
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
-
-
-@login_required
-@unparallel_group([UnsafeTag, SafeTag])
-def remove_tag(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.POST['tag_type'] == 'safe':
-        try:
-            tag = SafeTag.objects.get(pk=request.POST.get('tag_id', 0))
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The tag was not found')})
-    else:
-        try:
-            tag = UnsafeTag.objects.get(pk=request.POST.get('tag_id', 0))
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The tag was not found')})
-
-    if not TagAccess(request.user, tag).delete():
-        return JsonResponse({'error': _("You don't have an access to remove this tag")})
-    tag.delete()
-    return JsonResponse({})
-
-
-@login_required
-@unparallel_group([])
-def get_tags_data(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if 'selected_tags' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    deleted_tag = None
-    if 'deleted' in request.POST and request.POST['deleted'] is not None:
-        try:
-            deleted_tag = int(request.POST['deleted'])
-        except Exception as e:
-            logger.error("Deleted tag has wrong format: %s" % e)
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        selected_tags = json.loads(request.POST['selected_tags'])
-    except Exception as e:
-        logger.error("Can't parse selected tags: %s" % e, stack_info=True)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        res = TagsInfo(request.POST['tag_type'], selected_tags, deleted_tag)
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({
-        'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
-        'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
-        'tree': get_template('marks/MarkTagsTree.html').render({
-            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True, 'user': request.user
-        }, request)
-    })
-
-
-@login_required
-@unparallel_group([])
-def download_tags(request, tags_type):
-    tags_data = []
-    if tags_type == 'safe':
-        tags_table = SafeTag
-    else:
-        tags_table = UnsafeTag
-    for tag in tags_table.objects.all():
-        tag_data = {'name': tag.tag, 'description': tag.description}
-        if tag.parent is not None:
-            tag_data['parent'] = tag.parent.tag
-        tags_data.append(tag_data)
-    fp = BytesIO()
-    fp.write(json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
-    fp.seek(0)
-    tags_file_name = 'Tags-%s.json' % tags_type
-    mimetype = mimetypes.guess_type(os.path.basename(tags_file_name))[0]
-    response = HttpResponse(content_type=mimetype)
-    response["Content-Disposition"] = 'attachment; filename="%s"' % tags_file_name
-    response.write(fp.read())
-    return response
-
-
-@login_required
-@unparallel_group([UnsafeTag, SafeTag])
-def upload_tags(request):
-    activate(request.user.extended.language)
-
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not TagAccess(request.user, None).create():
-        return JsonResponse({'error': str(_("You don't have an access to upload tags"))})
-    if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    fp = None
-    for f in request.FILES.getlist('file'):
-        fp = f
-    if fp is None:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        CreateTagsFromFile(request.user, fp, request.POST['tags_type'])
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
-
-
-@unparallel_group([])
-def download_all(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': "You don't have an access to download all marks"})
-    generator = AllMarksGen()
-    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
-    response = StreamingHttpResponse(generator, content_type=mimetype)
-    response["Content-Disposition"] = 'attachment; filename="%s"' % generator.name
-    return response
-
-
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def upload_all(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': "You don't have an access to upload marks"})
-
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    delete_all_marks = False
-    if int(request.POST.get('delete', 0)) == 1:
-        delete_all_marks = True
-
-    if len(request.FILES.getlist('file')) == 0:
-        return JsonResponse({'error': 'Archive with marks expected'})
-    try:
-        marks_dir = extract_archive(request.FILES.getlist('file')[0])
-    except Exception as e:
-        logger.exception("Archive extraction failed" % e, stack_info=True)
-        return JsonResponse({'error': 'Archive extraction failed'})
-
-    try:
-        res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': 'Unknown error'})
-    return JsonResponse(res.numbers)
-
-
-@unparallel_group([])
-def get_inline_mark_form(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    activate(request.user.extended.language)
-
-    obj_model = {
-        'safe': (MarkSafeHistory, ReportSafe),
-        'unsafe': (MarkUnsafeHistory, ReportUnsafe)
+        return {
+            'mark': self.object, 'access': mutils.MarkAccess(self.request.user, mark=self.object),
+            'versions': versions, 'report_id': self.request.GET.get('report_to_redirect'),
+            'markdata': MarkData(self.kwargs['type'], mark_version=history_set.first()),
+            'ass_types': ASSOCIATION_TYPE, 'view_tags': True,
+            'reports': MarkReportsTable(self.request.user, self.object,
+                                        self.get_view(view_type_map[self.kwargs['type']]),
+                                        page=self.request.GET.get('page', 1))
+        }
+
+
+@method_decorator(login_required, name='dispatch')
+class AssociationChangesView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    model = MarkAssociationsChanges
+    template_name = 'marks/SaveMarkResult.html'
+    slug_field = 'identifier'
+    slug_url_kwarg = 'association_id'
+
+    def get_context_data(self, **kwargs):
+        view_type_map = {'safe': VIEW_TYPES[16], 'unsafe': VIEW_TYPES[17], 'unknown': VIEW_TYPES[18]}
+        return {'TableData': AssociationChangesTable(self.object, self.get_view(view_type_map[self.kwargs['type']]))}
+
+
+@method_decorator(login_required, name='dispatch')
+class MarksListView(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
+    template_name = 'marks/MarkList.html'
+
+    def get_context_data(self, **kwargs):
+        context = {'authors': User.objects.all(), 'statuses': MARK_STATUS, 'mark_types': MARK_TYPE}
+        if self.kwargs['type'] == 'safe':
+            context['verdicts'] = MARK_SAFE
+        elif self.kwargs['type'] == 'unsafe':
+            context['verdicts'] = MARK_UNSAFE
+
+        view_type_map = {'safe': VIEW_TYPES[8], 'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
+        context['tabledata'] = MarksList(self.request.user, self.kwargs['type'],
+                                         self.get_view(view_type_map[self.kwargs['type']]),
+                                         page=self.request.GET.get('page', 1))
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class MarkFormView(LoggedCallMixin, DetailView):
+    model_map = {
+        'edit': {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown},
+        'create': {'safe': ReportSafe, 'unsafe': ReportUnsafe, 'unknown': ReportUnknown}
     }
-    if request.method != 'POST' or 'type' not in request.POST \
-            or ('mark_id' not in request.POST and 'report_id' not in request.POST):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.POST['type'] not in obj_model:
-        return JsonResponse({'error': _('The mark type is not supported for inline editing')})
+    template_name = 'marks/MarkForm.html'
 
-    if 'mark_id' in request.POST:
+    def get_unparallel(self):
+        if self.request.method == 'POST':
+            return [MarkSafe, MarkUnsafe, MarkUnknown]
+        return []
+
+    def post(self, *args, **kwargs):
+        self.is_not_used(*args, **kwargs)
+
+        self.object = self.get_object()
+        if self.kwargs['action'] == 'create' \
+                and not mutils.MarkAccess(self.request.user, report=self.object).can_create():
+            raise BridgeException(_("You don't have an access to create new marks"), response_type='json')
+        elif self.kwargs['action'] == 'edit' \
+                and not mutils.MarkAccess(self.request.user, mark=self.object).can_edit():
+            raise BridgeException(_("You don't have an access to edit this mark"), response_type='json')
+
         try:
-            last_version = obj_model[request.POST['type']][0].objects.get(
-                mark_id=request.POST['mark_id'], version=F('mark__version')
+            res = mutils.NewMark(self.request.user, self.object, json.loads(self.request.POST['data']))
+            if self.kwargs['action'] == 'edit':
+                res.change_mark()
+            else:
+                res.create_mark()
+            cache_id = MarkChangesTable(self.request.user, res.mark, res.changes).cache_id
+        except BridgeException as e:
+            raise BridgeException(str(e), response_type='json')
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException(response_type='json')
+
+        return JsonResponse({'cache_id': cache_id})
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['action']][self.kwargs['type']].objects.all()
+
+    def get_context_data(self, **kwargs):
+        context = {'versions': [], 'action': self.kwargs['action']}
+        if self.kwargs['action'] == 'edit':
+            access = mutils.MarkAccess(self.request.user, mark=self.object)
+            if not access.can_edit():
+                raise BridgeException(_("You don't have an access to edit this mark"))
+            context['mark'] = self.object
+            context['selected_version'] = int(self.request.GET.get('version', self.object.version))
+            for m in self.object.versions.order_by('-version'):
+                if m.version == self.object.version:
+                    title = _("Current version")
+                else:
+                    change_time = m.change_date.astimezone(pytz.timezone(self.request.user.extended.timezone))
+                    title = change_time.strftime("%d.%m.%Y %H:%M:%S")
+                    if m.author is not None:
+                        title += " (%s)" % m.author.get_full_name()
+                    if len(m.comment) > 0:
+                        title += ': ' + m.comment
+                context['versions'].append({'version': m.version, 'title': title})
+                if context['selected_version'] == m.version:
+                    context['markdata'] = MarkData(self.kwargs['type'], mark_version=m)
+            if 'markdata' not in context:
+                raise BridgeException(_('The mark version was not found'))
+            context['cancel_url'] = reverse('marks:mark', args=[self.kwargs['type'], self.object.id])
+        else:
+            if self.kwargs['type'] == 'unknown':
+                try:
+                    context['problem_description'] = \
+                        ArchiveFileContent(self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8')
+                except Exception as e:
+                    logger.exception("Can't get problem description for unknown '%s': %s" % (self.object.id, e))
+                    raise BridgeException()
+
+            access = mutils.MarkAccess(self.request.user, report=self.object)
+            if not access.can_create():
+                raise BridgeException(_("You don't have an access to create new marks"))
+            context['report'] = self.object
+            context['markdata'] = MarkData(self.kwargs['type'], report=self.object)
+            context['cancel_url'] = reverse(
+                'reports:{0}'.format(self.kwargs['type']),
+                args=[self.object.trace_id if self.kwargs['type'] == 'unsafe' else self.object.id]
             )
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The mark was not found')})
-        markdata = MarkData(request.POST['type'], mark_version=last_version)
-        try:
-            tags = TagsInfo(request.POST['type'], list(tag.tag.pk for tag in last_version.tags.all()))
-        except BridgeException as e:
-            return JsonResponse({'error': str(e)})
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    else:
-        try:
-            report = obj_model[request.POST['type']][1].objects.get(id=request.POST['report_id'])
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The report was not found')})
-        markdata = MarkData(request.POST['type'], report=report)
-        try:
-            tags = TagsInfo(request.POST['type'], [])
-        except BridgeException as e:
-            return JsonResponse({'error': str(e)})
-        except Exception as e:
-            logger.exception(e)
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    return JsonResponse({
-        'data': get_template('marks/InlineMarkForm.html').render({
-            'type': request.POST['type'], 'markdata': markdata, 'tags': tags
-        }, request)
-    })
+        context['access'] = access
+        return context
 
 
-@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
-def unconfirm_association(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    activate(request.user.extended.language)
+class InlineMarkForm(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
+    model_map = {
+        'edit': {'safe': MarkSafeHistory, 'unsafe': MarkUnsafeHistory, 'unknown': MarkUnknownHistory},
+        'create': {'safe': ReportSafe, 'unsafe': ReportUnsafe, 'unknown': ReportUnknown}
+    }
+    template_name = 'marks/InlineMarkForm.html'
 
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        if request.POST['report_type'] == 'safe':
-            mutils.SafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
-        elif request.POST['report_type'] == 'unsafe':
-            mutils.UnsafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
-        elif request.POST['report_type'] == 'unknown':
-            mutils.UnknownUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+    def get_queryset(self):
+        if self.kwargs['action'] == 'edit':
+            return self.model_map['edit'][self.kwargs['type']].objects.filter(version=F('mark__version'))
         else:
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
+            return self.model_map['create'][self.kwargs['type']].objects.all()
 
-
-@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
-def confirm_association(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    activate(request.user.extended.language)
-
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        if request.POST['report_type'] == 'safe':
-            mutils.SafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
-        elif request.POST['report_type'] == 'unsafe':
-            mutils.UnsafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
-        elif request.POST['report_type'] == 'unknown':
-            mutils.UnknownUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+    def get_object(self, queryset=None):
+        queryset = self.get_queryset()
+        if self.kwargs['action'] == 'edit':
+            queryset = queryset.filter(mark_id=self.kwargs['pk'])
         else:
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
+            queryset = queryset.filter(pk=self.kwargs['pk'])
+        try:
+            return queryset.get()
+        except queryset.model.DoesNotExist:
+            raise Http404(_('The %(obj_name)s was not found') % {
+                'obj_name': _('mark') if self.kwargs['action'] == 'edit' else _('report')
+            })
 
+    def get_context_data(self, **kwargs):
+        context = {'action': self.kwargs['action'], 'obj_id': self.kwargs['pk']}
 
-@unparallel_group([MarkUnsafeReport, MarkSafeReport, MarkUnknownReport])
-def like_association(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    activate(request.user.extended.language)
-
-    if request.method != 'POST' \
-            or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type', 'dislike']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        if request.POST['report_type'] == 'safe':
-            mutils.SafeUtils.like_association(
-                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
-        elif request.POST['report_type'] == 'unsafe':
-            mutils.UnsafeUtils.like_association(
-                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
-        elif request.POST['report_type'] == 'unknown':
-            mutils.UnknownUtils.like_association(
-                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        selected_tags = []
+        if self.kwargs['action'] == 'edit':
+            context['markdata'] = MarkData(self.kwargs['type'], mark_version=self.object)
+            if self.kwargs['type'] != 'unknown':
+                selected_tags = list(t_id for t_id, in self.object.tags.values_list('tag_id'))
         else:
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({})
+            context['markdata'] = MarkData(self.kwargs['type'], report=self.object)
+        if self.kwargs['type'] != 'unknown':
+            context['tags'] = TagsInfo(self.kwargs['type'], selected_tags)
+        return context
 
 
-@login_required
-def check_unknown_mark(request):
-    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'function', 'pattern', 'is_regex']):
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        res = mutils.UnknownUtils.CheckFunction(
-            int(request.POST['report_id']), request.POST['function'], request.POST['pattern'], request.POST['is_regex']
+class RemoveVersionsView(LoggedCallMixin, Bview.JsonDetailPostView):
+    model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
+
+    def get_context_data(self, **kwargs):
+        if self.object.version == 0:
+            raise BridgeException(_('The mark is being deleted'))
+        if not mutils.MarkAccess(self.request.user, self.object).can_edit():
+            raise BridgeException(_("You don't have an access to edit this mark"))
+
+        checked_versions = self.object.versions.filter(version__in=json.loads(self.request.POST['versions']))
+        for mark_version in checked_versions:
+            if not mutils.MarkAccess(self.request.user, mark=self.object).can_remove_version(mark_version):
+                raise BridgeException(_("You don't have an access to remove one of the selected version"))
+        if len(checked_versions) == 0:
+            raise BridgeException(_('There is nothing to delete'))
+        checked_versions.delete()
+        return {'success': _('Selected versions were successfully deleted')}
+
+
+class CompareVersionsView(LoggedCallMixin, Bview.DetailPostView):
+    model_map = {
+        'safe': (MarkSafe, MarkSafeHistory),
+        'unsafe': (MarkUnsafe, MarkUnsafeHistory),
+        'unknown': (MarkUnknown, MarkUnknownHistory)
+    }
+    template_name = 'marks/markVCmp.html'
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']][0].objects.all()
+
+    def get_context_data(self, **kwargs):
+        versions = [int(self.request.POST['v1']), int(self.request.POST['v2'])]
+        mark_versions = self.model_map[self.kwargs['type']][1].objects.filter(mark=self.object, version__in=versions)\
+            .order_by('change_date')
+        if mark_versions.count() != 2:
+            raise BridgeException(_('The page is outdated, reload it please'))
+        return {'data': mutils.CompareMarkVersions(self.kwargs['type'], *list(mark_versions))}
+
+
+@method_decorator(login_required, name='dispatch')
+class DownloadMarkView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+    model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
+
+    def get_generator(self):
+        self.object = self.get_object()
+        if self.object.version == 0:
+            raise BridgeException(code=605)
+        generator = MarkArchiveGenerator(self.object)
+        self.file_name = generator.name
+        return generator
+
+
+@method_decorator(login_required, name='dispatch')
+class DownloadPresetMarkView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+    model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
+
+    def get_generator(self):
+        self.object = self.get_object()
+        if self.object.version == 0:
+            raise BridgeException(code=605)
+        generator = PresetMarkFile(self.object)
+        self.file_name = generator.filename
+        return generator
+
+
+class UploadMarksView(LoggedCallMixin, Bview.JsonView):
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+
+    def get_context_data(self, **kwargs):
+        if not mutils.MarkAccess(self.request.user).can_create():
+            raise BridgeException(_("You don't have an access to create new marks"))
+
+        new_marks = []
+        for f in self.request.FILES.getlist('file'):
+            res = UploadMark(self.request.user, f)
+            new_marks.append((res.type, res.mark.id))
+
+        if len(new_marks) == 1:
+            return {'type': new_marks[0][0], 'id': str(new_marks[0][1])}
+        return {'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}}
+
+
+class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
+    def dispatch(self, request, *args, **kwargs):
+        with override(settings.DEFAULT_LANGUAGE):
+            return super().dispatch(request, *args, **kwargs)
+
+    def get_generator(self):
+        if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+            raise BridgeException("You don't have an access to download all marks")
+        generator = AllMarksGen()
+        self.file_name = generator.name
+        return generator
+
+
+class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+
+    def dispatch(self, request, *args, **kwargs):
+        with override(settings.DEFAULT_LANGUAGE):
+            return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+            raise BridgeException("You don't have an access to upload marks")
+        marks_dir = extract_archive(self.request.FILES['file'])
+        return UploadAllMarks(self.request.user, marks_dir.name, bool(int(self.request.POST.get('delete', 0)))).numbers
+
+
+class SaveTagView(LoggedCallMixin, Bview.JsonView):
+    unparallel = [UnsafeTag, SafeTag]
+
+    def get_context_data(self, **kwargs):
+        SaveTag(self.request.user, self.request.POST)
+        return {}
+
+
+@method_decorator(login_required, name='dispatch')
+class TagsTreeView(LoggedCallMixin, TemplateView):
+    template_name = 'marks/TagsTree.html'
+
+    def get_context_data(self, **kwargs):
+        return {
+            'title': _('Safe tags') if self.kwargs['type'] == 'safe' else _('Unsafe tags'),
+            'tags_type': self.kwargs['type'],
+            'tags': GetTagsData(self.kwargs['type'], user=self.request.user).table.data,
+            'can_create': TagAccess(self.request.user, None).create()
+        }
+
+
+@method_decorator(login_required, name='dispatch')
+class DownloadTagsView(LoggedCallMixin, Bview.StreamingResponseView):
+    def get_generator(self):
+        generator = mutils.DownloadTags(self.kwargs['type'])
+        self.file_name = 'Tags-%s.json' % self.kwargs['type']
+        self.file_size = generator.file_size()
+        return generator
+
+
+class UploadTagsView(LoggedCallMixin, Bview.JsonView):
+    def get_context_data(self, **kwargs):
+        if not TagAccess(self.request.user, None).create():
+            raise BridgeException(_("You don't have an access to upload tags"))
+        if 'file' not in self.request.FILES:
+            raise BridgeException()
+        CreateTagsFromFile(self.request.user, self.request.FILES['file'], self.kwargs['type'])
+        return {}
+
+
+class TagDataView(LoggedCallMixin, Bview.JsonView):
+    model_map = {'safe': (SafeTag, SafeTagAccess), 'unsafe': (UnsafeTag, UnsafeTagAccess)}
+
+    def get_context_data(self, **kwargs):
+        context = {}
+        user_access = {'access_edit': [], 'access_child': [], 'all': []}
+
+        if self.request.user.extended.role == USER_ROLES[2][0]:
+            for u in User.objects.exclude(extended__role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
+                user_access['all'].append([u.id, u.get_full_name()])
+
+        if 'tag_id' in self.request.POST:
+            res = GetParents(self.request.POST['tag_id'], self.kwargs['type'])
+            context['parents'] = json.dumps(res.parents_ids)
+            context['current'] = res.tag.parent_id if res.tag.parent_id is not None else 0
+            if self.request.user.extended.role == USER_ROLES[2][0]:
+                tag_access_model = self.model_map[self.kwargs['type']][1]
+                user_access['access_edit'] = list(u_id for u_id, in tag_access_model.objects
+                                                  .filter(tag=res.tag, modification=True).values_list('user_id'))
+                user_access['access_child'] = list(u_id for u_id, in tag_access_model.objects
+                                                   .filter(tag=res.tag, child_creation=True).values_list('user_id'))
+        else:
+            tags_model = self.model_map[self.kwargs['type']][0]
+            context['parents'] = json.dumps(list(tag.pk for tag in tags_model.objects.order_by('tag')))
+        context['access'] = json.dumps(user_access)
+        return context
+
+
+class RemoveTagView(LoggedCallMixin, Bview.JsonDetailPostView):
+    model_map = {'safe': SafeTag, 'unsafe': UnsafeTag}
+    unparallel = [UnsafeTag, SafeTag]
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
+
+    def get_context_data(self, **kwargs):
+        if not TagAccess(self.request.user, self.object).delete():
+            raise BridgeException(_("You don't have an access to remove this tag"))
+        self.object.delete()
+        return {}
+
+
+class MarkTagsView(LoggedCallMixin, Bview.JsonView):
+    def get_context_data(self, **kwargs):
+        res = TagsInfo(
+            self.kwargs['type'],
+            json.loads(self.request.POST['selected_tags']),
+            self.request.POST.get('deleted')
         )
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'result': res.match, 'problem': res.problem, 'matched': int(res.problem is not None)})
+        return {
+            'available': json.dumps(res.available, ensure_ascii=False),
+            'selected': json.dumps(res.selected, ensure_ascii=False),
+            'tree': get_template('marks/MarkTagsTree.html').render({
+                'tags': res.table, 'tags_type': self.kwargs['type'], 'can_edit': True, 'user': self.request.user
+            }, self.request)
+        }
+
+
+class ChangeAssociationView(LoggedCallMixin, Bview.JsonDetailPostView):
+    model_map = {'safe': MarkSafeReport, 'unsafe': MarkUnsafeReport, 'unknown': MarkUnknownReport}
+    unparallel = [MarkSafeReport, MarkUnsafeReport, MarkUnknownReport]
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']].objects.all()
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+        try:
+            obj = queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
+        except queryset.model.DoesNotExist:
+            raise Http404(_("The accosiation was not found"))
+        return obj
+
+    def get_context_data(self, **kwargs):
+        recalc = (self.kwargs['act'] == 'unconfirm' or self.object.type == ASSOCIATION_TYPE[2][0])
+        self.object.author = self.request.user
+        self.object.type = ASSOCIATION_TYPE[1][0] if self.kwargs['act'] == 'confirm' else ASSOCIATION_TYPE[2][0]
+        self.object.save()
+        mutils.UpdateAssociationCache(self.object, recalc)
+        return {}
+
+
+class LikeAssociation(LoggedCallMixin, Bview.JsonDetailPostView):
+    model_map = {
+        'safe': (MarkSafeReport, SafeAssociationLike),
+        'unsafe': (MarkUnsafeReport, UnsafeAssociationLike),
+        'unknown': (MarkUnknownReport, UnknownAssociationLike)
+    }
+    unparallel = [MarkSafeReport, MarkUnsafeReport, MarkUnknownReport]
+
+    def get_queryset(self):
+        return self.model_map[self.kwargs['type']][0].objects.all()
+
+    def get_object(self, queryset=None):
+        if queryset is None:
+            queryset = self.get_queryset()
+        try:
+            obj = queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
+        except queryset.model.DoesNotExist:
+            raise Http404(_("The accosiation was not found"))
+        return obj
+
+    def get_context_data(self, **kwargs):
+        self.model_map[self.kwargs['type']][1].objects\
+            .filter(association=self.object, author=self.request.user).delete()
+        self.model_map[self.kwargs['type']][1].objects\
+            .create(association=self.object, author=self.request.user, dislike=(self.kwargs['act'] == 'dislike'))
+        return {}
+
+
+class DeleteMarksView(LoggedCallMixin, Bview.JsonView):
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+
+    def get_context_data(self, **kwargs):
+        return {'report_id': mutils.delete_marks(self.request.user, self.request.POST['type'],
+                                                 json.loads(self.request.POST['ids']),
+                                                 report_id=self.request.POST.get('report_id'))}
+
+
+class GetFuncDescription(LoggedCallMixin, Bview.JsonDetailPostView):
+    model = MarkUnsafeCompare
+
+    def get_context_data(self, **kwargs):
+        return {
+            'compare_desc': self.object.description,
+            'convert_desc': self.object.convert.description,
+            'convert_name': self.object.convert.name
+        }
+
+
+class CheckUnknownMarkView(LoggedCallMixin, Bview.JsonDetailPostView):
+    model = ReportUnknown
+
+    def get_context_data(self, **kwargs):
+        res = mutils.UnknownUtils.CheckFunction(
+            ArchiveFileContent(self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
+            self.request.POST['function'], self.request.POST['pattern'], self.request.POST['is_regex']
+        )
+        return {'result': res.match, 'problem': res.problem, 'matched': int(res.problem is not None)}
