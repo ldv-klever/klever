@@ -32,6 +32,12 @@ from core.lkvog.strategies import strategy_utils
 
 from core.lkvog.module_extractors import module_extractors_list
 
+from core.lkvog.fetch_work_src_tree import fetch_work_src_tree
+from core.lkvog.make_canonical_work_src_tree import make_canonical_work_src_tree
+from core.lkvog.linux_kernel.clean_work_src_tree import clean_linux_kernel_work_src_tree
+from core.lkvog.linux_kernel.configure import configure_linux_kernel
+from core.lkvog.linux_kernel.build import build_linux_kernel
+
 import core.components
 import core.utils
 
@@ -90,7 +96,7 @@ class LKVOG(core.components.Component):
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
-                self.build_linux_kernel()
+                self.prepare_and_build_linux_kernel()
 
         self.clade = Clade()
         self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
@@ -117,7 +123,7 @@ class LKVOG(core.components.Component):
         if self.dependencies:
             self.strategy.set_dependencies(self.dependencies, self.sizes)
 
-    def build_linux_kernel(self):
+    def prepare_and_build_linux_kernel(self):
         try:
             src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                               self.conf['Linux kernel']['source'])
@@ -152,6 +158,19 @@ class LKVOG(core.components.Component):
         modules_to_build = sorted(set(modules_to_build))
 
         ext_modules = self.prepare_ext_modules()
+
+        work_src_tree = fetch_work_src_tree(self.logger, src, 'linux', self.conf['Linux kernel'].get('Git repository'),
+                                            self.conf['allow local source directories use'])
+        make_canonical_work_src_tree(self.logger, work_src_tree)
+        clean_linux_kernel_work_src_tree(self.logger, work_src_tree)
+        # TODO: get linux kernel version.
+        conf_hash = configure_linux_kernel(self.logger, work_src_tree, build_jobs, arch, conf)
+        # TODO: self.dump_global_data('Linux kernel architecture', self.ext_conf['architecture'])
+        # TODO: self.dump_global_data('Linux kernel configuration', conf_hash)
+        # TODO: argument "kernel" is unused.
+        build_linux_kernel(self.logger, work_src_tree, build_jobs, arch, False,
+                           modules_to_build if not is_build_all_modules else ['all'], os.path.abspath(ext_modules),
+                           self.mqs["model headers"].get())
 
         clade_conf = {
             'work_dir': self.conf['Clade']['base'],
