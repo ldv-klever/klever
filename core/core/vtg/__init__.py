@@ -539,12 +539,6 @@ class VTG(core.components.Component):
                             else:
                                 break
 
-                    solved = 0
-                    for rule in _rule_spec_classes[rule_class]:
-                        if rule['id'] in processing_status[vobject][rule_class] and \
-                                processing_status[vobject][rule_class][rule['id']]:
-                            solved += 1
-
                     # Check that we should reschedule tasks
                     for rule in (r for r in _rule_spec_classes[rule_class] if
                                  r['id'] in processing_status[vobject][rule_class] and
@@ -561,10 +555,16 @@ class VTG(core.components.Component):
                                 self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
                                 processing_status[vobject][rule_class][rule['id']] = True
 
-                    if solved == len(_rule_spec_classes[rule_class]) and \
-                        (self.conf['keep intermediate files'] or (vobject in delete_ready and
-                         solved == len([rule for rule in processing_status[vobject][rule_class]
-                                        if rule in delete_ready[vobject]]))):
+                    # Number of solved tasks
+                    solved = sum((1 if processing_status[vobject][rule_class][r['id']] else 0
+                                  for r in _rule_spec_classes[rule_class]))
+                    # Number of rules which are ready to delete
+                    deletable = len((r for r in processing_status[vobject][rule_class] if r in delete_ready[vobject]))
+                    # Total tasks for rules
+                    total = len(_rule_spec_classes[rule_class])
+
+                    if solved == total and (self.conf['keep intermediate files'] or
+                                            (vobject in delete_ready and solved == deletable)):
                         self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
