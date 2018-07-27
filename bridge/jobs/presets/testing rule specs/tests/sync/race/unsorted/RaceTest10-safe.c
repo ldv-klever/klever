@@ -15,63 +15,32 @@
  * limitations under the License.
  */
 
-/* The test checks the work of cleanin BAM caches. */
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <verifier/nondet.h>
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-static int _ldv_global_var;
-static int _ldv_global_var2;
+static int _ldv_unsafe;
+static int _ldv_unknown;
 
-static void ldv_func3(int a) 
+static int ldv_func(void)
 {
-	/* Uninportant function. */
 	int b = 0;
 
-	b++;
-	if (a > b)
-		b++;
+	if (b) {
+		mutex_lock(&ldv_lock);
+		_ldv_unsafe = 1;
+		mutex_unlock(&ldv_lock);
+	}
+
+	return 0;
 }
 
-static void ldv_func4(int a) 
+static void *ldv_main(void *arg)
 {
-	/* Uninportant function. */
-	int b = 0;
-
-	b++;
-	if (a > b)
-		b++;
-}
-
-static int ldv_func1(int a) 
-{
-	/* Uninportant function, but there were predicates inserted. */
-	int b = 0;
-
-	b++;
-	if (a > b)
-		b++;
-
-	return b;
-}
-
-static void *ldv_func2(void *arg)
-{
-	int p = 0;
-	int b = ldv_undef_int();
-	
-	ldv_func3(p);
-	b = ldv_func1(p);
-	ldv_func4(p);
-
-	if (b == 0)
-		/* False unsafe. f should be cleaned after refinement. */
-		_ldv_global_var++;
-
-	/* True unsafe. */
-	_ldv_global_var2++;
+	_ldv_unsafe = 0;
+	ldv_func();
 
 	return NULL;
 }
@@ -80,11 +49,11 @@ static int __init ldv_init(void)
 {
 	pthread_t thread;
 	pthread_attr_t const *attr = ldv_undef_ptr();
-	void *arg = ldv_undef_ptr();
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
-	pthread_create(&thread, attr, &ldv_func2, arg);
-	_ldv_global_var++;
-	_ldv_global_var2++;
+	_ldv_unknown = ldv_undef_int();
+	pthread_create(&thread, attr, &ldv_main, arg1);
+	ldv_main(arg2);
 
 	return 0;
 }

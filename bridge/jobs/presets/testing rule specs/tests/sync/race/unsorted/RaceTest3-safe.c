@@ -15,30 +15,75 @@
  * limitations under the License.
  */
 
-/* 
- * The test should check processing of function pointers with different
- * declarations.
- */
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <verifier/nondet.h>
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-static int _ldv_safe;
-static int _ldv_unsafe;
+static int _ldv_global;
 
-static int ldv_func(void)
+static int ldv_func3(int arg)
 {
-	_ldv_safe = 1;
-	_ldv_unsafe = 1;
+	int ldv_tmp = ldv_func3(arg);
 
-	return 0;
+	arg++;
+
+	if (ldv_tmp > arg)
+		ldv_tmp = ldv_tmp - arg;
+	else {
+		ldv_tmp = arg - ldv_tmp;
+		_ldv_global++;
+	}
+
+	ldv_tmp = ldv_func3(ldv_tmp);
+	ldv_tmp++;
+
+	return ldv_tmp;
+}
+ 
+static int ldv_func2(int arg)
+{
+	int ldv_tmp = ldv_func3(arg);
+
+	arg++;
+
+	if (ldv_tmp > arg)
+		ldv_tmp = ldv_tmp - arg;
+	else
+		ldv_tmp = arg - ldv_tmp;
+
+	ldv_tmp = ldv_func3(ldv_tmp);
+	ldv_tmp++;
+
+	return ldv_tmp;
+}
+ 
+static int ldv_func1(int arg)
+{
+	int ldv_tmp = ldv_func2(arg);
+	 
+	arg++;
+
+	if (ldv_tmp > arg)
+		ldv_tmp = ldv_tmp - arg;
+	else
+		ldv_tmp = arg - ldv_tmp;
+
+	ldv_tmp = ldv_func2(ldv_tmp);
+	ldv_tmp++;
+
+	return ldv_tmp;
 }
 
-static void *ldv_control_function(void *arg)
+static void *ldv_main(void *arg)
 {
-	ldv_func();
+	int ldv_tmp = ldv_undef_int();
+	
+	mutex_lock(&ldv_lock);
+	ldv_func1(ldv_tmp++);
+	mutex_unlock(&ldv_lock);
+
 	return NULL;
 }
 
@@ -46,13 +91,10 @@ static int __init ldv_init(void)
 {
 	pthread_t thread;
 	pthread_attr_t const *attr = ldv_undef_ptr();
-	void *arg = ldv_undef_ptr();
-	void *status;
+	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
-	pthread_create(&thread, attr, &ldv_control_function, arg);
-	_ldv_unsafe = 0;
-	pthread_join(thread, &status);
-	_ldv_safe = 0;
+	pthread_create(&thread, attr, &ldv_main, arg1);
+	ldv_main(arg2);
 
 	return 0;
 }

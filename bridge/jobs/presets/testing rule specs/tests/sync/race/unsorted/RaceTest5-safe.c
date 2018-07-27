@@ -15,20 +15,25 @@
  * limitations under the License.
  */
 
-/* Test checks, how the tool handle bitwise axioms. */
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <verifier/nondet.h>
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(ldv_lock);
-static int _ldv_false_unsafe;
+static int _ldv_global_var;
 
-static int ldv_func(int arg)
-{
-	if (arg & 11) {
-		_ldv_false_unsafe = 1;
-		return _ldv_false_unsafe;
+static int ldv_func(void) {
+	int a = ldv_undef_int(), b = ldv_undef_int();
+  
+	if (a == 0) {
+		b++;
+
+		if (a != 0) {
+			mutex_lock(&ldv_lock);
+			_ldv_global_var = 1;
+			mutex_unlock(&ldv_lock);
+		}
 	}
 
 	return 0;
@@ -36,12 +41,8 @@ static int ldv_func(int arg)
 
 static void *ldv_main(void *arg)
 {
-	int b = ldv_func(0);
-
-	if (b != 0)
-		_ldv_false_unsafe = 1;
-
-	return 0;
+	ldv_func();
+	return NULL;
 }
 
 static int __init ldv_init(void)
@@ -51,7 +52,7 @@ static int __init ldv_init(void)
 	void *arg1 = ldv_undef_ptr(), *arg2 = ldv_undef_ptr();
 
 	pthread_create(&thread, attr, &ldv_main, arg1);
-	ldv_main(arg2);
+	_ldv_global_var = 1;
 
 	return 0;
 }

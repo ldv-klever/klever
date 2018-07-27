@@ -23,9 +23,7 @@
 static DEFINE_MUTEX(ldv_lock);
 static DEFINE_MUTEX(ldv_lock2);
 static int _ldv_false_unsafe;
-static int _ldv_global_var;
 static int _ldv_true_unsafe;
-static int _ldv_unsafe;
 static int _ldv_false_unsafe2;
 
 __inline static int local_init(int mutex)
@@ -113,9 +111,6 @@ restart:
 	if (ret == 27)
 		goto restart;
 
-	_ldv_unsafe = 1;
-	_ldv_true_unsafe = 0;
-
 	return 0;
 }
 
@@ -132,16 +127,9 @@ static int f(int i)
 	return 0;
 }
 
-static int g(void)
-{
-	_ldv_global_var = 1;
-	return 0;
-}
-
 static int my_main(int i)
 {
 	difficult_function();
-	g();
 	f(i);
 
 	return 0;

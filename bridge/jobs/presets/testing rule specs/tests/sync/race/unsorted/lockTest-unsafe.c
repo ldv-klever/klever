@@ -15,38 +15,69 @@
  * limitations under the License.
  */
 
-/* Test should check, how the value analysis handles loops. */
+/* The main aim of this test is to check handling of variable links. */
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <verifier/nondet.h>
 #include <verifier/thread.h>
 
-static int _ldv_global_var;
+extern int *ldv_list_get_first(int *arg);
 
-static int ldv_func1(int a)
+static DEFINE_MUTEX(ldv_lock);
+static DEFINE_MUTEX(ldv_lock2);
+static DEFINE_MUTEX(ldv_lock3);
+static struct ldv_struct {
+	int a;
+	int b;
+} *_ldv_var;
+static int t, p;
+static struct testStruct *s1;
+
+/* Check disjoint sets. */
+static int ldv_func(int a)
 {
-	return a + 1;
-}
+	int *c = &t;
 
-static int ldv_func2(void)
-{
-	int i = 0;
-	int res = 0;
-
-	for (i = 0; i < 10000; i++)
-		res = ldv_func1(res);
-
-	if (res < 10000)
-		_ldv_global_var = 0;
+	mutex_lock(&ldv_lock);
+	*c = 2;
+	mutex_lock(&ldv_lock2);
+	*c = 4;
+	mutex_unlock(&ldv_lock);
+	*c = 3;
+	mutex_unlock(&ldv_lock2);
 
 	return 0;
 }
 
 static void *ldv_main(void *arg)
 {
-	_ldv_global_var = 1;
-	ldv_func2();
+	int a;
+	int q = 1;
+	int *temp;
+	int *temp2;
+	
+	ldv_func(0);
+	
+	/* Check links. */
+	q = *temp;
+	if (q == 1) {
+		mutex_lock(&ldv_lock);
+		temp = ldv_list_get_first(&(_ldv_var->a));
+		mutex_unlock(&ldv_lock);
+	}
 
-	return NULL;
+	temp2 = ldv_list_get_first(temp);
+	temp2 = ldv_list_get_first(temp2);
+	/* Important: there two links possible: temp and s->a. */
+	*temp2 = 1;
+	
+	/* Check parameter locks. */
+	mutex_lock(&ldv_lock3);
+	p = 1;
+	mutex_unlock(&ldv_lock3);
+	p = 2;
+
+	return 0;
 }
 
 static int __init init(void)

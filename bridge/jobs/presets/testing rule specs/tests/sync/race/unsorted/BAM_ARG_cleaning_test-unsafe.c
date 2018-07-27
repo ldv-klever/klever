@@ -31,7 +31,6 @@ static void ldv_func3(int a)
 	int b = 0;
 
 	b++;
-
 	if (a > b)
 		b++;
 }
@@ -42,7 +41,6 @@ static void ldv_func4(int a)
 	int b = 0;
 
 	b++;
-
 	if (a > b)
 		b++;
 }
@@ -53,7 +51,6 @@ static int ldv_func1(int a)
 	int b = 0;
 
 	b++;
-
 	if (a > b)
 		b++;
 
@@ -86,7 +83,10 @@ static int __init ldv_init(void)
 	void *arg = ldv_undef_ptr();
 
 	pthread_create(&thread, attr, &ldv_func2, arg);
+	mutex_lock(&ldv_lock);
 	_ldv_global_var++;
+	_ldv_global_var2++;
+	mutex_unlock(&ldv_lock);
 
 	return 0;
 }
