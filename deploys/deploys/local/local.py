@@ -29,19 +29,13 @@ from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
 from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs, \
-                          need_verifiercloud_scheduler, stop_services
+                          need_verifiercloud_scheduler, stop_services, to_update
 
 
 class Klever:
     def __init__(self, args, logger):
         self.args = args
         self.logger = logger
-
-        self.is_update = {
-            'Klever': False,
-            'Controller & Schedulers': False,
-            'Verification Backends': False
-        }
 
         self.prev_deploy_info_file = os.path.join(self.args.deployment_directory, 'klever.json')
         if os.path.exists(self.prev_deploy_info_file):
@@ -51,14 +45,14 @@ class Klever:
             self.prev_deploy_info = {}
 
     def __getattr__(self, name):
-        self.logger.error('You can not {0} Klever for "{1}"'.format(name, self.args.mode))
+        self.logger.error('Action "{0}" is not supported for Klever "{1}"'.format(name, self.args.mode))
         sys.exit(errno.ENOSYS)
 
-    def _dump_cur_deploy_info(self):
+    def _dump_cur_deploy_info(self, cur_deploy_info):
         with open(self.prev_deploy_info_file, 'w') as fp:
-            json.dump(self.prev_deploy_info, fp, sort_keys=True, indent=4)
+            json.dump(cur_deploy_info, fp, sort_keys=True, indent=4)
 
-    def _pre_do_install_or_update(self):
+    def _pre_install_or_update(self):
         def cmd_fn(*args):
             execute_cmd(self.logger, *args)
 
@@ -79,36 +73,22 @@ class Klever:
                 else:
                     shutil.copy(src, dst)
 
-        self.is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever',
-                                                                os.path.join(self.args.deployment_directory, 'klever'),
-                                                                self.deploy_conf, self.prev_deploy_info,
-                                                                cmd_fn, install_fn)
-        if self.is_update['Klever']:
-            self._dump_cur_deploy_info()
+        def dump_cur_deploy_info(cur_deploy_info):
+            self._dump_cur_deploy_info(cur_deploy_info)
 
-        try:
-            self.is_update['Controller & Schedulers'], self.is_update['Verification Backends'] = \
-                install_extra_deps(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
-                                   cmd_fn, install_fn)
-        # Without this we won't store information on successfully installed/updated extra dependencies and following
-        # installation/update will fail.
-        finally:
-            if self.is_update['Controller & Schedulers'] or self.is_update['Verification Backends']:
-                self._dump_cur_deploy_info()
+        if install_extra_dep_or_program(self.logger, 'Klever', os.path.join(self.args.deployment_directory, 'klever'),
+                                        self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn):
+            to_update(self.prev_deploy_info, 'Klever', dump_cur_deploy_info)
 
-        is_update_programs = False
-        try:
-            is_update_programs = install_programs(self.logger, self.args.deployment_directory, self.deploy_conf,
-                                                  self.prev_deploy_info, cmd_fn, install_fn)
-        # Like above.
-        finally:
-            if is_update_programs:
-                self._dump_cur_deploy_info()
+        install_extra_deps(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
+                           cmd_fn, install_fn, dump_cur_deploy_info)
+        install_programs(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info, cmd_fn,
+                         install_fn, dump_cur_deploy_info)
 
     def _install_or_update_deps(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
                      self.args.update_packages, self.args.update_python3_packages)
-        self._dump_cur_deploy_info()
+        self._dump_cur_deploy_info(self.prev_deploy_info)
 
     def _read_deploy_conf_file(self):
         if not os.path.isfile(self.args.deployment_configuration_file):
@@ -142,7 +122,7 @@ class Klever:
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
-        self._pre_do_install_or_update()
+        self._pre_install_or_update()
 
     def _pre_update(self):
         if not self.prev_deploy_info:
@@ -152,7 +132,7 @@ class Klever:
 
         self._read_deploy_conf_file()
         self._install_or_update_deps()
-        self._pre_do_install_or_update()
+        self._pre_install_or_update()
 
     def _pre_uninstall(self, mode_services):
         services = list(mode_services)
@@ -211,17 +191,21 @@ class Klever:
         else:
             execute_cmd(self.logger, 'userdel', 'klever')
 
-    def _post_install_or_update(self):
-        if self.is_update['Klever'] or self.is_update['Controller & Schedulers']:
-            configure_controller_and_schedulers(self.logger, self.args.mode, self.args.deployment_directory,
-                                                self.prev_deploy_info)
+    def _post_install_or_update(self, is_dev=False):
+        # See corresponding notes for deploys.openstack.openstack.OSKleverInstance#_create_or_update.
+        if 'To update' in self.prev_deploy_info:
+            if 'Klever' in self.prev_deploy_info['To update'] or \
+                    'Controller & Schedulers' in self.prev_deploy_info['To update']:
+                configure_controller_and_schedulers(self.logger, is_dev, self.args.deployment_directory,
+                                                    self.prev_deploy_info)
+            elif 'Verification Backends' in self.prev_deploy_info['To update']:
+                # It is enough to reconfigure controller and schedulers since they automatically reread
+                # configuration files holding changes of verification backends.
+                configure_native_scheduler_task_worker(self.logger, is_dev, self.args.deployment_directory,
+                                                       self.prev_deploy_info)
 
-        if self.is_update['Verification Backends'] and not self.is_update['Klever'] \
-                and not self.is_update['Controller & Schedulers']:
-            # It is enough to reconfigure controller and schedulers since they automatically reread
-            # configuration files holding changes of verification backends.
-            configure_native_scheduler_task_worker(self.logger, self.args.mode, self.args.deployment_directory,
-                                                   self.prev_deploy_info)
+            del self.prev_deploy_info['To update']
+            self._dump_cur_deploy_info(self.prev_deploy_info)
 
 
 class KleverDevelopment(Klever):
@@ -229,40 +213,44 @@ class KleverDevelopment(Klever):
         super().__init__(args, logger)
 
     def _install_or_update(self):
-        if self.is_update['Klever']:
+        if 'To update' in self.prev_deploy_info and 'Klever' in self.prev_deploy_info['To update']:
             install_klever_bridge_development(self.logger, self.args.deployment_directory)
 
     def install(self):
         self._pre_install()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(is_dev=True)
 
     def update(self):
         self._pre_update()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(is_dev=True)
 
     def uninstall(self):
         self._pre_uninstall(('klever-bridge-development',))
 
 
 class KleverProduction(Klever):
+    # This allows to install development version of schedulers within deploys.local.local.KleverTesting without
+    # redefining methods.
+    _IS_DEV = False
+
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
     def _install_or_update(self):
-        if self.is_update['Klever']:
+        if 'To update' in self.prev_deploy_info and 'Klever' in self.prev_deploy_info['To update']:
             install_klever_bridge_production(self.logger, self.args.deployment_directory)
 
     def install(self):
         self._pre_install()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(self._IS_DEV)
 
     def update(self):
         self._pre_update()
         self._install_or_update()
-        self._post_install_or_update()
+        self._post_install_or_update(self._IS_DEV)
 
     def uninstall(self):
         self._pre_uninstall(('nginx', 'klever-bridge'))
@@ -279,6 +267,8 @@ class KleverProduction(Klever):
 
 
 class KleverTesting(KleverProduction):
+    _IS_DEV = True
+
     def __init__(self, args, logger):
         super().__init__(args, logger)
 

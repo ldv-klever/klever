@@ -641,14 +641,14 @@ sys.exit(Command(sys.argv).launch())
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
         env = dict(os.environ)
 
-        env.update({
-            'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
-            'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
-                core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                            self.conf['rule specifications DB'])))
-        })
-
         if collect_build_cmds:
+            env.update({
+                'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
+                'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
+                    core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                self.conf['rule specifications DB'])))
+            })
+
             env.update({
                 'KLEVER_BUILD_CMD_DESCS_FILE': os.path.abspath(self.linux_kernel['build cmd descs file']),
                 'KLEVER_MAIN_WORK_DIR': self.conf['main working directory'],

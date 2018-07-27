@@ -23,8 +23,9 @@ To execute deployment scripts you need to install:
 * `tar <https://www.gnu.org/software/tar/>`__,
   `gz <https://www.gnu.org/software/gzip/>`__,
   `bzip2 <http://www.bzip.org/>`__,
-  `xz <https://tukaani.org/xz/>`__ and
-  `git <https://git-scm.com/>`__
+  `xz <https://tukaani.org/xz/>`__,
+  `git <https://git-scm.com/>`__ and
+  `wget <https://www.gnu.org/software/wget/>`__
   (if you are going to deploy entities from corresponding sources).
 
 To deploy Klever one has to clone its Git repository (below a path to a directory where it is cloned is referred to as
@@ -35,14 +36,21 @@ To deploy Klever one has to clone its Git repository (below a path to a director
 Then one has to get :ref:`klever_addons` and perhaps :ref:`target_software`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
+.. note:: You can omit getting :ref:`klever_addons` if you will use
+          :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` as :ref:`deploy_conf_file` since it contains
+          URLs for all required :ref:`klever_addons`.
+
 .. _klever_addons:
 
 Klever Addons
 -------------
 
-You can provide :ref:`klever_addons` in various forms such as files, directories, archives or Git repositories.
+You can provide :ref:`klever_addons` in various forms:
+
+* Local files, directories, archives or Git repositories.
+* Remote files, archives or Git repositories.
+
 Deployment scripts will take care of their appropriate extracting.
-At the moment everything should be local, e.g. you can not specify an URL for a Git repository.
 The best place for :ref:`klever_addons` is directory :file:`addons` within *$KLEVER_SRC* (see
 :ref:`klever_git_repo_struct`).
 
@@ -62,7 +70,7 @@ CIF
 ^^^
 
 One can download `CIF <https://forge.ispras.ru/projects/cif/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/5738/cif-d95cdf0.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz>`__.
 These binaries are compatible with various Linux distributions since CIF is based on `GCC <https://gcc.gnu.org/>`__
 that has few dependencies.
 Besides, one can clone `CIF Git repository <https://forge.ispras.ru/projects/cif/repository>`__ and build CIF from
@@ -74,7 +82,7 @@ CIL
 ^^^
 
 `CIL <https://people.eecs.berkeley.edu/~necula/cil/>`__ is a very legacy Klever addon.
-You can get its binaries from `here <https://forge.ispras.ru/attachments/5739/cil-1.5.1.tar.gz>`__.
+You can get its binaries from `here <https://forge.ispras.ru/attachments/download/5827/cil-1.5.1.tar.gz>`__.
 As well, you can build it from
 `this source <https://forge.ispras.ru/projects/cil/repository/revisions/fdae07e10fcab22c59e30813d87aa5401ef1e7fc>`__
 which has several specific patches relatively to the mainline.
@@ -86,7 +94,7 @@ Consul
 
 One can download appropriate `Consul <https://www.consul.io/>`__ binaries from
 `here <http://www.consul.io/downloads.html>`__.
-We are successfully using version 0.9.2 but new versions can also be fine.
+We are successfully using version 0.9.2 but newer versions can be fine as well.
 It is possible to build Consul from `source <https://github.com/hashicorp/consul>`__.
 
 .. _verification_backends:
@@ -99,9 +107,9 @@ These tools are referred to as :ref:`verification_backends`.
 As verification backends Klever supports `CPAchecker <https://cpachecker.sosy-lab.org/>`__ well.
 Some other verification backends are supported experimentally and currently we do not recommend to use them.
 You can download binaries of CPAchecker suitable for checking most of requirements from
-`here <https://forge.ispras.ru/attachments/5740/CPAchecker-1.7-svn%2027946-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/5828/CPAchecker-1.7-svn%2027946-unix.tar.gz>`__.
 For finding data races additionally download binaries of another custom version of CPAchecker from
-`here <https://forge.ispras.ru/attachments/5741/CPAchecker-1.6.1-svn%20ea117e2ecf-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/5829/CPAchecker-1.6.1-svn%20ea117e2ecf-unix.tar.gz>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
 and build other versions of CPAchecker from source referring corresponding instructions.
 
@@ -171,8 +179,7 @@ Each JSON object that describes an entity should always have values for *version
   To bypass Git checkouting and clean up you can specify version *CURRENT*.
   In this case Git repositories are treated like directories.
 * *Path* sets either a path relative to :file:`$KLEVER_SRC` or an absolute path to entity (binaries, source files,
-  configurations, etc.).
-  As we mentioned above you can specify individual files, directories, archives and Git repositories as paths.
+  configurations, etc.) or an entity URL.
 
 For some :ref:`klever_addons` it could be necessary to additionally specify *executable path* within *path* if binaries
 are not available directly from *path*.

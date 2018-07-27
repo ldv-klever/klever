@@ -141,17 +141,24 @@ class Session:
         self.logger.info('Finish session')
         self.__request('users/service_signout/')
 
-    def upload_report(self, report_file, archives=None):
-        with open(report_file, encoding='utf8') as fp:
-            report = fp.read()
+    def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
+        batch_reports = []
+        batch_report_file_archives = []
+        for report_and_report_file_archives in reports_and_report_file_archives:
+            with open(report_and_report_file_archives['report file'], encoding='utf8') as fp:
+                batch_reports.append(json.load(fp))
+
+            report_file_archives = report_and_report_file_archives.get('report file archives')
+            if report_file_archives:
+                batch_report_file_archives.extend(report_file_archives)
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'report': report}, archives)
+        self.__upload_archive('reports/upload/', {'reports': json.dumps(batch_reports)}, batch_report_file_archives)
 
         # We can safely remove task and its files after uploading report referencing task files.
-        report = json.loads(report)
-        if 'task identifier' in report:
-            self.remove_task(report['task identifier'])
+        for report in batch_reports:
+            if 'task identifier' in report:
+                self.remove_task(report['task identifier'])
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')

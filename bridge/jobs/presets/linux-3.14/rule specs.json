@@ -338,7 +338,7 @@
           ]
         }
       },
-      "RSG": {"models": {"generic/memory.c": {}}},
+      "RSG": {"models": {"generic/memory.c": {"headers": ["linux/fb.h"]}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {

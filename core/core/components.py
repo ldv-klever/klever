@@ -525,11 +525,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
-        with open('problem desc.txt', 'a', encoding='utf8') as fp:
-            if fp.tell():
-                fp.write('\n')
-            fp.write('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
-
         self.__finalize(stopped=True)
 
     def join(self, timeout=None, stopped=False):

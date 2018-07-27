@@ -24,4 +24,4 @@ if __name__ == '__main__':
 
     import deploys.local
 
-    sys.exit(deploys.local.main())
+    deploys.local.main()

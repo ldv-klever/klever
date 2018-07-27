@@ -23,10 +23,8 @@ import multiprocessing
 import os
 import shutil
 import re
-import sys
 import time
 import zipfile
-import traceback
 
 import core.utils
 import core.components
@@ -36,6 +34,7 @@ import core.vrp.coverage_parser
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
+NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'rule specs.json']
 
 
 def start_jobs(core_obj, locks, vals):
@@ -44,6 +43,15 @@ def start_jobs(core_obj, locks, vals):
     core_obj.logger.info('Extract job archive "{0}" to directory "{1}"'.format(JOB_ARCHIVE, 'job'))
     with zipfile.ZipFile(JOB_ARCHIVE) as ZipFile:
         ZipFile.extractall('job')
+
+    for configuration_file in NECESSARY_FILES:
+        path = core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, configuration_file)
+        with open(path, 'r', encoding='utf8') as fp:
+            try:
+                json.load(fp)
+            except json.decoder.JSONDecodeError as err:
+                raise ValueError("Cannot parse JSON configuration file {!r}: {}".format(configuration_file, err)) \
+                    from None
 
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")
@@ -339,7 +347,7 @@ class RA(core.components.Component):
     def __match_ideal_verdict(verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
-                                   (isinstance(ideal_attr, list) and attr in ideal_attr)):
+                               (isinstance(ideal_attr, list) and attr in ideal_attr)):
                 return True
 
             return False
