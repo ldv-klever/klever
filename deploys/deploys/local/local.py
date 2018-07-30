@@ -201,7 +201,7 @@ class Klever:
             elif 'Verification Backends' in self.prev_deploy_info['To update']:
                 # It is enough to reconfigure controller and schedulers since they automatically reread
                 # configuration files holding changes of verification backends.
-                configure_native_scheduler_task_worker(self.logger, is_dev, self.args.deployment_directory,
+                configure_native_scheduler_task_worker(self.logger, self.args.deployment_directory,
                                                        self.prev_deploy_info)
 
             del self.prev_deploy_info['To update']

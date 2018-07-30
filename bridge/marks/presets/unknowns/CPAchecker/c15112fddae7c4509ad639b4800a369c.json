@@ -43,7 +43,7 @@
   ],
   "description": "Too many and long value refinements.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

@@ -43,7 +43,7 @@
   ],
   "description": "The code is reachable, time is spend on transfer relation calculation.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

@@ -99,7 +99,8 @@ class VRP(core.components.Component):
         generation_timeout = 5
 
         def submit_processing_task(status, t):
-            self.mqs['processing tasks'].put([status, pending[t]])
+            task_data, tryattempt = pending[t]
+            self.mqs['processing tasks'].put([status, task_data, tryattempt])
 
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -116,7 +117,7 @@ class VRP(core.components.Component):
                                     receiving = False
                                     self.logger.info("Expect no tasks to be generated")
                                 else:
-                                    pending[data[0]] = data
+                                    pending[data[0][0]] = data
                                 number += 1
                         except queue.Empty:
                             self.logger.debug("Fetched {} tasks".format(number))
@@ -127,7 +128,7 @@ class VRP(core.components.Component):
                                 receiving = False
                                 self.logger.info("Expect no tasks to be generated")
                             else:
-                                pending[data[0]] = data
+                                pending[data[0][0]] = data
                         except queue.Empty:
                             self.logger.debug("No tasks has come for last 30 seconds")
 
@@ -160,40 +161,59 @@ class VRP(core.components.Component):
 
     def __loop_worker(self):
         self.logger.info("VRP fetcher is ready to work")
+
+        # First get QOS resource limitations
+        qos_resource_limits = core.utils.read_max_resource_limitations(self.logger, self.conf)
+        self.vals['task solution triples'] = multiprocessing.Manager().dict()
         while True:
             element = self.mqs['processing tasks'].get()
             if element is None:
                 break
 
-            status, data = element
+            status, data, attempt = element
             vo = data[2]
             rule = data[3]
-            new_id = "{}/{}/RP".format(vo, rule)
-            workdir = os.path.join(vo, rule)
+            attrs = [
+                {
+                    "name": "Rule specification",
+                    "value": rule,
+                    "compare": True,
+                    "associate": True
+                },
+                {
+                    "name": "Verification object",
+                    "value": vo,
+                    "compare": True,
+                    "associate": True
+                }
+            ]
+            if attempt:
+                new_id = "{}/{}/{}/RP".format(vo, rule, attempt)
+                workdir = os.path.join(vo, rule, str(attempt))
+                attrs.append(
+                    {
+                        "name": "Rescheduling attempt",
+                        "value": str(attempt),
+                        "compare": False,
+                        "associate": False
+                    }
+                )
+            else:
+                new_id = "{}/{}/RP".format(vo, rule)
+                workdir = os.path.join(vo, rule)
+            self.vals['task solution triples']['{}:{}'.format(vo, rule)] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
-                        workdir, [
-                            {
-                                "name": "Rule specification",
-                                "value": rule,
-                                "compare": True,
-                                "associate": True
-                            },
-                            {
-                                "name": "Verification object",
-                                "value": vo,
-                                "compare": True,
-                                "associate": True
-                            }
-                        ], separate_from_parent=True,
-                        element=element)
+                        workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
+                        element=[status, data])
                 rp.start()
                 rp.join()
             except core.components.ComponentError:
                 self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
             finally:
-                self.mqs['processed tasks'].put((vo, rule))
-                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
+                solution = list(self.vals['task solution triples'].get('{}:{}'.format(vo, rule)))
+                del self.vals['task solution triples']['{}:{}'.format(vo, rule)]
+                self.mqs['processed tasks'].put((vo, rule, solution))
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -210,7 +230,7 @@ class VRP(core.components.Component):
 class RP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, element=None):
+                 separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, element=None):
         # Read this in a callback
         self.element = element
         self.verdict = None
@@ -219,7 +239,7 @@ class RP(core.components.Component):
         self.task_error = None
         self.verification_coverage = None
         self.__exception = None
-
+        self.__qos_resource_limit = qos_resource_limits
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
@@ -234,8 +254,13 @@ class RP(core.components.Component):
         task_id, opts, verification_object, rule_specification, verifier, shadow_src_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
-
+        self.results_key = '{}:{}'.format(self.verification_object, self.rule_specification)
         self.logger.debug("Prcess results of task {}".format(task_id))
+
+        # Update solution status
+        data = list(self.vals['task solution triples'][self.results_key])
+        data[0] = status
+        self.vals['task solution triples'][self.results_key] = data
 
         try:
             if status == 'finished':
@@ -283,13 +308,13 @@ class RP(core.components.Component):
 
         return sources, error_trace_file
 
-    def report_unsafe(self, sources, error_trace_files):
+    def report_unsafe(self, sources, error_trace_files, attrs):
         core.utils.report(self.logger,
                           'unsafe',
                           {
                               'id': "{}/verification/unsafe".format(self.id),
                               'parent id': "{}/verification".format(self.id),
-                              'attrs': [],
+                              'attrs': attrs,
                               'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
                               'error traces': [core.utils.ReportFiles([error_trace_file],
                                                                       arcnames={error_trace_file: 'error trace.json'})
@@ -299,7 +324,7 @@ class RP(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-    def process_single_verdict(self, decision_results, opts, shadow_src_dir, log_file):
+    def process_single_verdict(self, task_id, decision_results, opts, shadow_src_dir, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
@@ -326,7 +351,7 @@ class RP(core.components.Component):
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
         # not upload all witnesses that can be properly processed as well as information on all such failures.
         # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
-        if re.match('true', decision_results['status']):
+        if re.search('true', decision_results['status']):
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -369,11 +394,10 @@ class RP(core.components.Component):
                                 self.__exception = e
                         else:
                             self.__exception = e
-
                 # Do not report unsafe if processing of all witnesses failed.
                 if error_trace_files:
-                    self.report_unsafe(sources, error_trace_files)
-            if re.match('false', decision_results['status']) and \
+                    self.report_unsafe(sources, error_trace_files, [])
+            if re.search('false', decision_results['status']) and \
                     ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
                 try:
@@ -382,12 +406,12 @@ class RP(core.components.Component):
                                             format(len(witnesses)))
 
                     sources, error_trace_file = self.process_witness(witnesses[0], shadow_src_dir)
-                    self.report_unsafe(sources, [error_trace_file])
+                    self.report_unsafe(sources, [error_trace_file], [])
                 except Exception as e:
                     self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
                     self.verdict = 'non-verifier unknown'
                     self.__exception = e
-            elif not re.match('false', decision_results['status']):
+            elif not re.search('false', decision_results['status']):
                 self.verdict = 'unknown'
 
                 # Prepare file to send it with unknown report.
@@ -403,13 +427,12 @@ class RP(core.components.Component):
 
                     with open(verification_problem_desc, 'w', encoding='utf8') as fp:
                         fp.write(msg)
+
+                    data = list(self.vals['task solution triples'][self.results_key])
+                    data[2] = decision_results['status']
+                    self.vals['task solution triples'][self.results_key] = data
                 else:
                     os.symlink(os.path.relpath(log_file, 'verification'), verification_problem_desc)
-
-                if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                    log_file = 'problem desc.txt'
-                    with open(log_file, 'w', encoding='utf8') as fp:
-                        fp.write(decision_results['status'])
 
                 core.utils.report(self.logger,
                                   'unknown',
@@ -418,7 +441,8 @@ class RP(core.components.Component):
                                       'parent id': "{}/verification".format(self.id),
                                       'attrs': [],
                                       'problem desc': core.utils.ReportFiles(
-                                          [verification_problem_desc], {verification_problem_desc: 'problem desc.txt'})
+                                          [verification_problem_desc],
+                                          {verification_problem_desc: 'problem desc.txt'})
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
@@ -463,6 +487,11 @@ class RP(core.components.Component):
             'resources': decision_results['resources'],
         }
 
+        # Update solution progress. It is necessary to update the whole list to sync changes
+        data = list(self.vals['task solution triples'][self.results_key])
+        data[1] = decision_results['resources']
+        self.vals['task solution triples'][self.results_key] = data
+
         if not self.logger.disabled and log_file:
             report['log'] = core.utils.ReportFiles([log_file], {log_file: 'log.txt'})
 
@@ -489,6 +518,7 @@ class RP(core.components.Component):
                                                         arcnames=self.verification_coverage.arcnames)
             self.vals['coverage_finished'][self.conf['job identifier']] = False
 
+        # todo: This should be cheked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
                           'verification',
                           report,
@@ -498,7 +528,7 @@ class RP(core.components.Component):
 
         try:
             # Submit a verdict
-            self.process_single_verdict(decision_results, opts, shadow_src_dir, log_file)
+            self.process_single_verdict(task_id, decision_results, opts, shadow_src_dir, log_file)
         finally:
             # Submit a closing report
             core.utils.report(self.logger,

@@ -43,7 +43,7 @@
   ],
   "description": "Environment model does not generate environment model with export symbol function call 'svc_recv'",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

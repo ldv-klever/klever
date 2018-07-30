@@ -33,6 +33,7 @@ from core.coverage import JCR
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
+NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'rule specs.json']
 
 
 def start_jobs(core_obj, locks, vals):
@@ -41,6 +42,15 @@ def start_jobs(core_obj, locks, vals):
     core_obj.logger.info('Extract job archive "{0}" to directory "{1}"'.format(JOB_ARCHIVE, 'job'))
     with zipfile.ZipFile(JOB_ARCHIVE) as ZipFile:
         ZipFile.extractall('job')
+
+    for configuration_file in NECESSARY_FILES:
+        path = core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, configuration_file)
+        with open(path, 'r', encoding='utf8') as fp:
+            try:
+                json.load(fp)
+            except json.decoder.JSONDecodeError as err:
+                raise ValueError("Cannot parse JSON configuration file {!r}: {}".format(configuration_file, err)) \
+                    from None
 
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")

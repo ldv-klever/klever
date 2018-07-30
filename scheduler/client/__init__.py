@@ -154,6 +154,9 @@ def solve_task(logger, conf, server):
     logger.debug("Add {!r} of version {!r} bin location {!r} to PATH".format(tool, version, path))
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
+    if os.path.isdir('output'):
+        shutil.rmtree('output', ignore_errors=True)
+
     logger.debug("Download task")
     ret = server.pull_task(conf["identifier"], "task files.zip")
     if not ret:
@@ -183,7 +186,15 @@ def solve_task(logger, conf, server):
             shutil.move(entry, 'output')
 
     decision_results = process_task_results(logger)
-    submit_task_results(logger, server, conf["identifier"], decision_results, os.path.curdir)
+    decision_results['resource limits'] = conf["resource limits"]
+    if conf.get('speculative', False) and decision_results.get('status', True) in ('OUT OF MEMORY', 'TIMEOUT'):
+        logger.info("Do not upload solution since limits are reduced and we got: {!r}".
+                    format(decision_results['status']))
+        speculative = True
+    else:
+        speculative = False
+    submit_task_results(logger, server, "Klever", conf["identifier"], decision_results, os.path.curdir,
+                        speculative=speculative)
 
     return exit_code
 
@@ -232,7 +243,6 @@ def prepare_task_arguments(conf):
     """
     Prepare arguments for solution of a verification task with BenchExec.
 
-    :param logger: Logger.
     :param conf: Configuration dictionary.
     :return: List with options.
     """
@@ -253,9 +263,18 @@ def prepare_task_arguments(conf):
         args.extend(["--filesSizeLimit", memory_units_converter(conf["resource limits"]["disk memory size"], 'MB')[1]])
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
-        args.extend(['--memorylimit', memory_units_converter(conf["resource limits"]['memory size'], 'MB')[1]])
-    if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], 's')[1]])
+        numerical, string = memory_units_converter(conf["resource limits"]['memory size'], 'MB')
+        # We do not need using precision more than one MB but the function can return float which can confuse BenchExec
+        args.extend(['--memorylimit', '{}MB'.format(int(numerical))])
+
+    if not conf["resource limits"].get('CPU time', 0) and not conf["resource limits"].get('soft CPU time', 0):
+        # Disable explicitly time limitations
+        args.extend(['--timelimit', '-1'])
+    if conf["resource limits"].get('wall time', 0):
+        args.extend(['--walltimelimit', time_units_converter(conf["resource limits"]["wall time"], "s")[1]])
+    else:
+        # As we cannot just disable the limit set a very large value
+        args.extend(['--walltimelimit', str(60 * 60 * 24 * 365 * 100)])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
@@ -290,8 +309,6 @@ def prepare_job_arguments(conf):
 
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
         args.extend(['--memlimit', memory_units_converter(conf["resource limits"]['memory size'], "MB")[1]])
-    if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', time_units_converter(conf["resource limits"]["CPU time"], "s")[1]])
 
     # Check container mode
     if "runexec container mode" in conf['client'] and conf['client']["runexec container mode"]:
@@ -342,11 +359,11 @@ def run(selflogger, args, conf, logger=None):
         dcp = None
         dl = None
 
-    selflogger.info("Start task execution with the following options: {}".format(str(args)))
+    selflogger.info("Start execution with the following options: {}".format(str(args)))
     if logger:
         ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
         if ec != 0:
-            selflogger.info("BenchExec exited with non-zero exit code {}".format(ec))
+            selflogger.info("Executor exited with non-zero exit code {}".format(ec))
         return ec
     else:
         with open('client-log.log', 'a', encoding="utf8") as ste, \
@@ -359,10 +376,10 @@ def run(selflogger, args, conf, logger=None):
             with open('client-log.log', encoding="utf8") as log:
                 for line in log.readlines():
                     # Warnings can be added to the file only from RunExec
-                    if re.search(r'WARNING', line):
-                        selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
+                    if re.search(r'WARNING - (.*)', line):
+                        selflogger.warning(line.strip())
                     elif re.search(r'runexec: error: .*', line):
-                        selflogger.error(re.search(r'runexec: error: .*', line).group(0))
+                        selflogger.error(line.strip())
 
         job_exit = None
         if ec == 0 and os.path.isfile('runexec stdout.log'):
@@ -387,6 +404,3 @@ def run(selflogger, args, conf, logger=None):
             ec = job_exit
 
         return ec
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
