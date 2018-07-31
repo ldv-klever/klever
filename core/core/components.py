@@ -300,7 +300,7 @@ def check_components(logger, components):
     if isinstance(components, list):
         for mc in (m for m in components if not m.is_alive()):
             # Here we expect an exception
-            logger.info("Some of the subcomponents running in the background failed")
+            logger.info("Some of the subcomponents running in the background exited: {!r}".format(mc.id))
             mc.join()
 
 
@@ -524,11 +524,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 pass
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
-
-        with open('problem desc.txt', 'a', encoding='utf8') as fp:
-            if fp.tell():
-                fp.write('\n')
-            fp.write('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
         self.__finalize(stopped=True)
 

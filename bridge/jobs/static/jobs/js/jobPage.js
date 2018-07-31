@@ -312,21 +312,41 @@ $(document).ready(function () {
         return false;
     });
 
-    var num_of_updates = 0, is_filters_open = false, just_status = false, message_is_shown = false;
+    var num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');
+
+    function stop_autoupdate() {
+        if (autoupdate_btn.data('status') === 'off') {
+            // Already stopped
+            return false;
+        }
+        err_notify($('#error__autoupdate_off').text());
+        autoupdate_btn.text($('#start_autorefresh').text());
+        autoupdate_btn.data('status', 'off');
+    }
+    function start_autoupdate() {
+        if (autoupdate_btn.data('status') === 'on') {
+            // Already started
+            return false;
+        }
+        num_of_updates = 0;
+        autoupdate_btn.text($('#stop_autorefresh').text());
+        autoupdate_btn.data('status', 'on');
+    }
+
+    autoupdate_btn.click(function () { $(this).data('status') === 'on' ? stop_autoupdate() : start_autoupdate() });
+
     $('#job_filters_accordion').accordion({'onOpen': function() { is_filters_open = true }, 'onClose': function() { is_filters_open = false }});
     var interval = setInterval(function () {
         if ($.active > 0) return false;
         if (is_filters_open) return false;
-        update_decision_results(interval);
-        update_progress(interval);
-        check_status(interval);
-        num_of_updates++;
-        if (num_of_updates > 60) {
-            if (!message_is_shown) {
-                err_notify($('#error__autoupdate_off').text());
-                message_is_shown = true;
-            }
-            just_status = true;
+        if (autoupdate_btn.data('status') === 'on') {
+            // Autoupdate is turned on
+            update_decision_results(interval);
+            update_progress(interval);
+            num_of_updates++;
+            if (num_of_updates > 5) stop_autoupdate();
         }
+        // Always update the status
+        check_status(interval);
     }, 3000);
 });

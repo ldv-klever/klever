@@ -16,23 +16,24 @@
 #
 
 import copy
+import hashlib
 import importlib
 import json
 import multiprocessing
 import os
-import shutil
 import re
 import time
 import zipfile
 
 import core.utils
 import core.components
-import core.progress
-import core.vrp.coverage_parser
+from core.progress import PW
+from core.coverage import JCR
 
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
+NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'rule specs.json']
 
 
 def start_jobs(core_obj, locks, vals):
@@ -41,6 +42,15 @@ def start_jobs(core_obj, locks, vals):
     core_obj.logger.info('Extract job archive "{0}" to directory "{1}"'.format(JOB_ARCHIVE, 'job'))
     with zipfile.ZipFile(JOB_ARCHIVE) as ZipFile:
         ZipFile.extractall('job')
+
+    for configuration_file in NECESSARY_FILES:
+        path = core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, configuration_file)
+        with open(path, 'r', encoding='utf8') as fp:
+            try:
+                json.load(fp)
+            except json.decoder.JSONDecodeError as err:
+                raise ValueError("Cannot parse JSON configuration file {!r}: {}".format(configuration_file, err)) \
+                    from None
 
     common_components_conf = __get_common_components_conf(core_obj.logger, core_obj.conf)
     core_obj.logger.info("Start results arranging and reporting subcomponent")
@@ -63,19 +73,34 @@ def start_jobs(core_obj, locks, vals):
     try:
         queues_to_terminate = []
 
-        pc = core.progress.PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks,
-                              core_obj.mqs, locks, vals, separate_from_parent=False,
-                              include_child_resources=True, session=core_obj.session,
-                              total_subjobs=(len(common_components_conf['Sub-jobs'])
-                                              if 'Sub-jobs' in common_components_conf else 0))
+        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+                separate_from_parent=False, include_child_resources=True, session=core_obj.session,
+                total_subjobs=(len(common_components_conf['Sub-jobs']) if 'Sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)
 
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
-            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                     locks, vals, separate_from_parent=False, include_child_resources=True,
-                     queues_to_terminate=queues_to_terminate)
+            def after_process_finished_task(context):
+                coverage_info_file = os.path.join(context.conf['main working directory'], context.coverage_info_file)
+                if os.path.isfile(coverage_info_file):
+                    context.mqs['rule specifications and coverage info files'].put({
+                        'sub-job identifier': context.conf['sub-job identifier'],
+                        'rule specification': context.rule_specification,
+                        'coverage info file': coverage_info_file
+                    })
+
+            def after_launch_sub_job_components(context):
+                context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
+                context.mqs['rule specifications and coverage info files'].put({
+                    'sub-job identifier': context.sub_job_id
+                })
+
+            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+                     separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
+            # This can be done only in this module otherwise callbacks will be missed
+            core.components.set_component_callbacks(core_obj.logger, Job,
+                                                    [after_launch_sub_job_components, after_process_finished_task])
             cr.start()
             subcomponents.append(cr)
 
@@ -321,7 +346,7 @@ class RA(core.components.Component):
     def __match_ideal_verdict(verification_status):
         def match_attr(attr, ideal_attr):
             if ideal_attr and ((isinstance(ideal_attr, str) and attr == ideal_attr) or
-                                   (isinstance(ideal_attr, list) and attr in ideal_attr)):
+                               (isinstance(ideal_attr, list) and attr in ideal_attr)):
                 return True
 
             return False
@@ -439,145 +464,6 @@ class RA(core.components.Component):
         else:
             # Keep obtained verification results to relate them later.
             self.data.update({bug_id: verification_result})
-
-        return bug_id, new_verification_result
-
-
-class JCR(core.components.Component):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir,
-                                  attrs, separate_from_parent, include_child_resources)
-
-        # This function adds callbacks and it should work until we call it in the new process
-        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
-        queues_to_terminate.append('rule specifications and coverage info files')
-        self.__set_callbacks()
-        self.coverage = dict()
-
-    def collect_total_coverage(self):
-        self.logger.debug("Begin collecting coverage")
-
-        total_coverage_infos = dict()
-        arcfiles = {}
-        os.mkdir('total coverages')
-
-        try:
-            while True:
-                coverage_info = self.mqs['rule specifications and coverage info files'].get()
-
-                if coverage_info is None:
-                    self.logger.debug('Rule specification coverage info files message queue was terminated')
-                    self.mqs['rule specifications and coverage info files'].close()
-                    break
-
-                sub_job_id = coverage_info['sub-job identifier']
-                self.logger.debug('Get coverage for sub-job {!r}'.format(sub_job_id))
-                if 'coverage info file' in coverage_info:
-                    if sub_job_id not in total_coverage_infos:
-                        total_coverage_infos[sub_job_id] = dict()
-                        arcfiles[sub_job_id] = dict()
-                    rule_spec = coverage_info['rule specification']
-                    total_coverage_infos[sub_job_id].setdefault(rule_spec, {})
-                    arcfiles[sub_job_id].setdefault(rule_spec, {})
-
-                    with open(coverage_info['coverage info file'], encoding='utf8') as fp:
-                        loaded_coverage_info = json.load(fp)
-
-                    # Clean if needed
-                    if not self.conf['keep intermediate files']:
-                        os.remove(os.path.join(self.conf['main working directory'],
-                                               coverage_info['coverage info file']))
-
-                    core.vrp.LCOV.add_to_coverage(total_coverage_infos[sub_job_id][rule_spec], loaded_coverage_info)
-                    for file in loaded_coverage_info.values():
-                        arcfiles[sub_job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
-                    del loaded_coverage_info
-                elif sub_job_id in total_coverage_infos:
-                    self.logger.debug('Calculate total coverage for sub-job {!r}'.format(sub_job_id))
-
-                    total_coverages = dict()
-                    coverage_info_dumped_files = []
-                    for rule_spec, coverage_info in total_coverage_infos[sub_job_id].items():
-                        total_coverage_dir = os.path.join('total coverages', sub_job_id, re.sub(r'/', '-', rule_spec))
-                        if not os.path.exists(total_coverage_dir):
-                            os.makedirs(total_coverage_dir)
-
-                        total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
-                        if os.path.isfile(total_coverage_file):
-                            raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
-                        arcnames = {total_coverage_file: 'coverage.json'}
-
-                        coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
-
-                        with open(total_coverage_file, 'w', encoding='utf8') as fp:
-                            json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
-
-                        coverage_info_dumped_files.append(total_coverage_file)
-
-                        arcnames.update(arcfiles[sub_job_id][rule_spec])
-                        arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
-
-                        total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
-                                                                            list(arcnames.keys()), arcnames)
-
-                    core.utils.report(self.logger,
-                                      'job coverage',
-                                      {
-                                          # This isn't great to build component identifier in such the artificial way.
-                                          # But otherwise we need to pass it everywhere like "sub-job identifier".
-                                          'id': os.path.join(os.path.sep, sub_job_id),
-                                          'coverage': total_coverages
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'],
-                                      os.path.join('total coverages', sub_job_id))
-
-                    del total_coverage_infos[sub_job_id]
-                    # Clean files if needed
-                    if not self.conf['keep intermediate files']:
-                        for coverage_file in coverage_info_dumped_files:
-                            os.remove(coverage_file)
-                    self.vals['coverage_finished'][sub_job_id] = True
-        finally:
-            self.logger.debug("Allow finish all jobs")
-            for sub_job_id in self.vals['coverage_finished'].keys():
-                self.vals['coverage_finished'][sub_job_id] = True
-
-        self.logger.info("Finish coverage reporting")
-
-        # Clean
-        if not self.conf['keep intermediate files']:
-            shutil.rmtree('total coverages')
-
-    main = collect_total_coverage
-
-    def __set_callbacks(self):
-
-        def after_process_finished_task(context):
-            coverage_info_file = os.path.join(context.conf['main working directory'],
-                                              context.coverage_info_file)
-
-            if os.path.isfile(coverage_info_file):
-                context.mqs['rule specifications and coverage info files'].put({
-                    'sub-job identifier': context.conf['sub-job identifier'],
-                    'rule specification': context.rule_specification,
-                    'coverage info file': coverage_info_file
-                })
-
-        def after_launch_sub_job_components(context):
-            context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.sub_job_id))
-            context.mqs['rule specifications and coverage info files'].put({
-                'sub-job identifier': context.sub_job_id
-            })
-
-        core.components.set_component_callbacks(self.logger, type(self),
-                                                (
-                                                    after_process_finished_task,
-                                                    after_launch_sub_job_components
-                                                ))
 
 
 class Job(core.components.Component):

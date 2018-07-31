@@ -122,9 +122,7 @@ $(document).ready(function () {
                     parseFloat($('#max_ram').val().replace(/,/, '.')),
                     parseInt($('#max_cpus').val()),
                     parseFloat($('#max_disk').val().replace(/,/, '.')),
-                    $('#cpu_model').val(),
-                    parseFloat($('#max_cpu_time').val().replace(/,/, '.')),
-                    parseFloat($('#max_wall_time').val().replace(/,/, '.'))
+                    $('#cpu_model').val()
                 ],
                 [
                     $('#console_logging_level').val(),
@@ -185,7 +183,7 @@ $(document).ready(function () {
             'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value'
         ], err_found = false, numeric_fields = [
             'max_tasks', 'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value',
-            'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
+            'max_ram', 'max_cpus', 'max_disk',
         ];
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);

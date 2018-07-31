@@ -934,13 +934,6 @@ class GetConfiguration(object):
             logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
 
-        cpu_time = filedata['resource limits']['CPU time']
-        if isinstance(cpu_time, int):
-            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / 60))
-        wall_time = filedata['resource limits']['wall time']
-        if isinstance(wall_time, int):
-            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / 60))
-
         try:
             formatters = {}
             for f in filedata['logging']['formatters']:
@@ -977,8 +970,7 @@ class GetConfiguration(object):
                     filedata['resource limits']['memory size'] / 10**9,
                     filedata['resource limits']['number of CPU cores'],
                     filedata['resource limits']['disk memory size'] / 10**9,
-                    filedata['resource limits']['CPU model'],
-                    cpu_time, wall_time
+                    filedata['resource limits']['CPU model']
                 ],
                 logging,
                 [
@@ -1013,10 +1005,6 @@ class GetConfiguration(object):
             conf[2][0] = float(conf[2][0])
             conf[2][1] = int(conf[2][1])
             conf[2][2] = float(conf[2][2])
-            if conf[2][4] is not None:
-                conf[2][4] = float(conf[2][4])
-            if conf[2][5] is not None:
-                conf[2][5] = float(conf[2][5])
         except Exception as e:
             logger.exception("Wrong user configuration format: %s" % e, stack_info=True)
             return
@@ -1029,7 +1017,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 4:
             return False
-        if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
+        if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 4:
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
@@ -1052,10 +1040,6 @@ class GetConfiguration(object):
         if not isinstance(self.configuration[2][2], (float, int)):
             return False
         if not isinstance(self.configuration[2][3], str) and self.configuration[2][3] is not None:
-            return False
-        if not isinstance(self.configuration[2][4], (float, int)) and self.configuration[2][4] is not None:
-            return False
-        if not isinstance(self.configuration[2][5], (float, int)) and self.configuration[2][5] is not None:
             return False
         if self.configuration[3][0] not in settings.LOGGING_LEVELS:
             return False

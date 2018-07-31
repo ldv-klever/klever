@@ -236,27 +236,6 @@ def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
     return last['add options'], last['safety properties']
 
 
-def read_max_resource_limitations(logger, conf):
-    """
-    Get maximum resource limitations that can be set for a verification task.
-
-    :param logger: Logger.
-    :param conf: Configuration dictionary.
-    :return: Dictionary.
-    """
-    # Read max restrictions for tasks
-    restrictions_file = core.utils.find_file_or_dir(logger, conf["main working directory"], "tasks.json")
-    with open(restrictions_file, 'r', encoding='utf8') as fp:
-        restrictions = json.loads(fp.read())
-
-    # Make unit translation
-    for mem in (m for m in ("memory size", "disk memory size") if m in restrictions and restrictions[m] is not None):
-        restrictions[mem] = core.utils.memory_units_converter(restrictions[mem])[0]
-    for t in (t for t in ("wall time", "CPU time") if t in restrictions and restrictions[t] is not None):
-        restrictions[t] = core.utils.time_units_converter(restrictions[t])[0]
-    return restrictions
-
-
 def prepare_verification_task_files_archive(files):
     """
     Generate archive for verification task files in the current directory. The archive name should be 'task files.zip'.

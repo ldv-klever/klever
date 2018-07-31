@@ -24,4 +24,4 @@ if __name__ == '__main__':
 
     import deploys.openstack
 
-    sys.exit(deploys.openstack.main())
+    deploys.openstack.main()

@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import logging
 import requests
 import time
 import zipfile
@@ -34,7 +33,7 @@ class Session:
 
     CANCELLED_STATUS = re.compile('The task \d+ was not found')
 
-    def __init__(self, name, user, password, parameters=dict()):
+    def __init__(self, logger, name, user, password, parameters=dict()):
         """
         Create http session between scheduler and Klever Bridge server.
 
@@ -44,7 +43,8 @@ class Session:
         :param parameters: Dictionary with parameters to add alongside with user name and password..
         :return:
         """
-        logging.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(user, name))
+        logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(user, name))
+        self.logger = logger
         self.name = name
         # Prepare data
         self.__parameters = parameters
@@ -59,7 +59,7 @@ class Session:
         self.session = requests.Session()
         self.__request('users/service_signin/')
         self.__request('users/service_signin/', 'POST', self.__parameters)
-        logging.debug('Session was created')
+        self.logger.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, looping=True, **kwargs):
         """
@@ -78,7 +78,7 @@ class Session:
             try:
                 url = 'http://' + self.name + '/' + path_url
 
-                logging.debug('Send "{0}" request to "{1}"'.format(method, url))
+                self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
 
                 if method == 'GET':
                     resp = self.session.get(url, **kwargs)
@@ -97,7 +97,7 @@ class Session:
                     self.error = resp.json()['error']
                     resp.close()
                     if self.error == 'You are not signing in':
-                        logging.debug("Session has expired, relogging in")
+                        self.logger.debug("Session has expired, relogging in")
                         self.__signin()
                         if data:
                             data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
@@ -107,11 +107,11 @@ class Session:
                 else:
                     return resp
             except requests.ConnectionError as err:
-                logging.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+                self.logger.info('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 if looping:
                     time.sleep(0.2)
                 else:
-                    logging.warning('Aborting request to Bridge')
+                    self.logger.warning('Aborting request to Bridge')
                     return None
 
     def get_archive(self, endpoint, data, archive):
@@ -129,18 +129,18 @@ class Session:
             try:
                 resp = self.__request(endpoint, 'POST', data, stream=True)
 
-                logging.debug('Write archive to {}'.format(archive))
+                self.logger.debug('Write archive to {}'.format(archive))
                 with open(archive, 'wb') as fp:
                     for chunk in resp.iter_content(1024):
                         fp.write(chunk)
 
                 if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
-                    logging.debug('Could not download ZIP archive')
+                    self.logger.debug('Could not download ZIP archive')
                 else:
                     break
             except BridgeError:
                 if self.CANCELLED_STATUS.match(self.error):
-                    logging.warning("Seems that the job was cancelled and we cannot download data to start the task")
+                    self.logger.warning("Seems that the job was cancelled and we cannot download data to start the task")
                     ret = False
                     break
                 else:
@@ -170,11 +170,11 @@ class Session:
                 break
             except BridgeError:
                 if self.error == 'ZIP error':
-                    logging.debug('Could not upload ZIP archive')
+                    self.logger.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(0.2)
                 elif self.CANCELLED_STATUS.match(self.error):
-                    logging.warning("Seems that the job was cancelled and we cannot upload results")
+                    self.logger.warning("Seems that the job was cancelled and we cannot upload results")
                     ret = False
                     break
                 else:
@@ -207,6 +207,6 @@ class Session:
 
         :return: Nothing
         """
-        logging.info('Finish session at {}'.format(self.name))
+        self.logger.info('Finish session at {}'.format(self.name))
         self.__request('users/service_signout/', looping=True)
 

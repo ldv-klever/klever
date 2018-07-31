@@ -102,6 +102,8 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+ALLOWED_HOSTS = ['*']
+
 # Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
 # WARNING!!! Change also KLEVER_CORE_FORMATTERS from bridge.vars when you change these packs
 KLEVER_CORE_LOG_FORMATTERS = {
@@ -135,9 +137,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #     memory size - in GB,
 #     number of CPU cores,
 #     disk memory size - in GB,
-#     CPU model,
-#     CPU time - in minutes,
-#     wall time - in minutes,
+#     CPU model
 #   logging:
 #     console log level - see documentation for Python 3 logging for available values,
 #     console log formatter - one of formatters from KLEVER_CORE_LOG_FORMATTERS,
@@ -158,7 +158,7 @@ DEF_KLEVER_CORE_MODES = [
         'production': [
             ['LOW', '0', 100],
             'slow',
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['NONE', 'brief', 'NONE', 'brief'],
             False, False, False, False, False, False, True, False, '1'
         ]
@@ -167,7 +167,7 @@ DEF_KLEVER_CORE_MODES = [
         'development': [
             ['IDLE', '0', 100],
             'quick',
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             True, True, False, True, True, True, True, True, '0'
         ]
@@ -176,7 +176,7 @@ DEF_KLEVER_CORE_MODES = [
         'paranoid development': [
             ['IDLE', '0', 100],
             'quick',
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             True, True, True, True, True, True, True, True, '0'
         ]

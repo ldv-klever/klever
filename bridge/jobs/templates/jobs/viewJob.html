@@ -61,6 +61,9 @@
                         <a id="dfc_modal_show" class="item{% if not job_access.can_dfc %} disabled{% endif %}">{% trans 'Download files for competition' %}</a>
                         <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}">{% trans 'Clear verification files' %}</a>
                     </div>
+                    <div class="right menu">
+                        <a id="job_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>
+                    </div>
                 </div>
 
                 {# Job data table #}
@@ -341,5 +344,8 @@
             </div>
             <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
         {% endif %}
+        <span id="stop_autorefresh" hidden>{% trans 'Stop page autorefresh' %}</span>
+        <span id="start_autorefresh" hidden>{% trans 'Start page autorefresh' %}</span>
+        <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off' %}</span>
     {% endif %}
 {% endblock %}

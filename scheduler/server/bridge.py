@@ -37,7 +37,7 @@ class Server(server.AbstractServer):
             data = {"scheduler": scheduler_type}
         else:
             data = {}
-        self.session = bridge.Session(self.conf["name"], self.conf["user"], self.conf["password"], data)
+        self.session = bridge.Session(self.logger, self.conf["name"], self.conf["user"], self.conf["password"], data)
 
     def exchange(self, tasks):
         """

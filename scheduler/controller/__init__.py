@@ -17,7 +17,6 @@
 
 import os
 import json
-import logging.config
 import signal
 import subprocess
 
@@ -84,13 +83,13 @@ def prepare_node_info(node_info):
     return result
 
 
-def setup_consul(conf):
+def setup_consul(conf, logger):
     """
     Setup consul working directory and configuration files.
     :param conf: Configuration dictionary.
     """
     consul_work_dir = os.path.join(os.path.abspath(os.path.curdir), "consul-dir")
-    logging.info("Setup consul working directory {}".format(consul_work_dir))
+    logger.info("Setup consul working directory {}".format(consul_work_dir))
     # Make consul working directory
     os.makedirs(consul_work_dir.encode("utf8"))
 
@@ -102,7 +101,7 @@ def setup_consul(conf):
 
     # Move checks to to consul dir
     if "script checks" in conf["client-controller"]:
-        logging.info("Add following checks fo consul to track:")
+        logger.info("Add following checks fo consul to track:")
         for check in [check for check in conf["client-controller"]["script checks"]
                       if check["active"]]:
             check_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -130,14 +129,14 @@ def setup_consul(conf):
             consul_config[key] = conf["client-controller"]["consul additional configuration"][key]
 
     consul_config_file = os.path.join(consul_work_dir, "config.json")
-    logging.info("Save consul configuration file {}".format(consul_config_file))
+    logger.info("Save consul configuration file {}".format(consul_config_file))
     with open(consul_config_file, "w", encoding="utf8") as fh:
         fh.write(json.dumps(consul_config, ensure_ascii=False, sort_keys=True, indent=4))
 
-    logging.debug("Extract system information and add it to the node information")
+    logger.debug("Extract system information and add it to the node information")
     node_configuration = os.path.join(os.path.abspath(os.path.curdir), "node configuration.json")
 
-    logging.info("Save node configuration file {}".format(node_configuration))
+    logger.info("Save node configuration file {}".format(node_configuration))
     data = {
         "node configuration": conf["node configuration"],
         "Klever Bridge": conf["Klever Bridge"]
@@ -146,16 +145,16 @@ def setup_consul(conf):
         fh.write(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
 
     # Add as an environment variable
-    logging.info("Set environment variable {} as {}".
+    logger.info("Set environment variable {} as {}".
                  format("CONTROLLER_NODE_CONFIG", os.path.abspath(node_configuration)))
     os.environ["CONTROLLER_NODE_CONFIG"] = os.path.abspath(node_configuration)
 
-    logging.info("Consul setup has been finished")
+    logger.info("Consul setup has been finished")
 
     return consul_work_dir, consul_config_file
 
 
-def run_consul(conf, work_dir, config_file):
+def run_consul(conf, logger, work_dir, config_file):
     """
     Run consul with provided options.
     :param conf: Configuration dictionary.
@@ -188,7 +187,7 @@ def run_consul(conf, work_dir, config_file):
         args.extend(conf["client-controller"]["consul additional opts"])
 
     command = " ".join(args)
-    logging.info("Run: '{}'".format(command))
+    logger.info("Run: '{}'".format(command))
 
     process = None
 
