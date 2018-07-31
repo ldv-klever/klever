@@ -45,7 +45,7 @@ class Balancer:
         if self.conf.get('wall time limit'):
             self.logger.debug("We will have probably extra time to solve timeout tasks")
             self._walllimit = time.time() + time_units_converter(self.conf['wall time limit'])[0]
-            self._minstep = self.conf.get('min increaded limit', 1.2)
+            self._minstep = self.conf.get('min increaded limit', 1.5)
             self.logger.debug("Minimal time limit increasing step is {}%".format(int(round(self._minstep * 100))))
         else:
             self.logger.debug("We will not have extra time to solve timeout tasks")
