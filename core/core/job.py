@@ -408,7 +408,7 @@ class RA(core.components.Component):
         # results we will need to update corresponding data sent before.
 
         # Verification results can be bound on the basis of data (parameter "data").
-        if 'bug identifier' not in data:
+        if not data or 'bug identifier' not in data:
             raise KeyError('Bug identifier is not specified for some sub-job of validation job')
 
         # Identifier suffix clarifies bug nature without preventing relation of verification results, so, just add it
