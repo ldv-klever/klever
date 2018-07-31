@@ -465,6 +465,8 @@ class RA(core.components.Component):
             # Keep obtained verification results to relate them later.
             self.data.update({bug_id: verification_result})
 
+        return bug_id, new_verification_result
+
 
 class Job(core.components.Component):
     SUPPORTED_JOB_TYPES = [
