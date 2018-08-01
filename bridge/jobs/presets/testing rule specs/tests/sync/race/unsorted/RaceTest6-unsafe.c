@@ -46,7 +46,7 @@ static int ldv_increase(void)
 
 static void *ldv_main(void *arg)
 {
-	switch(ldv_undef_int()) {
+	switch (ldv_undef_int()) {
 	case 0:
 		ldv_print();
 		break;

@@ -46,8 +46,8 @@ static int ldv_hook(void)
 
 static int ldv_hook2(int arg)
 {
-	// is not called
-	// not delete the function: CPAchecker should understand it is not called
+	/* This function is not called! Please, do not delete it: CPAchecker
+	 * should understand it is not called. */
 	int b = arg + 1;
 
 	_ldv_global_var = b++;
@@ -69,7 +69,7 @@ static int ldv_func(int arg)
 static void *ldv_locker(void *arg)
 {
 	mutex_lock(&ldv_lock);
-    _ldv_global_var = 4;
+	_ldv_global_var = 4;
 	mutex_unlock(&ldv_lock);
 
 	return NULL;
@@ -92,4 +92,3 @@ static int __init ldv_init(void)
 }
 
 module_init(ldv_init);
-

@@ -69,11 +69,9 @@ static void *ldv_func2(void *arg)
 	b = ldv_func1(p);
 	ldv_func4(p);
 
-	if (b == 0) {
+	if (b == 0)
 		/* False unsafe. f should be cleaned after refinement. */
 		_ldv_global_var++;
-	}
-
 
 	return NULL;
 }

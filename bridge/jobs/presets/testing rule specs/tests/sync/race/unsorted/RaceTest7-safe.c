@@ -28,12 +28,11 @@ static int _ldv_lockLevel;
 
 static int ldv_func1(void)
 {
-	if (_ldv_lockLevel){
+	if (_ldv_lockLevel) {
 		mutex_lock(&ldv_lock);
 		_ldv_false_unsafe = 0;
 		mutex_unlock(&ldv_lock);
-	}
-	else {
+	} else {
 		mutex_lock(&ldv_lock);
 		_ldv_false_unsafe2 = 1;
 		_ldv_true_unsafe = 0;

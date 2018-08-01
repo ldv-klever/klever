@@ -67,7 +67,7 @@ static int ldv_func(int arg)
 static void *ldv_locker(void *arg)
 {
 	mutex_lock(&ldv_lock);
-    _ldv_global_var = 4;
+	_ldv_global_var = 4;
 	mutex_unlock(&ldv_lock);
 
 	return NULL;
@@ -90,4 +90,3 @@ static int __init ldv_init(void)
 }
 
 module_init(ldv_init);
-

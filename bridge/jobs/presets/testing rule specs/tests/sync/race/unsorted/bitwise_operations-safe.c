@@ -26,7 +26,7 @@ static int _ldv_global_var;
 static int ldv_func1(unsigned int ldv_cmd)
 {
 	switch (ldv_cmd) {
-	case (1UL | (unsigned long )4):
+	case (1UL | (unsigned long)4):
 		_ldv_global_var++;
 		break;
 	}
@@ -36,7 +36,7 @@ static int ldv_func1(unsigned int ldv_cmd)
 
 static void *ldv_func2(void *arg)
 {
-	ldv_func1(1UL | (unsigned long )3); 
+	ldv_func1(1UL | (unsigned long)3);
 	return NULL;
 }
 
