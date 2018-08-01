@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "bff71889260f/drivers/staging/iio/adc/mxs-lradc.ko/linux:drivers:clk1"
     },
     {

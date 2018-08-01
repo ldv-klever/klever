@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "21a018a58f3c~/net/tipc/tipc.ko/linux:kernel:locking:spinlock"
     },
     {

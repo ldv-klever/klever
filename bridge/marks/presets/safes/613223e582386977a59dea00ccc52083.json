@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "5c256d215753/drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko/linux:kernel:locking:mutex"
     },
     {

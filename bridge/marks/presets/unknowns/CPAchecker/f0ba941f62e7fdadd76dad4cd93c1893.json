@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "44f694330e1e/net/sunrpc/sunrpc.ko/linux:kernel:module"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.10.46"
+      "is_compare": true,
+      "value": "44f694330e1e"
     },
     {
       "attr": "Linux kernel:Architecture",
