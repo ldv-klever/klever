@@ -12,7 +12,7 @@
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
+      "is_compare": true,
       "value": "c822fb57ba12"
     },
     {
