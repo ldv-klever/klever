@@ -347,12 +347,12 @@ class RP(core.components.Component):
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
             if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
+                self.verdict = 'unsafe'
                 # Collect all sources referred by all error traces. Different error traces can refer almost the same
                 # sources, so reporting them separately is redundant.
                 sources = {}
                 error_trace_files = []
                 for witness in witnesses:
-                    self.verdict = 'unsafe'
                     try:
                         error_trace_sources, error_trace_file = self.process_witness(witness, shadow_src_dir,
                                                                                      get_error_trace_id=True)
