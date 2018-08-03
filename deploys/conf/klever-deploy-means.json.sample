@@ -77,8 +77,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator:26692",
-        "path": "addons/CPAchecker-1.6.1-svn ea117e2ecf-unix",
+        "version": "CPALockator-combat-mode:28916",
+        "path": "addons/CPAchecker-1.7-svn 28916-unix",
         "executable path": "scripts"
       }
     }
