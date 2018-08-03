@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "063579d4c3ed/drivers/w1/wire.ko/linux:kernel:locking:mutex"
     },
     {

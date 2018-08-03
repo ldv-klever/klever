@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "9aaf9678ea3e/sound/pci/emu10k1/snd-emu10k1-synth.ko/linux:kernel:locking:spinlock"
     },
     {

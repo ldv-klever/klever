@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "ac4de081312a/drivers/leds/leds-lp5521.ko/linux:kernel:locking:mutex"
     },
     {

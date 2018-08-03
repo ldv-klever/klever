@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "214c97a12f1f~/drivers/media/usb/usbvision/usbvision.ko/linux:kernel:locking:mutex"
     },
     {
