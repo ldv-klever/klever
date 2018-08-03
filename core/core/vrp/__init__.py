@@ -255,25 +255,16 @@ class RP(core.components.Component):
 
     main = fetcher
 
-    def process_witness(self, witness, shadow_src_dir, get_error_trace_id=False):
+    def process_witness(self, witness, shadow_src_dir):
         error_trace = import_error_trace(self.logger, witness)
         sources = self.__trim_file_names(error_trace['files'], shadow_src_dir)
         error_trace['files'] = [sources[file] for file in error_trace['files']]
 
-        if get_error_trace_id:
-            match = re.search(r'witness\.(.+)\.graphml', witness)
-            if not match:
-                raise ValueError('Witness "{0}" does not encode error trace identifier'.format(witness))
-            error_trace_id = match.group(1)
-
-            error_trace['attrs'] = [{
-                'name': 'Error trace identifier',
-                'value': error_trace_id,
-                'compare': True,
-                'associate': True
-            }]
-
-            error_trace_file = 'error trace {0}.json'.format(error_trace_id)
+        # Distinguish multiple witnesses and error traces by using artificial unique identifiers encoded within witness
+        # file names.
+        match = re.search(r'witness\.(.+)\.graphml', witness)
+        if match:
+            error_trace_file = 'error trace {0}.json'.format(match.group(1))
         else:
             error_trace_file = 'error trace.json'
 
@@ -354,8 +345,7 @@ class RP(core.components.Component):
                 error_trace_files = []
                 for witness in witnesses:
                     try:
-                        error_trace_sources, error_trace_file = self.process_witness(witness, shadow_src_dir,
-                                                                                     get_error_trace_id=True)
+                        error_trace_sources, error_trace_file = self.process_witness(witness, shadow_src_dir)
                         sources.update(error_trace_sources)
                         error_trace_files.append(error_trace_file)
                     except Exception as e:
