@@ -19,6 +19,8 @@ import re
 import os
 import json
 
+import core.utils
+
 
 class ErrorTrace:
     MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
@@ -60,6 +62,8 @@ class ErrorTrace:
             raise KeyError('Entry node has not been set yet')
 
     def serialize(self):
+        core.utils.capitalize_attr_names(self._attrs)
+
         edge_id = 0
         edges = list()
         # The first

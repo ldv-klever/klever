@@ -423,6 +423,17 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+# Capitalize first letters of attribute names.
+def capitalize_attr_names(attrs):
+    # Each attribute is dictionary with one element which value is either string or array of subattributes.
+    for attr in attrs:
+        # Does capitalize attribute name.
+        attr['name'] = attr['name'][0].upper() + attr['name'][1:]
+
+        if isinstance(attr['value'], list):
+            capitalize_attr_names(attr['value'])
+
+
 def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir=''):
     logger.debug('Create {0} report'.format(kind))
 
@@ -430,16 +441,6 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     report_data.update({'type': kind})
 
     if 'attrs' in report_data:
-        # Capitalize first letters of attribute names.
-        def capitalize_attr_names(attrs):
-            # Each attribute is dictionary with one element which value is either string or array of subattributes.
-            for attr in attrs:
-                # Does capitalize attribute name.
-                attr['name'] = attr['name'][0].upper() + attr['name'][1:]
-
-                if isinstance(attr['value'], list):
-                    capitalize_attr_names(attr['value'])
-
         capitalize_attr_names(report_data['attrs'])
 
     logger.debug('{0} going to modify report id'.format(kind.capitalize()))
