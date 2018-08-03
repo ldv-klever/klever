@@ -15,19 +15,10 @@
 # limitations under the License.
 #
 
-from core.lkvog.strategies.closure import Closure
-from core.lkvog.strategies.scotch import Scotch
-from core.lkvog.strategies.separate_modules import SeparateModules
-from core.lkvog.strategies.manual import Manual
-from core.lkvog.strategies.advanced import Advanced
-from core.lkvog.strategies.coverage import Coverage
+import importlib
 
-# todo: remove
-strategies_list = {
-    'separate modules': SeparateModules,
-    'closure': Closure,
-    'scotch': Scotch,
-    'advanced': Advanced,
-    'manual': Manual,
-    'coverage': Coverage
-}
+
+def get_division_strategy(strategy_name):
+    strategy_name = '.lkvog.strategies.{}'.format(strategy_name.capitalize())
+    strategy = importlib.import_module(strategy_name, 'core')
+    return strategy

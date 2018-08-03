@@ -115,8 +115,7 @@ class Manual(AbstractStrategy):
                 if not isinstance(module_list, tuple) \
                         and not isinstance(module_list, list):
                     raise ValueError('You should specify a list of lists for modules for manual strategy\n'
-                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
-                                                                                             value))
+                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key, value))
                 modules = []
                 for module in module_list:
                     if self._is_module(module) or self.is_subsystem(module):

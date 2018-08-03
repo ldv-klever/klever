@@ -130,19 +130,10 @@ class Graph:
         return str(self)
 
     def __eq__(self, rhs):
-        if isinstance(rhs, collections.Iterable):
-            return False
-            return set(self.modules).__eq__(set(rhs))
-        else:
-            return set(self.modules).__eq__(set(rhs.modules))
+        return set(self.modules).__eq__(set(rhs.modules))
 
     def __cmp__(self, rhs):
-        if isinstance(rhs, collections.Iterable):
-            return False
-            return set(self.modules).__cmp__(set(rhs))
-        else:
-            return set(self.modules).__cmp__(set(rhs.modules))
-        #return set(self.modules).__cmp__(set(rhs.modules))
+        return set(self.modules).__cmp__(set(rhs.modules))
 
     def __lt__(self, rhs):
         return self.modules < rhs.modules

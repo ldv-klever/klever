@@ -21,8 +21,7 @@ import os
 import re
 import shutil
 import tarfile
-
-# from clade import Clade
+from clade import Clade
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
@@ -30,14 +29,20 @@ from core.lkvog.strategies import advanced
 from core.lkvog.strategies import strategies_list
 from core.lkvog.strategies import strategy_utils
 
-from core.lkvog.module_extractors import module_extractors_list
+from core.lkvog.module_extractors import get_module_extractor
+from core.lkvog.strategies import get_division_strategy
+from core.lkvog.projects import get_source_adapter
 
+
+<<<<<<< HEAD
 from core.lkvog.fetch_work_src_tree import fetch_work_src_tree
 from core.lkvog.make_canonical_work_src_tree import make_canonical_work_src_tree
 from core.lkvog.linux_kernel.clean_work_src_tree import clean_linux_kernel_work_src_tree
 from core.lkvog.linux_kernel.get_version import get_linux_kernel_version
 from core.lkvog.linux_kernel.configure import configure_linux_kernel
 from core.lkvog.linux_kernel.build import build_linux_kernel
+=======
+>>>>>>> New projects abstraction in VOG to represent different build systems
 
 import core.components
 import core.utils
@@ -90,16 +95,28 @@ class LKVOG(core.components.Component):
         # These dirs are excluded from cleaning by lkvog
         self.dynamic_excluded_clean = multiprocessing.Manager().list()
 
-    def generate_linux_kernel_verification_objects(self):
-        self.prepare_strategy()
+    def generate_verification_objects(self):
+        adapter = get_source_adapter(self.conf['project']['name'])
+        strategy = get_division_strategy(self.conf['VOG strategy']['name'])
+        divider = get_module_extractor(self.conf['VOG extractor']['name'])
 
-        if not self.conf['Clade']['is base cached']:
+        # todo: This trash we need to move somewhere
+        self.dependencies = self._parse_linux_kernel_mod_function_deps()
+        self.sizes = self._parse_sizes_from_file()
+        if self.dependencies:
+            self.strategy.set_dependencies(self.dependencies, self.sizes)
+
+        strategy = strategy(self.logger, self.conf['VOG strategy'])
+        adapter = adapter(self.logger, self.conf)
+
+        if not self.conf['project']['is base cached']:
             # Prepare Linux kernel working source tree and extract build commands exclusively but just with other
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
-                self.prepare_and_build_linux_kernel()
+                self.prepare_and_build(strategy, adapter)
 
+<<<<<<< HEAD
         # self.clade = Clade()
         # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
@@ -115,11 +132,21 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
 
         self.generate_all_verification_obj_descs()
+=======
+        self.clade = Clade()
+        self.clade.set_work_dir(self.conf['project']['base'], self.conf['project']['storage'])
+        self.set_common_prj_attrs(adapter.attributes)
+        # todo: refactor params
+        divider = divider(self.logger, self.clade, self.conf['VOG extractor'],
+                          self.conf['project'].get('modules', []))
+        self.generate_all_verification_obj_descs(divider)
+>>>>>>> New projects abstraction in VOG to represent different build systems
 
         self.clean_dir = True
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
+<<<<<<< HEAD
     def prepare_strategy(self):
         # todo: strategies_list can be calculated dinamically instead of static declaration
         strategy_name = self.conf['LKVOG strategy']['name']
@@ -189,6 +216,19 @@ class LKVOG(core.components.Component):
                            self.mqs["model headers"].get())
 
         # TODO: deal with Clade configuration.
+=======
+    def prepare_and_build(self, strategy, adapter):
+        self.logger.info("Wait for model headers from VOG")
+        model_headers = self.mqs["model headers"].get()
+        # todo: refactor options below
+        modules_to_build, is_build_all_modules = \
+            strategy.get_modules_to_build((module if 'external modules' not in self.conf['source']
+                                           else 'ext-modules/' + module for module in
+                                           self.conf['project']['modules']))
+        adapter.configure()
+        adapter.build(modules_to_build, is_build_all_modules)
+        # todo: refactoring is required below
+>>>>>>> New projects abstraction in VOG to represent different build systems
         # clade_conf = {
         #     'work_dir': self.conf['Clade']['base'],
         #     'remove_existing_work_dir': True,
@@ -221,6 +261,7 @@ class LKVOG(core.components.Component):
         #         'external modules': os.path.abspath(ext_modules) if ext_modules else None,
         #     }
         # }
+<<<<<<< HEAD
 
     def generate_all_verification_obj_descs(self):
         # todo: also get the list of all strategies dinamically
@@ -228,6 +269,14 @@ class LKVOG(core.components.Component):
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
 
+=======
+        #
+        # with open('clade.json', 'w', encoding='utf8') as fp:
+        #     json.dump(clade_conf, fp, indent=4, sort_keys=True)
+        # core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
+
+    def generate_all_verification_obj_descs(self, divider):
+>>>>>>> New projects abstraction in VOG to represent different build systems
         self.strategy.set_clade(self.clade)
         if self.strategy.need_callgraph():
             callgraph = self.clade.get_callgraph()
@@ -241,11 +290,7 @@ class LKVOG(core.components.Component):
             'specific modules': self.strategy.get_specific_modules()
         })
         self.logger.debug('Specific files are {0}'.format(str(extractor_conf['specific modules'])))
-        self.module_extractor = module_extractors_list[module_extractor_name](self.logger,
-                                                                              self.clade,
-                                                                              extractor_conf,
-                                                                              self.conf['Linux kernel'].get('modules', []))
-        self.modules = self.module_extractor.divide()
+        self.modules = divider.divide()
         self.logger.debug("Modules are {0}".format(json.dumps(self.modules, indent=4, sort_keys=True)))
         self.strategy.set_modules(self.modules)
         if self.sizes is None:
@@ -295,74 +340,6 @@ class LKVOG(core.components.Component):
                 cluster.draw('.')
             modules_in_clusters.update([module.id for module in cluster.modules])
 
-    def prepare_ext_modules(self):
-        if 'external modules' not in self.conf['Linux kernel']:
-            return None
-
-        work_src_tree = 'ext-modules'
-
-        self.logger.info(
-            'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
-            .format(self.conf['Linux kernel']['external modules'], work_src_tree))
-
-        src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                          self.conf['Linux kernel']['external modules'])
-
-        if os.path.isdir(src):
-            self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
-            shutil.copytree(src, work_src_tree, symlinks=True)
-        elif os.path.isfile(src):
-            self.logger.debug('External Linux kernel modules source code is provided in form of archive')
-            with tarfile.open(src, encoding='utf8') as TarFile:
-                TarFile.extractall(work_src_tree)
-
-        self.logger.info('Make canonical working source tree of external Linux kernel modules')
-        work_src_tree_root = None
-        for dirpath, dirnames, filenames in os.walk(work_src_tree):
-            ismakefile = False
-            for filename in filenames:
-                if filename == 'Makefile':
-                    ismakefile = True
-                    break
-
-            # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
-            # exist.
-            if self.conf['generate makefiles']:
-                if not work_src_tree_root:
-                    work_src_tree_root = dirpath
-
-                if not ismakefile:
-                    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='utf-8') as fp:
-                        fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
-                                 .format('$(filter %/, $(wildcard $(src)/*/))'))
-                        fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-                        # Specify additional directory to search for model headers. We assume that this directory is
-                        # preserved as is at least during solving a given job. So, we treat headers from it as system
-                        # ones, i.e. headers that aren't copied when .
-                        fp.write('ccflags-y += -isystem ' + os.path.abspath(os.path.dirname(
-                            core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                        self.conf['rule specifications DB']))))
-            elif ismakefile:
-                work_src_tree_root = dirpath
-                break
-
-        if not work_src_tree_root:
-            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
-        elif not os.path.samefile(work_src_tree_root, work_src_tree):
-            self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
-            for path in os.listdir(work_src_tree_root):
-                shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
-            trash_dir = work_src_tree_root
-            while True:
-                parent_dir = os.path.join(trash_dir, os.path.pardir)
-                if os.path.samefile(parent_dir, work_src_tree):
-                    break
-                trash_dir = parent_dir
-            self.logger.debug('Remove "{0}"'.format(trash_dir))
-            shutil.rmtree(os.path.realpath(trash_dir))
-
-        return work_src_tree
-
     def send_loc_report(self):
         core.utils.report(self.logger,
                           'data',
@@ -374,10 +351,11 @@ class LKVOG(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-    main = generate_linux_kernel_verification_objects
+    main = generate_verification_objects
 
-    def set_common_prj_attrs(self):
+    def set_common_prj_attrs(self, attributes):
         self.logger.info('Set common project atributes')
+<<<<<<< HEAD
 
         self.common_prj_attrs = [
             {
@@ -390,6 +368,18 @@ class LKVOG(core.components.Component):
                 'value': [{'name': 'name', 'value': self.conf['LKVOG strategy']['name']}]
             }
         ]
+=======
+        self.common_prj_attrs = attributes
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
+>>>>>>> New projects abstraction in VOG to represent different build systems
 
     def _get_sizes(self):
         sizes = {}
@@ -661,7 +651,7 @@ class LKVOG(core.components.Component):
 
                     # Replace 'extra/' and remove useless path prefix
                     first_module, second_module = (m if not m.startswith(EXTRA_PREFIX) else EXT_PREFIX + m[len(EXTRA_PREFIX):]
-                                                for m in (first_module, second_module))
+                                                   for m in (first_module, second_module))
 
                     dependencies.append((second_module, func, first_module))
             return dependencies
