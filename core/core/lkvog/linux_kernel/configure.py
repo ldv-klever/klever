@@ -44,6 +44,6 @@ def configure_linux_kernel(logger, work_src_tree, jobs, arch, conf):
 
         target = [conf]
 
-    make_linux_kernel(work_src_tree, jobs, arch, target)
+    make_linux_kernel(logger, work_src_tree, jobs, arch, target)
 
     return conf_hash

@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
+import core.utils
 
 
-def make(work_src_tree, jobs, target, opts=None, env=None):
-    subprocess.check_call(['make', '-j', jobs] + opts + target, cwd=work_src_tree, env=env)
+def make(logger, work_src_tree, jobs, target, opts=None, env=None, intercept_build_cmds=False,
+         collect_all_stdout=False):
+    return core.utils.execute(logger, (['clade-intercept'] if intercept_build_cmds else []) + ['make', '-j', jobs] +
+                              opts + target, cwd=work_src_tree, env=env, collect_all_stdout=collect_all_stdout)

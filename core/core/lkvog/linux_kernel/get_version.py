@@ -13,22 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from core.lkvog.make import make
+from core.lkvog.linux_kernel.make import make_linux_kernel
 
 
-_ARCH_OPTS = {
-    'arm': {
-        'ARCH': 'arm',
-        'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
-    },
-    'x86_64': {
-        'ARCH': 'x86_64'
-    }
-}
+def get_linux_kernel_version(logger, work_src_tree, jobs, arch):
+    logger.info('Get Linux kernel version')
 
+    output = make_linux_kernel(logger, work_src_tree, jobs, arch, ['kernelversion'], collect_all_stdout=True)
 
-def make_linux_kernel(logger, work_src_tree, jobs, arch, target, env=None, intercept_build_cmds=False,
-                      collect_all_stdout=False):
-    return make(logger, work_src_tree, jobs, target,
-                ['{0}={1}'.format(name, value) for name, value in _ARCH_OPTS[arch].items()], env, intercept_build_cmds,
-                collect_all_stdout)
+    return output[0]

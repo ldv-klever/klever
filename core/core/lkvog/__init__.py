@@ -35,6 +35,7 @@ from core.lkvog.module_extractors import module_extractors_list
 from core.lkvog.fetch_work_src_tree import fetch_work_src_tree
 from core.lkvog.make_canonical_work_src_tree import make_canonical_work_src_tree
 from core.lkvog.linux_kernel.clean_work_src_tree import clean_linux_kernel_work_src_tree
+from core.lkvog.linux_kernel.get_version import get_linux_kernel_version
 from core.lkvog.linux_kernel.configure import configure_linux_kernel
 from core.lkvog.linux_kernel.build import build_linux_kernel
 
@@ -84,6 +85,7 @@ class LKVOG(core.components.Component):
         self.modules = None
         self.cluster = None
         self.verification_obj_desc = {}
+        self.linux_kernel = {}
 
         # These dirs are excluded from cleaning by lkvog
         self.dynamic_excluded_clean = multiprocessing.Manager().list()
@@ -98,10 +100,19 @@ class LKVOG(core.components.Component):
             with self.locks['build']:
                 self.prepare_and_build_linux_kernel()
 
-        self.clade = Clade()
-        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        # self.clade = Clade()
+        # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
         self.set_common_prj_attrs()
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
 
         self.generate_all_verification_obj_descs()
 
@@ -141,6 +152,8 @@ class LKVOG(core.components.Component):
                 conf = self.conf['Linux kernel']['configuration']
 
         arch = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
+        # Unlike configuration architecture is not changed below.
+        self.linux_kernel['architecture'] = arch
 
         build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
 
@@ -159,56 +172,55 @@ class LKVOG(core.components.Component):
 
         ext_modules = self.prepare_ext_modules()
 
-        work_src_tree = fetch_work_src_tree(self.logger, src, 'linux', self.conf['Linux kernel'].get('Git repository'),
-                                            self.conf['allow local source directories use'])
+        work_src_tree, git_commit_hash = fetch_work_src_tree(self.logger, src, 'linux',
+                                                             self.conf['Linux kernel'].get('Git repository'),
+                                                             self.conf['allow local source directories use'])
         make_canonical_work_src_tree(self.logger, work_src_tree)
         clean_linux_kernel_work_src_tree(self.logger, work_src_tree)
-        # TODO: get linux kernel version.
+        if git_commit_hash:
+            self.linux_kernel['version'] = git_commit_hash
+        else:
+            self.linux_kernel['version'] = get_linux_kernel_version(self.logger, work_src_tree, build_jobs, arch)
         conf_hash = configure_linux_kernel(self.logger, work_src_tree, build_jobs, arch, conf)
-        # TODO: self.dump_global_data('Linux kernel architecture', self.ext_conf['architecture'])
-        # TODO: self.dump_global_data('Linux kernel configuration', conf_hash)
+        self.linux_kernel['configuration'] = conf_hash
         # TODO: argument "kernel" is unused.
         build_linux_kernel(self.logger, work_src_tree, build_jobs, arch, False,
                            modules_to_build if not is_build_all_modules else ['all'], os.path.abspath(ext_modules),
                            self.mqs["model headers"].get())
 
-        clade_conf = {
-            'work_dir': self.conf['Clade']['base'],
-            'remove_existing_work_dir': True,
-            'storage_dir': self.conf['Clade']['storage'],
-            'internal_extensions': ['CommandGraph', 'Callgraph'],
-            'template aspect file': core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                                self.conf['aspect file']),
-            'max arguments number': 30,
-            'CC.with_system_header_files': False,
-            'CommandGraph.as_picture': True,
-            'Common.filter': ['.*?\\.tmp$'],
-            'allowed macros': self.conf.get('allowed macros', []),
-            'Common.filter_in': [
-                '-',
-                '/dev/null',
-                'scripts/(?!mod/empty\\.c)',
-                'kernel/.*?bounds.*?',
-                'arch/x86/tools/relocs',
-                'arch/x86/kernel/asm-offsets.c',
-                '.*/built-in.o',
-                '.*\.mod\.c'
-            ],
-            'Common.filter_out': [
-                '/dev/null',
-                '.*?\\.cmd$',
-                'vmlinux'
-            ],
-            'global_data': {
-                'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
-                'external modules': os.path.abspath(ext_modules) if ext_modules else None,
-            }
-        }
-
-        with open('clade.json', 'w', encoding='utf8') as fp:
-            json.dump(clade_conf, fp, indent=4, sort_keys=True)
-
-        core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
+        # TODO: deal with Clade configuration.
+        # clade_conf = {
+        #     'work_dir': self.conf['Clade']['base'],
+        #     'remove_existing_work_dir': True,
+        #     'storage_dir': self.conf['Clade']['storage'],
+        #     'internal_extensions': ['CommandGraph', 'Callgraph'],
+        #     'template aspect file': core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+        #                                                         self.conf['aspect file']),
+        #     'max arguments number': 30,
+        #     'CC.with_system_header_files': False,
+        #     'CommandGraph.as_picture': True,
+        #     'Common.filter': ['.*?\\.tmp$'],
+        #     'allowed macros': self.conf.get('allowed macros', []),
+        #     'Common.filter_in': [
+        #         '-',
+        #         '/dev/null',
+        #         'scripts/(?!mod/empty\\.c)',
+        #         'kernel/.*?bounds.*?',
+        #         'arch/x86/tools/relocs',
+        #         'arch/x86/kernel/asm-offsets.c',
+        #         '.*/built-in.o',
+        #         '.*\.mod\.c'
+        #     ],
+        #     'Common.filter_out': [
+        #         '/dev/null',
+        #         '.*?\\.cmd$',
+        #         'vmlinux'
+        #     ],
+        #     'global_data': {
+        #         'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
+        #         'external modules': os.path.abspath(ext_modules) if ext_modules else None,
+        #     }
+        # }
 
     def generate_all_verification_obj_descs(self):
         # todo: also get the list of all strategies dinamically
@@ -367,26 +379,17 @@ class LKVOG(core.components.Component):
     def set_common_prj_attrs(self):
         self.logger.info('Set common project atributes')
 
-        clade_global_data = self.clade.get_global_data()
-
         self.common_prj_attrs = [
-            {'Linux kernel': [
-                {'version': clade_global_data.get('Linux kernel version', ['None'])[0]},
-                {'architecture': clade_global_data.get('Linux kernel architecture', 'None')},
-                {'configuration': clade_global_data('Linux kernel configuration', 'None')}
-            ]},
-            {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
+            {
+                'name': 'Linux kernel',
+                'value': [{'name': name, 'value': value} for name, value in self.linux_kernel.items()]
+            },
+            # TODO: this is of course incomplete list of attributes but it is the as in master.
+            {
+                'name': 'LKVOG strategy',
+                'value': [{'name': 'name', 'value': self.conf['LKVOG strategy']['name']}]
+            }
         ]
-
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.common_prj_attrs
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
 
     def _get_sizes(self):
         sizes = {}

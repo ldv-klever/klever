@@ -27,17 +27,17 @@ def build_linux_kernel(logger, work_src_tree, jobs, arch, kernel, modules, ext_m
     try:
         # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
         # kernel has loadable modules support.
-        make_linux_kernel(work_src_tree, jobs, arch, ['modules_prepare'])
+        make_linux_kernel(logger, work_src_tree, jobs, arch, ['modules_prepare'], intercept_build_cmds=True)
         loadable_modules_support = True
     except subprocess.CalledProcessError:
         # TODO: indeed this looks to be project specific, thus, it should be optional.
         # Otherwise the command above will most likely fail. In this case compile special file, namely,
         # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
         # building
-        make_linux_kernel(work_src_tree, jobs, arch, ['scripts/mod/empty.o'])
+        make_linux_kernel(logger, work_src_tree, jobs, arch, ['scripts/mod/empty.o'], intercept_build_cmds=True)
 
     if kernel:
-        make_linux_kernel(work_src_tree, jobs, arch, ['vmlinux'])
+        make_linux_kernel(logger, work_src_tree, jobs, arch, ['vmlinux'], intercept_build_cmds=True)
 
     # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
     ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
@@ -49,10 +49,12 @@ def build_linux_kernel(logger, work_src_tree, jobs, arch, kernel, modules, ext_m
 
         # Use target "modules" when the Linux kernel supports loadable modules.
         if loadable_modules_support:
-            make_linux_kernel(work_src_tree, jobs, arch, ext_modules_make_opt + ['modules'])
+            make_linux_kernel(logger, work_src_tree, jobs, arch, ext_modules_make_opt + ['modules'],
+                              intercept_build_cmds=True)
         # Otherwise build all builtin modules indirectly by using target "all".
         else:
-            make_linux_kernel(work_src_tree, jobs, arch, ext_modules_make_opt + ['all'])
+            make_linux_kernel(logger, work_src_tree, jobs, arch, ext_modules_make_opt + ['all'],
+                              intercept_build_cmds=True)
     else:
         # Check that module sets aren't intersect explicitly.
         for i, modules1 in enumerate(modules):
@@ -83,7 +85,7 @@ def build_linux_kernel(logger, work_src_tree, jobs, arch, kernel, modules, ext_m
                     build_targets.append(['M=' + modules])
 
         for build_target in build_targets:
-            make_linux_kernel(work_src_tree, jobs, arch, build_target)
+            make_linux_kernel(logger, work_src_tree, jobs, arch, build_target, intercept_build_cmds=True)
 
     if not model_headers:
         return
