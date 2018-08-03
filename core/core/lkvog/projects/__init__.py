@@ -36,6 +36,7 @@ class Project:
         self.logger = logger
         self.conf = conf
         self.configuration = None
+        self.version = None
         self.arch = self.conf['project']['source'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self._prepare_working_directory()
@@ -59,8 +60,10 @@ class Project:
     def cleanup(self):
         pass
 
-    def _make(self, target, opts=None, env=None):
-        subprocess.check_call(['make', '-j', self.workers] + opts + target, cwd=self.work_src_tree, env=env)
+    def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
+        return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +
+                                  ['make', '-j', self.workers] + opts + target,
+                                  cwd=self.work_src_tree, env=env, collect_all_stdout=collect_all_stdout)
 
     def _prepare_working_directory(self):
         try:
@@ -69,8 +72,9 @@ class Project:
         except FileNotFoundError:
             # source code is not provided in form of file or directory.
             src = self.conf['project']['source']
-        self.work_src_tree = self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
-                                                       self.conf['allow local source directories use'])
+        self.work_src_tree, self.version = \
+            self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
+                                      self.conf['allow local source directories use'])
         self._make_canonical_work_src_tree()
         self.cleanup()
 
@@ -84,6 +88,7 @@ class Project:
         elif o[0]:
             raise ValueError('Source code is provided in unsupported form "{0}"'.format(o[0]))
 
+        git_commit_hash = None
         if os.path.isdir(src):
             if use_orig_src_tree:
                 self.logger.info('Use original source tree "{0}" rather than fetch it to working source tree "{1}"'
@@ -113,11 +118,17 @@ class Project:
                         subprocess.check_call(('git', 'clean', '-f', '-d'), cwd=work_src_tree)
                         subprocess.check_call(('git', 'reset', '--hard'), cwd=work_src_tree)
                         subprocess.check_call(('git', 'checkout', '-f', git_repo[commit_or_branch]), cwd=work_src_tree)
+
+                        # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
+                        stdout = core.utils.execute(self.logger, ('git', 'rev-parse', 'HEAD'), cwd=work_src_tree,
+                                                    collect_all_stdout=True)
+                        git_commit_hash = stdout[0][0:12]
         elif os.path.isfile(src):
             self.logger.debug('Source code is provided in form of archive')
             with tarfile.open(src, encoding='utf8') as TarFile:
                 TarFile.extractall(work_src_tree)
 
+        self.version = git_commit_hash
         return work_src_tree
 
     def _make_canonical_work_src_tree(self):

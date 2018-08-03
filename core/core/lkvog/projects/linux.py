@@ -58,6 +58,11 @@ class Linux(Project):
         self.logger.info('Configure Linux kernel')
         super(Linux, self).configure()
 
+        self.logger.info('Get Linux kernel version')
+        if not self.version:
+            output = self._make_linux_kernel(['kernelversion'], collect_all_stdout=True)
+            self.version = output[0]
+
         # Linux kernel configuration can be specified by means of configuration file or configuration target.
         if os.path.isfile(self.configuration):
             self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.configuration))
@@ -79,9 +84,7 @@ class Linux(Project):
             target = [self.configuration]
 
         self._make_linux_kernel(target)
-
-        # todo: Do we need the hash?
-        # return conf_hash
+        self.configuration = conf_hash
 
     def build(self, modules_to_build, model_headers, complete_build=False):
         self.logger.info('Build Linux kernel')
@@ -99,17 +102,17 @@ class Linux(Project):
         try:
             # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
             # kernel has loadable modules support.
-            self._make_linux_kernel(self.work_src_tree, ['modules_prepare'])
+            self._make_linux_kernel(self.work_src_tree, ['modules_prepare'], intercept_build_cmds=True)
             loadable_modules_support = True
         except subprocess.CalledProcessError:
             # TODO: indeed this looks to be project specific, thus, it should be optional.
             # Otherwise the command above will most likely fail. In this case compile special file, namely,
             # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
             # building
-            self._make_linux_kernel(['scripts/mod/empty.o'])
+            self._make_linux_kernel(['scripts/mod/empty.o'], intercept_build_cmds=True)
 
         if self.kernel:
-            self._make_linux_kernel(['vmlinux'])
+            self._make_linux_kernel(['vmlinux'], intercept_build_cmds=True)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
         ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
@@ -121,10 +124,10 @@ class Linux(Project):
 
             # Use target "modules" when the Linux kernel supports loadable modules.
             if loadable_modules_support:
-                self._make_linux_kernel(ext_modules_make_opt + ['modules'])
+                self._make_linux_kernel(ext_modules_make_opt + ['modules'], intercept_build_cmds=True)
             # Otherwise build all builtin modules indirectly by using target "all".
             else:
-                self._make_linux_kernel(ext_modules_make_opt + ['all'])
+                self._make_linux_kernel(ext_modules_make_opt + ['all'], intercept_build_cmds=True)
         else:
             # Check that module sets aren't intersect explicitly.
             for i, modules1 in enumerate(modules_to_build):
@@ -156,7 +159,7 @@ class Linux(Project):
                         build_targets.append(['M=' + modules])
 
             for build_target in build_targets:
-                self._make_linux_kernel(build_target)
+                self._make_linux_kernel(build_target, intercept_build_cmds=True)
 
         if not model_headers:
             return
@@ -211,10 +214,11 @@ class Linux(Project):
         #             if re.search(r'\.task$', dirname):
         #                 shutil.rmtree(os.path.join(dirpath, dirname))
 
-    def _make_linux_kernel(self, target, env=None):
-        self._make(target, ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.arch].items()], env)
+    def _make_linux_kernel(self, target, env=None, intercept_build_cmds=False, collect_all_stdout=False):
+        return self._make(target, ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.arch].items()],
+                          env, intercept_build_cmds, collect_all_stdout)
 
-    def _prepare_ext_modules(self):
+    def prepare_ext_modules(self):
         if 'external modules' not in self.conf['project']:
             return None
 
@@ -223,8 +227,9 @@ class Linux(Project):
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
             .format(self.conf['Linux kernel']['external modules'], work_src_tree))
+
         src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                          self.conf['Linux kernel']['external modules'])
+                                          self.conf['project']['external modules'])
 
         if os.path.isdir(src):
             self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
@@ -245,7 +250,7 @@ class Linux(Project):
 
             # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
             # exist.
-            # todo: do not set this flag to the root of the configuration
+            # todo: Move this inside project subcategory
             if self.conf['generate makefiles']:
                 if not work_src_tree_root:
                     work_src_tree_root = dirpath

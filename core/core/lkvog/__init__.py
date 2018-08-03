@@ -21,28 +21,10 @@ import os
 import re
 import shutil
 import tarfile
-from clade import Clade
-
-from core.lkvog.strategies import scotch
-from core.lkvog.strategies import closure
-from core.lkvog.strategies import advanced
-from core.lkvog.strategies import strategies_list
-from core.lkvog.strategies import strategy_utils
 
 from core.lkvog.module_extractors import get_module_extractor
 from core.lkvog.strategies import get_division_strategy
 from core.lkvog.projects import get_source_adapter
-
-
-<<<<<<< HEAD
-from core.lkvog.fetch_work_src_tree import fetch_work_src_tree
-from core.lkvog.make_canonical_work_src_tree import make_canonical_work_src_tree
-from core.lkvog.linux_kernel.clean_work_src_tree import clean_linux_kernel_work_src_tree
-from core.lkvog.linux_kernel.get_version import get_linux_kernel_version
-from core.lkvog.linux_kernel.configure import configure_linux_kernel
-from core.lkvog.linux_kernel.build import build_linux_kernel
-=======
->>>>>>> New projects abstraction in VOG to represent different build systems
 
 import core.components
 import core.utils
@@ -114,12 +96,23 @@ class LKVOG(core.components.Component):
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
-                self.prepare_and_build(strategy, adapter)
+                self.prepare_and_build()
 
-<<<<<<< HEAD
         # self.clade = Clade()
         # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
 
+        # todo: Set them according to strategy and project
+        # self.common_prj_attrs = [
+        #     {
+        #         'name': 'Linux kernel',
+        #         'value': [{'name': name, 'value': value} for name, value in self.linux_kernel.items()]
+        #     },
+        #     # TODO: this is of course incomplete list of attributes but it is the as in master.
+        #     {
+        #         'name': 'LKVOG strategy',
+        #         'value': [{'name': 'name', 'value': self.conf['LKVOG strategy']['name']}]
+        #     }
+        # ]
         self.set_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
@@ -132,91 +125,11 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
 
         self.generate_all_verification_obj_descs()
-=======
-        self.clade = Clade()
-        self.clade.set_work_dir(self.conf['project']['base'], self.conf['project']['storage'])
-        self.set_common_prj_attrs(adapter.attributes)
-        # todo: refactor params
-        divider = divider(self.logger, self.clade, self.conf['VOG extractor'],
-                          self.conf['project'].get('modules', []))
-        self.generate_all_verification_obj_descs(divider)
->>>>>>> New projects abstraction in VOG to represent different build systems
 
         self.clean_dir = True
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
-<<<<<<< HEAD
-    def prepare_strategy(self):
-        # todo: strategies_list can be calculated dinamically instead of static declaration
-        strategy_name = self.conf['LKVOG strategy']['name']
-        if strategy_name not in strategies_list:
-            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
-
-        self.dependencies = self._parse_linux_kernel_mod_function_deps()
-        self.sizes = self._parse_sizes_from_file()
-        strategy_params = {'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                                    strategy_name))}
-        self.strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
-        if self.dependencies:
-            self.strategy.set_dependencies(self.dependencies, self.sizes)
-
-    def prepare_and_build_linux_kernel(self):
-        try:
-            src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                              self.conf['Linux kernel']['source'])
-        except FileNotFoundError:
-            # Linux kernel source code is not provided in form of file or directory.
-            src = self.conf['Linux kernel']['source']
-
-        conf = None
-        if 'configuration' in self.conf['Linux kernel']:
-            try:
-                conf = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                   self.conf['Linux kernel']['configuration'])
-            except FileNotFoundError:
-                # Linux kernel configuration is not provided in form of file.
-                conf = self.conf['Linux kernel']['configuration']
-
-        arch = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
-        # Unlike configuration architecture is not changed below.
-        self.linux_kernel['architecture'] = arch
-
-        build_jobs = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
-
-        if 'all' in self.conf['Linux kernel'].get('modules', []) or 'functions' in self.conf['Linux kernel']:
-            is_build_all_modules = True
-            modules_to_build = []
-        else:
-            modules_to_build, is_build_all_modules = \
-                self.strategy.get_modules_to_build((module if 'external modules' not in self.conf['Linux kernel']
-                                                    else 'ext-modules/' + module for module in self.conf['Linux kernel']['modules']))
-
-        modules_to_build = [module if not module.startswith('ext-modules/') else module[len('ext-modules/'):]
-                            for module in modules_to_build]
-
-        modules_to_build = sorted(set(modules_to_build))
-
-        ext_modules = self.prepare_ext_modules()
-
-        work_src_tree, git_commit_hash = fetch_work_src_tree(self.logger, src, 'linux',
-                                                             self.conf['Linux kernel'].get('Git repository'),
-                                                             self.conf['allow local source directories use'])
-        make_canonical_work_src_tree(self.logger, work_src_tree)
-        clean_linux_kernel_work_src_tree(self.logger, work_src_tree)
-        if git_commit_hash:
-            self.linux_kernel['version'] = git_commit_hash
-        else:
-            self.linux_kernel['version'] = get_linux_kernel_version(self.logger, work_src_tree, build_jobs, arch)
-        conf_hash = configure_linux_kernel(self.logger, work_src_tree, build_jobs, arch, conf)
-        self.linux_kernel['configuration'] = conf_hash
-        # TODO: argument "kernel" is unused.
-        build_linux_kernel(self.logger, work_src_tree, build_jobs, arch, False,
-                           modules_to_build if not is_build_all_modules else ['all'], os.path.abspath(ext_modules),
-                           self.mqs["model headers"].get())
-
-        # TODO: deal with Clade configuration.
-=======
     def prepare_and_build(self, strategy, adapter):
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
@@ -227,41 +140,6 @@ class LKVOG(core.components.Component):
                                            self.conf['project']['modules']))
         adapter.configure()
         adapter.build(modules_to_build, is_build_all_modules)
-        # todo: refactoring is required below
->>>>>>> New projects abstraction in VOG to represent different build systems
-        # clade_conf = {
-        #     'work_dir': self.conf['Clade']['base'],
-        #     'remove_existing_work_dir': True,
-        #     'storage_dir': self.conf['Clade']['storage'],
-        #     'internal_extensions': ['CommandGraph', 'Callgraph'],
-        #     'template aspect file': core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-        #                                                         self.conf['aspect file']),
-        #     'max arguments number': 30,
-        #     'CC.with_system_header_files': False,
-        #     'CommandGraph.as_picture': True,
-        #     'Common.filter': ['.*?\\.tmp$'],
-        #     'allowed macros': self.conf.get('allowed macros', []),
-        #     'Common.filter_in': [
-        #         '-',
-        #         '/dev/null',
-        #         'scripts/(?!mod/empty\\.c)',
-        #         'kernel/.*?bounds.*?',
-        #         'arch/x86/tools/relocs',
-        #         'arch/x86/kernel/asm-offsets.c',
-        #         '.*/built-in.o',
-        #         '.*\.mod\.c'
-        #     ],
-        #     'Common.filter_out': [
-        #         '/dev/null',
-        #         '.*?\\.cmd$',
-        #         'vmlinux'
-        #     ],
-        #     'global_data': {
-        #         'search directories': core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
-        #         'external modules': os.path.abspath(ext_modules) if ext_modules else None,
-        #     }
-        # }
-<<<<<<< HEAD
 
     def generate_all_verification_obj_descs(self):
         # todo: also get the list of all strategies dinamically
@@ -269,14 +147,6 @@ class LKVOG(core.components.Component):
         if module_extractor_name not in module_extractors_list:
             raise NotImplementedError("Module extractor '{0}' has not implemented".format(module_extractor_name))
 
-=======
-        #
-        # with open('clade.json', 'w', encoding='utf8') as fp:
-        #     json.dump(clade_conf, fp, indent=4, sort_keys=True)
-        # core.utils.execute(self.logger, tuple(['clade', '--config', 'clade.json']))
-
-    def generate_all_verification_obj_descs(self, divider):
->>>>>>> New projects abstraction in VOG to represent different build systems
         self.strategy.set_clade(self.clade)
         if self.strategy.need_callgraph():
             callgraph = self.clade.get_callgraph()
@@ -352,34 +222,6 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
 
     main = generate_verification_objects
-
-    def set_common_prj_attrs(self, attributes):
-        self.logger.info('Set common project atributes')
-<<<<<<< HEAD
-
-        self.common_prj_attrs = [
-            {
-                'name': 'Linux kernel',
-                'value': [{'name': name, 'value': value} for name, value in self.linux_kernel.items()]
-            },
-            # TODO: this is of course incomplete list of attributes but it is the as in master.
-            {
-                'name': 'LKVOG strategy',
-                'value': [{'name': 'name', 'value': self.conf['LKVOG strategy']['name']}]
-            }
-        ]
-=======
-        self.common_prj_attrs = attributes
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.common_prj_attrs
-                          },
-                          self.mqs['report files'],
-                          self.vals['report id'],
-                          self.conf['main working directory'])
->>>>>>> New projects abstraction in VOG to represent different build systems
 
     def _get_sizes(self):
         sizes = {}
@@ -651,7 +493,7 @@ class LKVOG(core.components.Component):
 
                     # Replace 'extra/' and remove useless path prefix
                     first_module, second_module = (m if not m.startswith(EXTRA_PREFIX) else EXT_PREFIX + m[len(EXTRA_PREFIX):]
-                                                   for m in (first_module, second_module))
+                                                for m in (first_module, second_module))
 
                     dependencies.append((second_module, func, first_module))
             return dependencies
@@ -688,4 +530,3 @@ class LKVOG(core.components.Component):
                     for line in fp:
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
-
