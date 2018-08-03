@@ -24,6 +24,7 @@ class ErrorTrace:
     MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
 
     def __init__(self, logger):
+        self._attrs = list()
         self._nodes = dict()
         self._files = list()
         self._funcs = list()
@@ -75,6 +76,7 @@ class ErrorTrace:
         nodes[-1].append(None)
 
         data = {
+            'attrs': self._attrs,
             'nodes': nodes,
             'edges': edges,
             'entry node': 0,
@@ -85,6 +87,14 @@ class ErrorTrace:
             'callback actions': self._callback_actions
         }
         return data
+
+    def add_attr(self, name, value, associate, compare):
+        self._attrs.append({
+            'name': name,
+            'value': value,
+            'associate': associate,
+            'compare': compare
+        })
 
     def add_entry_node_id(self, node_id):
         self._entry_node_id = node_id
