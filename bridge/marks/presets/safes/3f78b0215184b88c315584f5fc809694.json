@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "448356262f56/drivers/usb/serial/kobil_sct.ko/linux:alloc:irq"
     },
     {

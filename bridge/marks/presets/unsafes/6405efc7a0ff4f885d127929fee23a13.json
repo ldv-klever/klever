@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "e4c7f259c5be~/drivers/net/usb/kaweth.ko/linux:alloc:spinlock"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.5.0"
+      "is_compare": true,
+      "value": "42493570100b"
     },
     {
       "attr": "Linux kernel:Architecture",

@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "7ce77510c9c7/drivers/usb/serial/opticon.ko/linux:alloc:irq"
     },
     {

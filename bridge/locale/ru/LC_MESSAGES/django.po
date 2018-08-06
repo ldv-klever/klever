@@ -922,26 +922,6 @@ msgstr ""
 "Вы можете указать любую подстроку целевой модели процессора. Пустое значение "
 "означает любую модель."
 
-#: jobs/templates/jobs/startDecision.html:150
-#: reports/templates/reports/ReportMain.html:91
-msgid "CPU time"
-msgstr "Процессорное время"
-
-#: jobs/templates/jobs/startDecision.html:150
-#: jobs/templates/jobs/startDecision.html:161 jobs/utils.py:350
-msgid "min"
-msgstr "мин"
-
-#: jobs/templates/jobs/startDecision.html:157
-#: jobs/templates/jobs/startDecision.html:168
-msgid "The empty value means unlimited time."
-msgstr "Пустое значение означает неограниченное время."
-
-#: jobs/templates/jobs/startDecision.html:161
-#: reports/templates/reports/ReportMain.html:90
-msgid "Wall time"
-msgstr "Астрономическое время"
-
 #: jobs/templates/jobs/startDecision.html:175
 msgid "Logging"
 msgstr "Логирование"

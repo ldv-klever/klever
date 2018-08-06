@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "2ba4b92e8773/drivers/usb/dwc2/dwc2_gadget.ko/linux:drivers:clk2"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.16.3"
+      "is_compare": true,
+      "value": "2ba4b92e8773"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -43,7 +43,7 @@
   ],
   "description": "The code is reachable, time is spend on transfer relation calculation.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

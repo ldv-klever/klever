@@ -20,7 +20,8 @@
       "short": 5,
       "medium": 10,
       "long": 20
-    }
+    },
+    "ignore BenchExec warnings": ["CPU throttled itself during benchmarking due to overheating"]
   },
   "common": {
     "working directory": "native-scheduler-work-dir",

@@ -34,7 +34,7 @@ import cinderclient.client
 
 from deploys.openstack.instance import OSInstance
 from deploys.openstack.ssh import SSH
-from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs
+from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs, to_update
 
 
 class OSClients:
@@ -209,6 +209,11 @@ class OSKleverInstance(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+    def _install_or_update_deps(self, ssh):
+        ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
+                        (' --update-packages' if self.args.update_packages else '') +
+                        (' --update-python3-packages' if self.args.update_python3_packages else ''))
+
     def _create(self, is_dev):
         base_image = self._get_base_image(self.args.klever_base_image)
 
@@ -239,31 +244,24 @@ class OSKleverInstance(OSEntity):
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
                 with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                          'creation of Klever developer instance'):
+                                          'creation of Klever instance'):
+                    self._install_or_update_deps(ssh)
                     ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/prepare_env.py')
-                    self._create_or_update(ssh, is_dev, deps=False)
+                    self._create_or_update(ssh, is_dev)
 
                 # Preserve instance if everything above went well.
                 self.instance.keep_on_exit = True
 
-    def _create_or_update(self, ssh, is_dev, deps=True):
+    def _create_or_update(self, ssh, is_dev):
         with open(self.args.deployment_configuration_file) as fp:
             deploy_conf = json.load(fp)
 
-        is_update = {
-            'Klever': False,
-            'Controller & Schedulers': False,
-            'Verification Backends': False
-        }
+        # TODO: rename everywhere previous deployment information with deployment information since during deployment it is updated step by step.
+        def get_prev_deploy_info():
+            with ssh.sftp.file('klever-inst/klever.json') as nested_fp:
+                return json.loads(nested_fp.read().decode('utf8'))
 
-        # TODO: this condition looks strange. Why not update packages when creating a new instance?.. Perhaps one day packages were installed in advance, so this was really redundant.
-        if deps:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_deps.py --non-interactive' +
-                            (' --update-packages' if self.args.update_packages else '') +
-                            (' --update-python3-packages' if self.args.update_python3_packages else ''))
-
-        with ssh.sftp.file('klever-inst/klever.json') as fp:
-            prev_deploy_info = json.loads(fp.read().decode('utf8'))
+        prev_deploy_info = get_prev_deploy_info()
 
         def cmd_fn(*args):
             ssh.execute_cmd('sudo ' + ' '.join([shlex.quote(arg) for arg in args]))
@@ -274,48 +272,45 @@ class OSKleverInstance(OSEntity):
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
             ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
 
-        is_update['Klever'] = install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf,
-                                                           prev_deploy_info, cmd_fn, install_fn)
-
-        def dump_cur_deploy_info():
+        def dump_cur_deploy_info(cur_deploy_info):
             with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:
-                json.dump(prev_deploy_info, nested_fp, sort_keys=True, indent=4)
+                json.dump(cur_deploy_info, nested_fp, sort_keys=True, indent=4)
                 nested_fp.flush()
                 ssh.execute_cmd('sudo rm klever-inst/klever.json')
                 ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
-        if is_update['Klever']:
-            dump_cur_deploy_info()
+        if install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf, prev_deploy_info,
+                                        cmd_fn, install_fn):
+            to_update(prev_deploy_info, 'Klever', dump_cur_deploy_info)
 
-        try:
-            is_update['Controller & Schedulers'], is_update['Verification Backends'] = \
-                install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn)
-        # Without this we won't store information on successfully installed/updated extra dependencies and following
-        # installation/update will fail.
-        finally:
-            if is_update['Controller & Schedulers'] or is_update['Verification Backends']:
-                dump_cur_deploy_info()
+        install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                           dump_cur_deploy_info)
+        install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                         dump_cur_deploy_info)
 
-        is_update_programs = False
-        try:
-            is_update_programs = install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn,
-                                                  install_fn)
-        # Like above.
-        finally:
-            if is_update_programs:
-                dump_cur_deploy_info()
+        prev_deploy_info = get_prev_deploy_info()
 
-        if is_update['Klever']:
-            ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
-                            .format(' --development' if is_dev else ''))
+        # Keeping entities to be updated in previous deployment information allows to properly deal when somethiing
+        # went wrong above. For instance, script can update Klever but then fail when, say, installing programs. After
+        # fixing issues with programs script will skip updating Klever and install them successfully. But also it will
+        # perform actions required after updating Klever that happened at the first iteration since we remember that
+        # Klever should be updated.
+        if 'To update' in prev_deploy_info:
+            if 'Klever' in prev_deploy_info['To update']:
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/install_klever_bridge.py{0}'
+                                .format(' --development' if is_dev else ''))
 
-        cmd = 'sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'.format(' --development'
-                                                                                             if is_dev else '')
-        if is_update['Klever'] or is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd)
+            if 'Klever' in prev_deploy_info['To update'] or 'Controller & Schedulers' in prev_deploy_info['To update']:
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py{0}'
+                                .format(' --development' if is_dev else ''))
+            elif 'Verification Backends' in prev_deploy_info['To update']:
+                ssh.execute_cmd('sudo PYTHONPATH=. ./deploys/configure_controller_and_schedulers.py'
+                                ' --just-native-scheduler-task-worker')
 
-        if is_update['Verification Backends'] and not is_update['Klever'] and not is_update['Controller & Schedulers']:
-            ssh.execute_cmd(cmd + ' --just-native-scheduler-task-worker')
+            # Although we can forget to update entities step by step it is simpler and safer to forget about everything
+            # at once. Indeed, there will be very rare failures above.
+            del prev_deploy_info['To update']
+            dump_cur_deploy_info(prev_deploy_info)
 
     def _get_instance(self, instance_name):
         self.logger.info('Get instance matching "{0}"'.format(instance_name))
@@ -364,12 +359,13 @@ class OSKleverInstance(OSEntity):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
                                                    self._get_instance_floating_ip(instance))
 
-    def _update(self, instance):
+    def _update(self, instance, is_dev):
         with SSH(args=self.args, logger=self.logger, name=instance.name,
                  floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             with DeployConfAndScripts(self.logger, ssh, self.args.deployment_configuration_file,
-                                      'update of Klever developer instance'):
-                self._create_or_update(ssh, True)
+                                      'update of Klever instance'):
+                self._install_or_update_deps(ssh)
+                self._create_or_update(ssh, is_dev)
 
 
 class OSKleverDeveloperInstance(OSKleverInstance):
@@ -399,7 +395,7 @@ class OSKleverDeveloperInstance(OSKleverInstance):
         self._create(True)
 
     def update(self):
-        self._update(self._get_instance(self.name))
+        self._update(self._get_instance(self.name), True)
 
     def remove(self):
         # TODO: wait for successfull deletion everywhere.
@@ -481,6 +477,7 @@ class OSKleverDeveloperInstance(OSKleverInstance):
         sys.exit(errno.EINVAL)
 
 
+# TODO: Refactor this! This class shouldn't inherit OSKleverInstance as it corresponds to one or more OSKleverInstance. Because of this inheritance there is tricky mess of methods of this class and OSKleverInstance. Besides, refactoring is required for OSEntity (that indeed doesn't correspond to any single entity) and for OSKleverInstance as it also has some methods for dealing with many entities rather than a single instance.
 class OSKleverExperimentalInstances(OSKleverInstance):
     def __init__(self, args, logger):
         super().__init__(args, logger)
@@ -563,7 +560,7 @@ class OSKleverExperimentalInstances(OSKleverInstance):
                             ' (these updates are intended just for fixing initial deployment issues)')
 
         for klever_experimental_instance in klever_experimental_instances:
-            self._update(klever_experimental_instance)
+            self._update(klever_experimental_instance, False)
 
     def remove(self):
         klever_experimental_instances = self._get_instances(self.name_pattern)

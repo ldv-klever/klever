@@ -40,7 +40,6 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
-      "BenchExec==1.11",
       "consulate"
     ]
   },
@@ -49,6 +48,10 @@
     "path": "."
   },
   "Klever Addons": {
+    "BenchExec": {
+      "version": "2c98ac73",
+      "path": "addons/BenchExec-1.17-dev.tar.xz",
+    },
     "CIF": {
       "version": "d95cdf0",
       "path": "addons/cif-d95cdf0.tar.gz",
@@ -77,8 +80,8 @@
       },
       "CPALockator": {
         "name": "CPAchecker",
-        "version": "CPALockator:26692",
-        "path": "addons/CPAchecker-1.6.1-svn ea117e2ecf-unix",
+        "version": "CPALockator-combat-mode:28916",
+        "path": "addons/CPAchecker-1.7-svn 28916-unix",
         "executable path": "scripts"
       }
     }
@@ -92,6 +95,10 @@
       "version": "4.2.6",
       "path": "programs/linux-4.2.6"
     },
+    "linux-4.15": {
+      "version": "4.15",
+      "path": "https://mirrors.edge.kernel.org/pub/linux/kernel/v4.x/linux-4.15.tar.xz"
+    }
     "linux-stable": {
       "version": "master",
       "path": "programs/linux-stable",

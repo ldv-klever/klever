@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "d8e172f3c0a5~/drivers/spi/spi-imx.ko/linux:drivers:clk1"
     },
     {
