@@ -102,86 +102,9 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
-# WARNING!!! Change also KLEVER_CORE_FORMATTERS from bridge.vars when you change these packs
-KLEVER_CORE_LOG_FORMATTERS = {
-    'brief': "%(name)s %(levelname)5s> %(message)s",
-    'detailed': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
-    'paranoid': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s (%(process)d) %(levelname)5s> %(message)s",
-}
+ALLOWED_HOSTS = ['*']
 
-# Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
-#   sub-jobs processing,
-#   build,
-#   tasks generation,
-#   results processing.
-# WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
-KLEVER_CORE_PARALLELISM_PACKS = {
-    'sequential': (1, 1, 1, 1),
-    'slow': (1, 2, 1, 1),
-    'quick': (1, 1.0, 2, 1),
-    'very quick': (1, 2.0, 1.0, 2),
-}
-
-LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
-
-# Each Klever Core mode represents sets of values for following sets of attributes:
-#   scheduling:
-#     job priority - see bridge.vars.PRIORITY for available values,
-#     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
-#     max solving tasks per sub-job - positive number,
-#   parallelism pack - one of packs from KLEVER_CORE_PARALLELISM_PACKS,
-#   limits:
-#     memory size - in GB,
-#     number of CPU cores,
-#     disk memory size - in GB,
-#     CPU model,
-#     CPU time - in minutes,
-#     wall time - in minutes,
-#   logging:
-#     console log level - see documentation for Python 3 logging for available values,
-#     console log formatter - one of formatters from KLEVER_CORE_LOG_FORMATTERS,
-#     file log level - like console log level,
-#     file log formatter - like console log formatter,
-#   keep intermediate files - True or False,
-#   upload input files of static verifiers - True or False,
-#   upload other intermediate files - True or False,
-#   allow local source directories use - True or False,
-#   ignore other instances - True or False,
-#   ignore failed sub-jobs - True of False.
-#   collect total code coverage - True of False.
-#   generate makefiles - True of False.
-#   weight of decision - '0' for full-weight and '1' for lightweight jobs.
-# WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
-DEF_KLEVER_CORE_MODES = [
-    {
-        'production': [
-            ['LOW', '0', 100],
-            'slow',
-            [1.0, 0, 100.0, None, None, None],
-            ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False, True, False, '1'
-        ]
-    },
-    {
-        'development': [
-            ['IDLE', '0', 100],
-            'quick',
-            [1.0, 0, 100.0, None, None, None],
-            ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, True, True, '0'
-        ]
-    },
-    {
-        'paranoid development': [
-            ['IDLE', '0', 100],
-            'quick',
-            [1.0, 0, 100.0, None, None, None],
-            ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True, True, True, '0'
-        ]
-    },
-]
+# Klever core configuration parameters are moved to jobs/configuration.py
 
 DEF_USER = {
     'dataformat': 'hum',  # See bridge.vars.DATAFORMAT for options

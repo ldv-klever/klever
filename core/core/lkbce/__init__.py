@@ -344,10 +344,11 @@ sys.exit(Command(sys.argv).launch())
     def set_linux_kernel_attrs(self):
         self.logger.info('Set Linux kernel atributes')
 
-        self.logger.debug('Get Linux kernel version')
-        stdout = self.__make(('-s', 'kernelversion'), specify_arch=False, collect_all_stdout=True)
+        if 'version' not in self.linux_kernel:
+            self.logger.debug('Get Linux kernel version')
+            stdout = self.__make(('-s', 'kernelversion'), specify_arch=False, collect_all_stdout=True)
+            self.linux_kernel['version'] = stdout[0]
 
-        self.linux_kernel['version'] = stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
         self.logger.debug('Get Linux kernel architecture')
@@ -430,6 +431,10 @@ sys.exit(Command(sys.argv).launch())
                                            ('git', 'checkout', '-f',
                                             self.conf['Linux kernel']['Git repository'][commit_or_branch]),
                                            cwd=self.linux_kernel['work src tree'])
+                        # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
+                        stdout = core.utils.execute(self.logger, ('git', 'rev-parse', 'HEAD'),
+                                                    cwd=self.linux_kernel['work src tree'], collect_all_stdout=True)
+                        self.linux_kernel['version'] = stdout[0][0:12]
         elif os.path.isfile(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of archive')
             with tarfile.open(self.linux_kernel['src'], encoding='utf8') as TarFile:
@@ -641,14 +646,14 @@ sys.exit(Command(sys.argv).launch())
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
         env = dict(os.environ)
 
-        env.update({
-            'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
-            'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
-                core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                            self.conf['rule specifications DB'])))
-        })
-
         if collect_build_cmds:
+            env.update({
+                'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
+                'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
+                    core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                self.conf['rule specifications DB'])))
+            })
+
             env.update({
                 'KLEVER_BUILD_CMD_DESCS_FILE': os.path.abspath(self.linux_kernel['build cmd descs file']),
                 'KLEVER_MAIN_WORK_DIR': self.conf['main working directory'],

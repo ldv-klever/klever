@@ -36,13 +36,13 @@ class Command:
     OPTS = {
         'gcc': {
             'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x', 'idirafter'),
-            'opts discarding in files': ('print-file-name', 'v'),
-            'opts discarding out file': ('E', 'print-file-name', 'v')
+            'opts discarding in files': ('print-file-name', 'v', '-version'),
+            'opts discarding out file': ('E', 'print-file-name', 'v', '-version')
         },
         'ld': {
-            'opts requiring vals': ('T', 'm', 'o',),
-            'opts discarding in files': ('-help',),
-            'opts discarding out file': ('-help',)
+            'opts requiring vals': ('T', 'm', 'o', 'z'),
+            'opts discarding in files': ('-help', 'v'),
+            'opts discarding out file': ('-help', 'v')
         },
         'objcopy': {
             'opts requiring vals': ('-set-section-flags', '-rename-section', 'O', '-globalize-symbol',

@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "448356262f56~/drivers/usb/serial/kobil_sct.ko/linux:alloc:irq"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.14.23"
+      "is_compare": true,
+      "value": "c0456439a336"
     },
     {
       "attr": "Linux kernel:Architecture",

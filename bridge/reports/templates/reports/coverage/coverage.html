@@ -74,6 +74,15 @@
                 <div class="CoverageTitle"><h5 id="selected_file_name">{{ coverage.first_file.filename }}</h5></div>
                 <div id="CoverageSRCContent">{{ coverage.first_file.src_html|safe }}</div>
                 <div id="div_for_legend">{{ coverage.first_file.legend|safe }}</div>
+                <br>
+                <div class="ui mini icon buttons">
+                    <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
+                    <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
+                    <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
+                    <button id="next_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Next uncovered function' %}"><i class="step forward icon"></i></button>
+                    <button id="prev_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Previous covered function sorted by number of calls' %}"><i class="fast backward icon"></i></button>
+                    <button id="next_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Next covered function sorted by number of calls' %}"><i class="fast forward icon"></i></button>
+                </div>
             </div>
         </div>
         <div class="six wide column">

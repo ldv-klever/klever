@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "60b35930067d/drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko/linux:kernel:locking:mutex"
     },
     {

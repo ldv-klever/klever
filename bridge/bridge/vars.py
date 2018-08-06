@@ -26,7 +26,6 @@ DATAFORMAT = (
 
 # Do not use error code 500 (Unknown error)
 ERRORS = {
-    301: _('Wrong request method or not enough request arguments'),
     400: _("You don't have an access to this job"),
     401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
@@ -183,25 +182,6 @@ TASK_STATUS = (
     ('ERROR', _('Error')),
     ('CANCELLED', _('Cancelled'))
 )
-
-KLEVER_CORE_PARALLELISM = (
-    ('sequential', _('Sequentially')),
-    ('slow', _('Slowly')),
-    ('quick', _('Quickly')),
-    ('very quick', _('Very quickly'))
-)
-
-KLEVER_CORE_FORMATTERS = (
-    ('brief', _('Briefly')),
-    ('detailed', _('In detail')),
-    ('paranoid', _('Paranoidly'))
-)
-
-START_JOB_DEFAULT_MODES = {
-    'production': _('Production'),
-    'development': _('Development'),
-    'paranoid development': _('Paranoid development')
-}
 
 REPORT_ARCHIVE = {
     'log': 'log.zip',

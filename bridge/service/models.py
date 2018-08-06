@@ -21,7 +21,7 @@ from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from bridge.utils import RemoveFilesBeforeDelete
-from jobs.models import Job
+from jobs.models import Job, JobFile
 
 FILE_DIR = 'Service'
 
@@ -106,7 +106,7 @@ class SolvingProgress(models.Model):
     tasks_cancelled = models.PositiveIntegerField(default=0)
     solutions = models.PositiveIntegerField(default=0)
     error = models.CharField(max_length=1024, null=True)
-    configuration = models.BinaryField()
+    configuration = models.ForeignKey(JobFile, models.CASCADE)
     fake = models.BooleanField(default=False)
 
     class Meta:
@@ -116,13 +116,6 @@ class SolvingProgress(models.Model):
 @receiver(pre_delete, sender=SolvingProgress)
 def progress_delete_signal(**kwargs):
     RemoveFilesBeforeDelete(kwargs['instance'])
-
-
-@receiver(post_init, sender=SolvingProgress)
-def get_progress_configuration(**kwargs):
-    progress = kwargs['instance']
-    if not isinstance(progress.configuration, bytes):
-        progress.configuration = progress.configuration.tobytes()
 
 
 class JobProgress(models.Model):

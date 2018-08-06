@@ -210,7 +210,7 @@
           "allocate external": true
         }
       },
-      "RSG": {"models": {"generic/memory.c": {}}},
+      "RSG": {"models": {"generic/memory.c": {"headers": ["linux/fb.h"]}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {
@@ -555,7 +555,7 @@
            "direct control functions calls": false,
            "nested automata": true,
            "no actions composition": ["Condition"],
-           "self parallelism": true,
+           "self parallelism": false,
            "pure pthread interface": false,
            "pointer initialization": {
              "structures": true,
@@ -582,7 +582,7 @@
         "verifier profile": "race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:26692"
+          "version": "CPALockator-combat-mode:28916"
         },
         "result processing": {
           "expect several witnesses": true

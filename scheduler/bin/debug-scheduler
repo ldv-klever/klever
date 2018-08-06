@@ -26,15 +26,16 @@ os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.par
 
 import utils as utils
 import schedulers.debug as debug
+from schedulers import Scheduler
 
-conf = utils.common_initialization("Klever scheduler")
+conf, logger = utils.common_initialization("Klever scheduler")
 
 if "scheduler" not in conf:
     raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
 if "Klever Bridge" not in conf:
     raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
 
-scheduler_impl = debug.Scheduler(conf, "scheduler/")
+scheduler_impl = Scheduler(conf, logger, "scheduler/", debug.Debug)
 scheduler_impl.launch()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

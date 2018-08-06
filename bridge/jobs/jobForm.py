@@ -114,7 +114,7 @@ class JobForm:
 
     def get_context(self):
         data = {
-            'job_id': self._job.id, 'name': '', 'parent': '',
+            'job_id': self._job.id, 'name': self._job.name, 'parent': '',
             'description': self.job_version().description,
             'copy': self._copy, 'versions': []
         }
@@ -133,7 +133,6 @@ class JobForm:
         if self._copy:
             data['parent'] = self._job.identifier
         else:
-            data['name'] = self._job.name
             if self._job.parent:
                 data['parent'] = self._job.parent.identifier
         return data

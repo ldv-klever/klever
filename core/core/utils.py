@@ -423,6 +423,17 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+# Capitalize first letters of attribute names.
+def capitalize_attr_names(attrs):
+    # Each attribute is dictionary with one element which value is either string or array of subattributes.
+    for attr in attrs:
+        # Does capitalize attribute name.
+        attr['name'] = attr['name'][0].upper() + attr['name'][1:]
+
+        if isinstance(attr['value'], list):
+            capitalize_attr_names(attr['value'])
+
+
 def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir=''):
     logger.debug('Create {0} report'.format(kind))
 
@@ -430,16 +441,6 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
     report_data.update({'type': kind})
 
     if 'attrs' in report_data:
-        # Capitalize first letters of attribute names.
-        def capitalize_attr_names(attrs):
-            # Each attribute is dictionary with one element which value is either string or array of subattributes.
-            for attr in attrs:
-                # Does capitalize attribute name.
-                attr['name'] = attr['name'][0].upper() + attr['name'][1:]
-
-                if isinstance(attr['value'], list):
-                    capitalize_attr_names(attr['value'])
-
         capitalize_attr_names(report_data['attrs'])
 
     logger.debug('{0} going to modify report id'.format(kind.capitalize()))
@@ -585,6 +586,27 @@ def time_units_converter(num, outunit=''):
     }
 
     return __converter(num, units_in_seconds, 'time', outunit)
+
+
+def read_max_resource_limitations(logger, conf):
+    """
+    Get maximum resource limitations that can be set for a verification task.
+
+    :param logger: Logger.
+    :param conf: Configuration dictionary.
+    :return: Dictionary.
+    """
+    # Read max restrictions for tasks
+    restrictions_file = find_file_or_dir(logger, conf["main working directory"], "tasks.json")
+    with open(restrictions_file, 'r', encoding='utf8') as fp:
+        restrictions = json.loads(fp.read())
+
+    # Make unit translation
+    for mem in (m for m in ("memory size", "disk memory size") if m in restrictions and restrictions[m] is not None):
+        restrictions[mem] = memory_units_converter(restrictions[mem])[0]
+    for t in (t for t in ("wall time", "CPU time") if t in restrictions and restrictions[t] is not None):
+        restrictions[t] = time_units_converter(restrictions[t])[0]
+    return restrictions
 
 
 def drain_queue(collection, given_queue):
