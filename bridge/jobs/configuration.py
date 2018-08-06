@@ -41,8 +41,6 @@ from service.models import Scheduler, SchedulerUser
 #     number of CPU cores - if number <= 0 then any,
 #     disk memory size - in GB,
 #     CPU model,
-#     CPU time - in minutes,
-#     wall time - in minutes,
 #   logging:
 #     console log level - see documentation for Python 3 and ConfigurationLogging.logging_levels
 #       for available values,
@@ -65,7 +63,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['LOW', '0', 100, '1'],
             ['slow'],
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['NONE', 'brief', 'NONE', 'brief'],
             [False, False, False, False, False, False, True, False]
         ]
@@ -75,7 +73,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['IDLE', '0', 100, '0'],
             ['quick'],
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             [True, True, False, True, True, True, True, True]
         ]
@@ -85,7 +83,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['IDLE', '0', 100, '0'],
             ['quick'],
-            [1.0, 0, 100.0, None, None, None],
+            [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             [True, True, True, True, True, True, True, True]
         ]
@@ -272,7 +270,7 @@ class Configuration:
           <max_tasks: positive integer value>, <one of vars.JOB_WEIGHT identifiers>
         ]
         :param parallelism: list [<default pack name or parallelism values>]
-        :param resources: list [max_ram, max_cpus, max_disk, cpu_model, max_cpu_time, max_wall_time]
+        :param resources: list [max_ram, max_cpus, max_disk, cpu_model]
         :param logging: list [
           <console log level>, <console log formatter name or value>,
           <file log level>, <file log formatter name or value>
@@ -326,7 +324,7 @@ class Configuration:
             raise ValueError('Non-empty string expected')
         return value
 
-    def __get_resources(self, max_ram, max_cpus, max_disk, cpu_model, max_cpu_time, max_wall_time):
+    def __get_resources(self, max_ram, max_cpus, max_disk, cpu_model):
         cpu_model = self.__string_value(cpu_model, null=True, empty=True)
         if cpu_model is not None and len(cpu_model) == 0:
             cpu_model = None
@@ -335,9 +333,7 @@ class Configuration:
             self.__float_value(max_ram),
             self.__integer_value(max_cpus, positive=False),
             self.__float_value(max_disk),
-            cpu_model,
-            self.__float_value(max_cpu_time, null=True),
-            self.__float_value(max_wall_time, null=True)
+            cpu_model
         ]
 
     def as_json(self, job_identifier):
@@ -347,9 +343,7 @@ class Configuration:
             'max solving tasks per sub-job': self.max_tasks,
             'resource limits': {
                 'memory size': int(self.resources[0] * 10 ** 9), 'disk memory size': int(self.resources[2] * 10 ** 9),
-                'number of CPU cores': self.resources[1], 'CPU model': self.resources[3],
-                'CPU time': int(self.resources[4] * 60) if self.resources[4] is not None else None,
-                'wall time': int(self.resources[5] * 60) if self.resources[5] is not None else None
+                'number of CPU cores': self.resources[1], 'CPU model': self.resources[3]
             },
             'parallelism': self.parallelism.for_json(),
             'weight': self.weight,
@@ -406,14 +400,6 @@ class GetConfiguration:
         else:
             raise ValueError('Unsupported scheduler name: "%s"' % filedata['task scheduler'])
 
-        # Get some resources arguments
-        cpu_time = filedata['resource limits']['CPU time']
-        if isinstance(cpu_time, int):
-            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / 60))
-        wall_time = filedata['resource limits']['wall time']
-        if isinstance(wall_time, int):
-            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / 60))
-
         # Get logging arguments
         formatters = {}
         for f in filedata['logging']['formatters']:
@@ -432,8 +418,7 @@ class GetConfiguration:
                 filedata['resource limits']['memory size'] / 10**9,
                 filedata['resource limits']['number of CPU cores'],
                 filedata['resource limits']['disk memory size'] / 10**9,
-                filedata['resource limits']['CPU model'],
-                cpu_time, wall_time
+                filedata['resource limits']['CPU model']
             ],
             [
                 loggers['console']['level'], loggers['console']['formatter'],

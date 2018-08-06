@@ -160,28 +160,6 @@
                     {% trans 'You can specify any substring of the target CPU model. The empty value means any model.' %}
                 </div>
             </div>
-            <br>
-            <label for="max_cpu_time" style="margin-right: 20px;">{% trans 'CPU time' %}, {% trans 'min' %}</label>
-            <div>
-                <div class="ui input">
-                    <input id="max_cpu_time" type="text"{% if data.conf.resources.4 %} value="{{ data.conf.resources.4 }}"{% endif %}>
-                </div>
-                <i class="ui blue icon help note-popup"></i>
-                <div class="ui popup">
-                    {% trans 'For instance,' %} 15.0. {% trans 'The empty value means unlimited time.' %}
-                </div>
-            </div>
-            <br>
-            <label for="max_wall_time" style="margin-right: 20px;">{% trans 'Wall time' %}, {% trans 'min' %}</label>
-            <div>
-                <div class="ui input">
-                    <input id="max_wall_time" type="text"{% if data.conf.resources.5 %} value="{{ data.conf.resources.5 }}"{% endif %}>
-                </div>
-                <i class="ui blue icon help note-popup"></i>
-                <div class="ui popup">
-                    {% trans 'For instance,' %} 15.5. {% trans 'The empty value means unlimited time.' %}
-                </div>
-            </div>
         </div>
     </div>
     <div class="ui horizontal segments need-auth" {% if data.conf.scheduler == '1' and data.need_auth %} style="display: none"{% endif %}>
