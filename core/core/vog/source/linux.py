@@ -21,11 +21,11 @@ import hashlib
 import subprocess
 
 import core.utils
-from core.lkvog.projects import Project
+from core.vog.source import Adapter
 
 
-class Linux(Project):
-    """This class correspnds to Linux kernel sources and external modules"""
+class Linux(Adapter):
+    """This class correspnds to Linux kernel sources and external source"""
 
     _ARCH_OPTS = {
         'arm': {
@@ -36,23 +36,11 @@ class Linux(Project):
             'ARCH': 'x86_64'
         }
     }
+    _EXT_DIR = 'ext-modules/'
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
         self.kernel = self.conf['project'].get('build kernel', False)
-
-    @property
-    def attributes(self):
-        # todo: we need to extract this somehow
-        # return [
-        #     {'Linux kernel': [
-        #         {'version': clade_global_data.get('Linux kernel version', ['None'])[0]},
-        #         {'architecture': clade_global_data.get('Linux kernel architecture', 'None')},
-        #         {'configuration': clade_global_data('Linux kernel configuration', 'None')}
-        #     ]},
-        #     {'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}
-        # ]
-        return []
 
     def configure(self):
         self.logger.info('Configure Linux kernel')
@@ -86,26 +74,23 @@ class Linux(Project):
         self._make_linux_kernel(target)
         self.configuration = conf_hash
 
-    def build(self, modules_to_build, model_headers, complete_build=False):
+    def build(self, model_headers):
         self.logger.info('Build Linux kernel')
 
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        # todo: Code below should be better done in strategies
-        modules_to_build = [module if not module.startswith('ext-modules/') else module[len('ext-modules/'):]
-                            for module in modules_to_build]
-        modules_to_build = sorted(set(modules_to_build))
+        targets_to_build = set(self.conf['project'].get('verification targets', []))
+        targets_to_build = sorted(targets_to_build)
         ext_modules = self._prepare_ext_modules()
-        if complete_build:
-            modules_to_build = ['all']
+        if self.kernel:
+            targets_to_build = ['all']
 
         loadable_modules_support = False
         try:
             # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
             # kernel has loadable modules support.
-            self._make_linux_kernel(self.work_src_tree, ['modules_prepare'], intercept_build_cmds=True)
+            self._make_linux_kernel(['modules_prepare'], intercept_build_cmds=True)
             loadable_modules_support = True
         except subprocess.CalledProcessError:
-            # TODO: indeed this looks to be project specific, thus, it should be optional.
             # Otherwise the command above will most likely fail. In this case compile special file, namely,
             # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
             # building
@@ -118,8 +103,8 @@ class Linux(Project):
         ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
 
         # Specially process building of all modules.
-        if 'all' in modules_to_build:
-            if len(modules_to_build) != 1:
+        if 'all' in targets_to_build:
+            if len(targets_to_build) != 1:
                 raise ValueError('Can not build all modules and something else')
 
             # Use target "modules" when the Linux kernel supports loadable modules.
@@ -130,15 +115,15 @@ class Linux(Project):
                 self._make_linux_kernel(ext_modules_make_opt + ['all'], intercept_build_cmds=True)
         else:
             # Check that module sets aren't intersect explicitly.
-            for i, modules1 in enumerate(modules_to_build):
-                for j, modules2 in enumerate(modules_to_build):
+            for i, modules1 in enumerate(targets_to_build):
+                for j, modules2 in enumerate(targets_to_build):
                     if i != j and modules1.startswith(modules2):
                         raise ValueError('Module set "{0}" is subset of module set "{1}"'
                                          .format(modules1, modules2))
 
             # Examine module sets to get all build targets. Do not build immediately to catch mistakes earlier.
             build_targets = []
-            for modules in modules_to_build:
+            for modules in targets_to_build:
                 # Module sets ending with .ko imply individual modules.
                 if re.search(r'\.ko$', modules):
                     build_targets.append(ext_modules_make_opt + [modules])
@@ -164,6 +149,7 @@ class Linux(Project):
         if not model_headers:
             return
 
+        # todo: what to do with external headers
         # # Find out CC command outputting 'scripts/mod/empty.o'. It will be used to compile artificial C files for
         # # getting model headers.
         # import clade
@@ -192,7 +178,7 @@ class Linux(Project):
         # TODO: this extension will be redundant if all commented code will be removed.
         self.logger.info('Clean Linux kernel working source tree')
 
-        # TODO: I hope that we won't build external modules within Linux kernel working source tree anymore.
+        # TODO: I hope that we won't build external source within Linux kernel working source tree anymore.
         # if os.path.isdir(os.path.join(work_src_tree, 'ext-modules')):
         #     shutil.rmtree(os.path.join(work_src_tree, 'ext-modules'))
 
@@ -218,18 +204,19 @@ class Linux(Project):
         return self._make(target, ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.arch].items()],
                           env, intercept_build_cmds, collect_all_stdout)
 
-    def prepare_ext_modules(self):
-        if 'external modules' not in self.conf['project']:
+    def _prepare_ext_modules(self):
+        if 'external source' not in self.conf['project']:
             return None
 
-        work_src_tree = 'ext-modules'
+        work_src_tree = self._EXT_DIR
 
+        # todo: replace option
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
-            .format(self.conf['Linux kernel']['external modules'], work_src_tree))
+            .format(self.conf['project']['external source'], work_src_tree))
 
         src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                          self.conf['project']['external modules'])
+                                          self.conf['project']['external source'])
 
         if os.path.isdir(src):
             self.logger.debug('External Linux kernel modules source code is provided in form of source tree')

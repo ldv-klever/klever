@@ -1,45 +1,24 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "Linux kernel": {
-    "source": "busybox-1.28.3",
+  "project": {
+    "name": "Linux",
+    "source": "linux-3.14",
+    "configuration": "allmodconfig",
     "architecture": "x86_64",
-    "functions": [
-          "find_main"
-    ]
+    "verification targets": ["drivers/net/usb/asix.ko"],
+    "opts file": "scripts/mod/empty.c"
   },
-  "LKVOG strategy": {
-      "name": "separate modules"
+  "VOG divider": {
+    "name": "Linux",
+    "kernel": false,
+    "verification targets": true,
+    "maximum verification object size": 30000
   },
-  "maximum verification object size": 30000,
+  "VOG strategy": {
+    "name": "separate"
+  },
   "rule specifications DB": "rule specs.json",
   "verifier profiles DB": "verifier profiles.json",
   "specifications set": "Linux 3.14 (base)",
-  "rule specifications": ["linux:empty"],
-  "Module extractor": {
-    "name": "Single File"
-  },
-  "clade ext file": "clade_extensions.json",
-  "opts file": "findutils/find.c",
-  "aspect file": "linux/emg/source_analysis.aspect.tmpl",
-  "allowed macros": ["module_init",
-                     "early_initcall",
-                     "pure_initcall",
-                     "core_initcall",
-                     "core_initcall_sync",
-                     "postcore_initcall",
-                     "postcore_initcall_sync",
-                     "arch_initcall",
-                     "arch_inicall_sync",
-                     "subsys_initcall",
-                     "subsys_initcall_sync",
-                     "fs_initcall",
-                     "fs_initcall_sync",
-                     "rootfs_initcall",
-                     "device_initcall",
-                     "device_initcall_sync",
-                     "late_initcall",
-                     "late_initcall_sync",
-                     "console_initcall",
-                     "security_initcall",
-                     "module_exit"]
+  "rule specifications": ["linux:empty"]
 }

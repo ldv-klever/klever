@@ -24,12 +24,13 @@ import core.utils
 
 
 def get_source_adapter(project_kind):
-    project_kind = '.lkvog.projects.{}'.format(project_kind.capitalize())
-    project_representation = importlib.import_module(project_kind, 'core')
-    return project_representation
+    module_path = '.vog.source.{}'.format(project_kind.lower())
+    project_package = importlib.import_module(module_path, 'core')
+    cls = getattr(project_package, project_kind.capitalize())
+    return cls
 
 
-class Project:
+class Adapter:
     """This class to implement if necessary building and extraction of information from particular projects"""
 
     def __init__(self, logger, conf):
@@ -37,13 +38,18 @@ class Project:
         self.conf = conf
         self.configuration = None
         self.version = None
-        self.arch = self.conf['project']['source'].get('architecture') or self.conf['architecture']
+        self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self._prepare_working_directory()
 
     @property
     def attributes(self):
-        raise NotImplementedError
+        return [
+            {
+                'name': 'project',
+                'value': [{att: getattr(self, att) for att in ('architecture', 'version', 'architecure')}]
+            }
+        ]
 
     def configure(self):
         if 'configuration' in self.conf['project']:
@@ -54,7 +60,7 @@ class Project:
                 # Linux kernel configuration is not provided in form of file.
                 self.configuration = self.conf['project']['configuration']
 
-    def build(self, modules_to_build, model_headers, complete_build=False):
+    def build(self, model_headers):
         raise NotImplementedError
 
     def cleanup(self):
@@ -68,13 +74,12 @@ class Project:
     def _prepare_working_directory(self):
         try:
             src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                              self.conf['build']['source'])
+                                              self.conf['project']['source'])
         except FileNotFoundError:
             # source code is not provided in form of file or directory.
             src = self.conf['project']['source']
-        self.work_src_tree, self.version = \
-            self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
-                                      self.conf['allow local source directories use'])
+        self.work_src_tree = self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
+                                                       self.conf['allow local source directories use'])
         self._make_canonical_work_src_tree()
         self.cleanup()
 

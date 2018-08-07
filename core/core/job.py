@@ -177,9 +177,9 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
                                                        components_common_conf['Sub-jobs'][number])
 
         core_obj.logger.info('Get sub-job name and type')
-        external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
+        external_modules = sub_job_concrete_conf['project'].get('external source', '')
 
-        modules = sub_job_concrete_conf['Linux kernel']['modules']
+        modules = sub_job_concrete_conf['project']['verification targets']
         if len(modules) == 1:
             modules_hash = modules[0]
         else:
@@ -192,13 +192,14 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
             rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
 
         if job_type == 'Validation on commits in Linux kernel Git repositories':
-            commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
+            commit = sub_job_concrete_conf['project']['Git repository']['commit']
             if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
                 raise ValueError(
                     'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'
                     .format(commit))
 
             sub_job_id_prefix = os.path.join(commit, external_modules)
+        # todo: Do we need to change it properly
         elif job_type == 'Verification of Linux kernel modules':
             sub_job_id_prefix = os.path.join(str(number), external_modules)
         else:
@@ -637,7 +638,7 @@ class Job(core.components.Component):
         'Validation on commits in Linux kernel Git repositories'
     ]
     JOB_CLASS_COMPONENTS = [
-        'LKVOG',
+        'VOG',
         'VTG',
         'VRP'
     ]
@@ -658,7 +659,7 @@ class Job(core.components.Component):
         self.component_processes = []
 
     def __configure_clade(self):
-        # LKVOG will run Clade without caching its results when configuration misses Clade base. Otherwise it will
+        # VOG will run Clade without caching its results when configuration misses Clade base. Otherwise it will
         # either use cached Clade base (if corresponding directory exists and non empty) or run it and cache its
         # results.
         clade_conf = self.common_components_conf['Clade'] if 'Clade' in self.common_components_conf else {}
