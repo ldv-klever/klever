@@ -26,7 +26,7 @@ from django.db.models import Count, Case, When, IntegerField, F, BooleanField
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, pytz
 
-from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException, file_get_or_create, get_templated_text
 from users.notifications import Notify
 
