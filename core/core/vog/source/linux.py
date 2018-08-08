@@ -74,7 +74,7 @@ class Linux(Adapter):
         self._make_linux_kernel(target)
         self.configuration = conf_hash
 
-    def build(self, model_headers):
+    def _build(self, model_headers):
         self.logger.info('Build Linux kernel')
 
         # We get some identifiers from strategy and we have to convert if possible them into make targets

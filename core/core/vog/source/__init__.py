@@ -19,6 +19,7 @@ import tarfile
 import importlib
 import subprocess
 import urllib.parse
+from clade.interface import initialize_extensions
 
 import core.utils
 
@@ -41,6 +42,7 @@ class Adapter:
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self._prepare_working_directory()
+        self.clade_dir = 'clade'
 
     @property
     def attributes(self):
@@ -61,12 +63,19 @@ class Adapter:
                 self.configuration = self.conf['project']['configuration']
 
     def build(self, model_headers):
+        self._build(model_headers)
+        initialize_extensions('clade', os.path.join(self.work_src_tree, 'cmds.txt'))
+
+    def _build(self, model_headers):
         raise NotImplementedError
 
     def cleanup(self):
         pass
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
+        # todo: This is better to fix
+        if not env:
+            env = {'PATH': ':'.join((p for p in os.environ['PATH'].split(':') if 'cif' not in p))}
         return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +
                                   ['make', '-j', self.workers] + opts + target,
                                   cwd=self.work_src_tree, env=env, collect_all_stdout=collect_all_stdout)
