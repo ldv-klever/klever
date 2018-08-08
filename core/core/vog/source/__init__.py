@@ -31,7 +31,7 @@ def get_source_adapter(project_kind):
     return cls
 
 
-class Adapter:
+class Source:
     """This class to implement if necessary building and extraction of information from particular projects"""
 
     def __init__(self, logger, conf):
@@ -71,6 +71,12 @@ class Adapter:
 
     def cleanup(self):
         pass
+
+    def is_subsystem(self, path):
+        if os.path.isdir(os.path.join(self.work_src_tree, path)):
+            return True
+        else:
+            return False
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         # todo: This is better to fix

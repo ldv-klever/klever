@@ -17,27 +17,18 @@
 
 from hashlib import md5
 
-import core.utils
 
+class Unit:
 
-def size_in_locs(logger, file):
-    number = core.utils.execute(logger, ['wc', '-l', '<', file], collect_all_stdout=True)
-    number = int(number.strip())
-    return number
-
-
-class Module:
-
-    def __init__(self, module_id):
+    def __init__(self, identifier):
         # Identifier
-        self.name = module_id
+        self.name = identifier
         # Connections
         self.predecessors = set()
         self.successors = set()
         # Description of the module content
         self.ccs = set()
         self.in_files = set()
-        self.canon_files = set()
         self.size = 0
         self.export_functions = {}
         self.call_functions = {}
@@ -55,10 +46,10 @@ class Module:
         return str(self)
 
     def __eq__(self, rhs):
-        return self.name.__eq__(rhs.id)
+        return self.name.__eq__(rhs.name)
 
     def __cmp__(self, rhs):
-        return self.name.__cmp__(rhs.id)
+        return self.name.__cmp__(rhs.name)
 
     @property
     def md5_hash(self):

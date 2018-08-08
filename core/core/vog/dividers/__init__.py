@@ -18,7 +18,8 @@
 import importlib
 
 
-def get_module_extractor(strategy_name):
-    strategy_name = '.lkvog.module_extractors.{}'.format(strategy_name.capitalize())
-    strategy = importlib.import_module(strategy_name, 'core')
-    return strategy
+def get_divider(strategy_name):
+    module_path = '.vog.dividers.{}'.format(strategy_name.lower())
+    project_package = importlib.import_module(module_path, 'core')
+    cls = getattr(project_package, strategy_name.capitalize())
+    return cls

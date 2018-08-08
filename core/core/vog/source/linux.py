@@ -21,10 +21,10 @@ import hashlib
 import subprocess
 
 import core.utils
-from core.vog.source import Adapter
+from core.vog.source import Source
 
 
-class Linux(Adapter):
+class Linux(Source):
     """This class correspnds to Linux kernel sources and external source"""
 
     _ARCH_OPTS = {
