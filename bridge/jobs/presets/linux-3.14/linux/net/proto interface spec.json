@@ -214,5 +214,77 @@
         }
       }
     }
+  },
+  "Linux 4.17": {
+    "functions models": {
+      "sock_register": {
+        "declaration": "int sock_register(*%proto.family_ops%)",
+        "header": "linux/net.h"
+      },
+      "sock_unregister": {
+        "declaration": "void sock_unregister(%proto.family%)",
+        "header": "linux/net.h"
+      },
+      "register_pppox_proto": {
+        "declaration": "int register_pppox_proto(%proto.family%, *%proto.pppox_proto%)",
+        "header": "linux/if_pppox.h"
+      },
+      "unregister_pppox_proto": {
+        "declaration": "void unregister_pppox_proto(%proto.family%)",
+        "header": "linux/if_pppox.h"
+      }
+    },
+    "categories": {
+      "proto": {
+        "containers": {
+          "proto_ops": {
+            "declaration": "struct proto_ops ops",
+            "header": "linux/net.h",
+            "fields": {
+              "bind": "%proto.bind%",
+              "release": "%proto.release%"
+            }
+          },
+          "family_ops": {
+            "declaration": "struct net_proto_family a",
+            "header": "linux/net.h",
+            "fields": {
+              "family": "%proto.family%",
+              "create": "%proto.family_create%"
+            }
+          },
+          "pppox_proto": {
+            "declaration": "struct pppox_proto a",
+            "header": "linux/if_pppox.h",
+            "fields": {
+              "create": "%proto.proto_create%"
+            }
+          }
+        },
+        "resources": {
+          "family": {
+            "declaration": "int a"
+          },
+          "socket": {
+            "declaration": "struct socket *socket",
+            "header": "linux/net.h"
+          }
+        },
+        "callbacks": {
+          "bind": {
+            "declaration": "int (*bind)(%proto.socket%, struct sockaddr *myaddr, int sockaddr_len)"
+          },
+          "release": {
+            "declaration": "int (*release)(%proto.socket%)"
+          },
+          "family_create": {
+            "declaration": "int (*family_create)(struct net *net, %proto.socket%, int protocol, int kern)"
+          },
+          "proto_create": {
+            "declaration": "int (*proto_create)(struct net *net, %proto.socket%, int)"
+          }
+        }
+      }
+    }
   }
 }
