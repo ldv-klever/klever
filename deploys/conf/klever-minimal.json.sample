@@ -22,7 +22,9 @@
     ],
     "For building new versions of the Linux kernel": [
       "libelf-dev",
-      "libssl-dev"
+      "libssl-dev",
+      "bison",
+      "flex"
     ]
   },
   "Python3 Packages": {
