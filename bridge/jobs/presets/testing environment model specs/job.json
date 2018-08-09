@@ -63,7 +63,6 @@
           "ext-modules/serio_driver_v.1/serio_driver_invoke.ko",
           "ext-modules/super_block_v.1/fs_invoke.ko",
           "ext-modules/target_backend_v.1/target_backend_invoke.ko",
-          "ext-modules/target_backend_v1/target_backend_invoke.ko",
           "ext-modules/target_type_v.1/target_type_invoke.ko",
           "ext-modules/timer_v.1/init_timer_invoke.ko",
           "ext-modules/timer_v.1/setup_timer_invoke.ko",
@@ -187,7 +186,38 @@
           "scsi_host_template_v.1",
           "seq_operations_v.1",
           "serial_core_v.1",
-          "target_backend_v1",
+          "target_backend_v.1",
+          "tty_v.2",
+          "usb_driver_v.1",
+          "usb_serial_driver_v.2"
+        ]
+      }
+    },
+    {
+      "specifications set": "Linux 4.15",
+      "Linux kernel": {
+        "source": "linux-fix_klever_compilation",
+        "external modules": "tests",
+        "modules": [
+          "block_device_operations_v.1",
+          "class_v.1",
+          "devm_threaded_irq_v.1",
+          "ethtool_ops_v.2",
+          "file_operations_v.1",
+          "hid_v.1",
+          "ieee80211_ops_v.1",
+          "iio_triggered_buffer_v.1",
+          "irq_v.2",
+          "net_device_ops_v.2",
+          "pci_driver_v.1",
+          "percpu_irq_v.1",
+          "platform_driver_v.1",
+          "proto_v.2",
+          "rtc_class_ops_v.1",
+          "scsi_host_template_v.1",
+          "seq_operations_v.1",
+          "serial_core_v.1",
+          "target_backend_v.1",
           "tty_v.2",
           "usb_driver_v.1",
           "usb_serial_driver_v.2"
@@ -251,30 +281,16 @@
         "source": "linux-fix_klever_compilation",
         "external modules": "tests",
         "modules": [
-          "block_device_operations_v.1",
-          "class_v.1",
-          "devm_threaded_irq_v.1",
-          "ethtool_ops_v.2",
-          "file_operations_v.1",
-          "hid_v.1",
-          "ieee80211_ops_v.1",
-          "iio_triggered_buffer_v.1",
-          "irq_v.2",
-          "net_device_ops_v.2",
-          "pci_driver_v.1",
-          "percpu_irq_v.1",
-          "platform_driver_v.1",
-          "proto_v.2",
-          "rtc_class_ops_v.1",
-          "scsi_host_template_v.1",
-          "seq_operations_v.1",
-          "serial_core_v.1",
-          "target_backend_v1",
-          "tty_v.2",
-          "usb_driver_v.1",
-          "usb_serial_driver_v.2"
+          "timer_v.3",
+          "workqueue_v.1",
+          "urb_v.1",
+          "tasklet_v.1",
+          "kthread_v.1"
         ]
-      }
+      },
+      "rule specifications": [
+        "linux:emg:test:fp"
+      ]
     }
   ],
   "Default": [
