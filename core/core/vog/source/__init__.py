@@ -46,10 +46,12 @@ class Source:
 
     @property
     def attributes(self):
+        attrs = [{'name': 'kind', 'value': type(self).__name__}] + \
+                [{"name": att, "value": getattr(self, att)} for att in ('arch', 'version', 'configuration')]
         return [
             {
                 'name': 'project',
-                'value': [{att: getattr(self, att) for att in ('architecture', 'version', 'architecure')}]
+                'value': attrs
             }
         ]
 

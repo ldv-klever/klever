@@ -149,6 +149,8 @@ class Linux(Source):
         if not model_headers:
             return
 
+        # todo: there is no version
+        # todo: there is no configuration
         # todo: what to do with external headers
         # # Find out CC command outputting 'scripts/mod/empty.o'. It will be used to compile artificial C files for
         # # getting model headers.
@@ -237,7 +239,6 @@ class Linux(Source):
 
             # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
             # exist.
-            # todo: Move this inside project subcategory
             if self.conf['generate makefiles']:
                 if not work_src_tree_root:
                     work_src_tree_root = dirpath

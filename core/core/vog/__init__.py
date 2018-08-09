@@ -42,11 +42,10 @@ class VOG(core.components.Component):
     def generate_verification_objects(self):
         # Get classes
         source = get_source_adapter(self.conf['project']['name'])
-        # strategy = get_division_strategy(self.conf['VOG strategy']['name'])
         divider = get_divider(self.conf['VOG divider']['name'])
+        strategy = get_division_strategy(self.conf['VOG strategy']['name'])
 
         # Create instances
-        # strategy = strategy(self.logger, self.conf)
         source = source(self.logger, self.conf)
         if not self.conf['project'].get("clade cache"):
             # Prepare project working source tree and extract build commands exclusively but just with other
@@ -56,41 +55,39 @@ class VOG(core.components.Component):
                 self.prepare_and_build(source)
             clade_api.setup(source.clade_dir)
         else:
+            source.configure()
             clade_dir = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                     self.conf['project']['clade cache'])
             clade_api.setup(clade_dir)
 
         divider = divider(self.logger, self.conf, source, clade_api)
-        a = divider.target_units
-        self.common_prj_attrs = source.attributes # + strategy.attributes + divider.attributes
-        # todo: After strategies and dividers work we need to delete them or clean up
-        # core.utils.report(self.logger,
-        #                   'attrs',
-        #                   {
-        #                       'id': self.id,
-        #                       'attrs': self.common_prj_attrs
-        #                   },
-        #                   self.mqs['report files'],
-        #                   self.vals['report id'],
-        #                   self.conf['main working directory'])
-        # self.generate_all_verification_obj_descs(divider)
-        #
-        # self.clean_dir = True
-        # self.excluded_clean = [d for d in strategy.dynamic_excluded_clean]
-        # self.logger.debug("Excluded {0}".format(self.excluded_clean))
+        strategy = strategy(self.logger, self.conf, divider)
+        self.common_prj_attrs = source.attributes + strategy.attributes + divider.attributes
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'])
 
-    def prepare_and_build(self, adapter):
+        # Generate verification objects
+        strategy.generate_verification_objects()
+        self.clean_dir = True
+        self.excluded_clean = [d for d in strategy.dynamic_excluded_clean]
+        self.logger.debug("Excluded {0}".format(self.excluded_clean))
+
+    main = generate_verification_objects
+
+    def prepare_and_build(self, source):
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
-        adapter.configure()
-        adapter.build(model_headers)
+        source.configure()
+        source.build(model_headers)
 
-    def generate_all_verification_obj_descs(self, divider):
-        modules = divider._common_divide(self.strategy.get_specific_files(), self.strategy.get_specific_modules())
-        self.logger.debug("Modules are {0}".format(json.dumps(modules, indent=4, sort_keys=True)))
-        self.strategy.generate_verification_objects(modules)
-
-    # todo: Why does it needed?
+    # todo: Why does it needed? Maybe wee need to apload data attributes with units instead
     # def send_loc_report(self):
     #     core.utils.report(self.logger,
     #                       'data',
@@ -101,6 +98,4 @@ class VOG(core.components.Component):
     #                       self.mqs['report files'],
     #                       self.vals['report id'],
     #                       self.conf['main working directory'])
-
-    main = generate_verification_objects
 

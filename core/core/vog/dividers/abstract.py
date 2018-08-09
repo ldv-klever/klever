@@ -35,35 +35,33 @@ class AbstractDivider:
 
     @property
     def attributes(self):
-        return {
-            'name': 'LKVOG strategy',
+        return [{
+            'name': 'VOG divider',
             'value': [{'name': 'name', 'value': self.conf['VOG divider']['name']}]
-        }
+        }]
 
     @property
     def target_units(self):
         if not self._target_units:
             self._divide()
-        else:
-            return self._target_units
+        return self._target_units
 
     @property
     def units(self):
         if not self._units:
             self._divide()
-        else:
-            return self._units
+        return self._units
 
     def _divide(self):
         raise NotImplementedError
 
-    def _create_unit_from_ld(self, identifier, desc, cmdg):
+    def _create_unit_from_ld(self, identifier, desc, cmdg, srcg):
         # todo: it works nicely but we get cc commands for mod.c do we need to filter them out?
         ccs = cmdg.get_ccs_for_ld(identifier)
         unit = common.Unit(desc['out'])
         unit.ccs = {i for i, d in ccs}
         unit.in_files = {d['in'][0] for i, d in ccs}
-        # todo: Extract here size and do not forget filter on it
+        unit.size = sum(srcg.get_sizes(unit.in_files).values())
         # todo: Establish dependencies and graph of dependencies
         # todo: Add information on functions
         return unit

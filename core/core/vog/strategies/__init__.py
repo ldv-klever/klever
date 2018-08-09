@@ -15,15 +15,11 @@
 # limitations under the License.
 #
 
-from core.lkvog.strategies.strategy_utils import Module, Graph
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+import importlib
 
 
-class Separate(AbstractStrategy):
-    def __init__(self, logger, strategy_params, params):
-        super().__init__(logger)
-        self._need_dependencies = False
-        self.kernel_modules = strategy_params.get("separate modules")
-
-    def _divide(self, module_name):
-        return [Graph([Module(module_name)])]
+def get_division_strategy(strategy_name):
+    module_path = '.vog.strategies.{}'.format(strategy_name.lower())
+    project_package = importlib.import_module(module_path, 'core')
+    cls = getattr(project_package, strategy_name.capitalize())
+    return cls

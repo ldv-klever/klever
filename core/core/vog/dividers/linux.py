@@ -28,20 +28,26 @@ class Linux(AbstractDivider):
         self._targets = {os.path.join(d) for d in self.conf['project']['verification targets']
                          if not self.source.is_subsystem(d)}
         self._kernel_verification = self.conf['VOG divider'].get('target kernel', False)
+        self._max_size = self.conf['project'].get("maximum unit size")
 
     def _divide(self):
         units = set()
         target_units = set()
         self.logger.info("Start division of the Linux kernel into atomic units")
         cmdg = self.clade.CommandGraph()
+        srcg = self.clade.SourceGraph()
 
         for identifier, desc in cmdg.LDs:
             if desc['out'].endswith('.ko') or (self._kernel_verification and desc['out'].endswith('built-in.o')):
-                unit = self._create_unit_from_ld(identifier, desc, cmdg)
-                if self._check_target(desc['out']):
-                    unit.target = True
-                    target_units.add(unit)
-                units.add(unit)
+                unit = self._create_unit_from_ld(identifier, desc, cmdg, srcg)
+                if not self._max_size or unit.size <= self._max_size:
+                    if self._check_target(desc['out']):
+                        unit.target = True
+                        target_units.add(unit)
+                    units.add(unit)
+                else:
+                    self.logger.debug('unit {!r} is rejected since it exceeds maximum size {!r}'.
+                                      format(unit.name, unit.size))
 
         self._units = units
         self._target_units = target_units

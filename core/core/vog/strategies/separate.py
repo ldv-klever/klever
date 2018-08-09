@@ -15,10 +15,20 @@
 # limitations under the License.
 #
 
-import importlib
+from core.vog.common import Aggregation
+from core.vog.strategies.abstract import Abstract
 
 
-def get_division_strategy(strategy_name):
-    strategy_name = '.lkvog.strategies.{}'.format(strategy_name.capitalize())
-    strategy = importlib.import_module(strategy_name, 'core')
-    return strategy
+class Separate(Abstract):
+    """This strategy just returns as aggregations separate units marked as target ones."""
+
+    def _aggregate(self):
+        """
+        Just return target units as aggregations consisting of a single unit.
+
+        :return: Generator that retursn Aggregation objects.
+        """
+        for unit in self.divider.target_units:
+            new = Aggregation(unit)
+            new.name = unit.name
+            yield new
