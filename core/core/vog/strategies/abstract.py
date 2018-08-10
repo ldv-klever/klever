@@ -39,7 +39,7 @@ class Abstract:
     def generate_verification_objects(self):
         for aggregation in self._aggregate():
             if not self._max_size or aggregation.size <= self._max_size:
-                self.__describe_verification_object(aggregation)
+                yield self.__describe_verification_object(aggregation)
             else:
                 self.logger.debug('verification object {!r} is rejected since it exceeds maximum size {}'.
                                   format(aggregation.name, aggregation.size()))
@@ -74,6 +74,7 @@ class Abstract:
 
         with open(vo_desc_file, 'w', encoding='utf8') as fp:
             ujson.dump(vo_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
+        return vo_desc_file
 
     # def generate_verification_objects(self, extracted_modules):
     #     self._extracted_modules = extracted_modules
