@@ -44,7 +44,8 @@ def __launch_sub_job_components(context):
 
 @core.components.after_callback
 def __prepare_descriptions_file(context):
-    context.mqs['verification obj desc files'].put(os.path.relpath(context.VO_FILE, context.conf['main working directory']))
+    context.mqs['verification obj desc files'].put(
+        os.path.relpath(context.VO_FILE, context.conf['main working directory']))
 
 
 @core.components.after_callback
@@ -379,7 +380,8 @@ class VTG(core.components.Component):
         self.mqs['verification obj desc files'].close()
         if os.path.isfile(vo_file):
             with open(vo_file, 'r', encoding='utf8') as fp:
-                verification_obj_desc_files = fp.readlines()
+                verification_obj_desc_files = \
+                    [os.path.join(self.conf['main working directory'], vof) for vof in fp.readlines()]
         else:
             raise FileNotFoundError
 

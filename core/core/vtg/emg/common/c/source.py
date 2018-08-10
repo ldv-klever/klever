@@ -17,7 +17,7 @@
 
 import re
 import json
-import clade
+import clade.interface
 
 from core.utils import find_file_or_dir
 from core.vtg.emg.common.c import Function, Variable, Macro
