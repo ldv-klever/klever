@@ -13,12 +13,12 @@
   },
   "VOG divider": {
     "name": "Linux",
-    "kernel": false,
-    "verification targets": true,
-    "maximum verification object size": 30000
+    "target kernel": false,
+    "maximum unit size": 30000
   },
   "VOG strategy": {
-    "name": "separate"
+    "name": "separate",
+    "maximum verification object size": 30000
   },
   "rule specifications DB": "rule specs.json",
   "verifier profiles DB": "verifier profiles.json",
