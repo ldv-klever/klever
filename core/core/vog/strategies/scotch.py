@@ -17,8 +17,8 @@
 
 import os
 
-from core.lkvog.strategies.strategy_utils import Module, Graph
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.strategies.strategy_utils import Module, Graph
+from core.vog.strategies.abstract_strategy import AbstractStrategy
 from core.utils import execute
 
 

@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.lkvog.strategies.strategy_utils import Module, Graph
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.strategies.strategy_utils import Module, Graph
+from core.vog.strategies.abstract_strategy import AbstractStrategy
 
 
 class Coverage(AbstractStrategy):
@@ -34,8 +34,8 @@ class Coverage(AbstractStrategy):
     def _divide(self, module_name):
         result = set()
         self.cache = []
-        for i, file in enumerate(self.vog_modules[module_name]['CCs']):
-            self.logger.debug("Processing {0}/{1} CC command".format(i + 1, len(self.vog_modules[module_name]['CCs'])))
+        for i, file in enumerate(self._extracted_modules[module_name]['CCs']):
+            self.logger.debug("Processing {0}/{1} CC command".format(i + 1, len(self._extracted_modules[module_name]['CCs'])))
             desc = self.clade.get_cc().load_json_by_id(file)
             in_files = desc['in']
             for j, in_file in enumerate(in_files):
@@ -48,7 +48,7 @@ class Coverage(AbstractStrategy):
                         result.update(try_cache_modules)
                     else:
                         self.logger.debug("Cache Miss")
-                        result.update(self.divide_by_function(func))
+                        result.update(self._divide_by_function(func))
                         self.logger.debug("Cache is {0}".format(self.cache))
         if result:
             return sorted(list(result))
@@ -56,7 +56,7 @@ class Coverage(AbstractStrategy):
         return [Graph([Module(module_name)])]
 
     def try_from_cache(self, func):
-        file_func = self.get_files_by_func(func)[0]
+        file_func = self._get_files_by_func(func)[0]
         for path in self.cache:
             for file in path:
                 for pos_file, pos_func in self.callgraph.get((file_func, func)):
@@ -64,8 +64,8 @@ class Coverage(AbstractStrategy):
                         return self.make_modules_by_path(path)
         return None
 
-    def divide_by_function(self, func):
-        file_func = self.get_files_by_func(func)[0]
+    def _divide_by_function(self, func):
+        file_func = self._get_files_by_func(func)[0]
         process = [((file_func, func), [file_func], 0)]
         processed = set()
         found_path = None
@@ -91,12 +91,12 @@ class Coverage(AbstractStrategy):
             self.cache.append(found_path)
             return self.make_modules_by_path(found_path)
         else:
-            return [Graph([Module(m)]) for m in self.get_modules_by_func(func) if m]
+            return [Graph([Module(m)]) for m in self._get_modules_by_func(func) if m]
 
     def make_modules_by_path(self, found_path):
         modules = set()
         for file in set(found_path):
-            module_file = self.get_module_by_file(file)
+            module_file = self._get_module_by_file(file)
             if module_file:
                 modules.add(Module(module_file))
         if modules:

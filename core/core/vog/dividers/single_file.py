@@ -15,24 +15,20 @@
 # limitations under the License.
 #
 
-from core.lkvog.module_extractors import util
+from core.vog.dividers.abstract import AbstractDivider
 
 
-class SingleFile:
-    def __init__(self, logger, clade, conf, specified_modules):
-        self._logger = logger
-        self._clade = clade
-        self._conf = conf
+class SingleFile(AbstractDivider):
 
     def divide(self):
-        dependencies = util.build_dependencies(self._clade)[0]
-        build_graph = self._clade.get_command_graph().load()
+        dependencies = self._build_dependencies()[0]
         modules = {}
         for file in dependencies.keys():
             try:
+                # todo: This should be corrected
                 desc = self._clade.get_cc().load_json_by_in(file)
             except FileNotFoundError:
                 continue
-            modules.update(util.create_module(self._clade, str(desc['id']), build_graph))
+            modules.update(self._create_module(desc['id']))
 
         return modules

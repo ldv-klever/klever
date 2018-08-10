@@ -16,15 +16,15 @@
 #
 
 import os
-from core.lkvog.module_extractors import util
+from core.vog.dividers.abstract import AbstractDivider
 from core.utils import execute
 
 
-class GraphPartitioner:
-    def __init__(self, logger, clade, conf, specified_modules):
-        self._logger = logger
-        self._clade = clade
-        self._bin_path = conf['bin path']
+class GraphPartitioner(AbstractDivider):
+
+    def __init__(self, logger, conf):
+        super(GraphPartitioner, self).__init__(logger, conf)
+        self._bin_path = conf['VOG partitioner']['bin path']
         self._partitions = conf.get('partitions')
         self._tool = conf['tool']
         if self._tool not in ('scotch', 'metis'):
@@ -40,13 +40,12 @@ class GraphPartitioner:
         self._edge_strength = {}
         self._must_module = conf.get("must module", [])
 
-        self._cc_modules = util.extract_cc(self._clade)
-        self._dependencies, self._root_files = util.build_dependencies(self._clade)
+    def divide(self):
+        self._dependencies, self._root_files = self._build_dependencies()
         self._deps_to_graph()
         if not self._partitions:
-            self._partitions = int(len(self._vertex_to_file) / conf['module size'])
+            self._partitions = int(len(self._vertex_to_file) / self.conf['VOG divider']['module size'])
 
-    def divide(self):
         splited = None
         if self._tool == 'scotch':
             self._dump_graph_scotch()
@@ -61,23 +60,23 @@ class GraphPartitioner:
             current_module_desc_files = set()
             current_module_in_files = set()
             for elem in elems:
-                current_module_desc_files.add(self._cc_modules[elem]['id'])
-                current_module_in_files.update(self._cc_modules[elem]['in'])
+                current_module_desc_files.add(self._cmd_graph_ccs[elem]['id'])
+                current_module_in_files.update(self._cmd_graph_ccs[elem]['in'])
             if current_module_in_files:
-                self._logger.debug('Create module with {0} in files'.format(list(current_module_in_files)))
-                modules.update(util.create_module_by_desc(current_module_desc_files, current_module_in_files))
+                self.logger.debug('Create module with {0} in files'.format(list(current_module_in_files)))
+                modules.update(self._create_module_by_desc(current_module_desc_files, current_module_in_files))
         return modules
 
     def _deps_to_graph(self):
         for file, childs in sorted(self._dependencies.items()):
-            if file not in self._cc_modules:
+            if file not in self._cmd_graph_ccs:
                 continue
             if file not in self._file_to_vertex:
                 self._file_to_vertex[file] = len(self._file_to_vertex)
                 self._vertex_to_file[self._file_to_vertex[file]] = file
                 self._graph[self._file_to_vertex[file]] = set()
             for child, s in sorted(childs.items()):
-                if child not in self._cc_modules:
+                if child not in self._cmd_graph_ccs:
                     continue
                 if child not in self._file_to_vertex:
                     self._file_to_vertex[child] = len(self._file_to_vertex)
@@ -109,12 +108,12 @@ class GraphPartitioner:
                                                   for v in sorted(value)])))
 
     def _run_scotch(self):
-        execute(self._logger, [self._bin_path, str(self._partitions), self._graph_file,
-                               self._scotch_out, self._scotch_log, "-vm", "-b0.05"])
+        execute(self.logger, [self._bin_path, str(self._partitions), self._graph_file,
+                              self._scotch_out, self._scotch_log, "-vm", "-b0.05"])
 
     def _run_metis(self):
-        execute(self._logger, [self._bin_path, self._graph_file, str(self._partitions),
-                               "-ufactor={0}".format(500), "-ptype=rb"])
+        execute(self.logger, [self._bin_path, self._graph_file, str(self._partitions),
+                              "-ufactor={0}".format(500), "-ptype=rb"])
 
     def _parse_result_scotch(self):
         res = {}
@@ -163,14 +162,4 @@ class GraphPartitioner:
                 break
         return 1+r
 
-    def _get_locs(self, file):
-        json_desc = self._clade.get_cc().load_json_by_in(file)
-        try:
-            with open(self._clade.get_file(os.path.join(json_desc['cwd'], file)), encoding='utf-8') as fp:
-                return len(fp.readlines())
-        except FileNotFoundError:
-            self._logger.warning("File {0} not found in {1}".format(file, json_desc['cwd']))
-            return 0
-        except UnicodeDecodeError:
-            return 0
 

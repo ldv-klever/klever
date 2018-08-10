@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-from core.lkvog.strategies.strategy_utils import Module, Cluster
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.strategies.strategy_utils import Module, Cluster
+from core.vog.strategies.abstract_strategy import AbstractStrategy
 
 
 class Closure(AbstractStrategy):
@@ -83,7 +83,7 @@ class Closure(AbstractStrategy):
             if cluster not in self.checked_clusters:
                 self.checked_clusters.add(cluster)
                 ret_clusters.append(cluster)
-                self.checked_modules.update([module.id for module in cluster.modules])
+                self.checked_modules.update([module.id for module in cluster.units])
 
         return ret_clusters
 

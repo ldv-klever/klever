@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.lkvog.strategies.strategy_utils import Module, Graph
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.strategies.strategy_utils import Module, Graph
+from core.vog.strategies.abstract_strategy import AbstractStrategy
 
 
 class Manual(AbstractStrategy):
@@ -49,13 +49,13 @@ class Manual(AbstractStrategy):
 
         if module_name == 'all':
             for module in self.groups.keys():
-                ret.extend(self.divide(module))
+                ret.extend(self._common_divide(module))
             return ret
         elif self.is_subsystem(module_name):
             # This is subsystem
             for module in self.groups.keys():
                 if module.startswith(module_name) and module != module_name:
-                    ret.extend(self.divide(module))
+                    ret.extend(self._common_divide(module))
             return ret
 
         if module_name.startswith('ext-modules/'):
@@ -76,9 +76,9 @@ class Manual(AbstractStrategy):
                         if self._is_module(module):
                             process.append(module)
                         elif self.is_subsystem(module):
-                            process.extend(self.get_modules_for_subsystem(module))
+                            process.extend(self._get_modules_for_subsystem(module))
                         else:
-                            process.extend(self.get_modules_by_func(module))
+                            process.extend(self._get_modules_by_func(module))
 
                         for m in process:
                             if is_external:
@@ -102,14 +102,14 @@ class Manual(AbstractStrategy):
                     ret.append(Graph([Module(module_name)]))
 
         for graph in ret:
-            self._already_in_modules.update([module.id for module in graph.modules])
+            self._already_in_modules.update([module.id for module in graph.units])
 
         return ret
 
     def _set_dependencies(self, deps, sizes):
         for key, value in self.group_params.items():
             if not self._is_module(key) and not self.is_subsystem(key):
-                key = self.get_modules_by_func(key)[0]
+                key = self._get_modules_by_func(key)[0]
             self.groups[key] = []
             for module_list in value:
                 if not isinstance(module_list, tuple) \
@@ -121,7 +121,7 @@ class Manual(AbstractStrategy):
                     if self._is_module(module) or self.is_subsystem(module):
                         modules.append(module)
                     else:
-                        modules.extend(self.get_modules_by_func(module))
+                        modules.extend(self._get_modules_by_func(module))
                 self.groups[key].append(modules)
         self.logger.debug("Groups are {0}".format(str(self.groups)))
 

@@ -18,39 +18,40 @@
 import re
 from operator import itemgetter
 
-from core.lkvog.strategies.strategy_utils import Module, Graph
-from core.lkvog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.strategies.strategy_utils import Module, Graph
+from core.vog.strategies.abstract_strategy import AbstractStrategy
 
 
 class Advanced(AbstractStrategy):
-    def __init__(self, logger, strategy_params, params):
-        super().__init__(logger)
-        module_sizes = strategy_params.get('module_sizes', {})
+
+    def __init__(self, logger, conf):
+        super(Advanced, self).__init__(logger, conf)
+        module_sizes = self.conf['VOG strategy'].get('module_sizes', {})
 
         # Going to read params
         self.logger = logger
-        self.koef = params.get('cluster size', 5)
-        self.max_g_for_m = params.get('max group for module', 5)
-        self.minimize_groups_for_module = params.get('minimize groups for module', True)
-        self.priority_on_module_size = params.get('priority on module size', True)
+        self.koef = self.conf['VOG strategy'].get('cluster size', 5)
+        self.max_g_for_m = self.conf['VOG strategy'].get('max group for module', 5)
+        self.minimize_groups_for_module = self.conf['VOG strategy'].get('minimize groups for module', True)
+        self.priority_on_module_size = self.conf['VOG strategy'].get('priority on module size', True)
 
         self.user_deps = {}
-        for module, dep_modules in params.get('user deps', {}).items():
+        for module, dep_modules in self.conf['VOG strategy'].get('user deps', {}).items():
             module = re.subn('.ko$', '.o', module)[0]
             self.user_deps[module] = [re.subn('.ko$', '.o', dep_module)[0] for dep_module in dep_modules]
 
-        self.division_type = params.get('division type', 'All')
+        self.division_type = self.conf['VOG strategy'].get('division type', 'All')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
         self.analyze_all_export_function = \
-            params.get('analyze all export function', self.division_type != 'Module')
+            self.conf['VOG strategy'].get('analyze all export function', self.division_type != 'Module')
         self.analyze_all_calls = \
-            params.get('analyze all calls', self.division_type != 'Library')
+            self.conf['VOG strategy'].get('analyze all calls', self.division_type != 'Library')
         self.priority_on_export_function = \
-            params.get('priority on export function', self.division_type != 'Module')
+            self.conf['VOG strategy'].get('priority on export function', self.division_type != 'Module')
         self.priority_on_calls = \
-            params.get('priority on calls', self.division_type != 'Library')
-        self.maximize_subsystems = params.get('maximize subsystems', True)
+            self.conf['VOG strategy'].get('priority on calls', self.division_type != 'Library')
+        self.maximize_subsystems = self.conf['VOG strategy'].get('maximize subsystems', True)
 
     def _set_dependencies(self, deps, sizes):
         # Creating modules dict
@@ -291,7 +292,7 @@ class Advanced(AbstractStrategy):
         if module_name == 'all':
             ret = set()
             for module in sorted(self.modules.keys()):
-                ret.update(self.divide(module))
+                ret.update(self._common_divide(module))
             return ret
         elif self.is_subsystem(module_name):
             # This is subsystem
@@ -402,7 +403,7 @@ class Advanced(AbstractStrategy):
                         if dep.id in modules:
                             module.add_predecessor(modules[dep.id])
             cluster2 = Graph(list(modules.values()))
-            cluster2.root = [module for module in cluster2.modules if module.id == main_module.id][0]
+            cluster2.root = [module for module in cluster2.units if module.id == main_module.id][0]
             if cluster2 not in self.checked_clusters:
                 self.checked_modules.add(cluster2)
                 ret.add(cluster2)
@@ -413,11 +414,9 @@ class Advanced(AbstractStrategy):
 
         return ret
 
-    def get_modules_to_build(self, modules):
+    def get_modules_to_build(self):
+        modules = super(Advanced, self).get_modules_to_build()
         if not self.is_deps:
             return [], True
         else:
             return self._collect_modules_to_build(modules), False
-
-    def need_dependencies(self):
-        return True
