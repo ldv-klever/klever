@@ -33,13 +33,13 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from users.models import Extended
-from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
-    Component, ComponentUnknown, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
+from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown,\
+    Component, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
     CoverageArchive, ErrorTraceSource
 from service.models import Task
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
-from tools.utils import RecalculateLeaves, RecalculateVerdicts
+from tools.utils import RecalculateLeaves
 
 from reports.coverage import FillCoverageCache
 from reports.etv import GetETV
@@ -661,10 +661,6 @@ class UploadReport:
 
         leaves = []
         for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unsafe += len(reports)
-            verdict.unsafe_unassociated += len(reports)
-            verdict.save()
             leaves.extend(list(ReportComponentLeaf(report=p, unsafe=unsafe) for unsafe in reports))
         ReportComponentLeaf.objects.bulk_create(leaves)
         for leaf in reports:
@@ -700,20 +696,10 @@ class UploadReport:
 
     def __fill_unknown_cache(self, unknown):
         for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unknown += 1
-            verdict.save()
-            comp_unknown = ComponentUnknown.objects.get_or_create(report=p, component=unknown.component)[0]
-            comp_unknown.number += 1
-            comp_unknown.save()
-            ReportComponentLeaf.objects.create(unknown=unknown, report=p)
+            ReportComponentLeaf.objects.create(report=p, unknown=unknown)
 
     def __fill_safe_cache(self, safe):
         for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.safe += 1
-            verdict.safe_unassociated += 1
-            verdict.save()
             ReportComponentLeaf.objects.create(report=p, safe=safe)
 
     def __update_parent_resources(self, report):
@@ -846,7 +832,6 @@ class CollapseReports:
             .exclude(id__in=set(sub_jobs) | {core_id}).delete()
 
         RecalculateLeaves([root])
-        RecalculateVerdicts([root])
 
 
 class CheckErrorTraces:

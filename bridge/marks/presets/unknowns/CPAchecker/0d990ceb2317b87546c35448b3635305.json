@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "063579d4c3ed~/drivers/w1/wire.ko/linux:kernel:locking:mutex"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.15.2"
+      "is_compare": true,
+      "value": "eb5adaa8b70a"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -43,7 +43,7 @@
   ],
   "description": "Time spend on transfer relation. Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

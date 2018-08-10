@@ -308,15 +308,6 @@ class ComponentResource(models.Model):
         db_table = 'cache_report_component_resource'
 
 
-class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='unknowns_cache')
-    component = models.ForeignKey(Component, models.PROTECT)
-    number = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_unknown'
-
-
 class CompareJobsInfo(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     root1 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')

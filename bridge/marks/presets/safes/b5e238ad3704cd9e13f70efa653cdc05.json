@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "790cc82a2b2b/drivers/input/misc/arizona-haptics.ko/linux:kernel:locking:mutex"
     },
     {

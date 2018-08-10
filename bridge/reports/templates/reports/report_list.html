@@ -74,12 +74,12 @@
     </div>
     {% if TableData.table_data.values|length %}
         <div>
-            {% if TableData.table_data.values.has_previous %}
-                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+            {% if TableData.paginated_values.has_previous %}
+                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.paginated_values.previous_page_number }}"></i>
             {% endif %}
-            <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-            {% if TableData.table_data.values.has_next %}
-                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+            <span>{% blocktrans with n1=TableData.paginated_values.number n2=TableData.paginated_values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+            {% if TableData.paginated_values.has_next %}
+                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.paginated_values.next_page_number }}"></i>
             {% endif %}
         </div>
         <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">

@@ -61,7 +61,7 @@ function update_decision_results(interval) {
     }
     $.post(
         '/jobs/decision_results/' + $('#job_id').val() + '/',
-        {view: collect_view_data('2')['view']},
+        {view_type: '2', view: collect_view_data('2')['view']},  // VIEW_TYPES[2]
         function (data) {
             if (data.error) {
                 err_notify(data.error);

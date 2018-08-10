@@ -29,16 +29,15 @@ def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False
                                         klever_addon_desc.get('executable path', '')))
 
 
-def configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info):
+def configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info):
     logger.info('Configure Klever Native Scheduler Task Worker')
 
     with Cd(deploy_dir):
         with open('klever/scheduler/conf/task-client.json') as fp:
             task_client_conf = json.load(fp)
 
-        if development:
-            task_client_conf['common']['keep working directory'] = True
-
+        if 'BenchExec' in prev_deploy_info['Klever Addons']:
+            task_client_conf['client']['benchexec location'] = get_klever_addon_abs_path(prev_deploy_info, 'BenchExec')
         verification_backends = task_client_conf['client']['verification tools'] = {}
         for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
             if desc['name'] not in verification_backends:
@@ -108,13 +107,12 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
         with open('klever/scheduler/conf/job-client.json') as fp:
             job_client_conf = json.load(fp)
 
-        if development:
-            job_client_conf['common']['keep working directory'] = True
-
         job_client_conf['client'].update({
             'cif location': get_klever_addon_abs_path(prev_deploy_info, 'CIF'),
             'cil location': get_klever_addon_abs_path(prev_deploy_info, 'CIL')
         })
+        if 'BenchExec' in prev_deploy_info['Klever Addons']:
+            job_client_conf['client']['benchexec location'] = get_klever_addon_abs_path(prev_deploy_info, 'BenchExec')
 
         with open('klever-conf/native-scheduler-job-client.json', 'w') as fp:
             json.dump(job_client_conf, fp, sort_keys=True, indent=4)
@@ -138,7 +136,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
                 json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info)
 
     start_services(logger, services)
 
@@ -156,8 +154,7 @@ def main():
         prev_deploy_info = json.load(fp)
 
     if args.just_native_scheduler_task_worker:
-        configure_native_scheduler_task_worker(get_logger(__name__), args.development, args.deployment_directory,
-                                               prev_deploy_info)
+        configure_native_scheduler_task_worker(get_logger(__name__), args.deployment_directory, prev_deploy_info)
     else:
         configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
                                             prev_deploy_info)

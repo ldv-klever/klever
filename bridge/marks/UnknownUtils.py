@@ -31,7 +31,7 @@ from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 from users.models import User
 from reports.models import ReportAttr, ReportUnknown, ReportComponentLeaf, Component, Attr, AttrName
 from marks.models import MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnknownReport, UnknownProblem,\
-    ComponentMarkUnknownProblem, UnknownAssociationLike
+    UnknownAssociationLike
 
 
 class NewMark:
@@ -393,7 +393,6 @@ class RecalculateConnections:
 
     def __recalc(self):
         MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
-        ComponentMarkUnknownProblem.objects.filter(report__root__in=self._roots).delete()
         for unknown in ReportUnknown.objects.filter(root__in=self._roots):
             ConnectReport(unknown, False)
         update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
@@ -659,18 +658,6 @@ def update_unknowns_cache(unknowns):
         marked_unknowns.add(mr.report_id)
 
     problems_data[None] = unknowns_ids - marked_unknowns
-
-    new_cache = []
-    for r_id in all_unknowns:
-        for p_id in problems_data:
-            for c_id in components_data:
-                number = len(all_unknowns[r_id] & problems_data[p_id] & components_data[c_id])
-                if number > 0:
-                    new_cache.append(ComponentMarkUnknownProblem(
-                        report_id=r_id, component_id=c_id, problem_id=p_id, number=number
-                    ))
-    ComponentMarkUnknownProblem.objects.filter(report_id__in=reports).delete()
-    ComponentMarkUnknownProblem.objects.bulk_create(new_cache)
 
 
 def delete_marks(marks):

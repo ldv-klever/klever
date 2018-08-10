@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "c822fb57ba12~/drivers/spi/spi-pxa2xx-platform.ko/linux:drivers:clk2"
     },
     {
       "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.10.59"
+      "is_compare": true,
+      "value": "a8be23c660a7"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -43,7 +43,7 @@
   ],
   "description": "Too many and long value refinements.",
   "is regexp": true,
-  "pattern": "Analysis interrupted",
-  "problem": "Interruption",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }

@@ -27,6 +27,7 @@ import core.components
 import core.utils
 import core.session
 
+from core.vtg.scheduling import Balancer
 # from clade import Clade
 
 
@@ -46,6 +47,12 @@ def __launch_sub_job_components(context):
 def __prepare_descriptions_file(context):
     context.mqs['verification obj desc files'].put(
         os.path.relpath(context.VO_FILE, context.conf['main working directory']))
+
+
+@core.components.after_callback
+def __generate_all_verification_obj_descs(context):
+    context.logger.info('Terminate verification object description files message queue')
+    context.mqs['verification obj desc files'].put(None)
 
 
 @core.components.after_callback
@@ -265,6 +272,7 @@ def collect_plugin_callbacks(conf, logger):
     # Find appropriate classes for plugins if so.
     for rule_spec_desc in _rule_spec_descs:
         for plugin_desc in rule_spec_desc['plugins']:
+            logger.info('Load plugin "{0}"'.format(plugin_desc['name']))
             try:
                 plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtg'),
                                  plugin_desc['name'])
@@ -373,43 +381,20 @@ class VTG(core.components.Component):
 
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
-
-        # Fetch object
-        vo_file = self.mqs['verification obj desc files'].get()
-        vo_file = os.path.join(self.conf['main working directory'], vo_file)
-        self.mqs['verification obj desc files'].close()
-        if os.path.isfile(vo_file):
-            with open(vo_file, 'r', encoding='utf8') as fp:
-                verification_obj_desc_files = \
-                    [os.path.join(self.conf['main working directory'], vof) for vof in fp.readlines()]
-        else:
-            raise FileNotFoundError
-
-        # Drop a line to a progress watcher
-        total_vo_descriptions = len(verification_obj_desc_files)
-        self.mqs['total tasks'].put([self.conf['job identifier'],
-                                     int(total_vo_descriptions * len(self.rule_spec_descs))])
-
         vo_descriptions = dict()
-        initial = dict()
-        # Fetch object
-        for verification_obj_desc_file in verification_obj_desc_files:
-            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
-                      encoding='utf8') as fp:
-                verification_obj_desc = json.load(fp)
-            if not self.conf['keep intermediate files']:
-                os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
-            if len(self.rule_spec_descs) == 0:
-                self.logger.warning('Verification object {0} will not be verified since rule specifications'
-                                    ' are not specified'.format(verification_obj_desc['id']))
-            else:
-                vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
-                initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
-
         processing_status = dict()
+        initial = dict()
         delete_ready = dict()
+        total_vo_descriptions = 0
+        balancer = Balancer(self.conf, self.logger, processing_status)
+
+        def submit_task(vobj, rlcl, rlda, rescheduling=False):
+            resource_limitations = balancer.resource_limitations(vobj['id'], rlcl, rlda['id'])
+            self.mqs['prepare verification objects'].put((vobj, rlda, resource_limitations, rescheduling))
+
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
+        expect_objects = True
         while True:
             # Fetch pilot statuses
             pilot_statuses = []
@@ -445,13 +430,46 @@ class VTG(core.components.Component):
 
             # Process them
             for solution in solutions:
-                vobject, rule_name = solution
+                vobject, rule_name, status_info = solution
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
                 rule_class = resolve_rule_class(rule_name)
                 if rule_class:
-                    processing_status[vobject][rule_class][rule_name] = True
+                    final = balancer.add_solution(vobject, rule_class, rule_name, status_info)
+                    if final:
+                        self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
+                                                                  if status_info[0] == 'finished' else 'failed'])
+                        processing_status[vobject][rule_class][rule_name] = True
                     active_tasks -= 1
+
+            # Fetch object
+            if expect_objects:
+                verification_obj_desc_files = []
+                old_size = len(verification_obj_desc_files)
+                expect_objects = core.utils.drain_queue(verification_obj_desc_files,
+                                                        self.mqs['verification obj desc files'])
+                total_vo_descriptions += len(verification_obj_desc_files) - old_size
+
+                if not expect_objects:
+                    self.logger.info("No verification objects will be generated")
+
+                    # Drop a line to a progress watcher
+                    total_tasks = int(total_vo_descriptions * len(self.rule_spec_descs))
+                    balancer.set_total_tasks(total_tasks)
+                    self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
+
+                for verification_obj_desc_file in verification_obj_desc_files:
+                    with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+                              encoding='utf8') as fp:
+                        verification_obj_desc = json.load(fp)
+                    if not self.conf['keep intermediate files']:
+                        os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
+                    if len(self.rule_spec_descs) == 0:
+                        self.logger.warning('Verification object {0} will not be verified since rule specifications'
+                                            ' are not specified'.format(verification_obj_desc['id']))
+                    else:
+                        vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
+                        initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
 
             # Submit initial objects
             for vo in list(initial.keys()):
@@ -462,7 +480,7 @@ class VTG(core.components.Component):
                         rule_name = _rule_spec_classes[rule_class][0]['id']
                         self.logger.info("Prepare initial verification tasks for {!r} and rule {!r}".
                                          format(vo, rule_name))
-                        self.mqs['prepare verification objects'].put((vobject, _rule_spec_classes[rule_class][0]))
+                        submit_task(vobject, rule_class, _rule_spec_classes[rule_class][0])
 
                         # Set status
                         if vo not in processing_status:
@@ -486,23 +504,39 @@ class VTG(core.components.Component):
                             if active_tasks < max_tasks:
                                 self.logger.info("Submit next verification task after having cached plugin results for "
                                                  "verification object {!r} and rule {!r}".format(vobject, rule['id']))
-                                self.mqs['prepare verification objects'].put(
-                                    (vo_descriptions[vobject], rule))
+                                submit_task(vo_descriptions[vobject], rule_class, rule)
                                 processing_status[vobject][rule_class][rule['id']] = None
                                 active_tasks += 1
                             else:
                                 break
 
-                    solved = 0
-                    for rule in _rule_spec_classes[rule_class]:
-                        if rule['id'] in processing_status[vobject][rule_class] and \
-                                processing_status[vobject][rule_class][rule['id']]:
-                            solved += 1
+                    # Check that we should reschedule tasks
+                    for rule in (r for r in _rule_spec_classes[rule_class] if
+                                 r['id'] in processing_status[vobject][rule_class] and
+                                 not processing_status[vobject][rule_class][r['id']] and
+                                 balancer.is_there(vobject, rule_class, r['id'])):
+                        if active_tasks < max_tasks:
+                            attempt = balancer.do_rescheduling(vobject, rule_class, rule['id'])
+                            if attempt:
+                                self.logger.info("Submit task {}:{} to solve it again".format(vobject, rule['id']))
+                                submit_task(vo_descriptions[vobject], rule_class, rule, rescheduling=attempt)
+                                active_tasks += 1
+                            elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
+                                self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
+                                self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
+                                processing_status[vobject][rule_class][rule['id']] = True
 
-                    if solved == len(_rule_spec_classes[rule_class]) and \
-                            (self.conf['keep intermediate files'] or (vobject in delete_ready and
-                             solved == len([rule for rule in processing_status[vobject][rule_class]
-                                            if rule in delete_ready[vobject]]))):
+                    # Number of solved tasks
+                    solved = sum((1 if processing_status[vobject][rule_class].get(r['id']) else 0
+                                  for r in _rule_spec_classes[rule_class]))
+                    # Number of rules which are ready to delete
+                    deletable = len([r for r in processing_status[vobject][rule_class]
+                                     if vobject in delete_ready and r in delete_ready[vobject]])
+                    # Total tasks for rules
+                    total = len(_rule_spec_classes[rule_class])
+
+                    if solved == total and (self.conf['keep intermediate files'] or
+                                            (vobject in delete_ready and solved == deletable)):
                         self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
                         if not self.conf['keep intermediate files']:
                             for rule in processing_status[vobject][rule_class]:
@@ -519,7 +553,7 @@ class VTG(core.components.Component):
                     if vobject in delete_ready:
                         del delete_ready[vobject]
 
-            if active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
+            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 if not self.conf['keep intermediate files']:
@@ -527,7 +561,8 @@ class VTG(core.components.Component):
                 break
             else:
                 self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
-                                  "descriptions".format(len(initial), active_tasks, len(vo_descriptions)))
+                                  "descriptions and expectation verification tasks flag is {}".
+                                  format(len(initial), active_tasks, len(vo_descriptions), expect_objects))
 
             time.sleep(3)
 
@@ -555,20 +590,32 @@ class VTGWL(core.components.Component):
         self.logger.info("Terminate VTGL worker")
 
     def vtgw_constructor(self, element):
+        attrs = [
+            {
+                "name": "Rule specification",
+                "value": element[1]['id']
+            },
+            {
+                "name": "Verification object",
+                "value": element[0]['id']
+            }
+        ]
+        if element[3]:
+            identifier = "{}/{}/{}/VTGW".format(element[0]['id'], element[1]['id'], element[3])
+            workdir = os.path.join(element[0]['id'], element[1]['id'], str(element[3]))
+            attrs.append({
+                "name": "Rescheduling attempt",
+                "value": str(element[3]),
+                "compare": False,
+                "associate": False
+            })
+        else:
+            identifier = "{}/{}/VTGW".format(element[0]['id'], element[1]['id'])
+            workdir = os.path.join(element[0]['id'], element[1]['id'])
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                    self.locks, self.vals, "{}/{}/VTGW".format(element[0]['id'], element[1]['id']),
-                    os.path.join(element[0]['id'], element[1]['id']),
-                    attrs=[
-                        {
-                            "name": "Rule specification",
-                            "value": element[1]['id']
-                        },
-                        {
-                            "name": "Verification object",
-                            "value": element[0]['id']
-                        }
-                    ],
-                    separate_from_parent=True, verification_object=element[0], rule_spec=element[1])
+                    self.locks, self.vals, identifier, workdir,
+                    attrs=attrs, separate_from_parent=True, verification_object=element[0], rule_spec=element[1],
+                    resource_limits=element[2], rerun=element[3])
 
     main = task_generating_loop
 
@@ -576,12 +623,15 @@ class VTGWL(core.components.Component):
 class VTGW(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None):
+                 separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None,
+                 resource_limits=None, rerun=False):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.verification_object = verification_object
         self.rule_specification = rule_spec
         self.abstract_task_desc_file = None
+        self.override_limits = resource_limits
+        self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         # self.clade = Clade()
         # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
@@ -615,6 +665,8 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
+        # Currently we will use rule specification name as a solution class to accumulate statistics and adjust resource
+        # limitations
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
@@ -637,28 +689,42 @@ class VTGW(core.components.Component):
         # Invoke all plugins one by one.
         cur_abstract_task_desc_file = initial_abstract_task_desc_file
         out_abstract_task_desc_file = None
-        for plugin_desc in rule_spec_desc['plugins']:
+        if self.rerun:
+            # Get only the last, and note that the last one prepares tasks and otherwise rerun should not be set
+            plugins = [rule_spec_desc['plugins'][-1]]
+        else:
+            plugins = rule_spec_desc['plugins']
+
+        for plugin_desc in plugins:
             # Here plugin will put modified abstract verification task description.
             plugin_work_dir = plugin_desc['name'].lower()
             out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
+            if self.rerun:
+                self.logger.info("Instead of running the {!r} plugin for the {!r} rule in the same dir obtain "
+                                 "results for the original run".format(plugin_desc['name'], self.rule_specification))
+                cur_abstract_task_desc_file = os.path.join(os.pardir, out_abstract_task_desc_file)
+                os.symlink(os.path.relpath(cur_abstract_task_desc_file, os.path.curdir),
+                           out_abstract_task_desc_file)
 
             if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
                     plugin_desc['name'] in ['SA', 'EMG']:
                 # Expect that there is a work directory which has all prepared
                 # Make symlinks to the pilot rule work dir
                 self.logger.info("Instead of running the {!r} plugin for the {!r} rule lets use already obtained "
-                                 "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification, pilot_rule))
+                                 "results for the {!r} rule".format(plugin_desc['name'], self.rule_specification,
+                                                                    pilot_rule))
                 pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
                 pilot_abstract_task_desc_file = os.path.join(
                     pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
-                os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir), out_abstract_task_desc_file)
+                os.symlink(os.path.relpath(pilot_abstract_task_desc_file, os.path.curdir),
+                           out_abstract_task_desc_file)
                 os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
             else:
                 self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
                 # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-                # specification and information on rule specification itself. In addition put either initial or current
-                # description of abstract verification task into plugin configuration.
+                # specification and information on rule specification itself. In addition put either initial or
+                # current description of abstract verification task into plugin configuration.
                 plugin_conf = copy.deepcopy(self.conf)
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
@@ -670,6 +736,8 @@ class VTGW(core.components.Component):
                 plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
                                                                              self.conf[
                                                                                  'main working directory'])
+                plugin_conf['solution class'] = self.rule_specification
+                plugin_conf['override resource limits'] = self.override_limits
 
                 plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
                 self.logger.debug(
@@ -698,13 +766,14 @@ class VTGW(core.components.Component):
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
             final_abstract_task_desc_file = 'final abstract task.json'
-            self.logger.debug(
-                'Put final abstract verification task description to file "{0}"'.format(
-                    final_abstract_task_desc_file))
-            # Final abstract verification task description equals to abstract verification task description received
-            # from last plugin.
-            os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
-                       final_abstract_task_desc_file)
+            if not self.rerun:
+                self.logger.debug(
+                    'Put final abstract verification task description to file "{0}"'.format(
+                        final_abstract_task_desc_file))
+                # Final abstract verification task description equals to abstract verification task description received
+                # from last plugin.
+                os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
+                           final_abstract_task_desc_file)
 
             # VTG will consume this abstract verification task description file.
             self.abstract_task_desc_file = out_abstract_task_desc_file
@@ -716,26 +785,24 @@ class VTGW(core.components.Component):
                 with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
                     final_task_data = json.load(fp)
 
-                # Plan for checking staus
-                self.mqs['pending tasks'].put([str(task_id),
-                                               final_task_data["result processing"],
-                                               self.verification_object,
-                                               self.rule_specification,
-                                               final_task_data['verifier']])
+                # Plan for checking status
+                self.mqs['pending tasks'].put([
+                    [str(task_id), final_task_data["result processing"], self.verification_object,
+                     self.rule_specification, final_task_data['verifier']],
+                    self.rerun
+                ])
                 self.logger.info("Submitted successfully verification task {} for solution".
                                  format(os.path.join(plugin_work_dir, 'task.json')))
             else:
                 self.logger.warning("There is no verification task generated by the last plugin, expect {}".
                                     format(os.path.join(plugin_work_dir, 'task.json')))
-                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
-                self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'finished'])
+                self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
         self.logger.debug("VTGW that processed {!r}, {!r} failed".
                           format(self.verification_object, self.rule_specification))
-        self.mqs['processed tasks'].put((self.verification_object, self.rule_specification))
-        self.mqs['finished and failed tasks'].put([self.conf['job identifier'], 'failed'])
+        self.mqs['processed tasks'].put((self.verification_object, self.rule_specification, [None, None, None]))
 
     def join(self, timeout=None, stopped=False):
         try:

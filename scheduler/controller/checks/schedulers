@@ -21,13 +21,14 @@ import json
 import sys
 import consulate
 import subprocess
+import logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 import utils.bridge as bridge
 
 
-def set_status(st):
-    session = bridge.Session(conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
+def set_status(logger, st):
+    session = bridge.Session(logger, conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
                              conf["Klever Bridge"]["password"])
     data = {
         "statuses": json.dumps(st, ensure_ascii=False, sort_keys=True, indent=4)
@@ -60,7 +61,7 @@ if vc_out and vc_out != '':
 if "schedulers" in consul.kv:
     kv_status = json.loads(consul.kv["schedulers"])
     if kv_status["Klever"] != status["Klever"] or kv_status["VerifierCloud"] != status["VerifierCloud"]:
-        set_status(status)
+        set_status(logging, status)
         consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
 else:
     try:
@@ -68,7 +69,7 @@ else:
     except (AttributeError, KeyError):
         print('Key-value storage is not ready yet')
         exit(1)
-    set_status(status)
+    set_status(logging, status)
 
 # Sign out
 exit(0)

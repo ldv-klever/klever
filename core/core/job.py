@@ -21,15 +21,14 @@ import importlib
 import json
 import multiprocessing
 import os
-import shutil
 import re
 import time
 import zipfile
 
 import core.utils
 import core.components
-import core.progress
-import core.vrp.coverage_parser
+from core.progress import PW
+from core.coverage import JCR
 
 
 JOB_FORMAT = 1
@@ -74,19 +73,34 @@ def start_jobs(core_obj, locks, vals):
     try:
         queues_to_terminate = []
 
-        pc = core.progress.PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks,
-                              core_obj.mqs, locks, vals, separate_from_parent=False,
-                              include_child_resources=True, session=core_obj.session,
-                              total_subjobs=(len(common_components_conf['Sub-jobs'])
-                                             if 'Sub-jobs' in common_components_conf else 0))
+        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+                separate_from_parent=False, include_child_resources=True, session=core_obj.session,
+                total_subjobs=(len(common_components_conf['Sub-jobs']) if 'Sub-jobs' in common_components_conf else 0))
         pc.start()
         subcomponents.append(pc)
 
         if 'collect total code coverage' in common_components_conf and \
                 common_components_conf['collect total code coverage']:
-            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                     locks, vals, separate_from_parent=False, include_child_resources=True,
-                     queues_to_terminate=queues_to_terminate)
+            def after_process_finished_task(context):
+                coverage_info_file = os.path.join(context.conf['main working directory'], context.coverage_info_file)
+                if os.path.isfile(coverage_info_file):
+                    context.mqs['rule specifications and coverage info files'].put({
+                        'sub-job identifier': context.conf['sub-job identifier'],
+                        'rule specification': context.rule_specification,
+                        'coverage info file': coverage_info_file
+                    })
+
+            def after_launch_sub_job_components(context):
+                context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
+                context.mqs['rule specifications and coverage info files'].put({
+                    'sub-job identifier': context.sub_job_id
+                })
+
+            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+                     separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
+            # This can be done only in this module otherwise callbacks will be missed
+            core.components.set_component_callbacks(core_obj.logger, Job,
+                                                    [after_launch_sub_job_components, after_process_finished_task])
             cr.start()
             subcomponents.append(cr)
 
@@ -167,8 +181,6 @@ def __get_common_components_conf(logger, conf):
 
 
 def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, subcomponents):
-    sub_jobs = []
-
     def constructor(number):
         # Sub-job configuration is based on common sub-jobs configuration.
         sub_job_components_common_conf = copy.deepcopy(components_common_conf)
@@ -176,60 +188,34 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
         sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf,
                                                        components_common_conf['Sub-jobs'][number])
 
-        core_obj.logger.info('Get sub-job name and type')
-        external_modules = sub_job_concrete_conf['project'].get('external source', '')
-
-        modules = sub_job_concrete_conf['project']['verification targets']
-        if len(modules) == 1:
-            modules_hash = modules[0]
-        else:
-            modules_hash = hashlib.sha1(''.join(modules).encode('utf8')).hexdigest()[:7]
-
-        rule_specs = sub_job_concrete_conf['rule specifications']
-        if len(rule_specs) == 1:
-            rule_specs_hash = rule_specs[0]
-        else:
-            rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
-
-        if job_type == 'Validation on commits in Linux kernel Git repositories':
-            commit = sub_job_concrete_conf['project']['Git repository']['commit']
-            if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
-                raise ValueError(
-                    'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'
-                    .format(commit))
-
-            sub_job_id_prefix = os.path.join(commit, external_modules)
-        # todo: Do we need to change it properly
-        elif job_type == 'Verification of Linux kernel modules':
-            sub_job_id_prefix = os.path.join(str(number), external_modules)
-        else:
-            raise NotImplementedError('Job class "{0}" is not supported'.format(job_type))
-
-        sub_job_id = os.path.join(sub_job_id_prefix, modules_hash, rule_specs_hash)
-        sub_job_work_dir = os.path.join(sub_job_id_prefix, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
-        core_obj.logger.debug('Sub-job identifier and type are "{0}" and "{1}"'.format(sub_job_id, job_type))
-
-        for sub_job in sub_jobs:
-            if sub_job.id == sub_job_id:
-                raise ValueError('Several sub-jobs have the same identifier "{0}"'.format(sub_job_id))
-
         job = Subjob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             locks, vals,
-            id=sub_job_id,
-            work_dir=sub_job_work_dir,
+            id=str(number),
+            work_dir=str(number),
             attrs=[{
-                'name': 'name',
-                'value': sub_job_id,
-                'compare': True
+                'name': 'Sub-job identifier',
+                'value': str(number),
+                # Sub-jobs are intended for combining several relatively small jobs together into one large job. For
+                # instance, this abstraction is useful for testing and validation. But most likely most of users do not
+                # need even to know about them.
+                # From ancient time we tried to assign nice names to sub-jobs to distinguish them, in particular to be
+                # able to compare corresponding verification results. These names were based on sub-job configurations,
+                # e.g. they included commit hashes, rule specification identifiers, module names, etc. Such the approach
+                # turned out to be inadequate since we had to add more and more information to sub-job names that
+                # involves source code changes and results in large working directories that look like these names.
+                # After all we decided to use sub-job ordinal numbers to distinguish them uniqly (during a some time
+                # old style names were used in addition to these ordinal numbers). The only bad news is that in case of
+                # any changes in a global arrangment of sub-jobs, such as a new sub-job is added somewhere in the middle
+                # or an old sub-job is removed, one is not able to compare verification results as it was with pretty
+                # names since correspondence of ordinal numbers breaks.
+                'compare': True,
             }],
             separate_from_parent=True,
             include_child_resources=False,
             job_type=job_type,
-            components_common_conf=sub_job_concrete_conf,
-            id_prefix=sub_job_id_prefix)
-
-        sub_jobs.append(job)
+            components_common_conf=sub_job_concrete_conf
+        )
 
         return job
 
@@ -277,22 +263,30 @@ class RA(core.components.Component):
                 self.mqs['verification statuses'].close()
                 break
 
-            # Block several sub-jobs from each other to reliably produce outcome.
-            id_prefix, id_suffix, verification_result = self.__match_ideal_verdict(verification_status)
-
-            task_id = os.path.join(id_prefix, id_suffix)
+            id_suffix, verification_result = self.__match_ideal_verdict(verification_status)
+            sub_job_id = verification_status['sub-job identifier']
 
             if self.job_type == 'Verification of Linux kernel modules':
                 self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
                     id, verification_result['ideal verdict'], verification_result['verdict'],
                     ' ("{0}")'.format(verification_result['comment'])
                     if verification_result['comment'] else ''))
+                # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
+                # tasks and directories add identifier suffix in addtition.
+                task_id = os.path.join(sub_job_id, id_suffix)
+                results_dir = os.path.join('results', task_id)
             elif self.job_type == 'Validation on commits in Linux kernel Git repositories':
-                task_id, verification_result = self.__process_validation_results(task_id, verification_result)
+                # For validation jobs we can't refer to sub-job identifier for additional identification of verification
+                # results because of most likely we will consider pairs of sub-jobs before and after corresponding bug
+                # fixes.
+                task_id, verification_result = self.__process_validation_results(verification_result,
+                                                                                 verification_status['data'], id_suffix)
+                # For validation jobs sub-job identifiers guarantee uniqueness for naming directories since there is
+                # the only verification task for each sub-job.
+                results_dir = os.path.join('results', sub_job_id)
             else:
                 raise NotImplementedError('Job class {!r} is not supported'.format(self.job_type))
 
-            results_dir = os.path.join('results', id_prefix, id_suffix)
             os.makedirs(results_dir)
 
             core.utils.report(self.logger,
@@ -310,13 +304,15 @@ class RA(core.components.Component):
 
     def __set_callbacks(self):
 
+        # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
             context.mqs['verification statuses'].put({
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': 'non-verifier unknown',
-                'id prefix': context.conf['job identifier prefix'],
-                'ideal verdicts': context.conf['ideal verdicts']
+                'sub-job identifier': context.conf['sub-job identifier'],
+                'ideal verdicts': context.conf['ideal verdicts'],
+                'data': context.conf.get('data')
             })
 
         def after_process_failed_task(context):
@@ -324,8 +320,9 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': context.verdict,
-                'id prefix': context.conf['job identifier prefix'],
-                'ideal verdicts': context.conf['ideal verdicts']
+                'sub-job identifier': context.conf['sub-job identifier'],
+                'ideal verdicts': context.conf['ideal verdicts'],
+                'data': context.conf.get('data')
             })
 
         def after_process_single_verdict(context):
@@ -333,8 +330,9 @@ class RA(core.components.Component):
                 'verification object': context.verification_object,
                 'rule specification': context.rule_specification,
                 'verdict': context.verdict,
-                'id prefix': context.conf['job identifier prefix'],
-                'ideal verdicts': context.conf['ideal verdicts']
+                'sub-job identifier': context.conf['sub-job identifier'],
+                'ideal verdicts': context.conf['ideal verdicts'],
+                'data': context.conf.get('data')
             })
 
         core.components.set_component_callbacks(self.logger, type(self),
@@ -355,7 +353,6 @@ class RA(core.components.Component):
 
         verification_object = verification_status['verification object']
         rule_specification = verification_status['rule specification']
-        id_prefix = verification_status['id prefix']
         ideal_verdicts = verification_status['ideal verdicts']
 
         matched_ideal_verdict = None
@@ -395,73 +392,48 @@ class RA(core.components.Component):
                 'Could not match ideal verdict for verification object "{0}" and rule specification "{1}"'
                 .format(verification_object, rule_specification))
 
-        # Refine name (it can contain hashes if several modules or/and rule specifications are checked within one
-        # sub-job).
+        # This suffix will help to distinguish sub-jobs easier.
         id_suffix = os.path.join(verification_object, rule_specification)\
             if verification_object and rule_specification else ''
 
-        return id_prefix, id_suffix, {
+        return id_suffix, {
             'verdict': verification_status['verdict'],
             'ideal verdict': matched_ideal_verdict['ideal verdict'],
             'comment': matched_ideal_verdict.get('comment')
         }
 
-    def __process_validation_results(self, name, verification_result):
-        # Relate verificaiton results on commits before and after corresponding bug fixes if so.
-        # Without this we won't be able to reliably iterate over data since it is multiprocessing.Manager().dict().
-        # Data is intended to keep verification results that weren't bound still. For such the results
-        # we will need to update corresponding data sent before.
-        data = self.data.copy()
+    def __process_validation_results(self, verification_result, data, id_suffix):
+        # Relate verification results on commits before and after corresponding bug fixes if so.
+        # Data (variable "self.data") is intended to keep verification results that weren't bound still. For such the
+        # results we will need to update corresponding data sent before.
 
-        # Try to find out previous verification result. Commit hash before/after corresponding bug fix
-        # is considered to be "hash~"/"hash" or v.v. Also it is taken into account that all commit
-        # hashes have exactly 12 symbols.
-        is_prev_found = False
-        for prev_name, prev_verification_result in data.items():
-            if name[:12] == prev_name[:12] and (name[13:] == prev_name[12:]
-                                                if len(name) > 12 and name[12] == '~'
-                                                else name[12:] == prev_name[13:]):
-                is_prev_found = True
-                break
+        # Verification results can be bound on the basis of data (parameter "data").
+        if not data or 'bug identifier' not in data:
+            raise KeyError('Bug identifier is not specified for some sub-job of validation job')
+
+        # Identifier suffix clarifies bug nature without preventing relation of verification results, so, just add it
+        # to bug identifier. Sometimes just this concatenation actually serves as unique identifier, e.g. when a bug
+        # identifier is just a commit hash, while an identifier suffix contains a verification object and a rule
+        # specification.
+        bug_id = os.path.join(data['bug identifier'], id_suffix)
 
         bug_verification_result = None
         bug_fix_verification_result = None
         if verification_result['ideal verdict'] == 'unsafe':
-            bug_name = name
             bug_verification_result = verification_result
 
-            if is_prev_found:
-                if prev_verification_result['ideal verdict'] != 'safe':
-                    raise ValueError(
-                        'Ideal verdict for bug "{0}" after fix is "{1}" ("safe" is expected)'
-                        .format(bug_name, prev_verification_result['ideal verdict']))
-
-                bug_fix_verification_result = prev_verification_result
+            if bug_id in self.data:
+                bug_fix_verification_result = self.data[bug_id]
         elif verification_result['ideal verdict'] == 'safe':
             bug_fix_verification_result = verification_result
 
-            if is_prev_found:
-                bug_name = prev_name
-
-                if prev_verification_result['ideal verdict'] != 'unsafe':
-                    raise ValueError(
-                        'Ideal verdict for bug "{0}" before fix is "{1}" ("unsafe" is expected)'
-                        .format(bug_name, prev_verification_result['ideal verdict']))
-
-                bug_verification_result = prev_verification_result
-            else:
-                # Verification result after bug fix was found while verification result before bug fix
-                # wasn't found yet. So construct bug name on the basis of bug fix name. To do that
-                # either remove or add "~" after commit hash.
-                if name[12] == '~':
-                    bug_name = name[:12] + name[13:]
-                else:
-                    bug_name = name[:12] + '~' + name[12:]
+            if bug_id in self.data:
+                bug_verification_result = self.data[bug_id]
         else:
             raise ValueError('Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'
                              .format(verification_result['ideal verdict']))
 
-        validation_status_msg = 'Verdict for bug "{0}"'.format(bug_name)
+        validation_status_msg = 'Verdict for bug "{0}"'.format(bug_id)
 
         new_verification_result = {}
 
@@ -485,151 +457,15 @@ class RA(core.components.Component):
 
         self.logger.info(validation_status_msg)
 
-        if is_prev_found:
+        if bug_id in self.data:
             # We don't need to keep previously obtained verification results since we found both
             # verification results before and after bug fix.
-            del self.data[prev_name]
+            del self.data[bug_id]
         else:
             # Keep obtained verification results to relate them later.
-            self.data.update({name: verification_result})
+            self.data.update({bug_id: verification_result})
 
-        return bug_name, new_verification_result
-
-
-class JCR(core.components.Component):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir,
-                                  attrs, separate_from_parent, include_child_resources)
-
-        # This function adds callbacks and it should work until we call it in the new process
-        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
-        queues_to_terminate.append('rule specifications and coverage info files')
-        self.__set_callbacks()
-        self.coverage = dict()
-
-    def collect_total_coverage(self):
-        self.logger.debug("Begin collecting coverage")
-
-        total_coverage_infos = dict()
-        arcfiles = {}
-        os.mkdir('total coverages')
-
-        try:
-            while True:
-                coverage_info = self.mqs['rule specifications and coverage info files'].get()
-
-                if coverage_info is None:
-                    self.logger.debug('Rule specification coverage info files message queue was terminated')
-                    self.mqs['rule specifications and coverage info files'].close()
-                    break
-
-                job_id = coverage_info['job id']
-                self.logger.debug('Get coverage for job {!r}'.format(job_id))
-                if 'coverage info file' in coverage_info:
-                    if job_id not in total_coverage_infos:
-                        total_coverage_infos[job_id] = dict()
-                        arcfiles[job_id] = dict()
-                    rule_spec = coverage_info['rule specification']
-                    total_coverage_infos[job_id].setdefault(rule_spec, {})
-                    arcfiles[job_id].setdefault(rule_spec, {})
-
-                    with open(coverage_info['coverage info file'], encoding='utf8') as fp:
-                        loaded_coverage_info = json.load(fp)
-
-                    # Clean if needed
-                    if not self.conf['keep intermediate files']:
-                        os.remove(os.path.join(self.conf['main working directory'],
-                                               coverage_info['coverage info file']))
-
-                    core.vrp.LCOV.add_to_coverage(total_coverage_infos[job_id][rule_spec], loaded_coverage_info)
-                    for file in loaded_coverage_info.values():
-                        arcfiles[job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
-                    del loaded_coverage_info
-                elif job_id in total_coverage_infos:
-                    self.logger.debug('Calculate total coverage for job {!r}'.format(job_id))
-
-                    total_coverages = dict()
-                    coverage_info_dumped_files = []
-                    for rule_spec, coverage_info in total_coverage_infos[job_id].items():
-                        total_coverage_dir = os.path.join('total coverages', re.sub(r'/', '-', job_id),
-                                                          re.sub(r'/', '-', rule_spec))
-                        if not os.path.exists(total_coverage_dir):
-                            os.makedirs(total_coverage_dir)
-
-                        total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
-                        if os.path.isfile(total_coverage_file):
-                            raise FileExistsError('Total coverage file "{0}" already exists'.format(total_coverage_file))
-                        arcnames = {total_coverage_file: 'coverage.json'}
-
-                        coverage = core.vrp.coverage_parser.LCOV.get_coverage(coverage_info)
-
-                        with open(total_coverage_file, 'w', encoding='utf8') as fp:
-                            json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
-
-                        coverage_info_dumped_files.append(total_coverage_file)
-
-                        arcnames.update(arcfiles[job_id][rule_spec])
-                        arcnames.update({info[0]['file name']: info[0]['arcname'] for info in coverage_info.values()})
-
-                        total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
-                                                                            list(arcnames.keys()), arcnames)
-
-                    core.utils.report(self.logger,
-                                      'job coverage',
-                                      {
-                                          'id': job_id,
-                                          'coverage': total_coverages
-                                      },
-                                      self.mqs['report files'],
-                                      self.vals['report id'],
-                                      self.conf['main working directory'],
-                                      os.path.join('total coverages', re.sub(r'/', '-', job_id)))
-
-                    del total_coverage_infos[job_id]
-                    # Clean files if needed
-                    if not self.conf['keep intermediate files']:
-                        for coverage_file in coverage_info_dumped_files:
-                            os.remove(coverage_file)
-                    self.vals['coverage_finished'][job_id] = True
-        finally:
-            self.logger.debug("Allow finish all jobs")
-            for job_id in self.vals['coverage_finished'].keys():
-                self.vals['coverage_finished'][job_id] = True
-
-        self.logger.info("Finish coverage reporting")
-
-        # Clean
-        if not self.conf['keep intermediate files']:
-            shutil.rmtree('total coverages')
-
-    main = collect_total_coverage
-
-    def __set_callbacks(self):
-
-        def after_process_finished_task(context):
-            coverage_info_file = os.path.join(context.conf['main working directory'],
-                                              context.coverage_info_file)
-
-            if os.path.isfile(coverage_info_file):
-                context.mqs['rule specifications and coverage info files'].put({
-                    'job id': context.conf['job identifier'],
-                    'rule specification': context.rule_specification,
-                    'coverage info file': coverage_info_file
-                })
-
-        def after_launch_sub_job_components(context):
-            context.logger.debug('Put "{0}" job id for finish coverage'.format(context.id))
-            context.mqs['rule specifications and coverage info files'].put({
-                'job id': context.id
-            })
-
-        core.components.set_component_callbacks(self.logger, type(self),
-                                                (
-                                                    after_process_finished_task,
-                                                    after_launch_sub_job_components
-                                                ))
+        return bug_id, new_verification_result
 
 
 class Job(core.components.Component):
@@ -644,13 +480,12 @@ class Job(core.components.Component):
     ]
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None,
-                 id_prefix=None):
+                 separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None):
         super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
-        self.id_prefix = id_prefix
         self.job_type = job_type
         self.common_components_conf = components_common_conf
+        self.sub_job_id = id
 
         # Configure Clade here since many Core components need appropriate options to be set.
         self.__configure_clade()
@@ -688,20 +523,16 @@ class Job(core.components.Component):
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
 
-        # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
-        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
-        if self.id_prefix:
-            self.common_components_conf['job identifier prefix'] = self.id_prefix
-        self.common_components_conf['job identifier'] = self.id
+        # This is required to associate verification results with particular sub-jobs.
+        self.common_components_conf['sub-job identifier'] = self.sub_job_id
 
-        if self.id_prefix:
-            if self.common_components_conf['keep intermediate files']:
-                if os.path.isfile('conf.json'):
-                    raise FileExistsError(
-                        'Components configuration file "conf.json" already exists')
-                self.logger.debug('Create components configuration file "conf.json"')
-                with open('conf.json', 'w', encoding='utf8') as fp:
-                    json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+        if self.common_components_conf['keep intermediate files']:
+            if os.path.isfile('conf.json'):
+                raise FileExistsError(
+                    'Components configuration file "conf.json" already exists')
+            self.logger.debug('Create components configuration file "conf.json"')
+            with open('conf.json', 'w', encoding='utf8') as fp:
+                json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.__get_sub_job_components()
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
@@ -712,7 +543,7 @@ class Job(core.components.Component):
         self.logger.info("All components finished")
         if self.conf.get('collect total code coverage', None):
             self.logger.debug('Waiting for a collecting coverage')
-            while not self.vals['coverage_finished'].get(self.common_components_conf['job identifier'], True):
+            while not self.vals['coverage_finished'].get(self.common_components_conf['sub-job identifier'], True):
                 time.sleep(1)
             self.logger.debug("Coverage collected")
 

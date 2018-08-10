@@ -15,18 +15,18 @@
 # limitations under the License.
 #
 
-from datetime import datetime
-from django.db.models import Q, F, Case, When, Count
+from datetime import datetime, timedelta
+from django.db.models import Q, F, Case, When, Count, BooleanField
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import now
 
-from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import get_templated_text
 
 from jobs.models import Job, JobHistory, UserRole
-from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import ComponentResource, ReportComponent, ComponentUnknown, ReportRoot, ReportComponentLeaf
+from marks.models import ReportSafeTag, ReportUnsafeTag
+from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ComponentResource
 
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
@@ -49,125 +49,116 @@ SUBJOBS_COLUMNS = [
 ]
 
 
-def all_user_columns():
-    columns = ['role', 'author', 'date', 'status', 'unsafe']
-    for unsafe in UNSAFES:
-        columns.append("unsafe:%s" % unsafe)
-    columns.append('safe')
-    for safe in SAFES:
-        columns.append("safe:%s" % safe)
-    columns.extend(TASKS_COLUMNS)
-    columns.extend(SUBJOBS_COLUMNS)
-    columns.extend([
-        'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
-        'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
-    ])
-    return columns
+class Header:
+    def __init__(self, columns, titles):
+        self.columns = columns
+        self.titles = titles
+        self._max_depth = self.__max_depth()
 
+    def head_struct(self):
+        col_data = []
+        for d in range(1, self._max_depth + 1):
+            col_data.append(self.__cellspan_level(d))
+        # For checkboxes
+        col_data[0].insert(0, {'column': '', 'rows': self._max_depth, 'columns': 1, 'title': ''})
+        return col_data
 
-class TableTree:
-    def __init__(self, user, view):
-        self._user = user
-        self._columns = ['name']
+    def __max_depth(self):
+        max_depth = 0
+        if len(self.columns):
+            max_depth = 1
+        for col in self.columns:
+            depth = len(col.split(':'))
+            if depth > max_depth:
+                max_depth = depth
+        return max_depth
 
-        self.view = view
-        self.selected_columns = self.__selected()
-        self.available_columns = self.__available()
+    def __title(self, column):
+        if column in self.titles:
+            return self.titles[column]
+        return column
 
-        self._titles = TITLES
-        self._head_filters = self.__head_filters()
-        self._jobdata = []
-        self._job_ids = []
-        self._values_data = {}
-        self.__collect_jobdata()
-        self.__table_columns()
-        self.header = self.Header(self._columns, self._titles).head_struct()
-        self.footer_title_length = self.__count_footer()
-        self.values = self.__get_values()
-        self.footer = self.__get_footer()
-
-    class Header:
-        def __init__(self, columns, titles):
-            self.columns = columns
-            self.titles = titles
-            self._max_depth = self.__max_depth()
-
-        def head_struct(self):
-            col_data = []
-            for d in range(1, self._max_depth + 1):
-                col_data.append(self.__cellspan_level(d))
-            # For checkboxes
-            col_data[0].insert(0, {
-                'column': '',
-                'rows': self._max_depth,
-                'columns': 1,
-                'title': '',
-            })
-            return col_data
-
-        def __max_depth(self):
-            max_depth = 0
-            if len(self.columns):
-                max_depth = 1
-            for col in self.columns:
-                depth = len(col.split(':'))
-                if depth > max_depth:
-                    max_depth = depth
-            return max_depth
-
-        def __title(self, column):
-            if column in self.titles:
-                return self.titles[column]
-            return column
-
-        def __cellspan_level(self, lvl):
-            # Get first lvl identifiers of all table columns.
-            # Example: 'a:b:c:d:e' (lvl=3) -> 'a:b:c'
-            # Example: 'a:b' (lvl=3) -> ''
-            # And then colecting single identifiers and their amount without ''.
-            # Example: [a, a, a, b, '', c, c, c, c, '', '', c, d, d] ->
-            # [(a, 3), (b, 1), (c, 4), (c, 1), (d, 2)]
-            columns_of_lvl = []
-            prev_col = ''
-            cnt = 0
-            for col in self.columns:
-                col_start = ''
-                col_parts = col.split(':')
-                if len(col_parts) >= lvl:
-                    col_start = ':'.join(col_parts[:lvl])
-                    if col_start == prev_col:
-                        cnt += 1
-                    else:
-                        if prev_col != '':
-                            columns_of_lvl.append([prev_col, cnt])
-                        cnt = 1
+    def __cellspan_level(self, lvl):
+        # Get first lvl identifiers of all table columns.
+        # Example: 'a:b:c:d:e' (lvl=3) -> 'a:b:c'
+        # Example: 'a:b' (lvl=3) -> ''
+        # And then colecting single identifiers and their amount without ''.
+        # Example: [a, a, a, b, '', c, c, c, c, '', '', c, d, d] ->
+        # [(a, 3), (b, 1), (c, 4), (c, 1), (d, 2)]
+        columns_of_lvl = []
+        prev_col = ''
+        cnt = 0
+        for col in self.columns:
+            col_start = ''
+            col_parts = col.split(':')
+            if len(col_parts) >= lvl:
+                col_start = ':'.join(col_parts[:lvl])
+                if col_start == prev_col:
+                    cnt += 1
                 else:
                     if prev_col != '':
                         columns_of_lvl.append([prev_col, cnt])
-                    cnt = 0
-                prev_col = col_start
+                    cnt = 1
+            else:
+                if prev_col != '':
+                    columns_of_lvl.append([prev_col, cnt])
+                cnt = 0
+            prev_col = col_start
 
-            if len(prev_col) > 0 and cnt > 0:
-                columns_of_lvl.append([prev_col, cnt])
+        if len(prev_col) > 0 and cnt > 0:
+            columns_of_lvl.append([prev_col, cnt])
 
-            # Collecting data of cell span for columns.
-            columns_data = []
-            for col in columns_of_lvl:
-                nrows = self._max_depth - lvl + 1
-                for column in self.columns:
-                    if column.startswith(col[0] + ':') and col[0] != column:
-                        nrows = 1
-                        break
-                columns_data.append({
-                    'column': col[0],
-                    'rows': nrows,
-                    'columns': col[1],
-                    'title': self.__title(col[0]),
-                })
-            return columns_data
+        # Collecting data of cell span for columns.
+        columns_data = []
+        for col in columns_of_lvl:
+            nrows = self._max_depth - lvl + 1
+            for column in self.columns:
+                if column.startswith(col[0] + ':') and col[0] != column:
+                    nrows = 1
+                    break
+            columns_data.append({'column': col[0], 'rows': nrows, 'columns': col[1], 'title': self.__title(col[0])})
+        return columns_data
+
+
+class TableTree:
+    no_mark = _('Without marks')
+    total = _('Total')
+
+    all_columns = ['role', 'author', 'date', 'status', 'unsafe'] + \
+        list("unsafe:{0}".format(u) for u in UNSAFES) + \
+        ['safe'] + list("safe:{0}".format(s) for s in SAFES) + \
+        TASKS_COLUMNS + SUBJOBS_COLUMNS + \
+        ['problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format',
+         'version', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator']
+
+    def __init__(self, user, view):
+        self._user = user
+        self.view = view
+
+        # Columns for view
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        # Get jobs tree to visualise (just structure) and set of accessed jobs
+        self._tree, self._job_ids, self._roots = self.__get_jobs_tree()
+
+        self._core = self.__get_core_reports()
+
+        # Some titles are collected during __get_columns()
+        self._titles = TITLES
+
+        # Should be after we get the tree because columns depends on what jobs are in the tree
+        self._columns = self.__get_columns()
+        self.header = Header(self._columns, self._titles).head_struct()
+
+        # Collecting data for tables cells
+        self._values_data = {}
+        self.values = self.__get_values()
+
+        # Table footer data
+        self.footer_title_length, self.footer = self.__get_footer()
 
     def __column_title(self, column):
-        self.__is_not_used()
         col_parts = column.split(':')
         column_starts = []
         for i in range(0, len(col_parts)):
@@ -181,132 +172,11 @@ class TableTree:
         return concated_title
 
     def __selected(self):
-        columns = []
-        all_columns = all_user_columns()
-        for col in self.view['columns']:
-            if col in all_columns:
-                columns.append({'value': col, 'title': self.__column_title(col)})
-        return columns
+        return list({'value': col, 'title': self.__column_title(col)}
+                    for col in self.view['columns'] if col in self.all_columns)
 
     def __available(self):
-        columns = []
-        for col in all_user_columns():
-            columns.append({'value': col, 'title': self.__column_title(col)})
-        return columns
-
-    def __is_countable(self, col):
-        if col in {
-            'unsafe', 'safe', 'tag', 'problem', 'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error',
-            'tasks:cancelled', 'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'subjobs:total_sj'
-        }:
-            return True
-        self.__is_not_used()
-        return False
-
-    def __count_footer(self):
-        foot_length = 0
-        for col in self.header[0]:
-            if self.__is_countable(col['column']):
-                return foot_length
-            foot_length += col['columns']
-        return None
-
-    def __get_footer(self):
-        footer = []
-        if self.footer_title_length is not None and len(self.values) > 0:
-            f_len = len(self.values[0]['values'])
-            for i in range(self.footer_title_length - 1, f_len):
-                footer.append(self.values[0]['values'][i]['id'])
-        return footer
-
-    def __collect_jobdata(self):
-        rowdata = []
-
-        jobs_order = 'id'
-        if 'order' in self.view:
-            if self.view['order'][1] == 'title':
-                jobs_order = 'name'
-            elif self.view['order'][1] == 'date':
-                jobs_order = 'change_date'
-            elif self.view['order'][1] == 'start':
-                jobs_order = 'solvingprogress__start_date'
-            elif self.view['order'][1] == 'finish':
-                jobs_order = 'solvingprogress__finish_date'
-            if self.view['order'][0] == 'up':
-                jobs_order = '-' + jobs_order
-
-        tree_struct = {}
-        for job in Job.objects.all().only('id', 'parent_id', 'name'):
-            tree_struct[job.id] = (job.parent_id, job.name, job.identifier)
-
-        filters, unfilters = self.__view_filters()
-        filters = Q(**filters)
-        for unf_v in unfilters:
-            filters &= ~Q(**{unf_v: unfilters[unf_v]})
-        for job in Job.objects.filter(filters).order_by(jobs_order):
-            if JobAccess(self._user, job).can_view():
-                self._job_ids.append(job.id)
-                rowdata.append({
-                    'id': job.id,
-                    'name': job.name,
-                    'parent': job.parent_id,
-                    'parent_identifier': tree_struct[job.parent_id][2] if job.parent_id is not None else None,
-                    'black': False,
-                    'weight': job.weight,
-                    'identifier': job.identifier
-                })
-
-        added_jobs = list(self._job_ids)
-        for job in rowdata:
-            parent = job['parent']
-            self._jobdata.append(job)
-            while parent is not None and parent not in added_jobs:
-                self._jobdata.append({
-                    'name': tree_struct[parent][1],
-                    'parent': tree_struct[parent][0],
-                    'black': True,
-                    'id': parent
-                })
-                added_jobs.append(parent)
-                parent = tree_struct[parent][0]
-
-        ordered_jobs = []
-        first_jobs = []
-        other_jobs = []
-        for j in self._jobdata:
-            if j['parent'] is None:
-                first_jobs.append(j)
-            else:
-                other_jobs.append(j)
-
-        def get_all_children(p):
-            children = []
-            for oj in other_jobs:
-                if oj['parent'] == p['id']:
-                    children.append(oj)
-                    children.extend(get_all_children(oj))
-            return children
-
-        for j in first_jobs:
-            ordered_jobs.append(j)
-            ordered_jobs.extend(get_all_children(j))
-        self._jobdata = ordered_jobs
-
-    def __head_filters(self):
-        head_filters = {}
-        if 'resource_component' in self.view:
-            head_filters['resource_component'] = {
-                'component__name__' + self.view['resource_component'][0]: self.view['resource_component'][1]
-            }
-        elif 'problem_component' in self.view:
-            head_filters['problem_component'] = {
-                'component__name__' + self.view['problem_component'][0]: self.view['problem_component'][1]
-            }
-        elif 'problem_problem' in self.view:
-            head_filters['problem_problem'] = {
-                'problem__name__' + self.view['problem_problem'][0]: self.view['problem_problem'][1]
-            }
-        return head_filters
+        return list({'value': col, 'title': self.__column_title(col)} for col in self.all_columns)
 
     def __view_filters(self):
         filters = {}
@@ -366,169 +236,192 @@ class TableTree:
 
         return filters, unfilters
 
-    def __table_columns(self):
+    def __get_jobs_tree(self):
+        # Job order parameter
+        jobs_order = 'id'
+        if 'order' in self.view:
+            if self.view['order'][1] == 'title':
+                jobs_order = 'name'
+            elif self.view['order'][1] == 'date':
+                jobs_order = 'change_date'
+            elif self.view['order'][1] == 'start':
+                jobs_order = 'solvingprogress__start_date'
+            elif self.view['order'][1] == 'finish':
+                jobs_order = 'solvingprogress__finish_date'
+            if self.view['order'][0] == 'up':
+                jobs_order = '-' + jobs_order
+
+        # Jobs tree structure
+        tree_struct = {}
+        for job in Job.objects.only('id', 'parent_id'):
+            tree_struct[job.id] = job.parent_id
+
+        # Filters for jobs
+        filters, unfilters = self.__view_filters()
+        filters = Q(**filters)
+        for unf_v in unfilters:
+            filters &= ~Q(**{unf_v: unfilters[unf_v]})
+
+        # Jobs' ids with view access
+        accessed = JobAccess(self._user).can_view_jobs(filters)
+
+        # Add parents without access to show the tree structure
+        jobs_in_tree = set(accessed)
+        for j_id in accessed:
+            parent = tree_struct[j_id]
+            while parent is not None:
+                jobs_in_tree.add(parent)
+                parent = tree_struct[parent]
+
+        # Get ordered list of jobs
+        jobs_list = list(j.id for j in Job.objects.filter(id__in=jobs_in_tree).order_by(jobs_order).only('id'))
+
+        # Function collects children tree for specified job id (p_id)
+        def get_job_children(p_id):
+            children = []
+            for oj_id in jobs_list:
+                if tree_struct[oj_id] == p_id:
+                    children.append({'id': oj_id, 'parent': p_id})
+                    children.extend(get_job_children(oj_id))
+            return children
+
+        # Get roots' ids for DB reqeusts optimizations
+        roots = dict((r_id, j_id) for r_id, j_id in ReportRoot.objects.filter(job_id__in=accessed)
+                     .values_list('id', 'job_id'))
+
+        return get_job_children(None), accessed, roots
+
+    def __get_core_reports(self):
+        cores = {}
+        for report_id, root_id in ReportComponent.objects.filter(root_id__in=self._roots, parent=None)\
+                .values_list('id', 'root_id'):
+            cores[self._roots[root_id]] = report_id
+        return cores
+
+    def __get_columns(self):
+        columns = ['name']
         extend_action = {
             'safe': lambda: ['safe:' + postfix for postfix in SAFES],
             'unsafe': lambda: ['unsafe:' + postfix for postfix in UNSAFES],
-            'resource': self.__resource_columns,
-            'problem': self.__unknowns_columns,
             'tag': lambda: self.__safe_tags_columns() + self.__unsafe_tags_columns(),
             'tag:safe': self.__safe_tags_columns,
             'tag:unsafe': self.__unsafe_tags_columns,
+            'resource': self.__resource_columns,
+            'problem': self.__unknowns_columns,
             'tasks': lambda: TASKS_COLUMNS[1:],
             'subjobs': lambda: SUBJOBS_COLUMNS[1:]
         }
-        all_columns = all_user_columns()
         for col in self.view['columns']:
-            if col in all_columns:
+            if col in self.all_columns:
                 if col in extend_action:
-                    self._columns.extend(extend_action[col]())
+                    columns.extend(extend_action[col]())
                 else:
-                    self._columns.append(col)
+                    columns.append(col)
+        return columns
+
+    def __tags_columns(self, tags_model, tags_type):
+        tags_data = {}
+        for tag in tags_model.objects.filter(report__root_id__in=self._roots, report__parent=None) \
+                .values('tag__tag', 'tag_id'):
+            tag_id = 'tag:{0}:tag_{1}'.format(tags_type, tag['tag_id'])
+            if tag_id not in tags_data:
+                tags_data[tag_id] = tag['tag__tag']
+                self._titles[tag_id] = tag['tag__tag']
+        return list(sorted(tags_data, key=tags_data.get))
 
     def __safe_tags_columns(self):
-        tags_data = {}
-        for tag in ReportSafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .values('tag__tag', 'tag_id'):
-            tag_id = 'tag:safe:tag_%s' % tag['tag_id']
-            if tag_id not in tags_data:
-                tags_data[tag_id] = tag['tag__tag']
-                self._titles[tag_id] = tag['tag__tag']
-        return list(sorted(tags_data, key=tags_data.get))
+        return self.__tags_columns(ReportSafeTag, 'safe')
 
     def __unsafe_tags_columns(self):
-        tags_data = {}
-        for tag in ReportUnsafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None) \
-                .values('tag__tag', 'tag_id'):
-            tag_id = 'tag:unsafe:tag_%s' % tag['tag_id']
-            if tag_id not in tags_data:
-                tags_data[tag_id] = tag['tag__tag']
-                self._titles[tag_id] = tag['tag__tag']
-        return list(sorted(tags_data, key=tags_data.get))
+        return self.__tags_columns(ReportUnsafeTag, 'unsafe')
 
     def __resource_columns(self):
-        components = {}
-        filters = {'report__root__job_id__in': self._job_ids}
-        if 'resource_component' in self._head_filters:
-            filters.update(self._head_filters['resource_component'])
+        # Get filters
+        filters = {'report__root_id__in': self._roots}
+        if 'resource_component' in self.view:
+            filters['component__name__' + self.view['resource_component'][0]] = self.view['resource_component'][1]
 
-        # 4 JOINs in query!!!
-        for cr in ComponentResource.objects.filter(**filters).exclude(component=None)\
-                .values('component', 'component__name').distinct():
-            components['resource:component_' + str(cr['component'])] = cr['component__name']
+        # Get resource columns and fill its titles (components' names)
+        resource_columns = []
+        for c_id, c_name in ComponentResource.objects.filter(**filters).exclude(component=None)\
+                .values_list('component_id', 'component__name').distinct().order_by('component__name'):
+            column = 'resource:component_{0}'.format(c_id)
+            self._titles[column] = c_name
+            resource_columns.append(column)
+        resource_columns.append('resource:total')
 
-        self._titles.update(components)
-        components = list(sorted(components, key=components.get))
-        components.append('resource:total')
-        return components
+        return resource_columns
 
     def __unknowns_columns(self):
-        problems = {}
-        cmup_filter = {'report__parent': None}
-        cu_filter = {'report__parent': None}
-        if 'problem_component' in self._head_filters:
-            cmup_filter.update(self._head_filters['problem_component'])
-            cu_filter.update(self._head_filters['problem_component'])
-        if 'problem_problem' in self._head_filters:
-            cmup_filter.update(self._head_filters['problem_problem'])
-        cmup_filter['report__root__job_id__in'] = self._job_ids
-        cu_filter['report__root__job_id__in'] = self._job_ids
+        # Get queryset for unknowns
+        queryset = ReportUnknown.objects.filter(root_id__in=self._roots)
+        if 'problem_component' in self.view:
+            queryset = queryset.filter(**{
+                'component__name__' + self.view['problem_component'][0]: self.view['problem_component'][1]
+            })
 
-        found_comp_ids = set()
-        for cmup in ComponentMarkUnknownProblem.objects.filter(**cmup_filter).select_related('component', 'problem'):
-            found_comp_ids.add(cmup.component_id)
-            comp_id = 'pr_component_%s' % str(cmup.component_id)
-            if cmup.problem is None:
-                if comp_id in problems:
-                    if 'z_no_mark' not in problems[comp_id]['problems']:
-                        problems[comp_id]['problems']['z_no_mark'] = _('Without marks')
-                else:
-                    problems[comp_id] = {
-                        'title': cmup.component.name,
-                        'problems': {
-                            'z_no_mark': _('Without marks'),
-                            'z_total': _('Total')
-                        }
-                    }
+        # Is unknown mark unconfirmed
+        unconfirmed = Case(When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
+                           default=False, output_field=BooleanField())
+        queryset = queryset.values('component_id').annotate(unconfirmed=unconfirmed)\
+            .values_list('markreport_set__problem_id', 'markreport_set__problem__name',
+                         'component_id', 'component__name', 'unconfirmed')
+        if 'problem_problem' in self.view:
+            queryset = queryset.filter(**{
+                'markreport_set__problem__name__' + self.view['problem_problem'][0]: self.view['problem_problem'][1]
+            })
+        queryset = queryset.distinct().order_by('component__name', 'markreport_set__problem__name')
+
+        columns = []
+        prev_col_c_id = None  # Previous component
+        has_unmarked = False  # Do component "prev_col_c_id" has unmarked unknowns
+        for p_id, p_name, c_id, c_name, unconfirmed in queryset:
+            # Add unmarked column (if there are unmarked unknowns)
+            # and total column for previous component
+            if prev_col_c_id is not None and prev_col_c_id != c_id:
+                if has_unmarked:
+                    unmarked_column = 'problem:pr_component_{0}:no_mark'.format(prev_col_c_id)
+                    columns.append(unmarked_column)
+                    self._titles[unmarked_column] = self.no_mark
+                    has_unmarked = False
+                total_column = 'problem:pr_component_{0}:total'.format(prev_col_c_id)
+                columns.append(total_column)
+                self._titles[total_column] = self.total
+            prev_col_c_id = c_id
+
+            if p_id is None or unconfirmed:
+                # We will add unmarked column at the end together with total
+                has_unmarked = True
             else:
-                probl_id = 'problem_%s' % str(cmup.problem_id)
-                if comp_id in problems:
-                    if probl_id not in problems[comp_id]['problems']:
-                        problems[comp_id]['problems'][probl_id] = cmup.problem.name
-                else:
-                    problems[comp_id] = {
-                        'title': cmup.component.name,
-                        'problems': {
-                            probl_id: cmup.problem.name,
-                            'z_total': _('Total')
-                        }
-                    }
-        for cmup in ComponentUnknown.objects.filter(Q(**cu_filter) & ~Q(component_id__in=found_comp_ids)):
-            problems['pr_component_%s' % cmup.component_id] = {
-                'title': cmup.component.name,
-                'problems': {
-                    'z_total': _('Total')
-                }
-            }
+                column = 'problem:pr_component_{0}:problem_{1}'.format(c_id, p_id)
+                self._titles[column] = p_name
+                columns.append(column)
+            self._titles['problem:pr_component_{0}'.format(c_id)] = c_name
 
-        ordered_ids = list(x[0] for x in list(
-            sorted(problems.items(), key=lambda x_y: x_y[1]['title'])
-        ))
+        if prev_col_c_id is not None:
+            if has_unmarked:
+                unmarked_column = 'problem:pr_component_{0}:no_mark'.format(prev_col_c_id)
+                columns.append(unmarked_column)
+                self._titles[unmarked_column] = self.no_mark
+            total_column = 'problem:pr_component_{0}:total'.format(prev_col_c_id)
+            columns.append(total_column)
+            self._titles[total_column] = self.total
 
-        new_columns = []
-        for comp_id in ordered_ids:
-            self._titles['problem:%s' % comp_id] = problems[comp_id]['title']
-            has_total = False
-            has_nomark = False
-            # With sorting time is increased 4-6 times
-            # for probl_id in problems[comp_id]['problems']:
-            for probl_id in sorted(problems[comp_id]['problems'], key=problems[comp_id]['problems'].get):
-                if probl_id == 'z_total':
-                    has_total = True
-                elif probl_id == 'z_no_mark':
-                    has_nomark = True
-                else:
-                    column = 'problem:%s:%s' % (comp_id, probl_id)
-                    new_columns.append(column)
-                    self._titles[column] = problems[comp_id]['problems'][probl_id]
-            if has_nomark:
-                column = 'problem:%s:z_no_mark' % comp_id
-                new_columns.append(column)
-                self._titles[column] = problems[comp_id]['problems']['z_no_mark']
-            if has_total:
-                column = 'problem:%s:z_total' % comp_id
-                new_columns.append(column)
-                self._titles[column] = problems[comp_id]['problems']['z_total']
-
-        new_columns.append('problem:total')
-        return new_columns
+        columns.append('problem:total')
+        return columns
 
     def __get_values(self):
-        for job in self._jobdata:
-            if job['black']:
-                self._values_data[job['id']] = {'name': job['name']}
-            else:
-                self._values_data[job['id']] = {
-                    'name': (job['name'], reverse('jobs:job', args=[job['id']])),
-                    'identifier': job['identifier']
-                }
-                if job['parent_identifier'] is not None:
-                    self._values_data[job['id']]['parent_id'] = job['parent_identifier']
-
-        if 'author' in self._columns:
-            self.__collect_authors()
-        if any(x in {'format', 'version', 'date', 'status'} for x in self._columns):
-            self.__collect_jobs_data()
-        if any(x.startswith('safe:') or x.startswith('unsafe:') or x == 'problem:total' for x in self._columns):
-            self.__collect_verdicts()
+        self.__init_values_data()
+        self.__collect_jobdata()
+        self.__collect_verdicts()
         if any(x.startswith('problem:pr_component_') for x in self._columns):
             self.__collect_unknowns()
-        if any(x.startswith('resource:') for x in self._columns):
-            self.__collect_resourses()
         if any(x.startswith('tag:safe:') for x in self._columns):
             self.__collect_safe_tags()
         if any(x.startswith('tag:unsafe:') for x in self._columns):
             self.__collect_unsafe_tags()
+        if any(x.startswith('resource:') for x in self._columns):
+            self.__collect_resourses()
         if 'role' in self._columns:
             self.__collect_roles()
 
@@ -538,15 +431,12 @@ class TableTree:
             self.__collect_progress_data()
 
         table_rows = []
-        for job in self._jobdata:
+        for job in self._tree:
             row_values = []
             col_id = 0
             for col in self._columns:
                 col_id += 1
-                if job['black']:
-                    cell_value = ''
-                else:
-                    cell_value = '-'
+                cell_value = '-' if job['id'] in self._job_ids else ''
                 href = None
                 if job['id'] in self._values_data and col in self._values_data[job['id']]:
                     if isinstance(self._values_data[job['id']][col], tuple):
@@ -559,17 +449,267 @@ class TableTree:
                     if self._user.extended.data_format == 'hum' and isinstance(cell_value, datetime):
                         cell_value = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=cell_value)
                 row_values.append({
-                    'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
-                    'href': href
+                    'value': cell_value, 'href': href
                 })
             table_rows.append({
-                'id': job['id'],
-                'parent': job['parent'],
-                'values': row_values,
-                'black': job['black']
+                'id': job['id'], 'parent': job['parent'],
+                'black': job['id'] not in self._job_ids,
+                'values': row_values
             })
         return table_rows
+
+    def __init_values_data(self):
+        for j_id, name in Job.objects.values_list('id', 'name'):
+            self._values_data[j_id] = {'name': name}
+
+    def __collect_jobdata(self):
+        for j in Job.objects.filter(id__in=self._job_ids).select_related('change_author', 'parent'):
+            self._values_data[j.id].update({
+                'identifier': j.identifier, 'name': (j.name, reverse('jobs:job', args=[j.id])),
+                'format': j.format, 'version': j.version, 'date': j.change_date, 'status': j.get_status_display()
+            })
+            if j.id in self._core:
+                self._values_data[j.id]['status'] = (self._values_data[j.id]['status'],
+                                                     reverse('reports:component', args=[self._core[j.id]]))
+            if j.parent is not None:
+                self._values_data[j.id]['parent_id'] = j.parent.identifier
+            if j.change_author is not None:
+                self._values_data[j.id]['author'] = (j.change_author.get_full_name(),
+                                                     reverse('users:show_profile', args=[j.change_author_id]))
+
+    def __get_safes_without_confirmed(self):
+        # Collect safes data
+        safe_columns_map = {
+            SAFE_VERDICTS[0][0]: 'safe:unknown',
+            SAFE_VERDICTS[1][0]: 'safe:incorrect',
+            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
+            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
+            SAFE_VERDICTS[4][0]: 'safe:unassociated'
+        }
+        for r_id, v, number in ReportSafe.objects.filter(root_id__in=self._roots)\
+                .values('root_id').annotate(number=Count('id')).values_list('root_id', 'verdict', 'number'):
+            j_id = self._roots[r_id]
+            safes_url = reverse('reports:safes', args=[self._core[j_id]])
+            self._values_data[j_id][safe_columns_map[v]] = (number, '%s?verdict=%s' % (safes_url, v))
+            if 'safe:total' not in self._values_data[j_id]:
+                self._values_data[j_id]['safe:total'] = [0, safes_url]
+            self._values_data[j_id]['safe:total'][0] += number
+
+        # Fix total data
+        for j_id in self._values_data:
+            if 'safe:total' in self._values_data[j_id]:
+                self._values_data[j_id]['safe:total'] = tuple(self._values_data[j_id]['safe:total'])
+
+    def __get_unsafes_without_confirmed(self):
+        # Collect unsafes data
+        unsafe_columns_map = {
+            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
+            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
+            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
+            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
+            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
+            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
+        }
+        for r_id, v, number in ReportUnsafe.objects.filter(root_id__in=self._roots)\
+                .values('root_id').annotate(number=Count('id')).values_list('root_id', 'verdict', 'number'):
+            j_id = self._roots[r_id]
+            unsafes_url = reverse('reports:unsafes', args=[self._core[j_id]])
+            self._values_data[j_id][unsafe_columns_map[v]] = (number, '%s?verdict=%s' % (unsafes_url, v))
+            if 'unsafe:total' not in self._values_data[j_id]:
+                self._values_data[j_id]['unsafe:total'] = [0, unsafes_url]
+            self._values_data[j_id]['unsafe:total'][0] += number
+
+        # Fix total data
+        for j_id in self._values_data:
+            if 'unsafe:total' in self._values_data[j_id]:
+                self._values_data[j_id]['unsafe:total'] = tuple(self._values_data[j_id]['unsafe:total'])
+
+    def __get_safes_with_confirmed(self):
+        # Collect safes data
+        safe_columns_map = {
+            SAFE_VERDICTS[0][0]: 'safe:unknown',
+            SAFE_VERDICTS[1][0]: 'safe:incorrect',
+            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
+            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
+            SAFE_VERDICTS[4][0]: 'safe:unassociated'
+        }
+        for r_id, v, total, confirmed in ReportSafe.objects.filter(root_id__in=self._roots)\
+                .values('root_id').annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('root_id', 'verdict', 'total', 'confirmed'):
+            j_id = self._roots[r_id]
+            url = reverse('reports:safes', args=[self._core[j_id]])
+            if v == SAFE_VERDICTS[4][0]:
+                self._values_data[j_id]['safe:unassociated'] = (total, '%s?verdict=%s' % (url, v))
+            else:
+                self._values_data[j_id][safe_columns_map[v]] = '{0} ({1})'.format(
+                    '<a href="{0}?verdict={1}&confirmed=1">{2}</a>'.format(url, v, confirmed) if confirmed > 0 else 0,
+                    '<a href="{0}?verdict={1}">{2}</a>'.format(url, v, total) if total > 0 else 0
+                )
+            if 'safe:total' not in self._values_data[j_id]:
+                self._values_data[j_id]['safe:total'] = [0, 0]
+            self._values_data[j_id]['safe:total'][0] += confirmed
+            self._values_data[j_id]['safe:total'][1] += total
+
+        # Fix total data
+        for j_id in self._values_data:
+            if 'safe:total' in self._values_data[j_id]:
+                url = reverse('reports:safes', args=[self._core[j_id]])
+                confirmed, total = self._values_data[j_id]['safe:total']
+                self._values_data[j_id]['safe:total'] = '{0} ({1})'.format(
+                    '<a href="{0}?confirmed=1">{1}</a>'.format(url, confirmed) if confirmed > 0 else 0,
+                    '<a href="{0}">{1}</a>'.format(url, total) if total > 0 else 0
+                )
+
+    def __get_unsafes_with_confirmed(self):
+        unsafe_columns_map = {
+            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
+            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
+            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
+            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
+            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
+            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
+        }
+
+        # Collect unsafes
+        for r_id, v, total, confirmed in ReportUnsafe.objects.filter(root_id__in=self._roots)\
+                .values('root_id').annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('root_id', 'verdict', 'total', 'confirmed'):
+            j_id = self._roots[r_id]
+            url = reverse('reports:unsafes', args=[self._core[j_id]])
+            if v == UNSAFE_VERDICTS[5][0]:
+                self._values_data[j_id]['unsafe:unassociated'] = (total, '%s?verdict=%s' % (url, v))
+            else:
+                self._values_data[j_id][unsafe_columns_map[v]] = '{0} ({1})'.format(
+                    '<a href="{0}?verdict={1}&confirmed=1">{2}</a>'.format(url, v, confirmed) if confirmed > 0 else 0,
+                    '<a href="{0}?verdict={1}">{2}</a>'.format(url, v, total) if total > 0 else 0
+                )
+            if 'unsafe:total' not in self._values_data[j_id]:
+                self._values_data[j_id]['unsafe:total'] = [0, 0]
+            self._values_data[j_id]['unsafe:total'][0] += confirmed
+            self._values_data[j_id]['unsafe:total'][1] += total
+
+        # Fix total data
+        for j_id in self._values_data:
+            if 'unsafe:total' in self._values_data[j_id]:
+                url = reverse('reports:safes', args=[self._core[j_id]])
+                confirmed, total = self._values_data[j_id]['unsafe:total']
+                self._values_data[j_id]['unsafe:total'] = '{0} ({1})'.format(
+                    '<a href="{0}?confirmed=1">{1}</a>'.format(url, confirmed) if confirmed > 0 else 0,
+                    '<a href="{0}">{1}</a>'.format(url, total) if total > 0 else 0
+                )
+
+    def __collect_verdicts(self):
+        if any(col.startswith('safe:') for col in self._columns):
+            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
+                self.__get_safes_without_confirmed()
+            else:
+                self.__get_safes_with_confirmed()
+
+        if any(col.startswith('unsafe:') for col in self._columns):
+            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
+                self.__get_unsafes_without_confirmed()
+            else:
+                self.__get_unsafes_with_confirmed()
+
+        # Total unknowns numbers
+        if 'problem:total' in self._columns:
+            for r_id, total in ReportUnknown.objects.filter(root_id__in=self._roots) \
+                    .values('root_id').annotate(total=Count('id')).values_list('root_id', 'total'):
+                j_id = self._roots[r_id]
+                self._values_data[j_id]['problem:total'] = (total, reverse('reports:unknowns', args=[self._core[j_id]]))
+
+    def __collect_unknowns(self):
+        # Queryset for marked/unmarked unknowns
+        unconfirmed = Case(When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
+                           default=False, output_field=BooleanField())
+        queryset = ReportUnknown.objects.filter(root_id__in=self._roots).values('root_id')\
+            .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed)\
+            .values_list('root_id', 'component_id', 'markreport_set__problem_id', 'number', 'unconfirmed')
+
+        unmarked = {}
+
+        # Marked unknowns
+        for r_id, c_id, p_id, number, unconfirmed in queryset:
+            if p_id is None or unconfirmed:
+                if (r_id, c_id) not in unmarked:
+                    unmarked[(r_id, c_id)] = 0
+                unmarked[(r_id, c_id)] += number
+            else:
+                job_id = self._roots[r_id]
+                url = '{0}?component={1}&problem={2}'.format(
+                    reverse('reports:unknowns', args=[self._core[job_id]]), c_id, p_id)
+                self._values_data[job_id]['problem:pr_component_{0}:problem_{1}'.format(c_id, p_id)] = (number, url)
+
+        # Unmarked unknowns
+        for r_id, c_id in unmarked:
+            job_id = self._roots[r_id]
+            url = '{0}?component={1}&problem=0'.format(reverse('reports:unknowns', args=[self._core[job_id]]), c_id)
+            self._values_data[job_id]['problem:pr_component_{0}:no_mark'.format(c_id)] = (unmarked[(r_id, c_id)], url)
+
+        # Total unknowns for each component
+        for r_id, c_id, total in ReportUnknown.objects.filter(root_id__in=self._roots)\
+                .values('component_id').annotate(total=Count('id')).values_list('root_id', 'component_id', 'total'):
+            job_id = self._roots[r_id]
+            url = '{0}?component={1}'.format(reverse('reports:unknowns', args=[self._core[job_id]]), c_id)
+            self._values_data[job_id]['problem:pr_component_{0}:total'.format(c_id)] = (total, url)
+
+    def __collect_safe_tags(self):
+        for st in ReportSafeTag.objects.filter(report__root_id__in=self._roots, report__parent=None)\
+                .annotate(root_id=F('report__root_id')):
+
+            self._values_data[self._roots[st.root_id]]['tag:safe:tag_' + str(st.tag_id)] = (
+                st.number, '%s?tag=%s' % (reverse('reports:safes', args=[st.report_id]), st.tag_id)
+            )
+
+    def __collect_unsafe_tags(self):
+        for ut in ReportUnsafeTag.objects.filter(report__root_id__in=self._roots, report__parent=None)\
+                .annotate(root_id=F('report__root_id')):
+            self._values_data[self._roots[ut.root_id]]['tag:unsafe:tag_' + str(ut.tag_id)] = (
+                ut.number, '%s?tag=%s' % (reverse('reports:unsafes', args=[ut.report_id]), ut.tag_id)
+            )
+
+    def __collect_resourses(self):
+        data_format = self._user.extended.data_format
+        accuracy = self._user.extended.accuracy
+        for cr in ComponentResource.objects.filter(report__root_id__in=self._roots, report__parent=None)\
+                .annotate(root_id=F('report__root_id')):
+            job_id = self._roots[cr.root_id]
+            rd = get_resource_data(data_format, accuracy, cr)
+            resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
+            if cr.component_id is None:
+                self._values_data[job_id]['resource:total'] = resourses_value
+            else:
+                self._values_data[job_id]['resource:component_' + str(cr.component_id)] = resourses_value
+
+    def __collect_roles(self):
+        user_role = self._user.extended.role
+
+        is_author = set()
+        for fv in JobHistory.objects.filter(job_id__in=self._job_ids, version=1, change_author_id=self._user.id)\
+                .only('job_id'):
+            is_author.add(fv.job_id)
+
+        global_roles = {}
+        for fv in JobHistory.objects.filter(job_id__in=self._job_ids, version=F('job__version'))\
+                .only('job_id', 'global_role'):
+            global_roles[fv.job_id] = fv.get_global_role_display()
+
+        job_user_roles = {}
+        for ur in UserRole.objects\
+                .filter(user=self._user, job__job_id__in=self._job_ids, job__version=F('job__job__version'))\
+                .only('job__job_id', 'role'):
+            job_user_roles[ur.job.job_id] = ur.get_role_display()
+
+        for j_id in self._job_ids:
+            if j_id in is_author:
+                self._values_data[j_id]['role'] = _('Author')
+            elif user_role == USER_ROLES[2][0]:
+                self._values_data[j_id]['role'] = USER_ROLES[2][1]
+            elif j_id in job_user_roles:
+                self._values_data[j_id]['role'] = job_user_roles[j_id]
+            else:
+                self._values_data[j_id]['role'] = global_roles[j_id]
 
     def __collect_progress_data(self):
         jobs_with_progress = set()
@@ -602,244 +742,28 @@ class TableTree:
                 root.user.get_full_name(), reverse('users:show_profile', args=[root.user_id])
             )
 
-    def __collect_authors(self):
-        for j in Job.objects.filter(id__in=self._job_ids) \
-                .exclude(change_author=None)\
-                .only('id', 'change_author_id', 'change_author__first_name', 'change_author__last_name'):
-            self._values_data[j.id]['author'] = (
-                j.change_author.get_full_name(),
-                reverse('users:show_profile', args=[j.change_author_id])
-            )
+    def __get_footer(self):
+        # Must be the same lists as lists in jobtree.js
+        countable = {
+            'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error',
+            'tasks:cancelled', 'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'subjobs:total_sj'
+        }
+        countable_prefexes = {'safe:', 'unsafe:', 'tag:', 'problem:'}
 
-    def __collect_jobs_data(self):
-        for j in Job.objects.filter(id__in=self._job_ids):
-            date = j.change_date
-            self._values_data[j.id].update({
-                'format': j.format,
-                'version': j.version,
-                'date': date,
-                'status': j.get_status_display()
-            })
-        for r_id, job_id in ReportComponent.objects.filter(root__job_id__in=self._job_ids, parent=None)\
-                .values_list('id', 'root__job_id'):
-            self._values_data[job_id]['status'] = (
-                self._values_data[job_id]['status'], reverse('reports:component', args=[r_id])
-            )
-
-    def __collect_verdicts(self):
-        if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
-            self.__get_verdicts_without_confirmed()
+        # Footer title length
+        foot_length = 1
+        for col in self._columns:
+            if col in countable or any(col.startswith(prefix) for prefix in countable_prefexes):
+                break
+            foot_length += 1
         else:
-            self.__get_verdicts_with_confirmed()
+            foot_length = None
 
-        for job_id, r_id, total in ReportComponentLeaf.objects\
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .exclude(unknown=None).values('report__root__job_id')\
-                .annotate(job_id=F('report__root__job_id'), total=Count('id'))\
-                .values_list('job_id', 'report_id', 'total'):
-            self._values_data[job_id]['problem:total'] = (total, reverse('reports:unknowns', args=[r_id]))
+        # Footer columns
+        footer = []
+        if foot_length is not None and len(self.values) > 0:
+            f_len = len(self.values[0]['values'])
+            for i in range(foot_length - 1, f_len):
+                footer.append(self.values[0]['values'][i]['id'])
 
-    def __get_verdicts_with_confirmed(self):
-        unsafe_columns_map = {
-            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
-            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
-            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
-            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
-            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
-            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
-        }
-        safe_columns_map = {
-            SAFE_VERDICTS[0][0]: 'safe:unknown',
-            SAFE_VERDICTS[1][0]: 'safe:incorrect',
-            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
-            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
-            SAFE_VERDICTS[4][0]: 'safe:unassociated'
-        }
-        for job_id, r_id, verdict, confirmed, total in ReportComponentLeaf.objects \
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
-                .exclude(unsafe=None).values('unsafe__verdict') \
-                .annotate(job_id=F('report__root__job_id'), total=Count('id'),
-                          confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))) \
-                .values_list('job_id', 'report_id', 'unsafe__verdict', 'confirmed', 'total'):
-            unsafes_url = reverse('reports:unsafes', args=[r_id])
-            if verdict == UNSAFE_VERDICTS[5][0]:
-                self._values_data[job_id]['unsafe:unassociated'] = (total, '%s?verdict=%s' % (unsafes_url, verdict))
-            else:
-                if confirmed > 0:
-                    val1 = '<a href="%s">%s</a>' % ('%s?verdict=%s&confirmed=1' % (unsafes_url, verdict), confirmed)
-                else:
-                    val1 = confirmed
-                if total > 0:
-                    val2 = '<a href="%s">%s</a>' % ('%s?verdict=%s' % (unsafes_url, verdict), total)
-                else:
-                    val2 = total
-                self._values_data[job_id][unsafe_columns_map[verdict]] = '%s (%s)' % (val1, val2)
-            if 'unsafe:total' not in self._values_data[job_id]:
-                self._values_data[job_id]['unsafe:total'] = [0, 0, unsafes_url]
-            self._values_data[job_id]['unsafe:total'][0] += confirmed
-            self._values_data[job_id]['unsafe:total'][1] += total
-        for job_id, r_id, verdict, confirmed, total in ReportComponentLeaf.objects \
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
-                .exclude(safe=None).values('safe__verdict') \
-                .annotate(job_id=F('report__root__job_id'), total=Count('id'),
-                          confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))) \
-                .values_list('job_id', 'report_id', 'safe__verdict', 'confirmed', 'total'):
-            safes_url = reverse('reports:safes', args=[r_id])
-            if verdict == SAFE_VERDICTS[4][0]:
-                self._values_data[job_id]['safe:unassociated'] = (total, '%s?verdict=%s' % (safes_url, verdict))
-            else:
-                if confirmed > 0:
-                    val1 = '<a href="%s">%s</a>' % ('%s?verdict=%s&confirmed=1' % (safes_url, verdict), confirmed)
-                else:
-                    val1 = confirmed
-                if total > 0:
-                    val2 = '<a href="%s">%s</a>' % ('%s?verdict=%s' % (safes_url, verdict), total)
-                else:
-                    val2 = total
-                self._values_data[job_id][safe_columns_map[verdict]] = '%s (%s)' % (val1, val2)
-            if 'safe:total' not in self._values_data[job_id]:
-                self._values_data[job_id]['safe:total'] = [0, 0, safes_url]
-            self._values_data[job_id]['safe:total'][0] += confirmed
-            self._values_data[job_id]['safe:total'][1] += total
-
-        for j_id in self._values_data:
-            for col in ['unsafe:total', 'safe:total']:
-                if col in self._values_data[j_id]:
-                    if self._values_data[j_id][col][0] > 0:
-                        val1 = '<a href="%s">%s</a>' % ('%s?confirmed=1' % self._values_data[j_id][col][2],
-                                                        self._values_data[j_id][col][0])
-                    else:
-                        val1 = self._values_data[j_id][col][0]
-                    if self._values_data[j_id][col][1] > 0:
-                        val2 = '<a href="%s">%s</a>' % (
-                            self._values_data[j_id][col][2], self._values_data[j_id][col][1]
-                        )
-                    else:
-                        val2 = self._values_data[j_id][col][1]
-                    self._values_data[j_id][col] = '%s (%s)' % (val1, val2)
-
-    def __get_verdicts_without_confirmed(self):
-        unsafe_columns_map = {
-            UNSAFE_VERDICTS[0][0]: 'unsafe:unknown',
-            UNSAFE_VERDICTS[1][0]: 'unsafe:bug',
-            UNSAFE_VERDICTS[2][0]: 'unsafe:target_bug',
-            UNSAFE_VERDICTS[3][0]: 'unsafe:false_positive',
-            UNSAFE_VERDICTS[4][0]: 'unsafe:inconclusive',
-            UNSAFE_VERDICTS[5][0]: 'unsafe:unassociated'
-        }
-        safe_columns_map = {
-            SAFE_VERDICTS[0][0]: 'safe:unknown',
-            SAFE_VERDICTS[1][0]: 'safe:incorrect',
-            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
-            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
-            SAFE_VERDICTS[4][0]: 'safe:unassociated'
-        }
-        for job_id, r_id, verdict, total in ReportComponentLeaf.objects \
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
-                .exclude(unsafe=None).values('unsafe__verdict') \
-                .annotate(job_id=F('report__root__job_id'), total=Count('id')) \
-                .values_list('job_id', 'report_id', 'unsafe__verdict', 'total'):
-            unsafes_url = reverse('reports:unsafes', args=[r_id])
-            self._values_data[job_id][unsafe_columns_map[verdict]] = (total, '%s?verdict=%s' % (unsafes_url, verdict))
-            if 'unsafe:total' not in self._values_data[job_id]:
-                self._values_data[job_id]['unsafe:total'] = [0, unsafes_url]
-            self._values_data[job_id]['unsafe:total'][0] += total
-        for job_id, r_id, verdict, total in ReportComponentLeaf.objects \
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None) \
-                .exclude(safe=None).values('safe__verdict') \
-                .annotate(job_id=F('report__root__job_id'), total=Count('id')) \
-                .values_list('job_id', 'report_id', 'safe__verdict', 'total'):
-            safes_url = reverse('reports:safes', args=[r_id])
-            self._values_data[job_id][safe_columns_map[verdict]] = total
-            if 'safe:total' not in self._values_data[job_id]:
-                self._values_data[job_id]['safe:total'] = [0, safes_url]
-            self._values_data[job_id]['safe:total'][0] += total
-        for j_id in self._values_data:
-            if 'unsafe:total' in self._values_data[j_id]:
-                self._values_data[j_id]['unsafe:total'] = (
-                    self._values_data[j_id]['unsafe:total'][0], self._values_data[j_id]['unsafe:total'][1]
-                )
-            if 'safe:total' in self._values_data[j_id]:
-                self._values_data[j_id]['safe:total'] = (
-                    self._values_data[j_id]['safe:total'][0], self._values_data[j_id]['safe:total'][1]
-                )
-
-    def __collect_roles(self):
-        user_role = self._user.extended.role
-
-        is_author = set()
-        for fv in JobHistory.objects.filter(job_id__in=self._job_ids, version=1, change_author_id=self._user.id)\
-                .only('job_id'):
-            is_author.add(fv.job_id)
-
-        global_roles = {}
-        for fv in JobHistory.objects.filter(job_id__in=self._job_ids, version=F('job__version'))\
-                .only('job_id', 'global_role'):
-            global_roles[fv.job_id] = fv.get_global_role_display()
-
-        job_user_roles = {}
-        for ur in UserRole.objects\
-                .filter(user=self._user, job__job_id__in=self._job_ids, job__version=F('job__job__version'))\
-                .only('job__job_id', 'role'):
-            job_user_roles[ur.job.job_id] = ur.get_role_display()
-
-        for j_id in self._job_ids:
-            if j_id in is_author:
-                self._values_data[j_id]['role'] = _('Author')
-            elif user_role == USER_ROLES[2][0]:
-                self._values_data[j_id]['role'] = USER_ROLES[2][1]
-            elif j_id in job_user_roles:
-                self._values_data[j_id]['role'] = job_user_roles[j_id]
-            else:
-                self._values_data[j_id]['role'] = global_roles[j_id]
-
-    def __collect_safe_tags(self):
-        for st in ReportSafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            self._values_data[st.job_id]['tag:safe:tag_' + str(st.tag_id)] = (
-                st.number, '%s?tag=%s' % (reverse('reports:safes', args=[st.report_id]), st.tag_id)
-            )
-
-    def __collect_unsafe_tags(self):
-        for ut in ReportUnsafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            self._values_data[ut.job_id]['tag:unsafe:tag_' + str(ut.tag_id)] = (
-                ut.number, '%s?tag=%s' % (reverse('reports:unsafes', args=[ut.report_id]), ut.tag_id)
-            )
-
-    def __collect_resourses(self):
-        data_format = self._user.extended.data_format
-        accuracy = self._user.extended.accuracy
-        for cr in ComponentResource.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            rd = get_resource_data(data_format, accuracy, cr)
-            resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
-            if cr.component_id is None:
-                self._values_data[cr.job_id]['resource:total'] = resourses_value
-            else:
-                self._values_data[cr.job_id]['resource:component_' + str(cr.component_id)] = resourses_value
-
-    def __collect_unknowns(self):
-        for cmup in ComponentMarkUnknownProblem.objects\
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            if cmup.problem_id is None:
-                self._values_data[cmup.job_id]['problem:pr_component_' + str(cmup.component_id) + ':z_no_mark'] = (
-                    cmup.number, '%s?component=%s&problem=%s' % (
-                        reverse('reports:unknowns', args=[cmup.report_id]), cmup.component_id, 0
-                    )
-                )
-            else:
-                self._values_data[cmup.job_id][
-                    'problem:pr_component_%s:problem_%s' % (cmup.component_id, cmup.problem_id)
-                ] = (cmup.number, '%s?component=%s&problem=%s' % (
-                    reverse('reports:unknowns', args=[cmup.report_id]), cmup.component_id, cmup.problem_id
-                ))
-        for cu in ComponentUnknown.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            self._values_data[cu.job_id]['problem:pr_component_' + str(cu.component_id) + ':z_total'] = (
-                cu.number, '%s?component=%s' % (reverse('reports:unknowns', args=[cu.report_id]), cu.component_id)
-            )
-
-    def __is_not_used(self):
-        pass
+        return foot_length, footer

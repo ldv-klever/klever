@@ -16,25 +16,22 @@
 #
 
 import os
-import re
 import hashlib
 from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count, Case, When, IntegerField
+from django.db.models import Count, Case, When, IntegerField, F, BooleanField
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, pytz
 
-from bridge.vars import JOB_STATUS, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS, USER_ROLES, JOB_ROLES,\
-    SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException, file_get_or_create, get_templated_text
 from users.notifications import Notify
 
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr
-from service.models import SchedulerUser, Scheduler
 from marks.models import MarkSafeReport, MarkSafeTag, MarkUnsafeReport, MarkUnsafeTag, MarkUnknownReport
 
 # List of available types of 'safe' column class.
@@ -64,6 +61,7 @@ TITLES = {
     'author': _('Last change author'),
     'date': _('Last change date'),
     'status': _('Decision status'),
+
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
     'safe:incorrect': _('Incorrect proof'),
@@ -71,6 +69,7 @@ TITLES = {
     'safe:inconclusive': _('Incompatible marks'),
     'safe:unassociated': _('Without marks'),
     'safe:total': _('Total'),
+
     'unsafe': _('Unsafes'),
     'unsafe:bug': _('Bugs'),
     'unsafe:target_bug': _('Target bugs'),
@@ -79,8 +78,10 @@ TITLES = {
     'unsafe:inconclusive': _('Incompatible marks'),
     'unsafe:unassociated': _('Without marks'),
     'unsafe:total': _('Total'),
+
     'problem': _('Unknowns'),
     'problem:total': _('Total'),
+
     'resource': _('Consumed resources'),
     'resource:total': _('Total'),
     'tag': _('Tags'),
@@ -167,16 +168,16 @@ class JobAccess:
     def __init__(self, user, job=None):
         self.user = user
         self.job = job
-        self.__is_author = False
-        self.__job_role = None
-        self.__user_role = user.extended.role
-        self.__is_manager = (self.__user_role == USER_ROLES[2][0])
-        self.__is_expert = (self.__user_role == USER_ROLES[3][0])
-        self.__is_service = (self.__user_role == USER_ROLES[4][0])
-        self.__is_operator = False
+        self._is_author = False
+        self._job_role = None
+        self._user_role = user.extended.role
+        self._is_manager = (self._user_role == USER_ROLES[2][0])
+        self._is_expert = (self._user_role == USER_ROLES[3][0])
+        self._is_service = (self._user_role == USER_ROLES[4][0])
+        self._is_operator = False
         try:
             if self.job is not None:
-                self.__is_operator = (user == self.job.reportroot.user)
+                self._is_operator = (user == self.job.reportroot.user)
         except ObjectDoesNotExist:
             pass
         self.__get_prop(user)
@@ -184,36 +185,52 @@ class JobAccess:
     def klever_core_access(self):
         if self.job is None:
             return False
-        return self.__is_manager or self.__is_service
+        return self._is_manager or self._is_service
 
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_upload_reports(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
         if self.job is None:
             return False
-        return self.__is_manager or self.__is_author or self.__job_role != JOB_ROLES[0][0] or self.__is_expert
+        return self._is_manager or self._is_author or self._job_role != JOB_ROLES[0][0] or self._is_expert
+
+    def can_view_jobs(self, filters=None):
+        queryset = Job.objects.all()
+        if isinstance(filters, dict):
+            queryset = queryset.filter(**filters)
+        elif filters is not None:
+            queryset = queryset.filter(filters)
+        queryset = queryset.only('id')
+
+        all_jobs = set(j_id for j_id, in queryset.values_list('id'))
+
+        if self._is_manager or self._is_expert:
+            return all_jobs
+        author_of = list(jh.job_id for jh in JobHistory.objects.filter(version=1, change_author=self.user))
+        jobs_with_no_access = self.__get_jobs_with_roles([JOB_ROLES[0][0]])
+        return all_jobs - (jobs_with_no_access - author_of)
 
     def can_create(self):
-        return self.__user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
+        return self._user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
 
     def can_edit(self):
         if self.job is None:
             return False
         return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]] \
-            and (self.__is_author or self.__is_manager)
+            and (self._is_author or self._is_manager)
 
     def can_stop(self):
         if self.job is None:
             return False
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_operator or self.__is_manager):
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self._is_operator or self._is_manager):
             return True
         return False
 
@@ -223,11 +240,11 @@ class JobAccess:
         for ch in self.job.children.all():
             if not JobAccess(self.user, ch).can_delete():
                 return False
-        if self.__is_manager and self.job.status == JOB_STATUS[3]:
+        if self._is_manager and self.job.status == JOB_STATUS[3]:
             return True
         if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        return self.__is_author or self.__is_manager
+        return self._is_author or self._is_manager
 
     def can_download(self):
         return self.job is not None and self.job.status != JOB_STATUS[2][0]
@@ -236,12 +253,12 @@ class JobAccess:
         if self.job is None:
             return False
         return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]} \
-            and (self.__is_author or self.__is_manager) and self.job.weight == JOB_WEIGHT[0][0]
+            and (self._is_author or self._is_manager) and self.job.weight == JOB_WEIGHT[0][0]
 
     def can_clear_verifications(self):
         if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}:
             return False
-        if not (self.__is_author or self.__is_manager):
+        if not (self._is_author or self._is_manager):
             return False
         try:
             return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
@@ -252,6 +269,17 @@ class JobAccess:
     def can_dfc(self):
         return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
 
+    def __get_jobs_with_roles(self, roles):
+        jobs = set()
+        for j_id, in UserRole.objects.filter(user=self.user, job__version=F('job__job__version'), role__in=roles) \
+                .values_list('job__job_id'):
+            jobs.add(j_id)
+        for j_id, role in JobHistory.objects.exclude(job_id__in=jobs)\
+                .filter(version=F('job__version'), global_role__in=roles) \
+                .values_list('job_id', 'global_role'):
+            jobs.add(j_id)
+        return jobs
+
     def __get_prop(self, user):
         if self.job is not None:
             try:
@@ -259,12 +287,12 @@ class JobAccess:
                 last_version = self.job.versions.get(version=self.job.version)
             except ObjectDoesNotExist:
                 return
-            self.__is_author = (first_version.change_author == user)
+            self._is_author = (first_version.change_author == user)
             last_v_role = last_version.userrole_set.filter(user=user)
             if len(last_v_role) > 0:
-                self.__job_role = last_v_role[0].role
+                self._job_role = last_v_role[0].role
             else:
-                self.__job_role = last_version.global_role
+                self._job_role = last_version.global_role
 
 
 def get_job_by_identifier(identifier):
@@ -874,247 +902,6 @@ def change_job_status(job, status):
         pass
 
 
-def get_default_configurations():
-    configurations = []
-    for conf in settings.DEF_KLEVER_CORE_MODES:
-        mode = next(iter(conf))
-        configurations.append([
-            mode,
-            START_JOB_DEFAULT_MODES[mode] if mode in START_JOB_DEFAULT_MODES else mode
-        ])
-    return configurations
-
-
-class GetConfiguration(object):
-    def __init__(self, conf_name=None, file_conf=None, user_conf=None):
-        self.configuration = None
-        if conf_name is not None:
-            self.__get_default_conf(conf_name)
-        elif file_conf is not None:
-            self.__get_file_conf(file_conf)
-        elif user_conf is not None:
-            self.__get_user_conf(user_conf)
-        if not self.__check_conf():
-            logger.error("The configuration didn't pass checks")
-            self.configuration = None
-
-    def __get_default_conf(self, name):
-        if name is None:
-            name = settings.DEF_KLEVER_CORE_MODE
-        conf_template = None
-        for conf in settings.DEF_KLEVER_CORE_MODES:
-            mode = next(iter(conf))
-            if mode == name:
-                conf_template = conf[mode]
-        if conf_template is None:
-            return
-        try:
-            self.configuration = [
-                list(conf_template[0]),
-                list(settings.KLEVER_CORE_PARALLELISM_PACKS[conf_template[1]]),
-                list(conf_template[2]),
-                [
-                    conf_template[3][0],
-                    settings.KLEVER_CORE_LOG_FORMATTERS[conf_template[3][1]],
-                    conf_template[3][2],
-                    settings.KLEVER_CORE_LOG_FORMATTERS[conf_template[3][3]],
-                ],
-                list(conf_template[4:])
-            ]
-        except Exception as e:
-            logger.exception("Wrong default configuration format: %s" % e, stack_info=True)
-
-    def __get_file_conf(self, filedata):
-        scheduler = None
-        for sch in SCHEDULER_TYPE:
-            if sch[1] == filedata['task scheduler']:
-                scheduler = sch[0]
-                break
-        if scheduler is None:
-            logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
-            return
-
-        cpu_time = filedata['resource limits']['CPU time']
-        if isinstance(cpu_time, int):
-            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / 60))
-        wall_time = filedata['resource limits']['wall time']
-        if isinstance(wall_time, int):
-            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / 60))
-
-        try:
-            formatters = {}
-            for f in filedata['logging']['formatters']:
-                formatters[f['name']] = f['value']
-            loggers = {}
-            for l in filedata['logging']['loggers']:
-                # TODO: what to do with other loggers?
-                if l['name'] == 'default':
-                    for l_h in l['handlers']:
-                        loggers[l_h['name']] = {
-                            'formatter': formatters[l_h['formatter']],
-                            'level': l_h['level']
-                        }
-            logging = [
-                loggers['console']['level'],
-                loggers['console']['formatter'],
-                loggers['file']['level'],
-                loggers['file']['formatter']
-            ]
-        except Exception as e:
-            logger.exception("Wrong logging format: %s" % e)
-            return
-
-        try:
-            self.configuration = [
-                [filedata['priority'], scheduler, filedata['max solving tasks per sub-job']],
-                [
-                    filedata['parallelism']['Sub-jobs processing'],
-                    filedata['parallelism']['Build'],
-                    filedata['parallelism']['Tasks generation'],
-                    filedata['parallelism']['Results processing']
-                ],
-                [
-                    filedata['resource limits']['memory size'] / 10**9,
-                    filedata['resource limits']['number of CPU cores'],
-                    filedata['resource limits']['disk memory size'] / 10**9,
-                    filedata['resource limits']['CPU model'],
-                    cpu_time, wall_time
-                ],
-                logging,
-                [
-                    filedata['keep intermediate files'],
-                    filedata['upload input files of static verifiers'],
-                    filedata['upload other intermediate files'],
-                    filedata['allow local source directories use'],
-                    filedata['ignore other instances'],
-                    filedata['ignore failed sub-jobs'],
-                    filedata['collect total code coverage'],
-                    filedata['generate makefiles'],
-                    filedata['weight']
-                ]
-            ]
-        except Exception as e:
-            logger.exception("Wrong core configuration format: %s" % e, stack_info=True)
-
-    def __get_user_conf(self, conf):
-        def int_or_float(val):
-            m = re.match('^\s*(\d+),(\d+)\s*$', val)
-            if m is not None:
-                val = '%s.%s' % (m.group(1), m.group(2))
-            try:
-                return int(val)
-            except ValueError:
-                return float(val)
-
-        try:
-            conf[1] = [int_or_float(conf[1][i]) for i in range(4)]
-            if len(conf[2][3]) == 0:
-                conf[2][3] = None
-            conf[2][0] = float(conf[2][0])
-            conf[2][1] = int(conf[2][1])
-            conf[2][2] = float(conf[2][2])
-            if conf[2][4] is not None:
-                conf[2][4] = float(conf[2][4])
-            if conf[2][5] is not None:
-                conf[2][5] = float(conf[2][5])
-        except Exception as e:
-            logger.exception("Wrong user configuration format: %s" % e, stack_info=True)
-            return
-        self.configuration = conf
-
-    def __check_conf(self):
-        if not isinstance(self.configuration, list) or len(self.configuration) != 5:
-            return False
-        if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
-            return False
-        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 4:
-            return False
-        if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
-            return False
-        if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
-            return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 9:
-            return False
-        if self.configuration[0][0] not in set(x[0] for x in PRIORITY):
-            return False
-        if self.configuration[0][1] not in set(x[0] for x in SCHEDULER_TYPE):
-            return False
-        if not isinstance(self.configuration[0][2], int) or \
-                (isinstance(self.configuration[0][2], int) and self.configuration[0][2] < 1):
-            return False
-        for i in range(4):
-            if not isinstance(self.configuration[1][i], (float, int)):
-                return False
-        if not isinstance(self.configuration[2][0], (float, int)):
-            return False
-        if not isinstance(self.configuration[2][1], int):
-            return False
-        if not isinstance(self.configuration[2][2], (float, int)):
-            return False
-        if not isinstance(self.configuration[2][3], str) and self.configuration[2][3] is not None:
-            return False
-        if not isinstance(self.configuration[2][4], (float, int)) and self.configuration[2][4] is not None:
-            return False
-        if not isinstance(self.configuration[2][5], (float, int)) and self.configuration[2][5] is not None:
-            return False
-        if self.configuration[3][0] not in settings.LOGGING_LEVELS:
-            return False
-        if self.configuration[3][2] not in settings.LOGGING_LEVELS:
-            return False
-        if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
-            return False
-        if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
-            return False
-        if self.configuration[4][-1] not in set(w[0] for w in JOB_WEIGHT):
-            return False
-        return True
-
-
-class StartDecisionData:
-    def __init__(self, user, data):
-        self.default = data
-        self.job_sch_err = None
-        self.schedulers = self.__get_schedulers()
-        self.priorities = list(reversed(PRIORITY))
-        self.logging_levels = settings.LOGGING_LEVELS
-        self.parallelism = KLEVER_CORE_PARALLELISM
-        self.formatters = KLEVER_CORE_FORMATTERS
-        self.job_weight = JOB_WEIGHT
-
-        self.need_auth = False
-        try:
-            SchedulerUser.objects.get(user=user)
-        except ObjectDoesNotExist:
-            self.need_auth = True
-
-    def __get_schedulers(self):
-        schedulers = []
-        try:
-            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-        except ObjectDoesNotExist:
-            raise BridgeException(_('Population has to be done first'))
-        try:
-            cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
-        except ObjectDoesNotExist:
-            raise BridgeException(_('Population has to be done first'))
-        if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("The Klever scheduler is ailing")
-        elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            raise BridgeException(_('The Klever scheduler is disconnected'))
-        schedulers.append([
-            klever_sch.type,
-            string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
-        ])
-        if cloud_sch.status != SCHEDULER_STATUS[2][0]:
-            schedulers.append([
-                cloud_sch.type,
-                string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
-            ])
-        elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
-            raise BridgeException(_('The scheduler for tasks is disconnected'))
-        return schedulers
-
-
 class CompareJobVersions:
     def __init__(self, v1, v2):
         self.v1 = v1
@@ -1184,6 +971,9 @@ class CompareJobVersions:
 
 
 class GetJobDecisionResults:
+    no_mark = 'Without marks'
+    total = 'Total'
+
     def __init__(self, job):
         self.job = job
         try:
@@ -1209,9 +999,9 @@ class GetJobDecisionResults:
         # Obtaining safes information
         total_safes = 0
         confirmed_safes = 0
-        for verdict, confirmed, total in self._report.leaves.exclude(safe=None).values('safe__verdict').annotate(
-                total=Count('id'), confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
-        ).values_list('safe__verdict', 'confirmed', 'total'):
+        for verdict, total, confirmed in ReportSafe.objects.filter(root=self._report.root).values('verdict')\
+                .annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('verdict', 'total', 'confirmed'):
             data['safes'][verdict] = [confirmed, total]
             confirmed_safes += confirmed
             total_safes += total
@@ -1220,24 +1010,36 @@ class GetJobDecisionResults:
         # Obtaining unsafes information
         total_unsafes = 0
         confirmed_unsafes = 0
-        for verdict, confirmed, total in self._report.leaves.exclude(unsafe=None).values('unsafe__verdict').annotate(
-                total=Count('id'), confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))
-        ).values_list('unsafe__verdict', 'confirmed', 'total'):
+        for verdict, total, confirmed in ReportUnsafe.objects.filter(root=self._report.root).values('verdict')\
+                .annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
+                .values_list('verdict', 'total', 'confirmed'):
             data['unsafes'][verdict] = [confirmed, total]
             confirmed_unsafes += confirmed
             total_unsafes += total
         data['unsafes']['total'] = [confirmed_unsafes, total_unsafes]
 
-        # Obtaining unknowns information
-        for cmup in self._report.mark_unknowns_cache.select_related('component', 'problem'):
-            if cmup.component.name not in data['unknowns']:
-                data['unknowns'][cmup.component.name] = {}
-            data['unknowns'][cmup.component.name][cmup.problem.name if cmup.problem else 'Without marks'] = cmup.number
-        for cmup in self._report.unknowns_cache.select_related('component'):
-            if cmup.component.name not in data['unknowns']:
-                data['unknowns'][cmup.component.name] = {}
-            data['unknowns'][cmup.component.name]['Total'] = cmup.number
+        # Marked/Unmarked unknowns
+        unconfirmed = Case(When(markreport_set__type=ASSOCIATION_TYPE[2][0], then=True),
+                           default=False, output_field=BooleanField())
+        queryset = ReportUnknown.objects.filter(root=self._report.root)\
+            .values('component_id', 'markreport_set__problem_id')\
+            .annotate(number=Count('id', distinct=True), unconfirmed=unconfirmed)\
+            .values_list('component__name', 'markreport_set__problem__name', 'number', 'unconfirmed')
+        for c_name, p_name, number, unconfirmed in queryset:
+            if p_name is None or unconfirmed:
+                p_name = self.no_mark
+            if c_name not in data['unknowns']:
+                data['unknowns'][c_name] = {}
+            if p_name not in data['unknowns'][c_name]:
+                data['unknowns'][c_name][p_name] = 0
+            data['unknowns'][c_name][p_name] += number
 
+        # Total unknowns for each component
+        for component, number in ReportUnknown.objects.filter(root=self._report.root) \
+                .values('component_id').annotate(number=Count('id')).values_list('component__name', 'number'):
+            if component not in data['unknowns']:
+                data['unknowns'][component] = {}
+            data['unknowns'][component][self.total] = number
         return data
 
     def __get_resources(self):
@@ -1267,7 +1069,9 @@ class GetJobDecisionResults:
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):
             reports[r_id]['attrs'].append([aname, aval])
 
-        for identifier, tag in MarkSafeTag.objects.filter(mark_version__mark__identifier__in=marks) \
+        for identifier, tag in MarkSafeTag.objects\
+                .filter(mark_version__mark__identifier__in=marks,
+                        mark_version__version=F('mark_version__mark__version'))\
                 .order_by('tag__tag').values_list('mark_version__mark__identifier', 'tag__tag'):
             marks[identifier]['tags'].append(tag)
         report_data = []
@@ -1281,8 +1085,8 @@ class GetJobDecisionResults:
 
         for mr in MarkUnsafeReport.objects.filter(report__root=self.job.reportroot).select_related('mark'):
             if mr.report_id not in reports:
-                reports[mr.report_id] = {'attrs': [], 'marks': {}}
-            reports[mr.report_id]['marks'][mr.mark.identifier] = mr.result
+                reports[mr.report_id] = {'attrs': [], 'marks': []}
+            reports[mr.report_id]['marks'].append(mr.mark.identifier)
             if mr.mark.identifier not in marks:
                 marks[mr.mark.identifier] = {
                     'verdict': mr.mark.verdict, 'status': mr.mark.status,
@@ -1291,14 +1095,15 @@ class GetJobDecisionResults:
 
         for u_id, in ReportUnsafe.objects.filter(root=self.job.reportroot, verdict=UNSAFE_VERDICTS[5][0])\
                 .values_list('id'):
-            if u_id not in reports:
-                reports[u_id] = {'attrs': [], 'marks': {}}
+            reports[u_id] = {'attrs': [], 'marks': []}
 
         for r_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports)\
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):
             reports[r_id]['attrs'].append([aname, aval])
 
-        for identifier, tag in MarkUnsafeTag.objects.filter(mark_version__mark__identifier__in=marks)\
+        for identifier, tag in MarkUnsafeTag.objects\
+                .filter(mark_version__mark__identifier__in=marks,
+                        mark_version__version=F('mark_version__mark__version'))\
                 .order_by('tag__tag').values_list('mark_version__mark__identifier', 'tag__tag'):
             marks[identifier]['tags'].append(tag)
         report_data = []

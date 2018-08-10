@@ -29,7 +29,7 @@ from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARK_
 from bridge.utils import unique_id, BridgeException
 
 from users.models import User
-from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportSafe, Attr, AttrName, ReportRoot
+from reports.models import ReportComponentLeaf, ReportAttr, ReportSafe, Attr, AttrName, ReportRoot
 from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport, MarkSafeAttr,\
     SafeTag, MarkSafeTag, SafeReportTag, ReportSafeTag, SafeAssociationLike
 
@@ -333,31 +333,19 @@ class ConnectMarks:
             old_verdict = safe.verdict
             new_verdict = self.__calc_verdict(safe_verdicts[safe])
             if old_verdict != new_verdict:
-                safes_to_update[safe] = new_verdict
+                if new_verdict not in safes_to_update:
+                    safes_to_update[new_verdict] = set()
+                safes_to_update[new_verdict].add(safe.id)
                 for mark_id in self.changes:
                     if safe in self.changes[mark_id]:
                         self.changes[mark_id][safe]['verdict2'] = new_verdict
         self.__new_verdicts(safes_to_update)
 
     @transaction.atomic
-    def __new_verdicts(self, safes):
+    def __new_verdicts(self, safes_to_update):
         self.__is_not_used()
-        verdict_attrs = {
-            '0': 'safe_unknown',
-            '1': 'safe_incorrect_proof',
-            '2': 'safe_missed_bug',
-            '3': 'safe_inconclusive',
-            '4': 'safe_unassociated'
-        }
-        for safe in safes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(safe=safe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[safe.verdict]: 0}) \
-                .update(**{verdict_attrs[safe.verdict]: F(verdict_attrs[safe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[safes[safe]]: F(verdict_attrs[safes[safe]]) + 1
-            })
-            safe.verdict = safes[safe]
-            safe.save()
+        for v in safes_to_update:
+            ReportSafe.objects.filter(id__in=safes_to_update[v]).update(verdict=v)
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
@@ -408,23 +396,8 @@ class ConnectReport:
             else:
                 new_verdict = v
         if new_verdict != self.report.verdict:
-            self.__new_verdict(new_verdict)
-
-    @transaction.atomic
-    def __new_verdict(self, new):
-        verdict_attrs = {
-            '0': 'safe_unknown',
-            '1': 'safe_incorrect_proof',
-            '2': 'safe_missed_bug',
-            '3': 'safe_inconclusive',
-            '4': 'safe_unassociated'
-        }
-        reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(safe=self.report))
-        Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[self.report.verdict]: 0}) \
-            .update(**{verdict_attrs[self.report.verdict]: F(verdict_attrs[self.report.verdict]) - 1})
-        Verdict.objects.filter(report_id__in=reports).update(**{verdict_attrs[new]: F(verdict_attrs[new]) + 1})
-        self.report.verdict = new
-        self.report.save()
+            self.report.verdict = new_verdict
+            self.report.save()
 
 
 class RecalculateTags:
@@ -529,11 +502,19 @@ class UpdateVerdicts:
             old_verdict = safe.verdict
             new_verdict = self.__calc_verdict(safe_verdicts[safe])
             if old_verdict != new_verdict:
-                safes_to_update[safe] = new_verdict
+                if new_verdict not in safes_to_update:
+                    safes_to_update[new_verdict] = set()
+                safes_to_update[new_verdict].add(safe.id)
                 for mark_id in self.changes:
                     if safe in self.changes[mark_id]:
                         self.changes[mark_id][safe]['verdict2'] = new_verdict
         self.__new_verdicts(safes_to_update)
+
+    @transaction.atomic
+    def __new_verdicts(self, safes_to_update):
+        self.__is_not_used()
+        for v in safes_to_update:
+            ReportSafe.objects.filter(id__in=safes_to_update[v]).update(verdict=v)
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
@@ -546,27 +527,6 @@ class UpdateVerdicts:
                 new_verdict = v
         return new_verdict
 
-    # TODO: check if it works
-    @transaction.atomic
-    def __new_verdicts(self, safes):
-        self.__is_not_used()
-        verdict_attrs = {
-            '0': 'safe_unknown',
-            '1': 'safe_incorrect_proof',
-            '2': 'safe_missed_bug',
-            '3': 'safe_inconclusive',
-            '4': 'safe_unassociated'
-        }
-        for safe in safes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(safe=safe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[safe.verdict]: 0}) \
-                .update(**{verdict_attrs[safe.verdict]: F(verdict_attrs[safe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[safes[safe]]: F(verdict_attrs[safes[safe]]) + 1
-            })
-            safe.verdict = safes[safe]
-            safe.save()
-
     def __is_not_used(self):
         pass
 
@@ -576,7 +536,6 @@ class RecalculateConnections:
         self._roots = list(root for root in roots if root.job.safe_marks)
         self._marks = {}
         self._safes = {}
-        self._reports = {}
         self.__clear_caches()
         self.__get_marks()
         self.__get_safes()
@@ -588,9 +547,6 @@ class RecalculateConnections:
         SafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
         ReportSafe.objects.filter(root__in=self._roots).update(verdict=SAFE_VERDICTS[4][0], has_confirmed=False)
-        Verdict.objects.filter(report__root__in=self._roots).update(
-            safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
-        )
 
     def __get_marks(self):
         for mark_id, attr_id, verdict in MarkSafeAttr.objects.filter(is_compare=True)\
@@ -601,6 +557,8 @@ class RecalculateConnections:
         for mark_id, tag_id in MarkSafeTag.objects\
                 .filter(mark_version__mark_id__in=self._marks, mark_version__version=F('mark_version__mark__version'))\
                 .values_list('mark_version__mark_id', 'tag_id'):
+            # If there are safe marks without attributes at all (even disabled) then this is bug.
+            # All safe reports should have attributes.
             self._marks[mark_id]['tags'].add(tag_id)
 
     def __get_safes(self):
@@ -611,15 +569,9 @@ class RecalculateConnections:
             self._safes[safe_id]['attrs'].add(attr_id)
 
         # Fill affected reports
-        verdicts_nums = {}
-        for v in SAFE_VERDICTS:
-            verdicts_nums[v[0]] = 0
         for report_id, safe_id in ReportComponentLeaf.objects.filter(safe_id__in=self._safes)\
                 .values_list('report_id', 'safe_id'):
             self._safes[safe_id]['reports'].add(report_id)
-            if report_id not in self._reports:
-                self._reports[report_id] = {'safes': set()}
-            self._reports[report_id]['safes'].add(safe_id)
 
     def __connect_marks(self):
         for safe_id in self._safes:
@@ -661,17 +613,6 @@ class RecalculateConnections:
         ReportSafeTag.objects.bulk_create(report_tag_cache.values())
         self.__update_safe_verdicts()
 
-        for report_id in self._reports:
-            for safe_id in self._reports[report_id]['safes']:
-                safe_verdict = self._safes[safe_id]['verdict']
-                if safe_verdict not in self._reports[report_id]:
-                    self._reports[report_id][safe_verdict] = 1
-                else:
-                    self._reports[report_id][safe_verdict] += 1
-            # We need just verdicts statistic
-            del self._reports[report_id]['safes']
-        self.__update_verdicts()
-
     def __update_safe_verdicts(self):
         safes_by_verdict = {}
         for safe_id in self._safes:
@@ -680,16 +621,6 @@ class RecalculateConnections:
             safes_by_verdict[self._safes[safe_id]['verdict']].add(safe_id)
         for verdict in safes_by_verdict:
             ReportSafe.objects.filter(id__in=safes_by_verdict[verdict]).update(verdict=verdict)
-
-    @transaction.atomic
-    def __update_verdicts(self):
-        for verdict in Verdict.objects.filter(report_id__in=self._reports):
-            verdict.safe_unknown = self._reports[verdict.report_id].get(SAFE_VERDICTS[0][0], 0)
-            verdict.safe_incorrect_proof = self._reports[verdict.report_id].get(SAFE_VERDICTS[1][0], 0)
-            verdict.safe_missed_bug = self._reports[verdict.report_id].get(SAFE_VERDICTS[2][0], 0)
-            verdict.safe_inconclusive = self._reports[verdict.report_id].get(SAFE_VERDICTS[3][0], 0)
-            verdict.safe_unassociated = self._reports[verdict.report_id].get(SAFE_VERDICTS[4][0], 0)
-            verdict.save()
 
 
 class PopulateMarks:
@@ -869,9 +800,6 @@ def disable_safe_marks_for_job(root):
     ReportSafeTag.objects.filter(report__root=root).delete()
     SafeReportTag.objects.filter(report__root=root).delete()
     MarkSafeReport.objects.filter(report__root=root).delete()
-    Verdict.objects.filter(report__root=root).update(
-        safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
-    )
     ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
 
 

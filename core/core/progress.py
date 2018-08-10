@@ -116,6 +116,12 @@ class PW(core.components.Component):
         total_tasks_determined = False
         total_tasks_messages = list()
         task_messages = list()
+        if self.conf.get('wall time limit', None):
+            self.logger.info("Expecting wall time limitation as {}".format(self.conf.get('wall time limit', None)))
+            given_finish_time = subjobs_start_time + core.utils.time_units_converter(self.conf['wall time limit'])[0]
+        else:
+            given_finish_time = None
+
         if self.job_mode:
             data_report = {}
         else:
@@ -195,8 +201,8 @@ class PW(core.components.Component):
             if isinstance(self.total_tasks, int) and isinstance(self.tasks_progress, int):
                 self.logger.info("Current tasks progress is {}".format(self.tasks_progress))
                 self.logger.debug("Left to solve {} tasks of {} in total".format(self.rest_tasks, self.total_tasks))
-                task_estimation = self._estimate_time(tasks_start_time, task_update_time,
-                                                      self.solved_tasks, self.rest_tasks, self.tasks_progress)
+                task_estimation = self._estimate_time(tasks_start_time, task_update_time, self.solved_tasks,
+                                                      self.rest_tasks, self.tasks_progress, given_finish_time)
                 data_report["failed tasks"] = self.failed_tasks
                 data_report["solved tasks"] = self.solved_tasks
                 data_report["expected time for solving tasks"] = task_estimation
@@ -206,8 +212,8 @@ class PW(core.components.Component):
             # Estimate subjobs
             if not self.job_mode and isinstance(self.subjobs_progress, int):
                 self.logger.info("Current subjobs progress is {}".format(self.subjobs_progress))
-                subjob_estimation = self._estimate_time(subjobs_start_time, subjobs_update_time,
-                                                        self.solved_subjobs, self.rest_subjobs, self.subjobs_progress)
+                subjob_estimation = self._estimate_time(subjobs_start_time, subjobs_update_time, self.solved_subjobs,
+                                                        self.rest_subjobs, self.subjobs_progress, given_finish_time)
                 self.logger.debug("Left to solve {} subjobs of {} in total".format(self.rest_subjobs,
                                                                                    self.subjobs_number))
                 data_report["failed subjobs"] = self.failed_subjobs
@@ -232,11 +238,15 @@ class PW(core.components.Component):
 
     main = watch_progress
 
-    def _estimate_time(self, start_time, update_time, solved, rest, progress):
+    def _estimate_time(self, start_time, update_time, solved, rest, progress, given_finish_time):
         def formula():
             delta_time = round(time.time() - update_time)
             last_update_time = round(update_time - start_time)
-            return round((rest / solved) * last_update_time - delta_time)
+            estimation = round((rest / solved) * last_update_time - delta_time)
+            if given_finish_time:
+                estimation = max(round(given_finish_time - time.time()),
+                                 estimation)
+            return estimation
 
         if progress <= 10:
             ret = 'Estimating time'

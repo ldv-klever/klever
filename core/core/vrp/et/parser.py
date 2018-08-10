@@ -57,8 +57,16 @@ class ErrorTraceParser:
 
         graph = root.find('graphml:graph', self.WITNESS_NS)
 
+        self.__parse_witness_data(graph)
         sink_nodes_map = self.__parse_witness_nodes(graph)
         self.__parse_witness_edges(graph, sink_nodes_map)
+
+    def __parse_witness_data(self, graph):
+        for data in graph.findall('graphml:data', self.WITNESS_NS):
+            if 'klever-attrs' in data.attrib and data.attrib['klever-attrs'] == 'true':
+                self.error_trace.add_attr(data.attrib['key'], data.text,
+                                          True if data.attrib['associate'] == 'true' else False,
+                                          True if data.attrib['compare'] == 'true' else False)
 
     def __parse_witness_nodes(self, graph):
         sink_nodes_map = dict()

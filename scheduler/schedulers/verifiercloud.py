@@ -16,7 +16,6 @@
 #
 
 import json
-import logging
 import traceback
 import os
 import re
@@ -27,6 +26,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import schedulers as schedulers
+import schedulers.runners as runners
 import utils
 
 
@@ -39,8 +39,6 @@ class Run:
 
         :param work_dir: A path to the directory from which paths given in description are relative.
         :param description: Dictionary with a task description.
-        :param user: A VerifierCloud username.
-        :param password: A VerifierCloud password.
         """
         self.branch = None
         self.revision = None
@@ -61,10 +59,6 @@ class Run:
             else:
                 self.revision = self.version
 
-        # Check priority
-        if description["priority"] not in ["LOW", "IDLE"]:
-            logging.warning("Task {} has priority higher than LOW".format(description["id"]))
-            self.priority = "LOW"
         self.priority = description["priority"]
 
         # Set limits
@@ -116,7 +110,7 @@ class Run:
         return "{}:{}".format(user, password)
 
 
-class Scheduler(schedulers.SchedulerExchange):
+class VerifierCloud(runners.Runner):
     """
     Implement scheduler which is based on VerifierCloud web-interface. The scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
@@ -124,19 +118,19 @@ class Scheduler(schedulers.SchedulerExchange):
 
     wi = None
 
-    def __init__(self, conf, work_dir):
+    def __init__(self, conf, logger, work_dir, server):
         """Do VerifierCloud specific initialization"""
-        super(Scheduler, self).__init__(conf, work_dir)
+        super(VerifierCloud, self).__init__(conf, logger, work_dir, server)
         self.wi = None
         self.__tasks = None
-        self.init_scheduler()
+        self.init()
 
-    def init_scheduler(self):
+    def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Scheduler, self).init_scheduler()
+        super(VerifierCloud, self).init()
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
@@ -144,7 +138,7 @@ class Scheduler(schedulers.SchedulerExchange):
                            "'scheduler''Web-interface address'")
 
         web_client_location = os.path.join(self.conf["scheduler"]["web client location"])
-        logging.debug("Add to PATH web client location {0}".format(web_client_location))
+        self.logger.debug("Add to PATH web client location {0}".format(web_client_location))
         sys.path.append(web_client_location)
         from webclient import WebInterface
         self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
@@ -168,7 +162,39 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         return [pending_tasks["id"] for pending_tasks in pending_tasks], []
 
-    def prepare_task(self, identifier, description):
+    def flush(self):
+        """Start solution explicitly of all recently submitted tasks."""
+        self.wi.flush_runs()
+
+    def terminate(self):
+        """
+        Abort solution of all running tasks and any other actions before termination.
+        """
+        self.logger.info("Terminate all runs")
+        # This is not reliable library as it is developed separaetly of Schedulers
+        try:
+            self.wi.shutdown()
+        except Exception:
+            self.logger.warning("Web interface wrapper raised an exception: \n{}".
+                                format(traceback.format_exc().rstrip()))
+
+    def update_nodes(self, wait_controller=False):
+        """
+        Update statuses and configurations of available nodes and push them to the server.
+
+        :param wait_controller: Ignore KV fails until it become working.
+        :return: Return True if nothing has changes.
+        """
+        return super(VerifierCloud, self).update_nodes()
+
+    def update_tools(self):
+        """
+        Generate a dictionary with available verification tools and push it to the server.
+        """
+        # TODO: Implement proper revisions sending
+        return
+
+    def _prepare_task(self, identifier, description):
         """
         Prepare a working directory before starting the solution.
 
@@ -179,14 +205,14 @@ class Scheduler(schedulers.SchedulerExchange):
         # Prepare working directory
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         task_data_dir = os.path.join(task_work_dir, "data")
-        logging.debug("Make directory for the task to solve {0}".format(task_data_dir))
+        self.logger.debug("Make directory for the task to solve {0}".format(task_data_dir))
         os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
 
         # Pull the task from the Verification gateway
         archive = os.path.join(task_work_dir, "task.zip")
-        logging.debug("Pull from the verification gateway archive {}".format(archive))
+        self.logger.debug("Pull from the verification gateway archive {}".format(archive))
         self.server.pull_task(identifier, archive)
-        logging.debug("Unpack archive {} to {}".format(archive, task_data_dir))
+        self.logger.debug("Unpack archive {} to {}".format(archive, task_data_dir))
         shutil.unpack_archive(archive, task_data_dir)
 
         # TODO: Add more exceptions handling to make code more reliable
@@ -195,16 +221,17 @@ class Scheduler(schedulers.SchedulerExchange):
             json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
-        logging.debug("Prepare arguments of the task {}".format(identifier))
+        self.logger.debug("Prepare arguments of the task {}".format(identifier))
         task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
         try:
+            assert description["priority"] in ["LOW", "IDLE"]
             run = Run(task_data_dir, description)
         except Exception as err:
             raise schedulers.SchedulerException('Cannot prepare task description on base of given benchmark.xml: {}'.
                                                 format(err))
         self.__tasks[identifier] = run
 
-    def prepare_job(self, identifier, configuration):
+    def _prepare_job(self, identifier, configuration):
         """
         Prepare a working directory before starting the solution.
 
@@ -215,7 +242,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Cannot be called
         raise NotImplementedError("VerifierCloud cannot handle jobs.")
 
-    def solve_task(self, identifier, description, user, password):
+    def _solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
 
@@ -226,7 +253,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         # Submit command
-        logging.info("Submit the task {0}".format(identifier))
+        self.logger.info("Submit the task {0}".format(identifier))
         run = self.__tasks[identifier]
         return self.wi.submit(run=run,
                               limits=run.limits,
@@ -238,7 +265,7 @@ class Scheduler(schedulers.SchedulerExchange):
                               svn_revision=run.revision,
                               meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
-    def solve_job(self, identifier, configuration):
+    def _solve_job(self, identifier, configuration):
         """
         Solve given verification job.
 
@@ -248,11 +275,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('VerifierCloud cannot start jobs.')
 
-    def flush(self):
-        """Start solution explicitly of all recently submitted tasks."""
-        self.wi.flush_runs()
-
-    def process_task_result(self, identifier, future):
+    def _process_task_result(self, identifier, future, description):
         """
         Process result and send results to the server.
 
@@ -266,12 +289,12 @@ class Scheduler(schedulers.SchedulerExchange):
 
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
-        logging.debug("Save solution to the disk as {}".format(solution_file))
+        self.logger.debug("Save solution to the disk as {}".format(solution_file))
         try:
             result = future.result()
         except Exception as err:
             error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
-            logging.warning(error_msg)
+            self.logger.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
 
         # Save result
@@ -280,9 +303,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
-        logging.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
+        self.logger.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
         os.makedirs(task_solution_dir.encode("utf8"), exist_ok=True)
-        logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
+        self.logger.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
@@ -293,44 +316,45 @@ class Scheduler(schedulers.SchedulerExchange):
                                  "{}.log".format(os.path.basename(run.sourcefiles[0]))))
 
         try:
-            solution_identifier, solution_description = \
-                self.__extract_description(task_solution_dir)
-            logging.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
+            solution_identifier, solution_description = self.__extract_description(task_solution_dir)
+            self.logger.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
         except Exception as err:
-            logging.warning("Cannot extract results from a solution: {}".format(err))
+            self.logger.warning("Cannot extract results from a solution: {}".format(err))
             raise err
 
         # Make fake BenchExec XML report
-        self.__make_fake_benchexec(solution_description, run,
-                                   os.path.join(task_work_dir, 'solution', 'output',
-                                                "benchmark.results.xml"))
+        self.__make_fake_benchexec(solution_description, os.path.join(task_work_dir, 'solution', 'output',
+                                   "benchmark.results.xml"))
+
+        # Add actual restrictions
+        solution_description['resource limits'] = description["resource limits"]
 
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
-        logging.debug("Make archive {} with a solution of the task {}.zip".format(solution_archive, identifier))
+        self.logger.debug("Make archive {} with a solution of the task {}.zip".format(solution_archive, identifier))
         shutil.make_archive(solution_archive, 'zip', task_solution_dir)
         solution_archive += ".zip"
 
         # Push result
-        logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
-                                                                                                     identifier))
+        self.logger.debug("Upload solution archive {} of the task {} to the verification gateway".
+                          format(solution_archive, identifier))
         try:
-            utils.submit_task_results(logging, self.server, identifier, solution_description,
+            utils.submit_task_results(self.logger, self.server, self.scheduler_type(), identifier, solution_description,
                                       os.path.join(task_work_dir, "solution"))
         except Exception as err:
             error_msg = "Cannot submit solution results of task {}: {}".format(identifier, err)
-            logging.warning(error_msg)
+            self.logger.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
-            logging.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
+            self.logger.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
             shutil.rmtree(task_work_dir)
 
-        logging.debug("Task {} has been processed successfully".format(identifier))
+        self.logger.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def process_job_result(self, identifier, future):
+    def _process_job_result(self, identifier, future):
         """
         Process future object status and send results to the server.
 
@@ -341,68 +365,39 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         raise NotImplementedError('There cannot be any running jobs in VerifierCloud')
 
-    def cancel_job(self, identifier, future, after_term=False):
+    def _cancel_job(self, identifier, future):
         """
         Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
         raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
 
-    def cancel_task(self, identifier, future, after_term=False):
+    def _cancel_task(self, identifier, future):
         """
         Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: In case of exception occured in future task.
         """
-        logging.debug("Cancel task {}".format(identifier))
+        self.logger.debug("Cancel task {}".format(identifier))
         # todo: Implement proper task cancellation
-        super(Scheduler, self).cancel_task(identifier, future, after_term)
+        super(VerifierCloud, self).cancel_task(identifier, future)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
         if identifier in self.__tasks:
             del self.__tasks[identifier]
 
-    def terminate(self):
+    def __extract_description(self, solution_dir):
         """
-        Abort solution of all running tasks and any other actions before termination.
-        """
-        logging.info("Terminate all runs")
-        # This is not reliable library as it is developed separaetly of Schedulers
-        try:
-            self.wi.shutdown()
-        except Exception:
-            logging.warning("Web interface wrapper raised an exception: \n{}".format(traceback.format_exc().rstrip()))
+        Get directory with BenchExec output and extract results from there saving them to JSON file according to
+        provided path.
 
-    def update_nodes(self, wait_controller=False):
-        """
-        Update statuses and configurations of available nodes and push them to the server.
-
-        :param wait_controller: Ignore KV fails until it become working.
-        :return: Return True if nothing has changes.
-        """
-        return super(Scheduler, self).update_nodes()
-
-    def update_tools(self):
-        """
-        Generate a dictionary with available verification tools and push it to the server.
-        """
-        # TODO: Implement proper revisions sending
-        return
-
-    @staticmethod
-    def __extract_description(solution_dir):
-        """
-        Get directory with BenchExec output and extract results from there saving them to JSON file according to provided
-        path.
         :param solution_dir: Path with BenchExec output.
         :return: Identifier string of the solution.
         """
@@ -415,7 +410,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Import description
         desc_file = os.path.join(solution_dir, "runDescription.txt")
-        logging.debug("Import description from the file {}".format(desc_file))
+        self.logger.debug("Import description from the file {}".format(desc_file))
         description["desc"] = ""
         if os.path.isfile(desc_file):
             with open(desc_file, encoding="utf8") as di:
@@ -430,7 +425,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Import general information
         general_file = os.path.join(solution_dir, "runInformation.txt")
-        logging.debug("Import general information from the file {}".format(general_file))
+        self.logger.debug("Import general information from the file {}".format(general_file))
         termination_reason = None
         number = re.compile("(\d.*\d)")
         if os.path.isfile(general_file):
@@ -450,19 +445,19 @@ class Scheduler(schedulers.SchedulerExchange):
                         if sec:
                             description["resources"]["wall time"] = int(float(sec) * 1000)
                         else:
-                            logging.warning("Cannot properly extract wall time from {}".format(general_file))
+                            self.logger.warning("Cannot properly extract wall time from {}".format(general_file))
                     elif key == "cputime":
                         sec = number.match(value).group(1)
                         if sec:
                             description["resources"]["CPU time"] = int(float(sec) * 1000)
                         else:
-                            logging.warning("Cannot properly extract CPU time from {}".format(general_file))
+                            self.logger.warning("Cannot properly extract CPU time from {}".format(general_file))
                     elif key == "memory":
                         mem_bytes = number.match(value).group(1)
                         if mem_bytes:
                             description["resources"]["memory size"] = int(mem_bytes)
                         else:
-                            logging.warning("Cannot properly extract exhausted memory from {}".format(general_file))
+                            self.logger.warning("Cannot properly extract exhausted memory from {}".format(general_file))
                     elif key == "coreLimit":
                         cores = int(value)
                         description["resources"]["coreLimit"] = cores
@@ -499,7 +494,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Import Host information
         host_file = os.path.join(solution_dir, "hostInformation.txt")
-        logging.debug("Import host information from the file {}".format(host_file))
+        self.logger.debug("Import host information from the file {}".format(host_file))
         lv_re = re.compile("Linux\s(\d.*)")
         if os.path.isfile(host_file):
             with open(host_file, encoding="utf8") as hi:
@@ -512,7 +507,8 @@ class Scheduler(schedulers.SchedulerExchange):
                         if version:
                             description["comp"]["Linux kernel version"] = version
                         else:
-                            logging.warning("Cannot properly extract Linux kernel version from {}".format(host_file))
+                            self.logger.warning("Cannot properly extract Linux kernel version from {}".
+                                                format(host_file))
                     elif key == "memory":
                         description["comp"]["mem size"] = value
                     elif key == "cpuModel":
@@ -525,12 +521,11 @@ class Scheduler(schedulers.SchedulerExchange):
         return identifier, description
 
     @staticmethod
-    def __make_fake_benchexec(description, run, path):
+    def __make_fake_benchexec(description, path):
         """
         Save a fake BenchExec report. If you need to add an additional information to the XML file then add it here.
 
         :param description: Description dictionary extracted from VerifierCloud TXT files.
-        :param run: Run object prepared by this scheduler before run.
         :return: None
         """
         result = ET.Element("result", {
@@ -548,5 +543,3 @@ class Scheduler(schedulers.SchedulerExchange):
 
         with open(path, "w", encoding="utf8") as fp:
             fp.write(minidom.parseString(ET.tostring(result)).toprettyxml(indent="    "))
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

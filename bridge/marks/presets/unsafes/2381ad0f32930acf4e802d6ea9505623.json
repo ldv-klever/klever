@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "2ba4b92e8773~/drivers/usb/dwc2/dwc2_gadget.ko/linux:drivers:clk2"
     },
     {
