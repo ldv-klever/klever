@@ -19,7 +19,7 @@ import tarfile
 import importlib
 import subprocess
 import urllib.parse
-from clade.interface import initialize_extensions
+import clade.interface as clade_api
 
 import core.utils
 
@@ -41,8 +41,10 @@ class Source:
         self.version = None
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
+        self._opts_file = self.conf['project']['opts file']
         self._prepare_working_directory()
-        self.clade_dir = 'clade'
+        self._model_headers_path = 'model-headers'
+        self._clade_dir = self.conf['Clade']['base']
 
     @property
     def attributes(self):
@@ -56,19 +58,24 @@ class Source:
         ]
 
     def configure(self):
-        if 'configuration' in self.conf['project']:
-            try:
-                self.configuration = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                                 self.conf['project']['configuration'])
-            except FileNotFoundError:
-                # Linux kernel configuration is not provided in form of file.
-                self.configuration = self.conf['project']['configuration']
+        self.configuration = self.conf['project'].get('configuration')
 
-    def build(self, model_headers):
-        self._build(model_headers)
-        initialize_extensions('clade', os.path.join(self.work_src_tree, 'cmds.txt'))
+    def build(self):
+        self._build()
+        clade_api.initialize_extensions(self._clade_dir, os.path.join(self.work_src_tree, 'cmds.txt'))
 
-    def _build(self, model_headers):
+    def prepare_model_headers(self, model_headers):
+        os.makedirs(self._model_headers_path)
+        for c_file, headers in model_headers.items():
+            self.logger.info('Copy headers for model with C file "{0}"'.format(c_file))
+            model_headers_c_file = os.path.join(self._model_headers_path, os.path.basename(c_file))
+
+            with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
+                for header in headers:
+                    fp.write('#include <{0}>\n'.format(header))
+        return None
+
+    def _build(self):
         raise NotImplementedError
 
     def cleanup(self):
@@ -81,9 +88,6 @@ class Source:
             return False
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
-        # todo: This is better to fix
-        if not env:
-            env = {'PATH': ':'.join((p for p in os.environ['PATH'].split(':') if 'cif' not in p))}
         return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +
                                   ['make', '-j', self.workers] + opts + target,
                                   cwd=self.work_src_tree, env=env, collect_all_stdout=collect_all_stdout)

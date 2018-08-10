@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import json
 import multiprocessing
 import clade.interface as clade_api
 
@@ -39,6 +38,8 @@ def __set_model_headers(context):
 
 class VOG(core.components.Component):
 
+    VO_FILE = 'verification_objects.json'
+
     def generate_verification_objects(self):
         # Get classes
         source = get_source_adapter(self.conf['project']['name'])
@@ -47,22 +48,32 @@ class VOG(core.components.Component):
 
         # Create instances
         source = source(self.logger, self.conf)
-        if not self.conf['project'].get("clade cache"):
+        if not self.conf['Clade']["is base cached"]:
             # Prepare project working source tree and extract build commands exclusively but just with other
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
                 self.prepare_and_build(source)
-            clade_api.setup(source.clade_dir)
         else:
             source.configure()
-            clade_dir = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                    self.conf['project']['clade cache'])
-            clade_api.setup(clade_dir)
+        clade_api.setup(self.conf['Clade']["base"])
 
         divider = divider(self.logger, self.conf, source, clade_api)
         strategy = strategy(self.logger, self.conf, divider)
         self.common_prj_attrs = source.attributes + strategy.attributes + divider.attributes
+        self.submit_project_attrs()
+
+        # Generate verification objects
+        verification_objects_files = strategy.generate_verification_objects()
+        self.prepare_descriptions_file(verification_objects_files)
+        self.clean_dir = True
+        self.excluded_clean = [d for d in strategy.dynamic_excluded_clean]
+        self.logger.debug("Excluded {0}".format(self.excluded_clean))
+
+    main = generate_verification_objects
+
+    def submit_project_attrs(self):
+        """Has a callback!"""
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -73,19 +84,17 @@ class VOG(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-        # Generate verification objects
-        strategy.generate_verification_objects()
-        self.clean_dir = True
-        self.excluded_clean = [d for d in strategy.dynamic_excluded_clean]
-        self.logger.debug("Excluded {0}".format(self.excluded_clean))
-
-    main = generate_verification_objects
-
     def prepare_and_build(self, source):
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
         source.configure()
-        source.build(model_headers)
+        source.prepare_model_headers(model_headers)
+        source.build()
+
+    def prepare_descriptions_file(self, files):
+        """Has a callback!"""
+        with open(self.VO_FILE, 'w') as fp:
+            fp.writelines(files)
 
     # todo: Why does it needed? Maybe wee need to apload data attributes with units instead
     # def send_loc_report(self):

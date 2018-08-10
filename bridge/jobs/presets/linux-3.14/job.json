@@ -1,5 +1,8 @@
 {
   "Class": "Verification of Linux kernel modules",
+  "Clade": {
+      "base": "clade"
+  },
   "project": {
     "name": "Linux",
     "source": "linux-3.14",

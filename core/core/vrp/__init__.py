@@ -43,7 +43,7 @@ def __launch_sub_job_components(context):
 
 
 @core.components.after_callback
-def __set_common_prj_attrs(context):
+def __submit_project_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
 
 
