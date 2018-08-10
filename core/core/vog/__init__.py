@@ -95,7 +95,7 @@ class VOG(core.components.Component):
     def prepare_descriptions_file(self, files):
         """Has a callback!"""
         with open(self.VO_FILE, 'w') as fp:
-            fp.writelines((os.path.relpath(f, self.conf['main working directory']) for f in files))
+            fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
 
     # todo: Why does it needed? Maybe wee need to apload data attributes with units instead
     # def send_loc_report(self):

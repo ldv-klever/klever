@@ -34,6 +34,8 @@ def get_source_adapter(project_kind):
 class Source:
     """This class to implement if necessary building and extraction of information from particular projects"""
 
+    _CLADE_CONF = dict()
+
     def __init__(self, logger, conf):
         self.logger = logger
         self.conf = conf
@@ -62,7 +64,7 @@ class Source:
 
     def build(self):
         self._build()
-        clade_api.initialize_extensions(self._clade_dir, os.path.join(self.work_src_tree, 'cmds.txt'))
+        clade_api.initialize_extensions(self._clade_dir, os.path.join(self.work_src_tree, 'cmds.txt'), self._CLADE_CONF)
 
     def prepare_model_headers(self, model_headers):
         os.makedirs(self._model_headers_path)

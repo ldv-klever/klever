@@ -38,6 +38,26 @@ class Linux(Source):
         }
     }
     _EXT_DIR = 'ext-modules/'
+    _CLADE_CONF = {
+        "log_level": "INFO",
+        "Common.filter": [
+            ".*?\\.tmp$"
+        ],
+        "Common.filter_in": [
+            "-",
+            "/dev/null",
+            "scripts/(?!mod/empty\\.c)",
+            "kernel/.*?bounds.*?",
+            "arch/x86/tools/relocs",
+            "arch/x86/kernel/asm-offsets.c",
+            ".*\\.mod\\.c"
+        ],
+        "Common.filter_out": [
+            "/dev/null",
+            ".*?\\.cmd$",
+            "vmlinux"
+        ]
+    }
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
