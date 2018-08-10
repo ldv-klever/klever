@@ -50,12 +50,6 @@ def __prepare_descriptions_file(context):
 
 
 @core.components.after_callback
-def __generate_all_verification_obj_descs(context):
-    context.logger.info('Terminate verification object description files message queue')
-    context.mqs['verification obj desc files'].put(None)
-
-
-@core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
@@ -381,11 +375,42 @@ class VTG(core.components.Component):
 
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
+
+        # Fetch object
+        vo_file = self.mqs['verification obj desc files'].get()
+        vo_file = os.path.join(self.conf['main working directory'], vo_file)
+        self.mqs['verification obj desc files'].close()
+
+        if os.path.isfile(vo_file):
+            with open(vo_file, 'r', encoding='utf8') as fp:
+                verification_obj_desc_files = fp.readlines()
+        else:
+            raise FileNotFoundError
+
+        # Drop a line to a progress watcher
+        total_vo_descriptions = len(verification_obj_desc_files)
+        self.mqs['total tasks'].put([self.conf['sub-job identifier'],
+                                    int(total_vo_descriptions * len(self.rule_spec_descs))])
+
         vo_descriptions = dict()
-        processing_status = dict()
         initial = dict()
+
+        # Fetch object
+        for verification_obj_desc_file in verification_obj_desc_files:
+            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+                      encoding='utf8') as fp:
+                verification_obj_desc = json.load(fp)
+            if not self.conf['keep intermediate files']:
+                os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
+            if len(self.rule_spec_descs) == 0:
+                self.logger.warning('Verification object {0} will not be verified since rule specifications'
+                                    ' are not specified'.format(verification_obj_desc['id']))
+            else:
+                vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
+                initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
+
+        processing_status = dict()
         delete_ready = dict()
-        total_vo_descriptions = 0
         balancer = Balancer(self.conf, self.logger, processing_status)
 
         def submit_task(vobj, rlcl, rlda, rescheduling=False):
@@ -394,7 +419,6 @@ class VTG(core.components.Component):
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
-        expect_objects = True
         while True:
             # Fetch pilot statuses
             pilot_statuses = []
@@ -441,35 +465,6 @@ class VTG(core.components.Component):
                                                                   if status_info[0] == 'finished' else 'failed'])
                         processing_status[vobject][rule_class][rule_name] = True
                     active_tasks -= 1
-
-            # Fetch object
-            if expect_objects:
-                verification_obj_desc_files = []
-                old_size = len(verification_obj_desc_files)
-                expect_objects = core.utils.drain_queue(verification_obj_desc_files,
-                                                        self.mqs['verification obj desc files'])
-                total_vo_descriptions += len(verification_obj_desc_files) - old_size
-
-                if not expect_objects:
-                    self.logger.info("No verification objects will be generated")
-
-                    # Drop a line to a progress watcher
-                    total_tasks = int(total_vo_descriptions * len(self.rule_spec_descs))
-                    balancer.set_total_tasks(total_tasks)
-                    self.mqs['total tasks'].put([self.conf['sub-job identifier'], total_tasks])
-
-                for verification_obj_desc_file in verification_obj_desc_files:
-                    with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
-                              encoding='utf8') as fp:
-                        verification_obj_desc = json.load(fp)
-                    if not self.conf['keep intermediate files']:
-                        os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
-                    if len(self.rule_spec_descs) == 0:
-                        self.logger.warning('Verification object {0} will not be verified since rule specifications'
-                                            ' are not specified'.format(verification_obj_desc['id']))
-                    else:
-                        vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
-                        initial[verification_obj_desc['id']] = list(_rule_spec_classes.keys())
 
             # Submit initial objects
             for vo in list(initial.keys()):
@@ -553,7 +548,7 @@ class VTG(core.components.Component):
                     if vobject in delete_ready:
                         del delete_ready[vobject]
 
-            if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
+            if active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
                 self.mqs['prepare verification objects'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 if not self.conf['keep intermediate files']:
@@ -561,8 +556,7 @@ class VTG(core.components.Component):
                 break
             else:
                 self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
-                                  "descriptions and expectation verification tasks flag is {}".
-                                  format(len(initial), active_tasks, len(vo_descriptions), expect_objects))
+                                  "descriptions".format(len(initial), active_tasks, len(vo_descriptions)))
 
             time.sleep(3)
 

@@ -276,7 +276,7 @@ class RP(core.components.Component):
 
         try:
             if status == 'finished':
-                self.process_finished_task(task_id, opts, verifier, shadow_src_dir)
+                self.process_finished_task(task_id, opts, verifier)
                 # Raise exception just here sinse the method above has callbacks.
                 if self.__exception:
                     self.logger.warning("Raising the saved exception")
