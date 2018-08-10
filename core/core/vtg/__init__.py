@@ -28,7 +28,7 @@ import core.utils
 import core.session
 
 from core.vtg.scheduling import Balancer
-# from clade import Clade
+import clade.interface as clade_api
 
 
 @core.components.before_callback
@@ -383,14 +383,15 @@ class VTG(core.components.Component):
 
         if os.path.isfile(vo_file):
             with open(vo_file, 'r', encoding='utf8') as fp:
-                verification_obj_desc_files = fp.readlines()
+                verification_obj_desc_files = \
+                    [os.path.join(self.conf['main working directory'], vof) for vof in fp.readlines()]
         else:
             raise FileNotFoundError
 
         # Drop a line to a progress watcher
         total_vo_descriptions = len(verification_obj_desc_files)
-        self.mqs['total tasks'].put([self.conf['sub-job identifier'],
-                                    int(total_vo_descriptions * len(self.rule_spec_descs))])
+        self.mqs['total tasks'].put([self.conf['job identifier'],
+                                     int(total_vo_descriptions * len(self.rule_spec_descs))])
 
         vo_descriptions = dict()
         initial = dict()
@@ -453,7 +454,7 @@ class VTG(core.components.Component):
                         delete_ready[vo].add(rule)
 
             # Process them
-            for solution in solutions:
+             for solution in solutions:
                 vobject, rule_name, status_info = solution
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
@@ -627,8 +628,8 @@ class VTGW(core.components.Component):
         self.override_limits = resource_limits
         self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        # self.clade = Clade()
-        # self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        self.clade = clade_api
+        self.clade.setup(self.conf['Clade']['base'])
 
     def tasks_generator_worker(self):
         try:
@@ -659,18 +660,20 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
-        # Currently we will use rule specification name as a solution class to accumulate statistics and adjust resource
-        # limitations
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
 
-            # for cc in grp['CCs']:
-            #     in_file = self.clade.get_cc().load_json_by_id(cc)['in'][0]
-            #     grp['Extra CCs'].append({
-            #         'CC': cc,
-            #         'in file': (self.conf['Clade']['storage'] + in_file) if os.path.isabs(in_file) else in_file
-            #     })
+            # todo: add Clade storage
+            for cc in grp['CCs']:
+                in_file = self.clade.get_cc(cc)['in'][0]
+                grp['Extra CCs'].append({
+                    'CC': cc,
+                    'in file': os.path.abspath(
+                        os.path.join(core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                                 self.conf['project']['source']),
+                                     in_file))
+                })
 
             del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'
