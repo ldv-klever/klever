@@ -245,89 +245,66 @@ class Source:
         typedef = clade_api.TypeDefinitions(cfiles).graph
         if typedef:
             import_typedefs(typedef)
-        #
-        # if 'variables' in source_analysis:
-        #     self.logger.info("Import types from global variables initializations")
-        #     for variable in source_analysis["variables"]:
-        #         variable_name = extract_name(variable['declaration'])
-        #         if not variable_name:
-        #             raise ValueError('Global variable without a name')
-        #         var = Variable(variable_name, variable['declaration'])
-        #
-        #         # Here we know, that if we met a variable in an another file then it is an another variable because
-        #         # a program should contain a single global variable initialization
-        #         self.set_source_variable(var, variable['path'])
-        #         var.declaration_files.add(variable['path'])
-        #         var.initialization_file = variable['path']
-        #         var.static = is_static(variable['declaration'])
-        #
-        #         if 'value' in variable:
-        #             var.value = variable['value']
-        #
-        # if 'callgraph' in source_analysis:
-        #     self.logger.info("Import source functions")
-        #     for func in source_analysis['callgraph']:
-        #         for definition_candidate in source_analysis['callgraph'][func]:
-        #             desc = source_analysis['callgraph'][func][definition_candidate]
-        #
-        #             # Use any file
-        #             if definition_candidate == "unknown" or definition_candidate not in files_map:
-        #                 # todo: This is a mistake of callgraph collectors filter
-        #                 if "declared_in" in desc:
-        #                     candidates = [k for k in desc["declared_in"].keys() if k in files_map]
-        #                     if len(candidates) == 0:
-        #                         continue
-        #                 else:
-        #                     continue
-        #
-        #                 definition_candidate = candidates[-1]
-        #                 definition_file = list(files_map[definition_candidate])[-1]
-        #             else:
-        #                 definition_file = list(files_map[definition_candidate])[-1]
-        #
-        #             signature = desc['signature'] if 'signature' in desc \
-        #                 else list(desc["declared_in"].values())[-1]['signature']
-        #             func_intf = Function(func, signature)
-        #             func_intf.definition_file = definition_file
-        #
-        #             # Set static
-        #             if "type" in desc and desc["type"] == "static":
-        #                 func_intf.static = True
-        #             else:
-        #                 func_intf.static = False
-        #
-        #             # Set declarations
-        #             self.set_source_function(func_intf, definition_file)
-        #             func_intf.declaration_files.add(definition_file)
-        #             if "declared_in" in desc:
-        #                 for dfile in (f for f in desc["declared_in"] if f in files_map):
-        #                     for actual_file in files_map[dfile]:
-        #                         self.set_source_function(func_intf, actual_file)
-        #                         func_intf.declaration_files.add(actual_file)
-        #
-        #             if "calls" in desc:
-        #                 for called_function in desc["calls"]:
-        #                     for from_where in desc["calls"][called_function]:
-        #                         for call in desc["calls"][called_function][from_where]['args']:
-        #                             func_intf.call_in_function(called_function, call)
-        #
-        #             if 'called_in' in desc:
-        #                 for caller in desc['called_in']:
-        #                     for scope in desc['called_in'][caller]:
-        #                         # todo: This is also not filtered properly information from the callgraph collector
-        #                         if scope != "unknown" and scope in files_map:
-        #                             for actual_scope in files_map[scope]:
-        #                                 func_intf.add_call(caller, actual_scope)
-        # else:
-        #     self.logger.warning("There is no any functions in source analysis")
-        #
-        # self.logger.info("Remove functions which are not called at driver")
-        # for func in list(self._source_functions.keys()):
-        #     if None in self._source_functions[func]:
-        #         del self._source_functions[func][None]
-        #
-        #     if func not in source_analysis['callgraph'] or len(self._source_functions[func].keys()) == 0:
-        #         self.remove_source_function(func)
+        variables = clade_api.VariableInitializations(cfiles)
+        if variables.vars:
+            self.logger.info("Import global variables initializations")
+            for path, vals in variables.vars.items():
+                for variable in vals:
+                    variable_name = extract_name(variable['declaration'])
+                    if not variable_name:
+                        raise ValueError('Global variable without a name')
+                    var = Variable(variable_name, variable['declaration'])
+
+                    # Here we know, that if we met a variable in an another file then it is an another variable because
+                    # a program should contain a single global variable initialization
+                    self.set_source_variable(var, path)
+                    var.declaration_files.add(path)
+                    var.initialization_file = path
+                    var.static = is_static(variable['declaration'])
+
+                    if 'value' in variable:
+                        var.value = variable['value']
+
+        # Variables which are used in variables initalizations
+        self.logger.info("Import source functions")
+        vfunctions = variables.used_vars_functions
+        # Function scope definitions
+        fs = clade_api.FunctionsScopes(set(dependencies.keys())).funcs_to_scope
+        # Get functions defined in dependencies and in the main functions and have calls
+        cg = clade_api.CallGraph().partial_graph(cfiles)
+        # Add called functions
+        for scope in cg:
+            for func in cg[scope]:
+                desc = cg[scope][func]
+                if scope in cfiles:
+                    # Definition of the function is in the code of interest
+                    self._add_function(func, scope, fs)
+                elif set(desc['called_in'].keys()).intersection(cfiles) or func in vfunctions:
+                    # Function is called in the target code but defined in dependencies
+                    self._add_function(func, scope, fs)
+                    continue
+                else:
+                    continue
+        # Add functions missed in the call graph
+        for func in fs:
+            for scope in (s for s in fs[func] if s in cfiles):
+                func_intf = self.get_source_function(func, scope)
+                if not func_intf:
+                    self._add_function(func, scope, fs)
+
+        for func in self.source_functions:
+            for obj in self.get_source_functions(func):
+                scope = obj.definition_file
+                desc = cg.get(scope, dict()).get(func)
+                if desc and 'called_in' in desc:
+                    for caller_scope in (s for s in desc['called_in'] if s in cfiles):
+                        for caller in desc['called_in'][caller_scope]:
+                            for line in desc['called_in'][caller_scope]:
+                                params = desc['called_in'][caller_scope][line].get('args')
+                                caller_intf = self.get_source_function(caller, caller_scope)
+                                obj.add_call(caller, caller_scope)
+                                caller_intf.call_in_function(func, params)
+
         #
         # if 'macros' in source_analysis:
         #     for name in source_analysis['macros']:
@@ -337,6 +314,28 @@ class Source:
         #                 for call in source_analysis['macros'][name][scope]['args']:
         #                     macro.add_parameters(actual_scope, call)
         #         self.set_macro(macro)
+
+    def _add_function(self, func, scope, fs):
+        fs_desc = fs[func][scope]
+        if scope == 'unknown':
+            key = list(fs_desc['declared_in'].keys())[0]
+            signature = fs_desc['declared_in'][key]['signature']
+            func_intf = Function(func, signature)
+            func_intf.definition_file = key
+        else:
+            signature = fs_desc.get('signature')
+            func_intf = Function(func, signature)
+            func_intf.definition_file = scope
+
+        # Set static
+        if fs_desc.get('type') == "static":
+            func_intf.static = True
+        else:
+            func_intf.static = False
+        self.set_source_function(func_intf, func_intf.definition_file)
+        # Add declarations
+        for file in fs_desc.get('declared_in', set()):
+            self.set_source_function(func_intf, file)
 
     def _collect_file_dependencies(self, abstract_task):
         """

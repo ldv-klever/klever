@@ -112,7 +112,7 @@ class Function:
         """
         return self.called_at.keys()
 
-    def call_in_function(self, func, parameters):
+    def call_in_function(self, func, parameters=None):
         """
         Save information that the function calls in her body an another provided function with given arguments.
 
@@ -122,8 +122,8 @@ class Function:
         :return: None
         """
         if func not in self.calls:
-            self.calls[func] = [parameters]
-        else:
+            self.calls[func] = []
+        if parameters is not None:
             self.calls[func].append(parameters)
 
     def add_call(self, func, path):
