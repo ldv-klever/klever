@@ -454,7 +454,7 @@ class VTG(core.components.Component):
                         delete_ready[vo].add(rule)
 
             # Process them
-             for solution in solutions:
+            for solution in solutions:
                 vobject, rule_name, status_info = solution
                 self.logger.info("Verificatio task for {!r} and rule name {!r} is either finished or failed".
                                  format(vobject, rule_name))
