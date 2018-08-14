@@ -1,0 +1,106 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+#include <linux/types.h>
+
+struct mutex;
+
+extern void mutex_lock(struct mutex *lock);
+extern void mutex_lock_nested(struct mutex *, unsigned int);
+extern int mutex_lock_interruptible(struct mutex *lock);
+extern int mutex_lock_killable(struct mutex *lock);
+
+// for arg_sign in mutex_arg_signs
+extern int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock);
+extern void ldv_mutex_lock_nested{{ arg_sign.id }}(struct mutex *lock, unsigned int subclass);
+extern void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock);
+extern int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock);
+extern int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *lock);
+extern int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock);
+extern void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock);
+// endfor
+}
+
+around: define(mutex_lock_interruptible(lock))
+{
+mutex_lock_interruptible(lock)
+}
+
+around: define(mutex_lock_nested(lock, subclass))
+{
+mutex_lock_nested(lock, subclass)
+}
+
+around: define(mutex_lock_killable(lock))
+{
+mutex_lock_killable(lock)
+}
+
+around: define(mutex_lock(lock))
+{
+mutex_lock(lock)
+}
+
+around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
+{
+	/* ASPECT_FUNC_CALL Check that mutex was not locked and lock it */
+	ldv_mutex_lock{{ mutex_arg_sign_patterns[1] }}($arg1);
+}
+
+around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
+{
+	/* ASPECT_FUNC_CALL Check that mutex was not locked and nondeterministically lock it */
+	return ldv_mutex_lock_interruptible_or_killable{{ mutex_arg_sign_patterns[1] }}($arg1);
+}
+
+around: call(static inline int mutex_is_locked(struct mutex *))
+{
+	/* ASPECT_FUNC_CALL Say whether mutex was locked in this or another thread  */
+	return ldv_mutex_is_locked{{ mutex_arg_sign_patterns[1] }}($arg1);
+}
+
+around: call(int mutex_trylock(struct mutex *))
+{
+	/* ASPECT_FUNC_CALL Lock mutex if it was not locked before */
+	return ldv_mutex_trylock{{ mutex_arg_sign_patterns[1] }}($arg1);
+}
+
+around: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
+{
+	/* ASPECT_FUNC_CALL Decrease counter by one and if it becomes zero check that mutex was not locked and lock it */
+	return ldv_atomic_dec_and_mutex_lock{{ mutex_arg_sign_patterns[2] }}($arg1, $arg2);
+}
+
+around: call(void mutex_unlock(struct mutex *))
+{
+	/* ASPECT_FUNC_CALL Check that mutex was locked and unlock it */
+	ldv_mutex_unlock{{ mutex_arg_sign_patterns[1] }}($arg1);
+}
+
+around: call(static inline int kref_put_mutex(..))
+{
+	if ($arg_value2) {
+		ldv_mutex_lock{{ mutex_arg_sign_patterns[3] }}($arg3);
+		$arg_value2($arg1);
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}

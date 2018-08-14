@@ -591,7 +591,7 @@
     },
     "linux:kernel:locking:svcomp": {
       "description": "...",
-      "template": "Linux kernel modules",
+      "template": "Argument signatures for Linux kernel modules",
       "EMG": {
          "translation options": {
            "initialize rules": true,
@@ -621,9 +621,6 @@
            "allocate external": false
          }
       },
-      "RSG": {
-        "models": {"sync/races.c": {"bug kinds": []}}
-      },
       "FVTP": {
         "verifier profile": "race checking",
         "verifier": {
@@ -635,22 +632,22 @@
         }
       },
       "ASE": {"request aspects": {
-        "linux/kernel/locking/mutex.request.aspect": {},
-        "linux/kernel/locking/spinlock.request.aspect": {}
+         "linux/kernel/locking/mutex.request.aspect": {},
+         "linux/kernel/locking/spinlock.request.aspect": {}
        }},
        "TR": {"templates": {
-         "linux/kernel/locking/mutex.c.tmpl": {},
-        "linux/kernel/locking/spinlock.c.tmpl" : {},
-         "linux/kernel/locking/mutex.aspect.tmpl": {},
-        "linux/kernel/locking/spinlock.aspect.tmpl": {}
+         "linux/kernel/locking/svcomp/mutex.c.tmpl": {},
+         "linux/kernel/locking/svcomp/spinlock.c.tmpl" : {},
+         "linux/kernel/locking/svcomp/mutex.aspect.tmpl": {},
+         "linux/kernel/locking/svcomp/spinlock.aspect.tmpl": {}
        }},
        "RSG": {"models": {
-         "$linux/kernel/locking/mutex.c": {
+         "$linux/kernel/locking/svcomp/mutex.c": {
            "bug kinds": [
            ],
            "sets model": "flag"
          },
-         "$linux/kernel/locking/spinlock.c": {
+         "$linux/kernel/locking/svcomp/spinlock.c": {
            "bug kinds": [
            ],
            "sets model": "flag"

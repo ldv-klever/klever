@@ -1,0 +1,170 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+#include <linux/spinlock_types.h>
+
+extern void __ldv_spin_lock(spinlock_t *lock);
+extern void __ldv_spin_unlock(spinlock_t *lock);
+extern int __ldv_spin_trylock(spinlock_t *lock);
+extern void __ldv_spin_unlock_wait(spinlock_t *lock);
+extern void __ldv_spin_can_lock(spinlock_t *lock);
+extern int __ldv_atomic_dec_and_lock(spinlock_t *lock);
+}
+
+around: define(spin_lock(lock))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_bh(lock))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_irq(lock))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_nested(lock, subclass))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_nest_lock(lock, nest_lock))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_irqsave(lock, flags))
+{
+__ldv_spin_lock(lock)
+}
+
+around: define(spin_lock_irqsave_nested(lock, flags, subclass))
+{
+__ldv_spin_lock(lock)
+}
+
+info: call(static inline void spin_lock(..)) ||
+      call(static inline void spin_lock_bh(..)) ||
+      call(static inline void spin_lock_irq(..)) ||
+      call(void __ldv_spin_lock(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+around: define(spin_unlock(lock))
+{
+__ldv_spin_unlock(lock)
+}
+
+around: define(spin_unlock_bh(lock))
+{
+__ldv_spin_unlock(lock)
+}
+
+around: define(spin_unlock_irq(lock))
+{
+__ldv_spin_unlock(lock)
+}
+
+around: define(spin_unlock_irqrestore(lock, flags))
+{
+__ldv_spin_unlock(lock)
+}
+
+info: call(static inline void spin_unlock(..)) ||
+      call(static inline void spin_unlock_bh(..)) ||
+      call(static inline void spin_unlock_irq(..)) ||
+      call(static inline void spin_unlock_irqrestore(..)) ||
+      call(void __ldv_spin_unlock(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+around: define(spin_trylock(lock))
+{
+__ldv_spin_trylock(lock)
+}
+
+around: define(spin_trylock_bh(lock))
+{
+__ldv_spin_trylock(lock)
+}
+
+around: define(spin_trylock_irq(lock))
+{
+__ldv_spin_trylock(lock)
+}
+
+around: define(spin_trylock_irqsave(lock, flags))
+{
+__ldv_spin_trylock(lock)
+}
+
+info: call(static inline int spin_trylock(..)) ||
+      call(static inline int spin_trylock_bh(..)) ||
+      call(static inline int spin_trylock_irq(..)) ||
+      call(int __ldv_spin_trylock(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+around: define(spin_unlock_wait(lock))
+{
+__ldv_spin_unlock_wait(lock)
+}
+
+info: call(static inline void spin_unlock_wait(..)) ||
+      call(void __ldv_spin_unlock_wait(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(static inline int spin_is_locked(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+around: define(spin_can_lock(lock))
+{
+__ldv_spin_can_lock(lock)
+}
+
+info: call(static inline int spin_can_lock(..)) ||
+      call(void __ldv_spin_can_lock(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(static inline int spin_is_contended(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+around: define(atomic_dec_and_lock(atomic, lock))
+{
+__ldv_atomic_dec_and_lock(lock)
+}
+
+info: call(int __ldv_atomic_dec_and_lock(..))
+{ 
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
