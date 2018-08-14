@@ -35,6 +35,7 @@ class Source:
     """This class to implement if necessary building and extraction of information from particular projects"""
 
     _CLADE_CONF = dict()
+    _CMDS_FILE = 'cmds.txt'
 
     def __init__(self, logger, conf):
         self.logger = logger
@@ -81,7 +82,9 @@ class Source:
         raise NotImplementedError
 
     def cleanup(self):
-        pass
+        cmds_file = os.path.join(self.work_src_tree, self._CMDS_FILE)
+        if os.path.isfile(cmds_file):
+            os.remove(cmds_file)
 
     def is_subsystem(self, path):
         if os.path.isdir(os.path.join(self.work_src_tree, path)):

@@ -166,30 +166,11 @@ class Linux(Source):
                 self._make(build_target, intercept_build_cmds=True)
 
     def cleanup(self):
-        # TODO: this extension will be redundant if all commented code will be removed.
+        super(Linux, self).cleanup()
         self.logger.info('Clean Linux kernel working source tree')
-
-        # TODO: I hope that we won't build external modules within Linux kernel working source tree anymore.
-        # if os.path.isdir(os.path.join(work_src_tree, 'ext-modules')):
-        #     shutil.rmtree(os.path.join(work_src_tree, 'ext-modules'))
-
-        # TODO: this optimization shouldn't be needed.
-        # if self.linux_kernel['prepared to build ext modules']:
-        #     return
 
         # TODO: this command can fail but most likely this shouldn't be an issue.
         subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
-
-        # TODO: I am almost sure that we don't need this anymore.
-        # Remove intermediate files and directories that could be created during previous run.
-        # if self.ext_conf.get('use original source tree'):
-        #     for dirpath, dirnames, filenames in os.walk(work_src_tree):
-        #         for filename in filenames:
-        #             if re.search(r'\.json$', filename):
-        #                 os.remove(os.path.join(dirpath, filename))
-        #         for dirname in dirnames:
-        #             if re.search(r'\.task$', dirname):
-        #                 shutil.rmtree(os.path.join(dirpath, dirname))
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return super(Linux, self)._make(

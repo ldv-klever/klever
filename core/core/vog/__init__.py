@@ -88,6 +88,7 @@ class VOG(core.components.Component):
     def prepare_and_build(self, source):
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
+        source.cleanup()
         source.configure()
         source.prepare_model_headers(model_headers)
         source.build()
