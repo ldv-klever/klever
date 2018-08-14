@@ -384,13 +384,13 @@ class VTG(core.components.Component):
         if os.path.isfile(vo_file):
             with open(vo_file, 'r', encoding='utf8') as fp:
                 verification_obj_desc_files = \
-                    [os.path.join(self.conf['main working directory'], vof) for vof in fp.readlines()]
+                    [os.path.join(self.conf['main working directory'], vof.strip()) for vof in fp.readlines()]
         else:
             raise FileNotFoundError
 
         # Drop a line to a progress watcher
         total_vo_descriptions = len(verification_obj_desc_files)
-        self.mqs['total tasks'].put([self.conf['job identifier'],
+        self.mqs['total tasks'].put([self.conf['sub-job identifier'],
                                      int(total_vo_descriptions * len(self.rule_spec_descs))])
 
         vo_descriptions = dict()
@@ -462,7 +462,7 @@ class VTG(core.components.Component):
                 if rule_class:
                     final = balancer.add_solution(vobject, rule_class, rule_name, status_info)
                     if final:
-                        self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
+                        self.mqs['finished and failed tasks'].put([self.conf['sub-sub-job identifier'], 'finished'
                                                                   if status_info[0] == 'finished' else 'failed'])
                         processing_status[vobject][rule_class][rule_name] = True
                     active_tasks -= 1
@@ -519,7 +519,7 @@ class VTG(core.components.Component):
                                 active_tasks += 1
                             elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
                                 self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
-                                self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
+                                self.mqs['finished and failed tasks'].put([self.conf['sub-sub-job identifier'], 'finished'])
                                 processing_status[vobject][rule_class][rule['id']] = True
 
                     # Number of solved tasks
