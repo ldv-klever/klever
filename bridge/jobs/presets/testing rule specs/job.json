@@ -115,9 +115,9 @@
     {"Linux kernel": {"modules": ["linux/usb/gadget"]}, "rule specifications": ["linux:usb:gadget"]},
     {"Linux kernel": {"modules": ["linux/usb/register"]}, "rule specifications": ["linux:usb:register"]},
     {"Linux kernel": {"modules": ["linux/usb/urb"]}, "rule specifications": ["linux:usb:urb"]},
-    {"Linux kernel": {"modules": ["sync/race/lock-reduce"]}, "rule specifications": ["sync:race"]},
-    {"Linux kernel": {"modules": ["sync/race/simple"]}, "rule specifications": ["sync:race"]},
-    {"Linux kernel": {"modules": ["sync/race/unsorted"]}, "rule specifications": ["sync:race"]}
+    {"Linux kernel": {"modules": ["sync/race/lock-reduce"]}, "rule specifications": ["sync:race", "linux:kernel:locking:svcomp"]},
+    {"Linux kernel": {"modules": ["sync/race/simple"]}, "rule specifications": ["sync:race", "linux:kernel:locking:svcomp"]},
+    {"Linux kernel": {"modules": ["sync/race/unsorted"]}, "rule specifications": ["sync:race", "linux:kernel:locking:svcomp"]}
   ],
   "Sub-jobs staging": [
     {"Linux kernel": {"modules": ["linux/alloc/memory"]}, "rule specifications": ["linux:alloc"]},
