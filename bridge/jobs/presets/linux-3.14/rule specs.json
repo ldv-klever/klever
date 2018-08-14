@@ -588,6 +588,74 @@
           "expect several witnesses": true
         }
       }
+    },
+    "linux:kernel:locking:svcomp": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "EMG": {
+         "translation options": {
+           "initialize rules": true,
+           "check final state": true,
+           "dump automata graphs": false,
+           "implicit callback calls": false,
+           "direct control functions calls": false,
+           "nested automata": true,
+           "no actions composition": ["Condition"],
+           "self parallelism": false,
+           "pure pthread interface": false,
+           "pointer initialization": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "pointer free": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "allocate with sizeof": true,
+           "allocate external": false
+         }
+      },
+      "RSG": {
+        "models": {"sync/races.c": {"bug kinds": []}}
+      },
+      "FVTP": {
+        "verifier profile": "race checking",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "CPALockator-combat-mode:28916"
+        },
+        "result processing": {
+          "expect several witnesses": true
+        }
+      },
+      "ASE": {"request aspects": {
+        "linux/kernel/locking/mutex.request.aspect": {},
+        "linux/kernel/locking/spinlock.request.aspect": {}
+       }},
+       "TR": {"templates": {
+         "linux/kernel/locking/mutex.c.tmpl": {},
+        "linux/kernel/locking/spinlock.c.tmpl" : {},
+         "linux/kernel/locking/mutex.aspect.tmpl": {},
+        "linux/kernel/locking/spinlock.aspect.tmpl": {}
+       }},
+       "RSG": {"models": {
+         "$linux/kernel/locking/mutex.c": {
+           "bug kinds": [
+           ],
+           "sets model": "flag"
+         },
+         "$linux/kernel/locking/spinlock.c": {
+           "bug kinds": [
+           ],
+           "sets model": "flag"
+         }
+       }}
     }
   },
   "rule specifications staging": {
