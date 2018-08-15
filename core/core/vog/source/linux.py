@@ -40,6 +40,7 @@ class Linux(Source):
     _EXT_DIR = 'ext-modules/'
     _CLADE_CONF = {
         "log_level": "INFO",
+        "CC.store_deps": True,
         "Common.filter": [
             ".*?\\.tmp$"
         ],

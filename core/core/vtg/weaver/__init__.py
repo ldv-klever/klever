@@ -19,8 +19,7 @@ import fileinput
 import json
 import os
 import re
-
-# from clade import Clade
+import clade.interface as clade_api
 
 import core.utils
 import core.vtg.utils
@@ -37,19 +36,18 @@ class Weaver(core.vtg.plugins.Plugin):
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 
-        clade = Clade()
-        clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-
+        clade_api.setup(self.conf['Clade']['base'])
+        storage = clade_api.FileStorage()
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for extra_cc in grp['Extra CCs']:
                 if 'CC' in extra_cc:
                     if extra_cc['CC'].isdigit():
-                        cc = clade.get_cc().load_json_by_id(extra_cc['CC'])
+                        cc = clade_api.get_cc(extra_cc['CC'])
+                        cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
                     else:
-                        with open(os.path.join(self.conf['main working directory'],
-                                               extra_cc['CC']),
+                        with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
                                   encoding='utf8') as fp:
                             cc = json.load(fp)
 
@@ -95,8 +93,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', (self.conf['Clade']['storage'] + cc['in'][0])
-                                  if os.path.isabs(cc['in'][0]) else cc['in'][0],
+                                  '--in', storage.normal_path(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for rule specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(os.path.dirname(
@@ -111,9 +108,9 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.utils.prepare_cif_opts(cc['opts'], self.conf['Clade']['storage']) +
+                              core.utils.prepare_cif_opts(cc['opts'], storage.storage_dir) +
                               [aspectator_search_dir]),
-                        cwd=self.conf['Clade']['storage'] + cc['cwd'],
+                        cwd=storage.convert_path(cc['cwd']),
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
 
@@ -148,8 +145,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(
-                                        os.path.join(self.conf['Clade']['storage'] + cc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(storage.storage_dir + cc['cwd'], file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)

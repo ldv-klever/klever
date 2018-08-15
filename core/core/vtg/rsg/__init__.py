@@ -18,8 +18,7 @@
 import json
 import os
 import re
-
-# from clade import Clade
+import clade.interface as clade_api
 
 import core.utils
 import core.vtg.plugins
@@ -183,9 +182,15 @@ class RSG(core.vtg.plugins.Plugin):
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models. They correspond to options used to compile
         # scripts/mod/empty.c.
-        clade = Clade()
-        clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        empty_cc = clade.get_cc().load_json_by_in(self.conf['opts file'])
+        clade_api.setup(self.conf['Clade']['base'])
+        empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['project']['opts file'])
+        storage = clade_api.FileStorage()
+        if not empty_cc or len(empty_cc) > 1:
+            raise RuntimeError("There is not or instead there are a lot of cc commands for {!r}".
+                               format(self.conf['project']['opts file']))
+        else:
+            empty_cc = empty_cc.pop()
+        empty_cc['opts'] = clade_api.get_cc_opts(empty_cc['id'])
 
         model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):
@@ -204,7 +209,7 @@ class RSG(core.vtg.plugins.Plugin):
                     json.dump({
                         'cwd': empty_cc['cwd'],
                         'in': [os.path.relpath(model['bug kinds preprocessed C file'],
-                                               self.conf['Clade']['storage'] + empty_cc['cwd'])],
+                                               storage.convert_path(empty_cc['cwd']))],
                         'out': os.path.realpath(out_file),
                         'opts': empty_cc['opts'] +
                                 ['-DLDV_SETS_MODEL_' + (model['sets model']

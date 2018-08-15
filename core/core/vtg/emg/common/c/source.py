@@ -280,7 +280,7 @@ class Source:
                 if scope in cfiles:
                     # Definition of the function is in the code of interest
                     self._add_function(func, scope, fs)
-                elif set(desc['called_in'].keys()).intersection(cfiles) or func in vfunctions:
+                elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
                     # Function is called in the target code but defined in dependencies
                     self._add_function(func, scope, fs)
                     continue

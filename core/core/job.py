@@ -503,7 +503,7 @@ class Job(core.components.Component):
             if 'KLEVER_WORK_DIR' not in os.environ:
                 raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
 
-            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], clade_conf['base'])
+            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', clade_conf['base'])
 
             if os.path.exists(clade_base):
                 if not os.path.isdir(clade_base):
@@ -516,6 +516,18 @@ class Job(core.components.Component):
             clade_base = os.path.join(os.path.realpath(self.work_dir), 'clade')
 
         clade_conf['base'] = clade_base
+
+        # When configuration does not specify Clade storage take if from or place it within Clade base. Otherwise
+        # use specified Clade storage.
+        if clade_conf.get('storage'):
+            if 'KLEVER_WORK_DIR' not in os.environ:
+                raise KeyError('Do not specify Clade storage when environment variable KLEVER_WORK_DIR is not set')
+
+            clade_storage = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', 'Storage', clade_conf['storage'])
+        else:
+            clade_storage = os.path.join(clade_base, 'Storage')
+
+        clade_conf['storage'] = clade_storage
 
         # Update existing Clade configuration.
         self.common_components_conf['Clade'] = clade_conf

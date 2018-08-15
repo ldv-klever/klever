@@ -17,8 +17,7 @@
 
 import fileinput
 import os
-
-from clade import Clade
+import clade.interface as clade_api
 
 import core.vtg.utils
 import core.utils
@@ -34,10 +33,10 @@ class ASE(core.vtg.plugins.Plugin):
             raise KeyError(
                 'Value of option "request aspects" is not mandatory JSON object with request aspects as keys')
 
-        self.clade = Clade()
-        self.clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
+        clade_api.setup(self.conf['Clade']['base'])
+        storage = clade_api.FileStorage()
 
-        self.request_arg_signs()
+        self.request_arg_signs(storage)
 
         if 'template context' not in self.abstract_task_desc:
             self.abstract_task_desc['template context'] = {}
@@ -70,7 +69,7 @@ class ASE(core.vtg.plugins.Plugin):
                     ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
             }
 
-    def request_arg_signs(self):
+    def request_arg_signs(self, storage):
         self.logger.info('Request argument signatures')
 
         for request_aspect in self.conf['request aspects']:
@@ -90,7 +89,8 @@ class ASE(core.vtg.plugins.Plugin):
                 for extra_cc in grp['Extra CCs']:
                     self.logger.info('Request argument signatures for C file "{0}"'.format(extra_cc['in file']))
 
-                    cc = self.clade.get_cc().load_json_by_id(extra_cc['CC'])
+                    cc = clade_api.get_cc(extra_cc['CC'])
+                    cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
 
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(
@@ -132,7 +132,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.utils.prepare_cif_opts(cc['opts'], self.conf['Clade']['storage']) +
+                                             core.utils.prepare_cif_opts(cc['opts'], storage.storage_dir) +
                                              [
                                                  # Besides header files specific for rule specifications will be
                                                  # searched for.
@@ -143,7 +143,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                  aspectator_search_dir
                                              ]),
                                        env,
-                                       cwd=self.conf['Clade']['storage'] + cc['cwd'],
+                                       cwd=storage.storage_dir + cc['cwd'],
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

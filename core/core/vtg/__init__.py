@@ -462,7 +462,7 @@ class VTG(core.components.Component):
                 if rule_class:
                     final = balancer.add_solution(vobject, rule_class, rule_name, status_info)
                     if final:
-                        self.mqs['finished and failed tasks'].put([self.conf['sub-sub-job identifier'], 'finished'
+                        self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
                                                                   if status_info[0] == 'finished' else 'failed'])
                         processing_status[vobject][rule_class][rule_name] = True
                     active_tasks -= 1
@@ -661,18 +661,15 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
         initial_abstract_task_desc['attrs'] = ()
+        storage = self.clade.FileStorage()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
 
-            # todo: add Clade storage
             for cc in grp['CCs']:
                 in_file = self.clade.get_cc(cc)['in'][0]
                 grp['Extra CCs'].append({
                     'CC': cc,
-                    'in file': os.path.abspath(
-                        os.path.join(core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                                 self.conf['project']['source']),
-                                     in_file))
+                    'in file': storage.convert_path(in_file) if os.path.isabs(in_file) else in_file
                 })
 
             del (grp['CCs'])
