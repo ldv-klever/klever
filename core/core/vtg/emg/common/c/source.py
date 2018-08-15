@@ -20,8 +20,9 @@ import json
 import clade.interface as clade_api
 
 from core.utils import find_file_or_dir
+from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
-from core.vtg.emg.common.c.types import import_typedefs, import_declaration, extract_name, is_static
+from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
 
 
 class Source:
@@ -305,15 +306,21 @@ class Source:
                                 obj.add_call(caller, caller_scope)
                                 caller_intf.call_in_function(func, params)
 
-        #
-        # if 'macros' in source_analysis:
-        #     for name in source_analysis['macros']:
-        #         macro = Macro(name)
-        #         for scope in source_analysis['macros'][name]:
-        #             for actual_scope in files_map[scope]:
-        #                 for call in source_analysis['macros'][name][scope]['args']:
-        #                     macro.add_parameters(actual_scope, call)
-        #         self.set_macro(macro)
+        macros_file = get_conf_property(self._conf['source analysis'], 'macros white list')
+        if macros_file:
+            macros_file = find_file_or_dir(self.logger, self._conf['main working directory'], macros_file)
+            with open(macros_file, 'r', encoding='utf8') as fp:
+                white_list = json.load(fp)
+            if white_list:
+                macros = clade_api.MacroExpansions(white_list, cfiles).macros
+                for path, macros in macros.items():
+                    for macro, desc in macros.items():
+                        obj = self.get_macro(macro)
+                        if not obj:
+                            obj = Macro(macro)
+                        for call in desc.get('args', []):
+                            obj.add_parameters(path, call)
+                        self.set_macro(obj)
 
     def _add_function(self, func, scope, fs):
         fs_desc = fs[func][scope]
