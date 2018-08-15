@@ -63,9 +63,6 @@ def generate_processes(emg, source, processes, conf):
     emg.logger.info("Import event categories specification")
     abstract_processes = AbstractProcessImporter(emg.logger, conf)
     abstract_processes.parse_event_specification(event_spec)
-    roles_file = core.utils.find_file_or_dir(emg.logger,
-                                             get_necessary_conf_property(emg.conf, "main working directory"),
-                                             get_necessary_conf_property(conf, "roles map file"))
 
     # Now check that we have all necessary interface specifications
     unspecified_functions = [func for func in abstract_processes.models
@@ -74,10 +71,7 @@ def generate_processes(emg, source, processes, conf):
     if len(unspecified_functions) > 0:
         raise RuntimeError("You need to specify interface specifications for the following function models: {}"
                            .format(', '.join(unspecified_functions)))
-
-    with open(roles_file, encoding="utf8") as fh:
-        roles_map = json.loads(fh.read())
-    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes, roles_map)
+    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes)
     abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
     abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
 

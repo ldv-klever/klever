@@ -25,21 +25,11 @@ from core.vtg.emg.processGenerator.linuxModule.process import AbstractAccess, Ca
 
 
 class ProcessModel:
-    def __init__(self, logger, conf, interfaces, processes, roles_map):
+    def __init__(self, logger, conf, interfaces, processes):
         self.logger = logger
         self.conf = conf
         self.__abstr_model_processes = {p.name: p for p in processes.models.values()}
         self.__abstr_event_processes = {p.name: p for p in processes.environment.values()}
-        self.__roles_map = dict()
-        self.__functions_map = dict()
-        self.__default_dispatches = list()
-
-        if "roles map" in roles_map:
-            self.__roles_map = roles_map["roles map"]
-        if "functions map" in roles_map:
-            self.__functions_map = roles_map["functions map"]
-            for tp in self.__functions_map:
-                self.__functions_map[tp] = [re.compile(pattern) for pattern in self.__functions_map[tp]]
 
         self.model_processes = []
         self.event_processes = []
@@ -58,7 +48,7 @@ class ProcessModel:
                 raise ValueError("Found process without category {!r}".format(process.name))
 
         # Refine processes
-        if get_conf_property(conf,"delete unregistered processes"):
+        if get_conf_property(conf, "delete unregistered processes"):
             self.__refine_processes()
 
     def __select_processes_and_models(self, interfaces):
@@ -614,51 +604,6 @@ class ProcessModel:
             if len(intf) == 0:
                 intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces.keys()
                         if matched[-1].field_interfaces[name].short_identifier == field]
-
-            # Math using an interface role
-            if process and action and isinstance(action, Call) and len(intf) == 0 and self.__roles_map and \
-                    field in self.__roles_map:
-                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces.keys()
-                        if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
-                        isinstance(matched[-1].field_interfaces[name], Callback)]
-
-                # Filter by retlabel
-                if action.retlabel and len(intf) > 0:
-                    ret_label, ret_tail = process.extract_label_with_tail(action.retlabel)
-                    if ret_tail == '' and ret_label and len(ret_label.declarations) > 0:
-                        intf = [i for i in intf if len([r for r in ret_label.declarations
-                                                        if i.declaration.points.return_value.compare(r)]) > 0]
-                    else:
-                        intf = []
-
-                # filter parameters
-                if len(intf) > 0:
-                    # Collect parameters with declarations
-                    param_match = []
-                    for parameter in action.parameters:
-                        p_label, p_tail = process.extract_label_with_tail(parameter)
-
-                        if p_tail == '' and p_label and len(p_label.declarations) > 0:
-                            param_match.append(p_label.declarations)
-
-                    # Match parameters
-                    new_intf = []
-                    for interface in intf:
-                        suits = 0
-                        for indx in range(len(param_match)):
-                            found = 0
-                            for param in interface.declaration.points.parameters[indx:]:
-                                for option in param_match[indx]:
-                                    if option.compare(param):
-                                        found += 1
-                                        break
-                                if found:
-                                    break
-                            if found:
-                                suits += 1
-                        if suits == len(param_match):
-                            new_intf.append(interface)
-                    intf = new_intf
 
             if len(intf) == 0:
                 return None
