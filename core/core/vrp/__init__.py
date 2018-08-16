@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ElementTree
 import zipfile
 import multiprocessing
 
-# from clade import Clade
+import clade.interface as clade_api
 
 from core.vrp.et import import_error_trace
 
@@ -249,13 +249,13 @@ class RP(core.components.Component):
         self.clean_dir = True
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
-        # Obtain file prefix that can be removed from file paths.
-        # clade = Clade()
-        # clade.set_work_dir(self.conf['Clade']['base'], self.conf['Clade']['storage'])
-        # self.storage = self.conf['Clade']['storage']
-        # clade_global_data = clade.get_global_data()
+        # Obtain file prefixes that can be removed from file paths.
+        clade_api.setup(self.conf['Clade']['base'])
+        self.storage = clade_api.FileStorage()
+        with open(self.storage.convert_path('search dirs.json'), encoding='utf8') as fp:
+            self.search_dirs = json.load(fp)
+
         # self.work_src_tree = clade_global_data['working source tree']
-        # self.search_dirs = clade_global_data['search directories']
         # self.ext_modules_dir = clade_global_data['external modules']
 
 
@@ -510,11 +510,11 @@ class RP(core.components.Component):
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
-        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage,
-                                          self.ext_modules_dir, self.work_src_tree, self.search_dirs,
-                                          self.conf['main working directory'], opts.get('coverage', None),
-                                          os.path.join(self.conf['main working directory'], self.coverage_info_file),
-                                          os.path.join(self.conf['main working directory'], coverage_info_dir))
+        # self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage,
+        #                                   self.ext_modules_dir, self.work_src_tree, self.search_dirs,
+        #                                   self.conf['main working directory'], opts.get('coverage', None),
+        #                                   os.path.join(self.conf['main working directory'], self.coverage_info_file),
+        #                                   os.path.join(self.conf['main working directory'], coverage_info_dir))
 
         if os.path.isfile('coverage.json'):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
@@ -547,17 +547,11 @@ class RP(core.components.Component):
 
         for file_name in file_names:
             # Remove storage from file names if files were put there.
-            if os.path.commonprefix([file_name, self.storage]) == self.storage:
-                new_file_name = os.path.join(os.path.sep, os.path.relpath(file_name, self.storage))
-            else:
-                new_file_name = file_name
+            new_file_name = core.utils.make_relative_path([self.storage.storage_dir], file_name)
 
             # Try to make paths relative to working source tree or standard search directories.
-            if os.path.commonprefix([new_file_name, self.work_src_tree]) == self.work_src_tree:
-                new_file_name = os.path.relpath(new_file_name, self.work_src_tree)
-            else:
-                new_file_name = core.utils.make_relative_path(self.search_dirs, new_file_name)
-
+            new_file_name = core.utils.make_relative_path(self.search_dirs, new_file_name)
+            #self.search_dirs
             arcnames[file_name] = new_file_name
 
         return arcnames
