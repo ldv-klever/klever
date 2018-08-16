@@ -614,16 +614,12 @@
     "linux:usb:dev": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {
-          "linux/arch/atomic.c": {},
-          "linux/usb/dev.c": {"bug kinds": [
-            "linux:usb:dev::unincremented counter decrement",
-            "linux:usb:dev::less initial decrement",
-            "linux:usb:dev::more initial at exit",
-            "linux:usb:dev::probe failed"
-          ]}
-        }
-      }
+      "RSG": {"models": {"linux/usb/dev.c": {"bug kinds": [
+        "linux:usb:dev::unincremented counter decrement",
+        "linux:usb:dev::less initial decrement",
+        "linux:usb:dev::more initial at exit",
+        "linux:usb:dev::probe failed"
+      ]}}}
     },
     "linux:usb:gadget": {
       "description": "...",
