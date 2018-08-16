@@ -503,7 +503,7 @@ class Job(core.components.Component):
             if 'KLEVER_WORK_DIR' not in os.environ:
                 raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
 
-            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], clade_conf['base'])
+            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', clade_conf['base'])
 
             if os.path.exists(clade_base):
                 if not os.path.isdir(clade_base):
