@@ -43,25 +43,23 @@ class VOG(core.components.Component):
 
     def generate_verification_objects(self):
         # Get classes
-        source = get_source_adapter(self.conf['project']['name'])
+        program = get_source_adapter(self.conf['project']['name'])
         divider = get_divider(self.conf['VOG divider']['name'])
         strategy = get_division_strategy(self.conf['VOG strategy']['name'])
 
         # Create instances
-        source = source(self.logger, self.conf)
+        program = program(self.logger, self.conf)
         if not self.conf['Clade']["is base cached"]:
             # Prepare project working source tree and extract build commands exclusively but just with other
             # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
-                self.prepare_and_build(source)
-        else:
-            source.configure()
+                self.prepare_and_build(program)
         clade_api.setup(self.conf['Clade']["base"])
 
-        divider = divider(self.logger, self.conf, source, clade_api)
+        divider = divider(self.logger, self.conf, program, clade_api)
         strategy = strategy(self.logger, self.conf, divider)
-        self.common_prj_attrs = source.attributes + strategy.attributes + divider.attributes
+        self.common_prj_attrs = program.attributes + strategy.attributes + divider.attributes
         self.submit_project_attrs()
 
         # Generate verification objects
@@ -85,13 +83,13 @@ class VOG(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-    def prepare_and_build(self, source):
+    def prepare_and_build(self, program):
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
-        source.cleanup()
-        source.configure()
-        source.prepare_model_headers(model_headers)
-        source.build()
+        program.prepare_build_directory()
+        program.configure()
+        program.prepare_model_headers(model_headers)
+        program.build()
 
     def prepare_descriptions_file(self, files):
         """Has a callback!"""

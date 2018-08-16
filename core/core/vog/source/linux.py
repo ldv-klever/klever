@@ -65,6 +65,14 @@ class Linux(Source):
         self.kernel = self.conf['project'].get('build kernel', False)
         self.__loadable_modules_support = True
 
+    @property
+    def subdirectories(self):
+        return self.conf['project'].get('subsustems', [])
+
+    @property
+    def targets(self):
+        return self.conf['project'].get('loadable modules', [])
+
     def configure(self):
         self.logger.info('Configure Linux kernel')
         super(Linux, self).configure()
@@ -107,7 +115,7 @@ class Linux(Source):
     def _build(self):
         self.logger.info('Build Linux kernel')
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        targets_to_build = set(self.conf['project'].get('verification targets', []))
+        targets_to_build = self.targets + self.subdirectories
         targets_to_build = sorted(targets_to_build)
 
         # Prepare model headers as a separate module
@@ -166,8 +174,8 @@ class Linux(Source):
             for build_target in build_targets:
                 self._make(build_target, intercept_build_cmds=True)
 
-    def cleanup(self):
-        super(Linux, self).cleanup()
+    def _cleanup(self):
+        super(Linux, self)._cleanup()
         self.logger.info('Clean Linux kernel working source tree')
 
         # TODO: this command can fail but most likely this shouldn't be an issue.

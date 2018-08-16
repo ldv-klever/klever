@@ -23,10 +23,8 @@ class Linux(AbstractDivider):
 
     def __init__(self, logger, conf, source, clade_api):
         super(Linux, self).__init__(logger, conf, source, clade_api)
-        self._subdirectories = {os.path.join(d) for d in self.conf['project']['verification targets']
-                                if self.source.is_subsystem(d)}
-        self._targets = {os.path.join(d) for d in self.conf['project']['verification targets']
-                         if not self.source.is_subsystem(d)}
+        self._subdirectories = source.subdirectories
+        self._targets = source.targets
         self._kernel_verification = self.conf['VOG divider'].get('target kernel', False)
         self._max_size = self.conf['project'].get("maximum unit size")
 

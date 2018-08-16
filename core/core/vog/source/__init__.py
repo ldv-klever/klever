@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import json
 import shutil
 import tarfile
 import importlib
@@ -36,6 +37,7 @@ class Source:
 
     _CLADE_CONF = dict()
     _CMDS_FILE = 'cmds.txt'
+    _ATTRS_FILE = 'source attrs.json'
 
     def __init__(self, logger, conf):
         self.logger = logger
@@ -44,28 +46,51 @@ class Source:
         self.version = None
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
+        self.work_src_tree = None
         self._opts_file = self.conf['project']['opts file']
-        self._prepare_working_directory()
         self._model_headers_path = 'model-headers'
         self._clade_dir = self.conf['Clade']['base']
+        self._build_flag = False
 
     @property
     def attributes(self):
-        attrs = [{'name': 'kind', 'value': type(self).__name__}] + \
-                [{"name": att, "value": getattr(self, att)} for att in ('arch', 'version', 'configuration')]
-        return [
-            {
-                'name': 'project',
-                'value': attrs
-            }
-        ]
+        if not self._build_flag:
+            return self._retrieve_attrs()
+        else:
+            attrs = [{'name': 'kind', 'value': type(self).__name__}] + \
+                    [{"name": att, "value": getattr(self, att)} for att in ('arch', 'version', 'configuration')]
+            return [
+                {
+                    'name': 'project',
+                    'value': attrs
+                }
+            ]
+
+    @property
+    def targets(self):
+        raise NotImplementedError
+
+    @property
+    def subdirectories(self):
+        raise NotImplementedError
 
     def configure(self):
         self.configuration = self.conf['project'].get('configuration')
 
     def build(self):
+        if not self._build_flag:
+            self._build_flag = True
+        else:
+            raise RuntimeError("Cannot build the program second time")
         self._build()
         clade_api.initialize_extensions(self._clade_dir, os.path.join(self.work_src_tree, 'cmds.txt'), self._CLADE_CONF)
+
+        # Save properties to Clade storage
+        props = self.attributes
+        path = self._ATTRS_FILE
+        with open(path, 'w', encoding='utf8') as fp:
+            json.dump(props, fp)
+        clade_api.FileStorage().save_file(path)
 
     def prepare_model_headers(self, model_headers):
         os.makedirs(self._model_headers_path)
@@ -78,26 +103,27 @@ class Source:
                     fp.write('#include <{0}>\n'.format(header))
         return None
 
+    def _retrieve_attrs(self):
+        clade_api.setup(self._clade_dir, self._CLADE_CONF)
+        path = os.path.join(clade_api.FileStorage().storage_dir, self._ATTRS_FILE)
+        with open(path, 'r', encoding='utf8') as fp:
+            attrs = json.load(fp)
+        return attrs
+
     def _build(self):
         raise NotImplementedError
 
-    def cleanup(self):
+    def _cleanup(self):
         cmds_file = os.path.join(self.work_src_tree, self._CMDS_FILE)
         if os.path.isfile(cmds_file):
             os.remove(cmds_file)
-
-    def is_subsystem(self, path):
-        if os.path.isdir(os.path.join(self.work_src_tree, path)):
-            return True
-        else:
-            return False
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +
                                   ['make', '-j', self.workers] + opts + target,
                                   cwd=self.work_src_tree, env=env, collect_all_stdout=collect_all_stdout)
 
-    def _prepare_working_directory(self):
+    def prepare_build_directory(self):
         try:
             src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                               self.conf['project']['source'])
@@ -107,7 +133,7 @@ class Source:
         self.work_src_tree = self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
                                                        self.conf['allow local source directories use'])
         self._make_canonical_work_src_tree()
-        self.cleanup()
+        self._cleanup()
 
     def _fetch_work_src_tree(self, src, work_src_tree, git_repo, use_orig_src_tree):
         self.logger.info('Fetch source code from "{0}" to working source tree "{1}"'.format(src, work_src_tree))
