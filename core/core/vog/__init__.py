@@ -72,6 +72,7 @@ class VOG(core.components.Component):
         divider = divider(self.logger, self.conf, program, clade_api)
         strategy = strategy(self.logger, self.conf, divider)
         self.common_prj_attrs = program.attributes + strategy.attributes + divider.attributes
+        self.source_paths = program.source_paths
         self.submit_project_attrs()
 
         # Generate verification objects

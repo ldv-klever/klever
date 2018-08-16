@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import os
+from core.utils import make_relative_path
 from core.vog.dividers.abstract import AbstractDivider
 
 
@@ -23,8 +23,6 @@ class Linux(AbstractDivider):
 
     def __init__(self, logger, conf, source, clade_api):
         super(Linux, self).__init__(logger, conf, source, clade_api)
-        self._subdirectories = source.subdirectories
-        self._targets = source.targets
         self._kernel_verification = self.conf['VOG divider'].get('target kernel', False)
         self._max_size = self.conf['project'].get("maximum unit size")
 
@@ -37,9 +35,11 @@ class Linux(AbstractDivider):
 
         for identifier, desc in cmdg.LDs:
             if desc['out'].endswith('.ko') or (self._kernel_verification and desc['out'].endswith('built-in.o')):
-                unit = self._create_unit_from_ld(identifier, desc, cmdg, srcg)
+                rel_object_path = make_relative_path(self.source.source_paths, desc['out'])
+                name = rel_object_path
+                unit = self._create_unit_from_ld(identifier, name, cmdg, srcg)
                 if not self._max_size or unit.size <= self._max_size:
-                    if self._check_target(desc['out']):
+                    if self.source.check_target(rel_object_path):
                         unit.target = True
                         target_units.add(unit)
                     units.add(unit)
@@ -49,10 +49,3 @@ class Linux(AbstractDivider):
 
         self._units = units
         self._target_units = target_units
-
-    def _check_target(self, path):
-        if (self._kernel_verification and path.endswith('built-in.o') and os.path.dirname in self._subdirectories) or \
-                (not self._kernel_verification and (path in self._targets or
-                                                    any(path.startswith(subs) for subs in self._subdirectories))):
-            return True
-        return False

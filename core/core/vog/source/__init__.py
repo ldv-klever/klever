@@ -38,6 +38,7 @@ class Source:
     _CLADE_CONF = dict()
     _CMDS_FILE = 'cmds.txt'
     _ATTRS_FILE = 'source attrs.json'
+    _SOURCE_PATH_FILE = 'source paths.json'
 
     def __init__(self, logger, conf):
         self.logger = logger
@@ -47,6 +48,7 @@ class Source:
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self.work_src_tree = None
+        self._source_paths = []
         self._opts_file = self.conf['project']['opts file']
         self._model_headers_path = 'model-headers'
         self._clade_dir = self.conf['Clade']['base']
@@ -67,11 +69,12 @@ class Source:
             ]
 
     @property
-    def targets(self):
-        raise NotImplementedError
+    def source_paths(self):
+        if not self._build_flag:
+            self._source_paths = self._retrieve_source_paths()
+        return self._source_paths
 
-    @property
-    def subdirectories(self):
+    def check_target(self, path):
         raise NotImplementedError
 
     def configure(self):
@@ -86,11 +89,11 @@ class Source:
         clade_api.initialize_extensions(self._clade_dir, os.path.join(self.work_src_tree, 'cmds.txt'), self._CLADE_CONF)
 
         # Save properties to Clade storage
-        props = self.attributes
-        path = self._ATTRS_FILE
-        with open(path, 'w', encoding='utf8') as fp:
-            json.dump(props, fp)
-        clade_api.FileStorage().save_file(path)
+        storage = clade_api.FileStorage()
+        for d, f in ((self.attributes, self._ATTRS_FILE), (self._source_paths, self._SOURCE_PATH_FILE)):
+            with open(f, 'w', encoding='utf8') as fp:
+                json.dump(d, fp)
+            storage.save_file(f)
 
     def prepare_model_headers(self, model_headers):
         os.makedirs(self._model_headers_path)
@@ -105,10 +108,17 @@ class Source:
 
     def _retrieve_attrs(self):
         clade_api.setup(self._clade_dir, self._CLADE_CONF)
-        path = os.path.join(clade_api.FileStorage().storage_dir, self._ATTRS_FILE)
+        path = clade_api.FileStorage().convert_path(self._ATTRS_FILE)
         with open(path, 'r', encoding='utf8') as fp:
             attrs = json.load(fp)
         return attrs
+
+    def _retrieve_source_paths(self):
+        clade_api.setup(self._clade_dir, self._CLADE_CONF)
+        path = clade_api.FileStorage().convert_path(self._SOURCE_PATH_FILE)
+        with open(path, 'r', encoding='utf8') as fp:
+            paths = json.load(fp)
+        return paths
 
     def _build(self):
         raise NotImplementedError
@@ -132,6 +142,7 @@ class Source:
             src = self.conf['project']['source']
         self.work_src_tree = self._fetch_work_src_tree(src, 'source', self.conf['project'].get('Git repository'),
                                                        self.conf['allow local source directories use'])
+        self._source_paths.append(os.path.abspath(self.work_src_tree))
         self._make_canonical_work_src_tree()
         self._cleanup()
 

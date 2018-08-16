@@ -669,7 +669,7 @@ class VTGW(core.components.Component):
                 in_file = self.clade.get_cc(cc)['in'][0]
                 grp['Extra CCs'].append({
                     'CC': cc,
-                    'in file': storage.convert_path(in_file) if os.path.isabs(in_file) else in_file
+                    'in file': in_file
                 })
 
             del (grp['CCs'])

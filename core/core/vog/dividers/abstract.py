@@ -55,10 +55,9 @@ class AbstractDivider:
     def _divide(self):
         raise NotImplementedError
 
-    def _create_unit_from_ld(self, identifier, desc, cmdg, srcg):
-        # todo: it works nicely but we get cc commands for mod.c do we need to filter them out?
+    def _create_unit_from_ld(self, identifier, name, cmdg, srcg):
         ccs = cmdg.get_ccs_for_ld(identifier)
-        unit = common.Unit(desc['out'])
+        unit = common.Unit(name)
         unit.ccs = {i for i, d in ccs}
         unit.in_files = {d['in'][0] for i, d in ccs}
         unit.size = sum(srcg.get_sizes(unit.in_files).values())

@@ -59,15 +59,27 @@ class Linux(Source):
             "vmlinux"
         ]
     }
+    _source_paths = []
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
-        self.kernel = self.conf['project'].get('build kernel', False)
+        self._kernel = self.conf['project'].get('build kernel', False)
         self.__loadable_modules_support = True
+        self._subsystems = self.conf['project'].get('kernel subsystems', [])
+        self._modules = self.conf['project'].get('loadable kernel modules', [])
+        self._external_modules = self.conf['project'].get('external modules', False)
+
+    def check_target(self, candidate):
+        candidate = core.utils.make_relative_path(self.source_paths, candidate)
+        if (self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems) or \
+                (not self._kernel and (candidate in self._modules or
+                                       any(candidate.startswith(s) for s in self._subsystems))):
+            return True
+        return False
 
     @property
     def subdirectories(self):
-        return self.conf['project'].get('subsustems', [])
+        return self.conf['project'].get('kernel subsystems', [])
 
     @property
     def targets(self):
@@ -121,10 +133,10 @@ class Linux(Source):
         # Prepare model headers as a separate module
         ext_modules = self._prepare_ext_modules()
         ext_modules = os.path.abspath(ext_modules) if ext_modules else None
-        if self.kernel:
+        if self._kernel:
             targets_to_build = ['all']
 
-        if self.kernel:
+        if self._kernel:
             self._make(['vmlinux'], intercept_build_cmds=True)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
@@ -218,18 +230,17 @@ class Linux(Source):
         self._make(model_headers_make_target, intercept_build_cmds=True)
 
     def _prepare_ext_modules(self):
-        if 'external modules' not in self.conf['project']:
+        if not self._external_modules:
             return None
-
         work_src_tree = self._EXT_DIR
 
         # todo: replace option
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
-            .format(self.conf['project']['external modules'], work_src_tree))
+            .format(self._external_modules, work_src_tree))
 
         src = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                          self.conf['project']['external modules'])
+                                          self._external_modules)
 
         if os.path.isdir(src):
             self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
@@ -284,4 +295,5 @@ class Linux(Source):
             self.logger.debug('Remove "{0}"'.format(trash_dir))
             shutil.rmtree(os.path.realpath(trash_dir))
 
+        self._source_paths.append(os.path.abspath(work_src_tree))
         return work_src_tree

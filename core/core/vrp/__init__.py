@@ -39,12 +39,14 @@ from core.coverage import LCOV
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VRP common prj attrs'] = multiprocessing.Queue()
+    context.mqs['VRP source paths'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VRP common prj attrs'].put(context.common_prj_attrs)
+    context.mqs['VRP source paths'].put(context.source_paths)
 
 
 class VRP(core.components.Component):
@@ -167,6 +169,9 @@ class VRP(core.components.Component):
         # First get QOS resource limitations
         qos_resource_limits = core.utils.read_max_resource_limitations(self.logger, self.conf)
         self.vals['task solution triples'] = multiprocessing.Manager().dict()
+        source_paths = self.mqs['VRP source paths'].get()
+        self.mqs['VRP source paths'].close()
+
         while True:
             element = self.mqs['processing tasks'].get()
             if element is None:
@@ -207,7 +212,7 @@ class VRP(core.components.Component):
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
                         workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
-                        element=[status, data])
+                        source_paths=source_paths, element=[status, data])
                 rp.start()
                 rp.join()
             except core.components.ComponentError:
@@ -232,7 +237,8 @@ class VRP(core.components.Component):
 class RP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, element=None):
+                 separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, source_paths=None,
+                 element=None):
         # Read this in a callback
         self.element = element
         self.verdict = None
@@ -240,6 +246,7 @@ class RP(core.components.Component):
         self.verification_object = None
         self.task_error = None
         self.verification_coverage = None
+        self.source_paths = source_paths
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
         # Common initialization
