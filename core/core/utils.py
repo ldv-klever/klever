@@ -227,10 +227,10 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
 
 
-def make_relative_path(search_dirs, abs_path_to_file_or_dir):
-    for search_dir in search_dirs:
-        if os.path.commonprefix([abs_path_to_file_or_dir, search_dir]) == search_dir:
-            return os.path.relpath(abs_path_to_file_or_dir, search_dir)
+def make_relative_path(dirs, abs_path_to_file_or_dir):
+    for d in dirs:
+        if os.path.commonprefix([abs_path_to_file_or_dir, d]) == d:
+            return os.path.relpath(abs_path_to_file_or_dir, d)
     return abs_path_to_file_or_dir
 
 
