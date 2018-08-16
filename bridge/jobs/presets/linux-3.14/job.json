@@ -8,7 +8,7 @@
     "source": "linux-3.14",
     "configuration": "allmodconfig",
     "architecture": "x86_64",
-    "loadable modules": ["drivers/net/usb/asix.ko"],
+    "loadable kernel modules": ["drivers/net/usb/asix.ko"],
     "opts file": "scripts/mod/empty.c"
   },
   "VOG divider": {

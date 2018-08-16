@@ -71,7 +71,7 @@ class Linux(Source):
 
     @property
     def targets(self):
-        return self.conf['project'].get('loadable modules', [])
+        return self.conf['project'].get('loadable kernel modules', [])
 
     def configure(self):
         self.logger.info('Configure Linux kernel')
