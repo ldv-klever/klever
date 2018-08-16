@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import json
 import os
 import multiprocessing
 import clade.interface as clade_api
@@ -55,7 +56,18 @@ class VOG(core.components.Component):
             # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
             with self.locks['build']:
                 self.prepare_and_build(program)
-        clade_api.setup(self.conf['Clade']["base"])
+
+            clade_api.setup(self.conf['Clade']["base"])
+
+            # We need to store search directories to Clade storage as for subsequent job decisions they can differ
+            # while we still need to remove them to have nice file paths, e.g. for visualization of code coverage and
+            # error traces.
+            with open('search dirs.json', 'w', encoding='utf8') as fp:
+                json.dump(core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True),
+                          fp, ensure_ascii=False, sort_keys=True, indent=4)
+            clade_api.FileStorage().save_file('search dirs.json')
+        else:
+            clade_api.setup(self.conf['Clade']["base"])
 
         divider = divider(self.logger, self.conf, program, clade_api)
         strategy = strategy(self.logger, self.conf, divider)
