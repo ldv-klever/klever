@@ -38,6 +38,13 @@ class Weaver(core.vtg.plugins.Plugin):
 
         clade_api.setup(self.conf['Clade']['base'])
         storage = clade_api.FileStorage()
+
+        # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
+        # with "-nostdinc" option and system stdarg.h couldn't be used.
+        aspectator_search_dir = '-isystem' + core.utils.execute(self.logger,
+                                                                ('aspectator', '-print-file-name=include'),
+                                                                collect_all_stdout=True)[0]
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
@@ -84,11 +91,6 @@ class Weaver(core.vtg.plugins.Plugin):
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
 
-                    # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
-                    # with "-nostdinc" option and system stdarg.h couldn't be used.
-                    aspectator_search_dir = '-isystem' + core.utils.execute(self.logger,
-                                                                            ('aspectator', '-print-file-name=include'),
-                                                                            collect_all_stdout=True)[0]
                     core.utils.execute(
                         self.logger,
                         tuple([
