@@ -295,5 +295,8 @@ class Linux(Source):
             self.logger.debug('Remove "{0}"'.format(trash_dir))
             shutil.rmtree(os.path.realpath(trash_dir))
 
-        self._source_paths.append(os.path.abspath(work_src_tree))
+        # Directory before self._EXT_DIR will be trimmed from program fragment identifiers (absolute paths to external
+        # loadable kernel modules) and file names.
+        self._source_paths.append(os.getcwd())
+
         return work_src_tree
