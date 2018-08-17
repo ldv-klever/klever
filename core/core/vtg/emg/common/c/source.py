@@ -279,10 +279,10 @@ class Source:
                 desc = cg[scope][func]
                 if scope in cfiles:
                     # Definition of the function is in the code of interest
-                    self._add_function(func, scope, fs)
+                    self._add_function(func, scope, fs, dependencies, cfiles)
                 elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
                     # Function is called in the target code but defined in dependencies
-                    self._add_function(func, scope, fs)
+                    self._add_function(func, scope, fs, dependencies, cfiles)
                     continue
                 else:
                     continue
@@ -291,20 +291,24 @@ class Source:
             for scope in (s for s in fs[func] if s in cfiles):
                 func_intf = self.get_source_function(func, scope)
                 if not func_intf:
-                    self._add_function(func, scope, fs)
+                    self._add_function(func, scope, fs, dependencies, cfiles)
 
+        # todo: Something wrong here
         for func in self.source_functions:
             for obj in self.get_source_functions(func):
-                scope = obj.definition_file
-                desc = cg.get(scope, dict()).get(func)
-                if desc and 'called_in' in desc:
-                    for caller_scope in (s for s in desc['called_in'] if s in cfiles):
-                        for caller in desc['called_in'][caller_scope]:
-                            for line in desc['called_in'][caller_scope]:
-                                params = desc['called_in'][caller_scope][line].get('args')
-                                caller_intf = self.get_source_function(caller, caller_scope)
-                                obj.add_call(caller, caller_scope)
-                                caller_intf.call_in_function(func, params)
+                scopes = set(obj.declaration_files).union(set(obj.header_files))
+                if not obj.definition_file:
+                    # It is likely be this way
+                    scopes.add('unknown')
+                for scope in (s for s in scopes if cg.get(s, dict()).get(func)):
+                    for cscope, desc in ((s, d) for s, d in cg[scope][func].get('called_in', {}).items()
+                                         if s in cfiles):
+                        for caller in desc:
+                            for line in desc[caller]:
+                                params = desc[caller][line].get('args')
+                                caller_intf = self.get_source_function(caller, cscope)
+                                obj.add_call(caller, cscope)
+                                caller_intf.call_in_function(obj, params)
 
         macros_file = get_conf_property(self._conf['source analysis'], 'macros white list')
         if macros_file:
@@ -322,13 +326,13 @@ class Source:
                             obj.add_parameters(path, call)
                         self.set_macro(obj)
 
-    def _add_function(self, func, scope, fs):
+    def _add_function(self, func, scope, fs, deps, cfiles):
         fs_desc = fs[func][scope]
         if scope == 'unknown':
             key = list(fs_desc['declared_in'].keys())[0]
             signature = fs_desc['declared_in'][key]['signature']
             func_intf = Function(func, signature)
-            func_intf.definition_file = key
+            # Do not set definition file since it is out of scope of the target verification object
         else:
             signature = fs_desc.get('signature')
             func_intf = Function(func, signature)
@@ -339,10 +343,16 @@ class Source:
             func_intf.static = True
         else:
             func_intf.static = False
-        self.set_source_function(func_intf, func_intf.definition_file)
+
         # Add declarations
-        for file in fs_desc.get('declared_in', set()):
-            self.set_source_function(func_intf, file)
+        files = {func_intf.definition_file} if func_intf.definition_file else set()
+        files.update({f for f in fs_desc.get('declared_in', set()) if f != 'unknown'})
+        for file in files:
+            if file not in cfiles and file not in func_intf.header_files:
+                func_intf.header_files.append(file)
+            for cfile in deps[file]:
+                self.set_source_function(func_intf, cfile)
+                func_intf.declaration_files.add(cfile)
 
     def _collect_file_dependencies(self, abstract_task):
         """
