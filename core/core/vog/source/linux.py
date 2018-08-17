@@ -130,17 +130,15 @@ class Linux(Source):
         targets_to_build = self.targets + self.subdirectories
         targets_to_build = sorted(targets_to_build)
 
-        # Prepare model headers as a separate module
+        # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
         ext_modules = self._prepare_ext_modules()
-        ext_modules = os.path.abspath(ext_modules) if ext_modules else None
+        ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
+
         if self._kernel:
             targets_to_build = ['all']
 
         if self._kernel:
             self._make(['vmlinux'], intercept_build_cmds=True)
-
-        # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
-        ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
 
         # Specially process building of all modules.
         if 'all' in targets_to_build:
@@ -170,12 +168,10 @@ class Linux(Source):
                 # Otherwise it is directory that can contain modules.
                 else:
                     if ext_modules:
-                        modules_dir = os.path.join(ext_modules, modules)
+                        if not os.path.isdir(modules):
+                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules, os.getcwd()))
 
-                        if not os.path.isdir(modules_dir):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules, ext_modules))
-
-                        build_targets.append(['M=' + modules_dir])
+                        build_targets.append(['M=' + os.path.abspath(modules)])
                     else:
                         if not os.path.isdir(os.path.join(self.work_src_tree, modules)):
                             raise ValueError('There is not directory "{0}" inside "{1}"'.
@@ -300,4 +296,4 @@ class Linux(Source):
         # loadable kernel modules) and file names.
         self._source_paths.append(os.getcwd())
 
-        return work_src_tree
+        return os.path.abspath(work_src_tree)
