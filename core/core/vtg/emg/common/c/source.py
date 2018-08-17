@@ -270,9 +270,9 @@ class Source:
         self.logger.info("Import source functions")
         vfunctions = variables.used_vars_functions
         # Function scope definitions
-        fs = clade_api.FunctionsScopes(set(dependencies.keys())).funcs_to_scope
+        fs = clade_api.FunctionsScopes(set(dependencies.keys())).scope_to_funcs
         # Get functions defined in dependencies and in the main functions and have calls
-        cg = clade_api.CallGraph().partial_graph(cfiles)
+        cg = clade_api.CallGraph().partial_graph(set(dependencies.keys()))
         # Add called functions
         for scope in cg:
             for func in cg[scope]:
@@ -287,13 +287,12 @@ class Source:
                 else:
                     continue
         # Add functions missed in the call graph
-        for func in fs:
-            for scope in (s for s in fs[func] if s in cfiles):
+        for scope in (s for s in fs if s in cfiles):
+            for func in fs[scope]:
                 func_intf = self.get_source_function(func, scope)
                 if not func_intf:
                     self._add_function(func, scope, fs, dependencies, cfiles)
 
-        # todo: Something wrong here
         for func in self.source_functions:
             for obj in self.get_source_functions(func):
                 scopes = set(obj.declaration_files).union(set(obj.header_files))
@@ -327,7 +326,7 @@ class Source:
                         self.set_macro(obj)
 
     def _add_function(self, func, scope, fs, deps, cfiles):
-        fs_desc = fs[func][scope]
+        fs_desc = fs[scope][func]
         if scope == 'unknown':
             key = list(fs_desc['declared_in'].keys())[0]
             signature = fs_desc['declared_in'][key]['signature']
