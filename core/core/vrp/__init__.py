@@ -102,9 +102,13 @@ class VRP(core.components.Component):
         solution_timeout = 10
         generation_timeout = 5
 
+        source_paths = self.mqs['VRP source paths'].get()
+        self.mqs['VRP source paths'].close()
+        self.logger.info('Source paths to be trimmed file names: {0}'.format(source_paths))
+
         def submit_processing_task(status, t):
             task_data, tryattempt = pending[t]
-            self.mqs['processing tasks'].put([status, task_data, tryattempt])
+            self.mqs['processing tasks'].put([status, task_data, tryattempt, source_paths])
 
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -169,15 +173,13 @@ class VRP(core.components.Component):
         # First get QOS resource limitations
         qos_resource_limits = core.utils.read_max_resource_limitations(self.logger, self.conf)
         self.vals['task solution triples'] = multiprocessing.Manager().dict()
-        source_paths = self.mqs['VRP source paths'].get()
-        self.mqs['VRP source paths'].close()
 
         while True:
             element = self.mqs['processing tasks'].get()
             if element is None:
                 break
 
-            status, data, attempt = element
+            status, data, attempt, source_paths = element
             vo = data[2]
             rule = data[3]
             attrs = [
