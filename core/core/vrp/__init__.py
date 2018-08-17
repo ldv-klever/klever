@@ -264,10 +264,6 @@ class RP(core.components.Component):
         with open(self.storage.convert_path('search dirs.json'), encoding='utf8') as fp:
             self.search_dirs = json.load(fp)
 
-        # self.work_src_tree = clade_global_data['working source tree']
-        # self.ext_modules_dir = clade_global_data['external modules']
-
-
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
         element = self.element
@@ -558,9 +554,12 @@ class RP(core.components.Component):
             # Remove storage from file names if files were put there.
             new_file_name = core.utils.make_relative_path([self.storage.storage_dir], file_name)
 
-            # Try to make paths relative to working source tree or standard search directories.
-            new_file_name = core.utils.make_relative_path(self.search_dirs, new_file_name)
-            #self.search_dirs
+            # Return back leading slash for relative path to make following code working as it expect absolute paths.
+            if file_name != new_file_name:
+                new_file_name = os.path.join(os.path.sep, new_file_name)
+
+            # Try to make paths relative to source paths or standard search directories.
+            new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name)
             arcnames[file_name] = new_file_name
 
         return arcnames
