@@ -515,11 +515,11 @@ class RP(core.components.Component):
         self.coverage_info_file = os.path.join(coverage_info_dir,
                                                "{0}_coverage_info.json".format(task_id.replace('/', '-')))
 
-        # self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'), self.storage,
-        #                                   self.ext_modules_dir, self.work_src_tree, self.search_dirs,
-        #                                   self.conf['main working directory'], opts.get('coverage', None),
-        #                                   os.path.join(self.conf['main working directory'], self.coverage_info_file),
-        #                                   os.path.join(self.conf['main working directory'], coverage_info_dir))
+        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                                          self.storage, self.source_paths,
+                                          self.search_dirs, self.conf['main working directory'], opts.get('coverage'),
+                                          os.path.join(self.conf['main working directory'], self.coverage_info_file),
+                                          os.path.join(self.conf['main working directory'], coverage_info_dir))
 
         if os.path.isfile('coverage.json'):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +

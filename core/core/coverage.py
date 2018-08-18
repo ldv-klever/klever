@@ -284,16 +284,17 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, completeness, coverage_id,
-                 coverage_info_dir):
+    def __init__(self, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
+                 coverage_id, coverage_info_dir):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
-        self.shadow_src_dir = shadow_src_dir
+        self.clade_dir = clade.storage_dir
+        self.source_dirs = source_dirs
+        self.search_dirs = search_dirs
         self.main_work_dir = main_work_dir
         self.completeness = completeness
         self.coverage_info_dir = coverage_info_dir
-
         self.arcnames = {}
 
         # Sanity checks
@@ -316,7 +317,7 @@ class LCOV:
             self.logger.exception('Could not parse coverage')
 
     def parse(self):
-        dir_map = (('source files', self.shadow_src_dir),
+        dir_map = (('source files', self.source_dirs),
                    ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
                    ('generated models', self.main_work_dir))
 
@@ -337,12 +338,14 @@ class LCOV:
                         file_name = line[len(self.FILENAME_PREFIX):]
                         if os.path.isfile(file_name):
                             path, file = os.path.split(file_name)
+                            # All pathes should be absolute, otherwise we cannot match source dirs later
+                            path = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade_dir], path))
                             all_files.setdefault(path, [])
                             all_files[path].append(file)
 
                 for path, files in all_files.items():
                     # Lightweight coverage keeps only source code dirs.
-                    if self.completeness == 'lightweight' and not path.startswith(self.shadow_src_dir):
+                    if self.completeness == 'lightweight' and not any(path.startswith(s) for s in self.source_dirs):
                         self.logger.debug('Excluded {0}'.format(path))
                         excluded_dirs.add(path)
                         continue
@@ -372,26 +375,34 @@ class LCOV:
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
-                    file_name = line[len(self.FILENAME_PREFIX):]
-                    if os.path.isfile(file_name) and not \
+                    real_file_name = line[len(self.FILENAME_PREFIX):]
+                    file_name = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade_dir],
+                                                                                        real_file_name))
+                    if os.path.isfile(real_file_name) and not \
                             any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
-                        for dest, src in dir_map:
-                            if file_name.startswith(src):
-                                if dest == 'generated models':
-                                    copy_file_name = os.path.join(self.coverage_info_dir,
-                                                                  os.path.relpath(file_name, src))
-                                    if not os.path.exists(os.path.dirname(copy_file_name)):
-                                        os.makedirs(os.path.dirname(copy_file_name))
-                                    shutil.copy(file_name, copy_file_name)
-                                    file_name = copy_file_name
-                                    new_file_name = os.path.join(dest, os.path.basename(file_name))
-                                else:
-                                    new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
-                                ignore_file = False
-                                break
+                        for dest, srcs in dir_map:
+                            for src in srcs:
+                                if file_name.startswith(src):
+                                    if dest == 'generated models':
+                                        copy_file_name = os.path.join(self.coverage_info_dir,
+                                                                      os.path.relpath(file_name, src))
+                                        if not os.path.exists(os.path.dirname(copy_file_name)):
+                                            os.makedirs(os.path.dirname(copy_file_name))
+                                        shutil.copy(real_file_name, copy_file_name)
+                                        file_name = copy_file_name
+                                        new_file_name = os.path.join(dest, os.path.basename(file_name))
+                                    else:
+                                        new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
+                                    ignore_file = False
+                                    break
+                            else:
+                                continue
+                            break
                         # This "else" corresponds "for"
                         else:
-                            new_file_name = core.utils.make_relative_path(self.logger, self.main_work_dir, file_name)
+                            # Check other prefixes
+                            new_file_name = core.utils.make_relative_path(self.source_dirs + self.search_dirs,
+                                                                          file_name)
                             if new_file_name == file_name:
                                 ignore_file = True
                                 continue
@@ -399,8 +410,8 @@ class LCOV:
                                 ignore_file = False
                             new_file_name = os.path.join('specifications', new_file_name)
 
-                        self.arcnames[file_name] = new_file_name
-                        old_file_name, file_name = file_name, new_file_name
+                        self.arcnames[real_file_name] = new_file_name
+                        old_file_name, file_name = real_file_name, new_file_name
                     else:
                         ignore_file = True
                 elif line.startswith(self.LINE_PREFIX):
