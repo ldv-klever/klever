@@ -65,17 +65,37 @@ class Linux(Source):
         super(Linux, self).__init__(logger, conf)
         self._kernel = self.conf['project'].get('build kernel', False)
         self.__loadable_modules_support = True
-        self._subsystems = self.conf['project'].get('kernel subsystems', [])
-        self._modules = self.conf['project'].get('loadable kernel modules', [])
+        self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
+        self._modules = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
         self._external_modules = self.conf['project'].get('external modules', False)
 
     def check_target(self, candidate):
         candidate = core.utils.make_relative_path(self.source_paths, candidate)
-        if (self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems) or \
-                (not self._kernel and (candidate in self._modules or
-                                       any(candidate.startswith(s) for s in self._subsystems))):
+        if 'all' in self._subsystems:
+            self._subsystems['all'] = True
             return True
+        if 'all' in self._modules:
+            self._modules['all'] = True
+            return True
+        if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
+            self._subsystems[os.path.dirname(candidate)] = True
+            return True
+        if not self._kernel:
+            if candidate in self._modules:
+                self._modules[candidate] = True
+                return True
+            for s in (s for s in self._subsystems if candidate.startswith(s)):
+                self._subsystems[s] = True
+                return True
         return False
+
+    def check_targets_consistency(self):
+        for module in (m for m in self._modules if not self._modules[m]):
+            raise ValueError("No verification objects generated for Linux loadable kernel module {!r}: "
+                             "check Clade base cache or job.json".format(module))
+        for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
+            raise ValueError("No verification objects generated for Linux kernel subsystem {!r}: "
+                             "check Clade base cache or job.json".format(subsystem))
 
     @property
     def subdirectories(self):

@@ -44,6 +44,8 @@ class AbstractDivider:
     def target_units(self):
         if not self._target_units:
             self._divide()
+            # Check that for all build targets the strategy generated a fragment with target flag
+            self.source.check_targets_consistency()
         return self._target_units
 
     @property

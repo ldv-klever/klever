@@ -77,6 +77,9 @@ class Source:
     def check_target(self, path):
         raise NotImplementedError
 
+    def check_targets_consistency(self):
+        raise NotImplementedError
+
     def configure(self):
         self.configuration = self.conf['project'].get('configuration')
 
