@@ -228,7 +228,8 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
 
 
 def make_relative_path(dirs, abs_path_to_file_or_dir):
-    for d in dirs:
+    # Sort them by length to compare the longest one first
+    for d in sorted(dirs, key=lambda t: len(t), reverse=True):
         if os.path.commonprefix([abs_path_to_file_or_dir, d]) == d:
             return os.path.relpath(abs_path_to_file_or_dir, d)
     return abs_path_to_file_or_dir
