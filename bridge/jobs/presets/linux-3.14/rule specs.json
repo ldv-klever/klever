@@ -325,7 +325,7 @@
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
     },
     "linux:emg:test:fp": {
-      "description": "Rule specification intended for testing environment model specifications and the generator with function pointer analysis",
+      "description": "Rule specification intended for testing environment model specifications and generator with function pointer analysis",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}},
       "FVTP": {
