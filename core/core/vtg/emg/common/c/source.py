@@ -345,7 +345,7 @@ class Source:
 
         # Add declarations
         files = {func_intf.definition_file} if func_intf.definition_file else set()
-        files.update({f for f in fs_desc.get('declared_in', set()) if f != 'unknown'})
+        files.update({f for f in fs_desc.get('declared_in', set()) if f != 'unknown' and f in deps})
         for file in files:
             if file not in cfiles and file not in func_intf.header_files:
                 func_intf.header_files.append(file)
