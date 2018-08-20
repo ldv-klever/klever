@@ -261,8 +261,7 @@ class RP(core.components.Component):
         # Obtain file prefixes that can be removed from file paths.
         clade_api.setup(self.conf['Clade']['base'])
         self.storage = clade_api.FileStorage()
-        with open(self.storage.convert_path('search dirs.json'), encoding='utf8') as fp:
-            self.search_dirs = json.load(fp)
+        self.search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
@@ -554,12 +553,9 @@ class RP(core.components.Component):
             # Remove storage from file names if files were put there.
             new_file_name = core.utils.make_relative_path([self.storage.storage_dir], file_name)
 
-            # Return back leading slash for relative path to make following code working as it expect absolute paths.
-            if file_name != new_file_name:
-                new_file_name = os.path.join(os.path.sep, new_file_name)
-
             # Try to make paths relative to source paths or standard search directories.
-            new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name)
+            new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name,
+                                                          absolutize=True)
             arcnames[file_name] = new_file_name
 
         return arcnames
