@@ -71,6 +71,7 @@ class Linux(Source):
 
     def check_target(self, candidate):
         candidate = core.utils.make_relative_path(self.source_paths, candidate)
+
         if 'all' in self._subsystems:
             self._subsystems['all'] = True
             return True
@@ -172,12 +173,21 @@ class Linux(Source):
             else:
                 self._make(ext_modules_make_opt + ['all'], intercept_build_cmds=True)
         else:
+            # TODO: this doesn't look like "module sets", so, variable names and error messages should be improved.
             # Check that module sets aren't intersect explicitly.
             for i, modules1 in enumerate(targets_to_build):
                 for j, modules2 in enumerate(targets_to_build):
-                    if i != j and modules1.startswith(modules2):
-                        raise ValueError('Module set "{0}" is subset of module set "{1}"'
-                                         .format(modules1, modules2))
+                    if i != j:
+                        if modules1 == modules2:
+                            raise ValueError('Module set "{0}" is duplicated'.format(modules1))
+                        else:
+                            # Get rid of file names, remain just directories.
+                            modules1_dir = os.path.dirname(modules1) if re.search(r'\.ko$', modules1) else modules1
+                            modules2_dir = os.path.dirname(modules2) if re.search(r'\.ko$', modules2) else modules2
+
+                            if modules1_dir != core.utils.make_relative_path([modules2_dir], modules1_dir):
+                                raise ValueError('Module set "{0}" is subset of module set "{1}"'
+                                                 .format(modules1, modules2))
 
             # Examine module sets to get all build targets. Do not build immediately to catch mistakes earlier.
             build_targets = []
