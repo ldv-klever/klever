@@ -661,7 +661,6 @@ class VTGW(core.components.Component):
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_object, self.rule_specification)
         initial_abstract_task_desc['attrs'] = ()
-        storage = self.clade.FileStorage()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
 
