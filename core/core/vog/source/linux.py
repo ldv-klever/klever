@@ -199,12 +199,12 @@ class Linux(Source):
                 else:
                     if ext_modules:
                         if not os.path.isdir(modules):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules, os.getcwd()))
+                            raise ValueError('There is no directory "{0}" inside "{1}"'.format(modules, os.getcwd()))
 
                         build_targets.append(['M=' + os.path.abspath(modules)])
                     else:
                         if not os.path.isdir(os.path.join(self.work_src_tree, modules)):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.
+                            raise ValueError('There is no directory "{0}" inside "{1}"'.
                                              format(modules, self.work_src_tree))
 
                         build_targets.append(['M=' + modules])
