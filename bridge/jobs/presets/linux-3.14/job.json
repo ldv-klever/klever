@@ -5,7 +5,7 @@
   },
   "project": {
     "name": "Linux",
-    "source": "linux-3.14",
+    "source": "linux-3.14.79",
     "configuration": "allmodconfig",
     "architecture": "x86_64",
     "loadable kernel modules": ["drivers/net/usb/asix.ko"],
