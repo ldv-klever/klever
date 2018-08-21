@@ -182,6 +182,10 @@
     "environment processes": {
       "tty_scenario": {
         "comment": "Invoke tty callbacks",
+        "headers": [
+          "linux/tty.h",
+          "linux/tty_driver.h"
+        ],
         "labels": {
           "tty_operations": {
             "container": true,
