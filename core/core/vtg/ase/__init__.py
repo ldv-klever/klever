@@ -132,7 +132,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.utils.prepare_cif_opts(cc['opts'], storage.storage_dir) +
+                                             core.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
                                              [
                                                  # Besides header files specific for rule specifications will be
                                                  # searched for.

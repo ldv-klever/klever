@@ -665,7 +665,7 @@ def drain_queue(collection, given_queue):
         return True
 
 
-def prepare_cif_opts(opts, clade_storage):
+def prepare_cif_opts(conf, opts, clade_storage):
     new_opts = []
 
     is_sysroot_search_dir = False
@@ -713,5 +713,9 @@ def prepare_cif_opts(opts, clade_storage):
 
     # Aspectator will search for headers within Clade storage.
     new_opts.append('-isysroot' + clade_storage)
+
+    # todo: Maybe there is a better place for this but this is the easiest one
+    extra_cc_opts = conf.get('project', dict()).get('extra Clade opts', dict()).get("Info.extra CIF opts", list())
+    new_opts.extend(extra_cc_opts)
 
     return new_opts

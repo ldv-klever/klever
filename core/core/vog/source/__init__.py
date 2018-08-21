@@ -54,6 +54,9 @@ class Source:
         self._clade_dir = self.conf['Clade']['base']
         self._build_flag = False
 
+        # Add extra Clade options
+        self._CLADE_CONF.update(self.conf['project'].get("extra Clade opts", dict()))
+
     @property
     def attributes(self):
         if not self._build_flag:
