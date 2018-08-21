@@ -75,19 +75,30 @@ class Linux(Source):
         if 'all' in self._subsystems:
             self._subsystems['all'] = True
             return True
+
         if 'all' in self._modules:
             self._modules['all'] = True
             return True
+
         if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
             self._subsystems[os.path.dirname(candidate)] = True
             return True
+
         if not self._kernel:
             if candidate in self._modules:
                 self._modules[candidate] = True
                 return True
-            for s in (s for s in self._subsystems if candidate.startswith(s)):
-                self._subsystems[s] = True
+
+            matched_subsystems = list(s for s in self._subsystems if os.path.commonpath([candidate, s]) == s)
+
+            if len(matched_subsystems) == 1:
+                self._subsystems[matched_subsystems[0]] = True
                 return True
+
+            # This should not be true ever.
+            if len(matched_subsystems) > 1:
+                raise ValueError('Several subsystems "{0}" match candidate "{1}"'.format(matched_subsystems, candidate))
+
         return False
 
     def check_targets_consistency(self):
