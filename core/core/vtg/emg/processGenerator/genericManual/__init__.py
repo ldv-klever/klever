@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import json
+import ujson
 
 import core.utils
 from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
@@ -47,7 +47,7 @@ def generate_processes(emg, source, processes, conf):
     with open(core.utils.find_file_or_dir(emg.logger, get_necessary_conf_property(emg.conf, "main working directory"),
                                           filename),
               encoding='utf8') as fp:
-        descriptions = json.load(fp)
+        descriptions = ujson.load(fp)
     manual_processes = ProcessCollection(emg.logger, emg.conf)
     manual_processes.parse_event_specification(descriptions)
 

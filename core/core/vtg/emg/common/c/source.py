@@ -16,7 +16,7 @@
 #
 
 import re
-import json
+import ujson
 import clade.interface as clade_api
 
 from core.utils import find_file_or_dir
@@ -313,7 +313,7 @@ class Source:
         if macros_file:
             macros_file = find_file_or_dir(self.logger, self._conf['main working directory'], macros_file)
             with open(macros_file, 'r', encoding='utf8') as fp:
-                white_list = json.load(fp)
+                white_list = ujson.load(fp)
             if white_list:
                 macros = clade_api.MacroExpansions(white_list, cfiles).macros
                 for path, macros in macros.items():

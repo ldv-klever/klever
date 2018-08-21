@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import json
+import ujson
 
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition, generate_regex_set, Label, Process
@@ -109,7 +109,8 @@ class ProcessCollection:
         data["main process"] = None if not self.entry else self._export_process(self.entry)
         if filename:
             with open(filename, "w", encoding="utf8") as fh:
-                fh.writelines(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
+                fh.writelines(ujson.dumps(data, ensure_ascii=False, sort_keys=True, indent=4,
+                                          escape_forward_slashes=False))
         return data
 
     def establish_peers(self, strict=False):

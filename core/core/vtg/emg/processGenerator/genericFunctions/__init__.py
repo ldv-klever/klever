@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import json
+import ujson
 
 from core.utils import find_file_or_dir
 from core.vtg.emg.common import get_necessary_conf_property
@@ -47,7 +47,7 @@ def generate_processes(emg, source, processes, conf):
     functions_file = emg.abstract_task_desc["functions"]
     functions_file = find_file_or_dir(emg.logger, emg.conf["main working directory"], functions_file)
     with open(functions_file, encoding="utf8") as fh:
-        functions_list = json.loads(fh.read())
+        functions_list = ujson.loads(fh.read())
     if not isinstance(functions_list, list):
         raise ValueError("Expect strictly list of functions in file {!r}".format(functions_file))
 
