@@ -518,14 +518,15 @@ class UpdateVerdicts:
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = SAFE_VERDICTS[4][0]
-        for v in verdicts:
-            if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != v:
-                new_verdict = SAFE_VERDICTS[3][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
+        # verdicts is set (otherwise there is bug here)
+        v_num = len(verdicts)
+        if v_num == 0:
+            # No marks
+            return SAFE_VERDICTS[4][0]
+        elif v_num == 1:
+            return verdicts.pop()
+        # Several different verdicts
+        return SAFE_VERDICTS[3][0]
 
     def __is_not_used(self):
         pass
@@ -804,8 +805,9 @@ def disable_safe_marks_for_job(root):
 
 
 def update_confirmed_cache(safes):
-    safes = list(safe.id for safe in safes)
-    with_confirmed = set(r_id for r_id, in MarkSafeReport.objects.filter(
-        report_id__in=safes, type=ASSOCIATION_TYPE[1][0]).values_list('report_id'))
-    ReportSafe.objects.filter(id__in=safes).update(has_confirmed=False)
+    safes_set = set(safe.id for safe in safes)
+    with_confirmed = set(MarkSafeReport.objects.filter(
+        report_id__in=safes_set, type=ASSOCIATION_TYPE[1][0]
+    ).values_list('report_id', flat=True))
+    ReportSafe.objects.filter(id__in=safes_set).update(has_confirmed=False)
     ReportSafe.objects.filter(id__in=with_confirmed).update(has_confirmed=True)
