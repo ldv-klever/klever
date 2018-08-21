@@ -238,18 +238,6 @@ class Linux(Source):
     def prepare_model_headers(self, model_headers):
         super(Linux, self).prepare_model_headers(model_headers)
 
-        # Generate Makefile
-        with open(os.path.join(self._model_headers_path, 'Makefile'), 'w', encoding='utf-8') as fp:
-            fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
-                     .format('$(filter %/, $(wildcard $(src)/*/))'))
-            fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-            # Specify additional directory to search for model headers. We assume that this directory is
-            # preserved as is at least during solving a given job. So, we treat headers from it as system
-            # ones, i.e. headers that aren't copied when .
-            fp.write('ccflags-y += -isystem ' + os.path.abspath(os.path.dirname(
-                core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                            self.conf['rule specifications DB']))))
-
         try:
             # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
             # kernel has loadable modules support.
@@ -262,9 +250,12 @@ class Linux(Source):
             self._make(['scripts/mod/empty.o'], intercept_build_cmds=True)
             self.__loadable_modules_support = False
 
-        # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
-        model_headers_make_target = ['M=' + os.path.abspath(self._model_headers_path)]
-        self._make(model_headers_make_target, intercept_build_cmds=True)
+        # Generate Makefile and compile C files including model headers. These files will be treated as part of kernel -
+        # one will need to filter them out later if required.
+        with open(os.path.join(self._model_headers_path, 'Makefile'), 'w', encoding='utf-8') as fp:
+            fp.write('obj-y += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+
+        self._make(['M=' + os.path.abspath(self._model_headers_path)], intercept_build_cmds=True)
 
     def _prepare_ext_modules(self):
         if not self._external_modules:
