@@ -19,7 +19,7 @@
 {% load i18n %}
 {% load staticfiles %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ TableData.title }}{% endblock %}
 
 {% block head_block %}
     <script type="text/javascript" src="{% static 'reports/js/reportsList.js' %}"></script>
@@ -43,16 +43,16 @@
             <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui tiny violet button" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
 
             <div class="ui breadcrumb">
-                <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+                <a class="section parent-popup" href="{{ TableData.parents.0.href }}" data-variation="very wide">{{ TableData.parents.0.title }}</a>
                 <div class="ui special popup">
-                    <div class="header">{{ parents.0.title }}</div>
+                    <div class="header">{{ TableData.parents.0.title }}</div>
                     <div class="content">
-                        {% for attr in parents.0.attrs %}
+                        {% for attr in TableData.parents.0.attrs %}
                             <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
                         {% endfor %}
                     </div>
                 </div>
-                {% for parent in parents|slice:"1:" %}
+                {% for parent in TableData.parents|slice:"1:" %}
                     <i class="right arrow icon divider"></i>
                     <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
                     <div class="ui special popup">
@@ -73,15 +73,18 @@
         <br>
     </div>
     {% if TableData.table_data.values|length %}
-        <div>
-            {% if TableData.paginated_values.has_previous %}
-                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.paginated_values.previous_page_number }}"></i>
-            {% endif %}
-            <span>{% blocktrans with n1=TableData.paginated_values.number n2=TableData.paginated_values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-            {% if TableData.paginated_values.has_next %}
-                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.paginated_values.next_page_number }}"></i>
-            {% endif %}
-        </div>
+        {# Pagination #}
+        {% if TableData.page %}
+            <div>
+                {% if TableData.page.has_previous %}
+                    <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.page.previous_page_number }}"></i>
+                {% endif %}
+                <span>{% blocktrans with n1=TableData.page.number n2=TableData.page.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                {% if TableData.page.has_next %}
+                    <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.page.next_page_number }}"></i>
+                {% endif %}
+            </div>
+        {% endif %}
         <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">
             <table class="ui compact celled selectable table alternate-color {% if TableData.view.type == '6' %}red{% elif TableData.view.type == '5' %}green{% elif TableData.view.type == '4' %}orange{% endif %} ">
                 <thead>

@@ -108,6 +108,7 @@
                     <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="iendswith"{% if 'attr' in view and view.attr.1 == 'iendswith' %} selected{% endif %}>{% trans 'ends with' %}</option>
+                    <option value="icontains"{% if 'attr' in view and view.attr.1 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label for="view_{{ view.type }}__attr_type"></label>
             </div>

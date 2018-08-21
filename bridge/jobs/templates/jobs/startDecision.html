@@ -97,16 +97,14 @@
         {# Parallelism #}
         <div class="ui violet segment need-auth" style="width: 40%;{% if data.conf.scheduler == '1' and data.need_auth %}display:none{% endif %}">
             <h3>{% trans 'Operations parallelism' %}</h3>
-            <div class="ui {{ data.conf.parallelism.columns_num }} columns grid">
-                {% for p_name in data.conf.parallelism.for_template %}
-                    <div class="column">
-                        <label for="{{ p_name.0 }}__value">{{ p_name.1 }}</label>
-                        <div class="ui fluid input">
-                            <input class="parallelism-values" id="{{ p_name.0 }}__value" type="text" value="{{ p_name.2 }}">
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
+            {% for p_name in data.conf.parallelism.for_template %}
+                <label for="{{ p_name.0 }}__value">{{ p_name.1 }}</label>
+                <br>
+                <div class="ui input">
+                    <input class="parallelism-values" id="{{ p_name.0 }}__value" type="text" value="{{ p_name.2 }}">
+                </div>
+                <br><br>
+            {% endfor %}
             <br>
             {% for p in data.conf.parallelism.parallelism_packs %}
                 <span class="get-attr-value">{{ p.1 }}

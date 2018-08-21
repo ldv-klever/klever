@@ -367,7 +367,7 @@ class ConnectMarks:
                 except BridgeException as e:
                     compare_error = str(e)
                 except Exception as e:
-                    logger.exception("Error traces comparison failed: %s" % e)
+                    logger.exception("Error traces comparison failed: %s" % e, exc_info=e)
                     compare_error = str(UNKNOWN_ERROR)
 
                 ass_type = ASSOCIATION_TYPE[0][0]
@@ -394,7 +394,7 @@ class ConnectMarks:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
         for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
-                .select_related('mark'):
+                .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -421,10 +421,8 @@ class ConnectMarks:
         new_verdict = UNSAFE_VERDICTS[5][0]
         for v in verdicts:
             if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
+                return UNSAFE_VERDICTS[4][0]
+            new_verdict = v
         return new_verdict
 
     def __is_not_used(self):

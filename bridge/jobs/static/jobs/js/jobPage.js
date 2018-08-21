@@ -119,8 +119,12 @@ function check_status(interval) {
 
 function activate_download_for_compet() {
     var dfc_modal = $('#dfc_modal');
-    $('#dfc_modal_show').popup();
-    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false}).modal('attach events', '#dfc_modal_show', 'show');
+    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false});
+    $('#dfc_modal_show').click(function () {
+        if ($(this).hasClass('disabled')) return false;
+        $('.browse').popup('hide');
+        dfc_modal.modal('show');
+    });
     dfc_modal.find('.ui.checkbox').checkbox();
     $('#dfc__f').parent().checkbox({
         onChecked: function () {
@@ -235,6 +239,13 @@ function clear_verification_files() {
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
     $('#resources-note').popup();
+    $('.menu-link').click(function (event) {
+        if ($(this).hasClass('disabled')) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    });
 
     init_files_tree('#filestree', $('#job_id').val(), $('#job_version').val());
     activate_download_for_compet();
@@ -269,10 +280,15 @@ $(document).ready(function () {
         });
     }
 
-    $('#download_job_btn').click(function () { $('.browse').popup('hide') });
+    $('#download_job_btn').click(function () {
+        if ($(this).hasClass('disabled')) return false;
+        $('.browse').popup('hide');
+        return true;
+    });
 
     $('#upload_reports_popup').modal({transition: 'vertical flip'});
     $('#upload_reports_btn').click(function () {
+        if ($(this).hasClass('disabled')) return false;
         $('.browse').popup('hide');
         $('#upload_reports_popup').modal('show');
     });
