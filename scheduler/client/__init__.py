@@ -169,7 +169,7 @@ def solve_task(logger, conf, server):
 
     os.makedirs("output".encode("utf8"), exist_ok=True)
 
-    args = prepare_task_arguments(conf)
+    args = prepare_task_arguments(logger, conf)
     exit_code = run(logger, args, conf, logger=logger)
     logger.info("Task solution has finished with exit code {}".format(exit_code))
 
@@ -223,7 +223,7 @@ def solve_job(logger, conf):
     return exit_code
 
 
-def prepare_task_arguments(conf):
+def prepare_task_arguments(logger, conf):
     """
     Prepare arguments for solution of a verification task with BenchExec.
 
@@ -273,7 +273,17 @@ def prepare_task_arguments(conf):
 
     args.append("benchmark.xml")
 
+    add_extra_paths(logger, conf)
+
     return args
+
+
+def add_extra_paths(logger, conf):
+    for option, evar in (("addon binaries", "PATH"), ("addon python packages", "PYTHONPATH")):
+        if option in conf["client"]:
+            logger.debug("Add bin locations to {!r}: {!r}".format(evar, ':'.join(conf["client"][option])))
+            os.environ[evar] = "{}:{}".format(':'.join(conf["client"][option]), os.environ[evar])
+            logger.debug("Current {!r} content is {!r}".format(evar, os.environ[evar]))
 
 
 def prepare_job_arguments(logger, conf):
@@ -312,11 +322,7 @@ def prepare_job_arguments(logger, conf):
     # Add CIF path
     pythonpaths = conf["client"].setdefault("addon python packages", [])
     pythonpaths.append(os.path.join(os.path.dirname(cmd), os.path.pardir))
-    for option, evar in (("addon binaries", "PATH"), ("addon python packages", "PYTHONPATH")):
-        if option in conf["client"]:
-            logger.debug("Add bin locations to {!r}: {!r}".format(evar, ':'.join(conf["client"][option])))
-            os.environ[evar] = "{}:{}".format(':'.join(conf["client"][option]), os.environ[evar])
-            logger.debug("Current {!r} content is {!r}".format(evar, os.environ[evar]))
+    add_extra_paths(logger, conf)
 
     # Check existence of the file
     args.append(cmd)
