@@ -519,7 +519,7 @@ class VTG(core.components.Component):
                                 active_tasks += 1
                             elif not balancer.need_rescheduling(vobject, rule_class, rule['id']):
                                 self.logger.info("Mark task {}:{} as solved".format(vobject, rule['id']))
-                                self.mqs['finished and failed tasks'].put([self.conf['sub-sub-job identifier'], 'finished'])
+                                self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
                                 processing_status[vobject][rule_class][rule['id']] = True
 
                     # Number of solved tasks
