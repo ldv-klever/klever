@@ -281,11 +281,12 @@ class Source:
                     # Definition of the function is in the code of interest
                     self._add_function(func, scope, fs, dependencies, cfiles)
                 elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
-                    # Function is called in the target code but defined in dependencies
-                    self._add_function(func, scope, fs, dependencies, cfiles)
-                    continue
-                else:
-                    continue
+                    if scope in fs and func in fs[scope]:
+                        # Function is called in the target code but defined in dependencies
+                        self._add_function(func, scope, fs, dependencies, cfiles)
+                    elif scope != 'unknown':
+                        self.logger.warning("There is no information on declarations of function {!r} from {!r} scope".
+                                            format(func, scope))
         # Add functions missed in the call graph
         for scope in (s for s in fs if s in cfiles):
             for func in fs[scope]:
