@@ -34,9 +34,10 @@ def configure_task_and_job_configuration_paths(prev_deploy_info, client_config):
     client_config['client']['addon python packages'] = []
     for key in (k for k in prev_deploy_info['Klever Addons'] if k != "Verification Backends"):
         client_config['client']['addon binaries'].append(get_klever_addon_abs_path(prev_deploy_info, key))
-        if 'python path' in prev_deploy_info['Klever Addons'][key]:
-            client_config['client']['addon python packages']. \
-                append(prev_deploy_info['Klever Addons'][key]['python path'])
+    for key, addon_desc in ((k, d) for k, d in prev_deploy_info['Klever Addons'].items()
+                            if k != "Verification Backends" and 'python path' in d):
+        path = os.path.abspath(os.path.join('klever-addons', key, addon_desc['python path']))
+        client_config['client']['addon python packages'].append(path)
 
 
 def configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info):
