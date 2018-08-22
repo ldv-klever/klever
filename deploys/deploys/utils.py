@@ -251,7 +251,7 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
                                                      cmd_fn, install_fn)
             elif install_extra_dep_or_program(logger, addon, os.path.join(deploy_dir, 'klever-addons', addon),
                                               deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn) \
-                    and addon in ('BenchExec', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
+                    and addon in ('BenchExec', 'Clade', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
                 is_update_controller_and_schedulers = True
 
     if is_update_controller_and_schedulers:
