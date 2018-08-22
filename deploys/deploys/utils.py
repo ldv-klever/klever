@@ -212,7 +212,7 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             'version': version,
             'directory': deploy_dir
         }
-        for attr in ('name', 'executable path'):
+        for attr in ('name', 'executable path', 'python path'):
             if attr in desc:
                 prev_deploy_info[name][attr] = desc[attr]
 
