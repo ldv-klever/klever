@@ -346,7 +346,7 @@ class LCOV:
 
                 for path, files in all_files.items():
                     # Lightweight coverage keeps only source code dirs.
-                    if self.completeness == 'full' and \
+                    if self.completeness == 'lightweight' and \
                             all(os.path.commonpath([s, path]) != s for s in self.source_dirs):
                         self.logger.debug('Excluded {0}'.format(path))
                         excluded_dirs.add(path)
