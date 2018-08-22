@@ -1,7 +1,7 @@
 {
   "client": {
-    "cif location": "/abs/path/to/cif/bin/",
-    "cil location": "/abs/path/to/cil/obj/x86_LINUX",
+    "addon binaries": ["/abs/path/to/cif/bin/", "/abs/path/to/cil/obj/x86_LINUX"],
+    "addon python packages": [],
     "runexec container mode": false,
     "runexec measure disk": false,
     "runexec container mode options": [

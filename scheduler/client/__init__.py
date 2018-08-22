@@ -208,18 +208,6 @@ def solve_job(logger, conf):
     :return: RunExec exit code.
     """
 
-    # Add CIF path
-    if "cif location" in conf["client"]:
-        logger.debug("Add CIF bin location to path {}".format(conf["client"]["cif location"]))
-        os.environ["PATH"] = "{}:{}".format(conf["client"]["cif location"], os.environ["PATH"])
-        logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
-
-    # Add CIL path
-    if "cil location" in conf["client"]:
-        logger.debug("Add CIL bin location to path {}".format(conf["client"]["cil location"]))
-        os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
-        logger.debug("Current PATH content is {}".format(os.environ["PATH"]))
-
     # Do this for deterministic python in job
     os.environ['PYTHONHASHSEED'] = "0"
     os.environ['PYTHONIOENCODING'] = "utf8"
@@ -227,7 +215,7 @@ def solve_job(logger, conf):
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
 
-    args = prepare_job_arguments(conf)
+    args = prepare_job_arguments(logger, conf)
 
     exit_code = run(logger, args, conf)
     logger.info("Job solution has finished with exit code {}".format(exit_code))
@@ -288,7 +276,7 @@ def prepare_task_arguments(conf):
     return args
 
 
-def prepare_job_arguments(conf):
+def prepare_job_arguments(logger, conf):
     # RunExec arguments
     if "benchexec location" in conf["client"]:
         args = [os.path.join(conf["client"]["benchexec location"], 'bin', 'runexec')]
@@ -320,11 +308,15 @@ def prepare_job_arguments(conf):
         cmd = conf["client"]["Klever Core path"]
     else:
         cmd = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../core/bin/klever-core")
-    os.environ['PYTHONPATH'] = os.path.join(os.path.dirname(cmd), os.path.pardir)
 
-    # Do it to make it possible to use runexec inside Klever
-    if "benchexec location" in conf["client"]:
-        os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], conf["client"]["benchexec location"])
+    # Add CIF path
+    pythonpaths = conf["client"].setdefault("addon python packages", [])
+    pythonpaths.append(os.path.join(os.path.dirname(cmd), os.path.pardir))
+    for option, evar in (("addon binaries", "PATH"), ("addon python packages", "PYTHONPATH")):
+        if option in conf["client"]:
+            logger.debug("Add bin locations to {!r}: {!r}".format(evar, ':'.join(conf["client"][option])))
+            os.environ[evar] = "{}:{}".format(':'.join(conf["client"][option]), os.environ[evar])
+            logger.debug("Current {!r} content is {!r}".format(evar, os.environ[evar]))
 
     # Check existence of the file
     args.append(cmd)
