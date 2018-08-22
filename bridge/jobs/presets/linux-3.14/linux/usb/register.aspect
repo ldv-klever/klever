@@ -17,13 +17,7 @@
 
 before: file ("$this")
 {
-void ldv_check_return_value_probe(int);
 void ldv_reset_error_counter(void);
-}
-
-before: call(int ldv_post_probe(..))
-{
-	ldv_check_return_value_probe($arg1);
 }
 
 before: call(void ldv_pre_probe(..)) ||

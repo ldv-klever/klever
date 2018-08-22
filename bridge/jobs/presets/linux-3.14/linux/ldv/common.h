@@ -131,6 +131,7 @@ extern void ldv_pre_probe(void);
  * ldv_post_probe() is very like ldv_post_init().
  */
 extern int ldv_post_probe(int probe_ret_val);
+extern void ldv_check_return_value_probe(int probe_ret_val);
 
 /**
  * ldv_filter_err_code() - filter positive return values after a call of module callbacks.

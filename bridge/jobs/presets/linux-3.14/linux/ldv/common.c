@@ -59,6 +59,7 @@ int ldv_post_init(int init_ret_val)
 /* Like ldv_post_init(). */
 int ldv_post_probe(int probe_ret_val)
 {
+	ldv_check_return_value_probe(probe_ret_val);
 	return ldv_filter_positive_int(probe_ret_val);
 }
 
