@@ -213,8 +213,8 @@
       "template": "Linux kernel modules",
       "RSG": {"models": {"ldv-test.c": {"bug kinds": []}}}
     },
-    "generic:memory": {
-      "description": "Generic memory safety",
+    "linux:memory safety": {
+      "description": "Linux memory safety",
       "template": "Linux kernel modules",
       "EMG" : {
         "specifications directory": "linux/",
@@ -306,7 +306,7 @@
           ]
         }
       },
-      "RSG": {"models": {"generic/memory.c": {"headers": ["linux/fb.h"]}}},
+      "RSG": {"models": {"linux/memory safety/memory.c": {"headers": ["linux/fb.h"]}}},
       "FVTP": {
         "verifier profile": "memory checking Linux64",
         "verifier": {

@@ -22,14 +22,6 @@
     "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
     "ideal verdicts": [
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/array_overread_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/buffer_overread_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memleak_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/memcpy_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/ext_alloc_free_safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/generic/memory/free_safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/irq/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/spinlock/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/usb-lock/safe.ko"},
@@ -55,6 +47,14 @@
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/kernel/sched/completion-no-lockdep/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/lib/find_bit/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/lib/idr/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/array_overread_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/buffer_overread_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/ext_alloc_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/memleak_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/memcpy_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/ext_alloc_free_safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/memory safety/free_safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/register/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/rtnetlink/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/net/sock/safe.ko"},
@@ -88,11 +88,6 @@
     ]
   },
   "Sub-jobs": [
-    {
-      "Clade": {"base": "e93664"},
-      "project": {"kernel subsystems": ["ext-modules/generic/memory"]},
-      "rule specifications": ["generic:memory"]
-    },
     {
       "Clade": {"base": "1de383"},
       "project": {"kernel subsystems": ["ext-modules/linux/alloc/irq"]},
@@ -227,6 +222,11 @@
       "Clade": {"base": "47db2f"},
       "project": {"kernel subsystems": ["ext-modules/linux/lib/idr"]},
       "rule specifications": ["linux:lib:idr"]
+    },
+    {
+      "Clade": {"base": "e93664"},
+      "project": {"kernel subsystems": ["ext-modules/linux/memory safety"]},
+      "rule specifications": ["linux:memory safety"]
     },
     {
       "Clade": {"base": "789602"},
