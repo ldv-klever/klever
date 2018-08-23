@@ -29,6 +29,24 @@
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/genhd/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/queue/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/block/request/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/lock-reduce/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/simple/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/FunctionPointerTest-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/JoinTest-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/LoopTest-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/BAM_ARG_cleaning_test-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/bitwise_operations-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/PathIteratorTest-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest2-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest3-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest5-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest6-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest7-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest8-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest9-safe.ko"},
+      {"ideal verdict": "safe", "verification object": "ext-modules/linux/concurrency safety/unsorted/RaceTest10-safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/class/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/dma-mapping/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/clk1/safe.ko"},
@@ -63,27 +81,6 @@
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/gadget/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/register/safe.ko"},
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/usb/urb/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/lock-reduce/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/simple/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/FunctionPointerTest-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/JoinTest-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/LoopTest-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/BAM_ARG_cleaning_test-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/bitwise_operations-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/PathIteratorTest-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest2-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest3-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest5-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest6-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest7-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest8-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest9-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/sync/race/unsorted/RaceTest10-safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/memory/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/fs/char_dev/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mmc/safe.ko"},
       {"ideal verdict": "unsafe"}
     ]
   },
@@ -122,6 +119,21 @@
       "Clade": {"base": "95700c"},
       "project": {"kernel subsystems": ["ext-modules/linux/block/request"]},
       "rule specifications": ["linux:block:request"]
+    },
+    {
+      "Clade": {"base": "67ecfd"},
+      "project": {"kernel subsystems": ["ext-modules/linux/concurrency safety/lock-reduce"]},
+      "rule specifications": ["linux:concurrency safety"]
+    },
+    {
+      "Clade": {"base": "833642"},
+      "project": {"kernel subsystems": ["ext-modules/linux/concurrency safety/simple"]},
+      "rule specifications": ["linux:concurrency safety"]
+    },
+    {
+      "Clade": {"base": "fa9049"},
+      "project": {"kernel subsystems": ["ext-modules/linux/concurrency safety/unsorted"]},
+      "rule specifications": ["linux:concurrency safety"]
     },
     {
       "Clade": {"base": "e09a28"},
@@ -267,21 +279,6 @@
       "Clade": {"base": "518bb7"},
       "project": {"kernel subsystems": ["ext-modules/linux/usb/urb"]},
       "rule specifications": ["linux:usb:urb"]
-    },
-    {
-      "Clade": {"base": "67ecfd"},
-      "project": {"kernel subsystems": ["ext-modules/sync/race/lock-reduce"]},
-      "rule specifications": ["sync:race"]
-    },
-    {
-      "Clade": {"base": "833642"},
-      "project": {"kernel subsystems": ["ext-modules/sync/race/simple"]},
-      "rule specifications": ["sync:race"]
-    },
-    {
-      "Clade": {"base": "fa9049"},
-      "project": {"kernel subsystems": ["ext-modules/sync/race/unsorted"]},
-      "rule specifications": ["sync:race"]
     }
   ],
   "Sub-jobs staging": [

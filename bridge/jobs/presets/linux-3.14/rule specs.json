@@ -647,8 +647,8 @@
         "linux:usb:urb::more initial at exit"
       ]}}}
     },
-    "sync:race": {
-      "description": "...",
+    "linux:concurrency safety": {
+      "description": "Linux concurrency safety",
       "template": "Linux kernel modules",
       "EMG": {
         "specifications directory": "linux/",
@@ -741,7 +741,7 @@
         }
       },
       "RSG": {
-        "models": {"sync/races.c": {"bug kinds": []}}
+        "models": {"linux/concurrency safety/synchronization primitives.c": {"bug kinds": []}}
       },
       "FVTP": {
         "verifier profile": "race checking",
