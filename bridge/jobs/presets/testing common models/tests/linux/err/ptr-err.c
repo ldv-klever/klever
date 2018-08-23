@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/ldv/err.h>
-#include <ldv-test.h>
+#include <verifier/common.h>
 
 static int __init ldv_init(void)
 {

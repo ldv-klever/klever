@@ -17,7 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/ldv/err.h>
-#include <ldv-test.h>
+#include <verifier/common.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 

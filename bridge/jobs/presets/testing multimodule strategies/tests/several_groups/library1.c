@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <ldv-test.h>
+#include <verifier/common.h>
 
 void export_with_error(void)
 {

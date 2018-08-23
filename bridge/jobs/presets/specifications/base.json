@@ -211,7 +211,7 @@
     "test": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"ldv-test.c": {"bug kinds": []}}}
+      "RSG": {"models": {"verifier/common.c": {"bug kinds": []}}}
     },
     "linux:empty": {
       "description": "...",

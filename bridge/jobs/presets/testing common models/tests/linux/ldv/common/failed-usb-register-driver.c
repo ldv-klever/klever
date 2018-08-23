@@ -18,7 +18,6 @@
 #include <linux/module.h>
 #include <linux/usb.h>
 #include <linux/ldv/common.h>
-#include <ldv-test.h>
 #include <verifier/common.h>
 
 static int __init ldv_init(void)

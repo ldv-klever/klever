@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <ldv-test.h>
+#include <verifier/common.h>
 #include <verifier/memory.h>
 #include "structs.h"
 

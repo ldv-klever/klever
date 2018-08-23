@@ -19,7 +19,6 @@
 #include <linux/usb.h>
 #include <linux/netdevice.h>
 #include <linux/ldv/common.h>
-#include <ldv-test.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 

@@ -16,7 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <ldv-test.h>
+#include <verifier/common.h>
 #include "funcs.h"
 
 static int __init ldv_init(void)
