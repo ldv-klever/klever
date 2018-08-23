@@ -150,7 +150,7 @@ class Linux(Source):
     def _build(self):
         self.logger.info('Build Linux kernel')
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        targets_to_build = self.targets + self.subdirectories
+        targets_to_build = list(self._modules.keys()) + list(self._subsystems.keys())
         targets_to_build = sorted(targets_to_build)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
