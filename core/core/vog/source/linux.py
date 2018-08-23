@@ -59,7 +59,6 @@ class Linux(Source):
             "vmlinux"
         ]
     }
-    _source_paths = []
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
@@ -108,14 +107,6 @@ class Linux(Source):
         for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
             raise ValueError("No verification objects generated for Linux kernel subsystem {!r}: "
                              "check Clade base cache or job.json".format(subsystem))
-
-    @property
-    def subdirectories(self):
-        return self.conf['project'].get('kernel subsystems', [])
-
-    @property
-    def targets(self):
-        return self.conf['project'].get('loadable kernel modules', [])
 
     def configure(self):
         self.logger.info('Configure Linux kernel')
@@ -222,13 +213,6 @@ class Linux(Source):
 
             for build_target in build_targets:
                 self._make(build_target, intercept_build_cmds=True)
-
-    def _cleanup(self):
-        super(Linux, self)._cleanup()
-        self.logger.info('Clean Linux kernel working source tree')
-
-        # TODO: this command can fail but most likely this shouldn't be an issue.
-        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return super(Linux, self)._make(
