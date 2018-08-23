@@ -48,17 +48,10 @@
     "path": "."
   },
   "Klever Addons": {
-  "Clade": {
-      "version": "master",
-      "path": "/some/path/",
-      "python path": "",
-      "executable path": "bin"
-    },
     "BenchExec": {
       "version": "2c98ac73",
       "path": "addons/BenchExec-1.17-dev.tar.xz",
-      "executable path": "bin",
-      "python path": ""
+      "executable path": "bin"
     },
     "CIF": {
       "version": "d95cdf0",
