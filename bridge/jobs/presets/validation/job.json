@@ -8,8 +8,6 @@
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
-    "rule specifications DB": "rule specs.json",
-    "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)"
     "Module extractor": {
         "name": "Linux kernel",

@@ -17,8 +17,6 @@
       "name": "separate",
       "maximum verification object size": 30000
     },
-    "rule specifications DB": "rule specs.json",
-    "verifier profiles DB": "verifier profiles.json",
     "rule specifications": ["linux:emg:test"],
     "ideal verdicts": [
       {"ideal verdict": "safe"},

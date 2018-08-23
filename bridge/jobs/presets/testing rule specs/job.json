@@ -18,8 +18,6 @@
       "name": "separate",
       "maximum verification object size": 30000
     },
-    "rule specifications DB": "rule specs.json",
-    "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
     "ideal verdicts": [
       {"ideal verdict": "safe", "verification object": "ext-modules/linux/alloc/irq/safe.ko"},
