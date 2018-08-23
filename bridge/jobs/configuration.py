@@ -309,7 +309,7 @@ class Configuration:
             return value
         if isinstance(value, int):
             value = float(value)
-        if not isinstance(value, float) or (positive and value <= 0):
+        if not isinstance(value, float) or (positive and value < 0):
             raise ValueError('{0} expected, got value "{1}" of type {2}'
                              .format('Positive float' if positive else 'Float', value, type(value)))
         return value

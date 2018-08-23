@@ -592,7 +592,7 @@ class TableTree:
         # Fix total data
         for j_id in self._values_data:
             if 'unsafe:total' in self._values_data[j_id]:
-                url = reverse('reports:safes', args=[self._core[j_id]])
+                url = reverse('reports:unsafes', args=[self._core[j_id]])
                 confirmed, total = self._values_data[j_id]['unsafe:total']
                 self._values_data[j_id]['unsafe:total'] = '{0} ({1})'.format(
                     '<a href="{0}?confirmed=1">{1}</a>'.format(url, confirmed) if confirmed > 0 else 0,

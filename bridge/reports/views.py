@@ -264,7 +264,7 @@ class SafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
         values = context['TableData'].table_data['values']
-        number_of_objects = context['TableData'].paginated_values.paginator.count
+        number_of_objects = context['TableData'].page.paginator.count
 
         # If there is only one element in table, and first column of table is link, redirect to this link
         if request.GET.get('view_type') != VIEW_TYPES[5][0] \
@@ -274,14 +274,12 @@ class SafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        getdata = reports.utils.SafesListGetData(self.request.GET)
-        return {
-            'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.SafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[5]),
-                                                  **getdata.args)
-        }
+        tbl = reports.utils.SafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[5]), self.request.GET)
+        context.update({'report': self.object, 'TableData': tbl})
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -294,23 +292,22 @@ class UnsafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
         values = context['TableData'].table_data['values']
+        number_of_objects = context['TableData'].page.paginator.count
 
         # If there is only one element in table, and first column of table is link, redirect to this link
         if request.GET.get('view_type') != VIEW_TYPES[4][0] \
-                and values.paginator.count == 1 and isinstance(values[0], list) \
+                and number_of_objects == 1 and isinstance(values[0], list) \
                 and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
             return HttpResponseRedirect(values[0][0]['href'])
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        getdata = reports.utils.UnsafesListGetData(self.request.GET)
-        return {
-            'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnsafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[4]),
-                                                    **getdata.args)
-        }
+        tbl = reports.utils.UnsafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[4]), self.request.GET)
+        context.update({'report': self.object, 'TableData': tbl})
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -323,23 +320,23 @@ class UnknownsListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
         values = context['TableData'].table_data['values']
+        number_of_objects = context['TableData'].page.paginator.count
 
         # If there is only one element in table, and first column of table is link, redirect to this link
         if request.GET.get('view_type') != VIEW_TYPES[6][0] \
-                and values.paginator.count == 1 and isinstance(values[0], list) \
+                and number_of_objects == 1 and isinstance(values[0], list) \
                 and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
             return HttpResponseRedirect(values[0][0]['href'])
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        getdata = reports.utils.UnknownsListGetData(self.request.GET)
-        return {
-            'title': getdata.title, 'report': self.object, 'parents': reports.utils.get_parents(self.object),
-            'TableData': reports.utils.UnknownsTable(self.request.user, self.object, self.get_view(VIEW_TYPES[6]),
-                                                     **getdata.args)
-        }
+        tbl = reports.utils.UnknownsTable(self.request.user, self.object,
+                                          self.get_view(VIEW_TYPES[6]), self.request.GET)
+        context.update({'report': self.object, 'TableData': tbl})
+        return context
 
 
 @method_decorator(login_required, name='dispatch')

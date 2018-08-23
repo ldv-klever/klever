@@ -43,9 +43,9 @@
                     <a class="browse item">{% trans 'Job' %}<i class="dropdown icon"></i></a>
                     <div class="ui inverted popup bottom left transition hidden">
                         <a id="download_job_btn" href="{% url 'jobs:download' job.id %}" class="item{% if not job_access.can_download %} disabled{% endif %}">{% trans 'Download' %}</a>
-                        <a href="{% url 'jobs:form' job.id 'edit' %}" class="item{% if not job_access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
+                        <a href="{% url 'jobs:form' job.id 'edit' %}" class="menu-link item{% if not job_access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
                         <a id="remove_job_btn" class="item{% if not job_access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
-                        <a href="{% url 'jobs:form' job.id 'copy' %}" class="item{% if not job_access.can_create %} disabled{% endif %}">{% trans 'Copy' %}</a>
+                        <a href="{% url 'jobs:form' job.id 'copy' %}" class="menu-link item{% if not job_access.can_create %} disabled{% endif %}">{% trans 'Copy' %}</a>
                     </div>
                     <a class="browse item">{% trans 'Decision' %}<i class="dropdown icon"></i></a>
                     <div class="ui inverted popup bottom left transition hidden">

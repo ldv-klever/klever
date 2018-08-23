@@ -367,7 +367,7 @@ class ConnectMarks:
                 except BridgeException as e:
                     compare_error = str(e)
                 except Exception as e:
-                    logger.exception("Error traces comparison failed: %s" % e)
+                    logger.exception("Error traces comparison failed: %s" % e, exc_info=e)
                     compare_error = str(UNKNOWN_ERROR)
 
                 ass_type = ASSOCIATION_TYPE[0][0]
@@ -394,7 +394,7 @@ class ConnectMarks:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
         for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
-                .select_related('mark'):
+                .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -421,10 +421,8 @@ class ConnectMarks:
         new_verdict = UNSAFE_VERDICTS[5][0]
         for v in verdicts:
             if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
+                return UNSAFE_VERDICTS[4][0]
+            new_verdict = v
         return new_verdict
 
     def __is_not_used(self):
@@ -600,14 +598,15 @@ class UpdateVerdicts:
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in verdicts:
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
+        # verdicts is set (otherwise there is bug here)
+        v_num = len(verdicts)
+        if v_num == 0:
+            # No marks
+            return UNSAFE_VERDICTS[5][0]
+        elif v_num == 1:
+            return verdicts.pop()
+        # Several different verdicts
+        return UNSAFE_VERDICTS[4][0]
 
     def __is_not_used(self):
         pass
@@ -824,8 +823,10 @@ def delete_marks(marks):
 
 
 def update_confirmed_cache(unsafes):
-    unsafes = list(unsafe.id for unsafe in unsafes)
-    with_confirmed = set(r_id for r_id, in MarkUnsafeReport.objects.filter(
-        report_id__in=unsafes, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0).values_list('report_id'))
-    ReportUnsafe.objects.filter(id__in=unsafes).update(has_confirmed=False)
+    unsafes_set= set(unsafe.id for unsafe in unsafes)
+    with_confirmed = set(MarkUnsafeReport.objects.filter(
+        report_id__in=unsafes_set, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0
+    ).values_list('report_id', flat=True))
+
+    ReportUnsafe.objects.filter(id__in=unsafes_set - with_confirmed).update(has_confirmed=False)
     ReportUnsafe.objects.filter(id__in=with_confirmed).update(has_confirmed=True)

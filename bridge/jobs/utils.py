@@ -214,7 +214,7 @@ class JobAccess:
 
         if self._is_manager or self._is_expert:
             return all_jobs
-        author_of = list(jh.job_id for jh in JobHistory.objects.filter(version=1, change_author=self.user))
+        author_of = set(jh.job_id for jh in JobHistory.objects.filter(version=1, change_author=self.user))
         jobs_with_no_access = self.__get_jobs_with_roles([JOB_ROLES[0][0]])
         return all_jobs - (jobs_with_no_access - author_of)
 
