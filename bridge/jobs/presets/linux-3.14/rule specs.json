@@ -213,108 +213,6 @@
       "template": "Linux kernel modules",
       "RSG": {"models": {"ldv-test.c": {"bug kinds": []}}}
     },
-    "linux:memory safety": {
-      "description": "Linux memory safety",
-      "template": "Linux kernel modules",
-      "EMG" : {
-        "specifications directory": "linux/",
-        "entry point": "main",
-        "initialize rules": true,
-        "check final state": true,
-        "source analysis": {
-          "callstack deep search": 3,
-          "macros white list": "linux/emg/macros white list.json"
-        },
-        "intermediate model options": [
-          {
-            "linuxModule": {
-              "dump instances": false,
-              "convert statics to globals": true,
-              "add registration guards": true,
-              "ignore missed callbacks": true,
-              "delete unregistered processes": true,
-              "implicit callback calls": true,
-              "generate new resource interfaces": false,
-              "callback comment": "Invoke callback {0} from {1}.",
-              "action comments": {
-                "dispatch": {
-                  "register": "Register {} callbacks.",
-                  "instance_register": "Register {} callbacks.",
-                  "deregister": "Deregister {} callbacks.",
-                  "instance_deregister": "Deregister {} callbacks.",
-                  "irq_register": "Register {} interrupt handler.",
-                  "irq_deregister": "Deregister {} interrupt handler."
-                },
-                "receive": {
-                  "register": "Begin {} callbacks invocations scenario.",
-                  "instance_register": "Begin {} callbacks invocations scenario.",
-                  "deregister": "Finish {} callbacks invocations scenario.",
-                  "instance_deregister": "Finish {} callbacks invocations scenario."
-                }
-              }
-            }
-          },
-          {
-            "linuxInsmod": {
-              "init": "module_init",
-              "exit": "module_exit",
-              "kernel_initialization": [
-                "early_initcall",
-                "pure_initcall",
-                "core_initcall",
-                "core_initcall_sync",
-                "postcore_initcall",
-                "postcore_initcall_sync",
-                "arch_initcall",
-                "arch_initcall_sync",
-                "subsys_initcall",
-                "subsys_initcall_sync",
-                "fs_initcall",
-                "fs_initcall_sync",
-                "rootfs_initcall",
-                "device_initcall",
-                "device_initcall_sync",
-                "late_initcall",
-                "late_initcall_sync",
-                "console_initcall",
-                "security_initcall"
-              ],
-              "kernel": false
-            }
-          }
-        ],
-        "translation options": {
-          "debug output": false,
-          "self parallel processes": false,
-          "self parallel model": false,
-          "always sequential processes": ["linux/initialization"],
-          "direct control functions calls": true,
-          "nested automata": true,
-          "allocate with sizeof": true,
-          "allocate external": true,
-          "environment model file": "environment_model.c",
-          "code additional aspects": [],
-          "additional headers": [
-            "linux/user_namespace.h",
-            "linux/ldv/common.h",
-            "linux/ldv/err.h",
-            "verifier/common.h",
-            "verifier/gcc.h",
-            "verifier/nondet.h",
-            "verifier/memory.h",
-            "verifier/thread.h"
-          ]
-        }
-      },
-      "RSG": {"models": {"linux/memory safety/memory.c": {"headers": ["linux/fb.h"]}}},
-      "FVTP": {
-        "verifier profile": "memory checking Linux64",
-        "verifier": {
-          "name": "CPAchecker",
-          "version": "trunk:27946"
-        }
-      }
-    },
     "linux:empty": {
       "description": "...",
       "template": "Linux kernel modules"
@@ -405,6 +303,113 @@
         "linux:block:request::double put",
         "linux:block:request::get at exit"
       ]}}}
+    },
+    "linux:concurrency safety": {
+      "description": "Linux concurrency safety",
+      "template": "Linux kernel modules",
+      "EMG": {
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "initialize rules": true,
+        "check final state": false,
+        "source analysis": {
+          "callstack deep search": 3,
+          "macros white list": "linux/emg/macros white list.json"
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": false,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "kernel": false
+            }
+          }
+        ],
+        "translation options": {
+          "debug output": false,
+          "self parallel processes": true,
+          "self parallel model": false,
+          "not self parallel processes": ["linux/initialization"],
+          "not self parallel processes from categories": ["usb"],
+          "direct control functions calls": false,
+          "nested automata": true,
+          "allocate with sizeof": true,
+          "allocate external": false,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/thread.h"
+          ]
+        }
+      },
+      "RSG": {
+        "models": {"linux/concurrency safety/synchronization primitives.c": {"bug kinds": []}}
+      },
+      "FVTP": {
+        "verifier profile": "race checking",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "CPALockator-combat-mode:28916"
+        },
+        "result processing": {
+          "expect several witnesses": true
+        }
+      }
     },
     "linux:drivers:base:class": {
       "description": "...",
@@ -581,6 +586,108 @@
           ]
       }}}
     },
+    "linux:memory safety": {
+      "description": "Linux memory safety",
+      "template": "Linux kernel modules",
+      "EMG" : {
+        "specifications directory": "linux/",
+        "entry point": "main",
+        "initialize rules": true,
+        "check final state": true,
+        "source analysis": {
+          "callstack deep search": 3,
+          "macros white list": "linux/emg/macros white list.json"
+        },
+        "intermediate model options": [
+          {
+            "linuxModule": {
+              "dump instances": false,
+              "convert statics to globals": true,
+              "add registration guards": true,
+              "ignore missed callbacks": true,
+              "delete unregistered processes": true,
+              "implicit callback calls": true,
+              "generate new resource interfaces": false,
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
+            }
+          },
+          {
+            "linuxInsmod": {
+              "init": "module_init",
+              "exit": "module_exit",
+              "kernel_initialization": [
+                "early_initcall",
+                "pure_initcall",
+                "core_initcall",
+                "core_initcall_sync",
+                "postcore_initcall",
+                "postcore_initcall_sync",
+                "arch_initcall",
+                "arch_initcall_sync",
+                "subsys_initcall",
+                "subsys_initcall_sync",
+                "fs_initcall",
+                "fs_initcall_sync",
+                "rootfs_initcall",
+                "device_initcall",
+                "device_initcall_sync",
+                "late_initcall",
+                "late_initcall_sync",
+                "console_initcall",
+                "security_initcall"
+              ],
+              "kernel": false
+            }
+          }
+        ],
+        "translation options": {
+          "debug output": false,
+          "self parallel processes": false,
+          "self parallel model": false,
+          "always sequential processes": ["linux/initialization"],
+          "direct control functions calls": true,
+          "nested automata": true,
+          "allocate with sizeof": true,
+          "allocate external": true,
+          "environment model file": "environment_model.c",
+          "code additional aspects": [],
+          "additional headers": [
+            "linux/user_namespace.h",
+            "linux/ldv/common.h",
+            "linux/ldv/err.h",
+            "verifier/common.h",
+            "verifier/gcc.h",
+            "verifier/nondet.h",
+            "verifier/memory.h",
+            "verifier/thread.h"
+          ]
+        }
+      },
+      "RSG": {"models": {"linux/memory safety/memory.c": {"headers": ["linux/fb.h"]}}},
+      "FVTP": {
+        "verifier profile": "memory checking Linux64",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "trunk:27946"
+        }
+      }
+    },
     "linux:net:register": {
       "description": "Error handling for netdev in probe()",
       "template": "Linux kernel modules",
@@ -646,113 +753,6 @@
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"
       ]}}}
-    },
-    "linux:concurrency safety": {
-      "description": "Linux concurrency safety",
-      "template": "Linux kernel modules",
-      "EMG": {
-        "specifications directory": "linux/",
-        "entry point": "main",
-        "initialize rules": true,
-        "check final state": false,
-        "source analysis": {
-          "callstack deep search": 3,
-          "macros white list": "linux/emg/macros white list.json"
-        },
-        "intermediate model options": [
-          {
-            "linuxModule": {
-              "dump instances": false,
-              "convert statics to globals": true,
-              "add registration guards": false,
-              "ignore missed callbacks": true,
-              "delete unregistered processes": true,
-              "implicit callback calls": true,
-              "generate new resource interfaces": false,
-              "callback comment": "Invoke callback {0} from {1}.",
-              "action comments": {
-                "dispatch": {
-                  "register": "Register {} callbacks.",
-                  "instance_register": "Register {} callbacks.",
-                  "deregister": "Deregister {} callbacks.",
-                  "instance_deregister": "Deregister {} callbacks.",
-                  "irq_register": "Register {} interrupt handler.",
-                  "irq_deregister": "Deregister {} interrupt handler."
-                },
-                "receive": {
-                  "register": "Begin {} callbacks invocations scenario.",
-                  "instance_register": "Begin {} callbacks invocations scenario.",
-                  "deregister": "Finish {} callbacks invocations scenario.",
-                  "instance_deregister": "Finish {} callbacks invocations scenario."
-                }
-              }
-            }
-          },
-          {
-            "linuxInsmod": {
-              "init": "module_init",
-              "exit": "module_exit",
-              "kernel_initialization": [
-                "early_initcall",
-                "pure_initcall",
-                "core_initcall",
-                "core_initcall_sync",
-                "postcore_initcall",
-                "postcore_initcall_sync",
-                "arch_initcall",
-                "arch_initcall_sync",
-                "subsys_initcall",
-                "subsys_initcall_sync",
-                "fs_initcall",
-                "fs_initcall_sync",
-                "rootfs_initcall",
-                "device_initcall",
-                "device_initcall_sync",
-                "late_initcall",
-                "late_initcall_sync",
-                "console_initcall",
-                "security_initcall"
-              ],
-              "kernel": false
-            }
-          }
-        ],
-        "translation options": {
-          "debug output": false,
-          "self parallel processes": true,
-          "self parallel model": false,
-          "not self parallel processes": ["linux/initialization"],
-          "not self parallel processes from categories": ["usb"],
-          "direct control functions calls": false,
-          "nested automata": true,
-          "allocate with sizeof": true,
-          "allocate external": false,
-          "environment model file": "environment_model.c",
-          "code additional aspects": [],
-          "additional headers": [
-            "linux/ldv/common.h",
-            "linux/ldv/err.h",
-            "verifier/common.h",
-            "verifier/gcc.h",
-            "verifier/nondet.h",
-            "verifier/memory.h",
-            "verifier/thread.h"
-          ]
-        }
-      },
-      "RSG": {
-        "models": {"linux/concurrency safety/synchronization primitives.c": {"bug kinds": []}}
-      },
-      "FVTP": {
-        "verifier profile": "race checking",
-        "verifier": {
-          "name": "CPAchecker",
-          "version": "CPALockator-combat-mode:28916"
-        },
-        "result processing": {
-          "expect several witnesses": true
-        }
-      }
     }
   },
   "rule specifications staging": {
