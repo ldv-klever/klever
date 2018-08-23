@@ -4,6 +4,59 @@
       "description": "...",
       "plugins": ["Weaver"]
     },
+    "Userspace": {
+      "description": "...",
+      "plugins": [
+        {
+          "EMG": {
+            "specifications directory": "/",
+            "entry point": "main",
+            "initialize rules": true,
+            "check final state": true,
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [],
+            "translation options": {
+              "debug output": false,
+              "self parallel processes": false,
+              "self parallel model": false,
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": false,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "additional headers": []
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "common models": {
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/memory.c": {}
+            }
+          }
+        },
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:27583"
+            },
+            "result processing": {
+              "coverage": "full"
+            }
+          }
+        }
+      ]
+    },
     "Linux kernel modules": {
       "description": "...",
       "plugins": [

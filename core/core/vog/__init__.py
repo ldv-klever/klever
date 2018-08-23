@@ -89,7 +89,8 @@ class VOG(core.components.Component):
         model_headers = self.mqs["model headers"].get()
         program.prepare_build_directory()
         program.configure()
-        program.prepare_model_headers(model_headers)
+        if model_headers:
+            program.prepare_model_headers(model_headers)
         program.build()
 
     def prepare_descriptions_file(self, files):

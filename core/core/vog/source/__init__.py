@@ -49,7 +49,6 @@ class Source:
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self.work_src_tree = None
         self._source_paths = []
-        self._opts_file = self.conf['project']['opts file']
         self._model_headers_path = 'model-headers'
         self._clade_dir = self.conf['Clade']['base']
         self._build_flag = False
@@ -62,8 +61,10 @@ class Source:
         if not self._build_flag:
             return self._retrieve_attrs()
         else:
-            attrs = [{'name': 'kind', 'value': type(self).__name__}] + \
-                    [{"name": att, "value": getattr(self, att)} for att in ('arch', 'version', 'configuration')]
+            attrs = [{'name': 'kind', 'value': type(self).__name__}]
+            for att in ('arch', 'version', 'configuration'):
+                if getattr(self, att):
+                    attrs.append({"name": att, "value": getattr(self, att)})
             return [
                 {
                     'name': 'project',
@@ -133,6 +134,10 @@ class Source:
         cmds_file = os.path.join(self.work_src_tree, self._CMDS_FILE)
         if os.path.isfile(cmds_file):
             os.remove(cmds_file)
+
+        self.logger.info('Clean working source tree')
+        # TODO: this command can fail but most likely this shouldn't be an issue.
+        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +
