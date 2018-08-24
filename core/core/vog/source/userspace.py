@@ -48,17 +48,34 @@ class Userspace(Source):
         self._targets = {s: False for s in self.conf['project'].get('objects', [])}
 
     def check_target(self, candidate):
-        # todo: Implement common functions for all userspace programs
-        raise NotImplementedError
+        candidate = core.utils.make_relative_path(self.source_paths, candidate)
 
-    def check_targets_consistency(self):
-        # todo: Test this
-        for module in (m for m in self._targets if not self._targets[m]):
-            raise ValueError("No verification objects generated for object {!r}: "
-                             "check Clade base cache or job.json".format(module))
-        for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
-            raise ValueError("No verification objects generated for directory {!r}: "
-                             "check Clade base cache or job.json".format(subsystem))
+        if 'all' in self._subsystems:
+            self._subsystems['all'] = True
+            return True
+
+        if 'all' in self._targets:
+            self._targets['all'] = True
+            return True
+
+        if os.path.dirname(candidate) in self._subsystems:
+            self._subsystems[os.path.dirname(candidate)] = True
+            return True
+
+        if candidate in self._targets:
+            self._targets[candidate] = True
+            return True
+
+        matched_subsystems = list(s for s in self._subsystems if os.path.commonpath([candidate, s]) == s)
+        if len(matched_subsystems) == 1:
+            self._subsystems[matched_subsystems[0]] = True
+            return True
+
+        # This should not be true ever.
+        if len(matched_subsystems) > 1:
+            raise ValueError('Several subsystems "{0}" match candidate "{1}"'.format(matched_subsystems, candidate))
+
+        return False
 
     def _cleanup(self):
         super()._cleanup()
