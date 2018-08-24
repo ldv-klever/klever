@@ -48,10 +48,17 @@ class Source:
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self.work_src_tree = None
+
+        # For internal use
         self._source_paths = []
         self._model_headers_path = 'model-headers'
         self._clade_dir = self.conf['Clade']['base']
         self._build_flag = False
+        self._clade = clade_api
+
+        # This should be properly filles by an implementation
+        self._subsystems = None
+        self._targets = None
 
         # Add extra Clade options
         self._CLADE_CONF.update(self.conf['project'].get("extra Clade opts", dict()))
@@ -78,11 +85,22 @@ class Source:
             self._source_paths = self._retrieve_source_paths()
         return self._source_paths
 
-    def check_target(self, path):
-        raise NotImplementedError
+    def check_target(self, candidate):
+        if 'all' in self._subsystems:
+            self._subsystems['all'] = True
+            return True
+        if 'all' in self._targets:
+            self._targets['all'] = True
+            return True
+        return True
 
     def check_targets_consistency(self):
-        raise NotImplementedError
+        for target in (t for t in self._targets if not self._targets[t]):
+            raise ValueError("No verification objects generated for target {!r}: "
+                             "check Clade base cache or job.json".format(target))
+        for subsystem in (s for s in self._subsystems if not self._subsystems[s]):
+            raise ValueError("No verification objects generated for directory {!r}: "
+                             "check Clade base cache or job.json".format(subsystem))
 
     def configure(self):
         self.configuration = self.conf['project'].get('configuration')
@@ -134,10 +152,6 @@ class Source:
         cmds_file = os.path.join(self.work_src_tree, self._CMDS_FILE)
         if os.path.isfile(cmds_file):
             os.remove(cmds_file)
-
-        self.logger.info('Clean working source tree')
-        # TODO: this command can fail but most likely this shouldn't be an issue.
-        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
 
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return core.utils.execute(self.logger, (['clade-intercept'] if intercept_build_cmds else []) +

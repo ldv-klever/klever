@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# todo: replace with core.utils
+import subprocess
 import core.utils
 from core.vog.source import Source
 
@@ -44,7 +46,7 @@ class Userspace(Source):
     def __init__(self, logger, conf):
         super().__init__(logger, conf)
         self._subsystems = {m: False for m in self.conf['project'].get('directories', [])}
-        self._modules = {s: False for s in self.conf['project'].get('objects', [])}
+        self._targets = {s: False for s in self.conf['project'].get('objects', [])}
 
     def check_target(self, candidate):
         # todo: Implement common functions for all userspace programs
@@ -52,17 +54,22 @@ class Userspace(Source):
 
     def check_targets_consistency(self):
         # todo: Test this
-        for module in (m for m in self._modules if not self._modules[m]):
+        for module in (m for m in self._targets if not self._targets[m]):
             raise ValueError("No verification objects generated for object {!r}: "
                              "check Clade base cache or job.json".format(module))
         for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
             raise ValueError("No verification objects generated for directory {!r}: "
                              "check Clade base cache or job.json".format(subsystem))
 
+    def _cleanup(self):
+        super()._cleanup()
+        self.logger.info('Clean working source tree')
+        subprocess.check_call(('make', 'clean'), cwd=self.work_src_tree)
+
     def configure(self):
         self.logger.info('Configure given userspace program')
         super().configure()
-        core.utils.execute(self.logger, ['configure'], cwd=self.work_src_tree)
+        core.utils.execute(self.logger, ['./configure'], cwd=self.work_src_tree)
 
     def _build(self):
         self.logger.info('Build the given userspace program')
@@ -71,4 +78,3 @@ class Userspace(Source):
     def prepare_model_headers(self, model_headers):
         # todo: We need to develop some proper scheme for this
         raise NotImplementedError
-

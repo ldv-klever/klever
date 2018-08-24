@@ -19,8 +19,8 @@ import os
 import multiprocessing
 import clade.interface as clade_api
 
-from core.vog.dividers import get_divider
-from core.vog.strategies import get_division_strategy
+from core.vog.fragmentation import get_divider
+from core.vog.aggregation import get_division_strategy
 from core.vog.source import get_source_adapter
 
 import core.components
@@ -44,8 +44,8 @@ class VOG(core.components.Component):
     def generate_verification_objects(self):
         # Get classes
         program = get_source_adapter(self.conf['project']['name'])
-        divider = get_divider(self.conf['VOG divider']['name'])
-        strategy = get_division_strategy(self.conf['VOG strategy']['name'])
+        divider = get_divider(self.conf['Fragmentation strategy']['name'])
+        strategy = get_division_strategy(self.conf['Aggregation strategy']['name'])
 
         # Create instances
         program = program(self.logger, self.conf)

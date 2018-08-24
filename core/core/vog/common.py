@@ -20,11 +20,12 @@ from hashlib import md5
 from graphviz import Digraph
 
 
-class Unit:
+class Fragment:
 
     def __init__(self, identifier):
         # Identifier
         self.name = identifier
+        self.target = False
         # Connections
         self.predecessors = set()
         self.successors = set()
@@ -32,8 +33,8 @@ class Unit:
         self.ccs = set()
         self.in_files = set()
         self.size = 0
-        self.export_functions = {}
-        self.call_functions = {}
+        self.export_functions = dict()
+        self.import_functions = dict()
 
     def __lt__(self, other):
         return self.name < other.id
@@ -65,63 +66,71 @@ class Unit:
         self.successors.add(successor)
         successor.predecessors.add(self)
 
+    def add_export_function(self, scope, func):
+        funcs = self.export_functions.setdefault(scope, set())
+        funcs.add(func)
+
+    def add_extern_call(self, definition_file, func):
+        funcs = self.import_functions.setdefault(definition_file, set())
+        funcs.add(func)
+
 
 class Aggregation:
 
-    def __init__(self, main_unit=None, name=None):
-        self.units = set()
+    def __init__(self, main_fragment=None, name=None):
+        self.fragments = set()
         self.name = name
-        if main_unit:
-            self.root = main_unit
-            self.units.add(main_unit)
+        if main_fragment:
+            self.root = main_fragment
+            self.fragments.add(main_fragment)
 
     @property
     def ccs(self):
-        return {cc for unit in self.units for cc in unit.ccs}
+        return {cc for frag in self.fragments for cc in frag.ccs}
 
     @property
     def size(self):
-        return sum(unit.size for unit in self.units)
+        return sum(frag.size for frag in self.fragments)
 
-    def recursive_insert(self, unit):
-        check = [unit]
+    def recursive_insert(self, fragment):
+        check = [fragment]
         while check:
-            unit = check.pop(0)
-            check.extend(unit.predecessors)
-            self.units.add(unit)
+            fragment = check.pop(0)
+            check.extend(fragment.predecessors)
+            self.fragments.add(fragment)
 
     def draw(self, path):
         g = Digraph(name=str(self.root.id),
                     format="png")
-        for unit in self.units:
-            g.node(unit.id, unit.id)
-        for unit in self.units:
-            for pred in unit.predecessors:
-                g.edge(unit.id, pred.id)
+        for frag in self.fragments:
+            g.node(frag.id, frag.id)
+        for frag in self.fragments:
+            for pred in frag.predecessors:
+                g.edge(frag.id, pred.id)
         g.save(os.path.join(path, self.root.id + self.md5_hash))
         g.render()
 
     def __hash__(self):
-        return hash(frozenset(self.units))
+        return hash(frozenset(self.fragments))
 
     def __str__(self):
-        return str(self.units)
+        return str(self.fragments)
 
     def __repr__(self):
         return str(self)
 
     def __eq__(self, rhs):
-        return set(self.units).__eq__(set(rhs.units))
+        return set(self.fragments).__eq__(set(rhs.fragments))
 
     def __cmp__(self, rhs):
-        return set(self.units).__cmp__(set(rhs.units))
+        return set(self.fragments).__cmp__(set(rhs.fragments))
 
     @property
     def md5_hash(self):
-        return md5("".join([module.id for module in self.units]).encode('utf-8')).hexdigest()[:12]
+        return md5("".join([module.id for module in self.fragments]).encode('utf-8')).hexdigest()[:12]
 
     @property
     def size(self):
-        return len(self.units)
+        return len(self.fragments)
 
 

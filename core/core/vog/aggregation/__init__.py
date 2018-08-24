@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 import importlib
 
 
-def get_divider(strategy_name):
-    module_path = '.vog.dividers.{}'.format(strategy_name.lower())
+def get_division_strategy(strategy_name):
+    module_path = '.vog.aggregation.{}'.format(strategy_name.lower())
     project_package = importlib.import_module(module_path, 'core')
     cls = getattr(project_package, strategy_name.capitalize())
     return cls

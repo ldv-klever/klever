@@ -15,20 +15,11 @@
 # limitations under the License.
 #
 
-from core.vog.dividers.abstract import AbstractDivider
+import importlib
 
 
-class SingleFile(AbstractDivider):
-
-    def divide(self):
-        dependencies = self._build_dependencies()[0]
-        modules = {}
-        for file in dependencies.keys():
-            try:
-                # todo: This should be corrected
-                desc = self._clade.get_cc().load_json_by_in(file)
-            except FileNotFoundError:
-                continue
-            modules.update(self._create_module(desc['id']))
-
-        return modules
+def get_divider(strategy_name):
+    module_path = '.vog.fragmentation.{}'.format(strategy_name.lower())
+    project_package = importlib.import_module(module_path, 'core')
+    cls = getattr(project_package, strategy_name.capitalize())
+    return cls

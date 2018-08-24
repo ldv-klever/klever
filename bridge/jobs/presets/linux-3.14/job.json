@@ -11,12 +11,10 @@
     "loadable kernel modules": ["drivers/net/usb/asix.ko"],
     "opts file": "scripts/mod/empty.c"
   },
-  "VOG divider": {
-    "name": "Linux",
-    "target kernel": false,
-    "maximum unit size": 30000
+  "Fragmentation strategy": {
+    "name": "linux"
   },
-  "VOG strategy": {
+  "Aggregation strategy": {
     "name": "separate",
     "maximum verification object size": 30000
   },

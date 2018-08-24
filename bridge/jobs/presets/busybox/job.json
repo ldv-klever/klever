@@ -8,16 +8,18 @@
     "source": "busybox",
     "configuration": "defconfig",
     "architecture": "x86_64",
-    "applets": ["cat"]
+    "applets": ["all"]
   },
-  "VOG divider": {
+  "Fragmentation strategy": {
     "name": "single",
     "target kernel": false,
     "maximum unit size": 30000
   },
-  "VOG strategy": {
+  "Aggregation strategy": {
     "name": "separate",
-    "maximum verification object size": 30000
+    "maximum verification object size": 30000,
+    "draw aggregations": true,
+    "dependencies recursive depth": 1
   },
   "rule specifications DB": "rule specs.json",
   "verifier profiles DB": "verifier profiles.json",

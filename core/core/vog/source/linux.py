@@ -65,7 +65,7 @@ class Linux(Source):
         self._kernel = self.conf['project'].get('build kernel', False)
         self.__loadable_modules_support = True
         self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
-        self._modules = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
+        self._targets = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
         self._external_modules = self.conf['project'].get('external modules', False)
 
     def check_target(self, candidate):
@@ -75,8 +75,8 @@ class Linux(Source):
             self._subsystems['all'] = True
             return True
 
-        if 'all' in self._modules:
-            self._modules['all'] = True
+        if 'all' in self._targets:
+            self._targets['all'] = True
             return True
 
         if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
@@ -84,8 +84,8 @@ class Linux(Source):
             return True
 
         if not self._kernel:
-            if candidate in self._modules:
-                self._modules[candidate] = True
+            if candidate in self._targets:
+                self._targets[candidate] = True
                 return True
 
             matched_subsystems = list(s for s in self._subsystems if os.path.commonpath([candidate, s]) == s)
@@ -99,14 +99,6 @@ class Linux(Source):
                 raise ValueError('Several subsystems "{0}" match candidate "{1}"'.format(matched_subsystems, candidate))
 
         return False
-
-    def check_targets_consistency(self):
-        for module in (m for m in self._modules if not self._modules[m]):
-            raise ValueError("No verification objects generated for Linux loadable kernel module {!r}: "
-                             "check Clade base cache or job.json".format(module))
-        for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
-            raise ValueError("No verification objects generated for Linux kernel subsystem {!r}: "
-                             "check Clade base cache or job.json".format(subsystem))
 
     def configure(self):
         self.logger.info('Configure Linux kernel')
@@ -147,10 +139,16 @@ class Linux(Source):
         self._make(target)
         self.configuration = conf_hash
 
+    def _cleanup(self):
+        super()._cleanup()
+        self.logger.info('Clean working source tree')
+        # TODO: this command can fail but most likely this shouldn't be an issue.
+        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
+
     def _build(self):
         self.logger.info('Build Linux kernel')
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        targets_to_build = list(self._modules.keys()) + list(self._subsystems.keys())
+        targets_to_build = list(self._targets.keys()) + list(self._subsystems.keys())
         targets_to_build = sorted(targets_to_build)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".

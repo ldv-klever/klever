@@ -15,11 +15,20 @@
 # limitations under the License.
 #
 
-import importlib
+from core.vog.common import Aggregation
+from core.vog.aggregation.abstract import Abstract
 
 
-def get_division_strategy(strategy_name):
-    module_path = '.vog.strategies.{}'.format(strategy_name.lower())
-    project_package = importlib.import_module(module_path, 'core')
-    cls = getattr(project_package, strategy_name.capitalize())
-    return cls
+class Separate(Abstract):
+    """This strategy just returns as aggregations separate fragments marked as target ones."""
+
+    def _aggregate(self):
+        """
+        Just return target fragments as aggregations consisting of a single fragment.
+
+        :return: Generator that retursn Aggregation objects.
+        """
+        for fragment in self.divider.target_fragments:
+            new = Aggregation(fragment)
+            new.name = fragment.name
+            yield new
