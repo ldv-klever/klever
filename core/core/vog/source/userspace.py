@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# todo: replace with core.utils
-import subprocess
+import os
 import core.utils
 from core.vog.source import Source
 
@@ -64,7 +63,7 @@ class Userspace(Source):
     def _cleanup(self):
         super()._cleanup()
         self.logger.info('Clean working source tree')
-        subprocess.check_call(('make', 'clean'), cwd=self.work_src_tree)
+        core.utils.execute(self.logger, ('make', 'clean'), cwd=self.work_src_tree)
 
     def configure(self):
         self.logger.info('Configure given userspace program')

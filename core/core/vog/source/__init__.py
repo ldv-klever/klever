@@ -18,7 +18,6 @@ import json
 import shutil
 import tarfile
 import importlib
-import subprocess
 import urllib.parse
 import clade.interface as clade_api
 
@@ -208,9 +207,10 @@ class Source:
                         if os.path.isfile(git_index_lock):
                             os.remove(git_index_lock)
                         # In case of dirty Git working directory checkout may fail so clean up it first.
-                        subprocess.check_call(('git', 'clean', '-f', '-d'), cwd=work_src_tree)
-                        subprocess.check_call(('git', 'reset', '--hard'), cwd=work_src_tree)
-                        subprocess.check_call(('git', 'checkout', '-f', git_repo[commit_or_branch]), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'clean', '-f', '-d'), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'reset', '--hard'), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'checkout', '-f', git_repo[commit_or_branch]),
+                                           cwd=work_src_tree)
 
                         # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
                         stdout = core.utils.execute(self.logger, ('git', 'rev-parse', 'HEAD'), cwd=work_src_tree,

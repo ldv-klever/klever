@@ -14,8 +14,6 @@
 # limitations under the License.
 
 import os
-# todo: replace with core.utils
-import subprocess
 import json
 
 import core.utils
@@ -103,8 +101,7 @@ class Busybox(Userspace):
     def _cleanup(self):
         super()._cleanup()
         self.logger.info('Clean working source tree')
-        # TODO: this command can fail but most likely this shouldn't be an issue.
-        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
+        core.utils.execute(self.logger, ('make', 'mrproper'), cwd=self.work_src_tree)
 
     def configure(self):
         self.logger.info('Configure Busybox')

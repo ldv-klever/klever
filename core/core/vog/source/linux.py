@@ -18,8 +18,6 @@ import re
 import shutil
 import tarfile
 import hashlib
-# todo: replace with execute
-import subprocess
 
 import core.utils
 from core.vog.source import Source
@@ -142,8 +140,7 @@ class Linux(Source):
     def _cleanup(self):
         super()._cleanup()
         self.logger.info('Clean working source tree')
-        # TODO: this command can fail but most likely this shouldn't be an issue.
-        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
+        core.utils.execute(self.logger, ('make', 'mrproper'), cwd=self.work_src_tree)
 
     def _build(self):
         self.logger.info('Build Linux kernel')
@@ -225,7 +222,7 @@ class Linux(Source):
             # kernel has loadable modules support.
             self._make(['modules_prepare'], intercept_build_cmds=True)
             self.__loadable_modules_support = True
-        except subprocess.CalledProcessError:
+        except core.utils.CommandError:
             # Otherwise the command above will most likely fail. In this case compile special file, namely,
             # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
             # building
@@ -244,7 +241,6 @@ class Linux(Source):
             return None
         work_src_tree = self._EXT_DIR
 
-        # todo: replace option
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
             .format(self._external_modules, work_src_tree))
