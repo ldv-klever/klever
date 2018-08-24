@@ -186,30 +186,67 @@ class Population:
 
     def __populate_jobs(self):
         created_jobs = []
-        for jobdir in [os.path.join(self.jobs_dir, x) for x in os.listdir(self.jobs_dir)]:
-            if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                raise BridgeException('Default job require settings file: {0}'.format(jobdir))
-            with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
+
+        # Directory "specifications" and file "verifier profiles.json" should be added for all preset jobs.
+        specs_children = self.__get_dir(os.path.join(self.jobs_dir, 'specifications'), 'specifications')
+        verifier_profiles = self.__get_file(os.path.join(self.jobs_dir, 'verifier profiles.json'),
+                                            'verifier profiles.json')
+
+        for dirpath, dirnames, filenames in os.walk(self.jobs_dir):
+            # Do not traverse within specific directories. Directory "specifications" should be placed within the root
+            # preset jobs directory, directory "staging" can be placed anywhere.
+            if os.path.basename(dirpath) == 'specifications' or os.path.basename(dirpath) == 'staging':
+                dirnames[:] = []
+                filenames[:] = []
+                continue
+
+            # Directories without preset job settings file serve to keep ones with that file and specific ones.
+            job_settings_file = os.path.join(dirpath, JOB_SETTINGS_FILE)
+            if not os.path.exists(job_settings_file):
+                continue
+
+            # Do not traverse within directories with preset job settings file.
+            dirnames[:] = []
+
+            with open(job_settings_file, encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
                     logger.exception(e)
-                    raise BridgeException('The default job settings file is wrong json. Job: {0}'.format(jobdir))
+                    raise BridgeException('Settings file of preset job "{0}" is not valid JSON file'.format(dirpath))
+
             if 'description' not in job_settings:
-                raise BridgeException('Default job description is required. Job: {0}'.format(jobdir))
+                raise BridgeException('Preset job "{0}" does not have description'.format(dirpath))
 
             try:
                 job_name = self.__check_job_name(job_settings.get('name'))
             except BridgeException as e:
-                raise BridgeException("{0}. Job: {1}".format(str(e), jobdir))
+                raise BridgeException('{0} (preset job "{1}"'.format(str(e), dirpath))
 
             job = JobForm(self.manager, None, 'copy').save({
-                'identifier': job_settings.get('identifier'), 'name': job_name,
-                'description': job_settings['description'], 'global_role': JOB_ROLES[1][0],
-                'file_data': self.__get_files_tree(jobdir), 'safe marks': bool(job_settings.get('safe marks')),
+                'identifier': job_settings.get('identifier'),
+                'name': job_name,
+                'description': job_settings['description'],
+                'global_role': JOB_ROLES[1][0],
+                'file_data': json.dumps([{
+                    'type': 'root',
+                    'text': 'Root',
+                    'children': [specs_children, verifier_profiles] + self.__get_children(dirpath)
+                }], ensure_ascii=False),
+                'safe marks': bool(job_settings.get('safe marks')),
             })
+
             created_jobs.append([job.name, job.identifier])
         return created_jobs
+
+    def __get_file(self, path, fname):
+        with open(path, mode='rb') as fp:
+            hashsum = file_get_or_create(fp, fname, JobFile, True)[1]
+
+        return {'type': 'file', 'text': fname, 'data': {'hashsum': hashsum}}
+
+    def __get_dir(self, path, fname):
+        return {'type': 'folder', 'text': fname, 'children': self.__get_children(path)}
 
     def __get_children(self, root):
         children = []
@@ -218,15 +255,10 @@ class Population:
                 continue
             path = os.path.join(root, fname)
             if os.path.isfile(path):
-                with open(path, mode='rb') as fp:
-                    hashsum = file_get_or_create(fp, fname, JobFile, True)[1]
-                children.append({'type': 'file', 'text': fname, 'data': {'hashsum': hashsum}})
+                children.append(self.__get_file(path, fname))
             elif os.path.isdir(path):
-                children.append({'type': 'folder', 'text': fname, 'children': self.__get_children(path)})
+                children.append(self.__get_dir(path, fname))
         return children
-
-    def __get_files_tree(self, root):
-        return json.dumps([{'type': 'root', 'text': 'Root', 'children': self.__get_children(root)}], ensure_ascii=False)
 
     def __populate_unknown_marks(self):
         res = UnknownUtils.PopulateMarks(self.manager)
