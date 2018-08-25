@@ -428,11 +428,15 @@ window.update_colors = function (table) {
     });
 };
 
+window.getFileExtension = function(name) {
+    var found = name.lastIndexOf('.') + 1;
+    return found > 0 ? name.substr(found) : "";
+};
+
 window.isFileReadable = function(name) {
-    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
-    var found = name.lastIndexOf('.') + 1,
-        extension = (found > 0 ? name.substr(found) : "");
-    return ($.inArray(extension, readable_extensions) !== -1);
+    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
+        extension = getFileExtension(name);
+    return ($.inArray(extension, readable_extensions) !== -1 || name == 'README');
 };
 
 window.get_url_with_get_parameter = function (url, key, value) {

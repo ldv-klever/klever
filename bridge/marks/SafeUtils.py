@@ -349,14 +349,12 @@ class ConnectMarks:
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = SAFE_VERDICTS[4][0]
-        for v in verdicts:
-            if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != v:
-                new_verdict = SAFE_VERDICTS[3][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
+        assert isinstance(verdicts, set), 'Set expected'
+        if len(verdicts) == 0:
+            return SAFE_VERDICTS[4][0]
+        elif len(verdicts) == 1:
+            return verdicts.pop()
+        return SAFE_VERDICTS[3][0]
 
     def __is_not_used(self):
         pass
@@ -388,13 +386,14 @@ class ConnectReport:
                 del verdicts[m_id]
         MarkSafeReport.objects.bulk_create(new_markreports)
 
-        new_verdict = SAFE_VERDICTS[4][0]
-        for v in set(verdicts.values()):
-            if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != v:
-                new_verdict = SAFE_VERDICTS[3][0]
-                break
-            else:
-                new_verdict = v
+        verdicts_set = set(verdicts.values())
+        if len(verdicts_set) == 0:
+            new_verdict = SAFE_VERDICTS[4][0]
+        elif len(verdicts_set) == 1:
+            new_verdict = verdicts_set.pop()
+        else:
+            new_verdict = SAFE_VERDICTS[3][0]
+
         if new_verdict != self.report.verdict:
             self.report.verdict = new_verdict
             self.report.save()
@@ -563,7 +562,7 @@ class RecalculateConnections:
             self._marks[mark_id]['tags'].add(tag_id)
 
     def __get_safes(self):
-        for safe_id, in ReportSafe.objects.filter(root__in=self._roots).values_list('id'):
+        for safe_id in ReportSafe.objects.filter(root__in=self._roots).values_list('id', flat=True):
             self._safes[safe_id] = {'attrs': set(), 'marks': set(), 'reports': set()}
         for safe_id, attr_id in ReportAttr.objects.filter(report_id__in=self._safes)\
                 .values_list('report_id', 'attr_id'):
@@ -614,6 +613,7 @@ class RecalculateConnections:
         ReportSafeTag.objects.bulk_create(report_tag_cache.values())
         self.__update_safe_verdicts()
 
+    @transaction.atomic
     def __update_safe_verdicts(self):
         safes_by_verdict = {}
         for safe_id in self._safes:
