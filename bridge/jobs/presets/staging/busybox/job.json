@@ -21,8 +21,6 @@
     "draw aggregations": true,
     "dependencies recursive depth": 1
   },
-  "rule specifications DB": "rule specs.json",
-  "verifier profiles DB": "verifier profiles.json",
   "specifications set": "Linux 3.14 (base)",
-  "rule specifications": ["empty"]
+  "requirements": ["empty"]
 }

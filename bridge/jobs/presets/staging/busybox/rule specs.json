@@ -11,7 +11,7 @@
           "EMG": {
             "specifications directory": "/",
             "entry point": "main",
-            "initialize rules": true,
+            "initialize requirements": true,
             "check final state": true,
             "source analysis": {
               "callstack deep search": 3
@@ -132,7 +132,7 @@
       ]
     }
   },
-  "rule specifications": {
+  "requirements": {
     "empty": {
       "description": "...",
       "template": "Empty"
@@ -245,7 +245,7 @@
       "template": "Linux kernel modules"
     },
     "linux:emg:test": {
-      "description": "Rule specification intended for testing environment model specifications and generator",
+      "description": "Requirement intended for testing environment model specifications and generator",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
     },
@@ -668,7 +668,7 @@
       }
     }
   },
-  "rule specifications staging": {
+  "requirements staging": {
     "linux:alloc": {
       "description": "...",
       "template": "Linux kernel modules",

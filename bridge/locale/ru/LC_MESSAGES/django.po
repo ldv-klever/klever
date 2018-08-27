@@ -329,8 +329,8 @@ msgid "Balance"
 msgstr "Баланс"
 
 #: bridge/vars.py:401
-msgid "Rule specifications"
-msgstr "Спецификации правил"
+msgid "Requirements"
+msgstr "Требования"
 
 #: bridge/vars.py:402
 msgid "Verification objects"

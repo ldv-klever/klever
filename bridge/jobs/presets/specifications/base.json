@@ -9,9 +9,8 @@
       "plugins": [
         {
           "EMG": {
-            "specifications directory": "linux/",
             "entry point": "main",
-            "initialize rules": true,
+            "initialize requirements": true,
             "check final state": true,
             "source analysis": {
               "callstack deep search": 3,
@@ -281,9 +280,8 @@
       "concurrency safety": {
         "description": "Linux concurrency safety",
         "EMG": {
-          "specifications directory": "linux/",
           "entry point": "main",
-          "initialize rules": true,
+          "initialize requirements": true,
           "check final state": false,
           "source analysis": {
             "callstack deep search": 3,
@@ -569,9 +567,8 @@
       "memory safety": {
         "description": "Linux memory safety",
         "EMG" : {
-          "specifications directory": "linux/",
           "entry point": "main",
-          "initialize rules": true,
+          "initialize requirements": true,
           "check final state": true,
           "source analysis": {
             "callstack deep search": 3,
@@ -690,11 +687,11 @@
       },
       "test": {
         "environment model specifications": {
-          "description": "Rule specification intended for testing environment model specifications and the generator",
+          "description": "Requirement intended for testing environment model specifications and the generator",
           "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
         },
         "environment model specifications with function pointer analysis": {
-          "description": "Rule specification intended for testing environment model specifications and generator with function pointer analysis",
+          "description": "Requirement intended for testing environment model specifications and generator with function pointer analysis",
           "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}},
           "FVTP": {
             "verifier profile": "reachability with function pointers",

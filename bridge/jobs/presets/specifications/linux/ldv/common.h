@@ -23,7 +23,7 @@
 /**
  * ldv_switch_to_interrupt_context() - switch to interrupt context.
  *
- * ldv_switch_to_interrupt_context() can be defined by rule specification
+ * ldv_switch_to_interrupt_context() can be defined by requirement
  * models.
  *
  * ldv_switch_to_interrupt_context() should be always called by generated
@@ -33,7 +33,7 @@ extern void ldv_switch_to_interrupt_context(void);
 /**
  * ldv_switch_to_process_context() - switch to process context.
  *
- * ldv_switch_to_process_context() can be defined by rule specification
+ * ldv_switch_to_process_context() can be defined by requirement
  * models.
  *
  * ldv_switch_to_process_context() should be always called by generated
@@ -43,16 +43,16 @@ extern void ldv_switch_to_process_context(void);
 /**
  * ldv_in_interrupt_context() - is execution in interrupt context.
  *
- * ldv_in_interrupt_context() can be defined by rule specification models.
+ * ldv_in_interrupt_context() can be defined by requirement models.
  *
  * Return: True in case of execution in interrupt context and false otherwise.
  */
 extern bool ldv_in_interrupt_context(void);
 
 /**
- * ldv_initialize() - explicitly initialize rule specification model states.
+ * ldv_initialize() - explicitly initialize requirement model states.
  *
- * ldv_initialize() can be defined by rule specification models if they use
+ * ldv_initialize() can be defined by requirement models if they use
  * model states and do not either use explicit or rely upon implicit
  * initialization of global variables that are usually used as model states.
  *
@@ -63,9 +63,9 @@ extern void ldv_initialize(void);
 
 /**
  * ldv_check_final_state() - perform some checks of final state specific for
- *                           rule specification models.
+ *                           requirement models.
  *
- * ldv_check_final_state() can be defined by rule specification models if they
+ * ldv_check_final_state() can be defined by requirement models if they
  * use model states and need to check it at the end.
  *
  * ldv_check_final_state() should be always called by generated environment
@@ -76,10 +76,10 @@ extern void ldv_initialize(void);
 extern void ldv_check_final_state(void);
 
 /**
- * ldv_failed_usb_register_driver() - do specific for rule specifications actions if
+ * ldv_failed_usb_register_driver() - do specific for requirement actions if
  *                                    USB callbacks registration failed.
  *
- * ldv_failed_usb_register_driver() can be defined by rule specification models.
+ * ldv_failed_usb_register_driver() can be defined by requirement models.
  *
  * ldv_failed_usb_register_driver() should be always called by generated
  * environment models in a failing branch of usb_register model function.
@@ -88,21 +88,20 @@ extern void ldv_failed_usb_register_driver(void);
 
 /**
  * ldv_failed_register_netdev() - perform some actions and checks specific for
- *                                rule specifications after failed call of register_netdev.
+ *                                requirements after failed call of register_netdev.
  *
- * ldv_failed_register_netdev() can be defined by rule specification models.
+ * ldv_failed_register_netdev() can be defined by requirement models.
  *
  * ldv_failed_register_netdev() should be always called by generated environment.
  */
 extern void ldv_failed_register_netdev(void);
 
 /**
- * ldv_post_init() - perform some actions and checks specific for rule
- *                   specifications after calling module initialization
- *                   functions.
+ * ldv_post_init() - perform some actions and checks specific for requirement
+ *                   after calling module initialization functions.
  * @init_ret_val:	Return value of module initialization function.
  *
- * ldv_post_init() can be weaved by rule specification models.
+ * ldv_post_init() can be weaved by requirement models.
  *
  * ldv_post_init() should be always called by generated environment models just
  * after calling module initialization functions.
@@ -113,10 +112,10 @@ extern void ldv_failed_register_netdev(void);
 extern int ldv_post_init(int init_ret_val);
 
 /**
- * ldv_pre_probe() - perform some actions and checks specific for rule
- *                   specifications before calling module probe callbacks.
+ * ldv_pre_probe() - perform some actions and checks specific for requirement
+ *                   before calling module probe callbacks.
  *
- * ldv_pre_probe() can be weaved by rule specification models.
+ * ldv_pre_probe() can be weaved by requirement models.
  *
  * ldv_pre_probe() should be always called by generated environment models just
  * before calling module probe callbacks.
@@ -124,8 +123,8 @@ extern int ldv_post_init(int init_ret_val);
 extern void ldv_pre_probe(void);
 
 /**
- * ldv_post_probe() - perform some actions and checks specific for rule
- *                    specifications after calling module probe callbacks.
+ * ldv_post_probe() - perform some actions and checks specific for requirement
+ *                    after calling module probe callbacks.
  * @probe_ret_val:	Return value of module probe callback.
  *
  * ldv_post_probe() is very like ldv_post_init().

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* MODEL_FUNC Initialize EMG test rule specification. */
+/* MODEL_FUNC Initialize EMG test requirement. */
 void ldv_initialize(void);
 
 /* MODEL_FUNC Callback reached. */

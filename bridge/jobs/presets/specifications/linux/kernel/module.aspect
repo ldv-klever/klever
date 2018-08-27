@@ -55,9 +55,9 @@ around: call(unsigned int module_refcount(..)) ||
 	return ldv_module_refcount();
 }
 
-/* TODO: how this affects other rule specifications when using multiaspects verification? */
+/* TODO: how this affects other requirements when using multiaspects verification? */
 /* nonseekable_open is a generic function, and it always returns zero in addition to setting some flags. For the
- * purpose of this rule specification, we assume it merely returns 0.
+ * purpose of this requirement, we assume it merely returns 0.
  */
 around: call(int nonseekable_open(..))
 {

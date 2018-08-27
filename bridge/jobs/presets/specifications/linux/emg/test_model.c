@@ -19,7 +19,7 @@ int registered;
 int probed;
 int supress;
 
-/* MODEL_FUNC Initialize EMG test rule specification. */
+/* MODEL_FUNC Initialize EMG test requirement. */
 void ldv_initialize(void)
 {
 	/* NOTE Initializing EMG test states. */
