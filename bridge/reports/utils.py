@@ -763,7 +763,7 @@ class FilesForCompetitionArchive:
         self.benchmark_fname = 'benchmark.xml'
         self.prp_fname = 'unreach-call.prp'
         self.obj_attr = 'Verification object'
-        self.rule_attr = 'Rule specification'
+        self.requirement_attr = 'Requirement'
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
@@ -836,7 +836,7 @@ class FilesForCompetitionArchive:
                 reports[r.id] = r.parent_id
         attrs_data = {}
         for ra in ReportAttr.objects\
-                .filter(report_id__in=list(reports), attr__name__name__in=[self.obj_attr, self.rule_attr])\
+                .filter(report_id__in=list(reports), attr__name__name__in=[self.obj_attr, self.requirement_attr])\
                 .select_related('attr', 'attr__name'):
             if ra.report_id not in attrs_data:
                 attrs_data[ra.report_id] = {}
@@ -844,10 +844,10 @@ class FilesForCompetitionArchive:
         cnt = 1
         paths_in_use = []
         for r_id in reports:
-            if r_id in attrs_data and self.obj_attr in attrs_data[r_id] and self.rule_attr in attrs_data[r_id]:
+            if r_id in attrs_data and self.obj_attr in attrs_data[r_id] and self.requirement_attr in attrs_data[r_id]:
                 ver_obj = attrs_data[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
-                ver_rule = attrs_data[r_id][self.rule_attr].replace(':', '-')
-                r_path = '%s/%s__%s__%s.cil.i' % (cil_dir, f_type, ver_rule, ver_obj)
+                ver_requirement = attrs_data[r_id][self.requirement_attr].replace(':', '-')
+                r_path = '%s/%s__%s__%s.cil.i' % (cil_dir, f_type, ver_requirement, ver_obj)
                 if r_path in paths_in_use:
                     ver_obj_path, ver_obj_name = r_path.split('/')
                     r_path = '/'.join([ver_obj_path, "%s__%s" % (cnt, ver_obj_name)])

@@ -62,7 +62,7 @@ JOB_DATA_VIEW = {
         'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
     ],
     # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'confirmed_marks'],
-    'attr_stat': ['Rule specification']
+    'attr_stat': ['Requirement']
 
     # FILTERS:
     # unknown_component: [iexact|istartswith|icontains, <any text>]
@@ -92,7 +92,7 @@ UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
-    # 'order': ['down', 'attr', 'Rule specification'],
+    # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
     # 'verdict': [<ids from UNSAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
@@ -107,7 +107,7 @@ SAFES_VIEW = {
     'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
-    # 'order': ['down', 'attr', 'Rule specification'],
+    # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
     # 'verdict': [<ids from SAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
@@ -151,7 +151,7 @@ UNSAFE_MARKS_VIEW = {
     # 'verdict': ['is', '0'],
     # 'author': [1]
     # 'source': ['is', '2'],
-    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
+    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 SAFE_MARKS_VIEW = {
@@ -173,7 +173,7 @@ SAFE_MARKS_VIEW = {
     # 'verdict': ['is', '0'],
     # 'author': [1]
     # 'source': ['is', '2'],
-    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
+    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 UNKNOWN_MARKS_VIEW = {

@@ -57,7 +57,7 @@ COMPUTER = [
 # Only components ['VTGW', 'ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver', 'RP'] can be "failed"
 SJC_1 = [
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
@@ -87,7 +87,7 @@ SJC_1 = [
         ]
     },
     {
-        'rule': 'linux:rule1',
+        'requirement': 'linux:rule1',
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb1.ko',
@@ -117,7 +117,7 @@ SJC_1 = [
         ]
     },
     {
-        'rule': 'linux:rule2',
+        'requirement': 'linux:rule2',
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb6.ko',
@@ -135,7 +135,7 @@ SJC_1 = [
 
 SJC_2 = [
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'chunks': [
             {
                 'module': 'drivers/usb/core/usb2.ko',
@@ -148,32 +148,32 @@ SJC_2 = [
 
 NSJC_1 = [
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb1.ko',
         'tool': 'BLAST 2.7.2', 'verifier_input': True, 'log': False,
         'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
         'unsafes': ['unsafe3.zip']
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb3.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': False,
         'safe': 'safe.zip'
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
         'unknown': 'unknown0.zip'
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb5.ko',
         'fail': 'RP',
         'unknown': 'unknown3.zip'
@@ -182,7 +182,7 @@ NSJC_1 = [
 
 NSJC_2 = [
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb2.ko',
         'tool': 'CPAchecker', 'verifier_input': True, 'log': True,
         'unsafes': ['unsafe_check.zip']
@@ -191,19 +191,19 @@ NSJC_2 = [
 
 NSJC_3 = [
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb3.ko',
         'tool': 'CPAchecker', 'verifier_input': True, 'log': False,
         'safe': 'safe.zip'
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb4.ko',
         'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
         'unknown': 'unknown0.zip'
     },
     {
-        'rule': 'linux:mutex',
+        'requirement': 'linux:mutex',
         'module': 'drivers/usb/core/usb5.ko',
         'fail': 'ASE',  # No verdicts will be uploaded as component failed before it
         'unknown': 'unknown3.zip'
@@ -745,7 +745,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
     def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
+        sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['requirement']}])
         lkbce = self.__upload_start_report('LKBCE', sj)
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
@@ -756,7 +756,7 @@ class TestReports(KleverTestCase):
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'Requirement': subjob['requirement']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
@@ -767,13 +767,13 @@ class TestReports(KleverTestCase):
         vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'Requirement': subjob['requirement']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
         self.__upload_finish_report(vrp)
 
-        sj_coverage = {subjob['rule']: 'Core_coverage.zip'}
+        sj_coverage = {subjob['requirement']: 'Core_coverage.zip'}
         self.__upload_job_coverage(sj, sj_coverage)
         self.__upload_finish_report(sj)
         return sj_coverage
@@ -789,7 +789,7 @@ class TestReports(KleverTestCase):
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'Requirement': chunk['requirement']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
@@ -802,7 +802,7 @@ class TestReports(KleverTestCase):
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in reports_data:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'Requirement': chunk['requirement']}, {'Verification object': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -1044,7 +1044,7 @@ class DecideJobs:
 
     def __upload_subjob(self, subjob):
         sj = self.__upload_start_report('Sub-job', '/', [{
-            'name': 'Name', 'value': 'test/dir/and/some/other/text:{0}'.format(subjob['rule'])
+            'name': 'Name', 'value': 'test/dir/and/some/other/text:{0}'.format(subjob['requirement'])
         }])
         lkbce = self.__upload_start_report('LKBCE', sj)
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
@@ -1055,7 +1055,7 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'name': 'Rule specification', 'value': subjob['rule'], 'compare': True, 'associate': True},
+                {'name': 'Requirement', 'value': subjob['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
@@ -1066,7 +1066,7 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             rp = self.__upload_start_report('RP', vrp, [
-                {'name': 'Rule specification', 'value': subjob['rule'], 'compare': True, 'associate': True},
+                {'name': 'Requirement', 'value': subjob['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
@@ -1074,8 +1074,8 @@ class DecideJobs:
         self.__upload_finish_report(vrp)
 
         if self.full_coverage:
-            # sj_coverage = {subjob['rule']: 'big_full_coverage.zip'}
-            sj_coverage = {subjob['rule']: 'Core_coverage.zip'}
+            # sj_coverage = {subjob['requirement']: 'big_full_coverage.zip'}
+            sj_coverage = {subjob['requirement']: 'Core_coverage.zip'}
             self.__upload_job_coverage(sj, sj_coverage)
             self.__upload_finish_report(sj)
             return sj_coverage
@@ -1093,7 +1093,7 @@ class DecideJobs:
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'name': 'Rule specification', 'value': chunk['rule'], 'compare': True, 'associate': True},
+                {'name': 'Requirement', 'value': chunk['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
@@ -1106,7 +1106,7 @@ class DecideJobs:
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in self.reports_data:
             rp = self.__upload_start_report('RP', vrp, [
-                {'name': 'Rule specification', 'value': chunk['rule'], 'compare': True, 'associate': True},
+                {'name': 'Requirement', 'value': chunk['requirement'], 'compare': True, 'associate': True},
                 {'name': 'Verification object', 'value': chunk['module'], 'compare': True, 'associate': True}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
