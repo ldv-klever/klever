@@ -7,8 +7,6 @@
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
-    "rule specifications DB": "rule specs.json",
-    "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
     "Module extractor": {
       "name": "Single File"
@@ -57,7 +55,7 @@
             "drivers/regulator/gpio-regulator.ko" ]]
         }
       },
-      "rule specifications": ["linux:kernel:locking:spinlock"],
+      "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe"
       }]
@@ -80,7 +78,7 @@
             "drivers/regulator/gpio-regulator.ko" ]]
         }
       },
-      "rule specifications": ["linux:kernel:locking:spinlock"],
+      "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "safe"
       }]
@@ -102,7 +100,7 @@
           ]]
         }
       },
-      "rule specifications": ["generic:memory"],
+      "requirements": ["generic:memory"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe"
       }]
@@ -124,7 +122,7 @@
           ]]
         }
       },
-      "rule specifications": ["generic:memory"],
+      "requirements": ["generic:memory"],
       "ideal verdicts": [{
         "ideal verdict": "safe"
       }]
@@ -143,7 +141,7 @@
           ]]
         }
       },
-      "rule specifications": ["generic:memory"],
+      "requirements": ["generic:memory"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe"
       }]
@@ -162,7 +160,7 @@
           ]]
         }
       },
-      "rule specifications": ["generic:memory"],
+      "requirements": ["generic:memory"],
       "ideal verdicts": [{
         "ideal verdict": "safe"
       }]

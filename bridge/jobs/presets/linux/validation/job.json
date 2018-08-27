@@ -527,7 +527,7 @@
       "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ],
-  "Staging rules": [
+  "Staging requirements": [
     {
       "Linux kernel": {
         "Git repository": {"commit": "bcb4a75bde38~"},

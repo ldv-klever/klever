@@ -23,7 +23,7 @@
 #include <linux/slab.h>
 irqreturn_t handler(void){return IRQ_HANDLED;}
 
-/* This is a safe test for rule 0150 to verify that the implementation is working correctly and it supports multiple nested claims. */
+/* This is a safe test for requirement 0150 to verify that the implementation is working correctly and it supports multiple nested claims. */
 static int __init ldv_init(void)
 {
 	int *err_ret = kmalloc(sizeof(int), 0);

@@ -17,7 +17,7 @@
       "name": "separate",
       "maximum verification object size": 30000
     },
-    "requirements": ["linux:emg:test"],
+    "requirements": ["linux:test:environment model specifications"],
     "ideal verdicts": [
       {"ideal verdict": "safe"},
       {
@@ -100,6 +100,19 @@
     ]
   },
   "Sub-jobs": [
+    {
+      "Clade": {"base": "455c6f"},
+      "specifications set": "Linux 2.6.33",
+      "project": {
+        "source": "linux-2.6.33.20",
+        "kernel subsystems": [
+          "ext-modules/block_device_operations_v.1"
+        ],
+        "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
+      }
+    }
+  ],
+  "Sub-jobs~": [
     {
       "Clade": {"base": "455c6f"},
       "specifications set": "Linux 2.6.33",

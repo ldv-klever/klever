@@ -19,5 +19,5 @@
     "maximum verification object size": 30000
   },
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:empty"]
+  "requirements": ["linux:empty", "linux:usb:coherent", "linux:memory safety", "linux:concurrency safety"]
 }

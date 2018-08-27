@@ -47,10 +47,8 @@
                      "security_initcall",
                      "module_exit"],
   "maximum verification object size": 30000,
-  "rule specifications DB": "rule specs.json",
-  "verifier profiles DB": "verifier profiles.json",
   "specifications set": "Linux 3.14 (base)",
-  "rule specifications": [
+  "requirements": [
     "linux:empty",
     "generic:memory", "linux:usb:urb", "linux:usb:register", "linux:usb:gadget", "linux:usb:dev", "linux:usb:coherent", "linux:net:sock", "linux:net:rtnetlink", "linux:net:register", "linux:lib:idr", "linux:lib:find_bit", "linux:kernel:module", "linux:kernel:sched:completion", "linux:kernel:rcu:srcu", "linux:kernel:rcu:update:lock", "linux:kernel:rcu:update:lock sched", "linux:kernel:rcu:update:lock bh", "linux:kernel:locking:spinlock", "linux:kernel:locking:rwlock", "linux:kernel:locking:mutex", "linux:fs:sysfs", "linux:drivers:clk2", "linux:drivers:clk1", "linux:drivers:base:dma-mapping", "linux:alloc:usb lock", "linux:arch:io", "linux:block:genhd", "linux:block:queue", "linux:block:request", "linux:drivers:base:class"
   ],

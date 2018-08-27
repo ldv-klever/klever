@@ -49,10 +49,8 @@
                      "security_initcall",
                      "module_exit"],
   "maximum verification object size": 30000,
-  "rule specifications DB": "rule specs.json",
-  "verifier profiles DB": "verifier profiles.json",
   "specifications set": "Linux 3.14 (base)",
-  "rule specifications": [
+  "requirements": [
     "linux:empty",
     "generic:memory", "linux:alloc:spinlock", "linux:kernel:locking:mutex", "linux:kernel:locking:rwlock", "linux:kernel:locking:spinlock", "linux:kernel:rcu:update:lock"
   ],

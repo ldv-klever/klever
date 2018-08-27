@@ -42,7 +42,7 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
-            "initialize rules": true,
+            "initialize requirements": true,
             "check final state": false,
             "source analysis": {
               "callstack deep search": 3
@@ -240,7 +240,7 @@
       ]
     }
   },
-  "rule specifications": {
+  "requirements": {
     "empty": {
       "description": "...",
       "template": "Empty"
@@ -256,7 +256,7 @@
       "EMG" : {
         "specifications directory": "linux/",
         "entry point": "main",
-        "initialize rules": true,
+        "initialize requirements": true,
         "check final state": false,
         "source analysis": {
           "callstack deep search": 3
@@ -363,12 +363,12 @@
       "template": "Linux kernel modules"
     },
     "linux:emg:test": {
-      "description": "Rule specification intended for testing environment model specifications and generator",
+      "description": "Requirement intended for testing environment model specifications and generator",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
     },
     "linux:emg:test:fp": {
-      "description": "Rule specification intended for testing environment model specifications and the generator with function pointer analysis",
+      "description": "Requirement intended for testing environment model specifications and the generator with function pointer analysis",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}},
       "FVTP": {
@@ -700,7 +700,7 @@
       "EMG": {
         "specifications directory": "linux/",
         "entry point": "main",
-        "initialize rules": true,
+        "initialize requirements": true,
         "check final state": false,
         "source analysis": {
           "callstack deep search": 3
@@ -802,7 +802,7 @@
       }
     }
   },
-  "rule specifications staging": {
+  "requirements staging": {
     "linux:alloc": {
       "description": "...",
       "template": "Linux kernel modules",
