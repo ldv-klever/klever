@@ -8,12 +8,12 @@
       "external modules": "tests",
       "opts file": "scripts/mod/empty.c"
     },
-    "VOG divider": {
+    "Fragmentation strategy": {
       "name": "Linux",
       "target kernel": false,
       "maximum unit size": 30000
     },
-    "VOG strategy": {
+    "Aggregation strategy": {
       "name": "separate",
       "maximum verification object size": 30000
     },

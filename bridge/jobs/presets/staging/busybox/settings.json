@@ -1,1 +1,4 @@
-../linux-3.14/settings.json
+{
+    "name": "Busybox",
+    "description": "<h3>Preset configurations and specifications for Busybox</h3>"
+}

@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vog.strategies.strategy_utils import Module, Graph
-from core.vog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.aggregation.strategy_utils import Module, Graph
+from core.vog.aggregation.abstract_strategy import AbstractStrategy
 
 
 class Coverage(AbstractStrategy):
+    # TODO: FIX THE STRATEGY
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
         self.callgraph = {}

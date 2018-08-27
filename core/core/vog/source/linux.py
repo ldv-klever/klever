@@ -18,8 +18,6 @@ import re
 import shutil
 import tarfile
 import hashlib
-# todo: replace with execute
-import subprocess
 
 import core.utils
 from core.vog.source import Source
@@ -59,14 +57,13 @@ class Linux(Source):
             "vmlinux"
         ]
     }
-    _source_paths = []
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
         self._kernel = self.conf['project'].get('build kernel', False)
         self.__loadable_modules_support = True
         self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
-        self._modules = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
+        self._targets = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
         self._external_modules = self.conf['project'].get('external modules', False)
 
     def check_target(self, candidate):
@@ -76,8 +73,8 @@ class Linux(Source):
             self._subsystems['all'] = True
             return True
 
-        if 'all' in self._modules:
-            self._modules['all'] = True
+        if 'all' in self._targets:
+            self._targets['all'] = True
             return True
 
         if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
@@ -85,8 +82,8 @@ class Linux(Source):
             return True
 
         if not self._kernel:
-            if candidate in self._modules:
-                self._modules[candidate] = True
+            if candidate in self._targets:
+                self._targets[candidate] = True
                 return True
 
             matched_subsystems = list(s for s in self._subsystems if os.path.commonpath([candidate, s]) == s)
@@ -100,22 +97,6 @@ class Linux(Source):
                 raise ValueError('Several subsystems "{0}" match candidate "{1}"'.format(matched_subsystems, candidate))
 
         return False
-
-    def check_targets_consistency(self):
-        for module in (m for m in self._modules if not self._modules[m]):
-            raise ValueError("No verification objects generated for Linux loadable kernel module {!r}: "
-                             "check Clade base cache or job.json".format(module))
-        for subsystem in (m for m in self._subsystems if not self._subsystems[m]):
-            raise ValueError("No verification objects generated for Linux kernel subsystem {!r}: "
-                             "check Clade base cache or job.json".format(subsystem))
-
-    @property
-    def subdirectories(self):
-        return self.conf['project'].get('kernel subsystems', [])
-
-    @property
-    def targets(self):
-        return self.conf['project'].get('loadable kernel modules', [])
 
     def configure(self):
         self.logger.info('Configure Linux kernel')
@@ -156,10 +137,15 @@ class Linux(Source):
         self._make(target)
         self.configuration = conf_hash
 
+    def _cleanup(self):
+        super()._cleanup()
+        self.logger.info('Clean working source tree')
+        core.utils.execute(self.logger, ('make', 'mrproper'), cwd=self.work_src_tree)
+
     def _build(self):
         self.logger.info('Build Linux kernel')
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        targets_to_build = self.targets + self.subdirectories
+        targets_to_build = list(self._targets.keys()) + list(self._subsystems.keys())
         targets_to_build = sorted(targets_to_build)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
@@ -223,13 +209,6 @@ class Linux(Source):
             for build_target in build_targets:
                 self._make(build_target, intercept_build_cmds=True)
 
-    def _cleanup(self):
-        super(Linux, self)._cleanup()
-        self.logger.info('Clean Linux kernel working source tree')
-
-        # TODO: this command can fail but most likely this shouldn't be an issue.
-        subprocess.check_call(('make', 'mrproper'), cwd=self.work_src_tree)
-
     def _make(self, target, opts=None, env=None, intercept_build_cmds=False, collect_all_stdout=False):
         return super(Linux, self)._make(
             target, ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.arch].items()],
@@ -243,7 +222,7 @@ class Linux(Source):
             # kernel has loadable modules support.
             self._make(['modules_prepare'], intercept_build_cmds=True)
             self.__loadable_modules_support = True
-        except subprocess.CalledProcessError:
+        except core.utils.CommandError:
             # Otherwise the command above will most likely fail. In this case compile special file, namely,
             # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
             # building
@@ -262,7 +241,6 @@ class Linux(Source):
             return None
         work_src_tree = self._EXT_DIR
 
-        # todo: replace option
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
             .format(self._external_modules, work_src_tree))

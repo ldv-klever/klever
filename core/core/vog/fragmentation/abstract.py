@@ -1,0 +1,121 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import os
+from graphviz import Digraph
+
+import core.vog.common as common
+
+
+class AbstractDivider:
+
+    def __init__(self, logger, conf, source, clade_api):
+        self.logger = logger
+        self.conf = conf
+        self.source = source
+        self.clade = clade_api
+
+        # Cache
+        self._target_fragments = None
+        self._fragments = None
+
+    @property
+    def attributes(self):
+        return [{
+            'name': 'Fragmentation strategy',
+            'value': [{'name': 'name', 'value': self.conf['Fragmentation strategy']['name']}]
+        }]
+
+    @property
+    def target_fragments(self):
+        if not self._target_fragments:
+            self._divide()
+            # Check that for all build targets the strategy generated a fragment with target flag
+            self.source.check_targets_consistency()
+        return self._target_fragments
+
+    @property
+    def fragments(self):
+        if self._fragments is None:
+            self._divide()
+        return self._fragments
+
+    def _divide(self):
+        raise NotImplementedError
+
+    def _create_fragment_from_ld(self, identifier, name, cmdg, srcg):
+        ccs = cmdg.get_ccs_for_ld(identifier)
+        fragment = common.Fragment(name)
+        fragment.ccs = {str(i) for i, d in ccs}
+        fragment.in_files = {d['in'][0] for i, d in ccs}
+        fragment.size = sum(srcg.get_sizes(fragment.in_files).values())
+        return fragment
+
+    def _create_fragment_from_cc(self, identifier, name):
+        desc = self.clade.get_cc(identifier)
+        fragment = common.Fragment(name)
+        fragment.ccs = {str(identifier)}
+        fragment.in_files = {desc['in'][0]}
+        return fragment
+
+    def establish_dependencies(self):
+        self.logger.info("Connect frgaments between each other on base of callgraph")
+        cg = self.clade.CallGraph().graph
+        c_to_deps = dict()
+        file_fragment = dict()
+
+        # Fulfil callgraph dependencies
+        for fragment in self.fragments:
+            # First collect export functions
+            for path in fragment.in_files:
+                file_fragment[path] = fragment
+                deps = c_to_deps.setdefault(path, set())
+
+                for func, desc in cg.get(path, dict()).items():
+                    tp = desc.get('type', 'static')
+                    if tp == 'global':
+                        fragment.add_export_function(path, func)
+
+                    for calls_scope, called_functions in ((s, d) for s, d in desc.get('calls', dict()).items()
+                                                          if s != path and s != 'unknown'):
+                        deps.add(calls_scope)
+                        for called_func in called_functions:
+                            fragment.add_extern_call(calls_scope, called_func)
+
+        # Now connect different fragments
+        for path, deps in c_to_deps.items():
+            fragment = file_fragment[path]
+
+            for required_file in (f for f in deps if f in file_fragment):
+                required_fragment = file_fragment[required_file]
+
+                # Connect
+                fragment.add_successor(required_fragment)
+
+        # Print if neccessary as a graph
+        if self.conf['Fragmentation strategy'].get('draw dependencies'):
+            self.print_fragments()
+
+    def print_fragments(self):
+        g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})
+        for fragment in self.fragments:
+            g.node(fragment.name, "{}".format(fragment.name) + (' (target)' if fragment.target else ''))
+
+        for fragment in self.fragments:
+            for suc in fragment.successors:
+                g.edge(fragment.name, suc.name)
+        g.render('program fragments')

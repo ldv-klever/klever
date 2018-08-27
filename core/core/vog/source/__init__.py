@@ -18,7 +18,6 @@ import json
 import shutil
 import tarfile
 import importlib
-import subprocess
 import urllib.parse
 import clade.interface as clade_api
 
@@ -48,11 +47,17 @@ class Source:
         self.arch = self.conf['project'].get('architecture') or self.conf['architecture']
         self.workers = str(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'))
         self.work_src_tree = None
+
+        # For internal use
         self._source_paths = []
-        self._opts_file = self.conf['project']['opts file']
         self._model_headers_path = 'model-headers'
         self._clade_dir = self.conf['Clade']['base']
         self._build_flag = False
+        self._clade = clade_api
+
+        # This should be properly filles by an implementation
+        self._subsystems = None
+        self._targets = None
 
         # Add extra Clade options
         self._CLADE_CONF.update(self.conf['project'].get("extra Clade opts", dict()))
@@ -62,8 +67,10 @@ class Source:
         if not self._build_flag:
             return self._retrieve_attrs()
         else:
-            attrs = [{'name': 'kind', 'value': type(self).__name__}] + \
-                    [{"name": att, "value": getattr(self, att)} for att in ('arch', 'version', 'configuration')]
+            attrs = [{'name': 'kind', 'value': type(self).__name__}]
+            for att in ('arch', 'version', 'configuration'):
+                if getattr(self, att):
+                    attrs.append({"name": att, "value": getattr(self, att)})
             return [
                 {
                     'name': 'project',
@@ -77,11 +84,22 @@ class Source:
             self._source_paths = self._retrieve_source_paths()
         return self._source_paths
 
-    def check_target(self, path):
-        raise NotImplementedError
+    def check_target(self, candidate):
+        if 'all' in self._subsystems:
+            self._subsystems['all'] = True
+            return True
+        if 'all' in self._targets:
+            self._targets['all'] = True
+            return True
+        return True
 
     def check_targets_consistency(self):
-        raise NotImplementedError
+        for target in (t for t in self._targets if not self._targets[t]):
+            raise ValueError("No verification objects generated for target {!r}: "
+                             "check Clade base cache or job.json".format(target))
+        for subsystem in (s for s in self._subsystems if not self._subsystems[s]):
+            raise ValueError("No verification objects generated for directory {!r}: "
+                             "check Clade base cache or job.json".format(subsystem))
 
     def configure(self):
         self.configuration = self.conf['project'].get('configuration')
@@ -189,9 +207,10 @@ class Source:
                         if os.path.isfile(git_index_lock):
                             os.remove(git_index_lock)
                         # In case of dirty Git working directory checkout may fail so clean up it first.
-                        subprocess.check_call(('git', 'clean', '-f', '-d'), cwd=work_src_tree)
-                        subprocess.check_call(('git', 'reset', '--hard'), cwd=work_src_tree)
-                        subprocess.check_call(('git', 'checkout', '-f', git_repo[commit_or_branch]), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'clean', '-f', '-d'), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'reset', '--hard'), cwd=work_src_tree)
+                        core.utils.execute(self.logger, ('git', 'checkout', '-f', git_repo[commit_or_branch]),
+                                           cwd=work_src_tree)
 
                         # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
                         stdout = core.utils.execute(self.logger, ('git', 'rev-parse', 'HEAD'), cwd=work_src_tree,

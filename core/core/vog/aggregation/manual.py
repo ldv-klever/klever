@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vog.strategies.strategy_utils import Module, Graph
-from core.vog.strategies.abstract_strategy import AbstractStrategy
+from core.vog.aggregation.strategy_utils import Module, Graph
+from core.vog.aggregation.abstract_strategy import AbstractStrategy
 
 
 class Manual(AbstractStrategy):
+    # TODO: FIX THE STRATEGY
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
         self.groups = {}
@@ -102,7 +103,7 @@ class Manual(AbstractStrategy):
                     ret.append(Graph([Module(module_name)]))
 
         for graph in ret:
-            self._already_in_modules.update([module.id for module in graph.units])
+            self._already_in_modules.update([module.id for module in graph.fragments])
 
         return ret
 
