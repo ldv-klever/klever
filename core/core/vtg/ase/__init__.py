@@ -134,12 +134,10 @@ class ASE(core.vtg.plugins.Plugin):
                                              ['--'] +
                                              core.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
                                              [
-                                                 # Besides header files specific for rule specifications will be
+                                                 # Besides header files specific for requirements will be
                                                  # searched for.
                                                  '-I' + os.path.realpath(os.path.dirname(
-                                                     core.utils.find_file_or_dir(self.logger,
-                                                                                 self.conf['main working directory'],
-                                                                                 self.conf['rule specifications DB']))),
+                                                     self.conf['requirements DB'])),
                                                  aspectator_search_dir
                                              ]),
                                        env,

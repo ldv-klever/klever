@@ -194,7 +194,7 @@ def reliable_rmtree(logger, directory):
 
 
 def get_search_dirs(main_work_dir, abs_paths=False):
-    search_dirs = ['job/root', os.path.pardir]
+    search_dirs = ['job/root', os.path.pardir, os.path.join(os.path.pardir, 'specifications')]
 
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])

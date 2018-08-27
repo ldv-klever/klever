@@ -97,11 +97,9 @@ class Weaver(core.vtg.plugins.Plugin):
                                   'cif',
                                   '--in', storage.normal_path(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
-                                  # Besides header files specific for rule specifications will be searched for.
-                                  '--general-opts', '-I' + os.path.realpath(os.path.dirname(
-                                      core.utils.find_file_or_dir(self.logger,
-                                                                  self.conf['main working directory'],
-                                                                  self.conf['rule specifications DB']))),
+                                  # Besides header files specific for requirements specifications will be searched for.
+                                  '--general-opts', '-I' + os.path.realpath(
+                                    os.path.dirname(self.conf['requirements DB'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
                                   '--out', os.path.realpath(cc['out']),
@@ -161,8 +159,8 @@ class Weaver(core.vtg.plugins.Plugin):
                 else:
                     extra_c_file = {}
 
-                if 'rule spec id' in extra_cc:
-                    extra_c_file['rule spec id'] = extra_cc['rule spec id']
+                if 'requirement id' in extra_cc:
+                    extra_c_file['requirement id'] = extra_cc['requirement id']
 
                 if 'bug kinds' in extra_cc:
                     extra_c_file['bug kinds'] = extra_cc['bug kinds']

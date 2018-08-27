@@ -53,7 +53,7 @@ def generate_processes(emg, source, processes, conf):
 
     # Import Specifications
     emg.logger.info("Search for interface and event specifications")
-    spec_dir = __get_path(emg.logger, emg.conf, "specifications directory")
+    spec_dir = os.path.dirname(emg.conf['requirements DB'])
     interface_spec, event_spec = __get_specs(emg.logger, emg.conf, spec_dir)
 
     emg.logger.info("Import interface categories specification")

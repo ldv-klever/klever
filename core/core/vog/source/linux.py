@@ -258,9 +258,7 @@ class Linux(Source):
 
         self.logger.info('Make canonical working source tree of external Linux kernel modules')
         work_src_tree_root = None
-        rule_specs_dir = os.path.abspath(os.path.dirname(
-            core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                        self.conf['rule specifications DB'])))
+        requirement_dir = os.path.dirname(self.conf['requirements DB'])
         for dirpath, dirnames, filenames in os.walk(work_src_tree):
             ismakefile = False
             for filename in filenames:
@@ -282,7 +280,7 @@ class Linux(Source):
                         # Specify additional directory to search for model headers. We assume that this directory is
                         # preserved as is at least during solving a given job. So, we treat headers from it as system
                         # ones, i.e. headers that aren't copied when .
-                        fp.write('ccflags-y += -isystem {0}'.format(rule_specs_dir))
+                        fp.write('ccflags-y += -isystem {0}'.format(requirement_dir))
             elif ismakefile:
                 work_src_tree_root = dirpath
                 break

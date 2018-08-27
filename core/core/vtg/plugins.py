@@ -22,7 +22,7 @@ import core.components
 
 
 class Plugin(core.components.Component):
-    depend_on_rule = True
+    depend_on_requirement = True
 
     def run(self):
         in_abstract_task_desc_file = os.path.relpath(

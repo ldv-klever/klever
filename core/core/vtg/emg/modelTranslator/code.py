@@ -336,10 +336,10 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        if get_conf_property(self._conf, "initialize rules"):
+        if get_conf_property(self._conf, "initialize requirements"):
             body += [
                 '/* LDV {"action": "INIT", "type": "CALL_BEGIN", "callback": true, '
-                '"comment": "Initialize rule models."} */',
+                '"comment": "Initialize requirement models."} */',
                 'ldv_initialize();',
                 '/* LDV {"action": "INIT", "type": "CALL_END"} */'
             ]
@@ -351,7 +351,7 @@ class CModel:
         if get_conf_property(self._conf, "check final state"):
             body += [
                 '/* LDV {"action": "FINAL", "callback": true, "type": "CALL_BEGIN", '
-                '"comment": "Check rule model state at the exit if required."} */',
+                '"comment": "Check requirement model final state at the exit if required."} */',
                 'ldv_check_final_state();',
                 '/* LDV {"action": "FINAL", "type": "CALL_END"} */'
             ]

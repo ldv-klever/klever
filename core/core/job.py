@@ -33,7 +33,7 @@ from core.coverage import JCR
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
-NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'rule specs.json']
+NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'base.json']
 
 
 def start_jobs(core_obj, locks, vals):
@@ -69,6 +69,12 @@ def start_jobs(core_obj, locks, vals):
         common_components_conf.update(common_components_conf['Common'])
         del (common_components_conf['Common'])
 
+    # Save for next components specifications desc and verifiers profiles
+    common_components_conf['requirements DB'] = os.path.abspath(
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'specifications/base.json'))
+    common_components_conf['verifier profiles DB'] = os.path.abspath(
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
+
     subcomponents = []
     try:
         queues_to_terminate = []
@@ -84,15 +90,15 @@ def start_jobs(core_obj, locks, vals):
             def after_process_finished_task(context):
                 coverage_info_file = os.path.join(context.conf['main working directory'], context.coverage_info_file)
                 if os.path.isfile(coverage_info_file):
-                    context.mqs['rule specifications and coverage info files'].put({
+                    context.mqs['requirements and coverage info files'].put({
                         'sub-job identifier': context.conf['sub-job identifier'],
-                        'rule specification': context.rule_specification,
+                        'requirement': context.requirement,
                         'coverage info file': coverage_info_file
                     })
 
             def after_launch_sub_job_components(context):
                 context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
-                context.mqs['rule specifications and coverage info files'].put({
+                context.mqs['requirements and coverage info files'].put({
                     'sub-job identifier': context.sub_job_id
                 })
 
@@ -201,7 +207,7 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
                 # need even to know about them.
                 # From ancient time we tried to assign nice names to sub-jobs to distinguish them, in particular to be
                 # able to compare corresponding verification results. These names were based on sub-job configurations,
-                # e.g. they included commit hashes, rule specification identifiers, module names, etc. Such the approach
+                # e.g. they included commit hashes, requirement identifiers, module names, etc. Such the approach
                 # turned out to be inadequate since we had to add more and more information to sub-job names that
                 # involves source code changes and results in large working directories that look like these names.
                 # After all we decided to use sub-job ordinal numbers to distinguish them uniqly (during a some time
@@ -308,7 +314,7 @@ class RA(core.components.Component):
         def after_plugin_fail_processing(context):
             context.mqs['verification statuses'].put({
                 'verification object': context.verification_object,
-                'rule specification': context.rule_specification,
+                'requirement': context.requirement,
                 'verdict': 'non-verifier unknown',
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -318,7 +324,7 @@ class RA(core.components.Component):
         def after_process_failed_task(context):
             context.mqs['verification statuses'].put({
                 'verification object': context.verification_object,
-                'rule specification': context.rule_specification,
+                'requirement': context.requirement,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -328,7 +334,7 @@ class RA(core.components.Component):
         def after_process_single_verdict(context):
             context.mqs['verification statuses'].put({
                 'verification object': context.verification_object,
-                'rule specification': context.rule_specification,
+                'requirement': context.requirement,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
                 'ideal verdicts': context.conf['ideal verdicts'],
@@ -352,49 +358,49 @@ class RA(core.components.Component):
             return False
 
         verification_object = verification_status['verification object']
-        rule_specification = verification_status['rule specification']
+        requirement = verification_status['requirement']
         ideal_verdicts = verification_status['ideal verdicts']
 
         matched_ideal_verdict = None
 
-        # Try to match exactly by both verification object and rule specification.
+        # Try to match exactly by both verification object and requirement.
         for ideal_verdict in ideal_verdicts:
             if match_attr(verification_object, ideal_verdict.get('verification object')) \
-                    and match_attr(rule_specification, ideal_verdict.get('rule specification')):
+                    and match_attr(requirement, ideal_verdict.get('requirement')):
                 matched_ideal_verdict = ideal_verdict
                 break
 
         # Try to match just by verification object.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'rule specification' not in ideal_verdict \
+                if 'requirement' not in ideal_verdict \
                         and match_attr(verification_object, ideal_verdict.get('verification object')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
-        # Try to match just by rule specification.
+        # Try to match just by requirement specification.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
                 if 'verification object' not in ideal_verdict \
-                        and match_attr(rule_specification, ideal_verdict.get('rule specification')):
+                        and match_attr(requirement, ideal_verdict.get('requirement')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
         # If nothing of above matched.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
+                if 'verification object' not in ideal_verdict and 'requirement' not in ideal_verdict:
                     matched_ideal_verdict = ideal_verdict
                     break
 
         if not matched_ideal_verdict:
             raise ValueError(
-                'Could not match ideal verdict for verification object "{0}" and rule specification "{1}"'
-                .format(verification_object, rule_specification))
+                'Could not match ideal verdict for verification object "{0}" and requirement "{1}"'
+                .format(verification_object, requirement))
 
         # This suffix will help to distinguish sub-jobs easier.
-        id_suffix = os.path.join(verification_object, rule_specification)\
-            if verification_object and rule_specification else ''
+        id_suffix = os.path.join(verification_object, requirement)\
+            if verification_object and requirement else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],
@@ -413,7 +419,7 @@ class RA(core.components.Component):
 
         # Identifier suffix clarifies bug nature without preventing relation of verification results, so, just add it
         # to bug identifier. Sometimes just this concatenation actually serves as unique identifier, e.g. when a bug
-        # identifier is just a commit hash, while an identifier suffix contains a verification object and a rule
+        # identifier is just a commit hash, while an identifier suffix contains a verification object and a requirement
         # specification.
         bug_id = os.path.join(data['bug identifier'], id_suffix)
 

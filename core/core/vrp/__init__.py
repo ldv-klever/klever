@@ -53,13 +53,13 @@ class VRP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        # Rule specification descriptions were already extracted when getting VTG callbacks.
+        # Requirement specification descriptions were already extracted when getting VTG callbacks.
         self.__downloaded = dict()
         self.__workers = None
 
         # Read this in a callback
         self.verdict = None
-        self.rule_specification = None
+        self.requirement = None
         self.verification_object = None
 
         # Common initialization
@@ -181,11 +181,11 @@ class VRP(core.components.Component):
 
             status, data, attempt, source_paths = element
             vo = data[2]
-            rule = data[3]
+            requirement = data[3]
             attrs = [
                 {
-                    "name": "Rule specification",
-                    "value": rule,
+                    "name": "Requirement",
+                    "value": requirement,
                     "compare": True,
                     "associate": True
                 },
@@ -197,8 +197,8 @@ class VRP(core.components.Component):
                 }
             ]
             if attempt:
-                new_id = "{}/{}/{}/RP".format(vo, rule, attempt)
-                workdir = os.path.join(vo, rule, str(attempt))
+                new_id = "{}/{}/{}/RP".format(vo, requirement, attempt)
+                workdir = os.path.join(vo, requirement, str(attempt))
                 attrs.append(
                     {
                         "name": "Rescheduling attempt",
@@ -208,9 +208,9 @@ class VRP(core.components.Component):
                     }
                 )
             else:
-                new_id = "{}/{}/RP".format(vo, rule)
-                workdir = os.path.join(vo, rule)
-            self.vals['task solution triples']['{}:{}'.format(vo, rule)] = [None, None, None]
+                new_id = "{}/{}/RP".format(vo, requirement)
+                workdir = os.path.join(vo, requirement)
+            self.vals['task solution triples']['{}:{}'.format(vo, requirement)] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
                         workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
@@ -218,11 +218,11 @@ class VRP(core.components.Component):
                 rp.start()
                 rp.join()
             except core.components.ComponentError:
-                self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, rule))
+                self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, requirement))
             finally:
-                solution = list(self.vals['task solution triples'].get('{}:{}'.format(vo, rule)))
-                del self.vals['task solution triples']['{}:{}'.format(vo, rule)]
-                self.mqs['processed tasks'].put((vo, rule, solution))
+                solution = list(self.vals['task solution triples'].get('{}:{}'.format(vo, requirement)))
+                del self.vals['task solution triples']['{}:{}'.format(vo, requirement)]
+                self.mqs['processed tasks'].put((vo, requirement, solution))
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -244,7 +244,7 @@ class RP(core.components.Component):
         # Read this in a callback
         self.element = element
         self.verdict = None
-        self.rule_specification = None
+        self.requirement = None
         self.verification_object = None
         self.task_error = None
         self.verification_coverage = None
@@ -267,10 +267,10 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, verification_object, rule_specification, verifier = data
+        task_id, opts, verification_object, requirement, verifier = data
         self.verification_object = verification_object
-        self.rule_specification = rule_specification
-        self.results_key = '{}:{}'.format(self.verification_object, self.rule_specification)
+        self.requirement = requirement
+        self.results_key = '{}:{}'.format(self.verification_object, self.requirement)
         self.logger.debug("Prcess results of task {}".format(task_id))
 
         # Update solution status
@@ -508,7 +508,7 @@ class RP(core.components.Component):
         # Save coverage in 'total coverages' dir
         coverage_info_dir = os.path.join('total coverages',
                                          self.conf['sub-job identifier'],
-                                         self.rule_specification.replace('/', '-'))
+                                         self.requirement.replace('/', '-'))
         os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
 
         self.coverage_info_file = os.path.join(coverage_info_dir,

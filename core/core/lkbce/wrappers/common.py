@@ -236,7 +236,7 @@ class Command:
 
         # Execute original build command.
         if self.name_without_prefix == 'gcc':
-            self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
+            self.opts.append('-I{0}'.format(os.environ['KLEVER_REQUIREMENTS_DIR']))
         exit_code = subprocess.call(tuple(['aspectator' if self.name_without_prefix == 'gcc'
                                            else self.name] + self.opts))
 

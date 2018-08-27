@@ -42,10 +42,8 @@ class TR(core.vtg.plugins.Plugin):
             self.abstract_task_desc['files'] = []
 
             env = jinja2.Environment(
-                # All templates reside in the same directory as rule specifications DB.
-                loader=jinja2.FileSystemLoader(os.path.dirname(
-                    core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                self.conf['rule specifications DB']))),
+                # All templates reside in the same directory as requirements DB.
+                loader=jinja2.FileSystemLoader(os.path.dirname(self.conf['requirements DB'])),
                 # This allows to start template statements with the specified prefix rather than to put them inside
                 # special "braces", e.g. in "{% ... %}" by default.
                 # "//" is the beginning of one-line C/C++ comments, so editors will likely treat these lines as

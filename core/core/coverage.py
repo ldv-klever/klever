@@ -121,8 +121,8 @@ class JCR(core.components.Component):
                                   attrs, separate_from_parent, include_child_resources)
 
         # This function adds callbacks and it should work until we call it in the new process
-        self.mqs['rule specifications and coverage info files'] = multiprocessing.Queue()
-        queues_to_terminate.append('rule specifications and coverage info files')
+        self.mqs['requirements and coverage info files'] = multiprocessing.Queue()
+        queues_to_terminate.append('requirements and coverage info files')
         self.coverage = dict()
 
     def collect_total_coverage(self):
@@ -134,11 +134,11 @@ class JCR(core.components.Component):
         counters = dict()
         try:
             while True:
-                coverage_info = self.mqs['rule specifications and coverage info files'].get()
+                coverage_info = self.mqs['requirements and coverage info files'].get()
 
                 if coverage_info is None:
-                    self.logger.debug('Rule specification coverage info files message queue was terminated')
-                    self.mqs['rule specifications and coverage info files'].close()
+                    self.logger.debug('Requirement coverage info files message queue was terminated')
+                    self.mqs['requirements and coverage info files'].close()
                     break
 
                 sub_job_id = coverage_info['sub-job identifier']
@@ -148,9 +148,9 @@ class JCR(core.components.Component):
                     if sub_job_id not in total_coverage_infos:
                         total_coverage_infos[sub_job_id] = dict()
                         arcfiles[sub_job_id] = dict()
-                    rule_spec = coverage_info['rule specification']
-                    total_coverage_infos[sub_job_id].setdefault(rule_spec, {})
-                    arcfiles[sub_job_id].setdefault(rule_spec, {})
+                    requirement = coverage_info['requirement']
+                    total_coverage_infos[sub_job_id].setdefault(requirement, {})
+                    arcfiles[sub_job_id].setdefault(requirement, {})
 
                     with open(coverage_info['coverage info file'], encoding='utf8') as fp:
                         loaded_coverage_info = json.load(fp)
@@ -160,29 +160,29 @@ class JCR(core.components.Component):
                         os.remove(os.path.join(self.conf['main working directory'],
                                                coverage_info['coverage info file']))
 
-                    add_to_coverage(total_coverage_infos[sub_job_id][rule_spec], loaded_coverage_info)
+                    add_to_coverage(total_coverage_infos[sub_job_id][requirement], loaded_coverage_info)
                     for file in loaded_coverage_info.values():
-                        arcfiles[sub_job_id][rule_spec][file[0]['file name']] = file[0]['arcname']
+                        arcfiles[sub_job_id][requirement][file[0]['file name']] = file[0]['arcname']
                     del loaded_coverage_info
 
                     counters.setdefault(sub_job_id, dict())
-                    counters[sub_job_id].setdefault(rule_spec, 0)
-                    counters[sub_job_id][rule_spec] += 1
-                    if counters[sub_job_id][rule_spec] >= 10:
-                        self.__read_data(total_coverage_infos, sub_job_id, rule_spec)
-                        self.__save_data(total_coverage_infos, sub_job_id, rule_spec)
-                        self.__clean_data(total_coverage_infos, sub_job_id, rule_spec)
-                        counters[sub_job_id][rule_spec] = 0
+                    counters[sub_job_id].setdefault(requirement, 0)
+                    counters[sub_job_id][requirement] += 1
+                    if counters[sub_job_id][requirement] >= 10:
+                        self.__read_data(total_coverage_infos, sub_job_id, requirement)
+                        self.__save_data(total_coverage_infos, sub_job_id, requirement)
+                        self.__clean_data(total_coverage_infos, sub_job_id, requirement)
+                        counters[sub_job_id][requirement] = 0
                 elif sub_job_id in total_coverage_infos:
                     self.logger.debug('Calculate total coverage for job {!r}'.format(sub_job_id))
 
                     total_coverages = dict()
                     coverage_info_dumped_files = []
 
-                    for rule_spec in counters[sub_job_id]:
-                        self.__read_data(total_coverage_infos, sub_job_id, rule_spec)
-                        coverage_info = total_coverage_infos[sub_job_id][rule_spec]
-                        total_coverage_dir = self.__get_total_cov_dir(sub_job_id, rule_spec)
+                    for requirement in counters[sub_job_id]:
+                        self.__read_data(total_coverage_infos, sub_job_id, requirement)
+                        coverage_info = total_coverage_infos[sub_job_id][requirement]
+                        total_coverage_dir = self.__get_total_cov_dir(sub_job_id, requirement)
                         total_coverage_file = os.path.join(total_coverage_dir, 'coverage.json')
                         if os.path.isfile(total_coverage_file):
                             raise FileExistsError('Total coverage file {!r} already exists'.format(total_coverage_file))
@@ -194,11 +194,11 @@ class JCR(core.components.Component):
                             json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
                         coverage_info_dumped_files.append(total_coverage_file)
-                        arcnames.update(arcfiles[sub_job_id][rule_spec])
-                        total_coverages[rule_spec] = core.utils.ReportFiles([total_coverage_file] +
-                                                                            list(arcnames.keys()), arcnames)
-                        self.__save_data(total_coverage_infos, sub_job_id, rule_spec)
-                        self.__clean_data(total_coverage_infos, sub_job_id, rule_spec)
+                        arcnames.update(arcfiles[sub_job_id][requirement])
+                        total_coverages[requirement] = core.utils.ReportFiles([total_coverage_file] +
+                                                                              list(arcnames.keys()), arcnames)
+                        self.__save_data(total_coverage_infos, sub_job_id, requirement)
+                        self.__clean_data(total_coverage_infos, sub_job_id, requirement)
 
                     core.utils.report(self.logger,
                                       'job coverage',
@@ -232,16 +232,16 @@ class JCR(core.components.Component):
 
     main = collect_total_coverage
 
-    def __get_total_cov_dir(self, sub_job_id, rule):
-        total_coverage_dir = os.path.join('total coverages', sub_job_id, re.sub(r'/', '-', rule))
+    def __get_total_cov_dir(self, sub_job_id, requirement):
+        total_coverage_dir = os.path.join('total coverages', sub_job_id, re.sub(r'/', '-', requirement))
 
         if not os.path.exists(total_coverage_dir):
             os.makedirs(total_coverage_dir)
 
         return total_coverage_dir
 
-    def __read_data(self, cache, sub_job_id, rule):
-        file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, rule), self.COVERAGE_FILE_NAME)
+    def __read_data(self, cache, sub_job_id, requirement):
+        file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
 
         if os.path.isfile(file_name):
             with open(file_name, 'r', encoding='utf8') as fp:
@@ -250,10 +250,10 @@ class JCR(core.components.Component):
             large_cache = dict()
 
         cache.setdefault(sub_job_id, dict())
-        cache[sub_job_id].setdefault(rule, dict())
+        cache[sub_job_id].setdefault(requirement, dict())
 
         for file_name in large_cache:
-            cache[sub_job_id][rule].setdefault(file_name, {
+            cache[sub_job_id][requirement].setdefault(file_name, {
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
                 'covered functions': {}
@@ -261,18 +261,18 @@ class JCR(core.components.Component):
 
             for path in ('covered lines', 'covered functions'):
                 for line, value in large_cache[file_name][path].items():
-                    cache[sub_job_id][rule][file_name][path].setdefault(line, 0)
-                    cache[sub_job_id][rule][file_name][path][line] += value
+                    cache[sub_job_id][requirement][file_name][path].setdefault(line, 0)
+                    cache[sub_job_id][requirement][file_name][path][line] += value
 
-    def __save_data(self, cache, sub_job_id, rule):
-        file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, rule), self.COVERAGE_FILE_NAME)
+    def __save_data(self, cache, sub_job_id, requirement):
+        file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
         cache.setdefault(sub_job_id, dict())
-        cache[sub_job_id].setdefault(rule, dict())
+        cache[sub_job_id].setdefault(requirement, dict())
         with open(file_name, 'w', encoding='utf8') as fp:
-            json.dump(cache[sub_job_id][rule], fp)
+            json.dump(cache[sub_job_id][requirement], fp)
 
-    def __clean_data(self, cache, job_id, rule):
-        cache[job_id].pop(rule, None)
+    def __clean_data(self, cache, job_id, requirement):
+        cache[job_id].pop(requirement, None)
 
 
 class LCOV:

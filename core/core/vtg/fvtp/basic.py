@@ -119,8 +119,8 @@ class Basic:
         for attr in self.abstract_task_desc['attrs']:
             attr_name = list(attr.keys())[0]
             attr_val = attr[attr_name]
-            if attr_name == 'rule specification':
-                self.rule_specification = attr_val
+            if attr_name == 'requirement':
+                self.requirement = attr_val
 
         # Use resource limits and verifier specified in job configuration.
         task_desc.update(

@@ -649,9 +649,7 @@ sys.exit(Command(sys.argv).launch())
         if collect_build_cmds:
             env.update({
                 'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
-                'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
-                    core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                self.conf['rule specifications DB'])))
+                'KLEVER_REQUIREMENTS_DIR': os.path.dirname(self.conf['requirements DB'])
             })
 
             env.update({

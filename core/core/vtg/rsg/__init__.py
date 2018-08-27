@@ -31,7 +31,7 @@ class RSG(core.vtg.plugins.Plugin):
         super(RSG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
 
-    def generate_rule_specification(self):
+    def generate_requirement(self):
         generated_models = {}
 
         if 'files' in self.abstract_task_desc:
@@ -53,7 +53,7 @@ class RSG(core.vtg.plugins.Plugin):
         if 'files' in self.abstract_task_desc:
             self.abstract_task_desc.pop('files')
 
-    main = generate_rule_specification
+    main = generate_requirement
 
     def add_models(self, generated_models):
         self.logger.info('Add models to abstract verification task description')
@@ -64,11 +64,11 @@ class RSG(core.vtg.plugins.Plugin):
                                                     self.abstract_task_desc['environment model']), os.path.curdir)
             models[rel_path] = {}
 
-        # Get common and rule specific models.
+        # Get common and requirement specific models.
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:
                 if common_model_c_file in self.conf['models']:
-                    raise KeyError('C file "{0}" is specified in both common and rule specific models')
+                    raise KeyError('C file "{0}" is specified in both common and requirement specific models')
 
         if 'models' in self.conf:
             for model_c_file in self.conf['models']:
@@ -138,13 +138,13 @@ class RSG(core.vtg.plugins.Plugin):
 
             if 'bug kinds' in model:
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
-                # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
-                # specification model description.
+                # Collect all bug kinds specified in model to check that valid bug kinds are specified in requirement
+                # model description.
                 bug_kinds = set()
                 lines = []
                 with open(model_c_file, encoding='utf8') as fp:
                     for line in fp:
-                        # Bug kinds are specified in form of strings like in rule specifications DB as first actual
+                        # Bug kinds are specified in form of strings like in requirements DB as first actual
                         # parameters of ldv_assert().
                         match = re.search(r'ldv_assert\("([^"]+)"', line)
                         if match:
@@ -158,7 +158,7 @@ class RSG(core.vtg.plugins.Plugin):
                 for bug_kind in model['bug kinds']:
                     if bug_kind not in bug_kinds:
                         raise KeyError(
-                            'Invalid bug kind "{0}" is specified in rule specification model description'.format(
+                            'Invalid bug kind "{0}" is specified in requirement model description'.format(
                                 bug_kind))
                 preprocessed_model_c_file = '{0}.bk.c'.format(
                     core.utils.unique_file_name(os.path.join('models',
