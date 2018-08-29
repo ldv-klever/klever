@@ -206,7 +206,7 @@ class Population:
             job = JobForm(self.manager, None, 'copy').save({
                 'identifier': job_settings.get('identifier'), 'name': job_name,
                 'description': job_settings['description'], 'global_role': JOB_ROLES[1][0],
-                'file_data': self.__get_files_tree(jobdir), 'safe marks': bool(job_settings.get('safe marks')),
+                'file_data': self.__get_files_tree(jobdir)
             })
             created_jobs.append([job.name, job.identifier])
         return created_jobs

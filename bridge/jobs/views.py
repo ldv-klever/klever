@@ -626,25 +626,3 @@ class CollapseReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
             raise BridgeException(_("You don't have an access to collapse reports"))
         CollapseReports(self.object)
         return {}
-
-
-class EnableSafeMarks(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-    unparallel = [Job]
-
-    def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_edit():
-            raise BridgeException(_("You don't have an access to edit this job"))
-
-        self.object.safe_marks = not self.object.safe_marks
-        self.object.save()
-        try:
-            root = ReportRoot.objects.get(job=self.object)
-        except ObjectDoesNotExist:
-            pass
-        else:
-            if self.object.safe_marks:
-                SafeUtils.RecalculateConnections([root])
-            else:
-                SafeUtils.disable_safe_marks_for_job(root)
-        return {}

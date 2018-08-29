@@ -231,15 +231,6 @@ class TestJobs(KleverTestCase):
         except MultipleObjectsReturned:
             self.fail('New job has too many versions')
 
-        # Enable safe marks
-        self.assertFalse(newjob.safe_marks)
-        response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': newjob_pk})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        newjob = Job.objects.get(id=newjob_pk)
-        self.assertTrue(newjob.safe_marks)
-
         # Edit job data
         response = self.client.post('/jobs/ajax/editjob/', {'job_id': newjob.pk, 'version': newjob.version})
         self.assertEqual(response.status_code, 200)

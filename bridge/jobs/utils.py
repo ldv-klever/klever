@@ -578,7 +578,6 @@ def create_job(kwargs):
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
         newjob.identifier = hashlib.md5(time_encoded).hexdigest()
-    newjob.safe_marks = bool(kwargs.get('safe marks', settings.ENABLE_SAFE_MARKS))
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
@@ -700,7 +699,7 @@ def save_job_copy(user, job_id, name=None):
 
     newjob = Job.objects.create(
         identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),
-        name=job_name, change_date=now(), change_author=user, parent=job, type=job.type, safe_marks=job.safe_marks
+        name=job_name, change_date=now(), change_author=user, parent=job, type=job.type
     )
 
     new_version = JobHistory.objects.create(

@@ -205,12 +205,10 @@ class JobForm:
 
         self._job = Job(
             identifier=identifier, name=self.__check_name(data.get('name', '')), change_date=now(),
-            parent=self.__get_parent(data.get('parent', '')), safe_marks=settings.ENABLE_SAFE_MARKS
+            parent=self.__get_parent(data.get('parent', ''))
         )
         if 'weight' in data and data['weight'] in list(x[0] for x in JOB_WEIGHT):
             self._job.weight = data['weight']
-        if 'safe marks' in data and isinstance(data['safe marks'], bool):
-            self._job.safe_marks = data['safe marks']
         self._job.save()
 
         try:

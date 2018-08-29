@@ -56,8 +56,7 @@ function save_job() {
         user_roles: get_user_roles(),
         file_data: get_files_data('#filestree'),
         parent: $('#parent_identifier').val(),
-        last_version: get_last_version_id(),
-        safe_marks: $('#safe_marks_checkbox').is(':checked')
+        last_version: get_last_version_id()
     }, function (data) {
         $('#dimmer_of_page').removeClass('active');
         data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data['job_id'] + '/');

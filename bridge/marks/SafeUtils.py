@@ -80,8 +80,6 @@ class NewMark:
         self._args['tags'] = tags
 
     def create_mark(self, report):
-        if not report.root.job.safe_marks:
-            raise BridgeException(_('Safe marks are disabled'))
         mark = MarkSafe.objects.create(
             identifier=unique_id(), author=self._user, change_date=now(), format=report.root.job.format,
             status=self._args['status'], description=str(self._args.get('description', '')),
@@ -263,7 +261,7 @@ class ConnectMarks:
             attrs_ids |= self._marks_attrs[m_id]
 
         safes_attrs = {}
-        roots = set(root_id for root_id, in ReportRoot.objects.filter(job__safe_marks=True).values_list('id'))
+        roots = set(ReportRoot.objects.values_list('id', flat=True))
         for r_id, a_id in ReportAttr.objects.exclude(report__reportsafe=None)\
                 .filter(report__root_id__in=roots, attr_id__in=attrs_ids).values_list('report_id', 'attr_id'):
             if r_id not in safes_attrs:
@@ -533,7 +531,7 @@ class UpdateVerdicts:
 
 class RecalculateConnections:
     def __init__(self, roots):
-        self._roots = list(root for root in roots if root.job.safe_marks)
+        self._roots = roots
         self._marks = {}
         self._safes = {}
         self.__clear_caches()
@@ -795,13 +793,6 @@ def delete_marks(marks):
     RecalculateTags(safes_changes)
     update_confirmed_cache(list(safes_changes))
     return safes_changes
-
-
-def disable_safe_marks_for_job(root):
-    ReportSafeTag.objects.filter(report__root=root).delete()
-    SafeReportTag.objects.filter(report__root=root).delete()
-    MarkSafeReport.objects.filter(report__root=root).delete()
-    ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
 
 
 def update_confirmed_cache(safes):

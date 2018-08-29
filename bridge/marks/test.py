@@ -178,15 +178,6 @@ class TestMarks(KleverTestCase):
         response = self.client.post(reverse('marks:tags', args=['safe']))
         self.assertEqual(response.status_code, 200)
 
-        # Enable safe marks for the job
-        if not self.job.safe_marks:
-            response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-            self.job = Job.objects.get(id=self.job.id)
-            self.assertTrue(self.job.safe_marks)
-
         # Get report
         safe = ReportSafe.objects.filter(root__job_id=self.job.pk).first()
         self.assertIsNotNone(safe)

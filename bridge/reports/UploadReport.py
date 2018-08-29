@@ -682,9 +682,8 @@ class UploadReport:
             UnknownUtils.ConnectReport(leaf)
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
-            if self.job.safe_marks:
-                SafeUtils.ConnectReport(leaf)
-                SafeUtils.RecalculateTags([leaf])
+            SafeUtils.ConnectReport(leaf)
+            SafeUtils.RecalculateTags([leaf])
 
     def __cut_parents_branch(self):
         if len(self._parents_branch) > 1:
