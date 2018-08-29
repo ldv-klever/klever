@@ -136,8 +136,6 @@ class NewMark:
         return mark
 
     def upload_mark(self):
-        if not settings.ENABLE_SAFE_MARKS:
-            raise BridgeException(_('Safe marks are disabled'))
         if 'format' not in self._args:
             raise BridgeException(_('Safe mark format is required'))
         if isinstance(self._args.get('identifier'), str) and 0 < len(self._args['identifier']) < 255:

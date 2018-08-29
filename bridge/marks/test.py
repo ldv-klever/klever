@@ -75,7 +75,6 @@ class TestMarks(KleverTestCase):
         self.test_tagsfile = 'test_tags.json'
         self.all_marks_arch = 'All-marks.zip'
 
-    @override_settings(ENABLE_SAFE_MARKS=True)
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
