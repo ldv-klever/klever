@@ -123,12 +123,12 @@ class ASE(core.vtg.plugins.Plugin):
 
                     core.utils.execute(self.logger,
                                        tuple(['cif',
-                                              '--in', extra_cc['in file'],
+                                              '--in', storage.normal_path(cc['in'][0]),
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               # TODO: issues like in Weaver.
                                               '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
-                                               os.path.splitext(os.path.basename(cc['out']))[0], '.c.aux'))),
+                                               os.path.splitext(os.path.realpath(cc['out']))[0], '.c.aux'))),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
@@ -141,7 +141,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                  aspectator_search_dir
                                              ]),
                                        env,
-                                       cwd=storage.storage_dir + cc['cwd'],
+                                       cwd=storage.convert_path(cc['cwd']),
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures
