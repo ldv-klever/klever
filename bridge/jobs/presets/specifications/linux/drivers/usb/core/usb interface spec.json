@@ -12,6 +12,10 @@
       "usb_deregister": {
         "declaration": "void usb_deregister(*%usb.usb_driver%)",
         "header": "linux/usb.h"
+      },
+      "usb_register": {
+        "declaration": "int usb_register(*%usb.usb_driver%, struct module *, const char *)",
+        "header": "linux/usb.h"
       }
     },
     "categories": {

@@ -18,7 +18,7 @@
           }
         }
       },
-      "usb_register_driver": {
+      "usb_register_driver, usb_register": {
         "comment": "Register USB callbacks.",
         "labels": {
           "usb_driver": {
