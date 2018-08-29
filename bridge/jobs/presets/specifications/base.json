@@ -167,7 +167,8 @@
               },
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/memory.c": {}
+              "verifier/reference memory.c": {},
+              "linux/verifier/memory.c": {}
             }
           }
         },
