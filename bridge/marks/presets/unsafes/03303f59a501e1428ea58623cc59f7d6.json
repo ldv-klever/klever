@@ -8,7 +8,7 @@
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "0/tests/generic/memory/generic:memory"
+      "value": "0/tests/linux/memory-safety/generic:memory"
     },
     {
       "attr": "Linux kernel:Version",
@@ -33,12 +33,12 @@
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "generic:memory"
+      "value": "linux:memory safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/generic/memory/memcpy2.ko"
+      "value": "ext-modules/linux/memory-safety/memcpy2.ko"
     }
   ],
   "comparison": "thread_call_forests",

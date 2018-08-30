@@ -33,12 +33,12 @@
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "sync:race"
+      "value": "linux:concurrency safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/unsorted/RaceTest7-unsafe.ko"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest7-unsafe.ko"
     },
     {
       "attr": "Declaration",

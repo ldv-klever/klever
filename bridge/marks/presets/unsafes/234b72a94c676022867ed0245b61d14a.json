@@ -33,12 +33,12 @@
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "sync:race"
+      "value": "linux:concurrency safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/unsorted/BAM_lattice_test-unsafe.ko"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/BAM_lattice_test-unsafe.ko"
     },
     {
       "attr": "Declaration",

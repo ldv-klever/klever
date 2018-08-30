@@ -33,12 +33,12 @@
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "sync:race"
+      "value": "linux:concurrency safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/unsorted/bitwise_operations-unsafe.ko"
+      "value": "ext-modules/linux/concurrency-safety/unsorted/bitwise_operations-unsafe.ko"
     },
     {
       "attr": "Declaration",
