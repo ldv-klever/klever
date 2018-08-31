@@ -144,7 +144,22 @@
     }
   },
   "Linux 3.2": {
-    "functions models": {},
+    "functions models": {
+      "usb_serial_register": {
+        "declaration": "int usb_serial_register(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      },
+      "usb_serial_deregister": {
+        "declaration": "void usb_serial_deregister(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      }
+    },
     "categories": {
       "usb_serial": {
         "containers": {
