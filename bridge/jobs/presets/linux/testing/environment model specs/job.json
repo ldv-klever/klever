@@ -208,7 +208,7 @@
         ],
         "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
       },
-      "requirements": ["linux:test:environment model specifications with function pointer analysis"],
+      "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     },
     {
       "Clade": {"base": "aa4af8"},
