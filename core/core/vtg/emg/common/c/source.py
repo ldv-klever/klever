@@ -308,16 +308,22 @@ class Source:
                                 params = desc[caller][line].get('args')
                                 caller_intf = self.get_source_function(caller, cscope)
                                 obj.add_call(caller, cscope)
-                                caller_intf.call_in_function(obj, params)
 
                                 if params:
                                     # Here can be functions which are not defined or visible
-                                    for _, passed_func in params:
+                                    for _, passed_func in list(params):
                                         passed_obj = self.get_source_function(passed_func, cscope)
                                         if not passed_obj:
-                                            self._add_function(passed_func,
-                                                               self._search_function(passed_func, cscope, fs),
-                                                               fs, dependencies, cfiles)
+                                            passed_scope = self._search_function(passed_func, cscope, fs)
+                                            if passed_scope:
+                                                self._add_function(passed_func, passed_scope, fs, dependencies, cfiles)
+                                            else:
+                                                self.logger.warning("Cannot find function {!r} from scope {!r}".
+                                                                    format(passed_func, cscope))
+                                                # Ignore this call since model will not be correct without signature
+                                                params = None
+                                                break
+                                    caller_intf.call_in_function(obj, params)
 
         macros_file = get_conf_property(self._conf['source analysis'], 'macros white list')
         if macros_file:
@@ -344,7 +350,7 @@ class Source:
         else:
             for s in (s for s in fs if func_name in fs[s]):
                 return s
-        raise ValueError("Cannot find function {!r} from scope {!r}".format(func_name, some_scope))
+        return None
 
     def _add_function(self, func, scope, fs, deps, cfiles):
         fs_desc = fs[scope][func]
