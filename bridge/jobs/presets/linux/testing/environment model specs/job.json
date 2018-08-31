@@ -205,10 +205,10 @@
           "ext-modules/urb_v.1",
           "ext-modules/tasklet_v.1",
           "ext-modules/kthread_v.1"
-        ]
+        ],
+        "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
       },
       "requirements": ["linux:test:environment model specifications with function pointer analysis"],
-      "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
     },
     {
       "Clade": {"base": "aa4af8"},
