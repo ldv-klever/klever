@@ -179,12 +179,13 @@ class Linux(Source):
                             raise ValueError('Module set "{0}" is duplicated'.format(modules1))
                         else:
                             # Get rid of file names, remain just directories.
-                            modules1_dir = os.path.dirname(modules1) if re.search(r'\.ko$', modules1) else modules1
-                            modules2_dir = os.path.dirname(modules2) if re.search(r'\.ko$', modules2) else modules2
+                            if not re.search(r'\.ko$', modules1) or not re.search(r'\.ko$', modules2):
+                                modules1_dir = os.path.dirname(modules1) if re.search(r'\.ko$', modules1) else modules1
+                                modules2_dir = os.path.dirname(modules2) if re.search(r'\.ko$', modules2) else modules2
 
-                            if modules1_dir != core.utils.make_relative_path([modules2_dir], modules1_dir):
-                                raise ValueError('Module set "{0}" is subset of module set "{1}"'
-                                                 .format(modules1, modules2))
+                                if modules1_dir != core.utils.make_relative_path([modules2_dir], modules1_dir):
+                                    raise ValueError('Module set "{0}" is subset of module set "{1}"'
+                                                     .format(modules1, modules2))
 
             # Examine module sets to get all build targets. Do not build immediately to catch mistakes earlier.
             build_targets = []
