@@ -4,6 +4,70 @@
       "description": "...",
       "plugins": ["Weaver"]
     },
+    "Userspace": {
+      "description": "...",
+      "plugins": [
+        {
+          "EMG": {
+            "initialize requirements": true,
+            "check final state": true,
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [
+              {
+                "genericFunctions": {
+                  "infinite call": false,
+                  "functions to call": ["\\w*main"]
+                }
+              }
+            ],
+            "translation options": {
+              "entry point": "ldv_main",
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": false,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "propogate headers to instrumented files": true,
+              "additional headers": [
+                "verifier/common.h",
+                "verifier/gcc.h",
+                "verifier/nondet.h",
+                "verifier/memory.h"
+              ]
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "common models": {
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/reference memory.c": {},
+              "userspace/verifier/memory.c": {},
+              "userspace/ldv/common.c": {}
+            }
+          }
+        },
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": false,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:27946"
+            },
+            "result processing": {
+              "coverage": "lightweight"
+            }
+          }
+        }
+      ]
+    },
     "Linux kernel modules": {
       "description": "...",
       "plugins": [
@@ -784,6 +848,23 @@
             "linux:usb:urb::less initial decrement",
             "linux:usb:urb::more initial at exit"
           ]}}}
+        }
+      }
+    },
+    "userspace": {
+      "description": "Userspace specifications",
+      "template": "Userspace",
+      "empty": {
+        "description": "..."
+      },
+      "memory safety": {
+        "description": "Userspace memory safety",
+        "FVTP": {
+          "verifier profile": "memory checking Linux64",
+          "verifier": {
+            "name": "CPAchecker",
+            "version": "trunk:27946"
+          }
         }
       }
     }
