@@ -180,8 +180,7 @@ class RSG(core.vtg.plugins.Plugin):
                 model['bug kinds preprocessed C file'] = model_c_file
 
         # Generate CC full description file per each model and add it to abstract task description.
-        # First of all obtain CC options to be used to compile models. They correspond to options used to compile
-        # scripts/mod/empty.c.
+        # First of all obtain CC options to be used to compile models.
         clade_api.setup(self.conf['Clade']['base'])
         empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['project']['opts file'])
         storage = clade_api.FileStorage()
