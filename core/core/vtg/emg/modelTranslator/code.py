@@ -19,7 +19,7 @@ import os
 import re
 
 from core.utils import unique_file_name
-from core.vtg.emg.common import get_conf_property
+from core.vtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.vtg.emg.common.c import Function
 from core.vtg.emg.common.c.types import Pointer, Primitive
 from core.vtg.emg.modelTranslator.fsa_translator.common import initialize_automaton_variables
@@ -207,6 +207,11 @@ class CModel:
         self._logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
+        if get_conf_property(self._conf["translation options"], "propogate headers to instrumented files"):
+            for file in (f for f in self.files if f in additional_lines):
+                self.add_headers(file,
+                                 get_necessary_conf_property(self._conf["translation options"], "additional headers"))
+
         addictions = dict()
         # Write aspects
         for file in self.files:
@@ -229,6 +234,15 @@ class CModel:
             else:
                 # Generate function declarations
                 self._logger.info('Add aspects to a file {!r}'.format(file))
+
+                # Add headers
+                if file in self._headers and self._headers[file]:
+                    lines.append('before: file ("$this")\n')
+                    lines.append('{\n')
+                    lines.extend(['#include <{}>\n'.format(h) for h in
+                                  self._collapse_headers_sets(self._headers[file])])
+                    lines.append("\n")
+                    lines.append("}\n\n")
 
                 # Add model itself
                 lines.append('after: file ("$this")\n')
