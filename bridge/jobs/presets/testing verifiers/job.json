@@ -19,7 +19,7 @@
       "maximum verification object size": 30000
     },
     "specifications set": "Linux 3.14 (base)",
-    "requirements": ["test"],
+    "requirements": ["linux:test:common"],
     "ideal verdicts": [
       {"ideal verdict": "safe"},
       {
