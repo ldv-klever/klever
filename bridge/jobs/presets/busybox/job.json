@@ -1,5 +1,5 @@
 {
-  "Class": "Verification of Linux kernel modules",
+  "Class": "Verification of userspace programs",
   "Clade": {
       "base": "busybox"
   },
@@ -8,7 +8,8 @@
     "source": "busybox",
     "configuration": "defconfig",
     "architecture": "x86_64",
-    "applets": ["all"]
+    "applets": ["cat"],
+    "opts file": "applets/applets.c"
   },
   "Fragmentation strategy": {
     "name": "single",
@@ -22,5 +23,5 @@
     "dependencies recursive depth": 1
   },
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["empty"]
+  "requirements": ["userspace:empty", "userspace:memory safety"]
 }
