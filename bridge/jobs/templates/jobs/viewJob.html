@@ -126,13 +126,7 @@
                         <tr id="tr_before_progress">
                             <th class="right aligned">{% trans 'Last change' %}</th>
                             <td>
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
                                 {% if last_version.change_author %}
                                     (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
                                 {% endif %}

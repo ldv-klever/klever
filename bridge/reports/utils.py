@@ -28,10 +28,11 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.functional import cached_property
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from bridge.tableHead import Header
-from bridge.utils import logger, extract_archive, BridgeException, exec_time
+from bridge.utils import logger, extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, AttrFile, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe,\
@@ -41,7 +42,7 @@ from marks.models import UnknownProblem, SafeTag, UnsafeTag
 from users.utils import DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
 from marks.utils import SAFE_COLOR, UNSAFE_COLOR
-from reports.list import LeavesQuery
+from reports.querysets import LeavesQuery
 
 
 REP_MARK_TITLES = {
@@ -157,12 +158,10 @@ class SafesTable:
         self.view = view
         self._kwargs = self.__get_kwargs(report, data)
         self.parents = get_parents(report)
-        self.page = None
 
-        self.selected_columns = self.__selected()
-        self.available_columns = self.__available()
         self.verdicts = SAFE_VERDICTS
 
+        self.page = None
         columns, values = self.__safes_data()
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': values}
 
@@ -197,7 +196,8 @@ class SafesTable:
 
         return kwargs
 
-    def __selected(self):
+    @cached_property
+    def selected_columns(self):
         columns = []
         for col in self.view['columns']:
             if col not in self.columns_set:
@@ -209,7 +209,8 @@ class SafesTable:
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __available(self):
+    @cached_property
+    def available_columns(self):
         self.__is_not_used()
         columns = []
         for col in self.columns_list:
@@ -239,14 +240,6 @@ class SafesTable:
         for safe_data in objects:
             ordered_ids.append(safe_data['id'])
             safes[safe_data['id']] = safe_data
-            if safe_data.get('tags'):
-                tags_numbers = Counter(safe_data['tags'])
-                safe_data['tags'] = ', '.join(['{0} ({1})'.format(t, tags_numbers[t])
-                                               for t in sorted(safe_data['tags'])])
-            if 'marks_number' in safe_data and safe_data['marks_number'] is None:
-                safe_data['marks_number'] = 0
-            if 'confirmed' in safe_data and safe_data['confirmed'] is None:
-                safe_data['confirmed'] = 0
 
         attributes = {}
         for r_id, a_name, a_value in ReportAttr.objects.filter(report_id__in=ordered_ids).order_by('id')\
@@ -280,8 +273,12 @@ class SafesTable:
                             break
                     color = SAFE_COLOR[safes[rep_id]['verdict']]
                 elif col == 'tags':
-                    if 'tags' in safes and safes[rep_id]['tags']:
-                        val = ', '.join(safes[rep_id]['tags'])
+                    if 'tags' in safes[rep_id] and safes[rep_id]['tags']:
+                        tags_numbers = Counter(safes[rep_id]['tags'])
+                        val = ', '.join([
+                            '{0} ({1})'.format(t, tags_numbers[t]) if tags_numbers[t] > 1 else t
+                            for t in sorted(tags_numbers)
+                        ])
                 elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, safes[rep_id]['cpu_time'])
                 elif col == 'verifiers:wall':

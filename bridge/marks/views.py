@@ -115,7 +115,7 @@ class MarksListView(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
         view_type_map = {'safe': VIEW_TYPES[8], 'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
         context['tabledata'] = MarksList(self.request.user, self.kwargs['type'],
                                          self.get_view(view_type_map[self.kwargs['type']]),
-                                         page=self.request.GET.get('page', 1))
+                                         page=int(self.request.GET.get('page', 1)))
         return context
 
 

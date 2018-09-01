@@ -20,7 +20,6 @@
 {% load tz %}
 
 {% if TableData.values|length %}
-    {% timezone user.extended.timezone %}
     <table class="ui celled striped compact selectable teal table tree alternate-color">
         <thead>
             {% for column_row in TableData.header %}
@@ -70,7 +69,6 @@
         </thead>
     {% endif %}
     </table>
-    {% endtimezone %}
 {% else %}
     <h1 class="ui violet header">{% trans 'List of jobs is empty, please populate them or change the view' %}</h1>
 {% endif %}

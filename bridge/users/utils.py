@@ -134,8 +134,8 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    'columns': ['num_of_links', 'total_similarity', 'verdict', 'tags', 'status', 'author', 'format'],
+    # order: [up|down, change_date|num_of_links|attr|total_similarity, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -143,7 +143,7 @@ UNSAFE_MARKS_VIEW = {
     # verdict: [is|isnot, <id from MARK_UNSAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -165,7 +165,7 @@ SAFE_MARKS_VIEW = {
     # verdict: [is|isnot, <id from MARK_SAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -179,7 +179,7 @@ SAFE_MARKS_VIEW = {
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
-    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
@@ -187,7 +187,7 @@ UNKNOWN_MARKS_VIEW = {
     # component: [is|startswith, <any text>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
