@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import ujson
 
-from core.utils import find_file_or_dir
-from core.vtg.emg.common import get_necessary_conf_property
+import re
+
+from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c import Function, Variable
 from core.vtg.emg.common.c.types import Pointer
 from core.vtg.emg.common.process import Process
@@ -43,21 +43,21 @@ def generate_processes(emg, source, processes, conf):
                          'configuration')
 
     # Read configuration in abstract task
-    emg.logger.info("Determine functions")
-    functions_file = emg.abstract_task_desc["functions"]
-    functions_file = find_file_or_dir(emg.logger, emg.conf["main working directory"], functions_file)
-    with open(functions_file, encoding="utf8") as fh:
-        functions_list = ujson.loads(fh.read())
-    if not isinstance(functions_list, list):
-        raise ValueError("Expect strictly list of functions in file {!r}".format(functions_file))
+    emg.logger.info("Determine functions to call in the environment model")
 
-    # Check that all function are valid
-    for func in functions_list:
+    expressions = [re.compile(e) for e in get_conf_property(conf, "functions to call")]
+    strict = get_conf_property(conf, "prefer not called")
+    for func in source.source_functions:
         obj = source.get_source_function(func)
-        if not obj:
-            raise ValueError("Source analysis cannot find function {!r}".format(func))
-        else:
+        if not obj.static and (not strict or strict and len(obj.called_at) == 0) and \
+                (not expressions or any(e.fullmatch(func) for e in expressions)):
+            emg.logger.info("Add function {!r} to call in the environment model".format(func))
             functions_collection[func] = obj
+        else:
+            continue
+
+    if len(functions_collection) == 0:
+        raise ValueError("There is no suitable functions to call in the environment model")
 
     # Read configuration in private configuration about headers
     # todo: in current implementation it is useless but may help in future
@@ -104,7 +104,14 @@ def __generate_calls(logger, emg, conf, functions_collection):
     tab += 1
     cnt = 0
     for expr in expressions:
-        code.append(indented_line(tab, "case {}: {}".format(cnt, expr)))
+        if loop:
+            # Add a break after a function call
+            code.append(indented_line(tab, "case {}: ".format(cnt) + '{'))
+            code.append(indented_line(tab + 1, "{}".format(expr)))
+            code.append(indented_line(tab + 1, "break;"))
+            code.append(indented_line(tab, "}"))
+        else:
+            code.append(indented_line(tab, "case {}: {}".format(cnt, expr)))
         cnt += 1
     if loop:
         code.append(indented_line(tab, "default: break;"))
@@ -144,7 +151,6 @@ def __generate_call(emg, ep, func, obj):
             body.append(argvar.declare() + ";")
             args.append(argvar.name)
             if isinstance(arg, Pointer):
-                # todo: this is an ugly workaround to get translation options directly
                 if get_necessary_conf_property(emg.conf["translation options"], "allocate external"):
                     value = "external_allocated_data();"
                 else:
