@@ -16,12 +16,10 @@
 #
 
 import copy
-import hashlib
 import importlib
 import json
 import multiprocessing
 import os
-import re
 import time
 import zipfile
 
@@ -476,6 +474,7 @@ class RA(core.components.Component):
 
 class Job(core.components.Component):
     SUPPORTED_JOB_TYPES = [
+        'Verification of userspace programs',
         'Verification of Linux kernel modules',
         'Validation on commits in Linux kernel Git repositories'
     ]
