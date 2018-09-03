@@ -116,6 +116,6 @@ class Manual(Abstract):
                     done = True
 
         if not done and len(functions) > 0:
-            raise ValueError("Cannot find suitable fragments for functions: {}".format(', '.join(to_process)))
+            raise ValueError("Cannot find suitable fragments for functions: {}".format(', '.join(functions)))
 
         return new
