@@ -76,7 +76,7 @@ class Source:
                     'name': 'project',
                     'value': attrs
                 }
-            ]
+            ], []
 
     @property
     def source_paths(self):

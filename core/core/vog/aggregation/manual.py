@@ -14,128 +14,108 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vog.aggregation.strategy_utils import Module, Graph
-from core.vog.aggregation.abstract_strategy import AbstractStrategy
+
+from core.vog.common import Aggregation
+from core.vog.aggregation.abstract import Abstract
 
 
-class Manual(AbstractStrategy):
-    # TODO: FIX THE STRATEGY
-    def __init__(self, logger, strategy_params, params):
-        super().__init__(logger)
-        self.groups = {}
-        self._need_dependencies = False
-        self.group_params = params.get('groups', {})
-        self._already_in_modules = set()
-        for key, value in params.get('groups', {}).items():
-            if not self._is_module(key) and not self.is_subsystem(key):
-                self._need_dependencies = True
-                self.groups = {}
-                return
-            self.groups[key] = []
-            for module_list in value:
-                if not isinstance(module_list, tuple) \
-                        and not isinstance(module_list, list):
-                    raise ValueError('You should specify a list of lists for modules for manual strategy\n'
-                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key,
-                                                                                             value))
-                for module in module_list:
-                    if not self._is_module(module) and not self.is_subsystem(module):
-                        self._need_dependencies = True
-                        self.groups = {}
-                        return
-                self.groups[key].append(module_list)
+class Manual(Abstract):
+    """
+    This is a manual strategy to specify aggregations. A user should manually specify for each target fragment
+    a list of lists of fragments or export functions to find and add. For missed descriptions the strategy just
+    generates an aggregation with a single fragment.
+    """
 
-    def _divide(self, module_name):
-        ret = []
+    def __init__(self, logger, conf, divider):
+        super(Manual, self).__init__(logger, conf, divider)
+        self.fragments_map = self.conf['Aggregation strategy'].get('aggregations')
+        if not self.fragments_map:
+            raise ValueError("Provide configuration property 'aggregations' to ")
 
-        if module_name == 'all':
-            for module in self.groups.keys():
-                ret.extend(self._common_divide(module))
-            return ret
-        elif self.is_subsystem(module_name):
-            # This is subsystem
-            for module in self.groups.keys():
-                if module.startswith(module_name) and module != module_name:
-                    ret.extend(self._common_divide(module))
-            return ret
+    def _aggregate(self):
+        """
+        Collect fragments set by a user explicitly by name of export functions.
 
-        if module_name.startswith('ext-modules/'):
-            is_external = True
-            module_name = module_name[12:]
-        else:
-            is_external = False
+        :return: Generator that retursn Aggregation objects.
+        """
+        # First we need fragments that are completely fullfilled
+        c_to_deps, f_to_deps, c_to_frag = self.divider.establish_dependencies()
+        for fragment in self.divider.target_fragments:
+            if fragment.name in self.fragments_map:
+                # Expect specified set
+                desc = self.fragments_map[fragment.name]
+                if not isinstance(desc, list) or any(not isinstance(i, list) for i in desc):
+                    raise ValueError('For {!r} fragment provide a list of lists of fragment or functions names')
 
-        for group_init_module in self.groups:
-            if group_init_module == module_name \
-                    or group_init_module.startswith(module_name) \
-                    or module_name.startswith(group_init_module):
-
-                for group in self.groups[group_init_module]:
-                    group_modules = []
-                    for module in group:
-                        process = []
-                        if self._is_module(module):
-                            process.append(module)
-                        elif self.is_subsystem(module):
-                            process.extend(self._get_modules_for_subsystem(module))
-                        else:
-                            process.extend(self._get_modules_by_func(module))
-
-                        for m in process:
-                            if is_external:
-                                group_modules.append(Module('ext-modules/' + m))
-                            else:
-                                group_modules.append(Module(m))
-                            for pred_module in group_modules[:-1]:
-                                pred_module.add_successor(group_modules[-1])
-                    # Make module_name to root of the Graph
-                    root_module_pos = [module.id for module in group_modules].index(module_name if not is_external
-                                                                                    else 'ext-modules/' + module_name)
-                    group_modules[0], group_modules[root_module_pos] = group_modules[root_module_pos], group_modules[0]
-
-                    ret.append(Graph(group_modules))
-                break
-        else:
-            if module_name not in self._already_in_modules:
-                if is_external:
-                    ret.append(Graph([Module('ext-modules/' + module_name)]))
+                if len(self.fragments_map[fragment.name]) == 0:
+                    self.logger.warning("Skip fragment {!r} as no fragments to include were given"
+                                        .format(fragment.name))
+                elif len(self.fragments_map[fragment.name]) == 1:
+                    yield self._collect_frgments(fragment.name, desc[0], c_to_deps, f_to_deps, c_to_frag)
                 else:
-                    ret.append(Graph([Module(module_name)]))
+                    for i, nset in enumerate(desc):
+                        name = "{}:{}".format(fragment.name, i)
+                        yield self._collect_frgments(name, nset, c_to_deps, f_to_deps, c_to_frag)
+            else:
+                self.logger.warning("There is no manual specified description for fragment {!r}".format(fragment.name))
+                new = Aggregation(fragment)
+                new.name = fragment.name
+                yield new
 
-        for graph in ret:
-            self._already_in_modules.update([module.id for module in graph.fragments])
+    def _collect_frgments(self, name, nset, cmap, fmap, cfrag):
+        """
+        Create an aggregation by given names of fragments, C files or function names.
 
-        return ret
+        :param name: Name of the new aggragation.
+        :param nset: Set of names to check.
+        :param cmap: {c_file_name -> [c_file_names]} The right part contains files which provide implementations of
+                     functions for the first one.
+        :param fmap: {func_name -> [fragments]} Fragments that implement function func.
+        :param cfrag: {c_file_name -> fragment]} Fragment that contains this C file.
+        :return: Aggregation object.
+        """
+        new = Aggregation(name=name)
+        functions = []
+        for frag_or_func in nset:
+            # Check that it is a fragment
+            frag = self.divider.find_fragment_by_name(frag_or_func)
+            if frag:
+                new.fragments.add(frag)
+                continue
 
-    def _set_dependencies(self, deps, sizes):
-        for key, value in self.group_params.items():
-            if not self._is_module(key) and not self.is_subsystem(key):
-                key = self._get_modules_by_func(key)[0]
-            self.groups[key] = []
-            for module_list in value:
-                if not isinstance(module_list, tuple) \
-                        and not isinstance(module_list, list):
-                    raise ValueError('You should specify a list of lists for modules for manual strategy\n'
-                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key, value))
-                modules = []
-                for module in module_list:
-                    if self._is_module(module) or self.is_subsystem(module):
-                        modules.append(module)
-                    else:
-                        modules.extend(self._get_modules_by_func(module))
-                self.groups[key].append(modules)
-        self.logger.debug("Groups are {0}".format(str(self.groups)))
+            if frag_or_func in cfrag and cfrag[frag_or_func]:
+                new.fragments.add(cfrag[frag_or_func])
+                continue
 
-    def need_dependencies(self):
-        return self._need_dependencies
+            if frag_or_func in fmap:
+                functions.append(frag_or_func)
+                continue
 
-    def get_modules_to_build(self, modules):
-        ret = set(modules)
-        for groups in self.groups.values():
-            for group in groups:
-                ret.update(group)
-                for module in group:
-                    if not self._is_module(module) and not self.is_subsystem(module):
-                        return [], True
+            raise ValueError("Cannot find a fragment, a C file or a function with the name {!r}".format(frag_or_func))
 
-        return list(ret), False
+        done = True
+        while done and len(functions) > 0:
+            done = False
+
+            func = functions.pop()
+            # As we are not sure about the scope lets try to find a fragment which is required by any of mentioned
+            # otherwise it is not clear why we should add any if no calls detected.
+            candidates = fmap[func]
+            possible_cfiles = set()
+
+            for frag in new.fragments:
+                for cf in frag.in_files:
+                    possible_cfiles.add(cf)
+                    possible_cfiles.update(cmap.get(cf, set()))
+
+            for candidate in candidates:
+                # Do this to avoid adding fragments which have nothing to do with chosen
+                if possible_cfiles.intersection(candidate.in_files):
+                    new.fragments.add(candidate)
+                    # If we will not any fragments then maybe we need to add more fragments for other functions first
+                    done = True
+
+        if not done and len(functions) > 0:
+            raise ValueError("Cannot find suitable fragments for functions: {}".format(', '.join(to_process)))
+
+        return new

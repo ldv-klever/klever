@@ -486,7 +486,8 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         report_id.value += 1
 
     logger.debug('{0} prepare file archive'.format(kind.capitalize()))
-    archives = []
+    data_archive = report_data.get('attr data')
+    archives = [os.path.abspath(data_archive)] if data_archive else []
     process_queue = [report_data]
     while process_queue:
         elem = process_queue.pop(0)

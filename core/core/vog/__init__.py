@@ -16,6 +16,7 @@
 #
 
 import os
+import zipfile
 import multiprocessing
 import clade.interface as clade_api
 
@@ -59,9 +60,15 @@ class VOG(core.components.Component):
 
         divider = divider(self.logger, self.conf, program, clade_api)
         strategy = strategy(self.logger, self.conf, divider)
-        self.common_prj_attrs = program.attributes + strategy.attributes + divider.attributes
+        pa, pf = program.attributes
+        self.common_prj_attrs = list(pa)
+        attributes = pa
+        dfiles = pf
+        for attrs, df in (strategy.attributes, divider.attributes):
+            attributes.extend(attrs)
+            dfiles.extend(df)
         self.source_paths = program.source_paths
-        self.submit_project_attrs()
+        self.submit_project_attrs(attributes, dfiles)
 
         # Generate verification objects
         verification_objects_files = strategy.generate_verification_objects()
@@ -72,13 +79,19 @@ class VOG(core.components.Component):
 
     main = generate_verification_objects
 
-    def submit_project_attrs(self):
+    def submit_project_attrs(self, attrs, dfiles):
         """Has a callback!"""
+        with open('data attributes.zip', mode='w+b', buffering=0) as f:
+            with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                for df in dfiles:
+                    zfp.write(df)
+                os.fsync(zfp.fp)
         core.utils.report(self.logger,
                           'attrs',
                           {
                               'id': self.id,
-                              'attrs': self.common_prj_attrs
+                              'attrs': attrs,
+                              'attr data': 'data attributes.zip'
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
@@ -97,16 +110,3 @@ class VOG(core.components.Component):
         """Has a callback!"""
         with open(self.VO_FILE, 'w') as fp:
             fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
-
-    # todo: Why does it needed? Maybe wee need to apload data attributes with units instead
-    # def send_loc_report(self):
-    #     core.utils.report(self.logger,
-    #                       'data',
-    #                       {
-    #                           'id': self.id,
-    #                           'data': self.loc
-    #                       },
-    #                       self.mqs['report files'],
-    #                       self.vals['report id'],
-    #                       self.conf['main working directory'])
-

@@ -16,12 +16,15 @@
 #
 
 import os
+import ujson
 from graphviz import Digraph
 
 import core.vog.common as common
 
 
 class AbstractDivider:
+
+    DESC_FILE = 'fragments description.json'
 
     def __init__(self, logger, conf, source, clade_api):
         self.logger = logger
@@ -35,10 +38,22 @@ class AbstractDivider:
 
     @property
     def attributes(self):
-        return [{
-            'name': 'Fragmentation strategy',
-            'value': [{'name': 'name', 'value': self.conf['Fragmentation strategy']['name']}]
-        }]
+        data = dict()
+        data['target fragments'] = [f.name for f in self.target_fragments]
+        data['fragments'] = {f.name: list(f.in_files) for f in self.fragments}
+
+        with open(self.DESC_FILE, 'w', encoding='utf8') as fp:
+            ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
+
+        return [
+                   {
+                       'name': 'Fragmentation strategy',
+                       'value': [
+                           {'name': 'name', 'value': self.conf['Fragmentation strategy']['name'],
+                            'data': self.DESC_FILE}
+                        ]
+                   },
+               ], [self.DESC_FILE]
 
     @property
     def target_fragments(self):
@@ -53,6 +68,12 @@ class AbstractDivider:
         if self._fragments is None:
             self._divide()
         return self._fragments
+
+    def find_fragment_by_name(self, name):
+        for f in self.fragments:
+            if f.name == name:
+                return f
+        return None
 
     def _divide(self):
         raise NotImplementedError
@@ -76,19 +97,22 @@ class AbstractDivider:
         self.logger.info("Connect frgaments between each other on base of callgraph")
         cg = self.clade.CallGraph().graph
         c_to_deps = dict()
-        file_fragment = dict()
+        c_to_frag = dict()
+        f_to_deps = dict()
 
         # Fulfil callgraph dependencies
         for fragment in self.fragments:
             # First collect export functions
             for path in fragment.in_files:
-                file_fragment[path] = fragment
+                c_to_frag[path] = fragment
                 deps = c_to_deps.setdefault(path, set())
 
                 for func, desc in cg.get(path, dict()).items():
                     tp = desc.get('type', 'static')
                     if tp == 'global':
                         fragment.add_export_function(path, func)
+                        f_to_deps.setdefault(func, set())
+                        f_to_deps[func].add(fragment)
 
                     for calls_scope, called_functions in ((s, d) for s, d in desc.get('calls', dict()).items()
                                                           if s != path and s != 'unknown'):
@@ -98,10 +122,10 @@ class AbstractDivider:
 
         # Now connect different fragments
         for path, deps in c_to_deps.items():
-            fragment = file_fragment[path]
+            fragment = c_to_frag[path]
 
-            for required_file in (f for f in deps if f in file_fragment):
-                required_fragment = file_fragment[required_file]
+            for required_file in (f for f in deps if f in c_to_frag):
+                required_fragment = c_to_frag[required_file]
 
                 # Connect
                 fragment.add_successor(required_fragment)
@@ -109,6 +133,8 @@ class AbstractDivider:
         # Print if neccessary as a graph
         if self.conf['Fragmentation strategy'].get('draw dependencies'):
             self.print_fragments()
+
+        return c_to_deps, f_to_deps, c_to_frag
 
     def print_fragments(self):
         g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})
