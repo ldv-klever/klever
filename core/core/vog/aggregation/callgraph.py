@@ -24,7 +24,8 @@ class Callgraph(Abstract):
 
     def _aggregate(self):
         """
-        Just return target fragments as aggregations consisting of a single fragment.
+        Just return target fragments as aggregations consisting of fragments that are required by a target one
+        collecting required fragments for given depth.
 
         :return: Generator that retursn Aggregation objects.
         """
