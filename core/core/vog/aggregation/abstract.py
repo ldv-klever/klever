@@ -16,8 +16,8 @@
 #
 
 import os
-import graphviz
 import ujson
+import graphviz
 
 
 class Abstract:
@@ -28,19 +28,34 @@ class Abstract:
         self.logger = logger
         self.conf = conf
         self.divider = divider
+        self._aggregations = set()
 
         self._max_size = self.conf['Aggregation strategy'].get('maximum verification object size')
         self.dynamic_excluded_clean = list()
 
     @property
+    def aggregations(self):
+        if not self._aggregations:
+            self._aggregations = set(self._aggregate())
+        return self._aggregations
+
+    @property
     def attributes(self):
+        data = dict()
+        for a in self.aggregations:
+            data[a.name] = {f.name: list(f.in_files) for f in a.fragments}
+
+        with open(self.DESC_FILE, 'w', encoding='utf8') as fp:
+            ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
+                       escape_forward_slashes=False)
+
         return [{
             'name': 'Aggregation strategy',
-            'value': [{'name': 'name', 'value': self.conf['Aggregation strategy']['name']}]
-        }], []
+            'value': [{'name': 'name', 'value': self.conf['Aggregation strategy']['name'], 'data': self.DESC_FILE}]
+        }], [self.DESC_FILE]
 
     def generate_verification_objects(self):
-        for aggregation in self._aggregate():
+        for aggregation in self.aggregations:
             if not self._max_size or aggregation.size <= self._max_size:
                 if self.conf['Aggregation strategy'].get('draw aggregations'):
                     self.draw_aggregation(aggregation)
