@@ -22,6 +22,8 @@ import ujson
 
 class Abstract:
 
+    DESC_FILE = 'agregations description.json'
+
     def __init__(self, logger, conf, divider):
         self.logger = logger
         self.conf = conf
@@ -35,7 +37,7 @@ class Abstract:
         return [{
             'name': 'Aggregation strategy',
             'value': [{'name': 'name', 'value': self.conf['Aggregation strategy']['name']}]
-        }]
+        }], []
 
     def generate_verification_objects(self):
         for aggregation in self._aggregate():
@@ -91,3 +93,4 @@ class Abstract:
         if not os.path.exists('aggregations'):
             os.makedirs('aggregations')
         g.render(os.path.join('aggregations', aggregation.name))
+
