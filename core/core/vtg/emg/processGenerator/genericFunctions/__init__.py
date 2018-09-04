@@ -90,7 +90,7 @@ def __generate_calls(logger, emg, conf, functions_collection):
     expressions = []
     for func in functions_collection:
         logger.info("Call function {!r}".format(func))
-        expr = __generate_call(emg, ep, func, functions_collection[func])
+        expr = __generate_call(emg, conf, ep, func, functions_collection[func])
         expressions.append(expr)
 
     # Generate process description
@@ -130,7 +130,7 @@ def __generate_calls(logger, emg, conf, functions_collection):
     return ep
 
 
-def __generate_call(emg, ep, func, obj):
+def __generate_call(emg, conf, ep, func, obj):
     # Add declaration of caller
     caller_func = Function("ldv_emg_{}_caller".format(func), "void a(void)")
     ep.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
@@ -151,8 +151,27 @@ def __generate_call(emg, ep, func, obj):
             body.append(argvar.declare() + ";")
             args.append(argvar.name)
             if isinstance(arg, Pointer):
-                if get_necessary_conf_property(emg.conf["translation options"], "allocate external"):
+                elements = get_conf_property(conf, "initialize strings as null terminated")
+                if elements and arg.identifier == 'char **':
+                    if isinstance(elements, int) or elements.isnumeric():
+                        elements = int(elements)
+                    else:
+                        elements = 'ldv_undef_int()'
+                    argvar_len = Variable(argvar.name + '_len', 'int')
+                    # Define explicitly number of arguments, since undef value is too difficult sometimes
+                    initializations.append("int {} = {};".format(argvar_len.name, elements))
+                    initializations.append("{} = (char **) ldv_xmalloc({} * sizeof(char *));".format(argvar.name,
+                                                                                                     argvar_len.name))
+                    # Initialize all elements but the last one
+                    initializations.append("for (int i = 0; i < {} - 1; i++)".format(argvar_len.name))
+                    # Some undefined data
+                    initializations.append("\t{}[i] = (char *) external_allocated_data();".format(argvar.name))
+                    # The last element is a string
+                    initializations.append("{}[{}] = (char * ) 0;".format(argvar.name, elements - 1))
+                    free_args.append(argvar.name)
+                elif get_necessary_conf_property(emg.conf["translation options"], "allocate external"):
                     value = "external_allocated_data();"
+                    initializations.append("{} = {}".format(argvar.name, value))
                 else:
                     if get_necessary_conf_property(emg.conf["translation options"], "allocate with sizeof"):
                         apt = arg.points.to_string('', typedef='complex_and_params')
@@ -161,7 +180,7 @@ def __generate_call(emg, ep, func, obj):
                     else:
                         value = "ldv_xmalloc_unknown_size(0);"
                     free_args.append(argvar.name)
-                initializations.append("{} = {}".format(argvar.name, value))
+                    initializations.append("{} = {}".format(argvar.name, value))
 
     # Generate call
     expression += "{}({});".format(func, ", ".join(args))
