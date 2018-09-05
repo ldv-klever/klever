@@ -60,6 +60,10 @@ class Busybox(Userspace):
         path, name = os.path.split(candidate)
         name = os.path.splitext(name)[0]
 
+        # Ignore absolute files as there are out of source files
+        if os.path.isabs(candidate):
+            return False
+
         if 'all' in self._subsystems:
             self._subsystems['all'] = True
             return True
@@ -68,14 +72,14 @@ class Busybox(Userspace):
             self._subsystems[matched_subsystems[0]] = True
             return True
 
-        if name not in self.applets:
+        if name not in self.applets and os.path.basename(path) not in self._targets:
             return False
         else:
             if 'all' in self._targets:
                 self._targets['all'] = True
                 return True
 
-            if name in self._targets:
+            if name in self._targets or os.path.basename(path) in self._targets:
                 self._targets[name] = True
                 return True
 
