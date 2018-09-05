@@ -184,11 +184,11 @@ class RSG(core.vtg.plugins.Plugin):
         clade_api.setup(self.conf['Clade']['base'])
         empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['project']['opts file'])
         storage = clade_api.FileStorage()
-        if not empty_cc or len(empty_cc) > 1:
-            raise RuntimeError("There is not or instead there are a lot of cc commands for {!r}".
-                               format(self.conf['project']['opts file']))
-        else:
-            empty_cc = empty_cc.pop()
+        if not empty_cc:
+            raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
+        elif len(empty_cc) > 1:
+            self.logger.warning("There are more than one cc command for {!r}".format(self.conf['project']['opts file']))
+        empty_cc = empty_cc.pop()
         empty_cc['opts'] = clade_api.get_cc_opts(empty_cc['id'])
 
         model_grp = {'id': 'models', 'Extra CCs': []}
