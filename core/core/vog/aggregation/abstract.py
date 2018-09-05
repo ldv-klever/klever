@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import re
 import os
 import ujson
 import graphviz
@@ -67,6 +68,34 @@ class Abstract:
     def _aggregate(self):
         raise NotImplementedError
 
+    def _belong(self, fragment, target):
+        if re.fullmatch(r'\.o$', target):
+            # This is an object file
+            return fragment == target
+        elif re.fullmatch(r'\.c$', target):
+            # This is a C file
+            return target in fragment.in_files
+        else:
+            # This is a dir
+            return os.path.dirname(target) == os.path.dirname(fragment)
+
+    def _check_fileters(self, fragment):
+        return True
+
+    def _add_dependencies(self, aggregation, depth=None):
+        layer = {aggregation.root}
+        while layer and (depth is None or depth > 0):
+            new_layer = set()
+            for fragment in layer:
+                aggregation.fragments.add(fragment)
+                for dep in fragment.successors:
+                    if dep not in aggregation.fragments and dep not in new_layer and dep not in layer and \
+                            self._check_fileters(dep.name):
+                        new_layer.add(dep)
+            layer = new_layer
+            if depth is not None:
+                depth -= 1
+
     def __describe_verification_object(self, aggregation):
         self.logger.info('Generate verification object description for aggregation {!r}'.format(aggregation.name))
         vo_desc = dict()
@@ -108,4 +137,3 @@ class Abstract:
         if not os.path.exists('aggregations'):
             os.makedirs('aggregations')
         g.render(os.path.join('aggregations', aggregation.name))
-

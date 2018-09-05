@@ -37,16 +37,3 @@ class Callgraph(Abstract):
             new.name = fragment.name
             self._add_dependencies(new, max_deep)
             yield new
-
-    def _add_dependencies(self, aggregation, max_depth):
-        cnt = max_depth
-        layer = {aggregation.root}
-        while layer and cnt:
-            new_layer = set()
-            for fragment in layer:
-                aggregation.fragments.add(fragment)
-                for dep in fragment.successors:
-                    if dep not in aggregation.fragments and dep not in new_layer and dep not in layer:
-                        new_layer.add(dep)
-            layer = new_layer
-            cnt -= 1
