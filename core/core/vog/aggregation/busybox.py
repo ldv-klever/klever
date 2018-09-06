@@ -64,8 +64,8 @@ class Busybox(Abstract):
         if self._white_list is not None and not any(self._belong(fragment, t) for t in self._white_list):
             return False
         # Check libbb
-        if os.path.commonpath(['libbb', fragment]) and self._ignore_libbb:
+        if os.path.commonpath(['libbb', fragment.name]) and self._ignore_libbb:
             return False
-        if not os.path.commonpath(['libbb', fragment]) and self._single_file_mode:
+        if not os.path.commonpath(['libbb', fragment.name]) and self._single_file_mode:
             return False
         return True

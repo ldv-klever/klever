@@ -69,15 +69,15 @@ class Abstract:
         raise NotImplementedError
 
     def _belong(self, fragment, target):
-        if re.fullmatch(r'\.o$', target):
+        if re.search(r'\.o$', target):
             # This is an object file
-            return fragment == target
-        elif re.fullmatch(r'\.c$', target):
+            return fragment.name == target
+        elif re.search(r'\.c$', target):
             # This is a C file
             return target in fragment.in_files
         else:
             # This is a dir
-            return os.path.dirname(target) == os.path.dirname(fragment)
+            return os.path.dirname(target) == os.path.dirname(fragment.name)
 
     def _check_fileters(self, fragment):
         return True
@@ -90,7 +90,7 @@ class Abstract:
                 aggregation.fragments.add(fragment)
                 for dep in fragment.successors:
                     if dep not in aggregation.fragments and dep not in new_layer and dep not in layer and \
-                            self._check_fileters(dep.name):
+                            self._check_fileters(dep):
                         new_layer.add(dep)
             layer = new_layer
             if depth is not None:
