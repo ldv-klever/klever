@@ -19,13 +19,12 @@
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
-char *ldv_strdup(const char *s);
-void ldv_exit(void);
+extern void *memcpy(void *dest, const void *src, size_t n);
 
-void ldv_exit(void)
-{
-    ldv_assume(0);
-}
+char *ldv_strdup(const char *s);
+char *ldv_strcpy(char *dest, const char *src);
+char *ldv_strncpy(char *dest, const char *src, size_t n);
+size_t ldv_strlen(const char *s);
 
 char *ldv_strdup(const char *s)
 {
@@ -37,4 +36,29 @@ char *ldv_strdup(const char *s)
     } else {
         return 0;
     }
+}
+
+size_t ldv_strlen(const char *str) {
+    const char *s;
+    for (s = str; *s; ++s) {}
+    return(s - str);
+}
+
+char *ldv_strncpy(char *dest, const char *src, size_t n)
+{
+   size_t i;
+
+   for (i = 0; i < n && src[i] != '\0'; i++)
+       dest[i] = src[i];
+   for ( ; i < n; i++)
+       dest[i] = '\0';
+
+   return dest;
+}
+
+
+char *ldv_strcpy(char *dest, const char *src)
+{
+    memcpy(dest, src, ldv_strlen(src));
+    return dest;
 }

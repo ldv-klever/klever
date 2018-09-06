@@ -15,9 +15,13 @@
  * limitations under the License.
  */
 
-#include <verifier/common.h>
-#include <verifier/memory.h>
-#include <verifier/nondet.h>
 
-extern char *ldv_strdup(const char *s);
-extern void ldv_exit(void);
+before: file("$this")
+{
+extern void ldv_bb_error_msg_and_die(void);
+}
+
+around: call(void bb_error_msg_and_die(..))
+{
+    ldv_bb_error_msg_and_die();
+}

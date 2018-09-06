@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
+
 before: file("$this")
 {
-#include <userspace/common.h>
+extern void ldv_bb_show_usage(void);
 }
 
-around: call(void exit(..))
+around: call(void bb_show_usage(..))
 {
-    ldv_exit();
+    ldv_bb_show_usage();
 }
 
-around: call(char *ldv_strdup(..))
-{
-    return ldv_strdup($arg1);
-}

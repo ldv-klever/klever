@@ -49,9 +49,11 @@
               "verifier/nondet.c": {},
               "verifier/reference memory.c": {},
               "userspace/verifier/memory.c": {},
-              "userspace/ldv/common.c": {},
-              "userspace/common.c": {},
-              "userspace/busybox.c": {}
+              "userspace/ldv.c": {},
+              "userspace/string.c": {},
+              "userspace/stdlib.c": {},
+              "userspace/busybox/libbb/appletlib.c": {},
+              "userspace/busybox/libbb/verror_msg.c": {}
             }
           }
         },
@@ -65,7 +67,7 @@
               "version": "trunk:27946"
             },
             "result processing": {
-              "coverage": "lightweight"
+              "coverage": "full"
             }
           }
         }

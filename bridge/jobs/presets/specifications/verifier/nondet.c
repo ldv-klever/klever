@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-//#include <linux/types.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 #include <stddef.h>

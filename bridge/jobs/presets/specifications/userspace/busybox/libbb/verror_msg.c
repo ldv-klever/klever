@@ -15,5 +15,11 @@
  * limitations under the License.
  */
 
-extern void ldv_bb_show_usage(void);
-extern void ldv_bb_error_msg_and_die(void);
+#include <verifier/common.h>
+
+void ldv_bb_error_msg_and_die(void);
+
+void ldv_bb_error_msg_and_die(void)
+{
+    ldv_assume(0);
+}

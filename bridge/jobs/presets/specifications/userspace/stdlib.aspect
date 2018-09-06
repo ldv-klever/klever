@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-#include <userspace/ldv/common.h>
-#include <verifier/common.h>
-
-int ldv_filter_err_code(int ret_val)
+before: file("$this")
 {
-	ldv_assume(ret_val <= 0);
-	return ret_val;
+extern void ldv_exit(void);
+}
+
+around: call(void exit(..))
+{
+    ldv_exit();
 }

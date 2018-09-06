@@ -15,20 +15,31 @@
  * limitations under the License.
  */
 
-
 before: file("$this")
 {
-#include <userspace/busybox.h>
+#include <stddef.h>
+extern char *ldv_strdup(const char *s);
+extern char *ldv_strcpy(char *dest, const char *src);
+extern char *ldv_strncpy(char *dest, const char *src, size_t n);
+extern size_t ldv_strlen(const char *s);
 }
 
-
-around: call(void bb_show_usage(..))
+around: call(char *strdup(..))
 {
-    ldv_bb_show_usage();
+    return ldv_strdup($arg1);
 }
 
-
-around: call(void bb_error_msg_and_die(..))
+around: call(char *strcpy(..))
 {
-    ldv_bb_error_msg_and_die();
+    return ldv_strcpy($arg1, $arg2);
+}
+
+around: call(char *strncpy(..))
+{
+    return ldv_strncpy($arg1, $arg2, $arg3);
+}
+
+around: call(size_t strlen(..))
+{
+    return ldv_strlen($arg1);
 }

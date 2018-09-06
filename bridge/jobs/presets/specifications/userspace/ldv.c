@@ -15,17 +15,3 @@
  * limitations under the License.
  */
 
-#include <userspace/common.h>
-
-void ldv_bb_show_usage(void);
-void ldv_bb_error_msg_and_die(void);
-
-void ldv_bb_show_usage(void)
-{
-    ldv_exit();
-}
-
-void ldv_bb_error_msg_and_die(void)
-{
-    ldv_exit();
-}
