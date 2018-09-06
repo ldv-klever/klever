@@ -25,8 +25,10 @@ extern void *ldv_calloc(size_t nmemb, size_t size);
 extern void *ldv_zalloc(size_t size);
 extern void ldv_free(void *s);
 
-void *ldv_xmalloc(size_t size);
-void *ldv_xzalloc(size_t size);
+extern void *ldv_realloc(void *ptr, size_t size);
+
+extern void *ldv_xmalloc(size_t size);
+extern void *ldv_xzalloc(size_t size);
 
 extern void *external_allocated_data(void);
 
@@ -40,8 +42,10 @@ extern void *ldv_reference_calloc(size_t nmemb, size_t size);
 extern void *ldv_reference_zalloc(size_t size);
 extern void ldv_reference_free(void *s);
 
-void *ldv_reference_xmalloc(size_t size);
-void *ldv_reference_xzalloc(size_t size);
+extern void *ldv_reference_realloc(void *ptr, size_t size);
+
+extern void *ldv_reference_xmalloc(size_t size);
+extern void *ldv_reference_xzalloc(size_t size);
 
 extern void *external_allocated_reference_data(void);
 

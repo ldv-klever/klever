@@ -8,7 +8,7 @@
     "source": "busybox",
     "configuration": "defconfig",
     "architecture": "x86_64",
-    "applets": ["cat"],
+    "applets": ["all"],
     "opts file": "applets/applets.c"
   },
   "Fragmentation strategy": {
@@ -17,10 +17,14 @@
     "maximum unit size": 30000
   },
   "Aggregation strategy": {
-    "name": "separate",
-    "maximum verification object size": 30000,
-    "draw aggregations": true,
-    "dependencies recursive depth": 1
+    "name": "busybox",
+    "ignore libbb files": [
+      "libbb/getopt32.o",
+      "libbb/appletlib.o",
+      "libbb/verror_msg.o"
+    ],
+    "ignore libbb": false,
+    "ignore dependency from applet dirs": false
   },
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["userspace:empty", "userspace:memory safety"]

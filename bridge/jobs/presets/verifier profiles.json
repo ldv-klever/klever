@@ -26,7 +26,8 @@
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv": ""},
-        {"-setprop": "coverage.file=coverage.info"}
+        {"-setprop": "coverage.file=coverage.info"},
+        {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     },
     "CPAchecker BAM reachability": {
@@ -35,6 +36,7 @@
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv-bam": ""},
+        {"-setprop": "analysis.machineModel=LINUX64"},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },

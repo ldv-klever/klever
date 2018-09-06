@@ -18,6 +18,7 @@
               {
                 "genericFunctions": {
                   "infinite call": false,
+                  "initialize strings as null terminated": false,
                   "functions to call": ["\\w*main"]
                 }
               }
@@ -27,13 +28,12 @@
               "direct control functions calls": true,
               "nested automata": true,
               "allocate with sizeof": true,
-              "allocate external": false,
+              "allocate external": true,
               "environment model file": "environment_model.c",
               "code additional aspects": [],
               "propogate headers to instrumented files": true,
               "additional headers": [
                 "verifier/common.h",
-                "verifier/gcc.h",
                 "verifier/nondet.h",
                 "verifier/memory.h"
               ]
@@ -44,11 +44,14 @@
           "RSG": {
             "common sets model": "counter",
             "common models": {
+              "verifier/common.c": {},
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
               "verifier/reference memory.c": {},
               "userspace/verifier/memory.c": {},
-              "userspace/ldv/common.c": {}
+              "userspace/ldv/common.c": {},
+              "userspace/common.c": {},
+              "userspace/busybox.c": {}
             }
           }
         },
@@ -859,6 +862,7 @@
       },
       "memory safety": {
         "description": "Userspace memory safety",
+        "RSG": {"models": {"userspace/memory safety/memory.c": {}}},
         "FVTP": {
           "verifier profile": "memory checking Linux64",
           "verifier": {

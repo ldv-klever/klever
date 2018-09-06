@@ -27,6 +27,7 @@ extern void *ldv_reference_malloc_unknown_size(void);
 extern void *ldv_reference_calloc_unknown_size(void);
 extern void *ldv_reference_zalloc_unknown_size(void);
 extern void *ldv_reference_xmalloc_unknown_size(size_t size);
+extern void *ldv_reference_realloc(void *ptr, size_t size);
 
 void *ldv_malloc(size_t size)
 {
@@ -76,4 +77,9 @@ void *ldv_zalloc_unknown_size(void)
 void *ldv_xmalloc_unknown_size(size_t size)
 {
     return ldv_reference_xmalloc_unknown_size(size);
+}
+
+void *ldv_realloc(void *ptr, size_t size)
+{
+    return ldv_reference_realloc(ptr, size);
 }

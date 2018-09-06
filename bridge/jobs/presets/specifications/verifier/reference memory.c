@@ -54,6 +54,30 @@ void ldv_reference_free(void *s)
 	free(s);
 }
 
+void *ldv_reference_realloc(void *ptr, size_t size)
+{
+    void *res;
+    if (ptr && !size) {
+        free(ptr);
+        return NULL;
+    }
+    if (!ptr) {
+        res = malloc(size);
+		return res;
+    }
+    if (ldv_undef_int()) {
+	    // Always successful according to SV-COMP definition
+		res = malloc(size);
+		ldv_assume(res != NULL);
+		// todo: Maybe a better solution exists
+		memcpy(res, ptr, size);
+		free(ptr);
+		return res;
+	}
+	else
+		return NULL;
+}
+
 void *ldv_reference_xmalloc(size_t size)
 {
     void *res;
@@ -107,3 +131,4 @@ void *ldv_reference_xmalloc_unknown_size(size_t size)
 	ldv_assume(res != NULL);
 	return res;
 }
+
