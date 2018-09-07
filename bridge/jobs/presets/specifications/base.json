@@ -52,8 +52,11 @@
               "userspace/ldv.c": {},
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
+              "userspace/stdio.c": {},
               "userspace/busybox/libbb/appletlib.c": {},
-              "userspace/busybox/libbb/verror_msg.c": {}
+              "userspace/busybox/libbb/verror_msg.c": {},
+              "userspace/busybox/libbb/perror_msg.c": {},
+              "userspace/busybox/libbb/xfuncs_printf.c": {}
             }
           }
         },

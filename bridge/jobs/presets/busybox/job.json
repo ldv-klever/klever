@@ -21,7 +21,8 @@
     "ignore libbb files": [
       "libbb/getopt32.o",
       "libbb/appletlib.o",
-      "libbb/verror_msg.o"
+      "libbb/verror_msg.o",
+      "libbb/perror_msg.o"
     ],
     "ignore libbb": false,
     "ignore dependency from applet dirs": false

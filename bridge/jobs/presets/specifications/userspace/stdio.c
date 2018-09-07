@@ -19,46 +19,16 @@
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
-extern void *memcpy(void *dest, const void *src, size_t n);
+int ldv_asprintf(char **ptr);
 
-char *ldv_strdup(const char *s);
-char *ldv_strcpy(char *dest, const char *src);
-char *ldv_strncpy(char *dest, const char *src, size_t n);
-size_t ldv_strlen(const char *s);
-
-char *ldv_strdup(const char *s)
+int ldv_asprintf(char **ptr)
 {
     char *new;
     if (ldv_undef_int()) {
-        new = ldv_xmalloc(sizeof(char) * ldv_strlen(s));
-        memcpy(new, s, ldv_strlen(s));
-        return new;
+        new = (char *) ldv_xmalloc_unknown_size(sizeof(char));
+        *ptr = new;
+        return ldv_undef_int_positive();
     } else {
-        return 0;
+        return -1;
     }
-}
-
-size_t ldv_strlen(const char *str) {
-    const char *s;
-    for (s = str; *s; ++s) {}
-    return(s - str);
-}
-
-char *ldv_strncpy(char *dest, const char *src, size_t n)
-{
-   size_t i;
-
-   for (i = 0; i < n && src[i] != '\0'; i++)
-       dest[i] = src[i];
-   for ( ; i < n; i++)
-       dest[i] = '\0';
-
-   return dest;
-}
-
-
-char *ldv_strcpy(char *dest, const char *src)
-{
-    memcpy(dest, src, ldv_strlen(src));
-    return dest;
 }
