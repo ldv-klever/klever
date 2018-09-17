@@ -27,6 +27,7 @@ class Single(AbstractDivider):
         self.logger.info("Each c file will be considered as a separate fragment")
         cmdg = self.clade.CommandGraph()
 
+        # TODO: indeed CC commands can have multiple output files and this should be processed here appropriately.
         for identifier, desc in ((i, d) for i, d in cmdg.CCs if d.get('out')):
             rel_object_path = core.utils.make_relative_path(self.source.source_paths, desc['out'])
             name = rel_object_path

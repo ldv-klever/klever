@@ -34,8 +34,14 @@ class Linux(AbstractDivider):
         srcg = self.clade.SourceGraph()
 
         for identifier, desc in cmdg.LDs:
-            if desc['out'].endswith('.ko') or (self._kernel_verification and desc['out'].endswith('built-in.o')):
-                rel_object_path = make_relative_path(self.source.source_paths, desc['out'])
+            # This shouldn't happen ever, but let's fail otherwise.
+            if len(desc['out']) != 1:
+                raise NotImplementedError
+
+            out = desc['out'][0]
+
+            if out.endswith('.ko') or (self._kernel_verification and out.endswith('built-in.o')):
+                rel_object_path = make_relative_path(self.source.source_paths, out)
                 name = rel_object_path
                 fragment = self._create_fragment_from_ld(identifier, name, cmdg, srcg)
                 if not self._max_size or fragment.size <= self._max_size:
