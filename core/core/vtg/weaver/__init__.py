@@ -60,8 +60,8 @@ class Weaver(core.vtg.plugins.Plugin):
 
                     self.logger.info('Weave in C file "{0}"'.format(cc['in'][0]))
 
-                    cc['out'] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                        os.path.basename(cc['out']))[0], '.abs-paths.i'))
+                    cc['out'][0] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
+                        os.path.basename(cc['out'][0]))[0], '.abs-paths.i'))
 
                     # Produce aspect to be weaved in.
                     if 'plugin aspects' in extra_cc:
@@ -102,7 +102,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                     os.path.dirname(self.conf['requirements DB'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
-                                  '--out', os.path.realpath(cc['out']),
+                                  '--out', os.path.realpath(cc['out'][0]),
                                   '--back-end', 'src',
                                   '--debug', 'DEBUG'
                               ] +
@@ -116,19 +116,19 @@ class Weaver(core.vtg.plugins.Plugin):
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
 
                     # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
-                    preprocessed_c_file = '{}.i'.format(os.path.splitext(cc['out'])[0])
+                    preprocessed_c_file = '{}.i'.format(os.path.splitext(cc['out'][0])[0])
                     core.utils.execute(self.logger,
                                        (
                                            'aspectator',
                                            '-E',
-                                           '-x', 'c', cc['out'],
+                                           '-x', 'c', cc['out'][0],
                                            '-o', preprocessed_c_file
                                        ))
                     if not self.conf['keep intermediate files']:
-                        os.remove(cc['out'])
+                        os.remove(cc['out'][0])
                     self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
-                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc['out'])[0])
+                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc['out'][0])[0])
                     with open(preprocessed_c_file, encoding='utf8') as fp_in, open(abs_paths_c_file, 'w',
                                                                                    encoding='utf8') as fp_out:
                         # Print preprocessor header as is.

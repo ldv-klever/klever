@@ -209,7 +209,7 @@ class RSG(core.vtg.plugins.Plugin):
                         'cwd': empty_cc['cwd'],
                         'in': [os.path.relpath(model['bug kinds preprocessed C file'],
                                                storage.convert_path(empty_cc['cwd']))],
-                        'out': os.path.realpath(out_file),
+                        'out': [os.path.realpath(out_file)],
                         'opts': empty_cc['opts'] +
                                 ['-DLDV_SETS_MODEL_' + (model['sets model']
                                                         if 'sets model' in model

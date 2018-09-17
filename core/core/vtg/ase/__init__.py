@@ -103,7 +103,7 @@ class ASE(core.vtg.plugins.Plugin):
 
                         # Resulting request aspect.
                         aspect = '{0}.aspect'.format(core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                            cc['out']))[0], '.aspect'))
+                            cc['out'][0]))[0], '.aspect'))
 
                         # Get all aspects. Place original request aspect at beginning since it can instrument entities
                         # added by aspects of other plugins while corresponding function declarations still need be at
@@ -128,7 +128,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--stage', 'instrumentation',
                                               # TODO: issues like in Weaver.
                                               '--out', os.path.realpath('{}.{}'.format(
-                                               os.path.splitext(os.path.realpath(cc['out']))[0], '.c.aux')),
+                                               os.path.splitext(os.path.realpath(cc['out'][0]))[0], '.c.aux')),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
