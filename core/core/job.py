@@ -20,6 +20,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import shutil
 import time
 import zipfile
 
@@ -514,8 +515,13 @@ class Job(core.components.Component):
                 if not os.path.isdir(clade_base):
                     raise FileExistsError('Clade base "{0}" is not a directory'.format(clade_base))
 
-                if os.listdir(clade_base):
+                # Think that Clade can reuse previously prepared base just if there is such the file inside Clade base.
+                if os.path.isfile(os.path.join(clade_base, 'cached')):
+                    self.logger.info('Reuse previously prepared Clade base')
                     clade_conf['is base cached'] = True
+                else:
+                    self.logger.info('Remove Clade base since it was not prepared properly')
+                    shutil.rmtree(clade_base)
         else:
             # Clade will output results into this subdirectory within job/sub-job working directory.
             clade_base = os.path.join(os.path.realpath(self.work_dir), 'clade')

@@ -98,6 +98,7 @@ class VOG(core.components.Component):
                           self.conf['main working directory'])
 
     def prepare_and_build(self, program):
+        self.logger.info("Prepare and build target program")
         self.logger.info("Wait for model headers from VOG")
         model_headers = self.mqs["model headers"].get()
         program.prepare_build_directory()

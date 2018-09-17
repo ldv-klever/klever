@@ -68,15 +68,15 @@ class Source:
             return self._retrieve_attrs()
         else:
             attrs = [{'name': 'kind', 'value': type(self).__name__}]
-            for att in ('arch', 'version', 'configuration'):
-                if getattr(self, att):
-                    attrs.append({"name": att, "value": getattr(self, att)})
-            return [
-                {
+
+            for attr in ('arch', 'version', 'configuration'):
+                if getattr(self, attr):
+                    attrs.append({"name": attr, "value": getattr(self, attr)})
+
+            return [{
                     'name': 'project',
                     'value': attrs
-                }
-            ], []
+            }], []
 
     @property
     def source_paths(self):
@@ -118,6 +118,11 @@ class Source:
             with open(f, 'w', encoding='utf8') as fp:
                 json.dump(d, fp)
             storage.save_file(f)
+
+        # This file means that Clade prepared its base successfully (although there still may be more or less crucial
+        # errors like CIF fails when requesting some source files). Otherwise it will fail above.
+        with open(os.path.join(self._clade_dir, 'cached'), 'w', encoding='utf8'):
+            pass
 
     def prepare_model_headers(self, model_headers):
         os.makedirs(self._model_headers_path)
