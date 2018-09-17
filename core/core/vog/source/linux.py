@@ -38,6 +38,13 @@ class Linux(Source):
     _EXT_DIR = 'ext-modules/'
     _CLADE_CONF = {
         "log_level": "INFO",
+        "CmdGraph.requires": [
+            "CC",
+            "LD",
+            "MV",
+            "AR",
+            "Objcopy"
+        ],
         "CC.store_deps": True,
         "Common.filter": [
             ".*?\\.tmp$"
