@@ -272,13 +272,13 @@ class RA(core.components.Component):
             sub_job_id = verification_status['sub-job identifier']
 
             if self.job_type == 'Verification of Linux kernel modules':
-                self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
-                    id, verification_result['ideal verdict'], verification_result['verdict'],
-                    ' ("{0}")'.format(verification_result['comment'])
-                    if verification_result['comment'] else ''))
                 # For testing jobs there can be several verification tasks for each sub-job, so for uniqueness of
                 # tasks and directories add identifier suffix in addtition.
                 task_id = os.path.join(sub_job_id, id_suffix)
+                self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
+                    task_id, verification_result['ideal verdict'], verification_result['verdict'],
+                    ' ("{0}")'.format(verification_result['comment'])
+                    if verification_result['comment'] else ''))
                 results_dir = os.path.join('results', task_id)
             elif self.job_type == 'Validation on commits in Linux kernel Git repositories':
                 # For validation jobs we can't refer to sub-job identifier for additional identification of verification
