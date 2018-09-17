@@ -78,17 +78,33 @@ class AbstractDivider:
     def _divide(self):
         raise NotImplementedError
 
+    def __check_cc(self, desc):
+        if len(desc['in']) != 1:
+            raise NotImplementedError('CC build commands with more than one input file are not supported')
+
+        if len(desc['out']) != 1:
+            raise NotImplementedError('CC build commands with more than one output file are not supported')
+
     def _create_fragment_from_ld(self, identifier, name, cmdg, srcg):
         ccs = cmdg.get_ccs_for_ld(identifier)
+
         fragment = common.Fragment(name)
-        fragment.ccs = {str(i) for i, d in ccs}
-        fragment.in_files = {d['in'][0] for i, d in ccs}
+        fragment.ccs = set()
+        fragment.in_files = set()
+
+        for i, d in ccs:
+            self.__check_cc(d)
+            fragment.ccs.add(str(i))
+            fragment.in_files.add(d['in'][0])
+
         fragment.size = sum(srcg.get_sizes(fragment.in_files).values())
+
         return fragment
 
     def _create_fragment_from_cc(self, identifier, name):
         desc = self.clade.get_cc(identifier)
         fragment = common.Fragment(name)
+        self.__check_cc(desc)
         fragment.ccs = {str(identifier)}
         fragment.in_files = {desc['in'][0]}
         return fragment
