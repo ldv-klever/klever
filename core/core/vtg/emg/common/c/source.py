@@ -355,8 +355,8 @@ class Source:
     def _add_function(self, func, scope, fs, deps, cfiles):
         fs_desc = fs[scope][func]
         if scope == 'unknown':
-            key = list(fs_desc['declared_in'].keys())[0]
-            signature = fs_desc['declared_in'][key]['signature']
+            key = list(fs_desc['declarations'].keys())[0]
+            signature = fs_desc['declarations'][key]['signature']
             func_intf = Function(func, signature)
             # Do not set definition file since it is out of scope of the target verification object
         else:
@@ -372,7 +372,8 @@ class Source:
 
         # Add declarations
         files = {func_intf.definition_file} if func_intf.definition_file else set()
-        files.update({f for f in fs_desc.get('declared_in', set()) if f != 'unknown' and f in deps})
+        if fs_desc['declarations']:
+            files.update({f for f in fs_desc['declarations'] if f != 'unknown' and f in deps})
         for file in files:
             if file not in cfiles and file not in func_intf.header_files:
                 func_intf.header_files.append(file)
