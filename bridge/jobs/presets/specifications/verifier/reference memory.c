@@ -15,22 +15,27 @@
  * limitations under the License.
  */
 
-//#include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 #include <verifier/memory.h>
 
-/* ISO/IEC 9899:1999 specification. p. 313, § 7.20.3 "Memory management functions". */
+/* ISO/IEC 9899:1999 specification, § 7.20.3 "Memory management functions". */
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *);
+
+/* ISO/IEC 9899:1999 specification, § 7.21.2 "Copying functions". */
+extern void *memcpy(void *s1, const void *s2, size_t n);
+
+/* ISO/IEC 9899:1999 specification, § 7.21.6 "Miscellaneous functions". */
 extern void *memset(void *s, int c, size_t n);
 
 void *ldv_reference_malloc(size_t size)
 {
-    void *res;
-    if (ldv_undef_int()) {
-	    // Always successful according to SV-COMP definition
+	void *res;
+
+	if (ldv_undef_int()) {
+		/* Always successful according to SV-COMP definition. */
 		res = malloc(size);
 		ldv_assume(res != NULL);
 		return res;
@@ -41,7 +46,7 @@ void *ldv_reference_malloc(size_t size)
 
 void *ldv_reference_calloc(size_t nmemb, size_t size)
 {
-    return calloc(nmemb, size);
+	return calloc(nmemb, size);
 }
 
 void *ldv_reference_zalloc(size_t size)
@@ -56,22 +61,26 @@ void ldv_reference_free(void *s)
 
 void *ldv_reference_realloc(void *ptr, size_t size)
 {
-    void *res;
-    if (ptr && !size) {
-        free(ptr);
-        return NULL;
-    }
-    if (!ptr) {
-        res = malloc(size);
+	void *res;
+
+	if (ptr && !size) {
+		free(ptr);
+		return NULL;
+	}
+
+	if (!ptr) {
+		res = malloc(size);
 		return res;
-    }
-    if (ldv_undef_int()) {
-	    // Always successful according to SV-COMP definition
+	}
+
+	if (ldv_undef_int()) {
+		/* Always successful according to SV-COMP definition. */
 		res = malloc(size);
 		ldv_assume(res != NULL);
-		// todo: Maybe a better solution exists
+		/* TODO: Maybe a better solution exists. */
 		memcpy(res, ptr, size);
 		free(ptr);
+
 		return res;
 	}
 	else
@@ -80,23 +89,28 @@ void *ldv_reference_realloc(void *ptr, size_t size)
 
 void *ldv_reference_xmalloc(size_t size)
 {
-    void *res;
-    res = malloc(size);
-    ldv_assume(res != NULL);
-    return res;
+	void *res;
+
+	res = malloc(size);
+	ldv_assume(res != NULL);
+
+	return res;
 }
 
 void *ldv_reference_xzalloc(size_t size)
 {
-    void *res;
-    res = calloc(1, size);
-    ldv_assume(res != NULL);
-    return res;
+	void *res;
+
+	res = calloc(1, size);
+	ldv_assume(res != NULL);
+
+	return res;
 }
 
 void *ldv_reference_malloc_unknown_size(void)
 {
-    void *res;
+	void *res;
+
 	if (ldv_undef_int()) {
 		res = external_allocated_data();
 		ldv_assume(res != NULL);
@@ -108,7 +122,8 @@ void *ldv_reference_malloc_unknown_size(void)
 
 void *ldv_reference_calloc_unknown_size(void)
 {
-    void *res;
+	void *res;
+
 	if (ldv_undef_int()) {
 		res = external_allocated_data();
 		memset(res, 0, sizeof(res));
@@ -127,8 +142,10 @@ void *ldv_reference_zalloc_unknown_size(void)
 void *ldv_reference_xmalloc_unknown_size(size_t size)
 {
 	void *res;
+
 	res = external_allocated_data();
 	ldv_assume(res != NULL);
+
 	return res;
 }
 
