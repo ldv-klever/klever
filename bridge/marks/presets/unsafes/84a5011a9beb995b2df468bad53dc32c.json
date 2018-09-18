@@ -38,7 +38,7 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/pointers/alias/alias.ko"
+      "value": "ext-modules/pointers/alias/unsafe.ko"
     }
   ],
   "comparison": "thread_call_forests",
@@ -57,5 +57,5 @@
   "is_modifiable": true,
   "status": "1",
   "tags": [],
-  "verdict": "3"
+  "verdict": "2"
 }
