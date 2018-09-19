@@ -185,7 +185,6 @@ class Source:
         elif o[0]:
             raise ValueError('Source code is provided in unsupported form "{0}"'.format(o[0]))
 
-        git_commit_hash = None
         if os.path.isdir(src):
             if use_orig_src_tree:
                 self.logger.info('Use original source tree "{0}" rather than fetch it to working source tree "{1}"'
@@ -220,13 +219,12 @@ class Source:
                         # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
                         stdout = core.utils.execute(self.logger, ('git', 'rev-parse', 'HEAD'), cwd=work_src_tree,
                                                     collect_all_stdout=True)
-                        git_commit_hash = stdout[0][0:12]
+                        self.version = stdout[0][0:12]
         elif os.path.isfile(src):
             self.logger.debug('Source code is provided in form of archive')
             with tarfile.open(src, encoding='utf8') as TarFile:
                 TarFile.extractall(work_src_tree)
 
-        self.version = git_commit_hash
         return work_src_tree
 
     def _make_canonical_work_src_tree(self):
