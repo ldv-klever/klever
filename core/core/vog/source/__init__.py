@@ -224,6 +224,8 @@ class Source:
             self.logger.debug('Source code is provided in form of archive')
             with tarfile.open(src, encoding='utf8') as TarFile:
                 TarFile.extractall(work_src_tree)
+        else:
+            raise ValueError('Source code is not provided')
 
         return work_src_tree
 
