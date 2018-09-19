@@ -54,7 +54,7 @@
                   {
                     "ldv_zalloc": [
                       {
-                        "ldv_calloc": []
+                        "ldv_reference_zalloc": []
                       }
                     ]
                   }

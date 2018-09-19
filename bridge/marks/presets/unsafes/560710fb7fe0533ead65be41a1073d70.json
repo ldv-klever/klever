@@ -46,7 +46,7 @@
   "error trace": [
     [
       {
-        "ldv_ldv_pre_probe_15": [
+        "ldv_pre_probe": [
           {
             "ldv_reset_error_counter": []
           }
@@ -64,9 +64,13 @@
         ]
       },
       {
-        "ldv_check_return_value_probe": [
+        "ldv_post_probe": [
           {
-            "ldv_assert_linux_net_register__wrong_return_value": []
+            "ldv_check_return_value_probe": [
+              {
+                "ldv_assert_linux_net_register__wrong_return_value": []
+              }
+            ]
           }
         ]
       }

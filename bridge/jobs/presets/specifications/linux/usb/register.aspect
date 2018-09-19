@@ -14,14 +14,3 @@
  * ee the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-before: file ("$this")
-{
-void ldv_reset_error_counter(void);
-}
-
-before: call(void ldv_pre_probe(..)) ||
-        call(int ldv_post_init(..))
-{
-	ldv_reset_error_counter();
-}

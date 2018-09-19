@@ -52,7 +52,11 @@
               {
                 "ldv_kmalloc": [
                   {
-                    "ldv_malloc": []
+                    "ldv_malloc": [
+                      {
+                        "ldv_reference_malloc": []
+                      }
+                    ]
                   }
                 ]
               }

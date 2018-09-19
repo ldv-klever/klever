@@ -48,10 +48,18 @@
       {
         "ldv_init": [
           {
-            "ldv_malloc_unknown_size": []
+            "ldv_malloc_unknown_size": [
+              {
+                "ldv_reference_malloc_unknown_size": []
+              }
+            ]
           },
           {
-            "ldv_free": []
+            "ldv_free": [
+              {
+                "ldv_reference_free": []
+              }
+            ]
           }
         ]
       }

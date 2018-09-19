@@ -64,10 +64,10 @@
                   {
                     "ldv_func1": [
                       {
-                        "ldv_mutex_lock_29": []
+                        "ldv_mutex_lock_39": []
                       },
                       {
-                        "ldv_mutex_unlock_30": []
+                        "ldv_mutex_unlock_40": []
                       }
                     ]
                   }
@@ -86,7 +86,7 @@
               {
                 "ldv_func1": [
                   {
-                    "ldv_mutex_lock_29": []
+                    "ldv_mutex_lock_39": []
                   }
                 ]
               }

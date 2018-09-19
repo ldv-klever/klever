@@ -52,14 +52,18 @@
               {
                 "ldv_zalloc": [
                   {
-                    "ldv_calloc": []
+                    "ldv_reference_zalloc": []
                   }
                 ]
               }
             ]
           },
           {
-            "ldv_free": []
+            "ldv_free": [
+              {
+                "ldv_reference_free": []
+              }
+            ]
           }
         ]
       }
