@@ -33,7 +33,7 @@
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "linux:emg:test"
+      "value": "linux:test:environment model specifications"
     },
     {
       "attr": "Verification object",
