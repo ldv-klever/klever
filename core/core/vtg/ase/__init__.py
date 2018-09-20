@@ -126,9 +126,8 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--in', storage.normal_path(cc['in'][0]),
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
-                                              # TODO: issues like in Weaver.
-                                              '--out', os.path.realpath('{}.{}'.format(
-                                               os.path.splitext(os.path.realpath(cc['out'][0]))[0], '.c.aux')),
+                                              '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
+                                               os.path.splitext(os.path.basename(cc['out'][0]))[0], '.c.aux'))),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
