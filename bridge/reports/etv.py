@@ -111,7 +111,7 @@ class ScopeInfo:
                 for ss in self._stack:
                     if ss not in self._shown:
                         self._shown.add(ss)
-        elif comment_type in {'warning', 'callback action'}:
+        elif comment_type in {'warning', 'callback action', 'entry_point'}:
             for ss in self._stack:
                 if ss not in self._shown:
                     self._shown.add(ss)
@@ -288,6 +288,7 @@ class ParseErrorTrace:
                 enter_data['comment'] = self.functions[func_id]
                 enter_data['comment_class'] = 'ETV_Fname'
             else:
+                self.scope.show_current_scope('entry_point')
                 enter_data['comment'] = comment
                 enter_data['comment_class'] = 'ETV_Fcomment'
             enter_data['code'] = re.sub(
