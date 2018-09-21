@@ -59,7 +59,11 @@
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
                         <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
-                        <a class="item" id="show_upload_job_popup">{% trans 'Upload jobs' %}</a>
+
+                        {# Show only if user has an access to upload jobs (USER_ROLES[1..3][0]) #}
+                        {% if user.extended.role != '0' and user.extended.role != '4' %}
+                            <a class="item" id="show_upload_job_popup">{% trans 'Upload jobs' %}</a>
+                        {% endif %}
                         {# Only managers can upload trees (USER_ROLES[2][0]) #}
                         {% if user.extended.role == '2' %}
                             <a class="item" id="show_upload_jobtree_popup">{% trans 'Upload jobs tree' %}</a>
