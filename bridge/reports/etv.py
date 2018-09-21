@@ -694,6 +694,8 @@ class Forest:
 
     def return_from_func(self):
         self._level -= 1
+        if not self.call_stack:
+            raise BridgeException(_('The number of function returns is more than number of its calls'))
         self.call_stack.pop()
 
     def get_forest(self):
@@ -756,7 +758,10 @@ class ErrorTraceForests:
     def __init__(self, error_trace, all_threads=False):
         self.data = json.loads(error_trace)
         self.all_threads = all_threads
-        self.trace = self.__get_forests(get_error_trace_nodes(self.data))
+        try:
+            self.trace = self.__get_forests(get_error_trace_nodes(self.data))
+        except BridgeException as e:
+            raise BridgeException(_('Error trace convertion error: %(error)s') % {'error': str(e)})
 
     def __get_forests(self, edge_trace):
         threads = {}
