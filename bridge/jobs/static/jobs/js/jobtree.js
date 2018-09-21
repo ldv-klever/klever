@@ -174,6 +174,7 @@ $(document).ready(function () {
 
     $('#download_selected_trees').click(function (event) {
         event.preventDefault();
+        if ($(this).hasClass('disabled')) return false;
 
         $('#jobs_actions_menu').popup('hide');
         var job_ids = [];
