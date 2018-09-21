@@ -1,4 +1,5 @@
 {
     "name": "Validation",
-    "description": "<h3>Preset configurations and specifications for validation</h3>"
+    "description": "<h3>Preset configurations and specifications for validation</h3>",
+    "production": true
 }

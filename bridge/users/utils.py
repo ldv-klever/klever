@@ -18,7 +18,7 @@
 import json
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 
 from users.models import View
 
@@ -368,13 +368,13 @@ class ViewData:
 
     def __get_view(self):
         if self._view is not None:
-            self._title = string_concat(_('View'), ' (', _('unsaved'), ')')
+            self._title = '{0} ({1})'.format(_('View'), _('unsaved'))
             self._view = json.loads(self._view)
             return
         if self._view_id is None:
             pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
             if pref_view:
-                self._title = string_concat(_('View'), ' (%s)' % pref_view.view.name)
+                self._title = '{0} ({1})'.format(_('View'), pref_view.view.name)
                 self._view_id = pref_view.view_id
                 self._view = json.loads(pref_view.view.view)
                 return
@@ -383,10 +383,10 @@ class ViewData:
                 Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
             ).first()
             if user_view:
-                self._title = string_concat(_('View'), ' (%s)' % user_view.name)
+                self._title = '{0} ({1})'.format(_('View'), user_view.name)
                 self._view_id = user_view.id
                 self._view = json.loads(user_view.view)
                 return
-        self._title = string_concat(_('View'), ' (', _('Default'), ')')
+        self._title = '{0} ({1})'.format(_('View'), _('Default'))
         self._view_id = 'default'
         self._view = DEFAULT_VIEW[self._type]

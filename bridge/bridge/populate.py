@@ -195,6 +195,11 @@ class Population:
                 except Exception as e:
                     logger.exception(e)
                     raise BridgeException('The default job settings file is wrong json. Job: {0}'.format(jobdir))
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not job_settings.get('production'):
+                # Do not populate non-production jobs
+                continue
+
             if 'description' not in job_settings:
                 raise BridgeException('Default job description is required. Job: {0}'.format(jobdir))
 

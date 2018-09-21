@@ -561,8 +561,16 @@ class PopulateMarks:
                             raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
-                if not isinstance(data, dict) or any(x not in data for x in ['pattern', 'problem']):
+
+                if not isinstance(data, dict):
                     raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
+
+                if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                    # Do not populate non-production marks
+                    continue
+
+                if any(x not in data for x in ['pattern', 'problem']):
+                    raise BridgeException('Corrupted preset unknown mark: not enough data')
                 try:
                     re.compile(data['pattern'])
                 except re.error:

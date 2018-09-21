@@ -1,4 +1,5 @@
 {
   "pattern": "ValueError: Cannot parse JSON configuration file 'rule specs.json'",
-  "problem": "BadRuleSpecs"
+  "problem": "BadRuleSpecs",
+  "production": true
 }

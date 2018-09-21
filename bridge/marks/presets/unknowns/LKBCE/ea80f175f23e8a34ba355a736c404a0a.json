@@ -1,4 +1,5 @@
 {
   "pattern": "No rule to make target 'myconfig'",
-  "problem": "UnsupConfTarget"
+  "problem": "UnsupConfTarget",
+  "production": true
 }

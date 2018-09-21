@@ -27,7 +27,7 @@ from django.core.files import File
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
@@ -92,7 +92,8 @@ def get_column_title(column):
         titles.append(REP_MARK_TITLES.get(col_st, col_st))
     concated_title = titles[0]
     for i in range(1, len(titles)):
-        concated_title = string_concat(concated_title, '/', titles[i])
+        concated_title = '{0}/{1}'.format(concated_title, titles[i])
+        # concated_title = string_concat(concated_title, '/', titles[i])
     return concated_title
 
 
@@ -169,22 +170,22 @@ class SafesTable:
         kwargs = {'page': int(data.get('page', 1)), 'report': report}
         if 'confirmed' in data:
             kwargs['confirmed'] = True
-            self.title = string_concat(_("Safes"), ': ', _('confirmed'))
+            self.title = '{0}: {1}'.format(_("Safes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in data:
             verdict_title = ReportSafe(verdict=data['verdict']).get_verdict_display()
             if 'confirmed' in data:
-                self.title = string_concat(_("Safes"), ': ', _('confirmed'), ' ', verdict_title)
+                self.title = '{0}: {1} {2}'.format(_("Safes"), _('confirmed'), verdict_title)
             else:
-                self.title = string_concat(_("Safes"), ': ', verdict_title)
+                self.title = '{0}: {1}'.format(_("Safes"), verdict_title)
             kwargs['verdict'] = data['verdict']
         elif 'tag' in data:
             try:
                 tag = SafeTag.objects.get(id=data['tag'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The tag was not found"))
-            self.title = string_concat(_("Safes"), ': ', tag.tag)
+            self.title = '{0}: {1}'.format(_("Safes"), tag.tag)
             kwargs['tag'] = tag
         elif 'attr' in data:
             try:
@@ -318,22 +319,22 @@ class UnsafesTable:
         kwargs = {'page': int(data.get('page', 1)), 'report': report}
         if 'confirmed' in data:
             kwargs['confirmed'] = True
-            self.title = string_concat(_("Unsafes"), ': ', _('confirmed'))
+            self.title = '{0}: {1}'.format(_("Unsafes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in data:
             verdict_title = ReportUnsafe(verdict=data['verdict']).get_verdict_display()
             if 'confirmed' in data:
-                self.title = string_concat(_("Unsafes"), ': ', _('confirmed'), ' ', verdict_title)
+                self.title = '{0}: {1} {2}'.format(_("Unsafes"), _('confirmed'), verdict_title)
             else:
-                self.title = string_concat(_("Unsafes"), ': ', verdict_title)
+                self.title = '{0}: {1}'.format(_("Unsafes"), verdict_title)
             kwargs['verdict'] = data['verdict']
         elif 'tag' in data:
             try:
                 tag = UnsafeTag.objects.get(id=data['tag'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The tag was not found"))
-            self.title = string_concat(_("Unsafes"), ': ', tag.tag)
+            self.title = '{0}: {1}'.format(_("Unsafes"), tag.tag)
             kwargs['tag'] = tag
         elif 'attr' in data:
             try:
@@ -473,14 +474,14 @@ class UnknownsTable:
         if 'problem' in data:
             problem_id = int(data['problem'])
             if problem_id == 0:
-                self.title = string_concat(_("Unknowns without marks"))
+                self.title = _("Unknowns without marks")
                 kwargs['problem'] = 0
             else:
                 try:
                     problem = UnknownProblem.objects.get(id=problem_id)
                 except ObjectDoesNotExist:
                     raise BridgeException(_("The problem was not found"))
-                self.title = string_concat(_("Unknowns"), ': ', problem.name)
+                self.title = '{0}: {1}'.format(_("Unknowns"), problem.name)
                 kwargs['problem'] = problem
         elif 'attr' in data:
             try:

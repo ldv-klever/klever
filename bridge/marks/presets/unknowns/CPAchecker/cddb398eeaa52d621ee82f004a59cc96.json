@@ -1,4 +1,5 @@
 {
   "pattern": "Invalid option",
-  "problem": "Invalid option"
+  "problem": "Invalid option",
+  "production": true
 }

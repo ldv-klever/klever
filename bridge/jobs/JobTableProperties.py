@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta
 from django.db.models import Q, F, Case, When, Count, BooleanField
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 
 from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
@@ -168,7 +168,7 @@ class TableTree:
             titles.append(TITLES[col_st])
         concated_title = titles[0]
         for i in range(1, len(titles)):
-            concated_title = string_concat(concated_title, '/', titles[i])
+            concated_title = '{0}/{1}'.format(concated_title, titles[i])
         return concated_title
 
     def __selected(self):

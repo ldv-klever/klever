@@ -764,6 +764,11 @@ class PopulateMarks:
                 data = json.load(fp)
             if not isinstance(data, dict):
                 raise BridgeException(_('Corrupted preset unsafe mark: wrong format'))
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                # Do not populate non-production marks
+                continue
+
             if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
                 raise BridgeException(_('Corrupted preset unsafe mark: not enough data'))
             if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):

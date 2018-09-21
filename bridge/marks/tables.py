@@ -22,8 +22,9 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import F, Count, Case, When
 from django.template import loader
 from django.urls import reverse
+from django.utils.text import format_lazy
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
@@ -68,7 +69,7 @@ MARK_TITLES = {
     'ass_type': _('Association type'),
     'automatic': _('Automatic association'),
     'tags': _('Tags'),
-    'likes': string_concat(_('Likes'), '/', _('Dislikes')),
+    'likes': format_lazy('{0}/{1}', _('Likes'), _('Dislikes')),
     'buttons': '',
     'description': _('Description'),
     'total_similarity': _('Total similarity'),

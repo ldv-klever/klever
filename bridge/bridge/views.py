@@ -46,7 +46,7 @@ def population(request):
         activate(request.user.extended.language)
     except ObjectDoesNotExist:
         activate(request.LANGUAGE_CODE)
-    if not request.user.is_staff:
+    if not request.user.extended or request.user.extended.role != USER_ROLES[2][0]:
         return BridgeErrorResponse(_("You don't have an access to this page"))
     need_manager = (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0)
     need_service = (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0)

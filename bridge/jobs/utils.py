@@ -19,11 +19,11 @@ import os
 import hashlib
 from datetime import datetime
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Case, When, IntegerField, F, BooleanField
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.text import format_lazy
+from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now, pytz
 
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
@@ -90,7 +90,7 @@ TITLES = {
     'identifier': _('Identifier'),
     'format': _('Format'),
     'version': _('Version'),
-    'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
+    'parent_id': format_lazy('{0}/{1}', _('Parent'), _('Identifier')),
     'role': _('Your role'),
     'priority': _('Priority'),
     'start_date': _('Decision start date'),

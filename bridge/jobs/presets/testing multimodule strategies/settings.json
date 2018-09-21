@@ -1,4 +1,5 @@
 {
     "name": "Testing multimodule strategies",
-    "description": "<h3>Preset configurations and specifications for testing multimodule strategies</h3>"
+    "description": "<h3>Preset configurations and specifications for testing multimodule strategies</h3>",
+    "production": true
 }
