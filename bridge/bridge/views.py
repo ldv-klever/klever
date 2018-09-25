@@ -48,22 +48,16 @@ def population(request):
         activate(request.LANGUAGE_CODE)
     if not request.user.extended or request.user.extended.role != USER_ROLES[2][0]:
         return BridgeErrorResponse(_("You don't have an access to this page"))
-    need_manager = (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0)
     need_service = (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0)
     if request.method == 'POST':
-        manager_username = request.POST.get('manager_username', '')
-        if len(manager_username) == 0:
-            manager_username = None
         service_username = request.POST.get('service_username', '')
         if len(service_username) == 0:
             service_username = None
-        if need_manager and need_service and (manager_username is None or service_username is None):
+        if need_service and service_username is None:
             return BridgeErrorResponse(_("Can't populate without Manager and service user"))
         try:
             changes = Population(
-                request.user,
-                (manager_username, request.POST.get('manager_password')),
-                (service_username, request.POST.get('service_password'))
+                user=request.user, service=(service_username, request.POST.get('service_password'))
             ).changes
         except BridgeException as e:
             return render(request, 'Population.html', {'error': str(e)})
@@ -71,4 +65,4 @@ def population(request):
             logger.exception(e)
             return render(request, 'Population.html', {'error': str(UNKNOWN_ERROR)})
         return render(request, 'Population.html', {'changes': changes})
-    return render(request, 'Population.html', {'need_manager': need_manager, 'need_service': need_service})
+    return render(request, 'Population.html', {'need_service': need_service})

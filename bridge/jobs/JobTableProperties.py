@@ -239,7 +239,7 @@ class TableTree:
     def __get_jobs_tree(self):
         # Job order parameter
         jobs_order = 'id'
-        if 'order' in self.view:
+        if 'order' in self.view and len(self.view['order']) == 2:
             if self.view['order'][1] == 'title':
                 jobs_order = 'name'
             elif self.view['order'][1] == 'date':

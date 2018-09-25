@@ -37,7 +37,7 @@ from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportCompon
     CompareJobsCache
 
 
-# TODO: test 'jobs:download_file_for_compet', 'upload_job' after decision
+# TODO: test '/jobs/decision_results_json', 'upload_job' after decision
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
     {'name': 'Version', 'value': '3.5.0'},

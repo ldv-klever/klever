@@ -649,7 +649,7 @@ def copy_job_version(user, job):
     job.version += 1
 
     new_version = JobHistory.objects.create(
-        job=job, parent=job.parent, version=job.version, change_author=user, comment='',
+        job=job, version=job.version, change_author=user, comment='',
         description=last_version.description, global_role=last_version.global_role
     )
 
@@ -671,12 +671,7 @@ def copy_job_version(user, job):
     job.save()
 
 
-def save_job_copy(user, job_id, name=None):
-    try:
-        job = Job.objects.get(id=job_id)
-    except ObjectDoesNotExist:
-        raise BridgeException(_('The job was not found'))
-
+def save_job_copy(user, job, name=None):
     last_version = JobHistory.objects.get(job=job, version=job.version)
 
     if isinstance(name, str) and len(name) > 0:
@@ -699,11 +694,11 @@ def save_job_copy(user, job_id, name=None):
 
     newjob = Job.objects.create(
         identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),
-        name=job_name, change_date=now(), change_author=user, parent=job, type=job.type
+        name=job_name, change_date=now(), change_author=user, parent=job
     )
 
     new_version = JobHistory.objects.create(
-        job=newjob, parent=newjob.parent, version=newjob.version,
+        job=newjob, version=newjob.version,
         change_author=user, change_date=newjob.change_date, comment='',
         description=last_version.description, global_role=last_version.global_role
     )

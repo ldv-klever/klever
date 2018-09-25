@@ -57,6 +57,10 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.save()
 
 
+class PopulationError(Exception):
+    pass
+
+
 class Population:
     jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
 
@@ -287,11 +291,11 @@ def populate_users(admin=None, manager=None, service=None, exist_ok=False):
 
     def check_user_data(userdata):
         if not isinstance(userdata, dict):
-            return '{0} data has wrong format'
+            raise PopulationError('{0} data has wrong format')
         if 'username' not in userdata or not isinstance(userdata['username'], str) or len(userdata['username']) == 0:
-            return '{0} username is required'
+            raise PopulationError('{0} username is required')
         if 'password' not in userdata or not isinstance(userdata['password'], str) or len(userdata['password']) == 0:
-            return '{0} password is required'
+            raise PopulationError('{0} password is required')
         if 'last_name' not in userdata:
             userdata['last_name'] = 'Lastname'
         if 'first_name' not in userdata:
@@ -299,15 +303,16 @@ def populate_users(admin=None, manager=None, service=None, exist_ok=False):
         try:
             User.objects.get(username=userdata['username'])
             userdata['exists'] = True
-            return '{0} with specified username already exists'
+            raise PopulationError('{0} with specified username already exists')
         except ObjectDoesNotExist:
-            return None
+            pass
 
     if admin is not None:
-        res = check_user_data(admin)
-        if res is not None:
+        try:
+            check_user_data(admin)
+        except PopulationError as e:
             if not admin.get('exists') or not exist_ok:
-                return res.format('Administrator')
+                return str(e).format('Administrator')
         else:
             user = User.objects.create_superuser(
                 username=admin['username'], email=admin.get('email', ''), password=admin['password'],
@@ -316,10 +321,11 @@ def populate_users(admin=None, manager=None, service=None, exist_ok=False):
             Extended.objects.create(user=user, role=USER_ROLES[1][0])
 
     if manager is not None:
-        res = check_user_data(manager)
-        if res is not None:
+        try:
+            check_user_data(manager)
+        except PopulationError as e:
             if not manager.get('exists') or not exist_ok:
-                return res.format('Manager')
+                return str(e).format('Manager')
         else:
             user = User.objects.create_user(
                 username=manager['username'], password=manager['password'],
@@ -328,10 +334,11 @@ def populate_users(admin=None, manager=None, service=None, exist_ok=False):
             Extended.objects.create(user=user, role=USER_ROLES[2][0])
 
     if service is not None:
-        res = check_user_data(service)
-        if res is not None:
-            if not manager.get('exists') or not exist_ok:
-                return res.format('Service user')
+        try:
+            check_user_data(service)
+        except PopulationError as e:
+            if not service.get('exists') or not exist_ok:
+                return str(e).format('Service user')
         else:
             user = User.objects.create_user(
                 username=service['username'], password=service['password'],
