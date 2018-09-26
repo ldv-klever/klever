@@ -34,10 +34,8 @@ from bridge.populate import populate_users
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CompareJobsInfo, CoverageArchive,\
-    CompareJobsCache
+    CompareJobsCache, CoverageFile, ReportAttr
 
-
-# TODO: test '/jobs/decision_results_json', 'upload_job' after decision
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
     {'name': 'Version', 'value': '3.5.0'},
@@ -227,18 +225,16 @@ class DecisionError(Exception):
 
 class TestReports(KleverTestCase):
     def setUp(self):
-        super(TestReports, self).setUp()
+        super().setUp()
         self.service_client = Client()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
-            admin={'username': 'superuser'},
-            manager={'username': 'manager', 'password': '12345'},
+            manager={'username': 'manager', 'password': 'manager'},
             service={'username': 'service', 'password': 'service'}
         )
-        self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
+        self.client.post(reverse('users:login'), {'username': 'manager', 'password': 'manager'})
         self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
+        self.job_archive = 'test_job_archive.zip'
 
     def test_reports(self):
         self.ids_in_use = []
@@ -247,16 +243,8 @@ class TestReports(KleverTestCase):
         if self.job is None:
             self.fail('Jobs are not populated')
 
-        # Run decision
-        run_conf = json.dumps([
-            ["HIGH", "0", 100], ["1", "2.0", "1.0", "2"], [1, 1, 100, '', 15, None],
-            [
-                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
-                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
-            ],
-            [False, True, True, False, True, False, True, True, '0']
-        ])
-        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
+        # Run decision with default configuration
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
 
         # Service sign in and check session parameters
         response = self.service_client.post('/users/service_signin/', {
@@ -268,8 +256,13 @@ class TestReports(KleverTestCase):
         self.assertEqual(self.service_client.session.get('scheduler'), SCHEDULER_TYPE[0][0])
         self.assertEqual(self.service_client.session.get('job id'), self.job.pk)
 
+        # Decide the job
         self.__decide_job(SJC_1)
-        main_report = ReportComponent.objects.get(parent=None, root__job_id=self.job.pk)
+
+        try:
+            main_report = ReportComponent.objects.get(parent=None, root__job_id=self.job.pk)
+        except ObjectDoesNotExist:
+            self.fail("The job decision didn't create core report")
 
         response = self.client.get(reverse('reports:component', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
@@ -309,7 +302,7 @@ class TestReports(KleverTestCase):
             self.assertEqual(response.status_code, 200)
 
         ver_report = ReportComponent.objects.filter(verification=True).first()
-        response = self.client.get(reverse('reports:download_verifier_input_files', args=[ver_report.pk]))
+        response = self.client.get(reverse('reports:download_files', args=[ver_report.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/zip')
 
@@ -323,21 +316,32 @@ class TestReports(KleverTestCase):
         mem.seek(0)
         first_fname = json.loads(str(mem.read().decode('utf8')))['files'][0]
 
-        response = self.client.post('/reports/ajax/get_source/', {'report_id': unsafe.pk, 'file_name': first_fname})
+        response = self.client.post('/reports/get_source/%s/' % unsafe.pk, {'file_name': first_fname})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        response = self.client.post('/reports/logcontent/%s/' % main_report.pk)
+        response = self.client.get('/reports/logcontent/%s/' % main_report.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertIn('content', res)
 
-        response = self.client.post(reverse('reports:log', args=[main_report.pk]))
+        response = self.client.get(reverse('reports:log', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/plain')
 
+        # Get decision results
+        response = self.client.get('/jobs/decision_results_json/%s/' % self.job.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertIn('data', res)
+
         # Collapse job
-        response = self.client.post('/jobs/ajax/collapse_reports/', {'job_id': self.job.pk})
+        response = self.client.post('/jobs/collapse_reports/%s/' % self.job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -351,26 +355,23 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
 
-        response = self.client.get(reverse('reports:download_verifier_input_files', args=[report.pk]))
+        response = self.client.get(reverse('reports:download_files', args=[report.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
+
+        # Clear verification files
+        response = self.client.post('/reports/clear_verification_files/%s/' % self.job.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(ReportComponent.objects.filter(root=self.job.reportroot, verification=True)
+                         .exclude(verifier_input='').count(), 0)
 
     def test_coverage(self):
         self.job = Job.objects.order_by('parent').first()
         if self.job is None:
             self.fail('Jobs are not populated')
-        run_conf = json.dumps([
-            ["HIGH", "0", 100], ["1", "2.0", "2.0", '1.0'], [1, 1, 100, '', 15, None],
-            [
-                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
-                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
-            ],
-            [False, True, True, False, True, False, True, True, '1']
-        ])
-        response = self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
 
         DecideJobs('service', 'service', SJC_1, with_full_coverage=True)
 
@@ -397,33 +398,50 @@ class TestReports(KleverTestCase):
         response = self.client.get(reverse('reports:coverage_light', args=[report.id]))
         self.assertEqual(response.status_code, 200)
 
+        # Get source code for coverage
+        cfile = CoverageFile.objects.filter(archive=carch).first()
+        self.assertIsNotNone(cfile)
+        # Get with data
+        response = self.client.post('/reports/get-coverage-src/%s/' % carch.id,
+                                    {'filename': cfile.name, 'with_data': '1'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertEqual(set(res), {'content', 'data', 'legend'})
+        # Get without data
+        response = self.client.post('/reports/get-coverage-src/%s/' % carch.id,
+                                    {'filename': cfile.name, 'with_data': '0'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertEqual(set(res), {'content', 'data', 'legend'})
+
     def test_comparison(self):
         try:
             job1 = Job.objects.filter(parent=None)[0]
         except IndexError:
             job1 = Job.objects.filter()[0]
 
-        response = self.client.post('/jobs/ajax/savejob/', {
-            'title': 'New job title',
-            'description': 'Description of new job',
-            'global_role': JOB_ROLES[0][0],
-            'user_roles': '[]',
-            'parent_identifier': job1.identifier,
-            'file_data': '[]'
+        response = self.client.post(reverse('jobs:form', args=[job1.pk, 'copy']), {
+            'name': 'New job title', 'description': 'Description of new job',
+            'global_role': JOB_ROLES[0][0], 'user_roles': '[]',
+            'parent': job1.identifier, 'file_data': '[{"type": "root", "text": "Files", "children": []}]'
         })
         job2 = Job.objects.get(pk=int(json.loads(str(response.content, encoding='utf8'))['job_id']))
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': job1.pk})
+        self.client.post('/jobs/run_decision/%s/' % job1.pk, {'mode': 'fast'})
         DecideJobs('service', 'service', SJC_1)
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': job2.pk})
+        self.client.post('/jobs/run_decision/%s/' % job2.pk, {'mode': 'fast'})
         DecideJobs('service', 'service', SJC_2)
 
-        response = self.client.post('/jobs/ajax/check_compare_access/', {'job1': job1.pk, 'job2': job2.pk})
+        response = self.client.post('/jobs/check_compare_access/', {'job1': job1.pk, 'job2': job2.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Filling comparison cache
-        response = self.client.post('/reports/ajax/fill_compare_cache/', {'job1': job1.pk, 'job2': job2.pk})
+        response = self.client.post('/reports/fill_compare_cache/%s/%s/' % (job1.pk, job2.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -441,8 +459,8 @@ class TestReports(KleverTestCase):
 
         compare_cache = CompareJobsCache.objects.filter(info__root1__job=job1, info__root2__job=job2).first()
         self.assertIsNotNone(compare_cache)
-        response = self.client.post('/reports/ajax/get_compare_jobs_data/', {
-            'info_id': comparison.pk, 'verdict': '%s_%s' % (compare_cache.verdict1, compare_cache.verdict2)
+        response = self.client.post('/reports/get_compare_jobs_data/%s/' % comparison.pk, {
+            'verdict': '%s_%s' % (compare_cache.verdict1, compare_cache.verdict2)
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
@@ -458,10 +476,67 @@ class TestReports(KleverTestCase):
         presets_dir = os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'decisions')
         for archname in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             with open(archname, mode='rb') as fp:
-                response = self.client.post('/jobs/ajax/upload_reports/', {'job_id': self.job.id, 'archive': fp})
+                response = self.client.post('/jobs/upload_reports/%s/' % self.job.pk, {'archive': fp})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
             self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+    def test_upload_decided_job(self):
+        job = Job.objects.first()
+        self.assertIsNotNone(job)
+        self.client.post('/jobs/run_decision/%s/' % job.pk, {'mode': 'fast'})
+
+        # This class uploads attrs data for verification reports
+        DecideJobs('service', 'service', SJC_1)
+
+        # Test attr data
+        attrs = ReportAttr.objects.filter(report__root=job.reportroot).exclude(data=None)
+        self.assertGreater(attrs.count(), 0, 'There are no attributes with data')
+        attr_with_data = attrs.first()
+
+        # Test download attr data file
+        response = self.client.get('/reports/attrdata/%s/' % attr_with_data.pk)
+        self.assertEqual(response.status_code, 200)
+
+        # Test content of attr data file
+        response = self.client.get('/reports/attrdata-content/%s/' % attr_with_data.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertIn('content', res)
+
+        # Download decided job
+        response = self.client.get('/jobs/downloadjob/%s/' % job.pk)
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(settings.MEDIA_ROOT, self.job_archive), mode='wb') as fp:
+            for content in response.streaming_content:
+                fp.write(content)
+
+        # Remove decided job
+        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([job.pk])})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Get parent for uploading
+        if job.parent is None:
+            parent = Job.objects.first()
+            self.assertIsNotNone(parent)
+        else:
+            parent = Job.objects.get(id=job.parent_id)
+
+        # Upload downloaded job
+        with open(os.path.join(settings.MEDIA_ROOT, self.job_archive), mode='rb') as fp:
+            response = self.client.post('/jobs/upload_jobs/%s/' % parent.identifier, {'file': fp})
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertJSONEqual(str(response.content, encoding='utf8'), '{}')
+        try:
+            Job.objects.get(parent=parent, identifier=job.identifier)
+        except ObjectDoesNotExist:
+            self.fail('The job was not found after upload')
 
     def __get_report_id(self, name):
         r_id = '/' + name
@@ -642,13 +717,13 @@ class TestReports(KleverTestCase):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent, 'attrs': attrs,
-                'error trace': os.path.basename(fp.name)
+                'sources': os.path.basename(fp.name), 'error traces': [os.path.basename(fp.name)]
             }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportUnsafe.objects.filter(
-            root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
+            root__job_id=self.job.pk, identifier__startswith=self.job.identifier + r_id,
             parent__identifier=self.job.identifier + parent
         )), 1)
 
@@ -693,7 +768,7 @@ class TestReports(KleverTestCase):
             self.fail('Wrong result format')
 
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'Klever Core version': 'latest'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'attrs': [{'name': 'Klever Core version', 'value': 'latest'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
@@ -745,7 +820,8 @@ class TestReports(KleverTestCase):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
     def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/', [{'Name': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
+        sj = self.__upload_start_report('Sub-job', '/',
+                                        [{'name': 'Name', 'value': 'test/dir/and/some/other/text:%s' % subjob['rule']}])
         lkbce = self.__upload_start_report('LKBCE', sj)
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
@@ -756,7 +832,8 @@ class TestReports(KleverTestCase):
         vtg = self.__upload_start_report('VTG', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
@@ -767,7 +844,8 @@ class TestReports(KleverTestCase):
         vrp = self.__upload_start_report('VRP', sj, [LINUX_ATTR, LKVOG_ATTR])
         for chunk in subjob['chunks']:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': subjob['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': subjob['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -789,7 +867,8 @@ class TestReports(KleverTestCase):
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in reports_data:
             vtgw = self.__upload_start_report('VTGW', vtg, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'VTGW'))
             for cmp in ['ASE', 'EMG', 'FVTP', 'RSG', 'SA', 'TR', 'Weaver']:
                 cmp_id = self.__upload_start_report(cmp, vtgw, failed=(chunk.get('fail') == cmp))
@@ -802,7 +881,8 @@ class TestReports(KleverTestCase):
         vrp = self.__upload_start_report('VRP', '/', [LINUX_ATTR, LKVOG_ATTR])
         for chunk in reports_data:
             rp = self.__upload_start_report('RP', vrp, [
-                {'Rule specification': chunk['rule']}, {'Verification object': chunk['module']}
+                {'name': 'Rule specification', 'value': chunk['rule']},
+                {'name': 'Verification object', 'value': chunk['module']}
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
@@ -826,11 +906,16 @@ class TestReports(KleverTestCase):
         elif 'unsafes' in chunk:
             cnt = 1
             for u in chunk['unsafes']:
-                self.__upload_unsafe_report(tool, [{'entry point': 'func_%s' % cnt}], u)
+                self.__upload_unsafe_report(tool, [{'name': 'entry point', 'value': 'func_%s' % cnt}], u)
                 cnt += 1
         if 'unknown' in chunk and 'safe' not in chunk:
             self.__upload_unknown_report(tool, chunk['unknown'])
         self.__upload_finish_verification_report(tool)
+
+    def tearDown(self):
+        if os.path.exists(os.path.join(settings.MEDIA_ROOT, self.job_archive)):
+            os.remove(os.path.join(settings.MEDIA_ROOT, self.job_archive))
+        super().tearDown()
 
 
 class DecideJobs:
