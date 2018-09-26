@@ -134,14 +134,11 @@ class TestService(KleverTestCase):
         super(TestService, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
-            admin={'username': 'superuser'},
-            manager={'username': 'manager', 'password': '12345'},
+            manager={'username': 'manager', 'password': 'manager'},
             service={'username': 'service', 'password': 'service'}
         )
-        self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
+        self.client.post(reverse('users:login'), {'username': 'manager', 'password': 'manager'})
         self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
         self.scheduler = Client()
         self.scheduler.post('/users/service_signin/', {
             'username': 'service', 'password': 'service', 'scheduler': SCHEDULER_TYPE[0][1]
@@ -153,7 +150,7 @@ class TestService(KleverTestCase):
         except IndexError:
             self.job = Job.objects.all()[0]
         # Run decision
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
         self.core = Client()
         self.core.post('/users/service_signin/', {
             'username': 'service', 'password': 'service', 'job identifier': self.job.identifier
@@ -203,7 +200,8 @@ class TestService(KleverTestCase):
 
         # Decide the job
         response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'comp': COMPUTER,
+            'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
@@ -422,7 +420,8 @@ class TestService(KleverTestCase):
         }
         # Decide the job
         self.core.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'comp': COMPUTER,
+            'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
         }), 'job format': 1})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
@@ -553,7 +552,8 @@ class TestService(KleverTestCase):
     def test3_disconnect(self):
         # Decide job
         response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'comp': COMPUTER,
+            'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
         self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
@@ -711,7 +711,8 @@ class TestService(KleverTestCase):
     def test4_cancel_job(self):
         # Decide job
         self.core.post('/jobs/decide_job/', {'report': json.dumps({
-            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+            'type': 'start', 'id': '/', 'comp': COMPUTER,
+            'attrs': [{'name': 'Core version', 'value': 'stage-2-1k123j13'}]
         }), 'job format': 1})
 
         # Schedule 5 tasks
@@ -754,7 +755,7 @@ class TestService(KleverTestCase):
         self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
 
         # Stop job decision
-        response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': self.job.pk})
+        response = self.client.post('/jobs/stop_decision/%s/' % self.job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -777,6 +778,15 @@ class TestService(KleverTestCase):
             'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': [self.job.identifier]
         })
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[6][0])
+
+        # Check that getting tasks with cancelling job in cancelled list makes job cancelled
+        response = self.scheduler.post('/service/get_jobs_and_tasks/',
+                                       {'jobs and tasks status': json.dumps(new_sch_data)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[7][0])
 
         # Check tasks quantities after finishing job decision
         progress = SolvingProgress.objects.get(job_id=self.job.pk)

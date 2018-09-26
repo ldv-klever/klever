@@ -82,7 +82,7 @@ class NewMark:
     def create_mark(self, report):
         mark = MarkSafe.objects.create(
             identifier=unique_id(), author=self._user, change_date=now(), format=report.root.job.format,
-            status=self._args['status'], description=str(self._args.get('description', '')),
+            job=report.root.job, status=self._args['status'], description=str(self._args.get('description', '')),
             is_modifiable=self._args['is_modifiable'], verdict=self._args['verdict']
         )
 

@@ -74,8 +74,8 @@ class TestPopulation(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Testing populated jobs
-        # Correct only for development mode as preset jobs can have option "production": false.
-        self.assertEqual(Job.objects.count(), len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets'))))
+        if not settings.POPULATE_JUST_PRODUCTION_PRESETS:
+            self.assertEqual(Job.objects.count(), len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets'))))
 
         # Testing populated service user
         self.assertEqual(Extended.objects.filter(user__username='service', role=USER_ROLES[4][0]).count(), 1)
@@ -86,8 +86,10 @@ class TestPopulation(KleverTestCase):
             if os.path.isdir(os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)):
                 num_of_preset_marks += len(os.listdir(os.path.join(
                     settings.BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)))
-        # Correct only for development mode as preset marks can have option "production": false.
-        self.assertEqual(MarkUnknown.objects.count(), num_of_preset_marks)
+
+        if not settings.POPULATE_JUST_PRODUCTION_PRESETS:
+            self.assertEqual(MarkUnknown.objects.count(), num_of_preset_marks)
+
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[0][0]).count(), 1)
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[1][0]).count(), 1)
 

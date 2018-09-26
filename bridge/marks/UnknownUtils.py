@@ -150,7 +150,7 @@ class NewMark:
         else:
             self._args['identifier'] = unique_id()
         if MarkUnknown.objects.filter(component=component, problem_pattern=self._args['problem']).count() > 0:
-            raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
+            raise BridgeException(_('Could not upload the mark since it would be similar to the existing mark'))
         mark = MarkUnknown.objects.create(
             identifier=self._args['identifier'], author=self._user, change_date=now(),
             description=str(self._args.get('description', '')),
