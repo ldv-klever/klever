@@ -199,7 +199,10 @@ class Linux(Source):
             for modules in targets_to_build:
                 # Module sets ending with .ko imply individual modules.
                 if re.search(r'\.ko$', modules):
-                    build_targets.append(ext_modules_make_opt + [modules])
+                    if ext_modules:
+                        build_targets.append(ext_modules_make_opt + [os.path.join(*(modules.split(os.path.sep)[1:]))])
+                    else:
+                        build_targets.append(ext_modules_make_opt + [modules])
                 # Otherwise it is directory that can contain modules.
                 else:
                     if ext_modules:
