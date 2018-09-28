@@ -27,7 +27,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.template import loader
 from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
@@ -318,6 +318,8 @@ class BridgeMiddlware:
                 return HttpResponseBadRequest(loader.get_template('error.html').render({
                     'user': request.user, 'message': exception.message, 'back': exception.back
                 }))
+        elif isinstance(exception, Http404):
+            return
         logger.exception(exception)
         return HttpResponseBadRequest(loader.get_template('error.html').render({
             'user': request.user, 'message': str(UNKNOWN_ERROR)
