@@ -46,6 +46,5 @@
   "is_modifiable": true,
   "pattern": "Refinement failed",
   "problem": "RefFailed",
-  "production": true,
   "status": "1"
 }

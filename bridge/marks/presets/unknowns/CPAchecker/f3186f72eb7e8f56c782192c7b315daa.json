@@ -45,6 +45,5 @@
   "is regexp": true,
   "pattern": "Error: Refinement failed: Counterexample could not be ruled out and was found again",
   "problem": "RefFailed",
-  "production": true,
   "status": "1"
 }

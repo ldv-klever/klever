@@ -45,6 +45,5 @@
   "is regexp": true,
   "pattern": "CPU time exhausted",
   "problem": "Timeout",
-  "production": true,
   "status": "1"
 }
