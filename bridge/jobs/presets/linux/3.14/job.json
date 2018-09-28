@@ -9,15 +9,25 @@
     "configuration": "allmodconfig",
     "architecture": "x86_64",
     "loadable kernel modules": ["drivers/net/usb/asix.ko"],
+    "additional build targets": [
+      "drivers/usb/core/usbcore.ko"
+    ],
     "opts file": "scripts/mod/empty.c"
   },
   "Fragmentation strategy": {
     "name": "linux"
   },
   "Aggregation strategy": {
-    "name": "separate",
-    "maximum verification object size": 30000
+    "name": "manual",
+    "aggregations": {
+      "drivers/net/usb/asix.ko": [
+        [
+          "drivers/net/usb/asix.ko",
+          "drivers/usb/core/usbcore.ko"
+        ]
+      ]
+    }
   },
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:empty", "linux:usb:coherent", "linux:memory safety", "linux:concurrency safety"]
+  "requirements": ["linux:empty"]
 }
