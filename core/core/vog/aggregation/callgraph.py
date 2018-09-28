@@ -35,5 +35,6 @@ class Callgraph(Abstract):
         for fragment in self.divider.target_fragments:
             new = Aggregation(fragment)
             new.name = fragment.name
-            self._add_dependencies(new, max_deep)
+            self._add_dependencies(new, depth=max_deep,
+                                   maxfrags=self.conf['Aggregation strategy'].get("maximum fragments"))
             yield new

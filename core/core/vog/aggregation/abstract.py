@@ -79,19 +79,25 @@ class Abstract:
             # This is a dir
             return os.path.dirname(target) == os.path.dirname(fragment.name)
 
-    def _check_fileters(self, fragment):
+    def _check_filters(self, fragment):
         return True
 
-    def _add_dependencies(self, aggregation, depth=None):
+    def _add_dependencies(self, aggregation, depth=None, maxfrags=None):
         layer = {aggregation.root}
-        while layer and (depth is None or depth > 0):
+        while layer and (depth is None or depth > 0) and (maxfrags is None or maxfrags > 0):
             new_layer = set()
             for fragment in layer:
                 aggregation.fragments.add(fragment)
+                if maxfrags:
+                    maxfrags -= 1
+                if maxfrags is not None and maxfrags == 0:
+                    break
+
                 for dep in fragment.successors:
                     if dep not in aggregation.fragments and dep not in new_layer and dep not in layer and \
-                            self._check_fileters(dep):
+                            self._check_filters(dep):
                         new_layer.add(dep)
+
             layer = new_layer
             if depth is not None:
                 depth -= 1
@@ -104,7 +110,7 @@ class Abstract:
         vo_desc['deps'] = dict()
         for frag in aggregation.fragments:
             vo_desc['grps'].append({'id': frag.name, 'CCs': frag.ccs})
-            vo_desc['deps'][frag.name] = [pred.name for pred in frag.predecessors if pred in aggregation.fragments]
+            vo_desc['deps'][frag.name] = [succ.name for succ in frag.successors if succ in aggregation.fragments]
         self.logger.debug('verification object dependencies are {}'.format(vo_desc['deps']))
 
         vo_desc_file = vo_desc['id'] + '.json'

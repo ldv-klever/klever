@@ -54,7 +54,7 @@ class Busybox(Abstract):
             self._add_dependencies(new)
             yield new
 
-    def _check_fileters(self, fragment):
+    def _check_filters(self, fragment):
         # Check that it is not in a black list
         if any(self._belong(fragment, t) for t in self._always_needed):
             return True
