@@ -1,3 +1,0 @@
-ext-modules/advanced_priority_on_calls/init.ko needs "bad_export": ext-modules/advanced_priority_on_calls/init1.ko
-ext-modules/advanced_priority_on_calls/init.ko needs "bad_export": ext-modules/advanced_priority_on_calls/init2.ko
-ext-modules/advanced_priority_on_calls/init2.ko needs "dummy_function": ext-modules/advanced_priority_on_calls/dummy_module.ko

@@ -1,4 +1,0 @@
-ext-modules/advanced_alphabet_sort/init.ko needs "bad_export": ext-modules/advanced_alphabet_sort/a_one.ko
-ext-modules/advanced_alphabet_sort/init.ko needs "bad_export": ext-modules/advanced_alphabet_sort/b_two.ko
-ext-modules/advanced_alphabet_sort/init.ko needs "bad_export": ext-modules/advanced_alphabet_sort/c_three.ko
-ext-modules/advanced_alphabet_sort/init.ko needs "bad_export": ext-modules/advanced_alphabet_sort/e_four.ko

@@ -1,3 +1,0 @@
-ext-modules/advanced_priority_on_export/external1.ko needs "bad_export": ext-modules/advanced_priority_on_export/init.ko
-ext-modules/advanced_priority_on_export/external2.ko needs "bad_export": ext-modules/advanced_priority_on_export/init.ko
-ext-modules/advanced_priority_on_export/dummy_module.ko needs "dummy_function": ext-modules/advanced_priority_on_export/external2.ko

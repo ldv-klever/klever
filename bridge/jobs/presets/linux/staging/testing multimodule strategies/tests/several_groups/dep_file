@@ -1,2 +1,0 @@
-ext-modules/several_groups/init.ko needs "export_without_error": ext-modules/several_groups/library1.ko
-ext-modules/several_groups/init.ko needs "export_with_error": ext-modules/several_groups/library2.ko
