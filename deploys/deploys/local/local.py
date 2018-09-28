@@ -240,7 +240,7 @@ class KleverProduction(Klever):
 
     def _install_or_update(self):
         if 'To update' in self.prev_deploy_info and 'Klever' in self.prev_deploy_info['To update']:
-            install_klever_bridge_production(self.logger, self.args.deployment_directory)
+            install_klever_bridge_production(self.logger, self.args.deployment_directory, not self._IS_DEV)
 
     def install(self):
         self._pre_install()
