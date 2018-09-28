@@ -36,7 +36,7 @@ from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
 from bridge.utils import logger, file_get_or_create, extract_archive, BridgeException
 
 from users.models import User
-from reports.models import ReportComponent, ReportRoot
+from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
@@ -44,7 +44,6 @@ from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
 
 import jobs.utils
 from jobs.jobForm import JobForm, role_info, LoadFilesTree, UserRolesForm
-import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile, FileSystem
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree

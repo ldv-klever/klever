@@ -19,7 +19,6 @@ import json
 import hashlib
 from io import BytesIO
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import pytz, now
@@ -300,6 +299,7 @@ class UploadFilesTree:
         self._empty = None
         self._files = self.__get_files()
         self.__save_children(None, self._tree[0].get('children', []))
+        self.__check_jsons()
 
     def __get_children_files(self, children):
         hashsums = set()
@@ -320,6 +320,31 @@ class UploadFilesTree:
 
     def __save_fs_obj(self, parent_id, name, file_id):
         return FileSystem.objects.create(job=self._job_version, parent_id=parent_id, name=name, file_id=file_id).id
+
+    def __check_jsons(self):
+        files_tree = {}
+        wrong_jsons = []
+
+        def get_path(file_id):
+            curr_path = [files_tree[file_id][1]]
+            parent_id = files_tree[file_id][0]
+            while parent_id is not None:
+                curr_path.append(files_tree[parent_id][1])
+                parent_id = files_tree[parent_id][0]
+            return '/'.join(list(reversed(curr_path)))
+
+        # Ordering by id lead to parents in files_tree are filled before its children
+        for f in FileSystem.objects.filter(job=self._job_version).select_related('file').order_by('id'):
+            files_tree[f.id] = (f.parent_id, f.name)
+            if not f.name.endswith('.json'):
+                continue
+            with f.file.file as fp:
+                try:
+                    json.load(fp)
+                except json.decoder.JSONDecodeError:
+                    wrong_jsons.append(get_path(f.id))
+        if wrong_jsons:
+            raise BridgeException(_('Wrong jsons uploaded: %(files)s') % {'files': ', '.join(wrong_jsons)})
 
     def __save_children(self, parent_id, children):
         for child in children:
