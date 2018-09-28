@@ -71,6 +71,8 @@ class Linux(Source):
         self.__loadable_modules_support = True
         self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
         self._targets = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
+        self._additional_build = self.conf['project'].get("additional build targets", [])
+
         self._external_modules = self.conf['project'].get('external modules', False)
 
     def check_target(self, candidate):
@@ -152,7 +154,7 @@ class Linux(Source):
     def _build(self):
         self.logger.info('Build Linux kernel')
         # We get some identifiers from strategy and we have to convert if possible them into make targets
-        targets_to_build = list(self._targets.keys()) + list(self._subsystems.keys())
+        targets_to_build = list(self._targets.keys()) + list(self._subsystems.keys()) + list(self._additional_build)
         targets_to_build = sorted(targets_to_build)
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
@@ -191,8 +193,17 @@ class Linux(Source):
                                 modules2_dir = os.path.dirname(modules2) if re.search(r'\.ko$', modules2) else modules2
 
                                 if modules1_dir != core.utils.make_relative_path([modules2_dir], modules1_dir):
-                                    raise ValueError('Module set "{0}" is subset of module set "{1}"'
-                                                     .format(modules1, modules2))
+                                    # The only exception is external builds target
+                                    module = modules2 if re.search(r'\.ko$', modules1) else modules1
+                                    moduler = modules1 if re.search(r'\.ko$', modules1) else modules2
+                                    if module in self._additional_build:
+                                        self.logger.warning('Module set "{0}" is subset of module set "{1}"'
+                                                            .format(moduler, module))
+                                        # Remove repeated element
+                                        targets_to_build.remove(moduler)
+                                    else:
+                                        raise ValueError('Module set "{0}" is subset of module set "{1}"'
+                                                         .format(moduler, module))
 
             # Examine module sets to get all build targets. Do not build immediately to catch mistakes earlier.
             build_targets = []
