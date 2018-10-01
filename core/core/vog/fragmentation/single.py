@@ -28,8 +28,8 @@ class Single(AbstractDivider):
         cmdg = self.clade.CommandGraph()
 
         # TODO: indeed CC commands can have multiple output files and this should be processed here appropriately.
-        for identifier, desc in ((i, d) for i, d in cmdg.CCs if d.get('out')):
-            rel_object_path = core.utils.make_relative_path(self.source.source_paths, desc['out'])
+        for identifier, desc in ((i, d) for i, d in cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
+            rel_object_path = core.utils.make_relative_path(self.source.source_paths, desc['out'][0])
             name = rel_object_path
             fragment = self._create_fragment_from_cc(identifier, name)
             if self.source.check_target(rel_object_path):
