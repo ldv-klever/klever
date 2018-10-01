@@ -45,7 +45,7 @@ def converted_delete(**kwargs):
 
 
 class UnknownProblem(models.Model):
-    name = models.CharField(max_length=15, db_index=True)
+    name = models.CharField(max_length=20, db_index=True)
 
     def __str__(self):
         return self.name
@@ -295,7 +295,7 @@ class MarkUnknown(Mark):
     component = models.ForeignKey(Component, models.PROTECT)
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
-    problem_pattern = models.CharField(max_length=15)
+    problem_pattern = models.CharField(max_length=20)
     link = models.URLField(null=True)
 
     class Meta:

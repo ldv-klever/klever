@@ -67,8 +67,8 @@ class NewMark:
 
         if 'problem' not in self._args or len(self._args['problem']) == 0:
             raise BridgeException(_('The problem is required'))
-        elif len(self._args['problem']) > 15:
-            raise BridgeException(_('The problem length must be less than 15 characters'))
+        elif len(self._args['problem']) > 20:
+            raise BridgeException(_('The problem length must be less than 20 characters'))
         if 'is_regexp' not in self._args or not isinstance(self._args['is_regexp'], bool):
             raise BridgeException()
 
@@ -309,7 +309,7 @@ class ConnectMark:
             ).problem
             if problem is None:
                 continue
-            elif len(problem) > 15:
+            elif len(problem) > 20:
                 problem = 'Too long!'
                 logger.error("Problem '%s' for mark %s is too long" % (problem, self.mark.identifier), stack_info=True)
             if problem not in problems:
@@ -368,7 +368,7 @@ class ConnectReport:
             problem = MatchUnknown(problem_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
             if problem is None:
                 continue
-            elif len(problem) > 15:
+            elif len(problem) > 20:
                 problem = 'Too long!'
                 logger.error(
                     "Generated problem '%s' for mark %s is too long" % (problem, mark.identifier), stack_info=True
@@ -411,8 +411,8 @@ class CheckFunction:
 
         if isinstance(self.problem, str) and len(self.problem) == 0:
             self.problem = '-'
-        if self.problem is not None and len(self.problem) > 15:
-            raise BridgeException(_('The problem length must be less than 15 characters'))
+        if self.problem is not None and len(self.problem) > 20:
+            raise BridgeException(_('The problem length must be less than 20 characters'))
 
     def __match_desc_regexp(self):
         try:
@@ -579,7 +579,7 @@ class PopulateMarks:
                     data['is regexp'] = False
 
                 if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['pattern']) == 0 \
-                        or not 0 < len(data['problem']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                        or not 0 < len(data['problem']) <= 20 or not isinstance(data['is_modifiable'], bool):
                     raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 if 'attrs' in data:
                     if not isinstance(data['attrs'], list):
