@@ -247,8 +247,16 @@ class Scheduler:
                         # Try to prepare task
                         self.logger.debug("Prepare new task {} before launching".format(task_id))
                         # Add missing restrictions
-                        self.__add_missing_restrictions(tks[task_id]["description"]["resource limits"])
-                        self.runner.prepare_task(task_id, tks[task_id])
+                        try:
+                            self.__add_missing_restrictions(tks[task_id]["description"]["resource limits"])
+                        except SchedulerException as err:
+                            jbs[task_id] = {
+                                "id": task_id,
+                                "status": "ERROR",
+                                "error": str(err)
+                            }
+                        else:
+                            self.runner.prepare_task(task_id, tks[task_id])
 
                     # Add new PENDING jobs
                     for job_id in [job_id for job_id in ser_ste["jobs"]["pending"] if job_id not in jbs]:
@@ -265,8 +273,17 @@ class Scheduler:
                         # Check and set necessary restrictions for further scheduling
                         for collection in [jbs[job_id]["configuration"]["resource limits"],
                                            jbs[job_id]["configuration"]["task resource limits"]]:
-                            self.__add_missing_restrictions(collection)
-                        self.runner.prepare_job(job_id, jbs[job_id])
+                            try:
+                                self.__add_missing_restrictions(collection)
+                            except SchedulerException as err:
+                                jbs[job_id] = {
+                                    "id": job_id,
+                                    "status": "ERROR",
+                                    "error": str(err)
+                                }
+                                break
+                        else:
+                            self.runner.prepare_job(job_id, jbs[job_id])
 
                     # Cancel tasks
                     for task_id in [task_id for task_id in
@@ -511,7 +528,7 @@ class Scheduler:
         :param collection: 'resource limits' dictionary from a task description or job configuration.
         """
         if len(collection.keys()) == 0:
-            raise SchedulerException("Resource limitations are missing: upload filled tasks.json file and properly "
+            raise SchedulerException("Resource limitations are missing: upload correct tasks.json file and properly "
                                      "set job resource limitiations")
 
         for tag in ['memory size', 'number of CPU cores', 'disk memory size']:
@@ -521,10 +538,14 @@ class Scheduler:
             collection['CPU model'] = None
 
         # Make unit translation
-        for mem in (m for m in ("memory size", "disk memory size") if m in collection and collection[m] is not None):
-            collection[mem] = memory_units_converter(collection[mem])[0]
-        for t in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
-            collection[t] = time_units_converter(collection[t])[0]
+        try:
+            for tag in (m for m in ("memory size", "disk memory size")
+                        if m in collection and collection[m] is not None):
+                collection[tag] = memory_units_converter(collection[tag])[0]
+            for tag in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
+                collection[tag] = time_units_converter(collection[tag])[0]
+        except Exception:
+            raise SchedulerException('Cannot interprete {} resource limitations: {!r}'.format(tag, collection[tag]))
 
     def terminate(self):
         """Abort solution of all running tasks and any other actions before termination."""
