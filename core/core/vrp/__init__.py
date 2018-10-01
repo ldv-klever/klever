@@ -518,7 +518,8 @@ class RP(core.components.Component):
                                           self.storage, self.source_paths,
                                           self.search_dirs, self.conf['main working directory'], opts.get('coverage'),
                                           os.path.join(self.conf['main working directory'], self.coverage_info_file),
-                                          os.path.join(self.conf['main working directory'], coverage_info_dir))
+                                          os.path.join(self.conf['main working directory'], coverage_info_dir),
+                                          opts.get('collect function names'))
 
         if os.path.isfile('coverage.json'):
             report['coverage'] = core.utils.ReportFiles(['coverage.json'] +

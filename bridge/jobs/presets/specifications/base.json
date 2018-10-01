@@ -70,7 +70,8 @@
               "version": "trunk:27946"
             },
             "result processing": {
-              "coverage": "full"
+              "coverage": "lightweight",
+              "collect function names": false
             }
           }
         }
@@ -255,7 +256,8 @@
               "version": "trunk:27946"
             },
             "result processing": {
-              "coverage": "lightweight"
+              "coverage": "lightweight",
+              "collect function names": false
             }
           }
         }

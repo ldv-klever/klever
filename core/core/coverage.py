@@ -29,8 +29,9 @@ def add_to_coverage(merged_coverage_info, coverage_info):
     for file_name in coverage_info:
         merged_coverage_info.setdefault(file_name, {
             'total functions': coverage_info[file_name][0]['total functions'],
-            'covered lines': {},
-            'covered functions': {}
+            'covered lines': dict(),
+            'covered functions': dict(),
+            'covered function names': list()
         })
 
         for coverage in coverage_info[file_name]:
@@ -38,14 +39,19 @@ def add_to_coverage(merged_coverage_info, coverage_info):
                 for line, value in coverage[path].items():
                     merged_coverage_info[file_name][path].setdefault(line, 0)
                     merged_coverage_info[file_name][path][line] += value
+            if coverage.get('covered function names'):
+                for name in coverage['covered function names']:
+                    if name not in merged_coverage_info[file_name]['covered function names']:
+                        merged_coverage_info[file_name]['covered function names'].append(name)
 
 
 def get_coverage(merged_coverage_info):
 
     # Map combined coverage to the required format
-    line_coverage = {}
-    function_coverage = {}
-    function_statistics = {}
+    line_coverage = dict()
+    function_coverage = dict()
+    function_statistics = dict()
+    function_name_staticitcs = dict()
 
     for file_name in list(merged_coverage_info.keys()):
         for line, value in merged_coverage_info[file_name]['covered lines'].items():
@@ -61,6 +67,10 @@ def get_coverage(merged_coverage_info):
         function_statistics[file_name] = [len(merged_coverage_info[file_name]['covered functions']),
                                           merged_coverage_info[file_name]['total functions']]
 
+        if merged_coverage_info[file_name].get('covered function names'):
+            function_name_staticitcs[file_name] = list(merged_coverage_info[file_name]['covered function names'])
+    function_name_staticitcs['overall'] = None
+
     # Merge covered lines into the range
     for key, value in line_coverage.items():
         for file_name, lines in value.items():
@@ -71,7 +81,8 @@ def get_coverage(merged_coverage_info):
         'function coverage': {
             'statistics': function_statistics,
             'coverage': [[key, value] for key, value in function_coverage.items()]
-        }
+        },
+        'functions statistics': {'statistics': function_name_staticitcs, 'values': []}
     }
 
 
@@ -152,27 +163,31 @@ class JCR(core.components.Component):
                     total_coverage_infos[sub_job_id].setdefault(requirement, {})
                     arcfiles[sub_job_id].setdefault(requirement, {})
 
-                    with open(coverage_info['coverage info file'], encoding='utf8') as fp:
-                        loaded_coverage_info = json.load(fp)
+                    if os.path.isfile(coverage_info['coverage info file']):
+                        with open(coverage_info['coverage info file'], encoding='utf8') as fp:
+                            loaded_coverage_info = json.load(fp)
 
-                    # Clean if needed
-                    if not self.conf['keep intermediate files']:
-                        os.remove(os.path.join(self.conf['main working directory'],
-                                               coverage_info['coverage info file']))
+                        # Clean if needed
+                        if not self.conf['keep intermediate files']:
+                            os.remove(os.path.join(self.conf['main working directory'],
+                                                   coverage_info['coverage info file']))
 
-                    add_to_coverage(total_coverage_infos[sub_job_id][requirement], loaded_coverage_info)
-                    for file in loaded_coverage_info.values():
-                        arcfiles[sub_job_id][requirement][file[0]['file name']] = file[0]['arcname']
-                    del loaded_coverage_info
+                        add_to_coverage(total_coverage_infos[sub_job_id][requirement], loaded_coverage_info)
+                        for file in loaded_coverage_info.values():
+                            arcfiles[sub_job_id][requirement][file[0]['file name']] = file[0]['arcname']
+                        del loaded_coverage_info
 
-                    counters.setdefault(sub_job_id, dict())
-                    counters[sub_job_id].setdefault(requirement, 0)
-                    counters[sub_job_id][requirement] += 1
-                    if counters[sub_job_id][requirement] >= 10:
-                        self.__read_data(total_coverage_infos, sub_job_id, requirement)
-                        self.__save_data(total_coverage_infos, sub_job_id, requirement)
-                        self.__clean_data(total_coverage_infos, sub_job_id, requirement)
-                        counters[sub_job_id][requirement] = 0
+                        counters.setdefault(sub_job_id, dict())
+                        counters[sub_job_id].setdefault(requirement, 0)
+                        counters[sub_job_id][requirement] += 1
+                        if counters[sub_job_id][requirement] >= 10:
+                            self.__read_data(total_coverage_infos, sub_job_id, requirement)
+                            self.__save_data(total_coverage_infos, sub_job_id, requirement)
+                            self.__clean_data(total_coverage_infos, sub_job_id, requirement)
+                            counters[sub_job_id][requirement] = 0
+                    else:
+                        self.logger.warning("There is no coverage file {!r}".
+                                            format(coverage_info['coverage info file']))
                 elif sub_job_id in total_coverage_infos:
                     self.logger.debug('Calculate total coverage for job {!r}'.format(sub_job_id))
 
@@ -285,7 +300,7 @@ class LCOV:
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
     def __init__(self, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
-                 coverage_id, coverage_info_dir):
+                 coverage_id, coverage_info_dir, collect_functions):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
@@ -296,6 +311,7 @@ class LCOV:
         self.completeness = completeness
         self.coverage_info_dir = coverage_info_dir
         self.arcnames = {}
+        self.collect_functions = collect_functions
 
         # Sanity checks
         if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
@@ -315,6 +331,10 @@ class LCOV:
                     json.dump(get_coverage(coverage), fp, ensure_ascii=True, sort_keys=True, indent=4)
         except Exception:
             self.logger.exception('Could not parse coverage')
+            if os.path.isfile('coverage.json'):
+                os.remove('coverage.json')
+            if os.path.isfile(self.coverage_info):
+                os.remove(self.coverage_info)
 
     def parse(self):
         dir_map = (('source files', self.source_dirs),
@@ -439,12 +459,16 @@ class LCOV:
                                              .difference(set(covered_functions.keys()))})
 
                     coverage_info.setdefault(file_name, [])
-                    coverage_info[file_name].append({
+
+                    new_cov = {
                         'file name': old_file_name,
                         'arcname': file_name,
                         'total functions': len(function_to_line),
                         'covered lines': covered_lines,
                         'covered functions': covered_functions
-                    })
+                    }
+                    if self.collect_functions:
+                        new_cov['covered function names'] = list(function_to_line.keys())
+                    coverage_info[file_name].append(new_cov)
 
         return coverage_info
