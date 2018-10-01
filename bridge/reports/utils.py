@@ -59,7 +59,8 @@ REP_MARK_TITLES = {
     'verifiers:cpu': _('CPU time'),
     'verifiers:wall': _('Wall time'),
     'verifiers:memory': _('RAM'),
-    'problems': _('Problems')
+    'problems': _('Problems'),
+    'total_similarity': _('Total similarity')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -297,7 +298,8 @@ class SafesTable:
 
 
 class UnsafesTable:
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = ['marks_number', 'report_verdict', 'total_similarity',
+                    'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
     def __init__(self, user, report, view, data):
@@ -421,6 +423,8 @@ class UnsafesTable:
                         val = '%s (%s)' % (unsafes[rep_id]['confirmed'], unsafes[rep_id]['marks_number'])
                     else:
                         val = str(unsafes[rep_id]['marks_number'])
+                elif col == 'total_similarity':
+                    val = unsafes[rep_id]['total_similarity']
                 elif col == 'report_verdict':
                     for u in UNSAFE_VERDICTS:
                         if u[0] == unsafes[rep_id]['verdict']:

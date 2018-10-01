@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 
 from bridge.utils import logger
+from django.utils.functional import cached_property
 from bridge.vars import ASSOCIATION_TYPE
 from bridge.rawQuery import RawQuery, EmptyQuery
 
@@ -19,6 +20,12 @@ class LeavesQuery:
         self.view = view
         self.kwargs = kwargs
         self._objects = None
+
+    @cached_property
+    def _order_direction(self):
+        if 'order' not in self.view:
+            return 'ASC'
+        return 'DESC' if self.view['order'][0] == 'up' else 'ASC'
 
     def __filter_by_report(self):
         if 'report' not in self.kwargs:
@@ -80,7 +87,7 @@ class LeavesQuery:
 
         # Order by cpu time
         if 'order' in self.view and self.view['order'][1] == 'parent_cpu':
-            self.sql.order_by('cpu_time', 'DESC' if self.view['order'][0] == 'up' else 'ASC')
+            self.sql.order_by('cpu_time', self._order_direction)
 
     def __process_wall_time(self):
         if 'verifiers:wall' not in self.view['columns']:
@@ -96,7 +103,7 @@ class LeavesQuery:
 
         # Order by wall time
         if 'order' in self.view and self.view['order'][1] == 'parent_wall':
-            self.sql.order_by('wall_time', 'DESC' if self.view['order'][0] == 'up' else 'ASC')
+            self.sql.order_by('wall_time', self._order_direction)
 
     def __process_memory(self):
         if 'verifiers:memory' not in self.view['columns']:
@@ -120,7 +127,7 @@ class LeavesQuery:
 
         # Order by memory
         if 'order' in self.view and self.view['order'][1] == 'parent_memory':
-            self.sql.order_by('memory', 'DESC' if self.view['order'][0] == 'up' else 'ASC')
+            self.sql.order_by('memory', self._order_direction)
 
     def __process_marks(self):
         if 'marks_number' not in self.view['columns']:
@@ -167,6 +174,23 @@ class LeavesQuery:
 
             self.sql.where(operation, (field_name, subquery), args_list=[int(self.view['marks_number'][2])])
 
+    def __process_total_similarity(self):
+        if 'total_similarity' not in self.view['columns']:
+            # We are not going to order by total similarity if it isn't shown
+            return
+        sq_model = {ReportSafe: MarkSafeReport, ReportUnsafe: MarkUnsafeReport, ReportUnknown: MarkUnknownReport}
+        # Subquery with marks numbers
+        links_sq = RawQuery(sq_model[self.model])
+        links_sq.select('report_id')
+        total_sim_aggr = '(CASE WHEN {0} IS NULL THEN 0.0 ELSE {0} END)'
+        links_sq.aggregate('total_similarity', 'SUM({0})', 'result')
+        links_sq.group_by('report_id')
+        self.sql.join('LEFT OUTER', links_sq, 'report_id', 'id', table_to=Report)
+        self.sql.aggregate('total_similarity', total_sim_aggr, ('total_similarity', links_sq))
+
+        if 'order' in self.view and self.view['order'][1] == 'total_similarity':
+            self.sql.order_by_aggregation(total_sim_aggr, self._order_direction, ('total_similarity', links_sq))
+
     def __process_tags(self):
         if self.model == ReportUnknown:
             # Unknowns don't have tags
@@ -210,7 +234,7 @@ class LeavesQuery:
             subquery.select('report_id', ('value', Attr, 'order'))
             subquery.where('{0} = %s', ('name', AttrName), args_list=[self.view['order'][2]])
             self.sql.join('LEFT OUTER', subquery, 'report_id', 'id', table_to=Report)
-            self.sql.order_by(('order', subquery), 'DESC' if self.view['order'][0] == 'up' else 'ASC')
+            self.sql.order_by(('order', subquery), self._order_direction)
 
         # Filter by attribute(s)
         operation = '{0} = %s'
@@ -323,6 +347,7 @@ class LeavesQuery:
         self.__process_wall_time()
         self.__process_memory()
         self.__process_marks()
+        self.__process_total_similarity()
         self.__process_tags()
         self.__process_attributes()
         self.__process_component()
