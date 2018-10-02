@@ -72,7 +72,6 @@ class Linux(Source):
         self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
         self._targets = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
         self._additional_build = self.conf['project'].get("additional build targets", [])
-
         self._external_modules = self.conf['project'].get('external modules', False)
 
     def check_target(self, candidate):
@@ -86,11 +85,11 @@ class Linux(Source):
             self._targets['all'] = True
             return True
 
-        if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
+        if candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
             self._subsystems[os.path.dirname(candidate)] = True
             return True
 
-        if not self._kernel:
+        if not candidate.endswith('built-in.o'):
             if candidate in self._targets:
                 self._targets[candidate] = True
                 return True

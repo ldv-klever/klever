@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import os
 from core.utils import make_relative_path
 from core.vog.fragmentation.abstract import AbstractDivider
 
@@ -23,8 +24,9 @@ class Linux(AbstractDivider):
 
     def __init__(self, logger, conf, source, clade_api):
         super(Linux, self).__init__(logger, conf, source, clade_api)
-        self._kernel_verification = self.conf['Fragmentation strategy'].get('target kernel', False)
-        self._max_size = self.conf['project'].get("maximum fragment size")
+        self._kernel_verification = self.conf['Fragmentation strategy'].get('verify subsystems', False)
+        self._max_size = self.conf['Fragmentation strategy'].get("maximum fragment size")
+        self._separate_nested = self.conf['Fragmentation strategy'].get("separate nested subsystems", True)
 
     def _divide(self):
         fragments = set()
@@ -39,11 +41,11 @@ class Linux(AbstractDivider):
                 raise NotImplementedError
 
             out = desc['out'][0]
-
             if out.endswith('.ko') or (self._kernel_verification and out.endswith('built-in.o')):
                 rel_object_path = make_relative_path(self.source.source_paths, out)
                 name = rel_object_path
-                fragment = self._create_fragment_from_ld(identifier, name, cmdg, srcg)
+                fragment = self._create_fragment_from_ld(identifier, desc, name, cmdg, srcg,
+                                                         out.endswith('built-in.o') and self._separate_nested)
                 if not self._max_size or fragment.size <= self._max_size:
                     if self.source.check_target(rel_object_path):
                         fragment.target = True

@@ -85,7 +85,7 @@ class AbstractDivider:
         if len(desc['out']) != 1:
             raise NotImplementedError('CC build commands with more than one output file are not supported')
 
-    def _create_fragment_from_ld(self, identifier, name, cmdg, srcg):
+    def _create_fragment_from_ld(self, identifier, desc, name, cmdg, srcg, sep_nestd=False):
         ccs = cmdg.get_ccs_for_ld(identifier)
 
         fragment = common.Fragment(name)
@@ -94,9 +94,9 @@ class AbstractDivider:
 
         for i, d in ccs:
             self.__check_cc(d)
-            fragment.ccs.add(str(i))
-            fragment.in_files.add(d['in'][0])
-
+            if not sep_nestd or (sep_nestd and os.path.dirname(d['in'][0]) == os.path.dirname(desc['out'][0])):
+                fragment.ccs.add(str(i))
+                fragment.in_files.add(d['in'][0])
         fragment.size = sum(srcg.get_sizes(fragment.in_files).values())
 
         return fragment
