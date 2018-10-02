@@ -112,9 +112,11 @@ class AbstractDivider:
     def establish_dependencies(self):
         self.logger.info("Connect frgaments between each other on base of callgraph")
         cg = self.clade.CallGraph().graph
+        fs = self.clade.FunctionsScopes().scope_to_funcs
         c_to_deps = dict()
         c_to_frag = dict()
         f_to_deps = dict()
+        f_to_files = dict()
 
         # Fulfil callgraph dependencies
         for fragment in self.fragments:
@@ -123,18 +125,31 @@ class AbstractDivider:
                 c_to_frag[path] = fragment
                 deps = c_to_deps.setdefault(path, set())
 
+                # Get functions from the callgraph
                 for func, desc in cg.get(path, dict()).items():
                     tp = desc.get('type', 'static')
-                    if tp == 'global':
+                    if tp != 'static':
                         fragment.add_export_function(path, func)
                         f_to_deps.setdefault(func, set())
                         f_to_deps[func].add(fragment)
+                        f_to_files.setdefault(func, set())
+                        f_to_files[func].add(path)
 
                     for calls_scope, called_functions in ((s, d) for s, d in desc.get('calls', dict()).items()
                                                           if s != path and s != 'unknown'):
                         deps.add(calls_scope)
                         for called_func in called_functions:
                             fragment.add_extern_call(calls_scope, called_func)
+
+                # Get functions without explicit calls
+                for func, desc in fs.get(path, dict()).items():
+                    tp = desc.get('type', 'static')
+                    if tp != 'static':
+                        fragment.add_export_function(path, func)
+                        f_to_deps.setdefault(func, set())
+                        f_to_deps[func].add(fragment)
+                        f_to_files.setdefault(func, set())
+                        f_to_files[func].add(path)
 
         # Now connect different fragments
         for path, deps in c_to_deps.items():
@@ -150,7 +165,7 @@ class AbstractDivider:
         if self.conf['Fragmentation strategy'].get('draw dependencies'):
             self.print_fragments()
 
-        return c_to_deps, f_to_deps, c_to_frag
+        return c_to_deps, f_to_deps, f_to_files, c_to_frag
 
     def print_fragments(self):
         g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})

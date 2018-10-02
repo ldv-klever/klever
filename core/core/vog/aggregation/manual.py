@@ -39,7 +39,7 @@ class Manual(Abstract):
         :return: Generator that retursn Aggregation objects.
         """
         # First we need fragments that are completely fullfilled
-        c_to_deps, f_to_deps, c_to_frag = self.divider.establish_dependencies()
+        c_to_deps, f_to_deps, f_to_files, c_to_frag = self.divider.establish_dependencies()
         for fragment in self.divider.target_fragments:
             if fragment.name in self.fragments_map:
                 # Expect specified set
@@ -93,29 +93,6 @@ class Manual(Abstract):
 
             raise ValueError("Cannot find a fragment, a C file or a function with the name {!r}".format(frag_or_func))
 
-        done = True
-        while done and len(functions) > 0:
-            done = False
-
-            func = functions.pop()
-            # As we are not sure about the scope lets try to find a fragment which is required by any of mentioned
-            # otherwise it is not clear why we should add any if no calls detected.
-            candidates = fmap[func]
-            possible_cfiles = set()
-
-            for frag in new.fragments:
-                for cf in frag.in_files:
-                    possible_cfiles.add(cf)
-                    possible_cfiles.update(cmap.get(cf, set()))
-
-            for candidate in candidates:
-                # Do this to avoid adding fragments which have nothing to do with chosen
-                if possible_cfiles.intersection(candidate.in_files):
-                    new.fragments.add(candidate)
-                    # If we will not any fragments then maybe we need to add more fragments for other functions first
-                    done = True
-
-        if not done and len(functions) > 0:
-            raise ValueError("Cannot find suitable fragments for functions: {}".format(', '.join(functions)))
+        self._collect_fragments_for_functions(self, new, functions, cmap, fmap)
 
         return new
