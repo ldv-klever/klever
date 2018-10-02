@@ -67,7 +67,7 @@ class Linux(Source):
 
     def __init__(self, logger, conf):
         super(Linux, self).__init__(logger, conf)
-        self._kernel = self.conf['project'].get('build kernel', False)
+        self._kernel = self.conf['project'].get('verify subsystems', False)
         self.__loadable_modules_support = True
         self._subsystems = {m: False for m in self.conf['project'].get('kernel subsystems', [])}
         self._targets = {s: False for s in self.conf['project'].get('loadable kernel modules', [])}
@@ -85,11 +85,11 @@ class Linux(Source):
             self._targets['all'] = True
             return True
 
-        if candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
+        if self._kernel and candidate.endswith('built-in.o') and os.path.dirname(candidate) in self._subsystems:
             self._subsystems[os.path.dirname(candidate)] = True
             return True
 
-        if not candidate.endswith('built-in.o'):
+        if not self._kernel and not candidate.endswith('built-in.o'):
             if candidate in self._targets:
                 self._targets[candidate] = True
                 return True
