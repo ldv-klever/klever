@@ -494,6 +494,15 @@ class RP(core.components.Component):
             'resources': decision_results['resources'],
         }
 
+        # Get coverage
+        coverage_info_dir = os.path.join('total coverages',
+                                         self.conf['sub-job identifier'],
+                                         self.requirement.replace('/', '-'))
+        os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
+
+        self.coverage_info_file = os.path.join(coverage_info_dir,
+                                               "{0}_coverage_info.json".format(task_id.replace('/', '-')))
+
         # Update solution progress. It is necessary to update the whole list to sync changes
         data = list(self.vals['task solution triples'][self.results_key])
         data[1] = decision_results['resources']
@@ -505,27 +514,25 @@ class RP(core.components.Component):
         if self.conf['upload input files of static verifiers']:
             report['task identifier'] = task_id
 
-        # Save coverage in 'total coverages' dir
-        coverage_info_dir = os.path.join('total coverages',
-                                         self.conf['sub-job identifier'],
-                                         self.requirement.replace('/', '-'))
-        os.makedirs(os.path.join(self.conf['main working directory'], coverage_info_dir), exist_ok=True)
-
-        self.coverage_info_file = os.path.join(coverage_info_dir,
-                                               "{0}_coverage_info.json".format(task_id.replace('/', '-')))
-
-        self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                                          self.storage, self.source_paths,
-                                          self.search_dirs, self.conf['main working directory'], opts.get('coverage'),
-                                          os.path.join(self.conf['main working directory'], self.coverage_info_file),
-                                          os.path.join(self.conf['main working directory'], coverage_info_dir),
-                                          opts.get('collect function names'))
-
-        if os.path.isfile('coverage.json'):
-            report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
-                                                        list(self.verification_coverage.arcnames.keys()),
-                                                        arcnames=self.verification_coverage.arcnames)
-            self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
+        # Remember exception and raise it if verdict is not unknown
+        exception = None
+        try:
+            self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                                              self.storage, self.source_paths,
+                                              self.search_dirs, self.conf['main working directory'],
+                                              opts.get('coverage'),
+                                              os.path.join(self.conf['main working directory'],
+                                                           self.coverage_info_file),
+                                              os.path.join(self.conf['main working directory'], coverage_info_dir),
+                                              opts.get('collect function names'))
+        except Exception as err:
+            exception = err
+        else:
+            if os.path.isfile('coverage.json'):
+                report['coverage'] = core.utils.ReportFiles(['coverage.json'] +
+                                                            list(self.verification_coverage.arcnames.keys()),
+                                                            arcnames=self.verification_coverage.arcnames)
+                self.vals['coverage_finished'][self.conf['sub-job identifier']] = False
 
         # todo: This should be cheked to guarantee that we can reschedule tasks
         core.utils.report(self.logger,
@@ -546,6 +553,12 @@ class RP(core.components.Component):
                               self.mqs['report files'],
                               self.vals['report id'],
                               self.conf['main working directory'])
+
+        # Check verdict
+        if exception and self.verdict != 'unknown':
+            raise exception
+        elif exception:
+            self.logger.exception('Could not parse coverage')
 
     def __trim_file_names(self, file_names):
         arcnames = {}
