@@ -290,14 +290,13 @@ class ReplaceJobFileView(LoggedCallMixin, Bview.JsonView):
 @method_decorator(login_required, name='dispatch')
 class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponsePostView):
     model = Job
+    file_name = 'svcomp.zip'
 
     def get_generator(self):
         self.object = self.get_object()
         if not jobs.utils.JobAccess(self.request.user, self.object).can_dfc():
             raise BridgeException(code=400)
-        generator = FilesForCompetitionArchive(self.object, json.loads(self.request.POST['filters']))
-        self.file_name = generator.name
-        return generator
+        return FilesForCompetitionArchive(self.object, json.loads(self.request.POST['filters']))
 
 
 @method_decorator(login_required, name='dispatch')

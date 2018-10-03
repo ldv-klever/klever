@@ -17,10 +17,7 @@
 
 import os
 import json
-import zipfile
 from collections import Counter
-import xml.etree.ElementTree as ETree
-from xml.dom import minidom
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files import File
@@ -760,37 +757,36 @@ class AttrData:
 
 
 class FilesForCompetitionArchive:
+    obj_attr = 'Verification object'
+    requirement_attr = 'Rule specification'
+
     def __init__(self, job, filters):
-        self.name = 'svcomp.zip'
-        self.benchmark_fname = 'benchmark.xml'
-        self.prp_fname = 'unreach-call.prp'
-        self.obj_attr = 'Verification object'
-        self.rule_attr = 'Rule specification'
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
-            raise ValueError('The job is not decided')
+            raise BridgeException(_('The job is not decided'))
+        self._attrs = self.__get_attrs()
         self._archives = self.__get_archives()
         self.filters = filters
-        self.xml_root = None
-        self.prp_file_added = False
+        self._archives_to_upload = []
+        self.__get_archives_to_upload()
         self.stream = ZipStream()
 
     def __iter__(self):
-        for f_t in self.filters:
-            if isinstance(f_t, str) and f_t in {'u', 's'}:
-                for data in self.__reports_data(f_t):
-                    yield data
-            elif isinstance(f_t, list):
-                for data in self.__reports_data('f', f_t):
-                    yield data
-        if self.xml_root is None:
-            for data in self.stream.compress_string('NOFILES', ''):
+        cnt = 0
+        names_in_use = set()
+        for arch_path, name_pattern in self._archives_to_upload:
+
+            # TODO: original extension (currently it's supposed that verification files are zip archives)
+            if name_pattern in names_in_use:
+                cnt += 1
+                arch_name = '%s_%s.zip' % (name_pattern, cnt)
+            else:
+                arch_name = '%s.zip' % name_pattern
+
+            for data in self.stream.compress_file(arch_path, arch_name):
                 yield data
-        else:
-            benchmark_content = minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ")
-            for data in self.stream.compress_string(self.benchmark_fname, benchmark_content):
-                yield data
+
         yield self.stream.close_stream()
 
     def __get_archives(self):
@@ -798,89 +794,61 @@ class FilesForCompetitionArchive:
         for c in ReportComponent.objects.filter(root=self.root, verification=True).exclude(verifier_input='')\
                 .only('id', 'verifier_input'):
             if c.verifier_input:
-                archives[c.id] = c.verifier_input
+                archives[c.id] = c.verifier_input.path
         return archives
 
-    def __reports_data(self, f_type, problems=None):
-        if f_type == 'u':
-            table = ReportUnsafe
-            cil_dir = 'Unsafes'
-        elif f_type == 's':
-            table = ReportSafe
-            cil_dir = 'Safes'
-        elif f_type == 'f':
-            table = ReportUnknown
-            cil_dir = 'Unknowns'
-        else:
-            raise ValueError('Wrong filter type')
+    def __get_attrs(self):
+        names = {}
+        for a_name in AttrName.objects.filter(name__in=[self.obj_attr, self.requirement_attr]):
+            names[a_name.id] = a_name.name
 
-        reports = {}
-        if f_type == 'f' and problems is not None and len(problems) > 0:
-            for problem in problems:
-                comp_id, problem_id = problem.split('_')[0:2]
-                if comp_id == problem_id == '0':
-                    for r in ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
-                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None).only('id', 'parent_id'):
-                        if r.parent_id not in self._archives:
-                            continue
-                        reports[r.id] = r.parent_id
-                else:
-                    for r in ReportUnknown.objects\
+        attrs = {}
+        # Select attributes for all safes, unsafes and unknowns
+        for r_id, n_id, a_val in ReportAttr.objects.filter(report__root=self.root, attr__name_id__in=names)\
+                .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None)\
+                .values_list('report_id', 'attr__name_id', 'attr__value'):
+            if r_id not in attrs:
+                attrs[r_id] = {}
+            attrs[r_id][names[n_id]] = a_val
+
+        return attrs
+
+    def __add_archive(self, r_type, r_id, p_id):
+        if p_id in self._archives and r_id in self._attrs \
+                and self.obj_attr in self._attrs[r_id] \
+                and self.requirement_attr in self._attrs[r_id]:
+
+            ver_obj = self._attrs[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
+            ver_requirement = self._attrs[r_id][self.requirement_attr].replace(':', '-')
+            dirname = 'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes'
+
+            self._archives_to_upload.append(
+                (self._archives[p_id], '{0}/{1}__{2}__{3}'.format(dirname, r_type, ver_requirement, ver_obj))
+            )
+
+    def __get_archives_to_upload(self):
+        for f_t in self.filters:
+            if isinstance(f_t, list) and f_t:
+                for problem in f_t:
+                    comp_id, problem_id = problem.split('_')[0:2]
+                    if comp_id == problem_id == '0':
+                        queryset = ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
+                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None)\
+                            .values_list('id', 'parent_id')
+                    else:
+                        queryset = ReportUnknown.objects \
                             .filter(root=self.root, markreport_set__problem_id=problem_id, component_id=comp_id)\
-                            .exclude(parent__parent=None).only('id', 'parent_id'):
-                        if r.parent_id not in self._archives:
-                            continue
-                        reports[r.id] = r.parent_id
-        else:
-            for r in table.objects.filter(root=self.root).exclude(parent__parent=None).only('id', 'parent_id'):
-                if r.parent_id not in self._archives:
-                    continue
-                reports[r.id] = r.parent_id
-        attrs_data = {}
-        for ra in ReportAttr.objects\
-                .filter(report_id__in=list(reports), attr__name__name__in=[self.obj_attr, self.rule_attr])\
-                .select_related('attr', 'attr__name'):
-            if ra.report_id not in attrs_data:
-                attrs_data[ra.report_id] = {}
-            attrs_data[ra.report_id][ra.attr.name.name] = ra.attr.value
-        cnt = 1
-        paths_in_use = []
-        for r_id in reports:
-            if r_id in attrs_data and self.obj_attr in attrs_data[r_id] and self.rule_attr in attrs_data[r_id]:
-                ver_obj = attrs_data[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
-                ver_rule = attrs_data[r_id][self.rule_attr].replace(':', '-')
-                r_path = '%s/%s__%s__%s.cil.i' % (cil_dir, f_type, ver_rule, ver_obj)
-                if r_path in paths_in_use:
-                    ver_obj_path, ver_obj_name = r_path.split('/')
-                    r_path = '/'.join([ver_obj_path, "%s__%s" % (cnt, ver_obj_name)])
-                    cnt += 1
-                try:
-                    for data in self.__cil_data(reports[r_id], r_path):
-                        yield data
-                except Exception as e:
-                    logger.exception(e)
-                else:
-                    new_elem = ETree.Element('include')
-                    new_elem.text = r_path
-                    self.xml_root.find('tasks').append(new_elem)
-                    paths_in_use.append(r_path)
+                            .exclude(parent__parent=None).values_list('id', 'parent_id')
+                    for args in queryset:
+                        self.__add_archive('f', *args)
+            else:
+                model = ReportUnsafe if f_t == 'u' else ReportSafe if f_t == 's' else ReportUnknown
+                for args in model.objects.filter(root=self.root).exclude(parent__parent=None)\
+                        .values_list('id', 'parent_id'):
+                    self.__add_archive('f' if isinstance(f_t, list) else f_t, *args)
 
-    def __cil_data(self, report_id, arcname):
-        with self._archives[report_id] as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                xml_root = ETree.fromstring(zfp.read(self.benchmark_fname))
-                cil_content = zfp.read(xml_root.find('tasks').find('include').text)
-                for data in self.stream.compress_string(arcname, cil_content):
-                    yield data
-                if not self.prp_file_added:
-                    for data in self.stream.compress_string(self.prp_fname, zfp.read(self.prp_fname)):
-                        yield data
-                    self.prp_file_added = True
-            if self.xml_root is None:
-                self.xml_root = xml_root
-                self.xml_root.find('tasks').clear()
+        if not self._archives_to_upload:
+            raise BridgeException(_('There are no files to download'))
 
 
 def report_attibutes(report):

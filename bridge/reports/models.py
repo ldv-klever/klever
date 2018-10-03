@@ -79,7 +79,7 @@ class Attr(models.Model):
 
 class Report(models.Model):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='+')
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     identifier = models.CharField(max_length=255, unique=True)
 
     class Meta:

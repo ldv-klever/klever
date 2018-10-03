@@ -127,6 +127,7 @@ class StreamingResponseView(View):
             if not isinstance(e, BridgeException):
                 logger.exception(e)
                 raise BridgeException()
+            raise
 
         if self.generator is None:
             raise BridgeException()
