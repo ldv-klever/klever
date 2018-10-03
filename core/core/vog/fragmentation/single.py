@@ -22,20 +22,16 @@ from core.vog.fragmentation.abstract import AbstractDivider
 class Single(AbstractDivider):
 
     def _divide(self):
-        fragments = set()
-        target_fragments = set()
         self.logger.info("Each c file will be considered as a separate fragment")
         cmdg = self.clade.CommandGraph()
 
-        # TODO: indeed CC commands can have multiple output files and this should be processed here appropriately.
+        # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
+        # check that all fragments have unique names
         for identifier, desc in ((i, d) for i, d in cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
             rel_object_path = core.utils.make_relative_path(self.source.source_paths, desc['out'][0])
             name = rel_object_path
             fragment = self._create_fragment_from_cc(identifier, name)
             if self.source.check_target(rel_object_path):
                 fragment.target = True
-                target_fragments.add(fragment)
-            fragments.add(fragment)
-
-        self._fragments = fragments
-        self._target_fragments = target_fragments
+                self._target_fragments.add(fragment)
+            self._add_fragment(fragment)

@@ -28,8 +28,6 @@ class Linux(AbstractDivider):
         self._separate_nested = self.conf['Fragmentation strategy'].get("separate nested subsystems", True)
 
     def _divide(self):
-        fragments = set()
-        target_fragments = set()
         self.logger.info("Start division of the Linux kernel into atomic fragments")
         cmdg = self.clade.CommandGraph()
         srcg = self.clade.SourceGraph()
@@ -48,11 +46,9 @@ class Linux(AbstractDivider):
                 if not self._max_size or fragment.size <= self._max_size:
                     if self.source.check_target(rel_object_path):
                         fragment.target = True
-                        target_fragments.add(fragment)
-                    fragments.add(fragment)
+                        self._target_fragments.add(fragment)
+                    self._add_fragment(fragment)
                 else:
                     self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size {!r}'.
                                       format(fragment.name, fragment.size))
 
-        self._fragments = fragments
-        self._target_fragments = target_fragments

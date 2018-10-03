@@ -46,7 +46,8 @@ class Abstract:
     @property
     def aggregations(self):
         if not self._aggregations:
-            self._aggregations = set(self._aggregate())
+            for aggregation in self._aggregate():
+                self._add_aggregation(aggregation)
             if self._add_to_all or self._remove_from_all or self._add_to_fragments or self._rm_from_fragments:
                 c_to_deps, f_to_deps, f_to_files, c_to_frag = self.divider.establish_dependencies()
 
@@ -87,6 +88,11 @@ class Abstract:
             else:
                 self.logger.debug('verification object {!r} is rejected since it exceeds maximum size {}'.
                                   format(aggregation.name, aggregation.size()))
+
+    def _add_aggregation(self, aggregation):
+        if aggregation.name in map(lambda x: x.name, self._aggregations):
+            raise ValueError("There are two fragments with the same identifier {!r}".format(aggregation.name))
+        self._aggregations.add(aggregation)
 
     def _aggregate(self):
         raise NotImplementedError

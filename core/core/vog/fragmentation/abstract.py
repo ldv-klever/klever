@@ -66,6 +66,8 @@ class AbstractDivider:
     @property
     def fragments(self):
         if self._fragments is None:
+            self._target_fragments = set()
+            self._fragments = set()
             self._divide()
         return self._fragments
 
@@ -74,6 +76,11 @@ class AbstractDivider:
             if f.name == name:
                 return f
         return None
+
+    def _add_fragment(self, fragment):
+        if fragment.name in map(lambda x: x.name, self._fragments):
+            raise ValueError("There are two fragments with the same identifier {!r}".format(fragment.name))
+        self._fragments.add(fragment)
 
     def _divide(self):
         raise NotImplementedError
