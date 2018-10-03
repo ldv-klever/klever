@@ -268,16 +268,22 @@ class JCR(core.components.Component):
         cache[sub_job_id].setdefault(requirement, dict())
 
         for file_name in large_cache:
+            # todo: Thic code is close to function add_to_coverage
             cache[sub_job_id][requirement].setdefault(file_name, {
                 'total functions': large_cache[file_name]['total functions'],
                 'covered lines': {},
-                'covered functions': {}
+                'covered functions': {},
+                'covered function names': list()
             })
 
             for path in ('covered lines', 'covered functions'):
                 for line, value in large_cache[file_name][path].items():
                     cache[sub_job_id][requirement][file_name][path].setdefault(line, 0)
                     cache[sub_job_id][requirement][file_name][path][line] += value
+            if large_cache[file_name].get('covered function names'):
+                for name in large_cache[file_name]['covered function names']:
+                    if name not in cache[sub_job_id][requirement][file_name]['covered function names']:
+                        cache[sub_job_id][requirement][file_name]['covered function names'].append(name)
 
     def __save_data(self, cache, sub_job_id, requirement):
         file_name = os.path.join(self.__get_total_cov_dir(sub_job_id, requirement), self.COVERAGE_FILE_NAME)
@@ -330,11 +336,11 @@ class LCOV:
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
                     json.dump(get_coverage(coverage), fp, ensure_ascii=True, sort_keys=True, indent=4)
         except Exception:
-            self.logger.exception('Could not parse coverage')
             if os.path.isfile('coverage.json'):
                 os.remove('coverage.json')
             if os.path.isfile(self.coverage_info):
                 os.remove(self.coverage_info)
+            raise
 
     def parse(self):
         dir_map = (('source files', self.source_dirs),
@@ -468,7 +474,8 @@ class LCOV:
                         'covered functions': covered_functions
                     }
                     if self.collect_functions:
-                        new_cov['covered function names'] = list(function_to_line.keys())
+                        new_cov['covered function names'] = list((name for name, line in function_to_line.items()
+                                                                  if covered_functions[line] != 0))
                     coverage_info[file_name].append(new_cov)
 
         return coverage_info
