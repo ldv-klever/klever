@@ -1,6 +1,6 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
-# Institute for System Programming of the Russian Academy of Sciences
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,183 +14,127 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vog.aggregation.strategy_utils import Module, Graph
-from core.vog.aggregation.abstract_strategy import AbstractStrategy
+
+import os
+import shutil
+import ujson
+import zipfile
 
 
-class Coverage(AbstractStrategy):
-    # TODO: FIX THE STRATEGY
-    def __init__(self, logger, strategy_params, params):
-        super().__init__(logger)
-        self.callgraph = {}
-        self.analyzed_modules = set()
+from core.vog.common import Aggregation
+from core.vog.aggregation.abstract import Abstract
+import core.utils
 
-        self.work_dirs = params.get('work dirs', [])
-        self.max_depth = params.get('max depth', 1)
-        self.coverage_file = params['coverage file']
-        self.covered_funcs = None
-        self.functions_in_file = {}
-        self._build_coverage()
 
-    def _divide(self, module_name):
-        result = set()
-        self.cache = []
-        for i, file in enumerate(self._extracted_modules[module_name]['CCs']):
-            self.logger.debug("Processing {0}/{1} CC command".format(i + 1, len(self._extracted_modules[module_name]['CCs'])))
-            desc = self.clade.get_cc().load_json_by_id(file)
-            in_files = desc['in']
-            for j, in_file in enumerate(in_files):
-                self.logger.debug("Processing {0}/{1} C file".format(j + 1, len(in_files)))
-                for k, func in enumerate(self.functions_in_file.get(in_file, [])):
-                    self.logger.debug("Processing {0}/{1} function".format(k + 1, len(self.functions_in_file[in_file])))
-                    try_cache_modules = self.try_from_cache(func)
-                    if try_cache_modules:
-                        self.logger.debug("Cache hit")
-                        result.update(try_cache_modules)
-                    else:
-                        self.logger.debug("Cache Miss")
-                        result.update(self._divide_by_function(func))
-                        self.logger.debug("Cache is {0}".format(self.cache))
-        if result:
-            return sorted(list(result))
+class Coverage(Abstract):
+    """
+    This strategy gets information about coverage of fragments and searches for suitable fragments to add to cover
+    functions exported by target ones.
+    """
 
-        return [Graph([Module(module_name)])]
+    def __init__(self, logger, conf, divider):
+        super(Coverage, self).__init__(logger, conf, divider)
+        self.fragments_map = self.conf['Aggregation strategy'].get('coverage archive')
+        self._black_list = set(self.conf['Aggregation strategy'].get('ignore fragments', {}))
+        self._white_list = set(self.conf['Aggregation strategy'].get('prefer fragments', {}))
 
-    def try_from_cache(self, func):
-        file_func = self._get_files_by_func(func)[0]
-        for path in self.cache:
-            for file in path:
-                for pos_file, pos_func in self.callgraph.get((file_func, func)):
-                    if pos_file == file:
-                        return self.make_modules_by_path(path)
-        return None
+        # Get archive
+        archive = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                              self.conf['Aggregation strategy']['coverage archive'])
 
-    def _divide_by_function(self, func):
-        file_func = self._get_files_by_func(func)[0]
-        process = [((file_func, func), [file_func], 0)]
-        processed = set()
-        found_path = None
-        while process:
-            current, path, depth = process.pop(0)
-            if current in processed:
-                continue
-            if current in self.covered_funcs:
-                found_path = path
-                break
+        # Extract/fetch file
+        with zipfile.ZipFile(archive) as z:
+            with z.open('coverage.json') as zf:
+                coverage = ujson.load(zf)
 
-            depth += 1
-            if self.max_depth and self.max_depth <= depth:
-                continue
+        # Extract information on functions
+        self._func_coverage = coverage.get('functions statistics')
+        if not self._func_coverage or not self._func_coverage.get('statistics'):
+            raise ValueError("There is no statictics about functions in the given coverage archive")
+        self._func_coverage = {p.replace('source files/', ''): v
+                               for p, v in self._func_coverage.get('statistics').items()}
+        self._func_coverage.pop('overall')
 
-            processed.add(current)
-            for new_func in self.callgraph.get(current, []):
-                new_path = path[:]
-                new_path.append(new_func[0])
-                process.append((new_func, new_path, depth))
+    def _aggregate(self):
+        """
+        Just return target fragments as aggregations consisting of a single fragment.
 
-        if found_path:
-            self.cache.append(found_path)
-            return self.make_modules_by_path(found_path)
-        else:
-            return [Graph([Module(m)]) for m in self._get_modules_by_func(func) if m]
+        :return: Generator that retursn Aggregation objects.
+        """
+        # Collect dependencies
+        c_to_deps, f_to_deps, f_to_files, c_to_frag = self.divider.establish_dependencies()
+        cg = self.clade.CallGraph().graph
 
-    def make_modules_by_path(self, found_path):
-        modules = set()
-        for file in set(found_path):
-            module_file = self._get_module_by_file(file)
-            if module_file:
-                modules.add(Module(module_file))
-        if modules:
-            return [Graph(list(modules) + self.extra_modules)]
-        else:
-            return []
+        # Get target fragments
+        for fragment in self.divider.target_fragments:
+            # Search for export functions
+            ranking = dict()
+            function_map = dict()
+            for path in fragment.export_functions:
+                for func in fragment.export_functions[path]:
+                    # Find fragments that call this function
+                    relevant = self._find_fragments(fragment, path, func, cg, c_to_frag)
+                    for rel in relevant:
+                        ranking.setdefault(rel.name, 0)
+                        ranking[rel.name] += 1
+                        function_map.setdefault(func, set())
+                        function_map[func].update(relevant)
 
-    def _set_dependencies(self, deps, sizes):
-        pass
-
-    def set_callgraph(self, callgraph):
-        for func, desc in callgraph.items():
-            for file, desc_file in desc.items():
-                if file == 'unknown' or not file.endswith('.c'):
+            # Use a greedy algorythm. Go from functions that most rarely used and add fragments that most oftenly used
+            # Turn into account white and black lists
+            added = set()
+            for func in (f for f in sorted(function_map.keys(), key=lambda x: len(function_map[x]))
+                         if len(function_map[f])):
+                if function_map[func].intersection(added):
+                    # Already added
                     continue
-                self.functions_in_file.setdefault(file, [])
-                if desc_file.get('type') == 'global':
-                    self.functions_in_file[file].append(func)
-                self.callgraph.setdefault((file, func), [])
-                for t in ('called_in', 'used_in_func'):
-                    for called_func, called_desc in desc_file.get(t, {}).items():
-                        for called_file in called_desc:
-                            if called_file == 'unknown' or not called_file.endswith('.c'):
-                                continue
-                            self.callgraph[(file, func)].append((called_file, called_func))
+                else:
+                    possible = {f.name for f in function_map[func]}.intersection(self._white_list)
+                    if not possible:
+                        # Get rest
+                        possible = {f.name for f in function_map[func]}.difference(self._black_list)
+                    if possible:
+                        added.add(sorted((f for f in function_map[func] if f.name in possible),
+                                         key=lambda x: ranking[x.name], reverse=True)[0])
 
-                for t in ('calls', 'uses'):
-                    for calls_func, calls_desc in desc_file.get(t, {}).items():
-                        for calls_file in calls_desc:
-                            if calls_file == 'unknown' or not calls_file.endswith('.c'):
-                                continue
-                            self.callgraph.setdefault((calls_file, calls_func), [])
-                            self.callgraph[(calls_file, calls_func)].append((file, func))
+            # Now generate pairs
+            aggs = []
+            for frag in added:
+                new = Aggregation(fragment)
+                new.name = "{}:{}".format(fragment.name, frag.name)
+                new.fragments.add(frag)
+                aggs.append(new)
+            new = Aggregation(fragment)
+            new.name = fragment.name
+            aggs.append(new)
 
-    def need_callgraph(self):
-        return True
+            for agg in aggs:
+                yield agg
 
-    def get_modules_to_build(self, modules):
-        return [], True
+        # Free data
+        self._func_coverage = None
 
-    def get_specific_files(self, files):
+    def _find_fragments(self, fragment, path, func, cg, c_to_frag):
+        """
+        Find fragments that call given function in its covered functions.
+
+        :param fragment: Fragment object.
+        :param path: Definition function scope.
+        :param func: Target function name.
+        :param cg: Callgraph dict.
+        :param c_to_frag: Dict with map of c files to fragment with this file.
+        :return: A set of fragments.
+        """
         result = set()
-        for file in files:
-            paths = self.get_paths_by_file(file)
-            for path in paths:
-                result.update(set(path).difference(set(path[:1])))
-        return sorted(result)
+        # Get functions from the callgraph
+        desc = cg.get(path, dict()).get(func)
+        if desc:
+            for scope, called_funcs in ((s, d) for s, d in desc.get('called_in', dict()).items()
+                                        if s != path and s in self._func_coverage):
+                if any(True for f in called_funcs if f in self._func_coverage[scope]):
+                    # Found function call in covered functions retrieve Fragment and add to result
+                    new = c_to_frag[scope]
+                    if new in fragment.predecessors:
+                        result.add(new)
 
-    def get_specific_modules(self):
-        return [m.id for m in self.extra_modules]
-
-    def get_paths_by_file(self, file):
-        res = []
-        if self.is_subsystem(file):
-            for func_file, functions in self.functions_in_file.items():
-                if func_file.startswith(file):
-                    for func in functions:
-                        path = self.get_path_by_function(func, func_file)
-                        if path:
-                            res.append(path)
-        else:
-            for func in self.functions_in_file.get(file, []):
-                res.append(self.get_path_by_function(func, file))
-        return res
-
-    def get_path_by_function(self, func, file):
-        process = [((file, func), [file])]
-        processed = set()
-        found_path = None
-        while process:
-            current, path = process.pop(0)
-            if current in processed:
-                continue
-            processed.add(current)
-            if current in self.covered_funcs:
-                found_path = path
-                break
-            for new_func in self.callgraph.get(current, []):
-                new_path = path[:]
-                new_path.append(new_func[0])
-                process.append((new_func, new_path))
-        return found_path
-
-    def _build_coverage(self):
-        self.covered_funcs = set()
-        with open(self.coverage_file, encoding='utf8') as fp:
-            current_file = None
-            for line in fp:
-                line = line.rstrip('\n')
-                if line.startswith('SF:'):
-                    current_file = line[len('SF:'):]
-                    continue
-                elif line.startswith('FNDA:'):
-                    func = line.split(',')[1]
-                    # self.logger.debug("Covered func is {0}".format((current_file, func)))
-                    self.covered_funcs.add((current_file, func))
+        return result
