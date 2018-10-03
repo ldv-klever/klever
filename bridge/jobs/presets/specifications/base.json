@@ -71,7 +71,7 @@
             },
             "result processing": {
               "coverage": "lightweight",
-              "collect function names": false
+              "collect function names": true
             }
           }
         }
@@ -257,7 +257,7 @@
             },
             "result processing": {
               "coverage": "lightweight",
-              "collect function names": false
+              "collect function names": true
             }
           }
         }
