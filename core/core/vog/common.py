@@ -59,12 +59,16 @@ class Fragment:
         return md5(self.name.encode('utf-8').hexdigest())[:12]
 
     def add_predecessor(self, predecessor):
-        self.predecessors.add(predecessor)
-        predecessor.successors.add(self)
+        # Just ignore linking to self
+        if predecessor.name != self.name:
+            self.predecessors.add(predecessor)
+            predecessor.successors.add(self)
 
     def add_successor(self, successor):
-        self.successors.add(successor)
-        successor.predecessors.add(self)
+        # Just ignore linking to self
+        if successor.name != self.name:
+            self.successors.add(successor)
+            successor.predecessors.add(self)
 
     def add_export_function(self, scope, func):
         funcs = self.export_functions.setdefault(scope, set())
