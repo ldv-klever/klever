@@ -57,7 +57,7 @@ target_program_descs = [
     #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
     # },
     {
-        'build base': '6e6e1c',
+        'build base': 'build bases/6e6e1c',
         'name': 'Linux',
         'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests')
     }
@@ -231,12 +231,10 @@ class CProgram:
 
         self._build()
 
-        build_base = os.path.join('build bases', self.target_program_desc['build base'])
+        if os.path.isdir(self.target_program_desc['build base']):
+            shutil.rmtree(self.target_program_desc['build base'])
 
-        if os.path.isdir(build_base):
-            shutil.rmtree(build_base)
-
-        clade_api.initialize_extensions(build_base, cmds_file, self._CLADE_CONF)
+        clade_api.initialize_extensions(self.target_program_desc['build base'], cmds_file, self._CLADE_CONF)
 
         # Save project attributes and source directories to build base.
         attrs = [
