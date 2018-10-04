@@ -1,0 +1,522 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from distutils.dir_util import copy_tree
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import urllib.parse
+
+import clade.interface as clade_api
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+
+from utils.utils import execute_cmd, get_logger, make_relative_path
+
+
+preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'bridge', 'jobs', 'presets')
+
+common_target_program_descs = {
+    'Linux': {
+        'source': 'linux-3.14.79',
+        'configuration': 'allmodconfig',
+        'architecture': 'x86_64',
+        'model CC options file': 'scripts/mod/empty.c',
+        'external modules header files search directory': os.path.join(preset_jobs_dir, 'specifications'),
+        'loadable kernel modules': ['all'],
+        'allow local source directories use': True,
+        'generate makefiles': True
+    }
+}
+
+target_program_descs = [
+    # {
+    #     'build base': '1de383',
+    #     'name': 'Linux',
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
+    # },
+    {
+        'build base': '6e6e1c',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests')
+    }
+]
+
+
+class CProgram:
+    _CLADE_CONF = dict()
+
+    def __init__(self, logger, target_program_desc):
+        self.logger = logger
+        self.target_program_desc = target_program_desc
+
+        # Working source tree where various build and auxiliary actions will be performed.
+        self.work_src_tree = None
+
+        # TODO: make this adaptive.
+        # The number of parallel jobs for make.
+        self.jobs = '8'
+
+        # C program attributes. We expect that architecture is always specified in target program description while
+        # configuration and version can be either obtained during build somehow or remained unspecified.
+        self.architecture = self.target_program_desc['architecture']
+        self.configuration = None
+        self.version = None
+
+        # Source directories are directories to be trimed from file names.
+        self.source_dirs = []
+
+    def _build(self):
+        self.logger.info('Build C program')
+        self._make(intercept_build_cmds=True)
+
+    def _clean(self):
+        self.logger.info('Clean working source tree')
+        execute_cmd(self.logger, 'make', 'clean', cwd=self.work_src_tree)
+
+    def _configure(self):
+        self.logger.info('Configure C program')
+        execute_cmd(self.logger, './configure', cwd=self.work_src_tree)
+
+    def _fetch_work_src_tree(self):
+        src = self.target_program_desc['source']
+        self.work_src_tree = tempfile.mkdtemp()
+
+        self.logger.info('Fetch source code from "{0}" to working source tree "{1}"'.format(src, self.work_src_tree))
+
+        o = urllib.parse.urlparse(src)
+        if o[0] in ('http', 'https', 'ftp'):
+            raise NotImplementedError('Source code is provided in unsupported form of remote archive')
+        elif o[0] == 'git':
+            raise NotImplementedError('Source code is provided in unsupported form of remote Git repository')
+        elif o[0]:
+            raise ValueError('Source code is provided in unsupported form "{0}"'.format(o[0]))
+
+        if os.path.isdir(src):
+            if self.target_program_desc['allow local source directories use']:
+                self.logger.info('Use original source tree "{0}" rather than fetch it to working source tree "{1}"'
+                                 .format(src, self.work_src_tree))
+                self.work_src_tree = src
+            else:
+                shutil.copytree(src, self.work_src_tree, symlinks=True)
+
+            if os.path.isdir(os.path.join(src, '.git')):
+                self.logger.debug("Source code is provided in form of Git repository")
+            else:
+                self.logger.debug("Source code is provided in form of source tree")
+
+            # TODO: do not allow to checkout both branch and commit and to checkout branch or commit for source tree.
+            git_repo = self.target_program_desc.get('Git repository')
+            if git_repo:
+                for commit_or_branch in ('commit', 'branch'):
+                    if commit_or_branch in git_repo:
+                        self.logger.info('Checkout Git repository {0} "{1}"'.format(commit_or_branch,
+                                                                                    git_repo[commit_or_branch]))
+                        # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
+                        # some previous Git commands crashed. Isolating several instances of Klever Core working with
+                        # the same Linux kernel source code should be done somehow else in a more generic way.
+                        git_index_lock = os.path.join(self.work_src_tree, '.git', 'index.lock')
+                        if os.path.isfile(git_index_lock):
+                            os.remove(git_index_lock)
+                        # In case of dirty Git working directory checkout may fail so clean up it first.
+                        execute_cmd(self.logger, 'git', 'clean', '-f', '-d', cwd=self.work_src_tree)
+                        execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
+                        execute_cmd(self.logger, 'git', 'checkout', '-f', git_repo[commit_or_branch],
+                                    cwd=self.work_src_tree)
+
+                        # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
+                        stdout = execute_cmd(self.logger, 'git', 'rev-parse', 'HEAD', cwd=self.work_src_tree,
+                                             get_output=True)
+                        self.version = stdout[0][0:12]
+        elif os.path.isfile(src):
+            self.logger.debug('Source code is provided in form of archive')
+            with tarfile.open(src, encoding='utf8') as TarFile:
+                TarFile.extractall(self.work_src_tree)
+        else:
+            raise ValueError('Source code is not provided')
+
+        # Directory corresponding to working source tree will be trimmed from file names.
+        self.source_dirs.append(self.work_src_tree)
+
+    def _get_version(self):
+        self.version = self.target_program_desc.get('version')
+
+    def _make(self, *target, opts=None, env=None, intercept_build_cmds=False, get_output=False):
+        if opts is None:
+            opts = []
+
+        return execute_cmd(self.logger,
+                           *((['clade-intercept'] if intercept_build_cmds else []) +
+                             ['make', '-j', self.jobs] + opts + list(target)),
+                           cwd=self.work_src_tree, env=env, get_output=get_output)
+
+    def _make_canonical_work_src_tree(self):
+        self.logger.info('Make canonical working source tree "{0}"'.format(self.work_src_tree))
+
+        def _is_src_tree_root(fnames):
+            for filename in fnames:
+                if filename == 'Makefile':
+                    return True
+
+            return False
+
+        work_src_tree_root = None
+        for dirpath, _, filenames in os.walk(self.work_src_tree):
+            if _is_src_tree_root(filenames):
+                work_src_tree_root = dirpath
+                break
+
+        if not work_src_tree_root:
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(self.work_src_tree))
+
+        if os.path.samefile(work_src_tree_root, self.work_src_tree):
+            return
+
+        self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, self.work_src_tree))
+        for path in os.listdir(work_src_tree_root):
+            shutil.move(os.path.join(work_src_tree_root, path), self.work_src_tree)
+        trash_dir = work_src_tree_root
+        while True:
+            parent_dir = os.path.join(trash_dir, os.path.pardir)
+            if os.path.samefile(parent_dir, self.work_src_tree):
+                break
+            trash_dir = parent_dir
+
+        self.logger.debug('Remove "{0}"'.format(trash_dir))
+        shutil.rmtree(os.path.realpath(trash_dir))
+
+    def build(self):
+        self._fetch_work_src_tree()
+        self._make_canonical_work_src_tree()
+
+        # Remove file with intercepted build commands if so.
+        cmds_file = os.path.join(self.work_src_tree, 'cmds.txt')
+        if os.path.isfile(cmds_file):
+            os.remove(cmds_file)
+
+        self._clean()
+        self._get_version()
+
+        if self.version:
+            self.logger.info('C program version is "{0}"'.format(self.version))
+
+        self._configure()
+
+        if self.configuration:
+            self.logger.info('C program configuration is "{0}"'.format(self.configuration))
+
+        # if model_headers:
+        #     program.prepare_model_headers(model_headers)
+
+        self._build()
+
+        build_base = os.path.join('build bases', self.target_program_desc['build base'])
+
+        if os.path.isdir(build_base):
+            shutil.rmtree(build_base)
+
+        clade_api.initialize_extensions(build_base, cmds_file, self._CLADE_CONF)
+
+        # Save project attributes and source directories to build base.
+        attrs = [
+            {
+                'name': type(self).__name__,
+                'value': [{'name': name, 'value': getattr(self, name)}
+                          for name in ('architecture', 'version', 'configuration')]
+            }
+        ]
+
+        storage = clade_api.FileStorage()
+        tmp_dir = tempfile.mkdtemp()
+        for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
+                           (self.source_dirs, os.path.join(tmp_dir, 'source dirs.json'))):
+            with open(file, 'w', encoding='utf8') as fp:
+                json.dump(data, fp)
+
+            storage.save_file(file, os.path.basename(file))
+
+        shutil.rmtree(tmp_dir)
+
+
+class Linux(CProgram):
+    _ARCH_OPTS = {
+        'arm': {
+            'ARCH': 'arm',
+            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
+        },
+        'x86_64': {
+            'ARCH': 'x86_64'
+        }
+    }
+    _CLADE_CONF = {
+        "log_level": "INFO",
+        "CmdGraph.requires": [
+            "CC",
+            "LD",
+            "MV",
+            "AR",
+            "Objcopy"
+        ],
+        "CC.store_deps": True,
+        "Common.filter": [
+            ".*?\\.tmp$"
+        ],
+        "Common.filter_in": [
+            "-",
+            "/dev/null",
+            "scripts/(?!mod/empty\\.c)",
+            "kernel/.*?bounds.*?",
+            "arch/x86/tools/relocs",
+            "arch/x86/kernel/asm-offsets.c",
+            ".*\\.mod\\.c"
+        ],
+        "Common.filter_out": [
+            "/dev/null",
+            ".*?\\.cmd$",
+            "vmlinux"
+        ]
+    }
+
+    def __init__(self, logger, target_program_desc):
+        super().__init__(logger, target_program_desc)
+
+    def _build(self):
+        self.logger.info('Build Linux kernel')
+
+        # Build Linux kernel if necessary.
+        if self.target_program_desc.get('build kernel'):
+            self._make('vmlinux', intercept_build_cmds=True)
+
+        # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
+        ext_modules = self.__prepare_ext_modules()
+        ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
+
+        try:
+            # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
+            # kernel supports loadable modules.
+            self._make('modules_prepare', intercept_build_cmds=True)
+            support_loadable_kernel_modules = True
+        except subprocess.CalledProcessError:
+            # Otherwise the command above will most likely fail. In this case compile special file, namely,
+            # scripts/mod/empty.o, that seems to exist in all Linux kernel versions and that will provide options for
+            # building C files including headers necessary for models.
+            self._make('scripts/mod/empty.o', intercept_build_cmds=True)
+            support_loadable_kernel_modules = False
+
+        if len(self.target_program_desc.get('loadable kernel modules', [])) > 0:
+            self.logger.info('Build loadable kernel modules')
+
+            # Specially process building of all modules.
+            if 'all' in self.target_program_desc['loadable kernel modules']:
+                if len(self.target_program_desc['loadable kernel modules']) != 1:
+                    raise ValueError('Can not build all modules and something else')
+
+                # Use target "modules" when the Linux kernel supports loadable modules.
+                if support_loadable_kernel_modules:
+                    self._make(*(ext_modules_make_opt + ['modules']), intercept_build_cmds=True)
+                # Otherwise build all builtin modules indirectly by using target "all".
+                else:
+                    self._make(*(ext_modules_make_opt + ['all']), intercept_build_cmds=True)
+            else:
+                # Check that modules aren't intersect explicitly.
+                for i, modules1 in enumerate(self.target_program_desc['loadable kernel modules']):
+                    for j, modules2 in enumerate(self.target_program_desc['loadable kernel modules']):
+                        if i != j:
+                            if modules1 == modules2:
+                                raise ValueError('Modules "{0}" are duplicated'.format(modules1))
+                            else:
+                                # Get rid of file names, remain just directories.
+                                if not re.search(r'\.ko$', modules1) or not re.search(r'\.ko$', modules2):
+                                    modules1_dir = os.path.dirname(modules1) \
+                                        if re.search(r'\.ko$', modules1) else modules1
+                                    modules2_dir = os.path.dirname(modules2) \
+                                        if re.search(r'\.ko$', modules2) else modules2
+
+                                    if modules1_dir != make_relative_path([modules2_dir], modules1_dir):
+                                        raise ValueError('Modules "{0}" are subset of modules "{1}"'
+                                                         .format(modules1, modules2))
+
+                # Examine modules to get all build targets. Do not build immediately to catch mistakes earlier.
+                build_targets = []
+                for modules in self.target_program_desc['loadable kernel modules']:
+                    # Modules ending with .ko imply individual modules.
+                    if re.search(r'\.ko$', modules):
+                        if ext_modules:
+                            build_targets.append(ext_modules_make_opt +
+                                                 [os.path.join(*(modules.split(os.path.sep)[1:]))])
+                        else:
+                            build_targets.append(ext_modules_make_opt + [modules])
+                    # Otherwise it is directory that can contain modules.
+                    else:
+                        if ext_modules:
+                            if not os.path.isdir(modules):
+                                raise ValueError('There is no directory "{0}" inside "{1}"'
+                                                 .format(modules, os.getcwd()))
+
+                            build_targets.append(['M=' + os.path.abspath(modules)])
+                        else:
+                            if not os.path.isdir(os.path.join(self.work_src_tree, modules)):
+                                raise ValueError('There is no directory "{0}" inside "{1}"'.
+                                                 format(modules, self.work_src_tree))
+
+                            build_targets.append(['M=' + modules])
+
+                for build_target in build_targets:
+                    self._make(build_target, intercept_build_cmds=True)
+
+        # Generate Makefile and compile C files including model headers. These files will be treated as part of kernel -
+        # one will need to filter them out later if required.
+        # with open(os.path.join(self._model_headers_path, 'Makefile'), 'w', encoding='utf-8') as fp:
+        #     fp.write('obj-y += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+        #
+        # self._make(['M=' + os.path.abspath(self._model_headers_path)], intercept_build_cmds=True)
+
+    def _clean(self):
+        self._make('mrproper')
+
+    def _configure(self):
+        self.logger.info('Configure Linux kernel')
+
+        # Linux kernel configuration can be specified by means of configuration file or configuration target.
+        if os.path.isfile(self.target_program_desc['configuration']):
+            conf_file = self.target_program_desc['configuration']
+
+            self.logger.info('Linux kernel configuration file is "{0}"'.format(conf_file))
+
+            # Use configuration file SHA1 digest as Linux kernel configuration.
+            with open(conf_file, 'rb') as fp:
+                self.configuration = hashlib.sha1(fp.read()).hexdigest()[:7]
+
+            self.logger.info('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.configuration))
+
+            shutil.copy(conf_file, self.work_src_tree)
+
+            target = ['oldconfig', 'KCONFIG_CONFIG={0}'.format(os.path.basename(conf_file))]
+        else:
+            self.logger.debug('Linux kernel configuration target is "{0}"'
+                              .format(self.target_program_desc['configuration']))
+
+            # Use configuration target as Linux kernel configuration.
+            self.configuration = self.target_program_desc['configuration']
+
+            target = [self.configuration]
+
+        self._make(*target)
+
+    def _get_version(self):
+        self.logger.info('Get Linux kernel version')
+
+        if not self.version:
+            output = self._make('kernelversion', get_output=True)
+            self.version = output[0]
+
+    def _make(self, *target, **kwargs):
+        kwargs['opts'] = ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.architecture].items()]
+        return super()._make(*target, **kwargs)
+
+    def __prepare_ext_modules(self):
+        ext_modules = self.target_program_desc['external modules']
+
+        if not ext_modules:
+            return None
+
+        work_src_tree = tempfile.mkdtemp()
+
+        self.logger.info(
+            'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
+            .format(ext_modules, work_src_tree))
+
+        if os.path.isdir(ext_modules):
+            self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
+            copy_tree(ext_modules, work_src_tree)
+        elif os.path.isfile(ext_modules):
+            self.logger.debug('External Linux kernel modules source code is provided in form of archive')
+            with tarfile.open(ext_modules, encoding='utf8') as TarFile:
+                TarFile.extractall(work_src_tree)
+
+        self.logger.info('Make canonical working source tree of external Linux kernel modules')
+        work_src_tree_root = None
+        for dirpath, dirnames, filenames in os.walk(work_src_tree):
+            ismakefile = False
+            for filename in filenames:
+                if filename == 'Makefile':
+                    ismakefile = True
+                    break
+
+            # Generate Linux kernel module Makefiles recursively starting from source tree root directory if they do not
+            # exist.
+            if self.target_program_desc['generate makefiles']:
+                if not work_src_tree_root:
+                    work_src_tree_root = dirpath
+
+                if not ismakefile:
+                    with open(os.path.join(dirpath, 'Makefile'), 'w', encoding='utf-8') as fp:
+                        fp.write('obj-m += $(patsubst %, %/, $(notdir $(patsubst %/, %, {0})))\n'
+                                 .format('$(filter %/, $(wildcard $(src)/*/))'))
+                        fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
+                        # Specify additional directory to search for model headers.
+                        fp.write('ccflags-y += -I{0}'
+                                 .format(self.target_program_desc['external modules header files search directory']))
+            elif ismakefile:
+                work_src_tree_root = dirpath
+                break
+
+        if not work_src_tree_root:
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+        elif not os.path.samefile(work_src_tree_root, work_src_tree):
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
+            for path in os.listdir(work_src_tree_root):
+                shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
+            trash_dir = work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, work_src_tree):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            shutil.rmtree(os.path.realpath(trash_dir))
+
+        # Directory corresponding to working source tree of external Linux kernel modules will be trimmed from program
+        # fragment identifiers (absolute paths to external loadable kernel modules) and file names.
+        self.source_dirs.append(work_src_tree)
+
+        return os.path.abspath(work_src_tree)
+
+
+class BusyBox(CProgram):
+    def __init__(self, logger, target_program_desc):
+        super().__init__(logger, target_program_desc)
+
+
+def klever_build():
+    logger = get_logger(__name__)
+
+    for target_program_desc in target_program_descs:
+        logger.info('Prepare build base "{}"'.format(target_program_desc['build base']))
+        target_program_desc.update(common_target_program_descs[target_program_desc['name']])
+        getattr(sys.modules[__name__], target_program_desc['name'])(logger, target_program_desc).build()
+
+
+if __name__ == '__main__':
+    klever_build()
