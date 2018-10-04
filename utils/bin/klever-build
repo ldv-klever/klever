@@ -57,7 +57,7 @@ target_program_descs = [
     #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
     # },
     {
-        'build base': 'build bases/6e6e1c',
+        'build base': 'build bases/testing/6e6e1c',
         'name': 'Linux',
         'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests')
     }

@@ -1,6 +1,6 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "build base": "build bases/6e6e1c",
+  "build base": "build bases/testing/6e6e1c",
   "Fragmentation strategy": {
     "name": "Linux",
     "target kernel": false,
