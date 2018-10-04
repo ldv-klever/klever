@@ -512,8 +512,9 @@ def klever_build():
 
     for target_program_desc in target_program_descs:
         logger.info('Prepare build base "{}"'.format(target_program_desc['build base']))
-        target_program_desc.update(common_target_program_descs[target_program_desc['name']])
-        getattr(sys.modules[__name__], target_program_desc['name'])(logger, target_program_desc).build()
+        common_target_program_desc = dict(common_target_program_descs[target_program_desc['name']])
+        common_target_program_desc.update(target_program_desc)
+        getattr(sys.modules[__name__], target_program_desc['name'])(logger, common_target_program_desc).build()
 
 
 if __name__ == '__main__':
