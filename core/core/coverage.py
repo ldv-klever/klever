@@ -126,9 +126,9 @@ class JCR(core.components.Component):
 
     COVERAGE_FILE_NAME = "cached coverage.json"
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, queues_to_terminate=None):
-        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir,
+        super(JCR, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir,
                                   attrs, separate_from_parent, include_child_resources)
 
         # This function adds callbacks and it should work until we call it in the new process

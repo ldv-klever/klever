@@ -51,7 +51,7 @@ def __submit_project_attrs(context):
 
 class VRP(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Requirement specification descriptions were already extracted when getting VTG callbacks.
         self.__downloaded = dict()
@@ -63,7 +63,7 @@ class VRP(core.components.Component):
         self.verification_object = None
 
         # Common initialization
-        super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
 
     def process_results(self):
@@ -212,7 +212,7 @@ class VRP(core.components.Component):
                 workdir = os.path.join(vo, requirement)
             self.vals['task solution triples']['{}:{}'.format(vo, requirement)] = [None, None, None]
             try:
-                rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals, new_id,
+                rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
                         workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
                         source_paths=source_paths, element=[status, data])
                 rp.start()
@@ -238,7 +238,7 @@ class VRP(core.components.Component):
 
 class RP(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, qos_resource_limits=None, source_paths=None,
                  element=None):
         # Read this in a callback
@@ -252,7 +252,7 @@ class RP(core.components.Component):
         self.__exception = None
         self.__qos_resource_limit = qos_resource_limits
         # Common initialization
-        super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
 
         self.clean_dir = True

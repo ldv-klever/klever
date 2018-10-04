@@ -24,9 +24,9 @@ import core.components
 
 class PW(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, session=None, total_subjobs=None):
-        super(PW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(PW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
         # Initialize shared values and queues
         self.mqs['finished and failed tasks'] = multiprocessing.Queue()

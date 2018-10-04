@@ -298,9 +298,9 @@ def resolve_requirement_class(name):
 
 class VTG(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.model_headers = {}
         self.requirement_descs = None
@@ -579,9 +579,9 @@ class VTG(core.components.Component):
 
 class VTGWL(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(VTGWL, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                     separate_from_parent, include_child_resources)
 
     def task_generating_loop(self):
@@ -615,7 +615,7 @@ class VTGWL(core.components.Component):
             identifier = "{}/{}/VTGW".format(element[0]['id'], element[1]['id'])
             workdir = os.path.join(element[0]['id'], element[1]['id'])
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                    self.locks, self.vals, identifier, workdir,
+                    self.vals, identifier, workdir,
                     attrs=attrs, separate_from_parent=True, verification_object=element[0], requirement=element[1],
                     resource_limits=element[2], rerun=element[3])
 
@@ -624,10 +624,10 @@ class VTGWL(core.components.Component):
 
 class VTGW(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, verification_object=None, requirement=None,
                  resource_limits=None, rerun=False):
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
         self.verification_object = verification_object
         self.requirement = requirement
@@ -748,7 +748,7 @@ class VTGW(core.components.Component):
 
                 try:
                     p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                              self.locks, self.vals, plugin_desc['name'],
+                                              self.vals, plugin_desc['name'],
                                               plugin_work_dir, separate_from_parent=True,
                                               include_child_resources=True)
                     p.start()

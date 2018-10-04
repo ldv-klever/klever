@@ -50,13 +50,7 @@ class VOG(core.components.Component):
 
         # Create instances
         program = program(self.logger, self.conf)
-        if not self.conf['Clade']["is base cached"]:
-            # Prepare project working source tree and extract build commands exclusively but just with other
-            # sub-jobs of a given job. It would be more properly to lock working source trees especially if different
-            # sub-jobs use different trees (https://forge.ispras.ru/issues/6647).
-            with self.locks['build']:
-                self.prepare_and_build(program)
-        clade_api.setup(self.conf['Clade']["base"])
+        clade_api.setup(self.conf['build base'])
 
         divider = divider(self.logger, self.conf, program, clade_api)
         strategy = strategy(self.logger, self.conf, divider)

@@ -84,10 +84,9 @@ class Core(core.components.CallbacksCaller):
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             os.makedirs('child resources'.encode('utf8'))
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
-                                                      {'build': multiprocessing.Manager().Lock()},
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
-            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {
+            core.job.start_jobs(self, {
                 'report id': self.report_id,
                 'coverage_finished': multiprocessing.Manager().dict()
             })
@@ -278,9 +277,9 @@ class Core(core.components.CallbacksCaller):
 
 class Reporter(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, session=None):
-        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                        separate_from_parent, include_child_resources)
         self.session = session
 

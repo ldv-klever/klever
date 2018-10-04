@@ -20,7 +20,6 @@ import importlib
 import json
 import multiprocessing
 import os
-import shutil
 import time
 import zipfile
 
@@ -35,7 +34,7 @@ JOB_ARCHIVE = 'job.zip'
 NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'base.json']
 
 
-def start_jobs(core_obj, locks, vals):
+def start_jobs(core_obj, vals):
     core_obj.logger.info('Check how many jobs we need to start and setup them')
 
     core_obj.logger.info('Extract job archive "{0}" to directory "{1}"'.format(JOB_ARCHIVE, 'job'))
@@ -78,7 +77,7 @@ def start_jobs(core_obj, locks, vals):
     try:
         queues_to_terminate = []
 
-        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+        pc = PW(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
                 separate_from_parent=False, include_child_resources=True, session=core_obj.session,
                 total_subjobs=(len(common_components_conf['Sub-jobs']) if 'Sub-jobs' in common_components_conf else 0))
         pc.start()
@@ -101,7 +100,7 @@ def start_jobs(core_obj, locks, vals):
                     'sub-job identifier': context.sub_job_id
                 })
 
-            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, locks, vals,
+            cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
                      separate_from_parent=False, include_child_resources=True, queues_to_terminate=queues_to_terminate)
             # This can be done only in this module otherwise callbacks will be missed
             core.components.set_component_callbacks(core_obj.logger, Job,
@@ -112,7 +111,7 @@ def start_jobs(core_obj, locks, vals):
         if 'Sub-jobs' in common_components_conf:
             if __check_ideal_verdicts(common_components_conf):
                 ra = RA(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                        locks, vals, separate_from_parent=False, include_child_resources=True,
+                        vals, separate_from_parent=False, include_child_resources=True,
                         job_type=job_type, queues_to_terminate=queues_to_terminate)
                 ra.start()
                 subcomponents.append(ra)
@@ -121,13 +120,13 @@ def start_jobs(core_obj, locks, vals):
             sub_job_solvers_num = core.utils.get_parallel_threads_num(core_obj.logger, common_components_conf,
                                                                       'Sub-jobs processing')
             core_obj.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
-            __solve_sub_jobs(core_obj, locks, vals, common_components_conf, job_type,
+            __solve_sub_jobs(core_obj, vals, common_components_conf, job_type,
                              subcomponents + [core_obj.uploading_reports_process])
         else:
             # Klever Core working directory is used for the only sub-job that is job itcore.
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-                locks, vals,
+                vals,
                 id='-',
                 work_dir=os.path.join(os.path.curdir, 'job'),
                 separate_from_parent=True,
@@ -185,7 +184,7 @@ def __get_common_components_conf(logger, conf):
     return components_common_conf
 
 
-def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, subcomponents):
+def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcomponents):
     def constructor(number):
         # Sub-job configuration is based on common sub-jobs configuration.
         sub_job_components_common_conf = copy.deepcopy(components_common_conf)
@@ -195,7 +194,7 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
 
         job = Subjob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
-            locks, vals,
+            vals,
             id=str(number),
             work_dir=str(number),
             attrs=[{
@@ -244,9 +243,9 @@ def __solve_sub_jobs(core_obj, locks, vals, components_common_conf, job_type, su
 
 class RA(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, job_type=None, queues_to_terminate=None):
-        super(RA, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(RA, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
         self.job_type = job_type
         self.data = dict()
@@ -485,51 +484,15 @@ class Job(core.components.Component):
         'VRP'
     ]
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=True, include_child_resources=False, job_type=None, components_common_conf=None):
-        super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(Job, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
         self.job_type = job_type
         self.common_components_conf = components_common_conf
         self.sub_job_id = id
-
-        # Configure Clade here since many Core components need appropriate options to be set.
-        self.__configure_clade()
-
         self.components = []
         self.component_processes = []
-
-    def __configure_clade(self):
-        # VOG will run Clade without caching its results when configuration misses Clade base. Otherwise it will
-        # either use cached Clade base (if corresponding directory exists and non empty) or run it and cache its
-        # results.
-        clade_conf = self.common_components_conf['Clade'] if 'Clade' in self.common_components_conf else {}
-        clade_conf['is base cached'] = False
-        if clade_conf.get('base'):
-            if 'KLEVER_WORK_DIR' not in os.environ:
-                raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
-
-            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], 'clade', clade_conf['base'])
-
-            if os.path.exists(clade_base):
-                if not os.path.isdir(clade_base):
-                    raise FileExistsError('Clade base "{0}" is not a directory'.format(clade_base))
-
-                # Think that Clade can reuse previously prepared base just if there is such the file inside Clade base.
-                if os.path.isfile(os.path.join(clade_base, 'cached')):
-                    self.logger.info('Reuse previously prepared Clade base')
-                    clade_conf['is base cached'] = True
-                else:
-                    self.logger.info('Remove Clade base since it was not prepared properly')
-                    shutil.rmtree(clade_base)
-        else:
-            # Clade will output results into this subdirectory within job/sub-job working directory.
-            clade_base = os.path.join(os.path.realpath(self.work_dir), 'clade')
-
-        clade_conf['base'] = clade_base
-
-        # Update existing Clade configuration.
-        self.common_components_conf['Clade'] = clade_conf
 
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
@@ -579,7 +542,7 @@ class Job(core.components.Component):
                          format(self.job_type, self.id))
         for component in self.components:
             p = component(self.common_components_conf, self.logger, self.id, self.callbacks, self.mqs,
-                          self.locks, self.vals, separate_from_parent=True)
+                          self.vals, separate_from_parent=True)
             self.component_processes.append(p)
 
         core.components.launch_workers(self.logger, self.component_processes)
