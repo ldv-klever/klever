@@ -1,104 +1,37 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "Common": {
-    "project": {
-      "name": "Linux",
-      "source": "linux-3.14.79",
-      "configuration": "allmodconfig",
-      "architecture": "x86_64",
-      "external modules": "tests",
-      "opts file": "scripts/mod/empty.c"
-    },
-    "Fragmentation strategy": {
-      "name": "Linux",
-      "target kernel": false,
-      "maximum unit size": 30000
-    },
-    "Aggregation strategy": {
-      "name": "separate",
-      "maximum verification object size": 30000
-    },
-    "specifications set": "Linux 3.14 (base)",
-    "requirements": ["linux:test:common"],
-    "ideal verdicts": [
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/base/dd/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/drivers/spi/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/err/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/ldv/common/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mm/gfp/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/linux/mm/slab/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/common/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/gcc/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/map/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/memory/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/nondet/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/counter/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/flag/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/set/nonnegative-counter/safe.ko"},
-      {"ideal verdict": "safe", "verification object": "ext-modules/verifier/thread/safe.ko"},
-      {"ideal verdict": "unsafe"}
-    ]
+  "build base": "build bases/6e6e1c",
+  "Fragmentation strategy": {
+    "name": "Linux",
+    "target kernel": false,
+    "maximum unit size": 30000
   },
-  "Sub-jobs": [
+  "Aggregation strategy": {
+    "name": "separate",
+    "maximum verification object size": 30000
+  },
+  "specifications set": "Linux 3.14 (base)",
+  "requirements": ["linux:test:common"],
+  "ideal verdicts": [
     {
-      "Clade": {"base": "6e6e1c"},
-      "project": {"kernel subsystems": ["ext-modules/linux/drivers/base/dd"]}
-    },
-    {
-      "Clade": {"base": "c217bf"},
-      "project": {"kernel subsystems": ["ext-modules/linux/drivers/spi"]}
-    },
-    {
-      "Clade": {"base": "6e50b4"},
-      "project": {"kernel subsystems": ["ext-modules/linux/err"]}
-    },
-    {
-      "Clade": {"base": "0da368"},
-      "project": {"kernel subsystems": ["ext-modules/linux/ldv/common"]}
-    },
-    {
-      "Clade": {"base": "103410"},
-      "project": {"kernel subsystems": ["ext-modules/linux/mm/gfp"]}
-    },
-    {
-      "Clade": {"base": "df2751"},
-      "project": {"kernel subsystems": ["ext-modules/linux/mm/slab"]}
-    },
-    {
-      "Clade": {"base": "9311e4"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/common"]}
-    },
-    {
-      "Clade": {"base": "c50974"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/gcc"]}
-    },
-    {
-      "Clade": {"base": "02048c"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/map"]}
-    },
-    {
-      "Clade": {"base": "7b54d7"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/memory"]}
-    },
-    {
-      "Clade": {"base": "a93dad"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/nondet"]}
-    },
-    {
-      "Clade": {"base": "132fd5"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/set/counter"]}
-    },
-    {
-      "Clade": {"base": "fa5d52"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/set/flag"]}
-    },
-    {
-      "Clade": {"base": "038b3a"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/set/nonnegative-counter"]}
-    },
-    {
-      "Clade": {"base": "70dc2e"},
-      "project": {"kernel subsystems": ["ext-modules/verifier/thread"]}
-    }
+      "ideal verdict": "safe",
+      "verification object": [
+        "ext-modules/linux/drivers/base/dd/safe.ko",
+        "ext-modules/linux/drivers/spi/safe.ko",
+        "ext-modules/linux/err/safe.ko",
+        "ext-modules/linux/ldv/common/safe.ko",
+        "ext-modules/linux/mm/gfp/safe.ko",
+        "ext-modules/linux/mm/slab/safe.ko",
+        "ext-modules/verifier/common/safe.ko",
+        "ext-modules/verifier/gcc/safe.ko",
+        "ext-modules/verifier/map/safe.ko",
+        "ext-modules/verifier/memory/safe.ko",
+        "ext-modules/verifier/nondet/safe.ko",
+        "ext-modules/verifier/set/counter/safe.ko",
+        "ext-modules/verifier/set/flag/safe.ko",
+        "ext-modules/verifier/set/nonnegative-counter/safe.ko",
+        "ext-modules/verifier/thread/safe.ko"
+      ]},
+    {"ideal verdict": "unsafe"}
   ]
 }
