@@ -340,7 +340,7 @@ class UploadFilesTree:
                 continue
             with f.file.file as fp:
                 try:
-                    json.load(fp)
+                    json.loads(fp.read().decode('utf8'))
                 except json.decoder.JSONDecodeError:
                     wrong_jsons.append(get_path(f.id))
         if wrong_jsons:
