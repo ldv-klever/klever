@@ -32,9 +32,7 @@
                         {% if user.extended.data_format == 'hum' %}
                             {{ rh.date|naturaltime }}
                         {% else %}
-                            {% timezone user.extended.timezone %}
-                                {{ rh.date|date:"r" }}
-                            {% endtimezone %}
+                            {{ rh.date|date:"r" }}
                         {% endif %}
                     </option>
                 {% endfor %}

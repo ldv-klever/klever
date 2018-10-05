@@ -77,16 +77,6 @@
                     </thead>
                     <tbody>
                         <tr><th class="right aligned">{% trans 'Format' %}</th><td>{{ job.format }}</td></tr>
-                        <tr>
-                            <th class="right aligned">{% trans 'Safe marks' %}</th>
-                            <td>
-                                {% if job_access.can_edit %}
-                                    <a id="safe_marks_link" class="violet-link" href="#">{% if job.safe_marks %}{% trans 'Enabled' %}{% else %}{% trans 'Disabled' %}{% endif %}</a>
-                                {% else %}
-                                    {% if job.safe_marks %}{% trans 'Enabled' %}{% else %}{% trans 'Disabled' %}{% endif %}
-                                {% endif %}
-                            </td>
-                        </tr>
                         <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ job.identifier }}</td></tr>
                         {% if job.parent %}
                             <tr><th class="right aligned">{% trans 'Parent identifier' %}</th><td>{{ job.parent.identifier }}</td></tr>
@@ -136,13 +126,7 @@
                         <tr id="tr_before_progress">
                             <th class="right aligned">{% trans 'Last change' %}</th>
                             <td>
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
                                 {% if last_version.change_author %}
                                     (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
                                 {% endif %}
@@ -226,13 +210,6 @@
         </div>
 
         {# Popups #}
-        {% if job_access.can_edit %}
-            <div id="safe_marks_popup" class="ui inverted popup">
-                <div class="content">
-                    <button id="change_safe_marks" class="ui tiny violet button">{% if job.safe_marks %}{% trans 'Disable' %}{% else %}{% trans 'Enable' %}{% endif %}</button>
-                </div>
-            </div>
-        {% endif %}
         {% if job.solvingprogress.error %}
             <div id="job_status_popup" class="ui inverted popup wide hidden">
                 <div class="ui red header">{{ job.solvingprogress.error }}</div>

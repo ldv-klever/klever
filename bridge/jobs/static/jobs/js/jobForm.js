@@ -56,11 +56,10 @@ function save_job() {
         user_roles: get_user_roles(),
         file_data: get_files_data('#filestree'),
         parent: $('#parent_identifier').val(),
-        last_version: get_last_version_id(),
-        safe_marks: $('#safe_marks_checkbox').is(':checked')
+        last_version: get_last_version_id()
     }, function (data) {
         $('#dimmer_of_page').removeClass('active');
-        data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data.job_id + '/');
+        data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data['job_id'] + '/');
     }, "json");
 }
 
@@ -69,7 +68,6 @@ $(document).ready(function () {
 
     versions_selector.dropdown();
     init_files_tree('#filestree', job_id, version);
-    linedTextEditor('editfile_area');
     init_roles_form('#user_roles_form', job_id, version);
 
     $('#file_not_commited_modal').modal({transition: 'fade in', autofocus: false, closable: false});
@@ -77,7 +75,7 @@ $(document).ready(function () {
     $('#confirm_save_job_btn').click(save_job);
 
     $('#save_job_btn').click(function () {
-        !$('#commit_file_changes').hasClass('disabled') ? $('#file_not_commited_modal').modal('show') : save_job();
+        !$('#editor_unsaved').is(':hidden') ? $('#file_not_commited_modal').modal('show') : save_job();
     });
 
     versions_selector.change(function () {
@@ -85,15 +83,8 @@ $(document).ready(function () {
         $.get('/jobs/get_version_data/' + job_id + '/' + version + '/', {}, function (data) {
             data.error ? err_notify(data.error) : $('#description').val(data.description);
         });
-        init_roles_form('#user_roles_form', job_id, version);
         refresh_files_tree('#filestree', job_id, version);
-
-        var editfile_area = $('#editfile_area'), commit_btn = $('#commit_file_changes');
-        editfile_area.val('');
-        editfile_area.prop('disabled', true);
-        if (!commit_btn.hasClass('disabled')) {
-            commit_btn.addClass('disabled');
-        }
+        init_roles_form('#user_roles_form', job_id, version);
     });
 
     $('#job_name').on('input', function () {

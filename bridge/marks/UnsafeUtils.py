@@ -418,12 +418,12 @@ class ConnectMarks:
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in verdicts:
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                return UNSAFE_VERDICTS[4][0]
-            new_verdict = v
-        return new_verdict
+        assert isinstance(verdicts, set), 'Set expected'
+        if len(verdicts) == 0:
+            return UNSAFE_VERDICTS[5][0]
+        elif len(verdicts) == 1:
+            return verdicts.pop()
+        return UNSAFE_VERDICTS[4][0]
 
     def __is_not_used(self):
         pass
@@ -482,14 +482,15 @@ class ConnectReport:
             ))
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in set(self._marks[m_id]['verdict'] for m_id in
-                     list(mr.mark_id for mr in new_markreports if mr.error is None and mr.result > 0)):
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
+        verdicts = set(self._marks[m_id]['verdict'] for m_id in
+                       list(mr.mark_id for mr in new_markreports if mr.error is None and mr.result > 0))
+        if len(verdicts) == 0:
+            new_verdict = UNSAFE_VERDICTS[5][0]
+        elif len(verdicts) == 1:
+            new_verdict = verdicts.pop()
+        else:
+            new_verdict = UNSAFE_VERDICTS[4][0]
+
         if self._unsafe.verdict != new_verdict:
             self._unsafe.verdict = new_verdict
             self._unsafe.save()
@@ -579,15 +580,17 @@ class UpdateVerdicts:
 
         unsafes_to_update = {}
         for unsafe in unsafe_verdicts:
-            old_verdict = unsafe.verdict
             new_verdict = self.__calc_verdict(unsafe_verdicts[unsafe])
-            if old_verdict != new_verdict:
-                if new_verdict not in unsafes_to_update:
-                    unsafes_to_update[new_verdict] = set()
-                unsafes_to_update[new_verdict].add(unsafe.id)
-                for mark_id in self.changes:
-                    if unsafe in self.changes[mark_id]:
-                        self.changes[mark_id][unsafe]['verdict2'] = new_verdict
+            if unsafe.verdict == new_verdict:
+                # Verdict wasn't changed
+                continue
+            if new_verdict not in unsafes_to_update:
+                unsafes_to_update[new_verdict] = set()
+            unsafes_to_update[new_verdict].add(unsafe.id)
+
+            for mark_id in self.changes:
+                if unsafe in self.changes[mark_id]:
+                    self.changes[mark_id][unsafe]['verdict2'] = new_verdict
         self.__new_verdicts(unsafes_to_update)
 
     @transaction.atomic
@@ -761,6 +764,11 @@ class PopulateMarks:
                 data = json.load(fp)
             if not isinstance(data, dict):
                 raise BridgeException(_('Corrupted preset unsafe mark: wrong format'))
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                # Do not populate non-production marks
+                continue
+
             if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
                 raise BridgeException(_('Corrupted preset unsafe mark: not enough data'))
             if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):

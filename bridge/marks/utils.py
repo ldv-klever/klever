@@ -100,8 +100,6 @@ class MarkAccess:
         if not isinstance(self.user, User):
             return False
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if isinstance(self.report, ReportSafe) and not self.report.root.job.safe_marks:
-                return False
             if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
             first_v = self.report.root.job.versions.order_by('version').first()

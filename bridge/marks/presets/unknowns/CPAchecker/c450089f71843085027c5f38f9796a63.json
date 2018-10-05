@@ -1,4 +1,5 @@
 {
   "pattern": "Warning: Analysis interrupted",
-  "problem": "Interruption"
+  "problem": "Interruption",
+  "production": true
 }

@@ -1,4 +1,5 @@
 {
   "pattern": "CPU time exhausted",
-  "problem": "Timeout"
+  "problem": "Timeout",
+  "production": true
 }

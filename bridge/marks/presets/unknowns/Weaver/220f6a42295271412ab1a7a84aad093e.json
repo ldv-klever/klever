@@ -1,6 +1,7 @@
 {
   "pattern": "has no member named",
   "problem": "No member",
+  "production": true,
   "link": "http://forge.ispras.ru/issues/7560",
   "description": "EMG generates incorrect pointer dereferences with not existing structure member."
 }

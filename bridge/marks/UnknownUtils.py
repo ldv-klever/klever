@@ -150,7 +150,7 @@ class NewMark:
         else:
             self._args['identifier'] = unique_id()
         if MarkUnknown.objects.filter(component=component, problem_pattern=self._args['problem']).count() > 0:
-            raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
+            raise BridgeException(_('Could not upload the mark since it would be similar to the existing mark'))
         mark = MarkUnknown.objects.create(
             identifier=self._args['identifier'], author=self._user, change_date=now(),
             description=str(self._args.get('description', '')),
@@ -561,8 +561,16 @@ class PopulateMarks:
                             raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
-                if not isinstance(data, dict) or any(x not in data for x in ['pattern', 'problem']):
+
+                if not isinstance(data, dict):
                     raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
+
+                if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                    # Do not populate non-production marks
+                    continue
+
+                if any(x not in data for x in ['pattern', 'problem']):
+                    raise BridgeException('Corrupted preset unknown mark: not enough data')
                 try:
                     re.compile(data['pattern'])
                 except re.error:

@@ -36,7 +36,7 @@ from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
 from bridge.utils import logger, file_get_or_create, extract_archive, BridgeException
 
 from users.models import User
-from reports.models import ReportComponent, ReportRoot
+from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
@@ -44,7 +44,6 @@ from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
 
 import jobs.utils
 from jobs.jobForm import JobForm, role_info, LoadFilesTree, UserRolesForm
-import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile, FileSystem
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
@@ -291,14 +290,13 @@ class ReplaceJobFileView(LoggedCallMixin, Bview.JsonView):
 @method_decorator(login_required, name='dispatch')
 class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponsePostView):
     model = Job
+    file_name = 'svcomp.zip'
 
     def get_generator(self):
         self.object = self.get_object()
         if not jobs.utils.JobAccess(self.request.user, self.object).can_dfc():
             raise BridgeException(code=400)
-        generator = FilesForCompetitionArchive(self.object, json.loads(self.request.POST['filters']))
-        self.file_name = generator.name
-        return generator
+        return FilesForCompetitionArchive(self.object, json.loads(self.request.POST['filters']))
 
 
 @method_decorator(login_required, name='dispatch')
@@ -625,26 +623,4 @@ class CollapseReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
         if not jobs.utils.JobAccess(self.request.user, self.object).can_collapse():
             raise BridgeException(_("You don't have an access to collapse reports"))
         CollapseReports(self.object)
-        return {}
-
-
-class EnableSafeMarks(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-    unparallel = [Job]
-
-    def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_edit():
-            raise BridgeException(_("You don't have an access to edit this job"))
-
-        self.object.safe_marks = not self.object.safe_marks
-        self.object.save()
-        try:
-            root = ReportRoot.objects.get(job=self.object)
-        except ObjectDoesNotExist:
-            pass
-        else:
-            if self.object.safe_marks:
-                SafeUtils.RecalculateConnections([root])
-            else:
-                SafeUtils.disable_safe_marks_for_job(root)
         return {}

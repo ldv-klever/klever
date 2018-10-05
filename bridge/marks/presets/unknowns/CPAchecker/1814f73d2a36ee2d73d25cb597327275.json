@@ -1,4 +1,5 @@
 {
   "pattern": "Function entry_point not found",
-  "problem": "No entry point"
+  "problem": "No entry point",
+  "production": true
 }

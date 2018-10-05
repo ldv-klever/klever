@@ -74,13 +74,7 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            {% if user.extended.data_format == 'hum' %}
-                                {{ markdata.mark_version.change_date|naturaltime }}
-                            {% else %}
-                                {% timezone user.extended.timezone %}
-                                    {{ markdata.mark_version.change_date }}
-                                {% endtimezone %}
-                            {% endif %}
+                            {% if user.extended.data_format == 'hum' %}{{ markdata.mark_version.change_date|naturaltime }}{% else %}{{ markdata.mark_version.change_date }}{% endif %}
                             {% if markdata.mark_version.author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' markdata.mark_version.author_id %}">{{ markdata.mark_version.author.get_full_name }}</a>)
                             {% endif %}

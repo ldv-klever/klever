@@ -162,8 +162,7 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
-            'status': self.job.status, 'name': self.job.name,
-            'weight': self.job.weight, 'safe marks': self.job.safe_marks,
+            'status': self.job.status, 'name': self.job.name, 'weight': self.job.weight,
             'run_history': self.__add_run_history_files(), 'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
@@ -544,7 +543,7 @@ class UploadJob:
             raise ValueError('job.json file was not found or contains wrong data')
         if self._jobdata.get('archive_format') != ARCHIVE_FORMAT:
             raise BridgeException(_("The job archive format is not supported"))
-        if any(x not in self._jobdata for x in ['name', 'status', 'run_history', 'weight', 'safe marks', 'progress']):
+        if any(x not in self._jobdata for x in ['name', 'status', 'run_history', 'weight', 'progress']):
             logger.error("The job data is not full")
             raise BridgeException(_("The job archive was corrupted"))
         if self._jobdata.get('format') != FORMAT:
@@ -587,7 +586,7 @@ class UploadJob:
             'identifier': self._jobdata.get('identifier'), 'parent': self._parent_id,
             'name': self._jobdata['name'], 'comment': versions[0]['comment'], 'description': versions[0]['description'],
             'global_role': versions[0]['global_role'], 'file_data': versions[0]['files'],
-            'weight': self._jobdata['weight'], 'safe marks': bool(self._jobdata['safe marks'])
+            'weight': self._jobdata['weight']
         })
 
         last_conf = None

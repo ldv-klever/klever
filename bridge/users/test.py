@@ -36,8 +36,8 @@ class TestLoginAndRegister(KleverTestCase):
         User.objects.create_superuser(uname, '', 'top_secret')
         response = self.client.post(reverse('users:login'), {'username': uname, 'password': 'top_secret'})
 
-        # Admin must be redirected to the population page
-        self.assertRedirects(response, reverse('population'))
+        # All users are redirected to jobs tree page after login
+        self.assertRedirects(response, reverse('jobs:tree'))
 
         # User without "Extended" object must be extended after signing in
         self.assertEqual(len(Extended.objects.filter(user__username=uname)), 1)

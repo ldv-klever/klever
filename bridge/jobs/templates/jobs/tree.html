@@ -32,10 +32,9 @@
                 <div id="compare_reports_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare reports' %}</div>
                 <div id="compare_files_btn" class="item"><i class="ui columns icon"></i>{% trans 'Compare files' %}</div>
                 <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
+
                 {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                {% if user.extended.role == '2' %}
-                    <div id="download_selected_trees" class="item"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
-                {% endif %}
+                <div id="download_selected_trees" class="item{% if user.extended.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
                 <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
             </div>
         </div>

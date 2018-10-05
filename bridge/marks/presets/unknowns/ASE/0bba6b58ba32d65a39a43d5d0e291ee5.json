@@ -1,6 +1,7 @@
 {
   "pattern": "is not a function",
   "problem": "Not a func",
+  "production": true,
   "link": "http://forge.ispras.ru/issues/7562",
   "description": "EMG tries to call an object which is not a function."
 }

@@ -17,21 +17,19 @@
 
 import os
 import json
-import zipfile
 from collections import Counter
-import xml.etree.ElementTree as ETree
-from xml.dom import minidom
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files import File
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import cached_property
 
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from bridge.tableHead import Header
-from bridge.utils import logger, extract_archive, BridgeException, exec_time
+from bridge.utils import logger, extract_archive, BridgeException
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, AttrFile, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe,\
@@ -41,7 +39,7 @@ from marks.models import UnknownProblem, SafeTag, UnsafeTag
 from users.utils import DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import get_resource_data, get_user_time, get_user_memory
 from marks.utils import SAFE_COLOR, UNSAFE_COLOR
-from reports.list import LeavesQuery
+from reports.querysets import LeavesQuery
 
 
 REP_MARK_TITLES = {
@@ -58,7 +56,8 @@ REP_MARK_TITLES = {
     'verifiers:cpu': _('CPU time'),
     'verifiers:wall': _('Wall time'),
     'verifiers:memory': _('RAM'),
-    'problems': _('Problems')
+    'problems': _('Problems'),
+    'total_similarity': _('Total similarity')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -91,7 +90,8 @@ def get_column_title(column):
         titles.append(REP_MARK_TITLES.get(col_st, col_st))
     concated_title = titles[0]
     for i in range(1, len(titles)):
-        concated_title = string_concat(concated_title, '/', titles[i])
+        concated_title = '{0}/{1}'.format(concated_title, titles[i])
+        # concated_title = string_concat(concated_title, '/', titles[i])
     return concated_title
 
 
@@ -157,12 +157,10 @@ class SafesTable:
         self.view = view
         self._kwargs = self.__get_kwargs(report, data)
         self.parents = get_parents(report)
-        self.page = None
 
-        self.selected_columns = self.__selected()
-        self.available_columns = self.__available()
         self.verdicts = SAFE_VERDICTS
 
+        self.page = None
         columns, values = self.__safes_data()
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': values}
 
@@ -170,22 +168,22 @@ class SafesTable:
         kwargs = {'page': int(data.get('page', 1)), 'report': report}
         if 'confirmed' in data:
             kwargs['confirmed'] = True
-            self.title = string_concat(_("Safes"), ': ', _('confirmed'))
+            self.title = '{0}: {1}'.format(_("Safes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in data:
             verdict_title = ReportSafe(verdict=data['verdict']).get_verdict_display()
             if 'confirmed' in data:
-                self.title = string_concat(_("Safes"), ': ', _('confirmed'), ' ', verdict_title)
+                self.title = '{0}: {1} {2}'.format(_("Safes"), _('confirmed'), verdict_title)
             else:
-                self.title = string_concat(_("Safes"), ': ', verdict_title)
+                self.title = '{0}: {1}'.format(_("Safes"), verdict_title)
             kwargs['verdict'] = data['verdict']
         elif 'tag' in data:
             try:
                 tag = SafeTag.objects.get(id=data['tag'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The tag was not found"))
-            self.title = string_concat(_("Safes"), ': ', tag.tag)
+            self.title = '{0}: {1}'.format(_("Safes"), tag.tag)
             kwargs['tag'] = tag
         elif 'attr' in data:
             try:
@@ -197,7 +195,8 @@ class SafesTable:
 
         return kwargs
 
-    def __selected(self):
+    @cached_property
+    def selected_columns(self):
         columns = []
         for col in self.view['columns']:
             if col not in self.columns_set:
@@ -209,7 +208,8 @@ class SafesTable:
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __available(self):
+    @cached_property
+    def available_columns(self):
         self.__is_not_used()
         columns = []
         for col in self.columns_list:
@@ -239,14 +239,6 @@ class SafesTable:
         for safe_data in objects:
             ordered_ids.append(safe_data['id'])
             safes[safe_data['id']] = safe_data
-            if safe_data.get('tags'):
-                tags_numbers = Counter(safe_data['tags'])
-                safe_data['tags'] = ', '.join(['{0} ({1})'.format(t, tags_numbers[t])
-                                               for t in sorted(safe_data['tags'])])
-            if 'marks_number' in safe_data and safe_data['marks_number'] is None:
-                safe_data['marks_number'] = 0
-            if 'confirmed' in safe_data and safe_data['confirmed'] is None:
-                safe_data['confirmed'] = 0
 
         attributes = {}
         for r_id, a_name, a_value in ReportAttr.objects.filter(report_id__in=ordered_ids).order_by('id')\
@@ -280,8 +272,12 @@ class SafesTable:
                             break
                     color = SAFE_COLOR[safes[rep_id]['verdict']]
                 elif col == 'tags':
-                    if 'tags' in safes and safes[rep_id]['tags']:
-                        val = ', '.join(safes[rep_id]['tags'])
+                    if 'tags' in safes[rep_id] and safes[rep_id]['tags']:
+                        tags_numbers = Counter(safes[rep_id]['tags'])
+                        val = ', '.join([
+                            '{0} ({1})'.format(t, tags_numbers[t]) if tags_numbers[t] > 1 else t
+                            for t in sorted(tags_numbers)
+                        ])
                 elif col == 'verifiers:cpu':
                     val = get_user_time(self.user, safes[rep_id]['cpu_time'])
                 elif col == 'verifiers:wall':
@@ -299,7 +295,8 @@ class SafesTable:
 
 
 class UnsafesTable:
-    columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
+    columns_list = ['marks_number', 'report_verdict', 'total_similarity',
+                    'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
     def __init__(self, user, report, view, data):
@@ -321,22 +318,22 @@ class UnsafesTable:
         kwargs = {'page': int(data.get('page', 1)), 'report': report}
         if 'confirmed' in data:
             kwargs['confirmed'] = True
-            self.title = string_concat(_("Unsafes"), ': ', _('confirmed'))
+            self.title = '{0}: {1}'.format(_("Unsafes"), _('confirmed'))
 
         # Either verdict, tag or attr is supported in kwargs
         if 'verdict' in data:
             verdict_title = ReportUnsafe(verdict=data['verdict']).get_verdict_display()
             if 'confirmed' in data:
-                self.title = string_concat(_("Unsafes"), ': ', _('confirmed'), ' ', verdict_title)
+                self.title = '{0}: {1} {2}'.format(_("Unsafes"), _('confirmed'), verdict_title)
             else:
-                self.title = string_concat(_("Unsafes"), ': ', verdict_title)
+                self.title = '{0}: {1}'.format(_("Unsafes"), verdict_title)
             kwargs['verdict'] = data['verdict']
         elif 'tag' in data:
             try:
                 tag = UnsafeTag.objects.get(id=data['tag'])
             except ObjectDoesNotExist:
                 raise BridgeException(_("The tag was not found"))
-            self.title = string_concat(_("Unsafes"), ': ', tag.tag)
+            self.title = '{0}: {1}'.format(_("Unsafes"), tag.tag)
             kwargs['tag'] = tag
         elif 'attr' in data:
             try:
@@ -423,6 +420,8 @@ class UnsafesTable:
                         val = '%s (%s)' % (unsafes[rep_id]['confirmed'], unsafes[rep_id]['marks_number'])
                     else:
                         val = str(unsafes[rep_id]['marks_number'])
+                elif col == 'total_similarity':
+                    val = unsafes[rep_id]['total_similarity']
                 elif col == 'report_verdict':
                     for u in UNSAFE_VERDICTS:
                         if u[0] == unsafes[rep_id]['verdict']:
@@ -476,14 +475,14 @@ class UnknownsTable:
         if 'problem' in data:
             problem_id = int(data['problem'])
             if problem_id == 0:
-                self.title = string_concat(_("Unknowns without marks"))
+                self.title = _("Unknowns without marks")
                 kwargs['problem'] = 0
             else:
                 try:
                     problem = UnknownProblem.objects.get(id=problem_id)
                 except ObjectDoesNotExist:
                     raise BridgeException(_("The problem was not found"))
-                self.title = string_concat(_("Unknowns"), ': ', problem.name)
+                self.title = '{0}: {1}'.format(_("Unknowns"), problem.name)
                 kwargs['problem'] = problem
         elif 'attr' in data:
             try:
@@ -758,37 +757,36 @@ class AttrData:
 
 
 class FilesForCompetitionArchive:
+    obj_attr = 'Verification object'
+    requirement_attr = 'Requirement'
+
     def __init__(self, job, filters):
-        self.name = 'svcomp.zip'
-        self.benchmark_fname = 'benchmark.xml'
-        self.prp_fname = 'unreach-call.prp'
-        self.obj_attr = 'Verification object'
-        self.requirement_attr = 'Requirement'
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
-            raise ValueError('The job is not decided')
+            raise BridgeException(_('The job is not decided'))
+        self._attrs = self.__get_attrs()
         self._archives = self.__get_archives()
         self.filters = filters
-        self.xml_root = None
-        self.prp_file_added = False
+        self._archives_to_upload = []
+        self.__get_archives_to_upload()
         self.stream = ZipStream()
 
     def __iter__(self):
-        for f_t in self.filters:
-            if isinstance(f_t, str) and f_t in {'u', 's'}:
-                for data in self.__reports_data(f_t):
-                    yield data
-            elif isinstance(f_t, list):
-                for data in self.__reports_data('f', f_t):
-                    yield data
-        if self.xml_root is None:
-            for data in self.stream.compress_string('NOFILES', ''):
+        cnt = 0
+        names_in_use = set()
+        for arch_path, name_pattern in self._archives_to_upload:
+
+            # TODO: original extension (currently it's supposed that verification files are zip archives)
+            if name_pattern in names_in_use:
+                cnt += 1
+                arch_name = '%s_%s.zip' % (name_pattern, cnt)
+            else:
+                arch_name = '%s.zip' % name_pattern
+
+            for data in self.stream.compress_file(arch_path, arch_name):
                 yield data
-        else:
-            benchmark_content = minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ")
-            for data in self.stream.compress_string(self.benchmark_fname, benchmark_content):
-                yield data
+
         yield self.stream.close_stream()
 
     def __get_archives(self):
@@ -796,72 +794,58 @@ class FilesForCompetitionArchive:
         for c in ReportComponent.objects.filter(root=self.root, verification=True).exclude(verifier_input='')\
                 .only('id', 'verifier_input'):
             if c.verifier_input:
-                archives[c.id] = c.verifier_input
+                archives[c.id] = c.verifier_input.path
         return archives
 
-    def __reports_data(self, f_type, problems=None):
-        if f_type == 'u':
-            table = ReportUnsafe
-            cil_dir = 'Unsafes'
-        elif f_type == 's':
-            table = ReportSafe
-            cil_dir = 'Safes'
-        elif f_type == 'f':
-            table = ReportUnknown
-            cil_dir = 'Unknowns'
-        else:
-            raise ValueError('Wrong filter type')
+    def __get_attrs(self):
+        names = {}
+        for a_name in AttrName.objects.filter(name__in=[self.obj_attr, self.requirement_attr]):
+            names[a_name.id] = a_name.name
 
-        reports = {}
-        if f_type == 'f' and problems is not None and len(problems) > 0:
-            for problem in problems:
-                comp_id, problem_id = problem.split('_')[0:2]
-                if comp_id == problem_id == '0':
-                    for r in ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
-                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None).only('id', 'parent_id'):
-                        if r.parent_id not in self._archives:
-                            continue
-                        reports[r.id] = r.parent_id
-                else:
-                    for r in ReportUnknown.objects\
+        attrs = {}
+        # Select attributes for all safes, unsafes and unknowns
+        for r_id, n_id, a_val in ReportAttr.objects.filter(report__root=self.root, attr__name_id__in=names)\
+                .exclude(report__reportunsafe=None, report__reportsafe=None, report__reportunknown=None)\
+                .values_list('report_id', 'attr__name_id', 'attr__value'):
+            if r_id not in attrs:
+                attrs[r_id] = {}
+            attrs[r_id][names[n_id]] = a_val
+
+        return attrs
+
+    def __add_archive(self, r_type, r_id, p_id):
+        if p_id in self._archives and r_id in self._attrs \
+                and self.obj_attr in self._attrs[r_id] \
+                and self.requirement_attr in self._attrs[r_id]:
+
+            ver_obj = self._attrs[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
+            ver_requirement = self._attrs[r_id][self.requirement_attr].replace(':', '-')
+            dirname = 'Unknowns' if r_type == 'f' else 'Unsafes' if r_type == 'u' else 'Safes'
+
+            self._archives_to_upload.append(
+                (self._archives[p_id], '{0}/{1}__{2}__{3}'.format(dirname, r_type, ver_requirement, ver_obj))
+            )
+
+    def __get_archives_to_upload(self):
+        for f_t in self.filters:
+            if isinstance(f_t, list) and f_t:
+                for problem in f_t:
+                    comp_id, problem_id = problem.split('_')[0:2]
+                    if comp_id == problem_id == '0':
+                        queryset = ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
+                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None)\
+                            .values_list('id', 'parent_id')
+                    else:
+                        queryset = ReportUnknown.objects \
                             .filter(root=self.root, markreport_set__problem_id=problem_id, component_id=comp_id)\
-                            .exclude(parent__parent=None).only('id', 'parent_id'):
-                        if r.parent_id not in self._archives:
-                            continue
-                        reports[r.id] = r.parent_id
-        else:
-            for r in table.objects.filter(root=self.root).exclude(parent__parent=None).only('id', 'parent_id'):
-                if r.parent_id not in self._archives:
-                    continue
-                reports[r.id] = r.parent_id
-        attrs_data = {}
-        for ra in ReportAttr.objects\
-                .filter(report_id__in=list(reports), attr__name__name__in=[self.obj_attr, self.requirement_attr])\
-                .select_related('attr', 'attr__name'):
-            if ra.report_id not in attrs_data:
-                attrs_data[ra.report_id] = {}
-            attrs_data[ra.report_id][ra.attr.name.name] = ra.attr.value
-        cnt = 1
-        paths_in_use = []
-        for r_id in reports:
-            if r_id in attrs_data and self.obj_attr in attrs_data[r_id] and self.requirement_attr in attrs_data[r_id]:
-                ver_obj = attrs_data[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
-                ver_requirement = attrs_data[r_id][self.requirement_attr].replace(':', '-')
-                r_path = '%s/%s__%s__%s.cil.i' % (cil_dir, f_type, ver_requirement, ver_obj)
-                if r_path in paths_in_use:
-                    ver_obj_path, ver_obj_name = r_path.split('/')
-                    r_path = '/'.join([ver_obj_path, "%s__%s" % (cnt, ver_obj_name)])
-                    cnt += 1
-                try:
-                    for data in self.__cil_data(reports[r_id], r_path):
-                        yield data
-                except Exception as e:
-                    logger.exception(e)
-                else:
-                    new_elem = ETree.Element('include')
-                    new_elem.text = r_path
-                    self.xml_root.find('tasks').append(new_elem)
-                    paths_in_use.append(r_path)
+                            .exclude(parent__parent=None).values_list('id', 'parent_id')
+                    for args in queryset:
+                        self.__add_archive('f', *args)
+            else:
+                model = ReportUnsafe if f_t == 'u' else ReportSafe if f_t == 's' else ReportUnknown
+                for args in model.objects.filter(root=self.root).exclude(parent__parent=None)\
+                        .values_list('id', 'parent_id'):
+                    self.__add_archive('f' if isinstance(f_t, list) else f_t, *args)
 
     def __cil_data(self, report_id, arcname):
         with self._archives[report_id] as fp:

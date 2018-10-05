@@ -27,12 +27,12 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.template import loader
 from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
-from django.utils.timezone import now
+from django.utils.timezone import now, activate as activate_timezone
 from django.utils.translation import ugettext_lazy as _, activate
 
 from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
@@ -306,6 +306,7 @@ class BridgeMiddlware:
     def __call__(self, request):
         if request.user.is_authenticated and request.user.extended.role != USER_ROLES[4][0]:
             activate(request.user.extended.language)
+            activate_timezone(request.user.extended.timezone)
         response = self.get_response(request)
         return response
 
@@ -317,6 +318,8 @@ class BridgeMiddlware:
                 return HttpResponseBadRequest(loader.get_template('error.html').render({
                     'user': request.user, 'message': exception.message, 'back': exception.back
                 }))
+        elif isinstance(exception, Http404):
+            return
         logger.exception(exception)
         return HttpResponseBadRequest(loader.get_template('error.html').render({
             'user': request.user, 'message': str(UNKNOWN_ERROR)

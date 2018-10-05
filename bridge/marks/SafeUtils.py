@@ -80,11 +80,9 @@ class NewMark:
         self._args['tags'] = tags
 
     def create_mark(self, report):
-        if not report.root.job.safe_marks:
-            raise BridgeException(_('Safe marks are disabled'))
         mark = MarkSafe.objects.create(
             identifier=unique_id(), author=self._user, change_date=now(), format=report.root.job.format,
-            status=self._args['status'], description=str(self._args.get('description', '')),
+            job=report.root.job, status=self._args['status'], description=str(self._args.get('description', '')),
             is_modifiable=self._args['is_modifiable'], verdict=self._args['verdict']
         )
 
@@ -138,8 +136,6 @@ class NewMark:
         return mark
 
     def upload_mark(self):
-        if not settings.ENABLE_SAFE_MARKS:
-            raise BridgeException(_('Safe marks are disabled'))
         if 'format' not in self._args:
             raise BridgeException(_('Safe mark format is required'))
         if isinstance(self._args.get('identifier'), str) and 0 < len(self._args['identifier']) < 255:
@@ -263,7 +259,7 @@ class ConnectMarks:
             attrs_ids |= self._marks_attrs[m_id]
 
         safes_attrs = {}
-        roots = set(root_id for root_id, in ReportRoot.objects.filter(job__safe_marks=True).values_list('id'))
+        roots = set(ReportRoot.objects.values_list('id', flat=True))
         for r_id, a_id in ReportAttr.objects.exclude(report__reportsafe=None)\
                 .filter(report__root_id__in=roots, attr_id__in=attrs_ids).values_list('report_id', 'attr_id'):
             if r_id not in safes_attrs:
@@ -349,14 +345,12 @@ class ConnectMarks:
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = SAFE_VERDICTS[4][0]
-        for v in verdicts:
-            if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != v:
-                new_verdict = SAFE_VERDICTS[3][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
+        assert isinstance(verdicts, set), 'Set expected'
+        if len(verdicts) == 0:
+            return SAFE_VERDICTS[4][0]
+        elif len(verdicts) == 1:
+            return verdicts.pop()
+        return SAFE_VERDICTS[3][0]
 
     def __is_not_used(self):
         pass
@@ -388,13 +382,14 @@ class ConnectReport:
                 del verdicts[m_id]
         MarkSafeReport.objects.bulk_create(new_markreports)
 
-        new_verdict = SAFE_VERDICTS[4][0]
-        for v in set(verdicts.values()):
-            if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != v:
-                new_verdict = SAFE_VERDICTS[3][0]
-                break
-            else:
-                new_verdict = v
+        verdicts_set = set(verdicts.values())
+        if len(verdicts_set) == 0:
+            new_verdict = SAFE_VERDICTS[4][0]
+        elif len(verdicts_set) == 1:
+            new_verdict = verdicts_set.pop()
+        else:
+            new_verdict = SAFE_VERDICTS[3][0]
+
         if new_verdict != self.report.verdict:
             self.report.verdict = new_verdict
             self.report.save()
@@ -534,7 +529,7 @@ class UpdateVerdicts:
 
 class RecalculateConnections:
     def __init__(self, roots):
-        self._roots = list(root for root in roots if root.job.safe_marks)
+        self._roots = roots
         self._marks = {}
         self._safes = {}
         self.__clear_caches()
@@ -563,7 +558,7 @@ class RecalculateConnections:
             self._marks[mark_id]['tags'].add(tag_id)
 
     def __get_safes(self):
-        for safe_id, in ReportSafe.objects.filter(root__in=self._roots).values_list('id'):
+        for safe_id in ReportSafe.objects.filter(root__in=self._roots).values_list('id', flat=True):
             self._safes[safe_id] = {'attrs': set(), 'marks': set(), 'reports': set()}
         for safe_id, attr_id in ReportAttr.objects.filter(report_id__in=self._safes)\
                 .values_list('report_id', 'attr_id'):
@@ -614,6 +609,7 @@ class RecalculateConnections:
         ReportSafeTag.objects.bulk_create(report_tag_cache.values())
         self.__update_safe_verdicts()
 
+    @transaction.atomic
     def __update_safe_verdicts(self):
         safes_by_verdict = {}
         for safe_id in self._safes:
@@ -752,6 +748,11 @@ class PopulateMarks:
                 data = json.load(fp)
             if not isinstance(data, dict):
                 raise BridgeException(_('Corrupted preset safe mark: wrong format'))
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                # Do not populate non-production marks
+                continue
+
             if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
                 raise BridgeException(_('Corrupted preset safe mark: not enough data'))
             if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
@@ -795,13 +796,6 @@ def delete_marks(marks):
     RecalculateTags(safes_changes)
     update_confirmed_cache(list(safes_changes))
     return safes_changes
-
-
-def disable_safe_marks_for_job(root):
-    ReportSafeTag.objects.filter(report__root=root).delete()
-    SafeReportTag.objects.filter(report__root=root).delete()
-    MarkSafeReport.objects.filter(report__root=root).delete()
-    ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
 
 
 def update_confirmed_cache(safes):

@@ -265,21 +265,6 @@ $(document).ready(function () {
     var job_status_popup = $('#job_status_popup');
     if (job_status_popup.length) $('#job_status_popup_activator').popup({popup: job_status_popup, position: 'bottom center'});
 
-    var safe_marks_popup = $('#safe_marks_popup');
-    if (safe_marks_popup.length) {
-        $('#safe_marks_link').popup({
-            popup: safe_marks_popup,
-            hoverable: true,
-            delay: {show: 100, hide: 300},
-            variation: 'wide',
-            position: 'right center'
-        });
-        $('#change_safe_marks').click(function () {
-            $('#safe_marks_link').popup('hide');
-            $.post('/jobs/enable_safe_marks/' + $('#job_id').val() + '/', {}, error_or_reload);
-        });
-    }
-
     $('#download_job_btn').click(function () {
         if ($(this).hasClass('disabled')) return false;
         $('.browse').popup('hide');

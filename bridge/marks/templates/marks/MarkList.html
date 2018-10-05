@@ -17,6 +17,7 @@
 {% endcomment %}
 
 {% load i18n %}
+{% load tz %}
 {% load staticfiles %}
 
 {% block title %}{% if tabledata.type == 'safe' %}{% trans 'Safe marks' %}{% elif tabledata.type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
@@ -47,12 +48,12 @@
 
     {% if tabledata.values|length %}
         <div>
-            {% if tabledata.values.has_previous %}
-                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ tabledata.values.previous_page_number }}"></i>
+            {% if tabledata.page.has_previous %}
+                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ tabledata.page.previous_page_number }}"></i>
             {% endif %}
-            <span>{% blocktrans with n1=tabledata.values.number n2=tabledata.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-            {% if tabledata.values.has_next %}
-                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ tabledata.values.next_page_number }}"></i>
+            <span>{% blocktrans with n1=tabledata.page.number n2=tabledata.page.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+            {% if tabledata.page.has_next %}
+                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ tabledata.page.next_page_number }}"></i>
             {% endif %}
         </div>
         <div style="overflow-x:auto;max-height: 75vh;overflow-y:auto;">

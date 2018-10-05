@@ -20,8 +20,6 @@ import json
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
-from django.test import override_settings
 from django.urls import reverse
 
 from bridge.populate import populate_users
@@ -48,46 +46,42 @@ class TestMarks(KleverTestCase):
         super(TestMarks, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
-            admin={'username': 'superuser'},
-            manager={'username': 'manager', 'password': '12345'},
+            manager={'username': 'manager', 'password': 'manager'},
             service={'username': 'service', 'password': 'service'}
         )
-        self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
+        self.client.post(reverse('users:login'), {'username': 'manager', 'password': 'manager'})
         self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
         self.job = Job.objects.all().first()
         self.assertIsNotNone(self.job)
-
-        run_conf = json.dumps([
-            ["HIGH", "0", 100], ["1", "2.0", "2.0", "1.0"], [1, 1, 100, '', 15, None],
-            [
-                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
-                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
-            ],
-            [False, True, True, False, True, False, True, True, '0']
-        ])
-        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
         DecideJobs('service', 'service', SJC_1)
+
         self.safe_archive = 'test_safemark.zip'
         self.unsafe_archive = 'test_unsafemark.zip'
         self.unknown_archive = 'test_unknownmark.zip'
         self.test_tagsfile = 'test_tags.json'
         self.all_marks_arch = 'All-marks.zip'
 
-    @override_settings(ENABLE_SAFE_MARKS=True)
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
         # Delete populated marks
-        oldmarks = list(m['id'] for m in MarkSafe.objects.values('id'))
-        if len(oldmarks) > 0:
-            response = self.client.post('/marks/delete/', {'type': 'safe', 'ids': json.dumps(oldmarks)})
-            self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'safe', 'ids': json.dumps(list(MarkSafe.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'unsafe', 'ids': json.dumps(list(MarkUnsafe.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'unknown', 'ids': json.dumps(list(MarkUnknown.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
 
         # Create 5 safe tags
         created_tags = []
-        response = self.client.post('/marks/ajax/save_tag/', {
+        response = self.client.post('/marks/tags/save_tag/', {
             'action': 'create', 'tag_type': 'safe', 'parent_id': '0', 'name': 'test:safe:tag:1',
             'description': 'Test safe tag description'
         })
@@ -102,7 +96,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(created_tags[0].parent, None)
 
         for i in range(2, 6):
-            self.client.post('/marks/ajax/save_tag/', {
+            self.client.post('/marks/tags/save_tag/', {
                 'action': 'create', 'tag_type': 'safe',
                 'parent_id': created_tags[i - 2].pk, 'name': 'test:safe:tag:%s' % i, 'description': ''
             })
@@ -110,19 +104,19 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:safe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        response = self.client.post('/marks/tags/safe/get_tag_data/', {'tag_id': created_tags[2].pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe'})
+        response = self.client.post('/marks/tags/safe/get_tag_data/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Edit 5th tag
-        response = self.client.post('/marks/ajax/save_tag/', {
+        response = self.client.post('/marks/tags/save_tag/', {
             'action': 'edit', 'tag_type': 'safe', 'parent_id': created_tags[2].pk,
             'name': 'test:safe:tag:5', 'tag_id': created_tags[4].pk,
             'description': 'Test safe tag 5 description'
@@ -138,7 +132,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(created_tags[4].description, 'Test safe tag 5 description')
 
         # Remove 3d tag and check that its children (tag4 and tag5) are also removed
-        response = self.client.post('/marks/ajax/remove_tag/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        response = self.client.post('/marks/tags/safe/delete/%s/' % created_tags[2].pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -148,23 +142,22 @@ class TestMarks(KleverTestCase):
         del created_tags[2:]
 
         # Get tags data (for edit/create mark page). Just check that there is no error in response.
-        response = self.client.post('/marks/ajax/get_tags_data/', {
-            'tag_type': 'safe', 'selected_tags': json.dumps([created_tags[1].pk])
-        })
+        response = self.client.post('/marks/safe/tags_data/', {'selected_tags': json.dumps([created_tags[1].pk])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Download tags
-        response = self.client.post(reverse('marks:download_tags', args=['safe']))
+        response = self.client.get(reverse('marks:download_tags', args=['safe']))
         self.assertEqual(response.status_code, 200)
         with open(os.path.join(settings.MEDIA_ROOT, self.test_tagsfile), mode='wb') as fp:
-            fp.write(response.content)
+            for chunk in response.streaming_content:
+                fp.write(chunk)
         SafeTag.objects.all().delete()
 
         # Upload tags
         with open(os.path.join(settings.MEDIA_ROOT, self.test_tagsfile), mode='rb') as fp:
-            response = self.client.post('/marks/ajax/upload_tags/', {'tags_type': 'safe', 'file': fp})
+            response = self.client.post('/marks/tags/safe/upload/', {'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -175,39 +168,26 @@ class TestMarks(KleverTestCase):
                 self.fail("Tags weren't uploaded")
 
         # Tags tree page
-        response = self.client.post(reverse('marks:tags', args=['safe']))
+        response = self.client.get(reverse('marks:tags', args=['safe']))
         self.assertEqual(response.status_code, 200)
-
-        # Enable safe marks for the job
-        if not self.job.safe_marks:
-            response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-            self.job = Job.objects.get(id=self.job.id)
-            self.assertTrue(self.job.safe_marks)
 
         # Get report
         safe = ReportSafe.objects.filter(root__job_id=self.job.pk).first()
         self.assertIsNotNone(safe)
 
         # Inline mark form
-        response = self.client.post('/marks/ajax/inline_mark_form/', {'type': 'safe', 'report_id': safe.id})
+        response = self.client.get('/marks/safe/%s/create/inline/' % safe.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Create mark page
-        response = self.client.get(reverse('marks:create_mark', args=['safe', safe.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['safe', safe.pk, 'create']))
         self.assertEqual(response.status_code, 200)
 
         # Save mark
         compare_attrs = list({'is_compare': associate, 'attr': a_name}
                              for a_name, associate in safe.attrs.values_list('attr__name__name', 'associate'))
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'report_id': safe.pk,
-                'data_type': 'safe',
+        response = self.client.post(reverse('marks:mark_form', args=['safe', safe.pk, 'create']), {
+            'data': json.dumps({
                 'description': 'Mark description',
                 'is_modifiable': True,
                 'verdict': MARK_SAFE[1][0],
@@ -264,18 +244,16 @@ class TestMarks(KleverTestCase):
             self.fail('Reports tags cache was not filled')
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/safe/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:mark', args=['safe', 'edit', mark.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['safe', mark.pk, 'edit']))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'mark_id': mark.pk,
-                'data_type': 'safe',
+        response = self.client.post(reverse('marks:mark_form', args=['safe', mark.pk, 'edit']), {
+            'data': json.dumps({
                 'description': 'New mark description',
                 'is_modifiable': True,
                 'verdict': MARK_SAFE[2][0],
@@ -322,52 +300,42 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(SafeReportTag.objects.filter(report=safe, tag=created_tags[1])), 0)
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/safe/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Safe marks list page
         response = self.client.get(reverse('marks:list', args=['safe']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:mark', args=['safe', 'view', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['safe', mark.id]))
         self.assertEqual(response.status_code, 200)
 
         # Inline mark form
-        response = self.client.post('/marks/ajax/inline_mark_form/', {'type': 'safe', 'mark_id': mark.id})
+        response = self.client.get('/marks/safe/%s/edit/inline/' % mark.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Confirm/unconfirm association
         # Mark is automatically associated after its changes
         self.assertEqual(MarkSafeReport.objects.filter(mark=mark, report=safe, type=ASSOCIATION_TYPE[0][0]).count(), 1)
-        response = self.client.post('/marks/ajax/unconfirm-association/', {
-            'report_type': 'safe', 'mark_id': mark.id, 'report_id': safe.id
-        })
+        response = self.client.post('/marks/association/safe/%s/%s/unconfirm/' % (safe.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(MarkSafeReport.objects.filter(mark=mark, report=safe, type=ASSOCIATION_TYPE[2][0]).count(), 1)
-        response = self.client.post('/marks/ajax/confirm-association/', {
-            'report_type': 'safe', 'mark_id': mark.id, 'report_id': safe.id
-        })
+        response = self.client.post('/marks/association/safe/%s/%s/confirm/' % (safe.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(MarkSafeReport.objects.filter(mark=mark, report=safe, type=ASSOCIATION_TYPE[1][0]).count(), 1)
 
         # Like/dislike association
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'safe', 'mark_id': mark.id, 'report_id': safe.id, 'dislike': 'false'
-        })
+        response = self.client.post('/marks/association/safe/%s/%s/like/' % (safe.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(SafeAssociationLike.objects.filter(
             association__report=safe, association__mark=mark, dislike=False
         ).count(), 1)
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'safe', 'mark_id': mark.id, 'report_id': safe.id, 'dislike': 'true'
-        })
+        response = self.client.post('/marks/association/safe/%s/%s/dislike/' % (safe.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -386,6 +354,10 @@ class TestMarks(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
+        # Download mark in preset format
+        response = self.client.get(reverse('marks:download_preset_mark', args=['safe', mark.pk]))
+        self.assertEqual(response.status_code, 200)
+
         # Delete mark
         response = self.client.post('/marks/delete/', {'type': 'safe', 'ids': json.dumps([mark.id])})
         self.assertEqual(response.status_code, 200)
@@ -397,20 +369,16 @@ class TestMarks(KleverTestCase):
 
         # Upload mark
         with open(os.path.join(settings.MEDIA_ROOT, self.safe_archive), mode='rb') as fp:
-            response = self.client.post('/marks/upload_marks/', {'file': fp})
+            response = self.client.post('/marks/upload/', {'file': fp})
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        if not res.get('status', False):
-            if 'messages' in res:
-                self.fail(res['messages'])
-            else:
-                self.fail('Unknown error')
-        self.assertEqual(res.get('mark_type'), 'safe')
+        self.assertIn('id', res)
+        self.assertEqual(res.get('type'), 'safe')
         self.assertEqual(len(MarkSafe.objects.all()), 1)
         try:
-            newmark = MarkSafe.objects.get(pk=res.get('mark_id', 0))
+            newmark = MarkSafe.objects.get(pk=res['id'])
         except ObjectDoesNotExist:
             self.fail('Mark was not uploaded')
         self.assertEqual(newmark.type, MARK_TYPE[2][0])
@@ -435,10 +403,8 @@ class TestMarks(KleverTestCase):
 
         # Some more mark changes
         for i in range(3, 6):
-            response = self.client.post('/marks/ajax/save_mark/', {
-                'savedata': json.dumps({
-                    'mark_id': newmark.pk,
-                    'data_type': 'safe',
+            response = self.client.post(reverse('marks:mark_form', args=['safe', newmark.pk, 'edit']), {
+                'data': json.dumps({
                     'description': 'New mark description',
                     'is_modifiable': True,
                     'verdict': MARK_SAFE[2][0],
@@ -455,24 +421,21 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkSafeHistory.objects.filter(mark=newmark)), 5)
 
         # Get 3d version data
-        response = self.client.post('/marks/ajax/get_mark_version_data/', {
-            'type': 'safe', 'version': 3, 'mark_id': newmark.pk
-        })
+        response = self.client.get(reverse('marks:mark_form', args=['safe', newmark.pk, 'edit']),
+                                   params={'version': 3})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertNotIn('error', res)
-        self.assertIn('data', res)
+
+        # Compare 1st and 4th versions
+        response = self.client.post('/marks/safe/%s/compare_versions/' % newmark.pk, {'v1': 1, 'v2': 4})
+        self.assertEqual(response.status_code, 200)
 
         # Remove 2nd and 4th versions
-        response = self.client.post('/marks/ajax/remove_versions/', {
-            'mark_type': 'safe', 'mark_id': newmark.pk, 'versions': json.dumps([2, 4])
-        })
+        response = self.client.post('/marks/safe/%s/remove_versions/' % newmark.pk, {'versions': json.dumps([2, 4])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertIn('message', res)
+        self.assertIn('success', res)
         self.assertEqual(len(MarkSafeHistory.objects.filter(mark=newmark)), 3)
 
         # Reports' lists pages
@@ -499,14 +462,11 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Delete all safe marks
-        self.assertEqual(response.status_code, 200)
-        response = self.client.post('/marks/delete/', {
-            'type': 'safe', 'ids': json.dumps(list(x.pk for x in MarkSafe.objects.all()))
+        self.client.post('/marks/delete/', {
+            'type': 'safe', 'ids': json.dumps(list(MarkSafe.objects.values_list('id', flat=True)))
         })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(MarkSafe.objects.all()), 0)
+        self.assertEqual(MarkSafe.objects.count(), 0)
+
         # All verdicts must be "safe unmarked"
         self.assertEqual(
             len(ReportSafe.objects.filter(verdict=SAFE_VERDICTS[4][0])),
@@ -527,14 +487,22 @@ class TestMarks(KleverTestCase):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
         # Delete populated marks
-        oldmarks = list(m['id'] for m in MarkUnsafe.objects.values('id'))
-        if len(oldmarks) > 0:
-            response = self.client.post('/marks/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
-            self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'safe', 'ids': json.dumps(list(MarkSafe.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'unsafe', 'ids': json.dumps(list(MarkUnsafe.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/delete/', {
+            'type': 'unknown', 'ids': json.dumps(list(MarkUnknown.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
 
         # Create 5 unsafe tags
         created_tags = []
-        response = self.client.post('/marks/ajax/save_tag/', {
+        response = self.client.post('/marks/tags/save_tag/', {
             'action': 'create', 'tag_type': 'unsafe', 'parent_id': '0', 'name': 'test:unsafe:tag:1',
             'description': 'Test unsafe tag description'
         })
@@ -549,7 +517,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(created_tags[0].parent, None)
 
         for i in range(2, 6):
-            self.client.post('/marks/ajax/save_tag/', {
+            self.client.post('/marks/tags/save_tag/', {
                 'action': 'create', 'tag_type': 'unsafe',
                 'parent_id': created_tags[i - 2].pk, 'name': 'test:unsafe:tag:%s' % i, 'description': ''
             })
@@ -557,21 +525,19 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:unsafe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_data/', {
-            'tag_type': 'unsafe', 'tag_id': created_tags[2].pk
-        })
+        response = self.client.post('/marks/tags/unsafe/get_tag_data/', {'tag_id': created_tags[2].pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'unsafe'})
+        response = self.client.post('/marks/tags/unsafe/get_tag_data/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Edit 5th tag
-        response = self.client.post('/marks/ajax/save_tag/', {
+        response = self.client.post('/marks/tags/save_tag/', {
             'action': 'edit', 'tag_type': 'unsafe', 'parent_id': created_tags[2].pk,
             'name': 'test:unsafe:tag:5', 'tag_id': created_tags[4].pk,
             'description': 'Test unsafe tag 5 description'
@@ -587,7 +553,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(created_tags[4].description, 'Test unsafe tag 5 description')
 
         # Remove 3d tag and check that its children (tag4 and tag5) are also removed
-        response = self.client.post('/marks/ajax/remove_tag/', {'tag_type': 'unsafe', 'tag_id': created_tags[2].pk})
+        response = self.client.post('/marks/tags/unsafe/delete/%s/' % created_tags[2].pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -597,23 +563,22 @@ class TestMarks(KleverTestCase):
         del created_tags[2:]
 
         # Get tags data (for edit/create mark page). Just check that there is no error in response.
-        response = self.client.post('/marks/ajax/get_tags_data/', {
-            'tag_type': 'unsafe', 'selected_tags': json.dumps([created_tags[1].pk])
-        })
+        response = self.client.post('/marks/unsafe/tags_data/', {'selected_tags': json.dumps([created_tags[1].pk])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Download tags
-        response = self.client.post(reverse('marks:download_tags', args=['unsafe']))
+        response = self.client.get(reverse('marks:download_tags', args=['unsafe']))
         self.assertEqual(response.status_code, 200)
         with open(os.path.join(settings.MEDIA_ROOT, self.test_tagsfile), mode='wb') as fp:
-            fp.write(response.content)
+            for chunk in response.streaming_content:
+                fp.write(chunk)
         UnsafeTag.objects.all().delete()
 
         # Upload tags
         with open(os.path.join(settings.MEDIA_ROOT, self.test_tagsfile), mode='rb') as fp:
-            response = self.client.post('/marks/ajax/upload_tags/', {'tags_type': 'unsafe', 'file': fp})
+            response = self.client.post('/marks/tags/unsafe/upload/', {'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -624,7 +589,7 @@ class TestMarks(KleverTestCase):
                 self.fail("Tags weren't uploaded")
 
         # Tags tree page
-        response = self.client.post(reverse('marks:tags', args=['unsafe']))
+        response = self.client.get(reverse('marks:tags', args=['unsafe']))
         self.assertEqual(response.status_code, 200)
 
         # Get report
@@ -632,13 +597,11 @@ class TestMarks(KleverTestCase):
         self.assertIsNotNone(unsafe)
 
         # Inline mark form
-        response = self.client.post('/marks/ajax/inline_mark_form/', {'type': 'unsafe', 'report_id': unsafe.id})
+        response = self.client.get('/marks/unsafe/%s/create/inline/' % unsafe.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Create mark page
-        response = self.client.get(reverse('marks:create_mark', args=['unsafe', unsafe.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['unsafe', unsafe.pk, 'create']))
         self.assertEqual(response.status_code, 200)
 
         # Error trace compare function description
@@ -646,9 +609,7 @@ class TestMarks(KleverTestCase):
             compare_f = MarkUnsafeCompare.objects.get(name=DEFAULT_COMPARE)
         except ObjectDoesNotExist:
             self.fail("Population hasn't created compare error trace functions")
-        response = self.client.post('/marks/ajax/get_func_description/', {
-            'func_id': compare_f.pk, 'func_type': 'compare'
-        })
+        response = self.client.post('/marks/get_func_description/%s/' % compare_f.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -656,11 +617,9 @@ class TestMarks(KleverTestCase):
         # Save mark
         compare_attrs = list({'is_compare': associate, 'attr': a_name}
                              for a_name, associate in unsafe.attrs.values_list('attr__name__name', 'associate'))
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
+        response = self.client.post(reverse('marks:mark_form', args=['unsafe', unsafe.pk, 'create']), {
+            'data': json.dumps({
                 'compare_id': compare_f.pk,
-                'report_id': unsafe.pk,
-                'data_type': 'unsafe',
                 'description': 'Mark description',
                 'is_modifiable': True,
                 'verdict': MARK_UNSAFE[1][0],
@@ -716,21 +675,19 @@ class TestMarks(KleverTestCase):
             self.fail('Reports tags cache was not filled')
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/unsafe/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:mark', args=['unsafe', 'edit', mark.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['unsafe', mark.pk, 'edit']))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
         with mark_version.error_trace.file as fp:
             error_trace = fp.read().decode('utf8')
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'mark_id': mark.pk,
+        response = self.client.post(reverse('marks:mark_form', args=['unsafe', mark.pk, 'edit']), {
+            'data': json.dumps({
                 'compare_id': compare_f.pk,
-                'data_type': 'unsafe',
                 'description': 'New mark description',
                 'is_modifiable': True,
                 'verdict': MARK_UNSAFE[2][0],
@@ -781,37 +738,31 @@ class TestMarks(KleverTestCase):
             self.fail('Reports tags cache was not filled')
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/unsafe/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Unsafe marks list page
         response = self.client.get(reverse('marks:list', args=['unsafe']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:mark', args=['unsafe', 'view', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['unsafe', mark.id]))
         self.assertEqual(response.status_code, 200)
 
         # Inline mark form
-        response = self.client.post('/marks/ajax/inline_mark_form/', {'type': 'unsafe', 'mark_id': mark.id})
+        response = self.client.get('/marks/unsafe/%s/edit/inline/' % mark.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Confirm/unconfirm association
         # Mark is automatically associated after its changes
         self.assertEqual(
             MarkUnsafeReport.objects.filter(mark=mark, report=unsafe, type=ASSOCIATION_TYPE[0][0]).count(), 1
         )
-        response = self.client.post('/marks/ajax/unconfirm-association/', {
-            'report_type': 'unsafe', 'mark_id': mark.id, 'report_id': unsafe.id
-        })
+        response = self.client.post('/marks/association/unsafe/%s/%s/unconfirm/' % (unsafe.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(MarkUnsafeReport.objects.filter(
             mark=mark, report=unsafe, type=ASSOCIATION_TYPE[2][0]).count(), 1)
-        response = self.client.post('/marks/ajax/confirm-association/', {
-            'report_type': 'unsafe', 'mark_id': mark.id, 'report_id': unsafe.id
-        })
+        response = self.client.post('/marks/association/unsafe/%s/%s/confirm/' % (unsafe.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -819,18 +770,14 @@ class TestMarks(KleverTestCase):
             mark=mark, report=unsafe, type=ASSOCIATION_TYPE[1][0]).count(), 1)
 
         # Like/dislike association
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'unsafe', 'mark_id': mark.id, 'report_id': unsafe.id, 'dislike': 'false'
-        })
+        response = self.client.post('/marks/association/unsafe/%s/%s/like/' % (unsafe.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(UnsafeAssociationLike.objects.filter(
             association__report=unsafe, association__mark=mark, dislike=False
         ).count(), 1)
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'unsafe', 'mark_id': mark.id, 'report_id': unsafe.id, 'dislike': 'true'
-        })
+        response = self.client.post('/marks/association/unsafe/%s/%s/dislike/' % (unsafe.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -849,6 +796,10 @@ class TestMarks(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
+        # Download mark in preset format
+        response = self.client.get(reverse('marks:download_preset_mark', args=['unsafe', mark.pk]))
+        self.assertEqual(response.status_code, 200)
+
         # Delete mark
         response = self.client.post('/marks/delete/', {'type': 'unsafe', 'ids': json.dumps([mark.id])})
         self.assertEqual(response.status_code, 200)
@@ -861,16 +812,16 @@ class TestMarks(KleverTestCase):
 
         # Upload mark
         with open(os.path.join(settings.MEDIA_ROOT, self.unsafe_archive), mode='rb') as fp:
-            response = self.client.post('/marks/upload_marks/', {'file': fp})
+            response = self.client.post('/marks/upload/', {'file': fp})
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('status', None), True)
-        self.assertEqual(res.get('mark_type', None), 'unsafe')
+        self.assertIn('id', res)
+        self.assertEqual(res.get('type'), 'unsafe')
         self.assertEqual(len(MarkUnsafe.objects.all()), 1)
         try:
-            newmark = MarkUnsafe.objects.get(pk=res.get('mark_id', 0))
+            newmark = MarkUnsafe.objects.get(pk=res['id'])
         except ObjectDoesNotExist:
             self.fail('Mark was not uploaded')
         self.assertEqual(newmark.type, MARK_TYPE[2][0])
@@ -901,11 +852,9 @@ class TestMarks(KleverTestCase):
 
         # Some more mark changes
         for i in range(3, 6):
-            response = self.client.post('/marks/ajax/save_mark/', {
-                'savedata': json.dumps({
+            response = self.client.post(reverse('marks:mark_form', args=['unsafe', newmark.pk, 'edit']), {
+                'data': json.dumps({
                     'compare_id': compare_f.pk,
-                    'mark_id': newmark.pk,
-                    'data_type': 'unsafe',
                     'description': 'New mark description',
                     'is_modifiable': True,
                     'verdict': MARK_UNSAFE[2][0],
@@ -927,24 +876,21 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 5)
 
         # Get 3d version data
-        response = self.client.post('/marks/ajax/get_mark_version_data/', {
-            'type': 'unsafe', 'version': 3, 'mark_id': newmark.pk
-        })
+        response = self.client.get(reverse('marks:mark_form', args=['unsafe', newmark.pk, 'edit']),
+                                   params={'version': 3})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertNotIn('error', res)
-        self.assertIn('data', res)
+
+        # Compare 1st and 4th versions
+        response = self.client.post('/marks/unsafe/%s/compare_versions/' % newmark.pk, {'v1': 1, 'v2': 4})
+        self.assertEqual(response.status_code, 200)
 
         # Remove 2nd and 4th versions
-        response = self.client.post('/marks/ajax/remove_versions/', {
-            'mark_type': 'unsafe', 'mark_id': newmark.pk, 'versions': json.dumps([2, 4])
-        })
+        response = self.client.post('/marks/unsafe/%s/remove_versions/' % newmark.pk, {'versions': json.dumps([2, 4])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertIn('message', res)
+        self.assertIn('success', res)
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 3)
 
         # Reports' lists pages
@@ -971,19 +917,15 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Delete all unsafe marks
-        response = self.client.post('/marks/delete/', {
-            'type': 'unsafe', 'ids': json.dumps(list(x.pk for x in MarkUnsafe.objects.all()))
+        self.client.post('/marks/delete/', {
+            'type': 'unsafe', 'ids': json.dumps(list(MarkUnsafe.objects.values_list('id', flat=True)))
         })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(MarkUnsafe.objects.all()), 0)
+        self.assertEqual(MarkUnsafe.objects.count(), 0)
         # All verdicts must be "unsafe unmarked"
         self.assertEqual(
-            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[5][0])),
-            len(ReportUnsafe.objects.all())
+            ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[5][0]).count(), ReportUnsafe.objects.all().count()
         )
-        self.assertEqual(len(MarkUnsafeReport.objects.all()), 0)
+        self.assertEqual(MarkUnsafeReport.objects.count(), 0)
 
         # Upload all marks
         with open(os.path.join(settings.MEDIA_ROOT, self.all_marks_arch), mode='rb') as fp:
@@ -997,11 +939,11 @@ class TestMarks(KleverTestCase):
     def test_unknown(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
-        # Delete populated marks
-        oldmarks = list(m['id'] for m in MarkUnknown.objects.values('id'))
-        if len(oldmarks) > 0:
-            response = self.client.post('/marks/delete/', {'type': 'unknown', 'ids': json.dumps(oldmarks)})
-            self.assertEqual(response.status_code, 200)
+        # Do not remove populated safe/unsafe marks as there are no problems with uploading populated marks
+        response = self.client.post('/marks/delete/', {
+            'type': 'unknown', 'ids': json.dumps(list(MarkUnknown.objects.values_list('id', flat=True)))
+        })
+        self.assertEqual(response.status_code, 200)
 
         # Get report
         unknown = None
@@ -1015,13 +957,16 @@ class TestMarks(KleverTestCase):
             self.fail("Unknown with needed problem description was not found in test job decision")
         parent = ReportComponent.objects.get(pk=unknown.parent_id)
 
+        # Inline mark form
+        response = self.client.get('/marks/unknown/%s/create/inline/' % unknown.id)
+        self.assertEqual(response.status_code, 200)
+
         # Create mark page
-        response = self.client.get(reverse('marks:create_mark', args=['unknown', unknown.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['unknown', unknown.pk, 'create']))
         self.assertEqual(response.status_code, 200)
 
         # Check regexp function
-        response = self.client.post('/marks/ajax/check-unknown-mark/', {
-            'report_id': unknown.pk,
+        response = self.client.post('/marks/check-unknown-mark/%s/' % unknown.pk, {
             'function': "KeyError:\s'(\S*)'\swas\snot\sfound\.",
             'pattern': 'KeyE: {0}',
             'is_regex': 'true'
@@ -1031,10 +976,8 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Save mark
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'report_id': unknown.pk,
-                'data_type': 'unknown',
+        response = self.client.post(reverse('marks:mark_form', args=['unknown', unknown.pk, 'create']), {
+            'data': json.dumps({
                 'description': 'Mark description',
                 'is_modifiable': True,
                 'status': MARK_STATUS[2][0],
@@ -1077,18 +1020,16 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/unknown/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Edit mark page
-        response = self.client.get(reverse('marks:mark', args=['unknown', 'edit', mark.pk]))
+        response = self.client.get(reverse('marks:mark_form', args=['unknown', mark.pk, 'edit']))
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'mark_id': mark.pk,
-                'data_type': 'unknown',
+        response = self.client.post(reverse('marks:mark_form', args=['unknown', mark.pk, 'edit']), {
+            'data': json.dumps({
                 'description': 'New mark description',
                 'is_modifiable': True,
                 'status': MARK_STATUS[1][0],
@@ -1127,13 +1068,17 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
 
         # Associations changes
-        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        response = self.client.get('/marks/unknown/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
         # Unknown marks list page
         response = self.client.get(reverse('marks:list', args=['unknown']))
         self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('marks:mark', args=['unknown', 'view', mark.id]))
+        response = self.client.get(reverse('marks:mark', args=['unknown', mark.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # Inline mark eddit form
+        response = self.client.get('/marks/unknown/%s/edit/inline/' % mark.id)
         self.assertEqual(response.status_code, 200)
 
         # Confirm/unconfirm association
@@ -1141,17 +1086,13 @@ class TestMarks(KleverTestCase):
         self.assertEqual(
             MarkUnknownReport.objects.filter(mark=mark, report=unknown, type=ASSOCIATION_TYPE[0][0]).count(), 1
         )
-        response = self.client.post('/marks/ajax/unconfirm-association/', {
-            'report_type': 'unknown', 'mark_id': mark.id, 'report_id': unknown.id
-        })
+        response = self.client.post('/marks/association/unknown/%s/%s/unconfirm/' % (unknown.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(MarkUnknownReport.objects.filter(
             mark=mark, report=unknown, type=ASSOCIATION_TYPE[2][0]).count(), 1)
-        response = self.client.post('/marks/ajax/confirm-association/', {
-            'report_type': 'unknown', 'mark_id': mark.id, 'report_id': unknown.id
-        })
+        response = self.client.post('/marks/association/unknown/%s/%s/confirm/' % (unknown.pk, mark.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -1159,18 +1100,14 @@ class TestMarks(KleverTestCase):
             mark=mark, report=unknown, type=ASSOCIATION_TYPE[1][0]).count(), 1)
 
         # Like/dislike association
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'unknown', 'mark_id': mark.id, 'report_id': unknown.id, 'dislike': 'false'
-        })
+        response = self.client.post('/marks/association/unknown/%s/%s/like/' % (unknown.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(UnknownAssociationLike.objects.filter(
             association__report=unknown, association__mark=mark, dislike=False
         ).count(), 1)
-        response = self.client.post('/marks/ajax/like-association/', {
-            'report_type': 'unknown', 'mark_id': mark.id, 'report_id': unknown.id, 'dislike': 'true'
-        })
+        response = self.client.post('/marks/association/unknown/%s/%s/dislike/' % (unknown.id, mark.id))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -1189,6 +1126,10 @@ class TestMarks(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
+        # Download mark in preset format
+        response = self.client.get(reverse('marks:download_preset_mark', args=['unknown', mark.pk]))
+        self.assertEqual(response.status_code, 200)
+
         # Delete mark
         response = self.client.post('/marks/delete/', {'type': 'unknown', 'ids': json.dumps([mark.id])})
         self.assertEqual(response.status_code, 200)
@@ -1200,15 +1141,15 @@ class TestMarks(KleverTestCase):
 
         # Upload mark
         with open(os.path.join(settings.MEDIA_ROOT, self.unknown_archive), mode='rb') as fp:
-            response = self.client.post('/marks/upload_marks/', {'file': fp})
+            response = self.client.post('/marks/upload/', {'file': fp})
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('status', None), True)
-        self.assertEqual(res.get('mark_type', None), 'unknown')
+        self.assertIn('id', res)
+        self.assertEqual(res.get('type'), 'unknown')
         try:
-            newmark = MarkUnknown.objects.get(pk=res.get('mark_id', 0))
+            newmark = MarkUnknown.objects.get(pk=res['id'])
         except ObjectDoesNotExist:
             self.fail('Mark was not uploaded')
         self.assertEqual(newmark.version, 2)
@@ -1224,8 +1165,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(UnknownProblem.objects.filter(name='KeyE: attr')), 1)
 
         # Check non-regexp function
-        response = self.client.post('/marks/ajax/check-unknown-mark/', {
-            'report_id': unknown.pk,
+        response = self.client.post('/marks/check-unknown-mark/%s/' % unknown.pk, {
             'function': "KeyError: 'attr' was not found.",
             'pattern': 'KeyE: attr',
             'is_regex': 'false'
@@ -1235,10 +1175,8 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Non-regexp function change
-        response = self.client.post('/marks/ajax/save_mark/', {
-            'savedata': json.dumps({
-                'mark_id': newmark.pk,
-                'data_type': 'unknown',
+        response = self.client.post(reverse('marks:mark_form', args=['unknown', newmark.pk, 'edit']), {
+            'data': json.dumps({
                 'description': 'New mark description',
                 'is_modifiable': True,
                 'status': MARK_STATUS[2][0],
@@ -1255,10 +1193,8 @@ class TestMarks(KleverTestCase):
 
         # Some more mark changes
         for i in range(4, 6):
-            response = self.client.post('/marks/ajax/save_mark/', {
-                'savedata': json.dumps({
-                    'mark_id': newmark.pk,
-                    'data_type': 'unknown',
+            response = self.client.post(reverse('marks:mark_form', args=['unknown', newmark.pk, 'edit']), {
+                'data': json.dumps({
                     'description': 'No regexp',
                     'is_modifiable': True,
                     'status': MARK_STATUS[2][0],
@@ -1276,24 +1212,21 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 5)
 
         # Get 3d version data
-        response = self.client.post('/marks/ajax/get_mark_version_data/', {
-            'type': 'unknown', 'version': 3, 'mark_id': newmark.pk
-        })
+        response = self.client.get(reverse('marks:mark_form', args=['unknown', newmark.pk, 'edit']),
+                                   params={'version': 3})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertNotIn('error', res)
-        self.assertIn('data', res)
+
+        # Compare 1st and 4th versions
+        response = self.client.post('/marks/unknown/%s/compare_versions/' % newmark.pk, {'v1': 1, 'v2': 4})
+        self.assertEqual(response.status_code, 200)
 
         # Remove 2nd and 4th versions
-        response = self.client.post('/marks/ajax/remove_versions/', {
-            'mark_type': 'unknown', 'mark_id': newmark.pk, 'versions': json.dumps([2, 4])
-        })
+        response = self.client.post('/marks/unknown/%s/remove_versions/' % newmark.pk, {'versions': json.dumps([2, 4])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertIn('message', res)
+        self.assertIn('success', res)
         self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 3)
 
         # Reports' lists pages
@@ -1319,14 +1252,12 @@ class TestMarks(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
-        # Delete all unknown marks
-        response = self.client.post('/marks/delete/', {
-            'type': 'unknown', 'ids': json.dumps(list(x.pk for x in MarkUnknown.objects.all()))
+        # Delete all marks
+        self.client.post('/marks/delete/', {
+            'type': 'unknown', 'ids': json.dumps(list(MarkUnknown.objects.values_list('id', flat=True)))
         })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(MarkUnknown.objects.all()), 0)
+        self.assertEqual(MarkUnknown.objects.count(), 0)
+
         # All verdicts must be "unknown unmarked"
         self.assertEqual(MarkUnknownReport.objects.all().count(), 0)
 

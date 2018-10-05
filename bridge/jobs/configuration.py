@@ -19,7 +19,7 @@ import json
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, SCHEDULER_STATUS
 from bridge.utils import logger, BridgeException
@@ -465,11 +465,11 @@ class StartDecisionData:
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
             raise BridgeException(_('The Klever scheduler is disconnected'))
         schedulers.append([
-            klever_sch.type, string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
+            klever_sch.type, '{0} ({1})'.format(klever_sch.get_type_display(), klever_sch.get_status_display())
         ])
         if cloud_sch.status != SCHEDULER_STATUS[2][0]:
             schedulers.append([
-                cloud_sch.type, string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
+                cloud_sch.type, '{0} ({1})'.format(cloud_sch.get_type_display(), cloud_sch.get_status_display())
             ])
         elif self.conf.scheduler == SCHEDULER_TYPE[1][0]:
             raise BridgeException(_('The scheduler for tasks is disconnected'))
