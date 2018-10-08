@@ -251,7 +251,7 @@ class CProgram:
         for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
                            (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json'))):
             with open(file, 'w', encoding='utf8') as fp:
-                json.dump(data, fp)
+                json.dump(data, fp, sort_keys=True, indent=4)
 
             storage.save_file(file, os.path.basename(file))
 
@@ -524,6 +524,7 @@ def klever_build():
         common_target_program_desc = dict(common_target_program_descs[target_program_desc['name']])
         common_target_program_desc.update(target_program_desc)
         getattr(sys.modules[__name__], target_program_desc['name'])(logger, common_target_program_desc).build()
+        logger.info('Build base "{}" was successfully prepared'.format(target_program_desc['build base']))
 
 
 if __name__ == '__main__':
