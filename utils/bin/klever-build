@@ -303,6 +303,7 @@ class Linux(CProgram):
 
     def __init__(self, logger, target_program_desc):
         super().__init__(logger, target_program_desc)
+        self.kconfig_config = None
 
     def _build(self):
         self.logger.info('Build Linux kernel')
@@ -412,10 +413,9 @@ class Linux(CProgram):
                 self.configuration = hashlib.sha1(fp.read()).hexdigest()[:7]
 
             self.logger.info('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.configuration))
-
             shutil.copy(conf_file, self.work_src_tree)
-
-            target = ['oldconfig', 'KCONFIG_CONFIG={0}'.format(os.path.basename(conf_file))]
+            self.kconfig_config = os.path.basename(conf_file)
+            target = ['oldconfig', 'KCONFIG_CONFIG={0}'.format(self.kconfig_config)]
         else:
             self.logger.debug('Linux kernel configuration target is "{0}"'
                               .format(self.target_program_desc['configuration']))
@@ -436,6 +436,9 @@ class Linux(CProgram):
 
     def _make(self, *target, **kwargs):
         kwargs['opts'] = ['{0}={1}'.format(name, value) for name, value in self._ARCH_OPTS[self.architecture].items()]
+        if self.kconfig_config:
+            kwargs['opts'].append('KCONFIG_CONFIG={0}'.format(self.kconfig_config))
+
         return super()._make(*target, **kwargs)
 
     def __prepare_ext_modules(self):
