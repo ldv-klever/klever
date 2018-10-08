@@ -86,6 +86,8 @@ class CProgram:
 
         # Source directories are directories to be trimed from file names.
         self.source_dirs = []
+        # Temporary directories that should be removed at the end of work.
+        self.tmp_dirs = []
 
     def _build(self):
         self.logger.info('Build C program')
@@ -102,6 +104,7 @@ class CProgram:
     def _fetch_work_src_tree(self):
         src = self.target_program_desc['source']
         self.work_src_tree = tempfile.mkdtemp()
+        self.tmp_dirs.append(self.work_src_tree)
 
         self.logger.info('Fetch source code from "{0}" to working source tree "{1}"'.format(src, self.work_src_tree))
 
@@ -255,6 +258,9 @@ class CProgram:
             storage.save_file(file, os.path.basename(file))
 
         shutil.rmtree(tmp_dir)
+
+        for tmp_dir in self.tmp_dirs:
+            shutil.rmtree(tmp_dir)
 
 
 class Linux(CProgram):
@@ -440,6 +446,7 @@ class Linux(CProgram):
             return None
 
         work_src_tree = tempfile.mkdtemp()
+        self.tmp_dirs.append(work_src_tree)
 
         self.logger.info(
             'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
