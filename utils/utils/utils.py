@@ -199,7 +199,7 @@ def execute_cmd(logger, *args, **kwargs):
     get_output = kwargs.pop('get_output') if 'get_output' in kwargs else False
 
     if get_output:
-        return subprocess.check_output(args, **kwargs).decode('utf8')
+        return subprocess.check_output(args, **kwargs).decode('utf8').rstrip().split('\n')
     else:
         subprocess.check_call(args, **kwargs)
 
