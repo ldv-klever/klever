@@ -421,7 +421,7 @@ class UnsafesTable:
                     else:
                         val = str(unsafes[rep_id]['marks_number'])
                 elif col == 'total_similarity':
-                    val = unsafes[rep_id]['total_similarity']
+                    val = '%d%%' % (unsafes[rep_id]['total_similarity'] * 100)
                 elif col == 'report_verdict':
                     for u in UNSAFE_VERDICTS:
                         if u[0] == unsafes[rep_id]['verdict']:

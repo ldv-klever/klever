@@ -462,7 +462,9 @@ class MarksList:
                         val = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
                 elif col == 'source':
                     val = model_map[self.type](type=marks[m_id]['source']).get_type_display()
-                elif col in {'format', 'total_similarity', 'component', 'pattern'}:
+                elif col == 'total_similarity':
+                    val = '%d%%' % (marks[m_id][col] * 100)
+                elif col in {'format', 'component', 'pattern'}:
                     val = marks[m_id][col]
                 values_row.append({'color': color, 'value': val, 'href': href})
             values_data.append(values_row)
