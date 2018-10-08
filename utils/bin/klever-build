@@ -39,13 +39,13 @@ preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.pat
 
 common_target_program_descs = {
     'Linux': {
-        'source': 'linux-3.14.79',
+        'source code': 'linux-3.14.79',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
         'model CC options file': 'scripts/mod/empty.c',
         'external modules header files search directory': os.path.join(preset_jobs_dir, 'specifications'),
         'loadable kernel modules': ['all'],
-        'allow local source directories use': True,
+        'allow local source trees use': True,
         'generate makefiles': True
     }
 }
@@ -71,7 +71,7 @@ class CProgram:
         self.logger = logger
         self.target_program_desc = target_program_desc
 
-        # Working source tree where various build and auxiliary actions will be performed.
+        # Main working source tree where various build and auxiliary actions will be performed.
         self.work_src_tree = None
 
         # TODO: make this adaptive.
@@ -84,8 +84,8 @@ class CProgram:
         self.configuration = None
         self.version = None
 
-        # Source directories are directories to be trimed from file names.
-        self.source_dirs = []
+        # Working source trees are directories to be trimed from file names.
+        self.work_src_trees = []
         # Temporary directories that should be removed at the end of work.
         self.tmp_dirs = []
 
@@ -95,14 +95,14 @@ class CProgram:
 
     def _clean(self):
         self.logger.info('Clean working source tree')
-        execute_cmd(self.logger, 'make', 'clean', cwd=self.work_src_tree)
+        self._make('clean')
 
     def _configure(self):
         self.logger.info('Configure C program')
         execute_cmd(self.logger, './configure', cwd=self.work_src_tree)
 
     def _fetch_work_src_tree(self):
-        src = self.target_program_desc['source']
+        src = self.target_program_desc['source code']
         self.work_src_tree = tempfile.mkdtemp()
         self.tmp_dirs.append(self.work_src_tree)
 
@@ -117,7 +117,7 @@ class CProgram:
             raise ValueError('Source code is provided in unsupported form "{0}"'.format(o[0]))
 
         if os.path.isdir(src):
-            if self.target_program_desc['allow local source directories use']:
+            if self.target_program_desc['allow local source trees use']:
                 self.logger.info('Use original source tree "{0}" rather than fetch it to working source tree "{1}"'
                                  .format(src, self.work_src_tree))
                 self.work_src_tree = src
@@ -137,8 +137,7 @@ class CProgram:
                         self.logger.info('Checkout Git repository {0} "{1}"'.format(commit_or_branch,
                                                                                     git_repo[commit_or_branch]))
                         # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
-                        # some previous Git commands crashed. Isolating several instances of Klever Core working with
-                        # the same Linux kernel source code should be done somehow else in a more generic way.
+                        # some previous Git commands crashed.
                         git_index_lock = os.path.join(self.work_src_tree, '.git', 'index.lock')
                         if os.path.isfile(git_index_lock):
                             os.remove(git_index_lock)
@@ -157,10 +156,9 @@ class CProgram:
             with tarfile.open(src, encoding='utf8') as TarFile:
                 TarFile.extractall(self.work_src_tree)
         else:
-            raise ValueError('Source code is not provided')
+            raise ValueError('Source code is not provided at "{0}"'.format(src))
 
-        # Directory corresponding to working source tree will be trimmed from file names.
-        self.source_dirs.append(self.work_src_tree)
+        self.work_src_trees.append(os.path.realpath(self.work_src_tree))
 
     def _get_version(self):
         self.version = self.target_program_desc.get('version')
@@ -239,7 +237,7 @@ class CProgram:
 
         clade_api.initialize_extensions(self.target_program_desc['build base'], cmds_file, self._CLADE_CONF)
 
-        # Save project attributes and source directories to build base.
+        self.logger.info('Save project attributes and working source trees to build base')
         attrs = [
             {
                 'name': type(self).__name__,
@@ -251,7 +249,7 @@ class CProgram:
         storage = clade_api.FileStorage()
         tmp_dir = tempfile.mkdtemp()
         for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
-                           (self.source_dirs, os.path.join(tmp_dir, 'source dirs.json'))):
+                           (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json'))):
             with open(file, 'w', encoding='utf8') as fp:
                 json.dump(data, fp)
 
@@ -259,6 +257,7 @@ class CProgram:
 
         shutil.rmtree(tmp_dir)
 
+        self.logger.info('Remove temporary directories')
         for tmp_dir in self.tmp_dirs:
             shutil.rmtree(tmp_dir)
 
@@ -504,7 +503,7 @@ class Linux(CProgram):
 
         # Directory corresponding to working source tree of external Linux kernel modules will be trimmed from program
         # fragment identifiers (absolute paths to external loadable kernel modules) and file names.
-        self.source_dirs.append(work_src_tree)
+        self.work_src_trees.append(work_src_tree)
 
         return os.path.abspath(work_src_tree)
 
