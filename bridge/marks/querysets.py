@@ -71,7 +71,8 @@ class ListQuery:
             return
         total_sim_aggr = '(CASE WHEN {0} IS NULL THEN 0.0 ELSE {0} END)'
         subquery = self.__join_links()
-        subquery.aggregate('total_similarity', 'SUM({0})', 'result')
+        subquery.aggregate('total_similarity', '(CASE WHEN COUNT({0}) = 0 THEN 0 ELSE (SUM({0})/COUNT({0})) END)',
+                           'result')
         self.sql.aggregate('total_similarity', total_sim_aggr, ('total_similarity', subquery))
 
         if 'order' in self.view and self.view['order'][1] == 'total_similarity':

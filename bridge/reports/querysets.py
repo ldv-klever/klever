@@ -183,7 +183,8 @@ class LeavesQuery:
         links_sq = RawQuery(sq_model[self.model])
         links_sq.select('report_id')
         total_sim_aggr = '(CASE WHEN {0} IS NULL THEN 0.0 ELSE {0} END)'
-        links_sq.aggregate('total_similarity', 'SUM({0})', 'result')
+        links_sq.aggregate('total_similarity',
+                           '(CASE WHEN COUNT({0}) = 0 THEN 0 ELSE (SUM({0})/COUNT({0})) END)', 'result')
         links_sq.group_by('report_id')
         self.sql.join('LEFT OUTER', links_sq, 'report_id', 'id', table_to=Report)
         self.sql.aggregate('total_similarity', total_sim_aggr, ('total_similarity', links_sq))
