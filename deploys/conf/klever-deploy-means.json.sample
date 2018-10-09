@@ -1,5 +1,8 @@
 {
   "Packages": {
+    "For installing Klever Addons": [
+      "unzip"
+    ],
     "For building Python packages": [
       "libpq-dev",
       "python3-dev",

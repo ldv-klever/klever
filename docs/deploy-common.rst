@@ -24,6 +24,7 @@ To execute deployment scripts you need to install:
   `gz <https://www.gnu.org/software/gzip/>`__,
   `bzip2 <http://www.bzip.org/>`__,
   `xz <https://tukaani.org/xz/>`__,
+  `unzip <http://infozip.sourceforge.net/UnZip.html>`__,
   `git <https://git-scm.com/>`__ and
   `wget <https://www.gnu.org/software/wget/>`__
   (if you are going to deploy entities from corresponding sources).
