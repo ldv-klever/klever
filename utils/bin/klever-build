@@ -510,10 +510,10 @@ class CProgram:
                 execute_cmd(self.logger, 'git', 'checkout', '-f', self.target_program_desc['Git repository version'],
                             cwd=self.work_src_tree)
 
-                # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
-                stdout = execute_cmd(self.logger, 'git', 'rev-parse', 'HEAD', cwd=self.work_src_tree,
-                                     get_output=True)
-                self.version = stdout[0][0:12]
+                # Use Git describe to properly identify C program version which source code is provided in form of Git
+                # repository.
+                stdout = execute_cmd(self.logger, 'git', 'describe', cwd=self.work_src_tree, get_output=True)
+                self.version = stdout[0]
         elif os.path.isfile(src):
             self.logger.debug('Source code is provided in form of archive')
             with tarfile.open(src, encoding='utf8') as TarFile:
