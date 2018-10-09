@@ -39,7 +39,8 @@ preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.pat
 
 common_target_program_descs = {
     'Linux': {
-        'source code': 'linux-3.14',
+        'source code': 'linux-stable',
+        'Git repository version': 'v3.14',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
         'model CC options file': 'scripts/mod/empty.c',
@@ -63,7 +64,7 @@ target_program_descs = [
     {
         'build base': 'build bases/testing/455c6f',
         'name': 'Linux',
-        'source code': 'linux-2.6.33.20',
+        'Git repository version': 'v2.6.33.20',
         'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
         'loadable kernel modules': [
             'ext-modules/block_device_operations_v.1',
@@ -131,7 +132,7 @@ target_program_descs = [
     {
         'build base': 'build bases/testing/01358e',
         'name': 'Linux',
-        'source code': 'linux-4.6.7',
+        'Git repository version': 'v4.6.7',
         'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
         'loadable kernel modules': [
             'ext-modules/block_device_operations_v.1',
@@ -252,28 +253,26 @@ class CProgram:
             else:
                 self.logger.debug("Source code is provided in form of source tree")
 
-            # TODO: do not allow to checkout both branch and commit and to checkout branch or commit for source tree.
-            git_repo = self.target_program_desc.get('Git repository')
-            if git_repo:
-                for commit_or_branch in ('commit', 'branch'):
-                    if commit_or_branch in git_repo:
-                        self.logger.info('Checkout Git repository {0} "{1}"'.format(commit_or_branch,
-                                                                                    git_repo[commit_or_branch]))
-                        # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
-                        # some previous Git commands crashed.
-                        git_index_lock = os.path.join(self.work_src_tree, '.git', 'index.lock')
-                        if os.path.isfile(git_index_lock):
-                            os.remove(git_index_lock)
-                        # In case of dirty Git working directory checkout may fail so clean up it first.
-                        execute_cmd(self.logger, 'git', 'clean', '-f', '-d', cwd=self.work_src_tree)
-                        execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
-                        execute_cmd(self.logger, 'git', 'checkout', '-f', git_repo[commit_or_branch],
-                                    cwd=self.work_src_tree)
+            if 'Git repository version' in self.target_program_desc:
+                self.logger.info('Checkout Git repository "{0}"'
+                                 .format(self.target_program_desc['Git repository version']))
 
-                        # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
-                        stdout = execute_cmd(self.logger, 'git', 'rev-parse', 'HEAD', cwd=self.work_src_tree,
-                                             get_output=True)
-                        self.version = stdout[0][0:12]
+                # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
+                # some previous Git commands crashed.
+                git_index_lock = os.path.join(self.work_src_tree, '.git', 'index.lock')
+                if os.path.isfile(git_index_lock):
+                    os.remove(git_index_lock)
+
+                # In case of dirty Git working directory checkout may fail so clean up it first.
+                execute_cmd(self.logger, 'git', 'clean', '-f', '-d', cwd=self.work_src_tree)
+                execute_cmd(self.logger, 'git', 'reset', '--hard', cwd=self.work_src_tree)
+                execute_cmd(self.logger, 'git', 'checkout', '-f', self.target_program_desc['Git repository version'],
+                            cwd=self.work_src_tree)
+
+                # Use 12 first symbols of current commit hash to properly identify Linux kernel version.
+                stdout = execute_cmd(self.logger, 'git', 'rev-parse', 'HEAD', cwd=self.work_src_tree,
+                                     get_output=True)
+                self.version = stdout[0][0:12]
         elif os.path.isfile(src):
             self.logger.debug('Source code is provided in form of archive')
             with tarfile.open(src, encoding='utf8') as TarFile:
@@ -333,12 +332,6 @@ class CProgram:
     def build(self):
         self._fetch_work_src_tree()
         self._make_canonical_work_src_tree()
-
-        # Remove file with intercepted build commands if so.
-        cmds_file = os.path.join(self.work_src_tree, 'cmds.txt')
-        if os.path.isfile(cmds_file):
-            os.remove(cmds_file)
-
         self._clean()
         self._get_version()
 
