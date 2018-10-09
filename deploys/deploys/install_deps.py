@@ -108,7 +108,7 @@ def install_deps(logger, deploy_conf, prev_deploy_info, non_interactive, update_
         if non_interactive:
             args.append('--assume-yes')
         args.extend(pckgs_to_update)
-        execute_cmd(*args)
+        execute_cmd(logger, *args)
 
     if py_pckgs_to_update and update_py_pckgs:
         logger.info('Update Python3 packages:\n  {0}'.format('\n  '.join(py_pckgs_to_update)))
