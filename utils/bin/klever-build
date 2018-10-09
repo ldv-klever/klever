@@ -314,7 +314,6 @@ class Linux(CProgram):
 
         # To build external Linux kernel modules we need to specify "M=path/to/ext/modules/dir".
         ext_modules = self.__prepare_ext_modules()
-        ext_modules_make_opt = ['M=' + ext_modules] if ext_modules else []
 
         try:
             # Try to prepare for building modules. This is necessary and should finish successfully when the Linux
@@ -328,6 +327,14 @@ class Linux(CProgram):
             self._make('scripts/mod/empty.o', intercept_build_cmds=True)
             support_loadable_kernel_modules = False
 
+        def modules_make_target():
+            # Use target "modules" when the Linux kernel supports loadable modules.
+            if support_loadable_kernel_modules:
+                return 'modules'
+            # Otherwise build all builtin modules indirectly by using target "all".
+            else:
+                return 'all'
+
         if len(self.target_program_desc.get('loadable kernel modules', [])) > 0:
             self.logger.info('Build loadable kernel modules')
 
@@ -336,12 +343,9 @@ class Linux(CProgram):
                 if len(self.target_program_desc['loadable kernel modules']) != 1:
                     raise ValueError('Can not build all modules and something else')
 
-                # Use target "modules" when the Linux kernel supports loadable modules.
-                if support_loadable_kernel_modules:
-                    self._make(*(ext_modules_make_opt + ['modules']), intercept_build_cmds=True)
-                # Otherwise build all builtin modules indirectly by using target "all".
-                else:
-                    self._make(*(ext_modules_make_opt + ['all']), intercept_build_cmds=True)
+                self._make(*((['M=' + os.path.join(ext_modules, 'ext-modules')] if ext_modules else []) +
+                             [modules_make_target()]),
+                           intercept_build_cmds=True)
             else:
                 # Check that modules aren't intersect explicitly.
                 for i, modules1 in enumerate(self.target_program_desc['loadable kernel modules']):
@@ -367,27 +371,28 @@ class Linux(CProgram):
                     # Modules ending with .ko imply individual modules.
                     if re.search(r'\.ko$', modules):
                         if ext_modules:
-                            build_targets.append(ext_modules_make_opt +
-                                                 [os.path.join(*(modules.split(os.path.sep)[1:]))])
+                            build_targets.append([os.path.join(ext_modules, modules)])
                         else:
-                            build_targets.append(ext_modules_make_opt + [modules])
+                            build_targets.append([modules])
                     # Otherwise it is directory that can contain modules.
                     else:
                         if ext_modules:
-                            if not os.path.isdir(modules):
+                            if not os.path.isdir(os.path.join(ext_modules, modules)):
                                 raise ValueError('There is no directory "{0}" inside "{1}"'
-                                                 .format(modules, os.getcwd()))
+                                                 .format(modules, ext_modules))
 
-                            build_targets.append(['M=' + os.path.abspath(modules)])
+                            build_target = 'M=' + os.path.join(ext_modules, modules)
                         else:
                             if not os.path.isdir(os.path.join(self.work_src_tree, modules)):
                                 raise ValueError('There is no directory "{0}" inside "{1}"'.
                                                  format(modules, self.work_src_tree))
 
-                            build_targets.append(['M=' + modules])
+                            build_target = 'M=' + modules
+
+                        build_targets.append([build_target, modules_make_target()])
 
                 for build_target in build_targets:
-                    self._make(build_target, intercept_build_cmds=True)
+                    self._make(*build_target, intercept_build_cmds=True)
 
         # Generate Makefile and compile C files including model headers. These files will be treated as part of kernel -
         # one will need to filter them out later if required.
@@ -447,22 +452,29 @@ class Linux(CProgram):
         if not ext_modules:
             return None
 
-        work_src_tree = tempfile.mkdtemp()
-        self.tmp_dirs.append(work_src_tree)
+        tmp_dir = tempfile.mkdtemp()
+        self.tmp_dirs.append(tmp_dir)
+
+        # Always put source code of external loadable Linux kernel modules into this magical directory as this will
+        # allow to distinguish them at various stages later.
+        work_src_tree = os.path.join(tmp_dir, 'ext-modules')
+        # Parent directory of this magical directory will be trimmed from program fragment identifiers (absolute paths
+        # to external loadable Linux kernel modules) and file names.
+        self.work_src_trees.append(tmp_dir)
 
         self.logger.info(
-            'Fetch source code of external Linux kernel modules from "{0}" to working source tree "{1}"'
+            'Fetch source code of external loadable Linux kernel modules from "{0}" to working source tree "{1}"'
             .format(ext_modules, work_src_tree))
 
         if os.path.isdir(ext_modules):
-            self.logger.debug('External Linux kernel modules source code is provided in form of source tree')
+            self.logger.debug('External loadable Linux kernel modules source code is provided in form of source tree')
             copy_tree(ext_modules, work_src_tree)
         elif os.path.isfile(ext_modules):
-            self.logger.debug('External Linux kernel modules source code is provided in form of archive')
+            self.logger.debug('External loadable Linux kernel modules source code is provided in form of archive')
             with tarfile.open(ext_modules, encoding='utf8') as TarFile:
                 TarFile.extractall(work_src_tree)
 
-        self.logger.info('Make canonical working source tree of external Linux kernel modules')
+        self.logger.info('Make canonical working source tree of external loadable Linux kernel modules')
         work_src_tree_root = None
         for dirpath, dirnames, filenames in os.walk(work_src_tree):
             ismakefile = False
@@ -504,11 +516,7 @@ class Linux(CProgram):
             self.logger.debug('Remove "{0}"'.format(trash_dir))
             shutil.rmtree(os.path.realpath(trash_dir))
 
-        # Directory corresponding to working source tree of external Linux kernel modules will be trimmed from program
-        # fragment identifiers (absolute paths to external loadable kernel modules) and file names.
-        self.work_src_trees.append(work_src_tree)
-
-        return os.path.abspath(work_src_tree)
+        return tmp_dir
 
 
 class BusyBox(CProgram):
