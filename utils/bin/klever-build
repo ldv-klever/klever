@@ -567,7 +567,7 @@ class Linux(CProgram):
         return super()._make(*target, **kwargs)
 
     def __prepare_ext_modules(self):
-        ext_modules = self.target_program_desc['external modules']
+        ext_modules = self.target_program_desc.get('external modules')
 
         if not ext_modules:
             return None
