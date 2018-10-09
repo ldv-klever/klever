@@ -39,7 +39,7 @@ preset_jobs_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.pat
 
 common_target_program_descs = {
     'Linux': {
-        'source code': 'linux-3.14.79',
+        'source code': 'linux-3.14',
         'configuration': 'allmodconfig',
         'architecture': 'x86_64',
         'model CC options file': 'scripts/mod/empty.c',
@@ -55,16 +55,135 @@ common_target_program_descs = {
 }
 
 target_program_descs = [
-    # {
-    #     'build base': '1de383',
-    #     'name': 'Linux',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
-    # },
     {
         'build base': 'build bases/testing/6e6e1c',
         'name': 'Linux',
         'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests')
+    },
+    {
+        'build base': 'build bases/testing/455c6f',
+        'name': 'Linux',
+        'source code': 'linux-2.6.33.20',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+        'loadable kernel modules': [
+            'ext-modules/block_device_operations_v.1',
+            'ext-modules/class_v.1',
+            'ext-modules/devm_threaded_irq_v.1',
+            'ext-modules/ethtool_ops_v.1',
+            'ext-modules/file_operations_v.1',
+            'ext-modules/get_sb_v.1',
+            'ext-modules/hid_v.1',
+            'ext-modules/ieee80211_ops_v.1',
+            'ext-modules/irq_v.1',
+            'ext-modules/kthread_v.1',
+            'ext-modules/net_device_ops_v.1',
+            'ext-modules/pci_driver_v.1',
+            'ext-modules/platform_driver_v.1',
+            'ext-modules/proto_v.1',
+            'ext-modules/rtc_class_ops_v.1',
+            'ext-modules/scsi_host_template_v.1',
+            'ext-modules/seq_operations_v.1',
+            'ext-modules/serial_core_v.1',
+            'ext-modules/super_block_v.1',
+            'ext-modules/tasklet_v.1',
+            'ext-modules/timer_v.1',
+            'ext-modules/tty_v.1',
+            'ext-modules/urb_v.1',
+            'ext-modules/usb_driver_v.1',
+            'ext-modules/usb_serial_driver_v.1',
+            'ext-modules/workqueue_v.1'
+        ]
+    },
+    {
+        'build base': 'build bases/testing/fedc1e',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+        'loadable kernel modules': [
+            'ext-modules/block_device_operations_v.1',
+            'ext-modules/class_v.1',
+            'ext-modules/devm_threaded_irq_v.1',
+            'ext-modules/ethtool_ops_v.1',
+            'ext-modules/file_operations_v.1',
+            'ext-modules/hid_v.1',
+            'ext-modules/ieee80211_ops_v.1',
+            'ext-modules/iio_triggered_buffer_v.1',
+            'ext-modules/irq_v.2',
+            'ext-modules/kthread_v.1',
+            'ext-modules/net_device_ops_v.1',
+            'ext-modules/pci_driver_v.1',
+            'ext-modules/percpu_irq_v.1',
+            'ext-modules/platform_driver_v.1',
+            'ext-modules/proto_v.1',
+            'ext-modules/rtc_class_ops_v.1',
+            'ext-modules/scsi_host_template_v.1',
+            'ext-modules/se_subsystem_api_v.1',
+            'ext-modules/seq_operations_v.1',
+            'ext-modules/serial_core_v.1',
+            'ext-modules/tasklet_v.1',
+            'ext-modules/timer_v.1',
+            'ext-modules/tty_v.2',
+            'ext-modules/urb_v.1',
+            'ext-modules/usb_driver_v.1',
+            'ext-modules/usb_serial_driver_v.2',
+            'ext-modules/workqueue_v.1'
+        ]
+    },
+    {
+        'build base': 'build bases/testing/01358e',
+        'name': 'Linux',
+        'source code': 'linux-4.6.7',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+        'loadable kernel modules': [
+            'ext-modules/block_device_operations_v.1',
+            'ext-modules/class_v.1',
+            'ext-modules/devm_threaded_irq_v.1',
+            'ext-modules/ethtool_ops_v.2',
+            'ext-modules/file_operations_v.1',
+            'ext-modules/hid_v.1',
+            'ext-modules/ieee80211_ops_v.1',
+            'ext-modules/iio_triggered_buffer_v.1',
+            'ext-modules/irq_v.2',
+            'ext-modules/kthread_v.1',
+            'ext-modules/net_device_ops_v.2',
+            'ext-modules/pci_driver_v.1',
+            'ext-modules/percpu_irq_v.1',
+            'ext-modules/platform_driver_v.1',
+            'ext-modules/proto_v.2',
+            'ext-modules/rtc_class_ops_v.1',
+            'ext-modules/scsi_host_template_v.1',
+            'ext-modules/seq_operations_v.1',
+            'ext-modules/serial_core_v.1',
+            'ext-modules/target_backend_v1',
+            'ext-modules/tasklet_v.1',
+            'ext-modules/timer_v.2',
+            'ext-modules/tty_v.2',
+            'ext-modules/urb_v.1',
+            'ext-modules/usb_driver_v.1',
+            'ext-modules/usb_serial_driver_v.2',
+            'ext-modules/workqueue_v.1'
+        ],
+        # Linux 4.6.7 can be built with new versions of GCC.
+        'extra Clade options': {}
+    },
+    {
+        'build base': 'build bases/testing/1de383',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
+    },
+    {
+        'build base': 'build bases/testing/1cae6b',
+        'name': 'Linux',
+        'configuration': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'configs', 'no-lockdep'),
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'rule specs', 'tests'),
+        # The only module needs specific kernel configuration for testing.
+        'loadable kernel modules': ['ext-modules/linux/kernel/sched/completion-no-lockdep']
+    },
+    {
+        'build base': 'build bases/testing/606cdb',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'testing verifiers', 'tests')
     }
+    # TODO: validation
 ]
 
 
