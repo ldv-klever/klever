@@ -46,7 +46,11 @@ common_target_program_descs = {
         'external modules header files search directory': os.path.join(preset_jobs_dir, 'specifications'),
         'loadable kernel modules': ['all'],
         'allow local source trees use': True,
-        'generate makefiles': True
+        'generate makefiles': True,
+        'extra Clade options': {'Info.extra CIF opts': [
+            '-D__GNUC__=4',
+            '-D__GNUC_MINOR__=6'
+        ]}
     }
 }
 
@@ -234,6 +238,8 @@ class CProgram:
 
         if os.path.isdir(self.target_program_desc['build base']):
             shutil.rmtree(self.target_program_desc['build base'])
+
+        self._CLADE_CONF.update(self.target_program_desc.get('extra Clade options', {}))
 
         clade_api.initialize_extensions(self.target_program_desc['build base'], cmds_file, self._CLADE_CONF)
 
