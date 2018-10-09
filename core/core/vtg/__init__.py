@@ -332,54 +332,6 @@ class VTG(core.components.Component):
 
     main = generate_verification_tasks
 
-    def set_model_headers(self):
-        """Set model headers. Do not rename function - it has a callback in LKBCE."""
-        self.logger.info('Set model headers')
-
-        for requirement_desc in self.requirement_descs:
-            self.logger.debug('Set headers of requirement "{0}"'.format(requirement_desc['id']))
-            for plugin_desc in requirement_desc['plugins']:
-                if plugin_desc['name'] != 'RSG':
-                    continue
-
-                for models in ('common models', 'models'):
-                    if models in plugin_desc['options']:
-                        for model_c_file, model in plugin_desc['options'][models].items():
-                            if 'headers' not in model:
-                                continue
-
-                            self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
-
-                            if isinstance(model['headers'], dict):
-                                # Find out base specifications set.
-                                base_specs_set = None
-                                for specs_set in model['headers']:
-                                    if re.search(r'\(base\)', specs_set):
-                                        base_specs_set = specs_set
-                                        break
-                                if not base_specs_set:
-                                    raise KeyError('Could not find base specifications set')
-
-                                # Always require all headers of base specifications set.
-                                headers = model['headers'][base_specs_set]
-
-                                specs_set = self.conf['specifications set']
-
-                                # Add/exclude specific headers of specific specifications set.
-                                if specs_set != base_specs_set and specs_set in model['headers']:
-                                    if 'add' in model['headers'][specs_set]:
-                                        for add_header in model['headers'][specs_set]['add']:
-                                            headers.append(add_header)
-                                    if 'exclude' in model['headers'][specs_set]:
-                                        for exclude_header in model['headers'][specs_set]['exclude']:
-                                            headers.remove(exclude_header)
-                            else:
-                                headers = model['headers']
-
-                            self.model_headers[model_c_file] = headers
-
-                            self.logger.debug('Set headers "{0}"'.format(headers))
-
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
 

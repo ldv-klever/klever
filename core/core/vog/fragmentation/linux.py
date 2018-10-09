@@ -15,40 +15,39 @@
 # limitations under the License.
 #
 
-import os
 from core.utils import make_relative_path
-from core.vog.fragmentation.abstract import AbstractDivider
+from core.vog.fragmentation import FragmentationAlgorythm
 
 
-class Linux(AbstractDivider):
+class Linux(FragmentationAlgorythm):
 
-    def __init__(self, logger, conf, source, clade_api):
-        super(Linux, self).__init__(logger, conf, source, clade_api)
-        self._max_size = self.conf['Fragmentation strategy'].get("maximum fragment size")
-        self._separate_nested = self.conf['Fragmentation strategy'].get("separate nested subsystems", True)
+    def __init__(self, logger, conf, desc, clade):
+        super().__init__(logger, conf, desc, clade)
+        self._max_size = self.desc.get("maximum fragment size")
+        self._separate_nested = self.desc.get("separate nested subsystems", True)
+        self.kernel = self.desc.get("kernel", False)
 
-    def _divide(self):
-        self.logger.info("Start division of the Linux kernel into atomic fragments")
-        cmdg = self.clade.CommandGraph()
-        srcg = self.clade.SourceGraph()
-
-        for identifier, desc in cmdg.LDs:
+    def _determine_units(self, deps):
+        for identifier, desc in deps.cmdg.LDs:
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
                 raise NotImplementedError
 
             out = desc['out'][0]
             if out.endswith('.ko') or out.endswith('built-in.o'):
-                rel_object_path = make_relative_path(self.source.source_paths, out)
+                rel_object_path = make_relative_path(self.source_paths, out)
                 name = rel_object_path
-                fragment = self._create_fragment_from_ld(identifier, desc, name, cmdg, srcg,
-                                                         out.endswith('built-in.o') and self._separate_nested)
+                fragment = deps.create_fragment_from_ld(identifier, desc, name, deps.cmdg,
+                                                        out.endswith('built-in.o') and self._separate_nested)
                 if not self._max_size or fragment.size <= self._max_size:
-                    if self.source.check_target(rel_object_path):
-                        fragment.target = True
-                        self._target_fragments.add(fragment)
-                    self._add_fragment(fragment)
+                    deps.add_fragment(fragment)
                 else:
                     self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size {!r}'.
                                       format(fragment.name, fragment.size))
 
+    def _determine_targets(self, deps):
+        for fragment in deps.target_fragments:
+            if fragment.endswith('built-in.o') and not self.kernel:
+                fragment.target = False
+            elif fragment.endswith('.ko') and self.kernel:
+                fragment.target = False

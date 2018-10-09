@@ -1,0 +1,29 @@
+{
+  "templates": {
+    "Linux": {
+      "program": "Linux",
+      "opts file": "scripts/mod/empty.c"
+    },
+    "Linux modules": {
+      "template": "Linux",
+      "kernel": false
+    },
+    "Linux subsystems": {
+      "template": "Linux",
+      "kernel": true,
+      "separate nested subsystems": true,
+      "add modules by coverage": false
+    }
+  },
+  "fragmentation sets": {
+    "Linux": {
+      "modules verification": {
+        "linux-3.14": {
+          "add to fragments": [],
+          "exclude from fragments": [],
+          "fragments": null
+        }
+      }
+    }
+  }
+}

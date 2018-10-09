@@ -15,14 +15,11 @@
 # limitations under the License.
 #
 
-import os
-import shutil
 import ujson
 import zipfile
 
 
-from core.vog.common import Aggregation
-from core.vog.aggregation.abstract import Abstract
+from core.vog.abstractions.strategies import Abstract
 import core.utils
 
 
@@ -32,15 +29,14 @@ class Coverage(Abstract):
     functions exported by target ones.
     """
 
-    def __init__(self, logger, conf, divider):
-        super(Coverage, self).__init__(logger, conf, divider)
-        self.fragments_map = self.conf['Aggregation strategy'].get('coverage archive')
-        self._black_list = set(self.conf['Aggregation strategy'].get('ignore fragments', {}))
-        self._white_list = set(self.conf['Aggregation strategy'].get('prefer fragments', {}))
+    def __init__(self, logger, conf, desc, deps):
+        super().__init__(logger, conf, desc, deps)
+        self.archive = self.desc.get('coverage archive')
+        self._black_list = set(self.desc.get('ignore fragments', set()))
+        self._white_list = set(self.desc.get('prefer fragments', set()))
 
         # Get archive
-        archive = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                              self.conf['Aggregation strategy']['coverage archive'])
+        archive = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], self.archive)
 
         # Extract/fetch file
         with zipfile.ZipFile(archive) as z:
@@ -61,24 +57,18 @@ class Coverage(Abstract):
 
         :return: Generator that retursn Aggregation objects.
         """
-        # Collect dependencies
-        c_to_deps, f_to_deps, f_to_files, c_to_frag = self.divider.establish_dependencies()
-        cg = self.clade.CallGraph().graph
-
         # Get target fragments
-        for fragment in self.divider.target_fragments:
+        for fragment in self.deps.target_fragments:
             # Search for export functions
             ranking = dict()
             function_map = dict()
-            for path in fragment.export_functions:
-                for func in fragment.export_functions[path]:
-                    # Find fragments that call this function
-                    relevant = self._find_fragments(fragment, path, func, cg, c_to_frag)
-                    for rel in relevant:
-                        ranking.setdefault(rel.name, 0)
-                        ranking[rel.name] += 1
-                        function_map.setdefault(func, set())
-                        function_map[func].update(relevant)
+            stats = self.deps.find_files_that_use_functions(fragment.export_functions)
+            for func in stats:
+                for rel in stats[func]:
+                    ranking.setdefault(rel.name, 0)
+                    ranking[rel.name] += 1
+                    function_map.setdefault(func, set())
+                    function_map[func].add(rel)
 
             # Use a greedy algorythm. Go from functions that most rarely used and add fragments that most oftenly used
             # Turn into account white and black lists
@@ -98,43 +88,10 @@ class Coverage(Abstract):
                                          key=lambda x: ranking[x.name], reverse=True)[0])
 
             # Now generate pairs
-            aggs = []
             for frag in added:
-                new = Aggregation(fragment)
-                new.name = "{}:{}".format(fragment.name, frag.name)
-                new.fragments.add(frag)
-                aggs.append(new)
-            new = Aggregation(fragment)
-            new.name = fragment.name
-            aggs.append(new)
-
-            for agg in aggs:
-                yield agg
+                name = "{}:{}".format(fragment.name, frag.name)
+                self.add_group(name, {fragment, frag})
+            self.add_group(fragment.name, {fragment})
 
         # Free data
         self._func_coverage = None
-
-    def _find_fragments(self, fragment, path, func, cg, c_to_frag):
-        """
-        Find fragments that call given function in its covered functions.
-
-        :param fragment: Fragment object.
-        :param path: Definition function scope.
-        :param func: Target function name.
-        :param cg: Callgraph dict.
-        :param c_to_frag: Dict with map of c files to fragment with this file.
-        :return: A set of fragments.
-        """
-        result = set()
-        # Get functions from the callgraph
-        desc = cg.get(path, dict()).get(func)
-        if desc:
-            for scope, called_funcs in ((s, d) for s, d in desc.get('called_in', dict()).items()
-                                        if s != path and s in self._func_coverage):
-                if any(True for f in called_funcs if f in self._func_coverage[scope]):
-                    # Found function call in covered functions retrieve Fragment and add to result
-                    new = c_to_frag[scope]
-                    if new in fragment.predecessors:
-                        result.add(new)
-
-        return result

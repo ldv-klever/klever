@@ -15,26 +15,25 @@
 # limitations under the License.
 #
 
-from core.vog.common import Aggregation
-from core.vog.aggregation.abstract import Abstract
+from core.vog.abstractions.strategies import Abstract
 
 
 class Callgraph(Abstract):
     """This strategy gets a target fragment and adds recursievely fragments which are used by this one fragment."""
 
-    def _aggregate(self):
+    def _make_groups(self):
         """
         Just return target fragments as aggregations consisting of fragments that are required by a target one
         collecting required fragments for given depth.
 
-        :return: Generator that retursn Aggregation objects.
+        :return: {GroupName: Set of Fragments}.
         """
         # First we need fragments that are completely fullfilled
-        self.divider.establish_dependencies()
-        max_deep = self.conf['Aggregation strategy'].get('dependencies recursive depth', 3)
-        for fragment in self.divider.target_fragments:
-            new = Aggregation(fragment)
-            new.name = fragment.name
-            self._add_dependencies(new, depth=max_deep,
-                                   maxfrags=self.conf['Aggregation strategy'].get("maximum fragments"))
-            yield new
+        max_deep = self.desc.get('dependencies recursive depth', 3)
+        max_size = self.desc.get('maximum files')
+        for fragment in self.deps.target_fragments:
+            name = fragment.name
+            files = self.deps.collect_dependencies(fragment.files, depth=max_deep, maxfrags=max_size)
+            fragments = self.deps.find_fragments_with_files(files)
+            fragments.add(fragment)
+            self.add_group(name, fragments)

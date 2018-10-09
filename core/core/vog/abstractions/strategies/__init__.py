@@ -15,20 +15,28 @@
 # limitations under the License.
 #
 
-from core.vog.common import Aggregation
-from core.vog.aggregation.abstract import Abstract
 
+class Abstract:
 
-class Separate(Abstract):
-    """This strategy just returns as aggregations separate fragments marked as target ones."""
+    DESC_FILE = 'agregations description.json'
 
-    def _aggregate(self):
-        """
-        Just return target fragments as aggregations consisting of a single fragment.
+    def __init__(self, logger, conf, desc, deps):
+        self.logger = logger
+        self.conf = conf
+        self.desc = desc
+        self.deps = deps
+        self._groups = dict()
 
-        :return: Generator that retursn Aggregation objects.
-        """
-        for fragment in self.divider.target_fragments:
-            new = Aggregation(fragment)
-            new.name = fragment.name
-            yield new
+    def add_group(self, name, fragments):
+        if name in self._groups:
+            raise ValueError('Cannot add a group with the same name {!r}'.format(name))
+
+        self._groups[name] = fragments
+
+    def get_groups(self):
+        self._make_groups()
+        return self._groups
+
+    def _make_groups(self):
+        for frag in self.deps.target_fragments:
+            self.add_group(frag.name, {frag})

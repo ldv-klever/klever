@@ -1,16 +1,15 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "Clade": {"base": "clade"},
-  "project": {
-    "name": "Linux",
-    "source": "linux-3.14.79",
-    "configuration": "allmodconfig",
-    "architecture": "x86_64",
-    "loadable kernel modules": ["drivers/net/usb/asix.ko"],
-    "opts file": "scripts/mod/empty.c"
-  },
-  "Fragmentation strategy": {"name": "linux"},
-  "Aggregation strategy": {"name": "separate", "maximum verification object size": 30000},
+  "build base": "build bases/linux",
+  "program": "Linux",
+  "version": "Linux-3.14",
+  "fragmentation set": "Linux modules",
+  "add": ["drivers/net/usb/asix.ko"],
+  "exclude": [],
+  "add files": [],
+  "exclude files": [],
+  "add functions": [],
+  "exclude functions": [],
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["linux:empty", "linux:usb:coherent", "linux:memory safety", "linux:concurrency safety"]
+  "requirements": ["linux:empty"]
 }

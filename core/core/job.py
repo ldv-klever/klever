@@ -31,7 +31,7 @@ from core.coverage import JCR
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
-NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'base.json']
+NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'base.json', 'program fragmentation.json']
 
 
 def start_jobs(core_obj, vals):
@@ -72,6 +72,8 @@ def start_jobs(core_obj, vals):
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'specifications/base.json'))
     common_components_conf['verifier profiles DB'] = os.path.abspath(
         core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'verifier profiles.json'))
+    common_components_conf['program fragmentation DB'] = os.path.abspath(
+        core.utils.find_file_or_dir(core_obj.logger, os.path.curdir, 'program fragmentation.json'))
 
     subcomponents = []
     try:
