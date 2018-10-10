@@ -17,13 +17,13 @@
 
 #include <linux/module.h>
 
-extern void export_without_error(void);
-extern void export_with_error(void);
+extern void several_groups_export_without_error(void);
+extern void several_groups_export_with_error(void);
 
 static int __init init(void)
 {
-	export_without_error();
-	export_with_error();
+	several_groups_export_without_error();
+	several_groups_export_with_error();
 
 	return 0;
 }

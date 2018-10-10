@@ -17,11 +17,11 @@
 
 #include <linux/module.h>
 
-extern void set_i(void);
+extern void load_order_set_i(void);
 
 static int __init init2(void)
 {
-	set_i();
+	load_order_set_i();
 	return 0;
 }
 

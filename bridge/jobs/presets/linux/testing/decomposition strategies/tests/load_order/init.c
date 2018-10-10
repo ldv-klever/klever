@@ -20,11 +20,11 @@
 
 static int i;
 
-void set_i(void) 
+void load_order_set_i(void) 
 {
 	i = 7;
 }
-EXPORT_SYMBOL(set_i);
+EXPORT_SYMBOL(load_order_set_i);
 
 static int __init init1(void)
 {

@@ -17,8 +17,8 @@
 
 #include <linux/module.h>
 
-void export_without_error(void) 
+void several_groups_export_without_error(void) 
 {
 	/* nothing */
 }
-EXPORT_SYMBOL(export_without_error);
+EXPORT_SYMBOL(several_groups_export_without_error);

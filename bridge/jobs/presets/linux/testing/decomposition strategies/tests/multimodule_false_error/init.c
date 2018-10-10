@@ -18,11 +18,11 @@
 #include <linux/module.h>
 #include <verifier/common.h>
 
-extern int export_with_error(void);
+extern int multimodule_false_error_export_with_error(void);
 
 static int __init init(void)
 {
-	int c = export_with_error();
+	int c = multimodule_false_error_export_with_error();
 
 	if (c)
 	  ldv_error();

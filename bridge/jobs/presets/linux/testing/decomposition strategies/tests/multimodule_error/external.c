@@ -18,12 +18,12 @@
 #include <linux/module.h>
 #include <verifier/common.h>
 
-int export_with_error(void)
+int multimodule_error_export_with_error(void)
 {
 	ldv_error();
 	return 0;
 }
-EXPORT_SYMBOL(export_with_error);
+EXPORT_SYMBOL(multimodule_error_export_with_error);
 
 static int __init init1(void)
 {

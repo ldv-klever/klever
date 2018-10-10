@@ -17,11 +17,11 @@
 
 #include <linux/module.h>
 
-int export_with_error(void)
+int multimodule_false_error_export_with_error(void)
 {
 	return 0;
 }
-EXPORT_SYMBOL(export_with_error);
+EXPORT_SYMBOL(multimodule_false_error_export_with_error);
 
 static int __init init1(void)
 {

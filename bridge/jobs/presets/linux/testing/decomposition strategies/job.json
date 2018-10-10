@@ -1,119 +1,67 @@
 {
   "Class": "Verification of Linux kernel modules",
   "Common": {
-    "project": {
-      "name": "Linux",
-      "source": "linux-3.14.79",
-      "configuration": "allmodconfig",
-      "architecture": "x86_64",
-      "external modules": "tests",
-      "opts file": "scripts/mod/empty.c"
-    },
-    "Fragmentation strategy": {"name": "linux"},
-    "Aggregation strategy": {"name": "separate"},
+    "build base": "build bases/testing/5b3d50",
+    "program": "Linux",
+    "version": "Linux-3.14",
+    "fragmentation set": "Linux modules",
     "specifications set": "Linux 3.14 (base)",
     "requirements": ["linux:test:common"],
-    "ideal verdicts": [{"ideal verdict": "safe"}]
+    "ideal verdicts": [{"ideal verdict": "safe"}],
+    "extra CIF opts": [
+      "-D__GNUC__=4",
+      "-D__GNUC_MINOR__=6"
+    ]
   },
   "Sub-jobs": [
+    {"add": ["ext-modules/several_groups/init.ko"]}
+  ],
+  "Sub-jobs~": [
+    {"add": ["ext-modules/several_groups/init.ko"]},
+    {"add": ["ext-modules/multimodule_error/init.ko"]},
     {
-      "Clade": {"base": "5b3d50"},
-      "project": {"loadable kernel modules": ["ext-modules/several_groups/init.ko"]}
-    },
-    {
-      "Clade": {"base": "6420ad"},
-      "project": {"loadable kernel modules": ["ext-modules/multimodule_false_error/init.ko"]
-      },
+      "add": ["ext-modules/multimodule_false_error/init.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Clade": {"base": "01d155"},
-      "project": {"loadable kernel modules": ["ext-modules/multimodule_false_error/init.ko"]},
+      "add": ["ext-modules/multimodule_false_error/init.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Clade": {"base": "5c432e"},
-      "project": {"loadable kernel modules": ["ext-modules/multimodule_error/init.ko"]}
-    },
-    {
-      "Clade": {"base": "669b3a"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/multimodule_false_error/init.ko"],
-        "additional build targets": ["ext-modules/multimodule_false_error/external.ko"]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/multimodule_false_error/init.ko": [
-            [
-              "ext-modules/multimodule_false_error/external.ko",
-              "ext-modules/multimodule_false_error/init.ko"
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "Clade": {"base": "89994d"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/multimodule_false_error/init.ko"],
-        "additional build targets": ["ext-modules/multimodule_false_error/external.ko"]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/multimodule_false_error/init.ko": [
-            [
-              "ext-modules/multimodule_false_error/external.ko",
-              "ext-modules/multimodule_false_error/init.ko"
-            ]
-          ]
-        }
-      }
-    },
-    {
-      "Clade": {"base": "1aab1a"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/multimodule_error/init.ko"],
-        "additional build targets": ["ext-modules/multimodule_error/external.ko"]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/multimodule_error/init.ko": [
-            [
-              "ext-modules/multimodule_error/external.ko",
-              "ext-modules/multimodule_error/init.ko"
-            ]
-          ]
-        }
-      },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    },
-    {
-      "Clade": {"base": "0eeb83"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/several_groups/init.ko"],
-        "additional build targets": [
-          "ext-modules/several_groups/library1.ko",
-          "ext-modules/several_groups/library2.ko"
+      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/multimodule_false_error/external.ko",
+          "ext-modules/multimodule_false_error/init.ko"
         ]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/several_groups/init.ko": [
-            [
-              "ext-modules/several_groups/library1.ko",
-              "ext-modules/several_groups/init.ko"
-            ],
-            [
-              "ext-modules/several_groups/library2.ko",
-              "ext-modules/several_groups/init.ko"
-            ]
-          ]
-        }
-      },
+      ]
+    },
+    {
+      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add to all fragments": ["ext-modules/multimodule_false_error/external.ko"]
+    },
+    {
+      "add": ["ext-modules/multimodule_error/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/multimodule_error/external.ko",
+          "ext-modules/multimodule_false_error/init.ko"
+        ]
+      ],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "add": ["ext-modules/several_groups/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/several_groups/library1.ko",
+          "ext-modules/several_groups/init.ko"
+        ],
+        [
+          "ext-modules/several_groups/library2.ko",
+          "ext-modules/several_groups/init.ko"
+        ]
+      ],
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
@@ -126,78 +74,70 @@
       ]
     },
     {
-      "Clade": {"base": "57b651"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/kernel_library/init.ko"],
-        "additional build targets": ["ext-modules/kernel_library/external.ko"]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/kernel_library/init.ko": [
-            [
-              "ext-modules/kernel_library/init.ko",
-              "ext-modules/kernel_library/external.ko"
-            ]
-          ]
-        }
-      },
+      "add": ["ext-modules/kernel_library/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/kernel_library/init.ko",
+          "ext-modules/kernel_library/external.ko",
+          "ext-modules/several_groups/library1.ko"
+        ]
+      ],
+      "exclude from all fragments": ["ext-modules/several_groups/library1.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Clade": {"base": "ae7d57"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/load_order/init.ko"],
-        "additional build targets": ["ext-modules/load_order/external.ko"]
-      },
-      "Aggregation strategy": {
-        "name": "manual",
-        "aggregations": {
-          "ext-modules/load_order/init.ko": [
-            [
-              "ext-modules/load_order/init.ko",
-              "ext-modules/load_order/external.ko"
-            ]
-          ]
-        }
-      },
+      "add": ["ext-modules/kernel_library/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/kernel_library/init.ko"
+        ]
+      ],
+      "add to all fragments": ["export_with_error_unique"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "Clade": {"base": "80cb3b"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/several_groups/init.ko"],
-        "additional build targets": ["ext-modules/several_groups"]
-      },
-      "Aggregation strategy": {
-        "name": "callgraph",
+      "add": ["ext-modules/load_order/init.ko"],
+      "fragments": [
+        [
+          "ext-modules/load_order/init.ko",
+          "ext-modules/load_order/external.ko"
+        ]
+      ],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "add": ["ext-modules/several_groups"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation configuration options": {
+        "kernel": false,
+        "add modules by callgraph": true,
         "maximum fragments": 3
-      },
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+      }
     },
     {
-      "Clade": {"base": "7dec9e"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/several_groups/init.ko"],
-        "additional build targets": ["ext-modules/several_groups"]
-      },
-      "Aggregation strategy": {"name": "callgraph", "maximum fragments": 2}
+      "add": ["ext-modules/several_groups/init.ko"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "fragmentation configuration options": {
+        "kernel": false,
+        "add modules by callgraph": true,
+        "maximum fragments": 2
+      }
     },
     {
-      "Clade": {"base": "9ddea1"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/multimodule_false_error/init.ko"],
-        "additional build targets": ["ext-modules/multimodule_false_error"]
-      },
-      "Aggregation strategy": {"name": "callgraph", "maximum fragments": 2}
+      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "fragmentation configuration options": {
+        "kernel": false,
+        "add modules by callgraph": true,
+        "maximum fragments": 2
+      }
     },
     {
-      "Clade": {"base": "f10f4e"},
-      "project": {
-        "loadable kernel modules": ["ext-modules/multimodule_error/init.ko"],
-        "additional build targets": ["ext-modules/multimodule_error"]
+      "add": ["ext-modules/multimodule_error/init.ko"],
+      "fragmentation configuration options": {
+        "kernel": false,
+        "add modules by callgraph": true,
+        "maximum fragments": 2
       },
-      "Aggregation strategy": {"name": "callgraph","maximum fragments": 2},
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     }
   ]

@@ -18,8 +18,8 @@
 #include <linux/module.h>
 #include <verifier/common.h>
 
-void export_with_error(void)
+void several_groups_export_with_error(void)
 {
 	ldv_error();
 }
-EXPORT_SYMBOL(export_with_error);
+EXPORT_SYMBOL(several_groups_export_with_error);
