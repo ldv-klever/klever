@@ -1,8 +1,7 @@
 {
   "templates": {
     "Linux": {
-      "program": "Linux",
-      "opts file": "scripts/mod/empty.c"
+      "program": "Linux"
     },
     "Linux modules": {
       "template": "Linux",
@@ -17,11 +16,10 @@
   },
   "fragmentation sets": {
     "Linux": {
-      "modules verification": {
-        "linux-3.14": {
-          "add to fragments": [],
-          "exclude from fragments": [],
-          "fragments": null
+      "Linux modules": {
+        "Linux-3.14": {
+          "add to all fragments": [],
+          "exclude from all fragments": []
         }
       }
     }
