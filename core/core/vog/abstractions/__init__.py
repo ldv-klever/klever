@@ -18,7 +18,6 @@
 import os
 import glob
 
-from core.utils import make_relative_path
 from core.vog.abstractions.files_repr import File
 from core.vog.abstractions.fragments_repr import Fragment
 
@@ -36,6 +35,9 @@ class Dependencies:
         self.__establish_dependencies()
 
     def create_fragment(self, name=None, files=None):
+        if not all(isinstance(f, File) for f in files):
+            raise ValueError('Provide File objects but not paths')
+
         fragment = Fragment(name)
         fragment.files.update(files)
         return fragment
@@ -64,43 +66,60 @@ class Dependencies:
     def target_fragments(self):
         return {f for f in self.fragments if f.target}
 
+    def fragment_successors(self, fragment):
+        successors = set()
+        for file in fragment.files:
+            successors.update(file.successors)
+        return self.find_fragments_with_files(successors)
+
+    def fragment_predecessors(self, fragment):
+        predecessors = set()
+        for file in fragment.files:
+            predecessors.update(file.predecessors)
+        return self.find_fragments_with_files(predecessors)
+
     def find_files_for_expressions(self, expressions):
         # Copy to avoid modifying external data
         files = set()
-        expressions = set(expressions)
-        frags, matched = self.find_fragments_by_expressions(expressions)
-        expressions.difference_update(matched)
+        rest = set(expressions)
+        frags, matched = self.find_fragments_by_expressions(rest)
+        rest.difference_update(matched)
         for fragment in frags:
             files.update(fragment.files)
-        new_files, matched = self.find_files_by_expressions(expressions)
+        new_files, matched = self.find_files_by_expressions(rest)
         files.update(new_files)
 
-        return files
+        return files, expressions.difference(rest)
 
     def find_files_by_expressions(self, expressions):
         # First try globes
         suitable_files = set()
+        suitable_files_abs = set()
         matched = set()
-        for path in self.source_paths:
+        for path in self.source_paths + ['']:
             for expr in expressions:
-                files = glob.glob(os.path.join(path, expr))
-                files = {make_relative_path(self.source_paths, f) for f in files}
-                for file in files.difference(suitable_files):
-                    if file in self._files:
-                        suitable_files.add(file)
-                        matched.add(expr)
+                expr_path = os.path.join(path, expr)
+                abs_expr_path = self.clade.FileStorage().convert_path(expr_path)
+                files = set(glob.glob(abs_expr_path))
+                files.difference_update(suitable_files_abs)
+                if files:
+                    for file in self.files:
+                        abs_file = self.clade.FileStorage().convert_path(file.name)
+                        if abs_file in files:
+                            suitable_files_abs.add(abs_file)
+                            matched.add(expr)
+                            suitable_files.add(file)
 
-        # Final check
-        files = set()
+        # Check function names
         rest = expressions.difference(matched)
-        for file in self.files:
-            if file.name in suitable_files:
-                files.add(file)
-            elif file.export_functions.intersection(rest):
-                files.add(file)
-                matched.update(file.export_functions.intersection(rest))
+        if rest:
+            for file in (f for f in self.files if f not in suitable_files):
+                matched_funcs = set(file.export_functions.keys()).intersection(rest)
+                if matched_funcs:
+                    suitable_files.add(file)
+                    matched.update(matched_funcs)
 
-        return files, matched
+        return suitable_files, matched
 
     def find_fragments_by_expressions(self, expressions):
         frags = set()
@@ -114,16 +133,18 @@ class Dependencies:
     def find_fragments_with_files(self, files):
         frags = set()
         files = {f if isinstance(f, str) else f.name for f in files}
-        for frag in self.fragments:
-            if {f.name for f in frag.files}.intersection(files):
-                frags.add(frag)
+        if files:
+            for frag in self.fragments:
+                if {f.name for f in frag.files}.intersection(files):
+                    frags.add(frag)
         return frags
 
     def find_files_that_use_functions(self, functions):
         files = set()
-        for file in self.files:
-            if file.import_functions.intersection(functions):
-                files.add(file)
+        if functions:
+            for file in self.files:
+                if file.import_functions.intersection(functions):
+                    files.add(file)
         return files
 
     def create_fragment_from_ld(self, identifier, desc, name, cmdg, sep_nestd=False):
@@ -133,14 +154,13 @@ class Dependencies:
         for i, d in ccs:
             self.__check_cc(d)
             for in_file in d['in']:
-                path = make_relative_path(self.source_paths, in_file)
-                if not sep_nestd or (sep_nestd and os.path.dirname(path) == os.path.dirname(desc['out'][0])):
-                    files.add(path)
-        files, matched = self.find_files_by_expressions(files)
+                if not sep_nestd or (sep_nestd and os.path.dirname(in_file) == os.path.dirname(desc['out'][0])):
+                    files.add(in_file)
+        files_obj, matched = self.find_files_by_expressions(files)
         rest = files.difference(matched)
         if rest:
             raise ValueError('Cannot find files: {}'.format(', '.join(rest)))
-        fragment = self.create_fragment(name, files)
+        fragment = self.create_fragment(name, files_obj)
         return fragment
 
     def collect_dependencies(self, files, filter_func=lambda x: True, depth=None, maxfrags=None):
@@ -169,18 +189,14 @@ class Dependencies:
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
         for identifier, desc in ((i, d) for i, d in self.cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
-            for f in desc.get('in'):
-                name = make_relative_path(self.source_paths, f)
+            for name in desc.get('in'):
                 if name not in self._files:
                     file = File(name)
-                    file.cc = identifier
-                    file.size = self.srcg.get_sizes([f]).values()[0]
+                    file.cc = str(identifier)
+                    file.size = list(self.srcg.get_sizes([name]).values())[0]
                     self._files[name] = file
 
     def __check_cc(self, desc):
-        if len(desc['in']) != 1:
-            raise NotImplementedError('CC build commands with more than one input file are not supported')
-
         if len(desc['out']) != 1:
             raise NotImplementedError('CC build commands with more than one output file are not supported')
 
@@ -189,26 +205,29 @@ class Dependencies:
         fs = self.clade.FunctionsScopes().scope_to_funcs
 
         # Fulfil callgraph dependencies
-        for path, functions in cg:
-            if path in self._files:
-                file_repr = self._files[path]
-                for func, func_desc in functions:
-                    tp = func_desc.get('type', 'static')
-                    if tp != 'static':
-                        file_repr.export_functions.add(func)
+        for path, functions in ((p, f) for p, f in cg.items() if p in self._files):
+            file_repr = self._files[path]
+            for func, func_desc in functions.items():
+                tp = func_desc.get('type', 'static')
+                if tp == 'static':
+                    file_repr.export_functions.setdefault(func, set())
 
-                    for calls_scope, called_functions in ((s, d) for s, d in func_desc.get('calls', dict()).items()
-                                                          if s != path and s != 'unknown'):
-                        if calls_scope in self._files:
-                            caller = self._files[calls_scope]
-                            caller.import_functions.add(func)
-                            caller.add_successor(file_repr)
+                for calls_scope, called_functions in ((s, d) for s, d in func_desc.get('calls', dict()).items()
+                                                      if s != path and s != 'unknown' and s in self._files):
+                    caller = self._files[calls_scope]
+                    if func not in caller.import_functions:
+                        caller.import_functions[func] = file_repr
+                    elif caller.import_functions[func] != file_repr:
+                        raise KeyError('Cannot import function {!r} from two places: {!r} and {!r}'.
+                                       format(func, caller.import_functions[func].name, file_repr.name))
+
+                    caller.add_predecessor(file_repr)
+                    file_repr.export_functions[func].add(caller)
 
         # Add rest global functions
-        for path, functions in fs:
-            if path in self._files:
-                file_repr = self._files[path]
-                for func, func_desc in functions:
-                    tp = func_desc.get('type', 'static')
-                    if tp != 'static':
-                        file_repr.export_functions.add(func)
+        for path, functions in ((p, f) for p, f in fs.items() if p in self._files):
+            file_repr = self._files[path]
+            for func, func_desc in functions.items():
+                tp = func_desc.get('type', 'static')
+                if tp != 'static':
+                    file_repr.export_functions.setdefault(func, set())

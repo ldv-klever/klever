@@ -492,9 +492,30 @@ class Job(core.components.Component):
                                   separate_from_parent, include_child_resources)
         self.job_type = job_type
         self.common_components_conf = components_common_conf
+
+        # Configure Clade here since many Core components need appropriate options to be set.
+        self.__configure_clade()
+
         self.sub_job_id = id
         self.components = []
         self.component_processes = []
+
+    def __configure_clade(self):
+        # todo: This can be extracted to an util function and can be used by demand instead of importing clade in all components
+        if self.common_components_conf.get('build base'):
+            if 'KLEVER_WORK_DIR' not in os.environ:
+                raise KeyError('Can not cache Clade base when environment variable KLEVER_WORK_DIR is not set')
+
+            clade_base = os.path.join(os.environ['KLEVER_WORK_DIR'], self.common_components_conf.get('build base'))
+
+            if os.path.exists(clade_base):
+                if not os.path.isdir(clade_base):
+                    raise FileExistsError('Clade base "{0}" is not a directory'.format(clade_base))
+        else:
+            raise KeyError("Provide 'build base' configuration option to start verification")
+
+        # Update existing Clade configuration.
+        self.common_components_conf['build base'] = clade_base
 
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))

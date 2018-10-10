@@ -716,7 +716,7 @@ def prepare_cif_opts(conf, opts, clade_storage):
     new_opts.append('-isysroot' + clade_storage)
 
     # todo: Maybe there is a better place for this but this is the easiest one
-    extra_cc_opts = conf.get('project', dict()).get('extra Clade opts', dict()).get("Info.extra CIF opts", list())
+    extra_cc_opts = conf.get('extra CIF opts', list())
     new_opts.extend(extra_cc_opts)
 
     return new_opts

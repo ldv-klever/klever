@@ -36,7 +36,7 @@ class Weaver(core.vtg.plugins.Plugin):
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 
-        clade_api.setup(self.conf['Clade']['base'])
+        clade_api.setup(self.conf['build base'])
         storage = clade_api.FileStorage()
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled

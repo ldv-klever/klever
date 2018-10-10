@@ -49,7 +49,7 @@ class Source:
 
         # Initialize Clade cient to make requests
         self._clade = clade_api
-        self._clade.setup(self._conf['Clade']['base'])
+        self._clade.setup(self._conf['build base'])
 
         # Ask for dependencies for each CC
         cfiles, files_map = self._collect_file_dependencies(abstract_task)

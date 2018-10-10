@@ -16,6 +16,7 @@
 #
 
 import os
+import json
 import zipfile
 import importlib
 import clade.interface as clade_api
@@ -31,6 +32,8 @@ class VOG(core.components.Component):
     def generate_verification_objects(self):
         # Collect and merge configuration
         fragdb = self.conf['program fragmentation DB']
+        with open(fragdb, encoding='utf8') as fp:
+            fragdb = json.load(fp)
 
         # Import clade
         clade_api.setup(self.conf['build base'])
@@ -43,7 +46,7 @@ class VOG(core.components.Component):
         program = desc.get('program')
         if not program:
             raise KeyError('There is no available supported program fragmentation template {!r}, the following are '
-                           'available: {}'.format(program, ' ,'.join(fragdb['templates'].keys())))
+                           'available: {}'.format(program, ', '.join(fragdb['templates'].keys())))
         strategy = self._get_fragmentation_strategy(program)
 
         # Fragmentation
@@ -52,11 +55,13 @@ class VOG(core.components.Component):
 
         # Prepare attributes
         self.source_paths = strategy.source_paths
+        self.common_prj_attrs = strategy.common_attributes
         self.submit_project_attrs(*attr_data)
 
+        self.dynamic_excluded_clean = []
         self.prepare_descriptions_file(fragments_files)
         self.clean_dir = True
-        self.excluded_clean = [d for d in strategy.dynamic_excluded_clean]
+        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
     main = generate_verification_objects
@@ -95,10 +100,10 @@ class VOG(core.components.Component):
         self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
 
         # Basic sanity checks
-        if not db.get('fragmentation') or db.get('templates'):
+        if not db.get('fragmentation sets') or not db.get('templates'):
             raise KeyError("Provide both 'templates' and 'fragmentation sets' sections to 'program configuration'.json")
 
-        desc = db['fragmentation sets'].get(dset).get(version)
+        desc = db['fragmentation sets'].get(program, dict()).get(dset, dict()).get(version)
         if not desc and not db['templates'].get(dset):
             raise KeyError('There is no prepared fragmentation set {!r} for program {!r} of version {!r}'.
                            format(dset, program, version))
@@ -108,17 +113,27 @@ class VOG(core.components.Component):
         do = [template]
         while do:
             tmplt = do.pop()
-            template.update(tmplt)
             if tmplt.get('template'):
                 if db['templates'].get(tmplt.get('template')):
                     do.append(db['templates'].get(tmplt.get('template')))
-                    del template['template']
+                    del tmplt['template']
                 else:
                     raise KeyError("There is no template {!r} in program fragmentation file".
                                    format(tmplt.get('template')))
 
+            tmplt.update(template)
+            template = tmplt
+
         # Merge template and fragmentation set
-        desc.update(template)
+        template.update(desc)
+
+        # Check if job contains options for fragmentation
+        for option in ('fragments', 'add to all fragments', 'exclude from all fragments'):
+            if option in self.conf:
+                template[option] = self.conf[option]
+
+        if "fragmentation configuration options" in self.conf:
+            template.update(self.conf["fragmentation configuration options"])
 
         return template
 

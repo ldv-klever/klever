@@ -181,8 +181,8 @@ class RSG(core.vtg.plugins.Plugin):
 
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
-        clade_api.setup(self.conf['Clade']['base'])
-        empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['project']['opts file'])
+        clade_api.setup(self.conf['build base'])
+        empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['opts file'])
         storage = clade_api.FileStorage()
         if not empty_cc:
             raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))

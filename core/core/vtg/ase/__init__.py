@@ -33,7 +33,7 @@ class ASE(core.vtg.plugins.Plugin):
             raise KeyError(
                 'Value of option "request aspects" is not mandatory JSON object with request aspects as keys')
 
-        clade_api.setup(self.conf['Clade']['base'])
+        clade_api.setup(self.conf['build base'])
         storage = clade_api.FileStorage()
 
         self.request_arg_signs(storage)

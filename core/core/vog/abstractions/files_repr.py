@@ -34,6 +34,9 @@ class File:
     def __lt__(self, other):
         return self.name < other.name
 
+    def __hash__(self):
+        return hash(self.name)
+
     def __str__(self):
         return str(self.name)
 

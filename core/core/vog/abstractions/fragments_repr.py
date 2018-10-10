@@ -28,6 +28,9 @@ class Fragment:
     def __lt__(self, other):
         return self.name < other.id
 
+    def __hash__(self):
+        return hash(self.name)
+
     def __str__(self):
         return str(self.name)
 

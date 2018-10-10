@@ -307,8 +307,6 @@ class VTG(core.components.Component):
 
     def generate_verification_tasks(self):
         self.requirement_descs = _requirement_descs
-        self.set_model_headers()
-
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -588,7 +586,7 @@ class VTGW(core.components.Component):
         self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         self.clade = clade_api
-        self.clade.setup(self.conf['Clade']['base'])
+        self.clade.setup(self.conf['build base'])
 
     def tasks_generator_worker(self):
         try:

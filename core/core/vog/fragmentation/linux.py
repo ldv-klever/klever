@@ -17,6 +17,8 @@
 
 from core.utils import make_relative_path
 from core.vog.fragmentation import FragmentationAlgorythm
+from core.vog.abstractions.strategies.callgraph import Callgraph
+from core.vog.abstractions.strategies.coverage import Coverage
 
 
 class Linux(FragmentationAlgorythm):
@@ -46,8 +48,19 @@ class Linux(FragmentationAlgorythm):
                                       format(fragment.name, fragment.size))
 
     def _determine_targets(self, deps):
+        super()._determine_targets(deps)
         for fragment in deps.target_fragments:
-            if fragment.endswith('built-in.o') and not self.kernel:
+            if fragment.name.endswith('built-in.o') and not self.kernel:
                 fragment.target = False
-            elif fragment.endswith('.ko') and self.kernel:
+            elif fragment.name.endswith('.ko') and self.kernel:
                 fragment.target = False
+
+    def _do_postcomposition(self, deps):
+        if self.desc.get('add modules by coverage'):
+            aggregator = Coverage(self.logger, self.conf, self.desc, deps)
+            return aggregator.get_groups()
+        elif self.desc.get('add modules by callgraph'):
+            aggregator = Callgraph(self.logger, self.conf, self.desc, deps)
+            return aggregator.get_groups()
+        else:
+            return super()._do_postcomposition(deps)

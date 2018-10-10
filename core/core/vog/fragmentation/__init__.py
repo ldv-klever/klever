@@ -39,11 +39,8 @@ class FragmentationAlgorythm:
         self.attributes = self.__attributes()
 
     def fragmentation(self):
-        cg = self.clade.CallGraph().graph
-        fs = self.clade.FunctionsScopes().scope_to_funcs
-
         # Extract dependencies
-        deps = Dependencies(cg, fs)
+        deps = Dependencies(self.clade, self.source_paths)
 
         # Decompose using units
         self._determine_units(deps)
@@ -58,7 +55,7 @@ class FragmentationAlgorythm:
         grps = self._do_postcomposition(deps)
 
         # Prepare verification objects
-        fragments_files = self.__generate_verification_objects(grps)
+        fragments_files = self.__generate_verification_objects(deps, grps)
 
         # Prepare data attributes
         attr_data = self.__prepare_data_files(grps)
@@ -94,14 +91,13 @@ class FragmentationAlgorythm:
 
     def _do_manual_correction(self, deps):
         self.logger.info("Adjust fragments according to the manually provided fragmentation set")
-        self.__fragments = self.desc.get('fragments', list())
-        self._remove = set(self.desc.get('remove from all', set()))
-        self._add = set(self.desc.get('add to all', set()))
-        description = self.__fragments
-        new = list()
+        fragments = self.desc.get('fragments', list())
+        remove = set(self.desc.get('exclude from all fragments', set()))
+        add = set(self.desc.get('add to all fragments', set()))
 
         # Collect files
-        for frags_exprs in description:
+        new = list()
+        for frags_exprs in fragments:
             files = set()
 
             new_files, matched = deps.find_files_for_expressions(frags_exprs)
@@ -129,10 +125,10 @@ class FragmentationAlgorythm:
             deps.create_fragment(None, files)
 
         # Add all
-        addiction, _ = deps.find_files_for_expressions(self._add)
+        addiction, _ = deps.find_files_for_expressions(add)
 
         # Remove all
-        removal, _ = deps.find_files_for_expressions(self._remove)
+        removal, _ = deps.find_files_for_expressions(remove)
 
         # Do modification
         empty = set()
@@ -165,25 +161,24 @@ class FragmentationAlgorythm:
         }], ['agregations description.json']
 
     def __retrieve_source_paths(self):
-        path = self.clade.FileStorage().convert_path('source paths.json')
+        path = self.clade.FileStorage().convert_path('working source trees.json')
         with open(path, 'r', encoding='utf8') as fp:
             paths = ujson.load(fp)
         return paths
 
     def __attributes(self):
         attrs = [
-            {'name': 'kind', 'value': self.desc['program']},
             {'name': 'decomposition set', 'value': self.conf['fragmentation set']},
             {'name': 'version', 'value': self.conf['version']},
         ]
 
-        path = self.clade.FileStorage().convert_path('source attrs.json')
+        path = self.clade.FileStorage().convert_path('project attrs.json')
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as fp:
                 build_attrs = ujson.load(fp)
-            for attr in ('arch', 'configuration'):
-                if build_attrs.get(attr):
-                    attrs.append({"name": attr, "value": build_attrs[attr]})
+            if build_attrs:
+                self.common_attributes = build_attrs
+            attrs.extend(build_attrs)
         else:
             self.logger.warning("There is no source attributes description in build base")
 
@@ -192,13 +187,13 @@ class FragmentationAlgorythm:
             'value': attrs
         }]
 
-    def __generate_verification_objects(self, grps):
+    def __generate_verification_objects(self, deps, grps):
         files = list()
         for name, grp in grps.items():
-            files.append(self.__describe_verification_object(name, grp))
+            files.append(self.__describe_verification_object(deps, name, grp))
         return files
 
-    def __describe_verification_object(self, name, grp):
+    def __describe_verification_object(self, deps, name, grp):
         # Determine fragment name
         self.logger.info('Generate fragment description {!r}'.format(name))
         vo_desc = dict()
@@ -207,7 +202,7 @@ class FragmentationAlgorythm:
         vo_desc['deps'] = dict()
         for frag in grp:
             vo_desc['grps'].append({'id': frag.name, 'CCs': frag.ccs})
-            vo_desc['deps'][frag.name] = [succ.name for succ in frag.successors if succ in grp]
+            vo_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
         self.logger.debug('verification object dependencies are {}'.format(vo_desc['deps']))
 
         vo_desc_file = vo_desc['id'] + '.json'
