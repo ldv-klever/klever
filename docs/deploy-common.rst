@@ -19,7 +19,8 @@ Common Deployment
 
 To execute deployment scripts you need to install:
 
-* `Python 3.4 or higher <https://www.python.org/>`_.
+* `Python 3.4 or higher <https://www.python.org/>`__ (if you build Python from source, you need to install development
+  files for `xz <https://tukaani.org/xz/>`__ in advance).
 * `tar <https://www.gnu.org/software/tar/>`__,
   `gz <https://www.gnu.org/software/gzip/>`__,
   `bzip2 <http://www.bzip.org/>`__,
