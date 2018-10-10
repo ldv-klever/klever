@@ -48,6 +48,39 @@ common_target_program_descs = {
         'loadable kernel modules': ['all'],
         'allow local source trees use': True,
         'generate makefiles': True,
+        'extra headers': [
+            'linux/user_namespace.h',
+            'linux/tty.h',
+            'linux/tty_driver.h',
+            'linux/usb.h',
+            'linux/usb/serial.h',
+            'linux/platform_device.h',
+            'linux/netdevice.h',
+            'linux/net.h',
+            'linux/timer.h',
+            'linux/interrupt.h',
+            'linux/seq_file.h',
+            'linux/i2c.h',
+            'linux/mod_devicetable.h',
+            'linux/device.h',
+            'linux/pm.h',
+            'linux/fs.h',
+            'linux/rtnetlink.h',
+            'net/mac80211.h',
+            'linux/iio/iio.h',
+            'linux/iio/triggered_buffer.h',
+            'linux/cdev.h',
+            'linux/miscdevice.h',
+            'linux/pci.h',
+            'linux/rtc.h',
+            'scsi/scsi_host.h',
+            'linux/pagemap.h',
+            'linux/poll.h',
+            'linux/blkdev.h',
+            'target/target_core_base.h',
+            'target/target_core_backend.h',
+            'linux/spi/spi.h'
+        ],
         'extra Clade options': {'Info.extra CIF opts': [
             '-D__GNUC__=4',
             '-D__GNUC_MINOR__=6'
@@ -106,6 +139,12 @@ target_program_descs = [
     #         'ext-modules/usb_driver_v.1',
     #         'ext-modules/usb_serial_driver_v.1',
     #         'ext-modules/workqueue_v.1'
+    #     ],
+    #     'exclude extra headers': [
+    #         'linux/iio/iio.h',
+    #         'linux/iio/triggered_buffer.h',
+    #         'target/target_core_base.h',
+    #         'target/target_core_backend.h'
     #     ]
     # },
     # {
@@ -176,6 +215,7 @@ target_program_descs = [
     #         'ext-modules/usb_serial_driver_v.2',
     #         'ext-modules/workqueue_v.1'
     #     ],
+    #     'exclude extra headers': ['linux/poll.h'],
     #     # Linux 4.6.7 can be built with new versions of GCC.
     #     'extra Clade options': {}
     # },
@@ -202,13 +242,23 @@ target_program_descs = [
     #     'build base': 'build bases/validation/7ce77510c9c7~',
     #     'name': 'Linux',
     #     'Git repository version': '7ce77510c9c7~',
-    #     'loadable kernel modules': ['drivers/usb/serial/opticon.ko']
+    #     'loadable kernel modules': ['drivers/usb/serial/opticon.ko'],
+    #     'exclude extra headers': [
+    #         'linux/iio/iio.h',
+    #         'linux/iio/triggered_buffer.h',
+    #         'target/target_core_backend.h'
+    #     ]
     # },
     # {
     #     'build base': 'build bases/validation/7ce77510c9c7',
     #     'name': 'Linux',
     #     'Git repository version': '7ce77510c9c7',
-    #     'loadable kernel modules': ['drivers/usb/serial/opticon.ko']
+    #     'loadable kernel modules': ['drivers/usb/serial/opticon.ko'],
+    #     'exclude extra headers': [
+    #         'linux/iio/iio.h',
+    #         'linux/iio/triggered_buffer.h',
+    #         'target/target_core_backend.h'
+    #     ]
     # },
     # {
     #     'build base': 'build bases/validation/60b35930067d~',
@@ -238,13 +288,15 @@ target_program_descs = [
     #     'build base': 'build bases/validation/e4c7f259c5be~',
     #     'name': 'Linux',
     #     'Git repository version': 'e4c7f259c5be~',
-    #     'loadable kernel modules': ['drivers/net/usb/kaweth.ko']
+    #     'loadable kernel modules': ['drivers/net/usb/kaweth.ko'],
+    #     'exclude extra headers': ['linux/iio/triggered_buffer.h']
     # },
     # {
     #     'build base': 'build bases/validation/e4c7f259c5be',
     #     'name': 'Linux',
     #     'Git repository version': 'e4c7f259c5be',
-    #     'loadable kernel modules': ['drivers/net/usb/kaweth.ko']
+    #     'loadable kernel modules': ['drivers/net/usb/kaweth.ko'],
+    #     'exclude extra headers': ['linux/iio/triggered_buffer.h']
     # },
     # {
     #     'build base': 'build bases/validation/448356262f56~',
@@ -427,6 +479,11 @@ target_program_descs = [
     #     'loadable kernel modules': [
     #         'sound/pci/emu10k1/snd-emu10k1.ko',
     #         'sound/pci/emu10k1/snd-emu10k1-synth.ko'
+    #     ],
+    #     'exclude extra headers': [
+    #         'linux/iio/iio.h',
+    #         'linux/iio/triggered_buffer.h',
+    #         'target/target_core_backend.h'
     #     ]
     # },
     # {
@@ -436,6 +493,11 @@ target_program_descs = [
     #     'loadable kernel modules': [
     #         'sound/pci/emu10k1/snd-emu10k1.ko',
     #         'sound/pci/emu10k1/snd-emu10k1-synth.ko'
+    #     ],
+    #     'exclude extra headers': [
+    #         'linux/iio/iio.h',
+    #         'linux/iio/triggered_buffer.h',
+    #         'target/target_core_backend.h'
     #     ]
     # }
 ]
@@ -595,9 +657,6 @@ class CProgram:
 
         if self.configuration:
             self.logger.info('C program configuration is "{0}"'.format(self.configuration))
-
-        # if model_headers:
-        #     program.prepare_model_headers(model_headers)
 
         self._build()
 
@@ -767,12 +826,21 @@ class Linux(CProgram):
                 for build_target in build_targets:
                     self._make(*build_target, intercept_build_cmds=True)
 
-        # Generate Makefile and compile C files including model headers. These files will be treated as part of kernel -
-        # one will need to filter them out later if required.
-        # with open(os.path.join(self._model_headers_path, 'Makefile'), 'w', encoding='utf-8') as fp:
-        #     fp.write('obj-y += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
-        #
-        # self._make(['M=' + os.path.abspath(self._model_headers_path)], intercept_build_cmds=True)
+        # Generate C file including extra headers and Makefile. Compile this C file. It will be treated as part of
+        # kernel, so, one will need to filter them out later if required.
+        if 'extra headers' in self.target_program_desc:
+            tmp_dir = tempfile.mkdtemp()
+            self.tmp_dirs.append(tmp_dir)
+
+            with open(os.path.join(tmp_dir, 'extra-headers.c'), 'w', encoding='utf8') as fp:
+                for header in self.target_program_desc['extra headers']:
+                    if header not in self.target_program_desc.get('exclude extra headers', []):
+                        fp.write('#include <{0}>\n'.format(header))
+
+            with open(os.path.join(tmp_dir, 'Makefile'), 'w', encoding='utf-8') as fp:
+                fp.write('obj-y += extra-headers.o\n')
+
+            self._make('M=' + tmp_dir, intercept_build_cmds=True)
 
     def _clean(self):
         self._make('mrproper')
