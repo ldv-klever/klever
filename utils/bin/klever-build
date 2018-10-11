@@ -663,11 +663,15 @@ class CProgram:
         if os.path.isdir(self.target_program_desc['build base']):
             shutil.rmtree(self.target_program_desc['build base'])
 
-        self._CLADE_CONF.update(self.target_program_desc.get('extra Clade options', {}))
+        if 'extra Clade options' in self.target_program_desc:
+            clade_conf = dict(self._CLADE_CONF)
+            clade_conf.update(self.target_program_desc['extra Clade options'])
+        else:
+            clade_conf = self._CLADE_CONF
 
         clade_api.initialize_extensions(self.target_program_desc['build base'],
                                         os.path.join(self.work_src_tree, 'cmds.txt'),
-                                        self._CLADE_CONF)
+                                        clade_conf)
 
         self.logger.info('Save project attributes and working source trees to build base')
         attrs = [
