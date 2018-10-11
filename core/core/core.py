@@ -143,8 +143,8 @@ class Core(core.components.CallbacksCaller):
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
                         self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
-                                                                  self.mqs, {'build': multiprocessing.Manager().Lock()},
-                                                                  {'report id': self.report_id}, session=self.session)
+                                                                  self.mqs, {'report id': self.report_id},
+                                                                  session=self.session)
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')
                         self.uploading_reports_process.join()
