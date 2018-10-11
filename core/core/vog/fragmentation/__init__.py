@@ -20,6 +20,7 @@ import ujson
 
 from graphviz import Digraph
 
+from core.utils import make_relative_path
 from core.vog.abstractions import Dependencies
 from core.vog.abstractions.strategies import Abstract
 
@@ -61,7 +62,7 @@ class FragmentationAlgorythm:
         attr_data = self.__prepare_data_files(grps)
 
         # Print fragments
-        if self.desc.get('Print fragments'):
+        if self.desc.get('print fragments'):
             self.__print_fragments(deps)
             for fragment in deps.fragments:
                 self.__draw_fragment(fragment)
@@ -80,8 +81,8 @@ class FragmentationAlgorythm:
         files.update(new_files)
         add.difference_update(matched)
         if len(add) > 0:
-                raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
-                                 format(', '.join(add)))
+            raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
+                             format(', '.join(add)))
         new_files, matched = deps.find_files_for_expressions(exclude)
         files.difference_update(new_files)
 
@@ -91,28 +92,24 @@ class FragmentationAlgorythm:
 
     def _do_manual_correction(self, deps):
         self.logger.info("Adjust fragments according to the manually provided fragmentation set")
-        fragments = self.desc.get('fragments', list())
+        fragments = self.desc.get('fragments', dict())
         remove = set(self.desc.get('exclude from all fragments', set()))
         add = set(self.desc.get('add to all fragments', set()))
 
         # Collect files
-        new = list()
-        for frags_exprs in fragments:
-            files = set()
-
-            new_files, matched = deps.find_files_for_expressions(frags_exprs)
-            files.update(new_files)
-
+        new = dict()
+        for identifier, frags_exprs in ((i, set(e)) for i, e in fragments.items()):
+            files, matched = deps.find_files_for_expressions(frags_exprs)
             frags_exprs.difference_update(matched)
             if len(frags_exprs) > 0:
                 raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
                                  format(', '.join(frags_exprs)))
 
-            new.append(files)
+            new[identifier] = files
 
         # Find relevant fragments
         all_files = set()
-        for files in new:
+        for files in new.values():
             all_files.update(files)
         fragments = deps.find_fragments_with_files(all_files)
 
@@ -121,8 +118,8 @@ class FragmentationAlgorythm:
             deps.remove_fragment(fragment)
 
         # Create new fragments
-        for files in new:
-            deps.create_fragment(None, files)
+        for name, files in new.items():
+            deps.create_fragment(name, files, add=True)
 
         # Add all
         addiction, _ = deps.find_files_for_expressions(add)
@@ -201,7 +198,11 @@ class FragmentationAlgorythm:
         vo_desc['grps'] = list()
         vo_desc['deps'] = dict()
         for frag in grp:
-            vo_desc['grps'].append({'id': frag.name, 'CCs': frag.ccs})
+            vo_desc['grps'].append({
+                'id': frag.name,
+                'CCs': frag.ccs,
+                'files': sorted(make_relative_path(self.source_paths, f.name) for f in frag.files)
+            })
             vo_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
         self.logger.debug('verification object dependencies are {}'.format(vo_desc['deps']))
 
@@ -224,14 +225,15 @@ class FragmentationAlgorythm:
             g.node(fragment.name, "{}".format(fragment.name) + (' (target)' if fragment.target else ''))
 
         for fragment in deps.fragments:
-            for suc in fragment.successors:
+            for suc in deps.fragment_successors(fragment):
                 g.edge(fragment.name, suc.name)
         g.render('program fragments')
 
     def __draw_fragment(self, fragment):
         g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})
         for file in fragment.files:
-            g.node(file.name, "{}".format(file.name) + (' (target)' if fragment.target else ''))
+            g.node(file.name,
+                   make_relative_path(self.source_paths, file.name) + (' (target)' if fragment.target else ''))
 
         for file in fragment.files:
             for suc in file.successors:

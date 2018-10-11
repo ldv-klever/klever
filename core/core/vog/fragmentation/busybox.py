@@ -46,8 +46,8 @@ class BusyBox(FragmentationAlgorythm):
 
         # Create fragments for found applets and libbb
         for name, files in applets.items():
-            deps.create_fragment(name, files)
-        deps.create_fragment('libbb', libbb)
+            deps.create_fragment(name, files, add=True)
+        deps.create_fragment('libbb', libbb, add=True)
 
         self.logger.info('Found {} applets: {}'.format(len(applets), ', '.join(applets)))
 

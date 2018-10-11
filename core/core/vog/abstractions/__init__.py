@@ -34,17 +34,25 @@ class Dependencies:
         self.__divide()
         self.__establish_dependencies()
 
-    def create_fragment(self, name=None, files=None):
+    def create_fragment(self, name, files, add=False):
         if not all(isinstance(f, File) for f in files):
             raise ValueError('Provide File objects but not paths')
 
         fragment = Fragment(name)
         fragment.files.update(files)
+
+        if add:
+            self.add_fragment(fragment)
         return fragment
 
-    def remove_fragment(self, name):
+    def remove_fragment(self, fragment):
+        if isinstance(fragment, Fragment):
+            name = fragment.name
+        else:
+            name = fragment
+
         if name not in self._fragments:
-            raise ValueError("Cannot remove already missing fragment {!r}".format(name))
+            raise ValueError("Cannot remove already missing fragment {!r}".format(fragment.name))
         else:
             del self._fragments[name]
 
@@ -70,13 +78,15 @@ class Dependencies:
         successors = set()
         for file in fragment.files:
             successors.update(file.successors)
-        return self.find_fragments_with_files(successors)
+        successors = self.find_fragments_with_files(successors)
+        return successors.difference({fragment})
 
     def fragment_predecessors(self, fragment):
         predecessors = set()
         for file in fragment.files:
             predecessors.update(file.predecessors)
-        return self.find_fragments_with_files(predecessors)
+        predecessors = self.find_fragments_with_files(predecessors)
+        return predecessors.difference({fragment})
 
     def find_files_for_expressions(self, expressions):
         # Copy to avoid modifying external data
