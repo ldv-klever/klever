@@ -56,6 +56,7 @@ class VOG(core.components.Component):
         # Prepare attributes
         self.source_paths = strategy.source_paths
         self.common_prj_attrs = strategy.common_attributes
+        attr_data[0].extend(strategy.common_attributes)
         self.submit_project_attrs(*attr_data)
 
         self.dynamic_excluded_clean = []
@@ -68,21 +69,16 @@ class VOG(core.components.Component):
 
     def submit_project_attrs(self, attrs, dfiles):
         """Has a callback!"""
-        with open('data attributes.zip', mode='w+b', buffering=0) as f:
-            with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                for df in dfiles:
-                    zfp.write(df)
-                os.fsync(zfp.fp)
         core.utils.report(self.logger,
                           'attrs',
                           {
                               'id': self.id,
-                              'attrs': attrs,
-                              'attr data': 'data attributes.zip'
+                              'attrs': attrs
                           },
                           self.mqs['report files'],
                           self.vals['report id'],
-                          self.conf['main working directory'])
+                          self.conf['main working directory'],
+                          data_files=dfiles)
 
     def prepare_descriptions_file(self, files):
         """Has a callback!"""

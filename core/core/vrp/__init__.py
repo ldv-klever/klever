@@ -180,18 +180,13 @@ class VRP(core.components.Component):
                 break
 
             status, data, attempt, source_paths = element
-            vo = data[2]
+            vo = data[2]['id']
             requirement = data[3]
+            # Todo: Add verification object attribute
             attrs = [
                 {
                     "name": "Requirement",
                     "value": requirement,
-                    "compare": True,
-                    "associate": True
-                },
-                {
-                    "name": "Verification object",
-                    "value": vo,
                     "compare": True,
                     "associate": True
                 }
@@ -268,10 +263,32 @@ class RP(core.components.Component):
         element = self.element
         status, data = element
         task_id, opts, verification_object, requirement, verifier = data
-        self.verification_object = verification_object
+        self.verification_object = verification_object['id']
         self.requirement = requirement
         self.results_key = '{}:{}'.format(self.verification_object, self.requirement)
         self.logger.debug("Prcess results of task {}".format(task_id))
+
+        files_list_file = 'files list.txt'
+        with open(files_list_file, 'w', encoding='utf8') as fp:
+            fp.writelines(sorted(f for grp in verification_object['grps'] for f in grp['files']))
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': [
+                                  {
+                                      "name": "Verification object",
+                                      "value": verification_object['id'],
+                                      "data": files_list_file,
+                                      "compare": True,
+                                      "associate": True
+                                  }
+                              ]
+                          },
+                          self.mqs['report files'],
+                          self.vals['report id'],
+                          self.conf['main working directory'],
+                          data_files=[files_list_file])
 
         # Update solution status
         data = list(self.vals['task solution triples'][self.results_key])
@@ -331,7 +348,7 @@ class RP(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
-    def process_single_verdict(self, task_id, decision_results, opts, log_file):
+    def process_single_verdict(self, decision_results, opts, log_file):
         """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
@@ -544,7 +561,7 @@ class RP(core.components.Component):
 
         try:
             # Submit a verdict
-            self.process_single_verdict(task_id, decision_results, opts, log_file)
+            self.process_single_verdict(decision_results, opts, log_file)
         finally:
             # Submit a closing report
             core.utils.report(self.logger,

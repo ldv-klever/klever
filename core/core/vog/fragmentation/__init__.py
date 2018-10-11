@@ -146,16 +146,21 @@ class FragmentationAlgorythm:
     def __prepare_data_files(self, grps):
         data = dict()
         for name, frags in grps.items():
-            data[name] = {f.name: sorted(map(str, f.files)) for f in frags}
+            data[name] = {f.name: sorted(make_relative_path(self.source_paths, l.name) for l in f.files) for f in frags}
 
         with open('agregations description.json', 'w', encoding='utf8') as fp:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
-        return [{
-            'name': 'Decomposition strategy',
-            'value': [{'name': 'name', 'value': self.conf['program'], 'data': 'agregations description.json'}]
-        }], ['agregations description.json']
+        return [
+           {
+                'name': 'Fragmentation set',
+                'value': [
+                    {'name': 'program', 'value': self.conf['program'], 'data': 'agregations description.json'},
+                    {'name': 'version', 'value': self.conf['version']},
+                    {'name': 'template', 'value': self.conf['fragmentation set']}
+                ]
+           }], ['agregations description.json']
 
     def __retrieve_source_paths(self):
         path = self.clade.FileStorage().convert_path('working source trees.json')
@@ -164,11 +169,7 @@ class FragmentationAlgorythm:
         return paths
 
     def __attributes(self):
-        attrs = [
-            {'name': 'decomposition set', 'value': self.conf['fragmentation set']},
-            {'name': 'version', 'value': self.conf['version']},
-        ]
-
+        attrs = []
         path = self.clade.FileStorage().convert_path('project attrs.json')
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as fp:
@@ -179,10 +180,7 @@ class FragmentationAlgorythm:
         else:
             self.logger.warning("There is no source attributes description in build base")
 
-        return [{
-            'name': 'fragmentation',
-            'value': attrs
-        }]
+        return attrs
 
     def __generate_verification_objects(self, deps, grps):
         files = list()
