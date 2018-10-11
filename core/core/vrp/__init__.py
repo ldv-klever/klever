@@ -270,7 +270,7 @@ class RP(core.components.Component):
 
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines(sorted(f for grp in verification_object['grps'] for f in grp['files']))
+            fp.writelines('\n'.join(sorted(f for grp in verification_object['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
                           'attrs',
                           {
