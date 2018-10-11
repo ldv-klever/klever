@@ -29,6 +29,8 @@ import queue
 import tempfile
 import shutil
 import resource
+import random
+import string
 
 
 class Cd:
@@ -471,19 +473,28 @@ def capitalize_attr_names(attrs):
             capitalize_attr_names(attr['value'])
 
 
-def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir=''):
+def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='', data_files=None):
     logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
     report_data.update({'type': kind})
 
-    if 'attrs' in report_data:
-        capitalize_attr_names(report_data['attrs'])
-
     logger.debug('{0} going to modify report id'.format(kind.capitalize()))
     with report_id.get_lock():
         cur_report_id = report_id.value
         report_id.value += 1
+
+    if 'attrs' in report_data:
+        capitalize_attr_names(report_data['attrs'])
+
+        if data_files:
+            data_zip = '{} data attributes.zip'.format(cur_report_id)
+            with open(data_zip, mode='w+b', buffering=0) as f:
+                with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                    for df in data_files:
+                        zfp.write(df)
+                    os.fsync(zfp.fp)
+            report_data['attr data'] = data_zip
 
     logger.debug('{0} prepare file archive'.format(kind.capitalize()))
     data_archive = report_data.get('attr data')
@@ -517,7 +528,8 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
-    cwd_report_file = os.path.join(report_dir, '{0} report.json'.format(kind))
+    prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    cwd_report_file = os.path.join(report_dir, '{} {} report.json'.format(prefix, kind))
     if os.path.isfile(cwd_report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
     os.symlink(os.path.relpath(report_file, report_dir), cwd_report_file)
@@ -664,59 +676,3 @@ def drain_queue(collection, given_queue):
             collection.append(element)
     except queue.Empty:
         return True
-
-
-def prepare_cif_opts(conf, opts, clade_storage):
-    new_opts = []
-
-    is_sysroot_search_dir = False
-    is_include = False
-
-    for opt in opts:
-        # Get rid of options unsupported by Aspectator.
-        match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
-        if match:
-            continue
-
-        new_opt = opt
-
-        # --sysroot has effect just if search directories specified with help of absolute paths start with "=".
-        if is_sysroot_search_dir:
-            if new_opt.startswith('/'):
-                new_opt = '=' + new_opt
-
-            is_sysroot_search_dir = False
-        else:
-            match = re.match('-(I|iquote|isystem|idirafter)(.*)', new_opt)
-            if match:
-                if match.group(2):
-                    if match.group(2).startswith('/'):
-                        new_opt = '-{0}={1}'.format(match.group(1), match.group(2))
-                else:
-                    is_sysroot_search_dir = True
-
-        # Explicitly change absolute paths passed to --include since --sysroot does not help with it.
-        if is_include:
-            if new_opt.startswith('/'):
-                new_opt = clade_storage + new_opt
-
-            is_include = False
-        else:
-            match = re.match('-include(.*)', new_opt)
-            if match:
-                if match.group(1):
-                    if match.group(1).startswith('/'):
-                        new_opt = '-include' + clade_storage + match.group(1)
-                else:
-                    is_include = True
-
-        new_opts.append(new_opt.replace('"', '\\"'))
-
-    # Aspectator will search for headers within Clade storage.
-    new_opts.append('-isysroot' + clade_storage)
-
-    # todo: Maybe there is a better place for this but this is the easiest one
-    extra_cc_opts = conf.get('extra CIF opts', list())
-    new_opts.extend(extra_cc_opts)
-
-    return new_opts

@@ -19,7 +19,6 @@ import os
 
 import jinja2
 
-import core.utils
 import core.vtg.plugins
 
 

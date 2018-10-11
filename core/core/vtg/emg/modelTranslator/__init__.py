@@ -162,10 +162,6 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                 cc_extra_full_desc_file['plugin aspects'].append(
                     {
                         "plugin": "EMG",
-                        "aspects": [addictions[cc_extra_full_desc_file["in file"]]] +
-                                   additional_aspects
-
-
-
+                        "aspects": [addictions[cc_extra_full_desc_file["in file"]]] + additional_aspects
                     }
                 )

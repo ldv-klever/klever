@@ -19,8 +19,8 @@ import fileinput
 import os
 import clade.interface as clade_api
 
-import core.vtg.utils
 import core.utils
+import core.vtg.utils
 import core.vtg.plugins
 
 
@@ -131,7 +131,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                                             core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
                                              [
                                                  # Besides header files specific for requirements will be
                                                  # searched for.

@@ -108,7 +108,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
                               [aspectator_search_dir]),
                         cwd=storage.convert_path(cc['cwd']),
                         timeout=0.1,
