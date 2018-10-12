@@ -384,7 +384,7 @@ target_program_descs = [
     #         "ext-modules/variables/remainder-assignment",
     #         "ext-modules/variables/right-shift-assignment"
     #     ]
-    # }
+    # },
     # # Validation on commits in Linux kernel Git repositories.
     # {
     #     'build base': 'build bases/validation/7ce77510c9c7~',

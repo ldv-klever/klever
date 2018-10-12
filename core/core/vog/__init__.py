@@ -99,7 +99,7 @@ class VOG(core.components.Component):
         if not db.get('fragmentation sets') or not db.get('templates'):
             raise KeyError("Provide both 'templates' and 'fragmentation sets' sections to 'program configuration'.json")
 
-        desc = db['fragmentation sets'].get(program, dict()).get(dset, dict()).get(version)
+        desc = db['fragmentation sets'].get(program, dict()).get(dset, dict()).get(version, dict())
         if not desc and not db['templates'].get(dset):
             raise KeyError('There is no prepared fragmentation set {!r} for program {!r} of version {!r}'.
                            format(dset, program, version))
