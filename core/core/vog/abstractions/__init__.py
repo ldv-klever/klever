@@ -98,6 +98,7 @@ class Dependencies:
             files.update(fragment.files)
         new_files, matched = self.find_files_by_expressions(rest)
         files.update(new_files)
+        rest.difference_update(matched)
 
         return files, expressions.difference(rest)
 
@@ -174,7 +175,7 @@ class Dependencies:
         return fragment
 
     def collect_dependencies(self, files, filter_func=lambda x: True, depth=None, maxfrags=None):
-        layer = {files}
+        layer = files
         deps = set()
         while layer and (depth is None or depth > 0) and (maxfrags is None or maxfrags > 0):
             new_layer = set()

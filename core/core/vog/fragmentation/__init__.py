@@ -131,7 +131,7 @@ class FragmentationAlgorythm:
         empty = set()
         for fragment in deps.fragments:
             fragment.files.update(addiction)
-            fragment.files.difference_update(addiction)
+            fragment.files.difference_update(removal)
             if not fragment.files:
                 empty.add(fragment)
 

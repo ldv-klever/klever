@@ -41,7 +41,7 @@ class BusyBox(FragmentationAlgorythm):
                         name = os.path.splitext(name)[0]
                         applets[name] = {file}
                         applets[name].update(
-                            deps.collect_dependencies(file,
+                            deps.collect_dependencies({file},
                                                       filter_func=lambda x: not os.path.commonpath(['libbb', x.name])))
 
         # Create fragments for found applets and libbb
