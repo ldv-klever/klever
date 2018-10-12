@@ -73,10 +73,6 @@ class TestPopulation(KleverTestCase):
         response = self.client.post(reverse('population'), {'service_username': 'service'})
         self.assertEqual(response.status_code, 200)
 
-        # Testing populated jobs
-        if not settings.POPULATE_JUST_PRODUCTION_PRESETS:
-            self.assertEqual(Job.objects.count(), len(os.listdir(os.path.join(settings.BASE_DIR, 'jobs', 'presets'))))
-
         # Testing populated service user
         self.assertEqual(Extended.objects.filter(user__username='service', role=USER_ROLES[4][0]).count(), 1)
 

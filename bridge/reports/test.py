@@ -244,7 +244,7 @@ class TestReports(KleverTestCase):
             self.fail('Jobs are not populated')
 
         # Run decision with default configuration
-        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'default', 'conf_name': 'development'})
 
         # Service sign in and check session parameters
         response = self.service_client.post('/users/service_signin/', {
@@ -371,7 +371,7 @@ class TestReports(KleverTestCase):
         self.job = Job.objects.order_by('parent').first()
         if self.job is None:
             self.fail('Jobs are not populated')
-        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'default', 'conf_name': 'development'})
 
         DecideJobs('service', 'service', SJC_1, with_full_coverage=True)
 
@@ -430,9 +430,9 @@ class TestReports(KleverTestCase):
             'parent': job1.identifier, 'file_data': '[{"type": "root", "text": "Files", "children": []}]'
         })
         job2 = Job.objects.get(pk=int(json.loads(str(response.content, encoding='utf8'))['job_id']))
-        self.client.post('/jobs/run_decision/%s/' % job1.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % job1.pk, {'mode': 'default', 'conf_name': 'development'})
         DecideJobs('service', 'service', SJC_1)
-        self.client.post('/jobs/run_decision/%s/' % job2.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % job2.pk, {'mode': 'default', 'conf_name': 'development'})
         DecideJobs('service', 'service', SJC_2)
 
         response = self.client.post('/jobs/check_compare_access/', {'job1': job1.pk, 'job2': job2.pk})
@@ -484,7 +484,7 @@ class TestReports(KleverTestCase):
     def test_upload_decided_job(self):
         job = Job.objects.first()
         self.assertIsNotNone(job)
-        self.client.post('/jobs/run_decision/%s/' % job.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % job.pk, {'mode': 'default', 'conf_name': 'development'})
 
         # This class uploads attrs data for verification reports
         DecideJobs('service', 'service', SJC_1)

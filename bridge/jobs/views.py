@@ -475,6 +475,8 @@ class StartDecision(LoggedCallMixin, Bview.JsonView):
             if last_run is None:
                 raise BridgeException(_('The job was not decided before'))
             getconf_kwargs['last_run'] = last_run
+        elif self.request.POST['mode'] == 'default':
+            getconf_kwargs['conf_name'] = self.request.POST['conf_name']
 
         StartJobDecision(self.request.user, self.kwargs['job_id'], GetConfiguration(**getconf_kwargs).configuration)
         return {}
