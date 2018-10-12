@@ -111,12 +111,14 @@ class Dependencies:
             for expr in expressions:
                 expr_path = os.path.join(path, expr)
                 abs_expr_path = self.clade.FileStorage().convert_path(expr_path)
-                files = set(glob.glob(abs_expr_path))
+                files = set(glob.glob(abs_expr_path, recursive=True))
                 files.difference_update(suitable_files_abs)
-                if files:
+                dirs = {f for f in files if os.path.isdir(f)}
+                files = {f for f in files if os.path.isfile(f)}
+                if files or dirs:
                     for file in self.files:
                         abs_file = self.clade.FileStorage().convert_path(file.name)
-                        if abs_file in files:
+                        if abs_file in files or os.path.dirname(abs_file) in dirs:
                             suitable_files_abs.add(abs_file)
                             matched.add(expr)
                             suitable_files.add(file)
@@ -204,7 +206,10 @@ class Dependencies:
                 if name not in self._files:
                     file = File(name)
                     file.cc = str(identifier)
-                    file.size = list(self.srcg.get_sizes([name]).values())[0]
+                    try:
+                        file.size = list(self.srcg.get_sizes([name]).values())[0]
+                    except (KeyError, IndexError):
+                        file.size = 0
                     self._files[name] = file
 
     def __check_cc(self, desc):
