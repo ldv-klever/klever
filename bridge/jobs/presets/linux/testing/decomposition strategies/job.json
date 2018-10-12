@@ -14,9 +14,6 @@
     ]
   },
   "Sub-jobs": [
-    {"add": ["ext-modules/several_groups/init.ko"]}
-  ],
-  "Sub-jobs~": [
     {"add": ["ext-modules/several_groups/init.ko"]},
     {"add": ["ext-modules/multimodule_error/init.ko"]},
     {
@@ -29,12 +26,12 @@
     },
     {
       "add": ["ext-modules/multimodule_false_error/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/multimodule_false_error/init.ko": [
           "ext-modules/multimodule_false_error/external.ko",
           "ext-modules/multimodule_false_error/init.ko"
         ]
-      ]
+      }
     },
     {
       "add": ["ext-modules/multimodule_false_error/init.ko"],
@@ -42,71 +39,75 @@
     },
     {
       "add": ["ext-modules/multimodule_error/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/multimodule_error/init.ko": [
           "ext-modules/multimodule_error/external.ko",
-          "ext-modules/multimodule_false_error/init.ko"
+          "ext-modules/multimodule_error/init.ko"
         ]
-      ],
+      },
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "add": ["ext-modules/multimodule_error/init.ko"],
+      "fragments": {
+        "ext-modules/multimodule_error/init.ko": [
+          "ext-modules/multimodule_error/external.ko",
+          "ext-modules/multimodule_error/init.ko"
+        ]
+      },
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "add": ["ext-modules/several_groups/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/several_groups/init.ko:0": [
           "ext-modules/several_groups/library1.ko",
           "ext-modules/several_groups/init.ko"
         ],
-        [
+        "ext-modules/several_groups/init.ko:1": [
           "ext-modules/several_groups/library2.ko",
           "ext-modules/several_groups/init.ko"
         ]
-      ],
+      },
       "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/several_groups/init.ko:0"
-        },
-        {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/several_groups/init.ko:1"
-        }
+        {"ideal verdict": "unsafe", "verification object": "ext-modules/several_groups/init.ko:0"},
+        {"ideal verdict": "safe", "verification object": "ext-modules/several_groups/init.ko:1"}
       ]
     },
     {
       "add": ["ext-modules/kernel_library/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/kernel_library/init.ko": [
           "ext-modules/kernel_library/init.ko",
           "ext-modules/kernel_library/external.ko",
           "ext-modules/several_groups/library1.ko"
         ]
-      ],
+      },
       "exclude from all fragments": ["ext-modules/several_groups/library1.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "add": ["ext-modules/kernel_library/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/kernel_library/init.ko": [
           "ext-modules/kernel_library/init.ko"
         ]
-      ],
-      "add to all fragments": ["export_with_error_unique"],
+      },
+      "add to all fragments": ["kernel_library_export_with_error"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "add": ["ext-modules/load_order/init.ko"],
-      "fragments": [
-        [
+      "fragments": {
+        "ext-modules/load_order/init.ko": [
           "ext-modules/load_order/init.ko",
           "ext-modules/load_order/external.ko"
         ]
-      ],
+      },
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/several_groups"],
+      "add": ["ext-modules/several_groups/ini*"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "fragmentation configuration options": {
         "kernel": false,
@@ -116,11 +117,11 @@
     },
     {
       "add": ["ext-modules/several_groups/init.ko"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
+      "exclude from all fragments": ["several_groups_export_with_error"],
       "fragmentation configuration options": {
         "kernel": false,
         "add modules by callgraph": true,
-        "maximum fragments": 2
+        "maximum fragments": 3
       }
     },
     {
