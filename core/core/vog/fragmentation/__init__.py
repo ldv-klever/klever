@@ -41,7 +41,7 @@ class FragmentationAlgorythm:
 
     def fragmentation(self):
         # Extract dependencies
-        deps = Dependencies(self.clade, self.source_paths)
+        deps = Dependencies(self.logger, self.clade, self.source_paths)
 
         # Decompose using units
         self._determine_units(deps)

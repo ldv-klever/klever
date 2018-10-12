@@ -24,7 +24,8 @@ from core.vog.abstractions.fragments_repr import Fragment
 
 class Dependencies:
 
-    def __init__(self, clade, source_paths):
+    def __init__(self, logger, clade, source_paths):
+        self.logger = logger
         self.clade = clade
         self.source_paths = source_paths
         self.cmdg = self.clade.CommandGraph()
@@ -118,7 +119,13 @@ class Dependencies:
                 if files or dirs:
                     for file in self.files:
                         abs_file = self.clade.FileStorage().convert_path(file.name)
-                        if abs_file in files or os.path.dirname(abs_file) in dirs:
+                        if not os.path.isfile(abs_file):
+                            abs_file = self.clade.FileStorage().convert_path(os.path.join(path, file.name))
+                        if not os.path.isfile(abs_file):
+                            self.logger.warning('Cannot calculate path to existing file {!r}'.format(file.name))
+                            continue
+
+                        if (abs_file in files or os.path.dirname(abs_file) in dirs) or ():
                             suitable_files_abs.add(abs_file)
                             matched.add(expr)
                             suitable_files.add(file)
@@ -225,20 +232,24 @@ class Dependencies:
             file_repr = self._files[path]
             for func, func_desc in functions.items():
                 tp = func_desc.get('type', 'static')
-                if tp == 'static':
+                if tp != 'static':
                     file_repr.export_functions.setdefault(func, set())
 
-                for calls_scope, called_functions in ((s, d) for s, d in func_desc.get('calls', dict()).items()
-                                                      if s != path and s != 'unknown' and s in self._files):
-                    caller = self._files[calls_scope]
-                    if func not in caller.import_functions:
-                        caller.import_functions[func] = file_repr
-                    elif caller.import_functions[func] != file_repr:
-                        raise KeyError('Cannot import function {!r} from two places: {!r} and {!r}'.
-                                       format(func, caller.import_functions[func].name, file_repr.name))
+                for called_definition_scope, called_functions in \
+                        ((s, d) for s, d in func_desc.get('calls', dict()).items()
+                         if s != path and s != 'unknown' and s in self._files):
+                    called = self._files[called_definition_scope]
+                    for called_function in called_functions:
+                        if called_function not in file_repr.import_functions:
+                            file_repr.import_functions[called_function] = called
+                        elif file_repr.import_functions[called_function] != called:
+                            raise KeyError('Cannot import function {!r} from two places: {!r} and {!r}'.
+                                           format(called_function, file_repr.import_functions[called_function],
+                                                  called.name))
 
-                    caller.add_predecessor(file_repr)
-                    file_repr.export_functions[func].add(caller)
+                        called.add_predecessor(file_repr)
+                        called.export_functions.setdefault(func, set())
+                        called.export_functions[func].add(file_repr)
 
         # Add rest global functions
         for path, functions in ((p, f) for p, f in fs.items() if p in self._files):
