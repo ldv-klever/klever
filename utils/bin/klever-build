@@ -572,24 +572,7 @@ target_program_descs = [
     #     'Git repository version': 'ac4de081312a~',
     #     'loadable kernel modules': [
     #         'drivers/leds/leds-lp55xx-common.ko',
-    #         'drivers/leds/leds-lp5523.ko'
-    #     ]
-    # },
-    # {
-    #     'build base': 'build bases/validation/ac4de081312a',
-    #     'name': 'Linux',
-    #     'Git repository version': 'ac4de081312a',
-    #     'loadable kernel modules': [
-    #         'drivers/leds/leds-lp55xx-common.ko',
-    #         'drivers/leds/leds-lp5523.ko'
-    #     ]
-    # },
-    # {
-    #     'build base': 'build bases/validation/ac4de081312a~',
-    #     'name': 'Linux',
-    #     'Git repository version': 'ac4de081312a~',
-    #     'loadable kernel modules': [
-    #         'drivers/leds/leds-lp55xx-common.ko',
+    #         'drivers/leds/leds-lp5523.ko',
     #         'drivers/leds/leds-lp5521.ko'
     #     ]
     # },
@@ -599,6 +582,7 @@ target_program_descs = [
     #     'Git repository version': 'ac4de081312a',
     #     'loadable kernel modules': [
     #         'drivers/leds/leds-lp55xx-common.ko',
+    #         'drivers/leds/leds-lp5523.ko',
     #         'drivers/leds/leds-lp5521.ko'
     #     ]
     # },
