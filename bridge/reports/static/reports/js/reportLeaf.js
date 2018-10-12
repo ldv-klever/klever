@@ -40,4 +40,23 @@ $(document).ready(function () {
         $.post(url, {}, function (data) { data.error ? err_notify(data.error) : window.location.replace('') });
     });
     $('.like-popup').popup({hoverable: true, position: 'top right'});
+
+    $('.attr-data-href').click(function (event) {
+        event.preventDefault();
+        var attr_id = $(this).data('attr-id');
+        $.get('/reports/attrdata-content/' + attr_id + '/', {}, function (resp) {
+            if (resp.error) {
+                err_notify(resp.error);
+                return false;
+            }
+            $('#file_content').text(resp.content);
+            $('#download_file_href').attr('href', '/reports/attrdata/' + attr_id + '/');
+            $('#file_content_modal').modal('show');
+            $('#close_file_view').click(function () {
+                $('#file_content_modal').modal('hide');
+                $('#file_content').empty();
+                $('#download_file_href').attr('href', '#');
+            });
+        });
+    });
 });

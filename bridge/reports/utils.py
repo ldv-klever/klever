@@ -847,26 +847,9 @@ class FilesForCompetitionArchive:
                         .values_list('id', 'parent_id'):
                     self.__add_archive('f' if isinstance(f_t, list) else f_t, *args)
 
-    def __cil_data(self, report_id, arcname):
-        with self._archives[report_id] as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                xml_root = ETree.fromstring(zfp.read(self.benchmark_fname))
-                cil_content = zfp.read(xml_root.find('tasks').find('include').text)
-                for data in self.stream.compress_string(arcname, cil_content):
-                    yield data
-                if not self.prp_file_added:
-                    for data in self.stream.compress_string(self.prp_fname, zfp.read(self.prp_fname)):
-                        yield data
-                    self.prp_file_added = True
-            if self.xml_root is None:
-                self.xml_root = xml_root
-                self.xml_root.find('tasks').clear()
-
 
 def report_attibutes(report):
-    return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
+    return report.attrs.order_by('id').values_list('id', 'attr__name__name', 'attr__value', 'data')
 
 
 def report_attributes_with_parents(report):
