@@ -53,7 +53,7 @@ class TestMarks(KleverTestCase):
         self.client.post(reverse('population'))
         self.job = Job.objects.all().first()
         self.assertIsNotNone(self.job)
-        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'default', 'conf_name': 'development'})
         DecideJobs('service', 'service', SJC_1)
 
         self.safe_archive = 'test_safemark.zip'

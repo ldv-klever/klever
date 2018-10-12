@@ -150,7 +150,7 @@ class TestService(KleverTestCase):
         except IndexError:
             self.job = Job.objects.all()[0]
         # Run decision
-        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'fast'})
+        self.client.post('/jobs/run_decision/%s/' % self.job.pk, {'mode': 'default', 'conf_name': 'development'})
         self.core = Client()
         self.core.post('/users/service_signin/', {
             'username': 'service', 'password': 'service', 'job identifier': self.job.identifier
