@@ -48,7 +48,7 @@
       {
         "init": [
           {
-            "export_with_error": [
+            "multimodule_error_export_with_error": [
               {
                 "ldv_error": []
               }

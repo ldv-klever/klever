@@ -48,7 +48,7 @@
       {
         "init": [
           {
-            "export_with_error": [
+            "several_groups_export_with_error": [
               {
                 "ldv_error": []
               }
