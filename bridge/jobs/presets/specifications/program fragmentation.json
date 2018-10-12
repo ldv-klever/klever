@@ -1,10 +1,7 @@
 {
   "templates": {
-    "Linux": {
-      "program": "Linux"
-    },
     "Linux modules": {
-      "template": "Linux",
+      "program": "Linux",
       "kernel": false
     },
     "Linux subsystems": {
@@ -17,10 +14,9 @@
   "fragmentation sets": {
     "Linux": {
       "Linux modules": {
-        "Linux-3.14": {
-          "add to all fragments": [],
-          "exclude from all fragments": []
-        }
+        "Linux 3.14": {},
+        "Linux 2.6.33": {},
+        "Linux 4.6.7": {}
       }
     }
   }

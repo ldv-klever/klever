@@ -3,7 +3,7 @@
   "Common": {
     "build base": "build bases/testing/5b3d50",
     "program": "Linux",
-    "version": "Linux-3.14",
+    "version": "Linux 3.14",
     "fragmentation set": "Linux modules",
     "specifications set": "Linux 3.14 (base)",
     "requirements": ["linux:test:common"],

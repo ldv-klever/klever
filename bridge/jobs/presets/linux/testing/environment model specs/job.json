@@ -1,23 +1,16 @@
 {
   "Class": "Verification of Linux kernel modules",
   "Common": {
-    "project": {
-      "name": "Linux",
-      "configuration": "allmodconfig",
-      "architecture": "x86_64",
-      "external modules": "tests",
-      "opts file": "scripts/mod/empty.c"
-    },
-    "Fragmentation strategy": {
-      "name": "Linux",
-      "target kernel": false,
-      "maximum unit size": 30000
-    },
-    "Aggregation strategy": {
-      "name": "separate",
-      "maximum verification object size": 30000
-    },
+    "build base": "build bases/testing/606cdb",
+    "program": "Linux",
+    "version": "Linux 3.14",
+    "fragmentation set": "Linux modules",
+    "specifications set": "Linux 3.14 (base)",
     "requirements": ["linux:test:environment model specifications"],
+    "extra CIF opts": [
+      "-D__GNUC__=4",
+      "-D__GNUC_MINOR__=6"
+    ],
     "ideal verdicts": [
       {"ideal verdict": "safe"},
       {
@@ -101,163 +94,139 @@
   },
   "Sub-jobs": [
     {
-      "Clade": {"base": "455c6f"},
+      "build base": "build bases/testing/455c6f",
+      "version": "Linux 2.6.33",
       "specifications set": "Linux 2.6.33",
-      "project": {
-        "source": "linux-2.6.33.20",
-        "kernel subsystems": [
-          "ext-modules/block_device_operations_v.1",
-          "ext-modules/class_v.1",
-          "ext-modules/devm_threaded_irq_v.1",
-          "ext-modules/ethtool_ops_v.1",
-          "ext-modules/file_operations_v.1",
-          "ext-modules/get_sb_v.1",
-          "ext-modules/hid_v.1",
-          "ext-modules/ieee80211_ops_v.1",
-          "ext-modules/irq_v.1",
-          "ext-modules/net_device_ops_v.1",
-          "ext-modules/pci_driver_v.1",
-          "ext-modules/platform_driver_v.1",
-          "ext-modules/proto_v.1",
-          "ext-modules/rtc_class_ops_v.1",
-          "ext-modules/scsi_host_template_v.1",
-          "ext-modules/seq_operations_v.1",
-          "ext-modules/serial_core_v.1",
-          "ext-modules/super_block_v.1",
-          "ext-modules/tty_v.1",
-          "ext-modules/usb_driver_v.1",
-          "ext-modules/usb_serial_driver_v.1"
-        ],
-        "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
-      }
+      "add": [
+        "ext-modules/block_device_operations_v.1",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.1",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/get_sb_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/irq_v.1",
+        "ext-modules/net_device_ops_v.1",
+        "ext-modules/pci_driver_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.1",
+        "ext-modules/rtc_class_ops_v.1",
+        "ext-modules/scsi_host_template_v.1",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/super_block_v.1",
+        "ext-modules/tty_v.1",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.1"
+      ]
     },
     {
-      "Clade": {"base": "fedc1e"},
-      "specifications set": "Linux 3.14 (base)",
-      "project": {
-        "source": "linux-3.14.79",
-        "kernel subsystems": [
-          "ext-modules/block_device_operations_v.1",
-          "ext-modules/class_v.1",
-          "ext-modules/devm_threaded_irq_v.1",
-          "ext-modules/ethtool_ops_v.1",
-          "ext-modules/file_operations_v.1",
-          "ext-modules/hid_v.1",
-          "ext-modules/ieee80211_ops_v.1",
-          "ext-modules/iio_triggered_buffer_v.1",
-          "ext-modules/irq_v.2",
-          "ext-modules/net_device_ops_v.1",
-          "ext-modules/pci_driver_v.1",
-          "ext-modules/percpu_irq_v.1",
-          "ext-modules/platform_driver_v.1",
-          "ext-modules/proto_v.1",
-          "ext-modules/rtc_class_ops_v.1",
-          "ext-modules/scsi_host_template_v.1",
-          "ext-modules/seq_operations_v.1",
-          "ext-modules/serial_core_v.1",
-          "ext-modules/se_subsystem_api_v.1",
-          "ext-modules/tty_v.2",
-          "ext-modules/usb_driver_v.1",
-          "ext-modules/usb_serial_driver_v.2"
-        ]
-      }
+      "build base": "build bases/testing/fedc1e",
+      "add": [
+        "ext-modules/block_device_operations_v.1",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.1",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/iio_triggered_buffer_v.1",
+        "ext-modules/irq_v.2",
+        "ext-modules/net_device_ops_v.1",
+        "ext-modules/pci_driver_v.1",
+        "ext-modules/percpu_irq_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.1",
+        "ext-modules/rtc_class_ops_v.1",
+        "ext-modules/scsi_host_template_v.1",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/se_subsystem_api_v.1",
+        "ext-modules/tty_v.2",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.2"
+      ]
     },
     {
-      "Clade": {"base": "01358e"},
+      "build base": "build bases/testing/01358e",
+      "version": "Linux 4.6.7",
       "specifications set": "Linux 4.6.7",
-      "project": {
-        "source": "linux-4.6.7",
-        "kernel subsystems": [
-          "ext-modules/block_device_operations_v.1",
-          "ext-modules/class_v.1",
-          "ext-modules/devm_threaded_irq_v.1",
-          "ext-modules/ethtool_ops_v.2",
-          "ext-modules/file_operations_v.1",
-          "ext-modules/hid_v.1",
-          "ext-modules/ieee80211_ops_v.1",
-          "ext-modules/iio_triggered_buffer_v.1",
-          "ext-modules/irq_v.2",
-          "ext-modules/net_device_ops_v.2",
-          "ext-modules/pci_driver_v.1",
-          "ext-modules/percpu_irq_v.1",
-          "ext-modules/platform_driver_v.1",
-          "ext-modules/proto_v.2",
-          "ext-modules/rtc_class_ops_v.1",
-          "ext-modules/scsi_host_template_v.1",
-          "ext-modules/seq_operations_v.1",
-          "ext-modules/serial_core_v.1",
-          "ext-modules/target_backend_v1",
-          "ext-modules/tty_v.2",
-          "ext-modules/usb_driver_v.1",
-          "ext-modules/usb_serial_driver_v.2"
-        ]
-      }
+      "add": [
+        "ext-modules/block_device_operations_v.1",
+        "ext-modules/class_v.1",
+        "ext-modules/devm_threaded_irq_v.1",
+        "ext-modules/ethtool_ops_v.2",
+        "ext-modules/file_operations_v.1",
+        "ext-modules/hid_v.1",
+        "ext-modules/ieee80211_ops_v.1",
+        "ext-modules/iio_triggered_buffer_v.1",
+        "ext-modules/irq_v.2",
+        "ext-modules/net_device_ops_v.2",
+        "ext-modules/pci_driver_v.1",
+        "ext-modules/percpu_irq_v.1",
+        "ext-modules/platform_driver_v.1",
+        "ext-modules/proto_v.2",
+        "ext-modules/rtc_class_ops_v.1",
+        "ext-modules/scsi_host_template_v.1",
+        "ext-modules/seq_operations_v.1",
+        "ext-modules/serial_core_v.1",
+        "ext-modules/target_backend_v1",
+        "ext-modules/tty_v.2",
+        "ext-modules/usb_driver_v.1",
+        "ext-modules/usb_serial_driver_v.2"
+      ]
     },
     {
-      "Clade": {"base": "915ac4"},
+      "build base": "build bases/testing/455c6f",
+      "version": "Linux 2.6.33",
       "specifications set": "Linux 2.6.33",
-      "project": {
-        "source": "linux-2.6.33.20",
-        "external modules": "tests",
-        "kernel subsystems": [
-          "ext-modules/timer_v.1",
-          "ext-modules/workqueue_v.1",
-          "ext-modules/urb_v.1",
-          "ext-modules/tasklet_v.1",
-          "ext-modules/kthread_v.1"
-        ],
-        "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
-      },
+      "add": [
+        "ext-modules/timer_v.1",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.1",
+        "ext-modules/kthread_v.1"
+      ],
       "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     },
     {
-      "Clade": {"base": "aa4af8"},
-      "specifications set": "Linux 3.14 (base)",
-      "project": {
-        "source": "linux-3.14.79",
-        "external modules": "tests",
-        "kernel subsystems": [
-          "ext-modules/timer_v.1",
-          "ext-modules/workqueue_v.1",
-          "ext-modules/urb_v.1",
-          "ext-modules/tasklet_v.1",
-          "ext-modules/kthread_v.1"
-        ]
-      },
+      "build base": "build bases/testing/fedc1e",
+      "add": [
+        "ext-modules/timer_v.1",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.1",
+        "ext-modules/kthread_v.1"
+      ],
       "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     },
     {
-      "Clade": {"base": "00a1a0"},
+      "build base": "build bases/testing/01358e",
+      "version": "Linux 4.6.7",
       "specifications set": "Linux 4.6.7",
-      "project": {
-        "source": "linux-4.6.7",
-        "external modules": "tests",
-        "kernel subsystems": [
-          "ext-modules/timer_v.2",
-          "ext-modules/workqueue_v.1",
-          "ext-modules/urb_v.1",
-          "ext-modules/tasklet_v.1",
-          "ext-modules/kthread_v.1"
-        ]
-      },
+      "add": [
+        "ext-modules/timer_v.2",
+        "ext-modules/workqueue_v.1",
+        "ext-modules/urb_v.1",
+        "ext-modules/tasklet_v.1",
+        "ext-modules/kthread_v.1"
+      ],
       "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     }
   ],
   "Default": [
     {
       "specifications set": "Linux 3.14 (base)",
-      "project": {
-        "source": "linux-3.14.79",
-        "kernel subsystems": [
-          "ext-modules/atmdev_ops_v.1",
-          "ext-modules/dm_dirty_log_type_v.1",
-          "ext-modules/generic",
-          "ext-modules/md_personality_v.1",
-          "ext-modules/scsi_device_handler_v.1",
-          "ext-modules/serio_driver_v.1",
-          "ext-modules/target_type_v.1"
-        ]
-      },
+      "kernel subsystems": [
+        "ext-modules/atmdev_ops_v.1",
+        "ext-modules/dm_dirty_log_type_v.1",
+        "ext-modules/generic",
+        "ext-modules/md_personality_v.1",
+        "ext-modules/scsi_device_handler_v.1",
+        "ext-modules/serio_driver_v.1",
+        "ext-modules/target_type_v.1"
+      ],
       "ideal verdicts": [
         {"ideal verdict": "safe"},
         {
