@@ -1,294 +1,205 @@
 {
   "Class": "Validation on commits in Linux kernel Git repositories",
   "Common": {
-    "project": {
-      "name": "Linux",
-      "source": "linux-stable",
-      "configuration": "allmodconfig",
-      "architecture": "x86_64",
-      "opts file": "scripts/mod/empty.c",
-      "extra Clade opts": {"Info.extra CIF opts": ["-D__GNUC__=4", "-D__GNUC_MINOR__=6"]}
-    },
-    "Fragmentation strategy": {
-      "name": "linux"
-    },
-    "Aggregation strategy": {
-      "name": "separate",
-      "maximum verification object size": 30000
-    },
-    "specifications set": "Linux 3.14 (base)"
+    "program": "Linux",
+    "version": "Linux 3.14",
+    "fragmentation set": "Linux modules",
+    "specifications set": "Linux 3.14 (base)",
+    "extra CIF opts": [
+      "-D__GNUC__=4",
+      "-D__GNUC_MINOR__=6"
+    ]
   },
   "Sub-jobs": [
     {
-      "Clade": {"base": "7ce77510c9c7~"},
-      "project": {
-        "Git repository": {"commit": "7ce77510c9c7~"},
-        "loadable kernel modules": ["drivers/usb/serial/opticon.ko"]
-      },
+      "build base": "build bases/validation/7ce77510c9c7~",
+      "add": ["drivers/usb/serial/opticon.ko"],
       "specifications set": "Linux 3.2",
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
-      "Clade": {"base": "7ce77510c9c7"},
-      "project": {
-        "Git repository": {"commit": "7ce77510c9c7"},
-        "loadable kernel modules": ["drivers/usb/serial/opticon.ko"]
-      },
+      "build base": "build bases/validation/7ce77510c9c7",
+      "add": ["drivers/usb/serial/opticon.ko"],
       "specifications set": "Linux 3.2",
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
-      "Clade": {"base": "60b35930067d~"},
-      "project": {
-        "Git repository": {"commit": "60b35930067d~"},
-        "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
+      "build base": "build bases/validation/60b35930067d~",
+      "add": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "60b35930067d~"}
     },
     {
-      "Clade": {"base": "60b35930067d"},
-      "project": {
-        "Git repository": {"commit": "60b35930067d"},
-        "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
+      "build base": "build bases/validation/60b35930067d",
+      "add": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "60b35930067d~"}
     },
     {
-      "Clade": {"base": "214c97a12f1f"},
-      "project": {
-        "Git repository": {"commit": "214c97a12f1f"},
-        "loadable kernel modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
+      "build base": "build bases/validation/214c97a12f1f",
+      "add": ["drivers/media/usb/usbvision/usbvision.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "214c97a12f1f"}
     },
     {
-      "Clade": {"base": "214c97a12f1f~"},
-      "project": {
-        "Git repository": {"commit": "214c97a12f1f~"},
-        "loadable kernel modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
+      "build base": "build bases/validation/214c97a12f1f~",
+      "add": ["drivers/media/usb/usbvision/usbvision.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "214c97a12f1f"}
     },
     {
-      "Clade": {"base": "e4c7f259c5be~"},
-      "project": {
-        "Git repository": {"commit": "e4c7f259c5be~"},
-        "loadable kernel modules": ["drivers/net/usb/kaweth.ko"]
-      },
+      "build base": "build bases/validation/e4c7f259c5be~",
+      "add": ["drivers/net/usb/kaweth.ko"],
       "specifications set": "Linux 3.5",
       "requirements": ["linux:alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
-      "Clade": {"base": "e4c7f259c5be"},
-      "project": {
-        "Git repository": {"commit": "e4c7f259c5be"},
-        "loadable kernel modules": ["drivers/net/usb/kaweth.ko"]
-      },
+      "build base": "build bases/validation/e4c7f259c5be",
+      "add": ["drivers/net/usb/kaweth.ko"],
       "specifications set": "Linux 3.5",
       "requirements": ["linux:alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
-      "Clade": {"base": "448356262f56~"},
-      "project": {
-        "Git repository": {"commit": "448356262f56~"},
-        "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
+      "build base": "build bases/validation/448356262f56~",
+      "add": ["drivers/usb/serial/kobil_sct.ko"],
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "448356262f56~"}
     },
     {
-      "Clade": {"base": "448356262f56~"},
-      "project": {
-        "Git repository": {"commit": "448356262f56"},
-        "loadable kernel modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
+      "build base": "build bases/validation/448356262f56~",
+      "add": ["drivers/usb/serial/kobil_sct.ko"],
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "448356262f56~"}
     },
     {
-      "Clade": {"base": "d8e172f3c0a5"},
-      "project": {
-        "Git repository": {"commit": "d8e172f3c0a5"},
-        "loadable kernel modules": ["drivers/spi/spi-imx.ko"]
-      },
+      "build base": "build bases/validation/d8e172f3c0a5",
+      "add": ["drivers/spi/spi-imx.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
-      "Clade": {"base": "d8e172f3c0a5~"},
-      "project": {
-        "Git repository": {"commit": "d8e172f3c0a5~"},
-        "loadable kernel modules": ["drivers/spi/spi-imx.ko"]
-      },
+      "build base": "build bases/validation/d8e172f3c0a5~",
+      "add": ["drivers/spi/spi-imx.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
-      "Clade": {"base": "bff71889260f~"},
-      "project": {
-        "Git repository": {"commit": "bff71889260f~"},
-        "loadable kernel modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
-      },
+      "build base": "build bases/validation/bff71889260f~",
+      "add": ["drivers/staging/iio/adc/mxs-lradc.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "bff71889260f~"}
     },
     {
-      "Clade": {"base": "bff71889260f"},
-      "project": {
-        "Git repository": {"commit": "bff71889260f"},
-        "loadable kernel modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
-      },
+      "build base": "build bases/validation/bff71889260f",
+      "add": ["drivers/staging/iio/adc/mxs-lradc.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "bff71889260f~"}
     },
     {
-      "Clade": {"base": "2ba4b92e8773~"},
-      "project": {
-        "Git repository": {"commit": "2ba4b92e8773~"},
-        "loadable kernel modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
-      },
+      "build base": "build bases/validation/2ba4b92e8773~",
+      "add": ["drivers/usb/dwc2/dwc2_gadget.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
-      "Clade": {"base": "2ba4b92e8773"},
-      "project": {
-        "Git repository": {"commit": "2ba4b92e8773"},
-        "loadable kernel modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
-      },
+      "build base": "build bases/validation/2ba4b92e8773",
+      "add": ["drivers/usb/dwc2/dwc2_gadget.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
-      "Clade": {"base": "c822fb57ba12~"},
-      "project": {
-        "Git repository": {"commit": "c822fb57ba12~"},
-        "loadable kernel modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
-      },
+      "build base": "build bases/validation/c822fb57ba12~",
+      "add": ["drivers/spi/spi-pxa2xx-platform.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
-      "Clade": {"base": "c822fb57ba12"},
-      "project": {
-        "Git repository": {"commit": "c822fb57ba12"},
-        "loadable kernel modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
-      },
+      "build base": "build bases/validation/c822fb57ba12",
+      "add": ["drivers/spi/spi-pxa2xx-platform.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
-      "Clade": {"base": "5c256d215753~"},
-      "project": {
-        "Git repository": {"commit": "5c256d215753~"},
-        "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
+      "build base": "build bases/validation/5c256d215753~",
+      "add": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "5c256d215753~"}
     },
     {
-      "Clade": {"base": "5c256d215753"},
-      "project": {
-        "Git repository": {"commit": "5c256d215753"},
-        "loadable kernel modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
+      "build base": "build bases/validation/5c256d215753",
+      "add": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "5c256d215753~"}
     },
     {
-      "Clade": {"base": "790cc82a2b2b~"},
-      "project": {
-        "Git repository": {"commit": "790cc82a2b2b~"},
-        "loadable kernel modules": ["drivers/input/misc/arizona-haptics.ko"]
-      },
+      "build base": "build bases/validation/790cc82a2b2b~",
+      "add": ["drivers/input/misc/arizona-haptics.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
-      "Clade": {"base": "790cc82a2b2b"},
-      "project": {
-        "Git repository": {"commit": "790cc82a2b2b"},
-        "loadable kernel modules": ["drivers/input/misc/arizona-haptics.ko"]
-      },
+      "build base": "build bases/validation/790cc82a2b2b",
+      "add": ["drivers/input/misc/arizona-haptics.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
-      "Clade": {"base": "ae3f34854485~"},
-      "project": {
-        "Git repository": {"commit": "ae3f34854485~"},
-        "loadable kernel modules": ["fs/nfs/nfs.ko"]
-      },
+      "build base": "build bases/validation/ae3f34854485~",
+      "add": ["fs/nfs/nfs.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "ae3f34854485~"}
     },
     {
-      "Clade": {"base": "ae3f34854485"},
-      "project": {
-        "Git repository": {"commit": "ae3f34854485"},
-        "loadable kernel modules": ["fs/nfs/nfs.ko"]
-      },
+      "build base": "build bases/validation/ae3f34854485",
+      "add": ["fs/nfs/nfs.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ae3f34854485~"}
     },
     {
-      "Clade": {"base": "44f694330e1e~"},
-      "project": {
-        "Git repository": {"commit": "44f694330e1e~"},
-        "loadable kernel modules": ["net/sunrpc/sunrpc.ko"]
-      },
+      "build base": "build bases/validation/44f694330e1e~",
+      "add": ["net/sunrpc/sunrpc.ko"],
       "requirements": ["linux:kernel:module"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "44f694330e1e~"}
     },
     {
-      "Clade": {"base": "44f694330e1e"},
-      "project": {
-        "Git repository": {"commit": "44f694330e1e"},
-        "loadable kernel modules": ["net/sunrpc/sunrpc.ko"]
-      },
+      "build base": "build bases/validation/44f694330e1e",
+      "add": ["net/sunrpc/sunrpc.ko"],
       "requirements": ["linux:kernel:module"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "44f694330e1e~"}
     },
     {
-      "Clade": {"base": "21a018a58f3c~"},
-      "project": {
-        "Git repository": {"commit": "21a018a58f3c~"},
-        "loadable kernel modules": ["net/tipc/tipc.ko"]
-      },
+      "build base": "build bases/validation/21a018a58f3c~",
+      "add": ["net/tipc/tipc.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "VTG strategy": {"verifier": {"options": [
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
@@ -298,11 +209,8 @@
       "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
-      "Clade": {"base": "21a018a58f3c"},
-      "project": {
-        "Git repository": {"commit": "21a018a58f3c"},
-        "loadable kernel modules": ["net/tipc/tipc.ko"]
-      },
+      "build base": "build bases/validation/21a018a58f3c",
+      "add": ["net/tipc/tipc.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "VTG strategy": {"verifier": {"options": [
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
@@ -310,118 +218,108 @@
       ]}},
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "21a018a58f3c~"}
-    }
-  ],
-  "todo when strategies will work": [
+    },
     {
-      "Clade": {"base": "ac4de081312a~"},
-      "project": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "loadable kernel modules": ["drivers/leds/leds-lp5523.ko"]
+      "build base": "build bases/validation/ac4de081312a~",
+      "add": ["drivers/leds/leds-lp5523.ko"],
+      "fragments": {
+        "drivers/leds/leds-lp5523.ko": [
+          "drivers/leds/leds-lp55xx-common.ko",
+          "drivers/leds/leds-lp5523.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5523.ko"
-      ]]}},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "Clade": {"base": "ac4de081312a~"},
-      "project": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "loadable kernel modules": ["drivers/leds/leds-lp5523.ko"]
+      "build base": "build bases/validation/ac4de081312a~",
+      "add": ["drivers/leds/leds-lp5523.ko"],
+      "fragments": {
+        "drivers/leds/leds-lp5523.ko": [
+          "drivers/leds/leds-lp55xx-common.ko",
+          "drivers/leds/leds-lp5523.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5523.ko"
-      ]]}},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "Clade": {"base": "063579d4c3ed~"},
-      "project": {
-        "Git repository": {"commit": "063579d4c3ed~"},
-        "loadable kernel modules": ["drivers/w1/wire.ko"]
+      "build base": "build bases/validation/063579d4c3ed~",
+      "add": ["drivers/w1/wire.ko"],
+      "fragments": {
+        "drivers/w1/wire.ko": [
+          "drivers/w1/wire.ko",
+          "drivers/w1/masters/ds2482.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [[
-        "drivers/w1/wire.ko",
-        "drivers/w1/masters/ds2482.ko"
-      ]]}},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
-      "Clade": {"base": "214c97a12f1f"},
-      "project": {
-        "Git repository": {"commit": "063579d4c3ed"},
-        "loadable kernel modules": ["drivers/w1/wire.ko"]
+      "build base": "build bases/validation/214c97a12f1f",
+      "add": ["drivers/w1/wire.ko"],
+      "fragments": {
+        "drivers/w1/wire.ko": [
+          "drivers/w1/wire.ko",
+          "drivers/w1/masters/ds2482.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [[
-        "drivers/w1/wire.ko",
-        "drivers/w1/masters/ds2482.ko"
-      ]]}},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
-      "Clade": {"base": "ac4de081312a~"},
-      "project": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "loadable kernel modules": ["drivers/leds/leds-lp5521.ko"]
+      "build base": "build bases/validation/ac4de081312a~",
+      "add": ["drivers/leds/leds-lp5521.ko"],
+      "fragments": {
+        "drivers/leds/leds-lp5521.ko": [
+          "drivers/leds/leds-lp55xx-common.ko",
+          "drivers/leds/leds-lp5521.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5521.ko"
-      ]]}},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "Clade": {"base": "ac4de081312a"},
-      "project": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "loadable kernel modules": ["drivers/leds/leds-lp5521.ko"]
-      },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5521.ko"
-      ]]}},
+      "build base": "build bases/validation/ac4de081312a",
+      "add": ["drivers/leds/leds-lp5521.ko"],
+      "fragments": {
+        "drivers/leds/leds-lp5521.ko": [
+          "drivers/leds/leds-lp55xx-common.ko",
+          "drivers/leds/leds-lp5521.ko"
+        ]
+      },  
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "Clade": {"base": "214c97a12f1f"},
-      "project": {
-        "Git repository": {"commit": "9aaf9678ea3e~"},
-        "loadable kernel modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      "build base": "build bases/validation/214c97a12f1f",
+      "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
+      "fragments": {
+        "sound/pci/emu10k1/snd-emu10k1-synth.ko": [
+          "sound/pci/emu10k1/snd-emu10k1.ko",
+          "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+        ]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [[
-        "sound/pci/emu10k1/snd-emu10k1.ko",
-        "sound/pci/emu10k1/snd-emu10k1-synth.ko"
-      ]]}},
       "specifications set": "Linux 3.2",
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "9aaf9678ea3e~"}
     },
     {
-      "Clade": {"base": "214c97a12f1f"},
-      "project": {
-        "Git repository": {"commit": "9aaf9678ea3e"},
-        "loadable kernel modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
-      },
-      "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [[
-        "sound/pci/emu10k1/snd-emu10k1.ko",
-        "sound/pci/emu10k1/snd-emu10k1-synth.ko"
-      ]]}},
+      "build base": "build bases/validation/214c97a12f1f",
+      "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
+      "fragments": {
+        "sound/pci/emu10k1/snd-emu10k1-synth.ko": [
+          "sound/pci/emu10k1/snd-emu10k1.ko",
+          "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+        ]
+      }, 
       "specifications set": "Linux 3.2",
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
@@ -430,64 +328,64 @@
   ],
   "Source code > 25 KLOC": [
     {
-      "project": {
-        "Git repository": {"commit": "058ac415b7f9~"},
+      "add": {
+        "commit": "058ac415b7f9~",
         "loadable kernel modules": ["fs/btrfs/btrfs.ko"]
       },
       "requirements": ["linux:kernel:locking:rwlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "058ac415b7f9"},
+      "add": {
+        "commit": "058ac415b7f9",
         "loadable kernel modules": ["fs/btrfs/btrfs.ko"]
       },
       "requirements": ["linux:kernel:locking:rwlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "80bd602fc807~"},
+      "add": {
+        "commit": "80bd602fc807~",
         "loadable kernel modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "80bd602fc807"},
+      "add": {
+        "commit": "80bd602fc807",
         "loadable kernel modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "3bcf9780de50~"},
+      "add": {
+        "commit": "3bcf9780de50~",
         "loadable kernel modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "3bcf9780de50"},
+      "add": {
+        "commit": "3bcf9780de50",
         "loadable kernel modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "d3f09691b358~"},
+      "add": {
+        "commit": "d3f09691b358~",
         "loadable kernel modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "d3f09691b358"},
+      "add": {
+        "commit": "d3f09691b358",
         "loadable kernel modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
@@ -496,48 +394,48 @@
   ],
   "Specific configuration (architecture)": [
     {
-      "project": {
-        "Git repository": {"commit": "0eff4d68aefc~"},
+      "add": {
+        "commit": "0eff4d68aefc~",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "0eff4d68aefc"},
+      "add": {
+        "commit": "0eff4d68aefc",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "82d16b392661~"},
+      "add": {
+        "commit": "82d16b392661~",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "82d16b392661"},
+      "add": {
+        "commit": "82d16b392661",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "44efe16da47f~"},
+      "add": {
+        "commit": "44efe16da47f~",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "44efe16da47f"},
+      "add": {
+        "commit": "44efe16da47f",
         "loadable kernel modules": ["???"]
       },
       "requirements": ["linux:kernel:locking:spinlock"],
@@ -546,8 +444,8 @@
   ],
   "Staging requirements": [
     {
-      "project": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
+      "add": {
+        "commit": "bcb4a75bde38~",
         "loadable kernel modules": ["drivers/hid/hid.ko"]
       },
       "specifications set": "Linux 3.5",
@@ -555,8 +453,8 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {
-        "Git repository": {"commit": "bcb4a75bde38"},
+      "add": {
+        "commit": "bcb4a75bde38",
         "loadable kernel modules": ["drivers/hid/hid.ko"]
       },
       "specifications set": "Linux 3.5",
@@ -566,42 +464,42 @@
   ],
   "Not a module": [
     {
-      "project": {"Git repository": {"commit": "c9bf87daad34~"}},
+      "add": {"commit": "c9bf87daad34~"},
       "requirements": ["linux:kernel:locking:rwlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {"Git repository": {"commit": "c9bf87daad34"}},
+      "add": {"commit": "c9bf87daad34"},
       "requirements": ["linux:kernel:locking:rwlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {"Git repository": {"commit": "55a3dfcc84ab~"}},
+      "add": {"commit": "55a3dfcc84ab~"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {"Git repository": {"commit": "55a3dfcc84ab"}},
+      "add": {"commit": "55a3dfcc84ab"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {"Git repository": {"commit": "b71635775a36~"}},
+      "add": {"commit": "b71635775a36~"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {"Git repository": {"commit": "b71635775a36"}},
+      "add": {"commit": "b71635775a36"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
-      "project": {"Git repository": {"commit": "f673015a73e1~"}},
+      "add": {"commit": "f673015a73e1~"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "project": {"Git repository": {"commit": "f673015a73e1"}},
+      "add": {"commit": "f673015a73e1"},
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     }
