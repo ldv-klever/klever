@@ -779,6 +779,12 @@ class CProgram:
     def build(self):
         self._fetch_work_src_tree()
         self._make_canonical_work_src_tree()
+
+        # Remove file with intercepted build commands if so.
+        cmds_file = os.path.join(self.work_src_tree, 'cmds.txt')
+        if os.path.isfile(cmds_file):
+            os.remove(cmds_file)
+
         self._clean()
         self._get_version()
 
@@ -801,9 +807,7 @@ class CProgram:
         else:
             clade_conf = self._CLADE_CONF
 
-        clade_api.initialize_extensions(self.target_program_desc['build base'],
-                                        os.path.join(self.work_src_tree, 'cmds.txt'),
-                                        clade_conf)
+        clade_api.initialize_extensions(self.target_program_desc['build base'], cmds_file, clade_conf)
 
         self.logger.info('Save project attributes and working source trees to build base')
         attrs = [
