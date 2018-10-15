@@ -51,24 +51,22 @@ class Coverage(Abstract):
                                for p, v in self._func_coverage.get('statistics').items()}
         self._func_coverage.pop('overall')
 
-    def _aggregate(self):
-        """
-        Just return target fragments as aggregations consisting of a single fragment.
-
-        :return: Generator that retursn Aggregation objects.
-        """
+    def _make_groups(self):
         # Get target fragments
+        cg = self.deps.clade.CallGraph().graph
         for fragment in self.deps.target_fragments:
             # Search for export functions
             ranking = dict()
             function_map = dict()
-            stats = self.deps.find_files_that_use_functions(fragment.export_functions)
-            for func in stats:
-                for rel in stats[func]:
-                    ranking.setdefault(rel.name, 0)
-                    ranking[rel.name] += 1
-                    function_map.setdefault(func, set())
-                    function_map[func].add(rel)
+            for path in fragment.files:
+                for func in path.export_functions:
+                    # Find fragments that call this function
+                    relevant = self._find_fragments(fragment, path, func, cg)
+                    for rel in relevant:
+                        ranking.setdefault(rel.name, 0)
+                        ranking[rel.name] += 1
+                        function_map.setdefault(func, set())
+                        function_map[func].update(relevant)
 
             # Use a greedy algorythm. Go from functions that most rarely used and add fragments that most oftenly used
             # Turn into account white and black lists
@@ -95,3 +93,19 @@ class Coverage(Abstract):
 
         # Free data
         self._func_coverage = None
+
+    def _find_fragments(self, fragment, path, func, cg):
+        result = set()
+        # Get functions from the callgraph
+        desc = cg.get(path.name, dict()).get(func)
+        if desc:
+            for scope, called_funcs in ((s, d) for s, d in desc.get('called_in', dict()).items()
+                                        if s != path.name and s in self._func_coverage):
+                if any(True for f in called_funcs if f in self._func_coverage[scope]):
+                    # Found function call in covered functions retrieve Fragment and add to result
+                    frags = self.deps.find_fragments_with_files([scope])
+                    for new in frags:
+                        if new in self.deps.fragment_predecessors(fragment):
+                            result.add(new)
+
+        return result

@@ -163,7 +163,7 @@ class Dependencies:
         files = set()
         if functions:
             for file in self.files:
-                if file.import_functions.intersection(functions):
+                if set(file.import_functions.keys()).intersection(functions):
                     files.add(file)
         return files
 
