@@ -637,6 +637,7 @@ target_program_descs = [
 
 class CProgram:
     _CLADE_CONF = dict()
+    _CLADE_PRESET = "base"
 
     def __init__(self, logger, target_program_desc):
         self.logger = logger
@@ -737,7 +738,7 @@ class CProgram:
             opts = []
 
         return execute_cmd(self.logger,
-                           *((['clade-intercept'] if intercept_build_cmds else []) +
+                           *((['clade-intercept', '-a'] if intercept_build_cmds else []) +
                              ['make', '-j', self.jobs] + opts + list(target)),
                            cwd=self.work_src_tree, env=env, get_output=get_output)
 
@@ -807,7 +808,9 @@ class CProgram:
         else:
             clade_conf = self._CLADE_CONF
 
-        clade_api.initialize_extensions(self.target_program_desc['build base'], cmds_file, clade_conf)
+        clade_api.initialize_extensions(self.target_program_desc['build base'],
+                                        os.path.join(self.work_src_tree, 'cmds.txt'),
+                                        clade_conf, self._CLADE_PRESET)
 
         self.logger.info('Save project attributes and working source trees to build base')
         attrs = [
@@ -844,34 +847,8 @@ class Linux(CProgram):
             'ARCH': 'x86_64'
         }
     }
-    _CLADE_CONF = {
-        "log_level": "INFO",
-        "CmdGraph.requires": [
-            "CC",
-            "LD",
-            "MV",
-            "AR",
-            "Objcopy"
-        ],
-        "CC.store_deps": True,
-        "Common.filter": [
-            ".*?\\.tmp$"
-        ],
-        "Common.filter_in": [
-            "-",
-            "/dev/null",
-            "scripts/(?!mod/empty\\.c)",
-            "kernel/.*?bounds.*?",
-            "arch/x86/tools/relocs",
-            "arch/x86/kernel/asm-offsets.c",
-            ".*\\.mod\\.c"
-        ],
-        "Common.filter_out": [
-            "/dev/null",
-            ".*?\\.cmd$",
-            "vmlinux"
-        ]
-    }
+    _CLADE_CONF = dict()
+    _CLADE_PRESET = 'linux_kernel'
 
     def __init__(self, logger, target_program_desc):
         super().__init__(logger, target_program_desc)
