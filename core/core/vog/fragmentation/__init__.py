@@ -111,10 +111,10 @@ class FragmentationAlgorythm:
         all_files = set()
         for files in new.values():
             all_files.update(files)
-        fragments = deps.find_fragments_with_files(all_files)
+        relevant_fragments = deps.find_fragments_with_files(all_files)
 
         # Remove them
-        for fragment in fragments:
+        for fragment in relevant_fragments:
             deps.remove_fragment(fragment)
 
         # Create new fragments

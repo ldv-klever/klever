@@ -180,6 +180,8 @@ class Dependencies:
         rest = files.difference(matched)
         if rest:
             raise ValueError('Cannot find files: {}'.format(', '.join(rest)))
+        if not files_obj:
+            raise ValueError('Cannot find C files for LD command {!r}'.format(name))
         fragment = self.create_fragment(name, files_obj)
         return fragment
 
@@ -239,7 +241,10 @@ class Dependencies:
                         ((s, d) for s, d in func_desc.get('calls', dict()).items()
                          if s != path and s != 'unknown' and s in self._files):
                     called = self._files[called_definition_scope]
-                    for called_function in called_functions:
+                    # Beware of such bugs in callgraph
+                    for called_function in (c for c in called_functions
+                                            if fs.get(called_definition_scope, dict()).get(c, dict()).
+                                                       get('type', 'static') != 'static'):
                         if called_function not in file_repr.import_functions:
                             file_repr.import_functions[called_function] = called
                         elif file_repr.import_functions[called_function] != called:
