@@ -5,15 +5,20 @@
       "kernel": false
     },
     "Linux subsystems": {
-      "template": "Linux",
+      "program": "Linux",
       "kernel": true,
       "separate nested subsystems": true,
-      "add modules by coverage": false
+      "add modules by coverage": true
     }
   },
   "fragmentation sets": {
     "Linux": {
       "Linux modules": {
+        "Linux 3.14": {},
+        "Linux 2.6.33": {},
+        "Linux 4.6.7": {}
+      },
+      "Linux subsystems": {
         "Linux 3.14": {},
         "Linux 2.6.33": {},
         "Linux 4.6.7": {}
