@@ -246,11 +246,15 @@ class Dependencies:
                                             if fs.get(called_definition_scope, dict()).get(c, dict()).
                                                        get('type', 'static') != 'static'):
                         if called_function not in file_repr.import_functions:
-                            file_repr.import_functions[called_function] = called
-                        elif file_repr.import_functions[called_function] != called:
-                            raise KeyError('Cannot import function {!r} from two places: {!r} and {!r}'.
+                            file_repr.import_functions[called_function] = \
+                                [called, list(called_functions[called_function].values())[0]["match_type"]]
+                        elif file_repr.import_functions[called_function][0] != called:
+                            self.logger.warning('Cannot import function {!r} from two places: {!r} and {!r}'.
                                            format(called_function, file_repr.import_functions[called_function],
                                                   called.name))
+                            newmatch_type = list(called_functions[called_function].values())[0]["match_type"]
+                            if newmatch_type > file_repr.import_functions[called_function][1]:
+                                file_repr.import_functions[called_function] = [called, newmatch_type]
 
                         called.add_predecessor(file_repr)
                         called.export_functions.setdefault(func, set())

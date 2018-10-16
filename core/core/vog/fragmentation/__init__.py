@@ -27,6 +27,8 @@ from core.vog.abstractions.strategies import Abstract
 
 class FragmentationAlgorythm:
 
+    VO_DIR = 'verification objects'
+
     def __init__(self, logger, conf, desc, clade):
         # Simple attributes
         self.logger = logger
@@ -204,7 +206,7 @@ class FragmentationAlgorythm:
             vo_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
         self.logger.debug('verification object dependencies are {}'.format(vo_desc['deps']))
 
-        vo_desc_file = vo_desc['id'] + '.json'
+        vo_desc_file = os.path.join(self.VO_DIR, vo_desc['id'] + '.json')
         if os.path.isfile(vo_desc_file):
             raise FileExistsError('verification object description file {!r} already exists'.format(vo_desc_file))
         self.logger.debug('Dump verification object description {!r} to file {!r}'.format(vo_desc['id'], vo_desc_file))

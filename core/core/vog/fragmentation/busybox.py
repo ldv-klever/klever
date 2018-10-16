@@ -21,13 +21,13 @@ import re
 from core.vog.fragmentation import FragmentationAlgorythm
 
 
-class BusyBox(FragmentationAlgorythm):
+class Busybox(FragmentationAlgorythm):
 
     def __init__(self, logger, conf, desc, clade):
         super().__init__(logger, conf, desc, clade)
 
     def _determine_units(self, deps):
-        main_func = re.compile("\\w*main")
+        main_func = re.compile("\\w+main")
 
         libbb = set()
         applets = dict()
