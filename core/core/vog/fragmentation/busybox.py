@@ -25,6 +25,7 @@ class Busybox(FragmentationAlgorythm):
 
     def __init__(self, logger, conf, desc, clade):
         super().__init__(logger, conf, desc, clade)
+        self._incorporate_libbb = self.desc.get("include dependencies from libbb to applets fragments")
 
     def _determine_units(self, deps):
         main_func = re.compile("\\w+main")
@@ -40,9 +41,12 @@ class Busybox(FragmentationAlgorythm):
                         path, name = os.path.split(file.name)
                         name = os.path.splitext(name)[0]
                         applets[name] = {file}
-                        applets[name].update(
-                            deps.collect_dependencies({file},
-                                                      filter_func=lambda x: not os.path.commonpath(['libbb', x.name])))
+                        if self._incorporate_libbb:
+                            dfiles = deps.collect_dependencies({file})
+                        else:
+                            dfiles = deps.collect_dependencies(
+                                {file}, filter_func=lambda x: not os.path.commonpath(['libbb', x.name]))
+                        applets[name].update(dfiles)
 
         # Create fragments for found applets and libbb
         for name, files in applets.items():
