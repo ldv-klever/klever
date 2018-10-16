@@ -456,7 +456,7 @@ class TestJobs(KleverTestCase):
 
         # Start decision with settings
         run_conf = json.dumps([
-            ["HIGH", "0", 100, '1'], ["1", "2.0", "1.0", "2"], [1, 1, 100, ''],
+            ["HIGH", "0", 100, '1'], ["1", "1.0", "2"], [1, 1, 100, ''],
             [
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"

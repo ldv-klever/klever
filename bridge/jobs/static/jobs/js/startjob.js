@@ -178,10 +178,12 @@ $(document).ready(function () {
         var required_fields = [
             'max_tasks', 'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
-            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value'
+            'sub_jobs_proc_parallelism__value', 'tasks_gen_parallelism__value',
+            'results_processing_parallelism__value'
         ], err_found = false, numeric_fields = [
-            'max_tasks', 'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value',
-            'max_ram', 'max_cpus', 'max_disk',
+            'max_tasks', 'sub_jobs_proc_parallelism__value', 'tasks_gen_parallelism__value',
+            'results_processing_parallelism__value',
+            'max_ram', 'max_cpus', 'max_disk'
         ];
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);

@@ -35,7 +35,7 @@ from service.models import Scheduler, SchedulerUser
 #   parallelism:
 #     pack - the identifier of default parallelism (see Parallelism.parallelism_packs for available values)
 #       or parallelism values,
-#     Example: ['slow'] or [1, 1, 1, 1]
+#     Example: ['slow'] or [1, 1, 1]
 #   limits:
 #     memory size - in GB,
 #     number of CPU cores - if number <= 0 then any,
@@ -51,11 +51,9 @@ from service.models import Scheduler, SchedulerUser
 #     keep intermediate files,
 #     upload input files of static verifiers,
 #     upload other intermediate files,
-#     allow local source directories use,
 #     ignore other instances,
 #     ignore failed sub-jobs,
 #     collect total code coverage,
-#     generate makefiles.
 # id 'file_conf' is reserved
 KLEVER_CORE_DEF_MODES = [
     {
@@ -65,7 +63,7 @@ KLEVER_CORE_DEF_MODES = [
             ['slow'],
             [1.0, 0, 100.0, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            [False, False, False, False, False, False, True, False]
+            [False, False, False, False, False, True]
         ]
     },
     {
@@ -75,7 +73,7 @@ KLEVER_CORE_DEF_MODES = [
             ['quick'],
             [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            [True, True, False, True, True, True, True, True]
+            [True, True, False, True, True, True]
         ]
     },
     {
@@ -85,7 +83,7 @@ KLEVER_CORE_DEF_MODES = [
             ['quick'],
             [1.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            [True, True, True, True, True, True, True, True]
+            [True, True, True, True, True, True]
         ]
     },
 ]
@@ -105,7 +103,6 @@ class Parallelism:
     # Values format: (<html identifier>, <json key>, <html name>)
     parallelism_names = (
         ('sub_jobs_proc_parallelism', 'Sub-jobs processing', _('Sub-jobs processing')),
-        ('build_parallelism', 'Build', _('Build')),
         ('tasks_gen_parallelism', 'Tasks generation', _('Tasks generation')),
         ('results_processing_parallelism', 'Results processing', _('Results processing'))
     )
@@ -114,14 +111,14 @@ class Parallelism:
     # for each action from parallelism_names.
     # Values format: (<pack html identifier>, <pack html name>, <pack values>)
     parallelism_packs = (
-        ('sequential', _('Sequentially'), (1, 1, 1, 1)),
-        ('slow', _('Slowly'), (1, 2, 1, 1)),
-        ('quick', _('Quickly'), (1, 1.0, 2, 1)),
-        ('very quick', _('Very quickly'), (1, 2.0, 1.0, 2))
+        ('sequential', _('Sequentially'), (1, 1, 1)),
+        ('slow', _('Slowly'), (1, 1, 1)),
+        ('quick', _('Quickly'), (1, 2, 1)),
+        ('very quick', _('Very quickly'), (1, 1.0, 2))
     )
 
     def __init__(self, *args):
-        self.columns_num = 'four'  # Number of values in a row
+        self.columns_num = 'three'  # Number of values in a row
         if len(args) == 1:
             self.values = self.__get_default_values(*args)
         else:
@@ -233,11 +230,9 @@ class BooleanValues:
          _('Keep intermediate files inside the working directory of Klever Core')),
         ('upload_verifier', 'upload input files of static verifiers', _('Upload input files of static verifiers')),
         ('upload_other', 'upload other intermediate files', _('Upload other intermediate files')),
-        ('allow_localdir', 'allow local source directories use', _('Allow use of local source directories')),
         ('ignore_core', 'ignore other instances', _('Ignore other instances of Klever Core')),
         ('ignore_failed_sub_jobs', 'ignore failed sub-jobs', _('Ignore failed sub-jobs')),
         ('collect_total_coverage', 'collect total code coverage', _('Collect total code coverage')),
-        ('generate_makefiles', 'generate makefiles', _('Generate makefiles')),
     )
 
     def __init__(self, *args):
