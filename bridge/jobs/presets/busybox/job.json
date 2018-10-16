@@ -1,32 +1,10 @@
 {
   "Class": "Verification of userspace programs",
-  "Clade": {
-      "base": "busybox"
-  },
-  "project": {
-    "name": "Busybox",
-    "source": "busybox",
-    "configuration": "defconfig",
-    "architecture": "x86_64",
-    "applets": ["all"],
-    "opts file": "applets/applets.c"
-  },
-  "Fragmentation strategy": {
-    "name": "single",
-    "target kernel": false,
-    "maximum unit size": 30000
-  },
-  "Aggregation strategy": {
-    "name": "busybox",
-    "ignore libbb files": [
-      "libbb/getopt32.o",
-      "libbb/appletlib.o",
-      "libbb/verror_msg.o",
-      "libbb/perror_msg.o"
-    ],
-    "ignore libbb": false,
-    "ignore dependency from applet dirs": false
-  },
+  "build base": "build bases/busybox",
+  "program": "Busybox",
+  "version": "v1.28.3",
+  "fragmentation set": "Busybox applets",
   "specifications set": "Linux 3.14 (base)",
-  "requirements": ["userspace:empty", "userspace:memory safety"]
+  "requirements": ["busybox:empty", "busybox:memory safety"],
+  "add": ["**"]
 }
