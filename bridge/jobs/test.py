@@ -461,7 +461,7 @@ class TestJobs(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True, True]
+            [False, True, True, True, False, True]
         ])
         response = self.client.post('/jobs/run_decision/%s/' % job_pk, {'mode': 'data', 'data': run_conf})
         self.assertEqual(response.status_code, 200)
