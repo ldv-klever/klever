@@ -43,7 +43,11 @@ class FragmentationAlgorythm:
 
     def fragmentation(self):
         # Extract dependencies
-        deps = Dependencies(self.logger, self.clade, self.source_paths)
+        if self.desc.get('ignore dependencies'):
+            memory_efficient_mode = True
+        else:
+            memory_efficient_mode = False
+        deps = Dependencies(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
 
         # Decompose using units
         self._determine_units(deps)

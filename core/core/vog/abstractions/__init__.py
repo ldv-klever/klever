@@ -24,7 +24,7 @@ from core.vog.abstractions.fragments_repr import Fragment
 
 class Dependencies:
 
-    def __init__(self, logger, clade, source_paths):
+    def __init__(self, logger, clade, source_paths, memory_efficient_mode=False):
         self.logger = logger
         self.clade = clade
         self.source_paths = source_paths
@@ -33,7 +33,8 @@ class Dependencies:
         self._files = dict()
         self._fragments = dict()
         self.__divide()
-        self.__establish_dependencies()
+        if not memory_efficient_mode:
+            self.__establish_dependencies()
 
     def create_fragment(self, name, files, add=False):
         if not all(isinstance(f, File) for f in files):
@@ -181,7 +182,7 @@ class Dependencies:
         if rest:
             raise ValueError('Cannot find files: {}'.format(', '.join(rest)))
         if not files_obj:
-            raise ValueError('Cannot find C files for LD command {!r}'.format(name))
+            self.logger.warning('Cannot find C files for LD command {!r}'.format(name))
         fragment = self.create_fragment(name, files_obj)
         return fragment
 
