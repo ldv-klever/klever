@@ -812,7 +812,7 @@ class CProgram:
                                         os.path.join(self.work_src_tree, 'cmds.txt'),
                                         clade_conf, self._CLADE_PRESET)
 
-        self.logger.info('Save project attributes and working source trees to build base')
+        self.logger.info('Save project attributes, working source trees and target program description to build base')
         attrs = [
             {
                 'name': type(self).__name__,
@@ -824,7 +824,8 @@ class CProgram:
         storage = clade_api.FileStorage()
         tmp_dir = tempfile.mkdtemp()
         for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
-                           (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json'))):
+                           (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json')),
+                           (self.target_program_desc, os.path.join(tmp_dir, 'target program description.json'))):
             with open(file, 'w', encoding='utf8') as fp:
                 json.dump(data, fp, sort_keys=True, indent=4)
 
