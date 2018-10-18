@@ -20,6 +20,7 @@ import getpass
 import logging
 import os
 import re
+# TODO: this is non-standard dependency while it is not required for all users. So, let's create a separate library!
 import requests
 import subprocess
 import sys
@@ -266,6 +267,7 @@ def make_relative_path(dirs, file_or_dir, absolutize=False):
 
     # Find and return if so path relative to the longest directory.
     for d in sorted(dirs, key=lambda t: len(t), reverse=True):
+        # TODO: commonpath was supported just in Python 3.5.
         if os.path.commonpath([file_or_dir, d]) == d:
             return os.path.relpath(file_or_dir, d)
 
