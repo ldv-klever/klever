@@ -1054,8 +1054,8 @@ class Linux(CProgram):
                                  .format('$(filter %/, $(wildcard $(src)/*/))'))
                         fp.write('obj-m += $(notdir $(patsubst %.c, %.o, $(wildcard $(src)/*.c)))\n')
                         # Specify additional directory to search for model headers.
-                        fp.write('ccflags-y += -I{0}'
-                                 .format(self.target_program_desc['external modules header files search directory']))
+                        fp.write('ccflags-y += -I' + os.path.realpath(
+                            self.target_program_desc['external modules header files search directory']))
             elif ismakefile:
                 work_src_tree_root = dirpath
                 break
