@@ -313,7 +313,7 @@ class RA(core.components.Component):
         # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
             context.mqs['verification statuses'].put({
-                'verification object': context.verification_object,
+                'verification object': context.verification_object['id'],
                 'requirement': context.requirement,
                 'verdict': 'non-verifier unknown',
                 'sub-job identifier': context.conf['sub-job identifier'],
