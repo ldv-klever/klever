@@ -21,9 +21,9 @@
       "value": "x86_64"
     },
     {
-      "attr": "Project:Version",
+      "attr": "Linux:Version",
       "is_compare": true,
-      "value": "3.14.79"
+      "value": "v3.14"
     },
     {
       "attr": "Project:Configuration",

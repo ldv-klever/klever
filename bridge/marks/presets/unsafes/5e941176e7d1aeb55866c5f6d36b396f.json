@@ -11,9 +11,9 @@
       "value": "0/tests/acda82a/linux:emg:test"
     },
     {
-      "attr": "Linux kernel:Version",
+      "attr": "Linux:Version",
       "is_compare": true,
-      "value": "2.6.33.20"
+      "value": "v2.6.33.20"
     },
     {
       "attr": "Linux kernel:Architecture",
