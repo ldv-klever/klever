@@ -259,7 +259,7 @@
       "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
-      "build base": "build bases/validation/214c97a12f1f",
+      "build base": "build bases/validation/063579d4c3ed",
       "add": ["drivers/w1/wire.ko"],
       "fragments": {
         "drivers/w1/wire.ko": [
@@ -298,7 +298,7 @@
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "build base": "build bases/validation/214c97a12f1f",
+      "build base": "build bases/validation/9aaf9678ea3e~",
       "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
       "fragments": {
         "sound/pci/emu10k1/snd-emu10k1-synth.ko": [
@@ -312,7 +312,7 @@
       "data": {"bug identifier": "9aaf9678ea3e~"}
     },
     {
-      "build base": "build bases/validation/214c97a12f1f",
+      "build base": "build bases/validation/9aaf9678ea3e",
       "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
       "fragments": {
         "sound/pci/emu10k1/snd-emu10k1-synth.ko": [
