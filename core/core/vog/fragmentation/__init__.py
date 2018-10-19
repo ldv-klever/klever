@@ -43,28 +43,37 @@ class FragmentationAlgorythm:
 
     def fragmentation(self):
         # Extract dependencies
+        self.logger.info("Start program fragmentation")
         if self.desc.get('ignore dependencies'):
+            self.logger.info("Use memory efficient mode with limitied dependencies extraction")
             memory_efficient_mode = True
         else:
+            self.logger.info("Extract full dependencies between files and functions")
             memory_efficient_mode = False
         deps = Dependencies(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
 
         # Decompose using units
+        self.logger.info("Determine units in the target program")
         self._determine_units(deps)
 
         # Mark dirs, units, files, functions
+        self.logger.info("Select program fragments for verification")
         self._determine_targets(deps)
 
         # Prepare semifinal fragments according to strategy chosen manually
+        self.logger.info("Apply corrections of program fragments provided by a user")
         self._do_manual_correction(deps)
 
         # Prepare final optional addiction of fragments if necessary
+        self.logger.info("Collect dependencies if necessary for each fragment intended for verification")
         grps = self._do_postcomposition(deps)
 
         # Prepare verification objects
+        self.logger.info("Generate verification objects")
         fragments_files = self.__generate_verification_objects(deps, grps)
 
         # Prepare data attributes
+        self.logger.info("Prepare data attributes for generated fragments")
         attr_data = self.__prepare_data_files(grps)
 
         # Print fragments
