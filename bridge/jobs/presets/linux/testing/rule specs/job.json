@@ -83,67 +83,54 @@
       "requirements": ["linux:alloc:spinlock"]
     },
     {
-      "Clade": {"base": "4d095b"},
       "add": ["ext-modules/linux/alloc/usb-lock"],
       "requirements": ["linux:alloc:usb lock"]
     },
     {
-      "Clade": {"base": "8a5a61"},
       "add": ["ext-modules/linux/arch/io"],
       "requirements": ["linux:arch:io"]
     },
     {
-      "Clade": {"base": "c9e77d"},
       "add": ["ext-modules/linux/block/genhd"],
       "requirements": ["linux:block:genhd"]
     },
     {
-      "Clade": {"base": "6501d3"},
       "add": ["ext-modules/linux/block/queue"],
       "requirements": ["linux:block:queue"]
     },
     {
-      "Clade": {"base": "95700c"},
       "add": ["ext-modules/linux/block/request"],
       "requirements": ["linux:block:request"]
     },
     {
-      "Clade": {"base": "67ecfd"},
       "add": ["ext-modules/linux/concurrency-safety/lock-reduce"],
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "Clade": {"base": "833642"},
       "add": ["ext-modules/linux/concurrency-safety/simple"],
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "Clade": {"base": "fa9049"},
       "add": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "Clade": {"base": "e09a28"},
       "add": ["ext-modules/linux/drivers/base/class"],
       "requirements": ["linux:drivers:base:class"]
     },
     {
-      "Clade": {"base": "7015a2"},
       "add": ["ext-modules/linux/drivers/base/dma-mapping"],
       "requirements": ["linux:drivers:base:dma-mapping"]
     },
     {
-      "Clade": {"base": "b449c5"},
       "add": ["ext-modules/linux/drivers/clk1"],
       "requirements": ["linux:drivers:clk1"]
     },
     {
-      "Clade": {"base": "7a588a"},
       "add": ["ext-modules/linux/drivers/clk2"],
       "requirements": ["linux:drivers:clk2"]
     },
     {
-      "Clade": {"base": "19128b"},
       "add": ["ext-modules/linux/empty"],
       "requirements": [
         "linux:alloc:irq",
@@ -155,57 +142,46 @@
       ]
     },
     {
-      "Clade": {"base": "bbc7b0"},
       "add": ["ext-modules/linux/fs/sysfs"],
       "requirements": ["linux:fs:sysfs"]
     },
     {
-      "Clade": {"base": "ac28ae"},
       "add": ["ext-modules/linux/kernel/locking/mutex"],
       "requirements": ["linux:kernel:locking:mutex"]
     },
     {
-      "Clade": {"base": "2e8183"},
       "add": ["ext-modules/linux/kernel/locking/rwlock"],
       "requirements": ["linux:kernel:locking:rwlock"]
     },
     {
-      "Clade": {"base": "d4d4cd"},
       "add": ["ext-modules/linux/kernel/locking/spinlock"],
       "requirements": ["linux:kernel:locking:spinlock"]
     },
     {
-      "Clade": {"base": "bec51d"},
       "add": ["ext-modules/linux/kernel/module"],
       "requirements": ["linux:kernel:module"]
     },
     {
-      "Clade": {"base": "0d847e"},
       "add": ["ext-modules/linux/kernel/rcu/srcu"],
       "requirements": ["linux:kernel:rcu:srcu"]
     },
     {
-      "Clade": {"base": "ed0644"},
       "add": ["ext-modules/linux/kernel/rcu/update/lock"],
       "requirements": ["linux:kernel:rcu:update:lock"]
     },
     {
-      "Clade": {"base": "efc6a6"},
       "add": ["ext-modules/linux/kernel/rcu/update/lock-bh"],
       "requirements": ["linux:kernel:rcu:update:lock bh"]
     },
     {
-      "Clade": {"base": "54343a"},
       "add": ["ext-modules/linux/kernel/rcu/update/lock-sched"],
       "requirements": ["linux:kernel:rcu:update:lock sched"]
     },
     {
-      "Clade": {"base": "9e9677"},
       "add": ["ext-modules/linux/kernel/sched/completion"],
       "requirements": ["linux:kernel:sched:completion"]
     },
     {
-      "Clade": {"base": "1cae6b"},
       "project": {
         "config file": "configs/no-lockdep",
         "kernel subsystems": ["ext-modules/linux/kernel/sched/completion-no-lockdep"]
@@ -213,57 +189,46 @@
       "requirements": ["linux:kernel:sched:completion"]
     },
     {
-      "Clade": {"base": "f2d939"},
       "add": ["ext-modules/linux/lib/find_bit"],
       "requirements": ["linux:lib:find_bit"]
     },
     {
-      "Clade": {"base": "47db2f"},
       "add": ["ext-modules/linux/lib/idr"],
       "requirements": ["linux:lib:idr"]
     },
     {
-      "Clade": {"base": "e93664"},
       "add": ["ext-modules/linux/memory-safety"],
       "requirements": ["linux:memory safety"]
     },
     {
-      "Clade": {"base": "789602"},
       "add": ["ext-modules/linux/net/register"],
       "requirements": ["linux:net:register"]
     },
     {
-      "Clade": {"base": "caa4ce"},
       "add": ["ext-modules/linux/net/rtnetlink"],
       "requirements": ["linux:net:rtnetlink"]
     },
     {
-      "Clade": {"base": "52530e"},
       "add": ["ext-modules/linux/net/sock"],
       "requirements": ["linux:net:sock"]
     },
     {
-      "Clade": {"base": "83ea02"},
       "add": ["ext-modules/linux/usb/coherent"],
       "requirements": ["linux:usb:coherent"]
     },
     {
-      "Clade": {"base": "6820ad"},
       "add": ["ext-modules/linux/usb/dev"],
       "requirements": ["linux:usb:dev"]
     },
     {
-      "Clade": {"base": "0a5f5c"},
       "add": ["ext-modules/linux/usb/gadget"],
       "requirements": ["linux:usb:gadget"]
     },
     {
-      "Clade": {"base": "a11312"},
       "add": ["ext-modules/linux/usb/register"],
       "requirements": ["linux:usb:register"]
     },
     {
-      "Clade": {"base": "518bb7"},
       "add": ["ext-modules/linux/usb/urb"],
       "requirements": ["linux:usb:urb"]
     }
