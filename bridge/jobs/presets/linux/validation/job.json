@@ -12,7 +12,7 @@
   },
   "Sub-jobs": [
     {
-      "build base": "build bases/validation/7ce77510c9c7~",
+      "build base": "validation/7ce77510c9c7~",
       "add": ["drivers/usb/serial/opticon.ko"],
       "specifications set": "Linux 3.2",
       "requirements": ["linux:alloc:irq"],
@@ -20,7 +20,7 @@
       "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
-      "build base": "build bases/validation/7ce77510c9c7",
+      "build base": "validation/7ce77510c9c7",
       "add": ["drivers/usb/serial/opticon.ko"],
       "specifications set": "Linux 3.2",
       "requirements": ["linux:alloc:irq"],
@@ -28,35 +28,35 @@
       "data": {"bug identifier": "7ce77510c9c7~"}
     },
     {
-      "build base": "build bases/validation/60b35930067d~",
+      "build base": "validation/60b35930067d~",
       "add": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "60b35930067d~"}
     },
     {
-      "build base": "build bases/validation/60b35930067d",
+      "build base": "validation/60b35930067d",
       "add": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "60b35930067d~"}
     },
     {
-      "build base": "build bases/validation/214c97a12f1f",
+      "build base": "validation/214c97a12f1f",
       "add": ["drivers/media/usb/usbvision/usbvision.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "214c97a12f1f"}
     },
     {
-      "build base": "build bases/validation/214c97a12f1f~",
+      "build base": "validation/214c97a12f1f~",
       "add": ["drivers/media/usb/usbvision/usbvision.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "214c97a12f1f"}
     },
     {
-      "build base": "build bases/validation/e4c7f259c5be~",
+      "build base": "validation/e4c7f259c5be~",
       "add": ["drivers/net/usb/kaweth.ko"],
       "specifications set": "Linux 3.5",
       "requirements": ["linux:alloc:spinlock"],
@@ -64,7 +64,7 @@
       "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
-      "build base": "build bases/validation/e4c7f259c5be",
+      "build base": "validation/e4c7f259c5be",
       "add": ["drivers/net/usb/kaweth.ko"],
       "specifications set": "Linux 3.5",
       "requirements": ["linux:alloc:spinlock"],
@@ -72,133 +72,133 @@
       "data": {"bug identifier": "e4c7f259c5be~"}
     },
     {
-      "build base": "build bases/validation/448356262f56~",
+      "build base": "validation/448356262f56~",
       "add": ["drivers/usb/serial/kobil_sct.ko"],
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "448356262f56~"}
     },
     {
-      "build base": "build bases/validation/448356262f56",
+      "build base": "validation/448356262f56",
       "add": ["drivers/usb/serial/kobil_sct.ko"],
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "448356262f56~"}
     },
     {
-      "build base": "build bases/validation/d8e172f3c0a5",
+      "build base": "validation/d8e172f3c0a5",
       "add": ["drivers/spi/spi-imx.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
-      "build base": "build bases/validation/d8e172f3c0a5~",
+      "build base": "validation/d8e172f3c0a5~",
       "add": ["drivers/spi/spi-imx.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "d8e172f3c0a5"}
     },
     {
-      "build base": "build bases/validation/bff71889260f~",
+      "build base": "validation/bff71889260f~",
       "add": ["drivers/staging/iio/adc/mxs-lradc.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "bff71889260f~"}
     },
     {
-      "build base": "build bases/validation/bff71889260f",
+      "build base": "validation/bff71889260f",
       "add": ["drivers/staging/iio/adc/mxs-lradc.ko"],
       "requirements": ["linux:drivers:clk1"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "bff71889260f~"}
     },
     {
-      "build base": "build bases/validation/2ba4b92e8773~",
+      "build base": "validation/2ba4b92e8773~",
       "add": ["drivers/usb/dwc2/dwc2_gadget.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
-      "build base": "build bases/validation/2ba4b92e8773",
+      "build base": "validation/2ba4b92e8773",
       "add": ["drivers/usb/dwc2/dwc2_gadget.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "2ba4b92e8773~"}
     },
     {
-      "build base": "build bases/validation/c822fb57ba12~",
+      "build base": "validation/c822fb57ba12~",
       "add": ["drivers/spi/spi-pxa2xx-platform.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
-      "build base": "build bases/validation/c822fb57ba12",
+      "build base": "validation/c822fb57ba12",
       "add": ["drivers/spi/spi-pxa2xx-platform.ko"],
       "requirements": ["linux:drivers:clk2"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "c822fb57ba12~"}
     },
     {
-      "build base": "build bases/validation/5c256d215753~",
+      "build base": "validation/5c256d215753~",
       "add": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "5c256d215753~"}
     },
     {
-      "build base": "build bases/validation/5c256d215753",
+      "build base": "validation/5c256d215753",
       "add": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "5c256d215753~"}
     },
     {
-      "build base": "build bases/validation/790cc82a2b2b~",
+      "build base": "validation/790cc82a2b2b~",
       "add": ["drivers/input/misc/arizona-haptics.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
-      "build base": "build bases/validation/790cc82a2b2b",
+      "build base": "validation/790cc82a2b2b",
       "add": ["drivers/input/misc/arizona-haptics.ko"],
       "requirements": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "790cc82a2b2b~"}
     },
     {
-      "build base": "build bases/validation/ae3f34854485~",
+      "build base": "validation/ae3f34854485~",
       "add": ["fs/nfs/nfs.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "ae3f34854485~"}
     },
     {
-      "build base": "build bases/validation/ae3f34854485",
+      "build base": "validation/ae3f34854485",
       "add": ["fs/nfs/nfs.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "ae3f34854485~"}
     },
     {
-      "build base": "build bases/validation/44f694330e1e~",
+      "build base": "validation/44f694330e1e~",
       "add": ["net/sunrpc/sunrpc.ko"],
       "requirements": ["linux:kernel:module"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "data": {"bug identifier": "44f694330e1e~"}
     },
     {
-      "build base": "build bases/validation/44f694330e1e",
+      "build base": "validation/44f694330e1e",
       "add": ["net/sunrpc/sunrpc.ko"],
       "requirements": ["linux:kernel:module"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
       "data": {"bug identifier": "44f694330e1e~"}
     },
     {
-      "build base": "build bases/validation/21a018a58f3c~",
+      "build base": "validation/21a018a58f3c~",
       "add": ["net/tipc/tipc.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "VTG strategy": {"verifier": {"options": [
@@ -209,7 +209,7 @@
       "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
-      "build base": "build bases/validation/21a018a58f3c",
+      "build base": "validation/21a018a58f3c",
       "add": ["net/tipc/tipc.ko"],
       "requirements": ["linux:kernel:locking:spinlock"],
       "VTG strategy": {"verifier": {"options": [
@@ -220,7 +220,7 @@
       "data": {"bug identifier": "21a018a58f3c~"}
     },
     {
-      "build base": "build bases/validation/ac4de081312a~",
+      "build base": "validation/ac4de081312a~",
       "add": ["drivers/leds/leds-lp5523.ko"],
       "fragments": {
         "drivers/leds/leds-lp5523.ko": [
@@ -233,7 +233,7 @@
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "build base": "build bases/validation/ac4de081312a~",
+      "build base": "validation/ac4de081312a~",
       "add": ["drivers/leds/leds-lp5523.ko"],
       "fragments": {
         "drivers/leds/leds-lp5523.ko": [
@@ -246,7 +246,7 @@
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "build base": "build bases/validation/063579d4c3ed~",
+      "build base": "validation/063579d4c3ed~",
       "add": ["drivers/w1/wire.ko"],
       "fragments": {
         "drivers/w1/wire.ko": [
@@ -259,7 +259,7 @@
       "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
-      "build base": "build bases/validation/063579d4c3ed",
+      "build base": "validation/063579d4c3ed",
       "add": ["drivers/w1/wire.ko"],
       "fragments": {
         "drivers/w1/wire.ko": [
@@ -272,7 +272,7 @@
       "data": {"bug identifier": "063579d4c3ed~"}
     },
     {
-      "build base": "build bases/validation/ac4de081312a~",
+      "build base": "validation/ac4de081312a~",
       "add": ["drivers/leds/leds-lp5521.ko"],
       "fragments": {
         "drivers/leds/leds-lp5521.ko": [
@@ -285,7 +285,7 @@
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "build base": "build bases/validation/ac4de081312a",
+      "build base": "validation/ac4de081312a",
       "add": ["drivers/leds/leds-lp5521.ko"],
       "fragments": {
         "drivers/leds/leds-lp5521.ko": [
@@ -298,7 +298,7 @@
       "data": {"bug identifier": "ac4de081312a~"}
     },
     {
-      "build base": "build bases/validation/9aaf9678ea3e~",
+      "build base": "validation/9aaf9678ea3e~",
       "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
       "fragments": {
         "sound/pci/emu10k1/snd-emu10k1-synth.ko": [
@@ -312,7 +312,7 @@
       "data": {"bug identifier": "9aaf9678ea3e~"}
     },
     {
-      "build base": "build bases/validation/9aaf9678ea3e",
+      "build base": "validation/9aaf9678ea3e",
       "add": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"],
       "fragments": {
         "sound/pci/emu10k1/snd-emu10k1-synth.ko": [

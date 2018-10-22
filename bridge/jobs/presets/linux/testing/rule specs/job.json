@@ -1,7 +1,7 @@
 {
   "Class": "Verification of Linux kernel modules",
   "Common": {
-    "build base": "build bases/testing/1de383",
+    "build base": "testing/1de383",
     "program": "Linux",
     "version": "Linux 3.14",
     "fragmentation set": "Linux modules",
@@ -182,7 +182,7 @@
       "requirements": ["linux:kernel:sched:completion"]
     },
     {
-      "build base": "build bases/testing/1cae6b",
+      "build base": "testing/1cae6b",
       "add": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
       "requirements": ["linux:kernel:sched:completion"]
     },

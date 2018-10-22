@@ -1,7 +1,7 @@
 {
   "Class": "Verification of Linux kernel modules",
   "Common": {
-    "build base": "build bases/testing/5b3d50",
+    "build base": "testing/5b3d50",
     "program": "Linux",
     "version": "Linux 3.14",
     "fragmentation set": "Linux modules",

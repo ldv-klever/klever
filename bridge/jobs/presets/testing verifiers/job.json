@@ -1,6 +1,6 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "build base": "build bases/testing/606cdb",
+  "build base": "testing/606cdb",
   "program": "Linux",
   "version": "Linux 3.14",
   "fragmentation set": "Linux modules",

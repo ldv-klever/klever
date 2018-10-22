@@ -1,7 +1,7 @@
 {
   "Class": "Verification of Linux kernel modules",
   "Common": {
-    "build base": "build bases/testing/606cdb",
+    "build base": "testing/606cdb",
     "program": "Linux",
     "version": "Linux 3.14",
     "fragmentation set": "Linux modules",
@@ -94,7 +94,7 @@
   },
   "Sub-jobs": [
     {
-      "build base": "build bases/testing/455c6f",
+      "build base": "testing/455c6f",
       "version": "Linux 2.6.33",
       "specifications set": "Linux 2.6.33",
       "add": [
@@ -122,7 +122,7 @@
       ]
     },
     {
-      "build base": "build bases/testing/fedc1e",
+      "build base": "testing/fedc1e",
       "add": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
@@ -149,7 +149,7 @@
       ]
     },
     {
-      "build base": "build bases/testing/01358e",
+      "build base": "testing/01358e",
       "version": "Linux 4.6.7",
       "specifications set": "Linux 4.6.7",
       "add": [
@@ -178,7 +178,7 @@
       ]
     },
     {
-      "build base": "build bases/testing/455c6f",
+      "build base": "testing/455c6f",
       "version": "Linux 2.6.33",
       "specifications set": "Linux 2.6.33",
       "add": [
@@ -191,7 +191,7 @@
       "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "build bases/testing/fedc1e",
+      "build base": "testing/fedc1e",
       "add": [
         "ext-modules/timer_v.1",
         "ext-modules/workqueue_v.1",
@@ -202,7 +202,7 @@
       "requirements": ["linux:test:environment model specifications with function pointer analysis"]
     },
     {
-      "build base": "build bases/testing/01358e",
+      "build base": "testing/01358e",
       "version": "Linux 4.6.7",
       "specifications set": "Linux 4.6.7",
       "add": [
