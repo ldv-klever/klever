@@ -174,7 +174,8 @@ class Dependencies:
         files = set()
         for i, d in ccs:
             self.__check_cc(d)
-            for in_file in d['in']:
+            # TODO: THis is not a good filter. In ideal world the user should filter out all commands which do not correspond to .c file. But also we have a bug in Clade that prevents doing this.
+            for in_file in (f for f in d['in'] if f.endswith('.c')):
                 if not sep_nestd or (sep_nestd and os.path.dirname(in_file) == os.path.dirname(desc['out'][0])):
                     files.add(in_file)
         files_obj, matched = self.find_files_by_expressions(files)
