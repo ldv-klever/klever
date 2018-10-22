@@ -146,7 +146,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(os.path.join(storage.storage_dir + cc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(os.path.realpath(storage.storage_dir) + cc['cwd'], file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)
