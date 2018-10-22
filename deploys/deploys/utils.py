@@ -88,7 +88,7 @@ def get_password(logger, prompt):
         return sys.stdin.readline().rstrip()
 
 
-def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
+def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     if name not in deploy_conf:
         logger.error('Entity "{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
@@ -210,10 +210,10 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
         elif os.path.isfile(path) or os.path.isdir(path):
             install_fn(path, deploy_dir, allow_symlink=True)
         else:
-            logger.error('Could not install extra dependency or program since it is provided in the unsupported format')
+            logger.error('Could not install entity since it is provided in the unsupported format')
             sys.exit(errno.ENOSYS)
 
-        # Remember what extra dependency or program was installed just if everything went well.
+        # Remember what entity was installed just if everything went well.
         prev_deploy_info[name] = {
             'version': version,
             'directory': deploy_dir
@@ -230,7 +230,8 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
             shutil.rmtree(tmp_dir)
 
 
-def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn, dump_cur_deploy_info_fn):
+def install_klever_addons(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                          dump_cur_deploy_info_fn):
     is_update_controller_and_schedulers = False
     is_update_verification_backends = False
 
@@ -249,14 +250,14 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
 
                 for verification_backend in deploy_addons_conf['Verification Backends'].keys():
                     is_update_verification_backends |= \
-                        install_extra_dep_or_program(logger, verification_backend,
-                                                     os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
-                                                                  verification_backend),
-                                                     deploy_addons_conf['Verification Backends'],
-                                                     prev_deploy_addons_conf['Verification Backends'],
-                                                     cmd_fn, install_fn)
-            elif install_extra_dep_or_program(logger, addon, os.path.join(deploy_dir, 'klever-addons', addon),
-                                              deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn) \
+                        install_entity(logger, verification_backend,
+                                       os.path.join(deploy_dir, 'klever-addons', 'verification-backends',
+                                                    verification_backend),
+                                       deploy_addons_conf['Verification Backends'],
+                                       prev_deploy_addons_conf['Verification Backends'],
+                                       cmd_fn, install_fn)
+            elif install_entity(logger, addon, os.path.join(deploy_dir, 'klever-addons', addon),
+                                deploy_addons_conf, prev_deploy_addons_conf, cmd_fn, install_fn) \
                     and addon in ('BenchExec', 'Clade', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
                 is_update_controller_and_schedulers = True
 
@@ -265,29 +266,6 @@ def install_extra_deps(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn
 
     if is_update_verification_backends:
         to_update(prev_deploy_info, 'Verification Backends', dump_cur_deploy_info_fn)
-
-
-def install_programs(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn, dump_cur_deploy_info_fn):
-    is_update_programs = False
-
-    if 'Programs' in deploy_conf:
-        deploy_programs_conf = deploy_conf['Programs']
-
-        if 'Programs' not in prev_deploy_info:
-            prev_deploy_info['Programs'] = {}
-
-        prev_deploy_programs_conf = prev_deploy_info['Programs']
-
-        for program in deploy_programs_conf.keys():
-            program_deploy_dir = os.path.join(deploy_dir, 'klever-programs', program)
-            if install_extra_dep_or_program(logger, program, program_deploy_dir, deploy_programs_conf,
-                                            prev_deploy_programs_conf, cmd_fn, install_fn):
-                is_update_programs = True
-                # Allow using local source directories.
-                cmd_fn('chown', '-LR', 'klever', program_deploy_dir)
-
-    if is_update_programs:
-        dump_cur_deploy_info_fn(prev_deploy_info)
 
 
 def need_verifiercloud_scheduler(prev_deploy_info):

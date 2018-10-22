@@ -28,7 +28,7 @@ from deploys.configure_controller_and_schedulers import configure_controller_and
 from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
-from deploys.utils import execute_cmd, install_extra_dep_or_program, install_extra_deps, install_programs, \
+from deploys.utils import execute_cmd, install_entity, install_klever_addons, \
                           need_verifiercloud_scheduler, stop_services, to_update
 
 
@@ -76,14 +76,12 @@ class Klever:
         def dump_cur_deploy_info(cur_deploy_info):
             self._dump_cur_deploy_info(cur_deploy_info)
 
-        if install_extra_dep_or_program(self.logger, 'Klever', os.path.join(self.args.deployment_directory, 'klever'),
-                                        self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn):
+        if install_entity(self.logger, 'Klever', os.path.join(self.args.deployment_directory, 'klever'),
+                          self.deploy_conf, self.prev_deploy_info, cmd_fn, install_fn):
             to_update(self.prev_deploy_info, 'Klever', dump_cur_deploy_info)
 
-        install_extra_deps(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
-                           cmd_fn, install_fn, dump_cur_deploy_info)
-        install_programs(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info, cmd_fn,
-                         install_fn, dump_cur_deploy_info)
+        install_klever_addons(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
+                              cmd_fn, install_fn, dump_cur_deploy_info)
 
     def _install_or_update_deps(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,
@@ -111,7 +109,7 @@ class Klever:
         os.makedirs(self.args.deployment_directory, exist_ok=True)
 
         self.logger.info('Install init.d scripts')
-        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__),  os.path.pardir, os.path.pardir,
+        for dirpath, _, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir,
                                                           'init.d')):
             for filename in filenames:
                 shutil.copy(os.path.join(dirpath, filename), os.path.join('/etc/init.d', filename))
@@ -119,6 +117,8 @@ class Klever:
 
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
+            fp.write('KLEVER_BUILD_BASES="{0}"\n'
+                     .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
 
         self._install_or_update_deps()
         prepare_env(self.logger, self.args.deployment_directory)
@@ -158,7 +158,6 @@ class Klever:
                 'klever',
                 'klever-addons',
                 'klever-conf',
-                'klever-programs',
                 'klever-work',
                 'klever-media',
                 'klever.json'

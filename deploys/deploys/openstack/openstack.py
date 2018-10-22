@@ -34,7 +34,7 @@ import cinderclient.client
 
 from deploys.openstack.instance import OSInstance
 from deploys.openstack.ssh import SSH
-from deploys.utils import get_password, install_extra_dep_or_program, install_extra_deps, install_programs, to_update
+from deploys.utils import get_password, install_entity, install_klever_addons, to_update
 
 
 class OSClients:
@@ -240,6 +240,7 @@ class OSKleverInstance(OSEntity):
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
                     fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
+                    fp.write('KLEVER_BUILD_BASES="/home/debian/klever-inst/klever/build bases"\n')
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
@@ -279,14 +280,12 @@ class OSKleverInstance(OSEntity):
                 ssh.execute_cmd('sudo rm klever-inst/klever.json')
                 ssh.sftp_put(nested_fp.name, 'klever-inst/klever.json', sudo=True)
 
-        if install_extra_dep_or_program(self.logger, 'Klever', 'klever-inst/klever', deploy_conf, prev_deploy_info,
-                                        cmd_fn, install_fn):
+        if install_entity(self.logger, 'Klever', 'klever-inst/klever', deploy_conf, prev_deploy_info, cmd_fn,
+                          install_fn):
             to_update(prev_deploy_info, 'Klever', dump_cur_deploy_info)
 
-        install_extra_deps(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
-                           dump_cur_deploy_info)
-        install_programs(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
-                         dump_cur_deploy_info)
+        install_klever_addons(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
+                              dump_cur_deploy_info)
 
         prev_deploy_info = get_prev_deploy_info()
 
