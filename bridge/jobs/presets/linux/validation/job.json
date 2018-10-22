@@ -79,7 +79,7 @@
       "data": {"bug identifier": "448356262f56~"}
     },
     {
-      "build base": "build bases/validation/448356262f56~",
+      "build base": "build bases/validation/448356262f56",
       "add": ["drivers/usb/serial/kobil_sct.ko"],
       "requirements": ["linux:alloc:irq"],
       "ideal verdicts": [{"ideal verdict": "safe"}],
