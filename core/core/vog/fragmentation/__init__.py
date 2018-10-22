@@ -92,12 +92,14 @@ class FragmentationAlgorythm:
         exclude = set(self.conf.get('exclude', set()))
 
         files = set()
+        self.logger.info("Find files matched by given by the user expressions ('add' configuration properties)")
         new_files, matched = deps.find_files_for_expressions(add)
         files.update(new_files)
         add.difference_update(matched)
         if len(add) > 0:
             raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
                              format(', '.join(add)))
+        self.logger.info("Find files matched by given by the user expressions ('exclude' configuration properties)")
         new_files, matched = deps.find_files_for_expressions(exclude)
         files.difference_update(new_files)
 
