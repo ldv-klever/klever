@@ -72,7 +72,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
         try:
             entry_file_realpath = find_file_or_dir(logger, conf['main working directory'], entry_file)
         except FileNotFoundError:
-            entry_file_realpath = os.path.relpath(entry_file, os.path.realpath(conf['main working directory']))
+            entry_file_realpath = os.path.relpath(entry_file, conf['main working directory'])
 
         # Generate new group
         avt['environment model'] = entry_file_realpath
