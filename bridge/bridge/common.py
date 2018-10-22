@@ -17,6 +17,7 @@
 
 import os
 import json
+import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -132,6 +133,7 @@ LOGGING = {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'stream': sys.stdout
         },
         'file': {
             'level': 'ERROR',

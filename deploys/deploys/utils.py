@@ -26,6 +26,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.parse
+import zipfile
 
 
 class Cd:
@@ -195,11 +196,16 @@ def install_extra_dep_or_program(logger, name, deploy_dir, deploy_conf, prev_dep
 
                     # Directory .git can be quite large so ignore it during installing except one needs it.
                     install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
-        elif os.path.isfile(path) and tarfile.is_tarfile(path):
+        elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
             archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
             install_fn(path, archive)
             cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
-            cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', '{0}'.format(archive))
+
+            if tarfile.is_tarfile(path):
+                cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', archive)
+            else:
+                cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), archive)
+
             cmd_fn('rm', '-rf', '{0}'.format(archive))
         elif os.path.isfile(path) or os.path.isdir(path):
             install_fn(path, deploy_dir, allow_symlink=True)

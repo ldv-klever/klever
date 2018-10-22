@@ -226,8 +226,10 @@ Klever Bridge Testing
 
     $ python3 path/to/klever/bridge/manage.py test bridge users jobs reports marks service
 
-.. note:: The test database is created and deleted automatically. If the user will interrupt tests the test database
-          will preserved and the user will be asked for its deletion for following testing. 
+.. note:: The test database is created and deleted automatically.
+          If the user will interrupt tests the test database will preserved and the user will be asked for its deletion
+          for following testing.
+          The user should be allowed to create databases (using command-line option *--keedb* does not help).
 
 .. note:: PyCharm has reach abilities to analyse tests and their results. 
 

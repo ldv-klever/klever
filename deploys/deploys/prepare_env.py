@@ -50,7 +50,7 @@ def prepare_env(logger, deploy_dir):
         execute_cmd(logger, 'ln', '-s', *args)
 
     logger.info('Create PostgreSQL user')
-    execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH PASSWORD 'klever'", username='postgres')
+    execute_cmd(logger, 'psql', '-c', "CREATE USER klever WITH CREATEDB PASSWORD 'klever'", username='postgres')
 
     logger.info('Create PostgreSQL database')
     execute_cmd(logger, 'createdb', '-T', 'template0', '-E', 'utf8', 'klever', username='postgres')

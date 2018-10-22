@@ -19,11 +19,13 @@ Common Deployment
 
 To execute deployment scripts you need to install:
 
-* `Python 3.4 or higher <https://www.python.org/>`_.
+* `Python 3.4 or higher <https://www.python.org/>`__ (if you build Python from source, you need to install development
+  files for `xz <https://tukaani.org/xz/>`__ in advance).
 * `tar <https://www.gnu.org/software/tar/>`__,
   `gz <https://www.gnu.org/software/gzip/>`__,
   `bzip2 <http://www.bzip.org/>`__,
   `xz <https://tukaani.org/xz/>`__,
+  `unzip <http://infozip.sourceforge.net/UnZip.html>`__,
   `git <https://git-scm.com/>`__ and
   `wget <https://www.gnu.org/software/wget/>`__
   (if you are going to deploy entities from corresponding sources).
@@ -58,11 +60,22 @@ The best place for :ref:`klever_addons` is directory :file:`addons` within *$KLE
 
 :ref:`klever_addons` include the following:
 
+* :ref:`benchexec`.
 * :ref:`cif`.
 * :ref:`cil`.
 * :ref:`consul`.
 * One or more :ref:`verification_backends`.
 * :ref:`optional_addons`.
+
+.. _benchexec:
+
+BenchExec
+^^^^^^^^^
+
+One can download the appropriate version of `BenchExec <https://github.com/sosy-lab/benchexec>`__ from
+`here <https://forge.ispras.ru/attachments/download/5848/BenchExec-1.17-dev.tar.xz>`__.
+Besides, one can clone `BenchExec Git repository <https://github.com/sosy-lab/benchexec.git>`__ and try other verions.
+It is necessary to take versions including commit *2c98ac* at least.
 
 .. _cif:
 
