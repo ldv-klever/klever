@@ -38,7 +38,7 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "drivers/leds/leds-lp5521.ko4a892a357763"
+      "value": "drivers/leds/leds-lp5521.ko"
     }
   ],
   "description": "One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers",

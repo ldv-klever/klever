@@ -62,7 +62,7 @@
             ]
           },
           {
-            "ldv_usb_alloc_urb_24": [
+            "ldv_usb_alloc_urb_35": [
               {
                 "ldv_check_alloc_flags": [
                   {
@@ -114,7 +114,7 @@
             ]
           },
           {
-            "ldv_usb_submit_urb_20": [
+            "ldv_usb_submit_urb_30": [
               {
                 "ldv_check_alloc_flags": [
                   {
@@ -169,7 +169,7 @@
             ]
           },
           {
-            "ldv_usb_alloc_urb_21": [
+            "ldv_usb_alloc_urb_32": [
               {
                 "ldv_check_alloc_flags": [
                   {

@@ -3,32 +3,27 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev404+g27a398b9"
+      "value": "1.2.dev594+g8a1aa1063.d20181018"
     },
     {
-      "attr": "Name",
+      "attr": "Sub-job identifier",
       "is_compare": false,
-      "value": "21a018a58f3c~/net/tipc/tipc.ko/linux:kernel:locking:spinlock"
+      "value": "26"
     },
     {
-      "attr": "Linux:Version",
-      "is_compare": true,
-      "value": "v3.12.17-55-g21a018a58f3c"
-    },
-    {
-      "attr": "Linux kernel:Architecture",
+      "attr": "Linux:Architecture",
       "is_compare": false,
       "value": "x86_64"
     },
     {
-      "attr": "Linux kernel:Configuration",
-      "is_compare": false,
-      "value": "allmodconfig"
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.12.17-54-gd40390bf1206"
     },
     {
-      "attr": "LKVOG strategy:Name",
+      "attr": "Linux:Configuration",
       "is_compare": false,
-      "value": "separate modules"
+      "value": "allmodconfig"
     },
     {
       "attr": "Requirement",
@@ -69,7 +64,7 @@
                           {
                             "tipc_createport": [
                               {
-                                "ldv_spin_lock_bh_72___0": [
+                                "ldv_spin_lock_bh_72": [
                                   {
                                     "ldv_spin_lock_tipc_port_list_lock": [
                                       {
@@ -80,7 +75,7 @@
                                 ]
                               },
                               {
-                                "ldv_spin_unlock_bh_73___1": [
+                                "ldv_spin_unlock_bh_73___0": [
                                   {
                                     "ldv_spin_unlock_tipc_port_list_lock": [
                                       {
