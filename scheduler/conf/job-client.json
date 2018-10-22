@@ -6,7 +6,7 @@
       "/abs/path/to/cif/bin",
       "/abs/path/to/cil-1.5.1/obj/x86_LINUX"
     ],
-    "addon python packages": ["/abs/path/to/clade"]
+    "addon python packages": ["/abs/path/to/clade"],
     "runexec container mode": false,
     "runexec measure disk": false,
     "runexec container mode options": [
