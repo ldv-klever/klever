@@ -273,4 +273,4 @@ class KleverTesting(KleverProduction):
         super().__init__(args, logger)
 
         # Always install/update Klever for testing non-interactively.
-        args.non_interactive = False
+        args.non_interactive = True
