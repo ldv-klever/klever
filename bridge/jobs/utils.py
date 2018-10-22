@@ -1079,8 +1079,8 @@ class GetJobDecisionResults:
 
         for mr in MarkUnsafeReport.objects.filter(report__root=self.job.reportroot).select_related('mark'):
             if mr.report_id not in reports:
-                reports[mr.report_id] = {'attrs': [], 'marks': []}
-            reports[mr.report_id]['marks'].append(mr.mark.identifier)
+                reports[mr.report_id] = {'attrs': [], 'marks': {}}
+            reports[mr.report_id]['marks'][mr.mark.identifier] = mr.result
             if mr.mark.identifier not in marks:
                 marks[mr.mark.identifier] = {
                     'verdict': mr.mark.verdict, 'status': mr.mark.status,
@@ -1089,7 +1089,7 @@ class GetJobDecisionResults:
 
         for u_id, in ReportUnsafe.objects.filter(root=self.job.reportroot, verdict=UNSAFE_VERDICTS[5][0])\
                 .values_list('id'):
-            reports[u_id] = {'attrs': [], 'marks': []}
+            reports[u_id] = {'attrs': [], 'marks': {}}
 
         for r_id, aname, aval in ReportAttr.objects.filter(report_id__in=reports)\
                 .order_by('attr__name__name').values_list('report_id', 'attr__name__name', 'attr__value'):
