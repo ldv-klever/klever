@@ -17,7 +17,6 @@
 
 import os
 import json
-import zipfile
 import importlib
 import clade.interface as clade_api
 
