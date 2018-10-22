@@ -46,11 +46,6 @@
   "error trace": [
     [
       {
-        "ldv_initialize": []
-      }
-    ],
-    [
-      {
         "ldv_check_final_state": [
           {
             "ldv_assert_linux_usb_urb__more_initial_at_exit": []

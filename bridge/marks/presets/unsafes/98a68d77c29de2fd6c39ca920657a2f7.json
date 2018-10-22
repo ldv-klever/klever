@@ -57,7 +57,7 @@
       {
         "ldv_init": [
           {
-            "ldv_usb_gadget_probe_driver_13": [
+            "ldv_usb_gadget_probe_driver_23": [
               {
                 "ldv_register_usb_gadget": [
                   {
