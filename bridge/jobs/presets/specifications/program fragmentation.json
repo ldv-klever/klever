@@ -2,6 +2,11 @@
   "templates": {
     "Linux modules": {
       "program": "Linux",
+      "kernel": false,
+      "ignore dependencies": true
+    },
+    "Linux modules with callgraph": {
+      "program": "Linux",
       "kernel": false
     },
     "Linux subsystems": {
@@ -17,15 +22,16 @@
   },
   "fragmentation sets": {
     "Linux": {
+      "Linux modules with callgraph": {
+        "Linux 3.14": {}
+      },
       "Linux modules": {
         "Linux 3.14": {},
         "Linux 2.6.33": {},
         "Linux 4.6.7": {}
       },
       "Linux subsystems": {
-        "Linux 3.14": {},
-        "Linux 2.6.33": {},
-        "Linux 4.6.7": {}
+        "Linux 3.14": {}
       }
     },
     "Busybox": {
