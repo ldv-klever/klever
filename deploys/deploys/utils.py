@@ -90,19 +90,19 @@ def get_password(logger, prompt):
 
 def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_fn, install_fn):
     if name not in deploy_conf:
-        logger.error('Entity "{0}" is not described'.format(name))
+        logger.error('"{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
 
     desc = deploy_conf[name]
 
     if 'version' not in desc:
-        logger.error('Version is not specified for entity "{0}"'.format(name))
+        logger.error('Version is not specified for "{0}"'.format(name))
         sys.exit(errno.EINVAL)
 
     version = desc['version']
 
     if 'path' not in desc:
-        logger.error('Path is not specified for entity "{0}"'.format(name))
+        logger.error('Path is not specified for "{0}"'.format(name))
         sys.exit(errno.EINVAL)
 
     path = desc['path']
@@ -140,7 +140,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     prev_version = prev_deploy_info[name]['version'] if name in prev_deploy_info else None
 
     if version == prev_version and version != 'CURRENT':
-        logger.info('Entity "{0}" is up to date (version: "{1}")'.format(name, version))
+        logger.info('"{0}" is up to date (version: "{1}")'.format(name, version))
         return False
 
     if prev_version:
@@ -167,7 +167,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
             execute_cmd(logger, 'wget', '-O', tmp_file, '-q', path)
             path = tmp_file
         elif o[0]:
-            logger.error('Entity is provided in unsupported form "{0}"'.format(o[0]))
+            logger.error('"{0}" is provided in unsupported form "{1}"'.format(name, o[0]))
             sys.exit(errno.EINVAL)
         elif not os.path.exists(path):
             logger.error('Path "{0}" does not exist'.format(path))
@@ -210,7 +210,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
         elif os.path.isfile(path) or os.path.isdir(path):
             install_fn(path, deploy_dir, allow_symlink=True)
         else:
-            logger.error('Could not install entity since it is provided in the unsupported format')
+            logger.error('Could not install "{0}" since it is provided in the unsupported format'.format(name))
             sys.exit(errno.ENOSYS)
 
         # Remember what entity was installed just if everything went well.
