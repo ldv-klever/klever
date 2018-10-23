@@ -34,9 +34,6 @@ class VOG(core.components.Component):
         with open(fragdb, encoding='utf8') as fp:
             fragdb = json.load(fp)
 
-        # Import clade
-        clade_api.setup(self.conf['build base'])
-
         # Make basic sanity checks and merge configurations
         desc = self._merge_configurations(fragdb, self.conf['program'], self.conf['version'],
                                           self.conf['fragmentation set'])

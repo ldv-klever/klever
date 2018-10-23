@@ -18,6 +18,7 @@
 import os
 import glob
 
+from core.utils import make_relative_path
 from core.vog.abstractions.files_repr import File
 from core.vog.abstractions.fragments_repr import Fragment
 
@@ -105,31 +106,53 @@ class Dependencies:
         return files, expressions.difference(rest)
 
     def find_files_by_expressions(self, expressions):
-        # First try globes
-        suitable_files = set()
-        suitable_files_abs = set()
+        # Matched expressions
         matched = set()
+        # Found files
+        suitable_files = set()
+        # Optimizations
+        fs = self.clade.FileStorage()
+        convert = fs.convert_path
+        reversed = {f.abs_path: f for f in self.files}
+        all_abs_files = set(reversed.keys())
+        all_abs_dirs = dict()
+        for file in all_abs_files:
+            dirname = os.path.dirname(file)
+            if dirname not in all_abs_dirs:
+                all_abs_dirs[dirname] = set()
+            all_abs_dirs[dirname].add(file)
+        matched_abs_files = set()
+
+        # First try globes
         for path in self.source_paths + ['']:
             for expr in expressions:
+                suits = False
                 expr_path = os.path.join(path, expr)
-                abs_expr_path = self.clade.FileStorage().convert_path(expr_path)
+                abs_expr_path = convert(expr_path)
                 files = set(glob.glob(abs_expr_path, recursive=True))
-                files.difference_update(suitable_files_abs)
                 dirs = {f for f in files if os.path.isdir(f)}
                 files = {f for f in files if os.path.isfile(f)}
-                if files or dirs:
-                    for file in self.files:
-                        abs_file = self.clade.FileStorage().convert_path(file.name)
-                        if not os.path.isfile(abs_file):
-                            abs_file = self.clade.FileStorage().convert_path(os.path.join(path, file.name))
-                        if not os.path.isfile(abs_file):
-                            self.logger.warning('Cannot calculate path to existing file {!r}'.format(file.name))
-                            continue
 
-                        if (abs_file in files or os.path.dirname(abs_file) in dirs) or ():
-                            suitable_files_abs.add(abs_file)
+                for file in files:
+                    if file in matched_abs_files:
+                        continue
+
+                    if file in all_abs_files:
+                        matched_abs_files.add(file)
+                        suitable_files.add(reversed[file])
+                        if not suits:
                             matched.add(expr)
-                            suitable_files.add(file)
+                            suits = True
+                for directory in dirs:
+                    if directory in all_abs_dirs:
+                        for file in all_abs_dirs[directory]:
+                            if file in matched_abs_files:
+                                continue
+                            matched_abs_files.add(file)
+                            suitable_files.add(reversed[file])
+                            if not suits:
+                                matched.add(expr)
+                                suits = True
 
         # Check function names
         rest = expressions.difference(matched)
@@ -174,17 +197,22 @@ class Dependencies:
         files = set()
         for i, d in ccs:
             self.__check_cc(d)
-            # TODO: THis is not a good filter. In ideal world the user should filter out all commands which do not correspond to .c file. But also we have a bug in Clade that prevents doing this.
-            for in_file in (f for f in d['in'] if f.endswith('.c')):
+            for in_file in d['in']:
+                path = os.path.join(d['cwd'], in_file)
+                in_file = make_relative_path(self.source_paths, path)
+
+                if not in_file.endswith('.c'):
+                    self.logger.warning("You should implement more strict filters to reject CC commands with such "
+                                        "input files as {!r}".format(in_file))
+                    continue
                 if not sep_nestd or (sep_nestd and os.path.dirname(in_file) == os.path.dirname(desc['out'][0])):
-                    files.add(in_file)
-        files_obj, matched = self.find_files_by_expressions(files)
-        rest = files.difference(matched)
-        if rest:
-            raise ValueError('Cannot find files: {}'.format(', '.join(rest)))
-        if not files_obj:
+                    file = self._files[in_file]
+                    files.add(file)
+
+        if len(files) == 0:
             self.logger.warning('Cannot find C files for LD command {!r}'.format(name))
-        fragment = self.create_fragment(name, files_obj)
+
+        fragment = self.create_fragment(name, files)
         return fragment
 
     def collect_dependencies(self, files, filter_func=lambda x: True, depth=None, maxfrags=None):
@@ -212,10 +240,26 @@ class Dependencies:
     def __divide(self):
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
+        fs = self.clade.FileStorage()
+        convert = fs.convert_path
         for identifier, desc in ((i, d) for i, d in self.cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
             for name in desc.get('in'):
+                path = os.path.join(desc['cwd'], name)
+                name = make_relative_path(self.source_paths, path)
                 if name not in self._files:
                     file = File(name)
+                    for path in self.source_paths:
+                        abs_file = convert(file.name)
+                        if os.path.isfile(abs_file):
+                            file.abs_path = abs_file
+                            break
+                        abs_file = convert(os.path.join(path, file.name))
+                        if os.path.isfile(abs_file):
+                            file.abs_path = abs_file
+                            break
+                    else:
+                        raise RuntimeError('Cannot calculate path to existing file {!r}'.format(file.name))
+
                     file.cc = str(identifier)
                     try:
                         file.size = list(self.srcg.get_sizes([name]).values())[0]
