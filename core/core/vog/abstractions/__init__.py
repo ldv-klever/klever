@@ -30,7 +30,6 @@ class Dependencies:
         self.clade = clade
         self.source_paths = source_paths
         self.cmdg = self.clade.CommandGraph()
-        self.srcg = self.clade.SourceGraph()
         self._files = dict()
         self._fragments = dict()
         self.__divide()
@@ -63,7 +62,11 @@ class Dependencies:
         if fragment.name not in self._fragments:
             self._fragments[fragment.name] = fragment
         else:
-            raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
+            if not self._fragments[fragment.name].files.symmetric_difference(fragment.files):
+                self.logger.warning("There are several equal fragments {!r} extracted, keep only one".
+                                    format(fragment.name))
+            else:
+                raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
 
     @property
     def files(self):
@@ -198,8 +201,7 @@ class Dependencies:
         for i, d in ccs:
             self.__check_cc(d)
             for in_file in d['in']:
-                path = os.path.join(d['cwd'], in_file)
-                in_file = make_relative_path(self.source_paths, path)
+                in_file = self.__get_cmd_file(in_file, d)
 
                 if not in_file.endswith('.c'):
                     self.logger.warning("You should implement more strict filters to reject CC commands with such "
@@ -241,11 +243,11 @@ class Dependencies:
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
         fs = self.clade.FileStorage()
+        srcg = self.clade.SourceGraph()
         convert = fs.convert_path
         for identifier, desc in ((i, d) for i, d in self.cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
             for name in desc.get('in'):
-                path = os.path.join(desc['cwd'], name)
-                name = make_relative_path(self.source_paths, path)
+                name = self.__get_cmd_file(name, desc)
                 if name not in self._files:
                     file = File(name)
                     for path in self.source_paths:
@@ -262,10 +264,16 @@ class Dependencies:
 
                     file.cc = str(identifier)
                     try:
-                        file.size = list(self.srcg.get_sizes([name]).values())[0]
+                        file.size = list(srcg.get_sizes([name]).values())[0]
                     except (KeyError, IndexError):
                         file.size = 0
                     self._files[name] = file
+
+    def __get_cmd_file(self, path, desc):
+        if not os.path.isabs(path):
+            path = os.path.join(desc['cwd'], path)
+            path = make_relative_path(self.source_paths, path)
+        return path
 
     def __check_cc(self, desc):
         if len(desc['out']) != 1:
