@@ -11,9 +11,9 @@
       "value": "c822fb57ba12~/drivers/spi/spi-pxa2xx-platform.ko/linux:drivers:clk2"
     },
     {
-      "attr": "Linux kernel:Version",
+      "attr": "Linux:Version",
       "is_compare": true,
-      "value": "a8be23c660a7"
+      "value": "v3.10.59-91-ga8be23c660a7"
     },
     {
       "attr": "Linux kernel:Architecture",
