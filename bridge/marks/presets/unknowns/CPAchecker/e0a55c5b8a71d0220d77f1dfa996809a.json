@@ -44,7 +44,7 @@
   "description": "",
   "is regexp": false,
   "is_modifiable": true,
-  "pattern": "Refinement failed",
-  "problem": "RefFailed",
+  "pattern": "CPU time exhausted",
+  "problem": "Timeout",
   "status": "1"
 }
