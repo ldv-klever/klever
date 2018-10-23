@@ -134,6 +134,12 @@ class FragmentationAlgorythm:
             all_files.update(files)
         relevant_fragments = deps.find_fragments_with_files(all_files)
 
+        # Add all
+        addiction, _ = deps.find_files_for_expressions(add)
+
+        # Remove all
+        removal, _ = deps.find_files_for_expressions(remove)
+
         # Remove them
         for fragment in relevant_fragments:
             deps.remove_fragment(fragment)
@@ -141,12 +147,6 @@ class FragmentationAlgorythm:
         # Create new fragments
         for name, files in new.items():
             deps.create_fragment(name, files, add=True)
-
-        # Add all
-        addiction, _ = deps.find_files_for_expressions(add)
-
-        # Remove all
-        removal, _ = deps.find_files_for_expressions(remove)
 
         # Do modification
         empty = set()
