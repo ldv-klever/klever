@@ -28,7 +28,7 @@ from deploys.configure_controller_and_schedulers import configure_controller_and
 from deploys.install_deps import install_deps
 from deploys.install_klever_bridge import install_klever_bridge_development, install_klever_bridge_production
 from deploys.prepare_env import prepare_env
-from deploys.utils import execute_cmd, install_entity, install_klever_addons, \
+from deploys.utils import execute_cmd, install_entity, install_klever_addons, install_klever_build_bases, \
                           need_verifiercloud_scheduler, stop_services, to_update
 
 
@@ -82,6 +82,8 @@ class Klever:
 
         install_klever_addons(self.logger, self.args.deployment_directory, self.deploy_conf, self.prev_deploy_info,
                               cmd_fn, install_fn, dump_cur_deploy_info)
+        install_klever_build_bases(self.logger, os.path.join(self.args.deployment_directory, 'klever'),
+                                   self.deploy_conf, cmd_fn, install_fn)
 
     def _install_or_update_deps(self):
         install_deps(self.logger, self.deploy_conf, self.prev_deploy_info, self.args.non_interactive,

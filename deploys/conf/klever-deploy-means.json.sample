@@ -92,29 +92,8 @@
       }
     }
   },
-  "Programs": {
-    "linux-3.14": {
-      "version": "3.14",
-      "path": "programs/linux-3.14.tar.xz"
-    },
-    "linux-4.2.6": {
-      "version": "4.2.6",
-      "path": "programs/linux-4.2.6"
-    },
-    "linux-4.15": {
-      "version": "4.15",
-      "path": "https://mirrors.edge.kernel.org/pub/linux/kernel/v4.x/linux-4.15.tar.xz"
-    }
-    "linux-stable": {
-      "version": "master",
-      "path": "programs/linux-stable",
-      "copy .git directory": true,
-      "allow use local Git repository": false
-    },
-    "linux-4.17": {
-      "version": "v4.17",
-      "path": "programs/linux-stable",
-      "allow use local Git repository": true
-    }
-  }
+  "Klever Build Bases": [
+    "build bases/testing",
+    "build bases/validation"
+  ]
 }
