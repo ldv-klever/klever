@@ -27,6 +27,7 @@ class File:
         self.import_functions = dict()
         self.predecessors = set()
         self.successors = set()
+        self.abs_path = None
         self.cc = None
         self.size = 0
         self.target = False

@@ -28,6 +28,7 @@ from core.vog.abstractions.strategies import Abstract
 class FragmentationAlgorythm:
 
     VO_DIR = 'verification objects'
+    CLADE_PRESET = 'base'
 
     def __init__(self, logger, conf, desc, clade):
         # Simple attributes
@@ -36,6 +37,9 @@ class FragmentationAlgorythm:
         self.desc = desc
         self.clade = clade
         self.dynamic_excluded_clean = list()
+
+        # Import clade
+        self.clade.setup(self.conf['build base'], preset_configuration=self.CLADE_PRESET)
 
         # Complex attributes
         self.source_paths = self.__retrieve_source_paths()

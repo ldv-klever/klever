@@ -23,6 +23,8 @@ from core.vog.fragmentation import FragmentationAlgorythm
 
 class Busybox(FragmentationAlgorythm):
 
+    CLADE_PRESET = 'busybox_linux'
+
     def __init__(self, logger, conf, desc, clade):
         super().__init__(logger, conf, desc, clade)
         self._incorporate_libbb = self.desc.get("include dependencies from libbb to applets fragments")
