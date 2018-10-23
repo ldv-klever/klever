@@ -141,6 +141,7 @@ class ASE(core.vtg.plugins.Plugin):
                                              ]),
                                        env,
                                        cwd=storage.convert_path(cc['cwd']),
+                                       timeout=0.01,
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 
     main = extract_argument_signatures

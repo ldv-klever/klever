@@ -111,7 +111,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
                               [aspectator_search_dir]),
                         cwd=storage.convert_path(cc['cwd']),
-                        timeout=0.1,
+                        timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
 
@@ -123,7 +123,8 @@ class Weaver(core.vtg.plugins.Plugin):
                                            '-E',
                                            '-x', 'c', cc['out'][0],
                                            '-o', preprocessed_c_file
-                                       ))
+                                       ),
+                                       timeout=0.01)
                     if not self.conf['keep intermediate files']:
                         os.remove(cc['out'][0])
                     self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
