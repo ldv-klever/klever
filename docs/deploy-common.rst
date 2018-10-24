@@ -35,7 +35,7 @@ To deploy Klever one has to clone its Git repository (below a path to a director
 
     git clone --recursive https://forge.ispras.ru/git/klever.git
 
-Then one has to get :ref:`klever_addons` and perhaps :ref:`target_software`.
+Then one has to get :ref:`klever_addons` and perhaps :ref:`klever_build_bases`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
 .. note:: You can omit getting :ref:`klever_addons` if you will use
@@ -127,25 +127,25 @@ Most likely one can use the client from the :ref:`CPAchecker verification backen
 .. note:: For using VerifierCloud you need appropriate credentials.
           But anyway it is an optional addon, one is able to use Klever without it.
 
-.. _target_software:
+.. _klever_build_bases:
 
-Target Software
----------------
+Klever Build Bases
+------------------
 
-Like :ref:`klever_addons` one can provide :ref:`target_software` to be verified.
-At the moment this is only the `Linux kernel <https://www.kernel.org/>`__.
-Providing source code of :ref:`target_software` at this stage can quite considerably reduce overall verification time.
-The best place for :ref:`target_software` is directory :file:`programs` within *$KLEVER_SRC* (see
+In addition to :ref:`klever_addons` one can provide :ref:`klever_build_bases` obtained for software to be verified.
+:ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
+All :ref:`klever_build_bases` should be presented as directories.
+The best place for :ref:`klever_build_bases` is directory :file:`build bases` within *$KLEVER_SRC* (see
 :ref:`klever_git_repo_struct`).
 
-.. note:: Git does not track :file:`$KLEVER_SRC/programs`.
+.. note:: Git does not track :file:`$KLEVER_SRC/build bases`.
 
 .. _deploy_conf_file:
 
 Deployment Configuration File
 -----------------------------
 
-After getting :ref:`klever_addons` and :ref:`target_software` one needs to describe them within
+After getting :ref:`klever_addons` and :ref:`klever_build_bases` one needs to describe them within
 :ref:`deploy_conf_file`.
 First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` to some JSON file within
 :file:`$KLEVER_SRC/deploys/conf/` (see :ref:`klever_git_repo_struct`).
@@ -155,19 +155,20 @@ file.
 .. note:: Git does not track :file:`$KLEVER_SRC/deploys/conf/*.json`.
 
 .. note:: :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` is so consize as possible.
-          One can find much more examples for describing various entities in
+          One can find much more examples for describing :ref:`klever_addons` and :ref:`klever_build_bases` in
           :file:`$KLEVER_SRC/deploys/conf/klever-deploy-means.json.sample`
 
-Then you need to fix the sample to describe Klever and all required :ref:`klever_addons` and :ref:`target_software`.
-Generally there are 3 pairs within :ref:`deploy_conf_file` with names *Klever*, *Klever Addons* and *Programs*
+Then you need to fix the sample to describe Klever and all required :ref:`klever_addons` and :ref:`klever_build_bases`.
+Generally there are 3 pairs within :ref:`deploy_conf_file` with names *Klever*, *Klever Addons* and *Klever Build Bases*
 correspondingly.
 The first one directly represents a JSON object describing Klever.
-The second and the third ones are JSON objects where each pair represents a name of a particular
-:ref:`Klever addon <klever_addons>` or :ref:`target_software` and its description as a JSON object.
+The second one is a JSON object where each pair represents a name of a particular :ref:`Klever addon <klever_addons>`
+and its description as a JSON object.
 There is the only exception.
 Within *Klever Addons* there is *Verification Backends* that serves for describing :ref:`verification_backends`.
 
-Each JSON object that describes an entity should always have values for *version* and *path*:
+Each JSON object that describes a :ref:`Klever addon <klever_addons>` should always have values for *version* and
+*path*:
 
 * *Version* gives a very important knowledge for deployment scripts.
   Depending on values of this pair they behave appropriately.
@@ -183,15 +184,14 @@ Each JSON object that describes an entity should always have values for *version
 * *Path* sets either a path relative to :file:`$KLEVER_SRC` or an absolute path to entity (binaries, source files,
   configurations, etc.) or an entity URL.
 
-For some :ref:`klever_addons` it could be necessary to additionally specify *executable path* within *path* if binaries
-are not available directly from *path*.
+For some :ref:`klever_addons` it could be necessary to additionally specify *executable path* or/and *python path*
+within *path* if binaries or Python packages are not available directly from *path*.
 For :ref:`verification_backends` there is also *name* with value *CPAchecker*.
 Keep this pair for all specified :ref:`verification_backends`.
 
-For :ref:`target_software` you can additionally set *copy .git directory* and *allow use local Git repository* to *True*.
-In the former case deployment scripts will copy directory :file:`.git` if one provides :ref:`target_software` as Git
+Besides, you can set *copy .git directory* and *allow use local Git repository* to *True*.
+In the former case deployment scripts will copy directory :file:`.git` if one provides :ref:`klever_addons` as Git
 repositories.
-This can be necessary for verifying commits from Git repositories.
 In the latter case deployment scripts will use specified Git repositories for cleaning up and checkouting required
 versions straightforwardly without cloning them to temporary directories.
 
@@ -202,7 +202,7 @@ versions straightforwardly without cloning them to temporary directories.
 .. note:: You can prepare multiple :ref:`deployment configuration files <deploy_conf_file>`, but be careful when using
           them to avoid unexpected results due to tricky intermixes.
 
-.. note:: Actually there may be more :ref:`klever_addons` or :ref:`target_software` within
+.. note:: Actually there may be more :ref:`klever_addons` or :ref:`klever_build_bases` within
           corresponding locations.
           Deployment scripts will consider just described ones.
 
@@ -232,8 +232,7 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   │   ├── klever-deploy-means.json.sample
     │   │   └── klever-minimal.json.sample
     │   └── ...
-    ├── programs
-    │   ├── linux-3.14.tar.xz
-    │   ├── linux-stable
+    ├── build bases
+    │   ├── linux-3.14
     │   └── ...
     └── ...
