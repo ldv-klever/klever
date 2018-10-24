@@ -16,12 +16,13 @@
 #
 
 import os
-from core.utils import find_file_or_dir
+
 from core.vtg.emg.common import get_conf_property, check_or_set_conf_property, get_necessary_conf_property
 from core.vtg.emg.modelTranslator.code import CModel
 from core.vtg.emg.modelTranslator.fsa import Automaton
 from core.vtg.emg.modelTranslator.fsa_translator.label_fsa_translator import LabelTranslator
 from core.vtg.emg.modelTranslator.fsa_translator.state_fsa_translator import StateTranslator
+from core.vtg.utils import find_file_or_dir
 
 
 def translate_intermediate_model(logger, conf, avt, source, processes):

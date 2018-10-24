@@ -19,10 +19,10 @@ import re
 import ujson
 import clade.interface as clade_api
 
-from core.utils import find_file_or_dir
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
 from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
+from core.vtg.utils import find_file_or_dir
 
 
 class Source:

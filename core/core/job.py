@@ -31,7 +31,13 @@ from core.coverage import JCR
 
 JOB_FORMAT = 1
 JOB_ARCHIVE = 'job.zip'
-NECESSARY_FILES = ['job.json', 'tasks.json', 'verifier profiles.json', 'base.json', 'program fragmentation.json']
+NECESSARY_FILES = [
+    'job.json',
+    'tasks.json',
+    'program fragmentation.json',
+    'verifier profiles.json',
+    'specifications/base.json'
+]
 
 
 def start_jobs(core_obj, vals):

@@ -26,6 +26,7 @@ from core.vtg.emg.processGenerator.linuxModule.processes import ProcessModel
 from core.vtg.emg.processGenerator.linuxModule.instances import generate_instances
 from core.vtg.emg.processGenerator.linuxModule.interface.collection import InterfaceCollection
 from core.vtg.emg.processGenerator.linuxModule.process.procImporter import AbstractProcessImporter
+import core.vtg.utils
 
 
 def generate_processes(emg, source, processes, conf):
@@ -198,9 +199,9 @@ def __save_collection(logger, collection, file):
 
 def __get_path(logger, conf, prop):
     if prop in conf:
-        spec_dir = core.utils.find_file_or_dir(logger,
-                                               get_necessary_conf_property(conf, "main working directory"),
-                                               get_necessary_conf_property(conf, prop))
+        spec_dir = core.vtg.utils.find_file_or_dir(logger,
+                                                   get_necessary_conf_property(conf, "main working directory"),
+                                                   get_necessary_conf_property(conf, prop))
         return spec_dir
     else:
         return None

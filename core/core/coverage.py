@@ -343,9 +343,15 @@ class LCOV:
             raise
 
     def parse(self):
-        dir_map = (('source files', self.source_dirs),
-                   ('specifications', (os.path.normpath(os.path.join(self.main_work_dir, 'job', 'root')),)),
-                   ('generated models', (os.path.normpath(self.main_work_dir),)))
+        dir_map = (
+            ('source files', self.source_dirs),
+            ('specifications', (
+                os.path.normpath(os.path.join(self.main_work_dir, 'job', 'root', 'specifications')),
+            )),
+            ('generated models', (
+                os.path.normpath(self.main_work_dir),
+            ))
+        )
 
         ignore_file = False
 

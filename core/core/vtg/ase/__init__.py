@@ -20,8 +20,8 @@ import os
 import clade.interface as clade_api
 
 import core.utils
-import core.vtg.utils
 import core.vtg.plugins
+import core.vtg.utils
 
 
 class ASE(core.vtg.plugins.Plugin):
@@ -73,8 +73,8 @@ class ASE(core.vtg.plugins.Plugin):
         self.logger.info('Request argument signatures')
 
         for request_aspect in self.conf['request aspects']:
-            request_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                         request_aspect)
+            request_aspect = core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                             request_aspect)
             self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
 
             # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with

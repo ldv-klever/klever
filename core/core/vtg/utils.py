@@ -15,7 +15,19 @@
 # limitations under the License.
 #
 
+import os
 import re
+
+import core.utils
+
+
+# Many files and directories which are searched by VTG plugins are located within directory "specifications". Help to
+# discover them by addinig that directory as prefix.
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
+    try:
+        return core.utils.find_file_or_dir(logger, main_work_dir, file_or_dir)
+    except FileNotFoundError:
+        return core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))
 
 
 def prepare_cif_opts(conf, opts, clade_storage):

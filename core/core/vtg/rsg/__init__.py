@@ -22,6 +22,7 @@ import clade.interface as clade_api
 
 import core.utils
 import core.vtg.plugins
+import core.vtg.utils
 
 
 class RSG(core.vtg.plugins.Plugin):
@@ -84,17 +85,17 @@ class RSG(core.vtg.plugins.Plugin):
             # Like common models processed below.
             for model_c_file in self.conf['models']:
                 if not model_c_file.startswith('$'):
-                    model_c_file_realpath = core.utils.find_file_or_dir(self.logger,
-                                                                        self.conf['main working directory'],
-                                                                        model_c_file)
+                    model_c_file_realpath = core.vtg.utils.find_file_or_dir(self.logger,
+                                                                            self.conf['main working directory'],
+                                                                            model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
                     models[model_c_file_realpath] = self.conf['models'][model_c_file]
 
         if 'common models' in self.conf:
             for common_model_c_file in self.conf['common models']:
-                common_model_c_file_realpath = core.utils.find_file_or_dir(self.logger,
-                                                                           self.conf['main working directory'],
-                                                                           common_model_c_file)
+                common_model_c_file_realpath = core.vtg.utils.find_file_or_dir(self.logger,
+                                                                               self.conf['main working directory'],
+                                                                               common_model_c_file)
                 self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
                 models[common_model_c_file_realpath] = self.conf['common models'][common_model_c_file]
 
