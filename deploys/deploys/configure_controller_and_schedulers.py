@@ -29,16 +29,25 @@ def get_klever_addon_abs_path(prev_deploy_info, name, verification_backend=False
                                         klever_addon_desc.get('executable path', '')))
 
 
-def configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info):
+def configure_task_and_job_configuration_paths(prev_deploy_info, client_config):
+    client_config['client']['addon binaries'] = []
+    client_config['client']['addon python packages'] = []
+    for key in (k for k in prev_deploy_info['Klever Addons'] if k != "Verification Backends"):
+        client_config['client']['addon binaries'].append(get_klever_addon_abs_path(prev_deploy_info, key))
+    for key, addon_desc in ((k, d) for k, d in prev_deploy_info['Klever Addons'].items()
+                            if k != "Verification Backends" and 'python path' in d):
+        path = os.path.abspath(os.path.join('klever-addons', key, addon_desc['python path']))
+        client_config['client']['addon python packages'].append(path)
+
+
+def configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info):
     logger.info('Configure Klever Native Scheduler Task Worker')
 
     with Cd(deploy_dir):
         with open('klever/scheduler/conf/task-client.json') as fp:
             task_client_conf = json.load(fp)
 
-        if development:
-            task_client_conf['common']['keep working directory'] = True
-
+        configure_task_and_job_configuration_paths(prev_deploy_info, task_client_conf)
         verification_backends = task_client_conf['client']['verification tools'] = {}
         for name, desc in prev_deploy_info['Klever Addons']['Verification Backends'].items():
             if desc['name'] not in verification_backends:
@@ -51,7 +60,8 @@ def configure_native_scheduler_task_worker(logger, development, deploy_dir, prev
 
 
 def configure_controller_and_schedulers(logger, development, deploy_dir, prev_deploy_info):
-    logger.info('(Re)configure Klever Controller and Klever schedulers')
+    logger.info('(Re)configure {0} Klever Controller and Klever schedulers'
+                .format('development' if development else 'production'))
 
     services = ['klever-controller', 'klever-native-scheduler']
     if need_verifiercloud_scheduler(prev_deploy_info):
@@ -106,14 +116,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
         logger.info('Configure Klever Native Scheduler Job Worker')
         with open('klever/scheduler/conf/job-client.json') as fp:
             job_client_conf = json.load(fp)
-
-        if development:
-            job_client_conf['common']['keep working directory'] = True
-
-        job_client_conf['client'].update({
-            'cif location': get_klever_addon_abs_path(prev_deploy_info, 'CIF'),
-            'cil location': get_klever_addon_abs_path(prev_deploy_info, 'CIL')
-        })
+        configure_task_and_job_configuration_paths(prev_deploy_info, job_client_conf)
 
         with open('klever-conf/native-scheduler-job-client.json', 'w') as fp:
             json.dump(job_client_conf, fp, sort_keys=True, indent=4)
@@ -137,7 +140,7 @@ def configure_controller_and_schedulers(logger, development, deploy_dir, prev_de
             with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
                 json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
 
-    configure_native_scheduler_task_worker(logger, development, deploy_dir, prev_deploy_info)
+    configure_native_scheduler_task_worker(logger, deploy_dir, prev_deploy_info)
 
     start_services(logger, services)
 
@@ -155,8 +158,7 @@ def main():
         prev_deploy_info = json.load(fp)
 
     if args.just_native_scheduler_task_worker:
-        configure_native_scheduler_task_worker(get_logger(__name__), args.development, args.deployment_directory,
-                                               prev_deploy_info)
+        configure_native_scheduler_task_worker(get_logger(__name__), args.deployment_directory, prev_deploy_info)
     else:
         configure_controller_and_schedulers(get_logger(__name__), args.development, args.deployment_directory,
                                             prev_deploy_info)

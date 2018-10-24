@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:block:genhd"
     },
@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv_alloc_disk_9": [
+            "ldv_alloc_disk_19": [
               {
                 "ldv_alloc_disk": [
                   {
@@ -62,7 +62,7 @@
             ]
           },
           {
-            "ldv_alloc_disk_10": [
+            "ldv_alloc_disk_20": [
               {
                 "ldv_alloc_disk": [
                   {

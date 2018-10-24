@@ -1,6 +1,7 @@
 {
   "pattern": "pop from empty list",
   "problem": "Branching",
+  "production": true,
   "link": "http://forge.ispras.ru/issues/7554",
   "description": "EMG translator sometimes cannot generate code with multiple branches."
 }

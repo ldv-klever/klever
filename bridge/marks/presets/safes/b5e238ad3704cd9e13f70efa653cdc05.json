@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "790cc82a2b2b/drivers/input/misc/arizona-haptics.ko/linux:kernel:locking:mutex"
     },
     {
@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:kernel:locking:mutex"
     },

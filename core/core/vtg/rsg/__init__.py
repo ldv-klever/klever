@@ -18,6 +18,7 @@
 import json
 import os
 import re
+import clade.interface as clade_api
 
 import core.utils
 import core.vtg.plugins
@@ -25,12 +26,12 @@ import core.vtg.plugins
 
 class RSG(core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(RSG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(RSG, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
 
-    def generate_rule_specification(self):
+    def generate_requirement(self):
         generated_models = {}
 
         if 'files' in self.abstract_task_desc:
@@ -52,7 +53,7 @@ class RSG(core.vtg.plugins.Plugin):
         if 'files' in self.abstract_task_desc:
             self.abstract_task_desc.pop('files')
 
-    main = generate_rule_specification
+    main = generate_requirement
 
     def add_models(self, generated_models):
         self.logger.info('Add models to abstract verification task description')
@@ -63,11 +64,11 @@ class RSG(core.vtg.plugins.Plugin):
                                                     self.abstract_task_desc['environment model']), os.path.curdir)
             models[rel_path] = {}
 
-        # Get common and rule specific models.
+        # Get common and requirement specific models.
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:
                 if common_model_c_file in self.conf['models']:
-                    raise KeyError('C file "{0}" is specified in both common and rule specific models')
+                    raise KeyError('C file "{0}" is specified in both common and requirement specific models')
 
         if 'models' in self.conf:
             for model_c_file in self.conf['models']:
@@ -124,10 +125,10 @@ class RSG(core.vtg.plugins.Plugin):
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                if 'plugin aspects' not in cc_extra_full_desc_file:
-                    cc_extra_full_desc_file['plugin aspects'] = []
-                cc_extra_full_desc_file['plugin aspects'].append({
+            for extra_cc in grp['Extra CCs']:
+                if 'plugin aspects' not in extra_cc:
+                    extra_cc['plugin aspects'] = []
+                extra_cc['plugin aspects'].append({
                     'plugin': self.name,
                     'aspects': [os.path.relpath(aspect, self.conf['main working directory']) for aspect in aspects]
                 })
@@ -137,13 +138,13 @@ class RSG(core.vtg.plugins.Plugin):
 
             if 'bug kinds' in model:
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
-                # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
-                # specification model description.
+                # Collect all bug kinds specified in model to check that valid bug kinds are specified in requirement
+                # model description.
                 bug_kinds = set()
                 lines = []
                 with open(model_c_file, encoding='utf8') as fp:
                     for line in fp:
-                        # Bug kinds are specified in form of strings like in rule specifications DB as first actual
+                        # Bug kinds are specified in form of strings like in requirements DB as first actual
                         # parameters of ldv_assert().
                         match = re.search(r'ldv_assert\("([^"]+)"', line)
                         if match:
@@ -157,7 +158,7 @@ class RSG(core.vtg.plugins.Plugin):
                 for bug_kind in model['bug kinds']:
                     if bug_kind not in bug_kinds:
                         raise KeyError(
-                            'Invalid bug kind "{0}" is specified in rule specification model description'.format(
+                            'Invalid bug kind "{0}" is specified in requirement model description'.format(
                                 bug_kind))
                 preprocessed_model_c_file = '{0}.bk.c'.format(
                     core.utils.unique_file_name(os.path.join('models',
@@ -178,50 +179,50 @@ class RSG(core.vtg.plugins.Plugin):
             else:
                 model['bug kinds preprocessed C file'] = model_c_file
 
-        # Generate CC extra full description file per each model and add it to abstract task description.
-        model_grp = {'id': 'models', 'cc extra full desc files': []}
+        # Generate CC full description file per each model and add it to abstract task description.
+        # First of all obtain CC options to be used to compile models.
+        clade_api.setup(self.conf['build base'])
+        empty_cc = clade_api.SourceGraph().get_ccs_by_file(self.conf['opts file'])
+        storage = clade_api.FileStorage()
+        if not empty_cc:
+            raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
+        elif len(empty_cc) > 1:
+            self.logger.warning("There are more than one cc command for {!r}".format(self.conf['project']['opts file']))
+        empty_cc = empty_cc.pop()
+        empty_cc['opts'] = clade_api.get_cc_opts(empty_cc['id'])
+
+        model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):
             model = models[model_c_file]
-            cc_extra_full_desc_file = {}
+            extra_cc = {}
 
             if 'bug kinds preprocessed C file' in model:
                 file, ext = os.path.splitext(os.path.join('models',
                                                           os.path.basename(model['bug kinds preprocessed C file'])))
                 base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
                 full_desc_file = '{0}{1}.json'.format(base_name, ext)
-
-                # Output file should be located somewhere inside RSG working directory to avoid races.
                 out_file = '{0}.c'.format(base_name)
 
-                self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
+                self.logger.debug('Dump CC full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w', encoding='utf8') as fp:
                     json.dump({
-                        'cwd': self.conf['shadow source tree'],
-                        # Input and output file paths should be relative to source tree root since compilation options
-                        # are relative to this directory and we will change directory to that one before invoking
-                        # preprocessor.
-                        'in files': [os.path.relpath(model['bug kinds preprocessed C file'],
-                                                     os.path.join(self.conf['main working directory'],
-                                                                  self.conf['shadow source tree']))],
-                        'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
-                                                                           self.conf['shadow source tree'])),
-                        'opts': self.conf['model CC opts'] +
-                            # Like in LKBCE.
-                            ['-Wp,-MD,{0}'.format(os.path.relpath(
-                                out_file + '.d',
-                                os.path.join(self.conf['main working directory'], self.conf['shadow source tree'])))] +
-                            ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
-                                                    else self.conf['common sets model']).upper()]
+                        'cwd': empty_cc['cwd'],
+                        'in': [os.path.relpath(model['bug kinds preprocessed C file'],
+                                               os.path.realpath(storage.convert_path(empty_cc['cwd'])))],
+                        'out': [os.path.realpath(out_file)],
+                        'opts': empty_cc['opts'] +
+                                ['-DLDV_SETS_MODEL_' + (model['sets model']
+                                                        if 'sets model' in model
+                                                        else self.conf['common sets model']).upper()]
                     }, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
-                                                                               self.conf['main working directory'])
+                extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
 
             if 'bug kinds' in model:
-                cc_extra_full_desc_file['bug kinds'] = model['bug kinds']
+                extra_cc['bug kinds'] = model['bug kinds']
 
-            if cc_extra_full_desc_file:
-                model_grp['cc extra full desc files'].append(cc_extra_full_desc_file)
+            if extra_cc:
+                model_grp['Extra CCs'].append(extra_cc)
 
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():

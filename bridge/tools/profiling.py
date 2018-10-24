@@ -125,20 +125,22 @@ class ExecLocker:
         block = set()
         for group in groups:
             if isinstance(group, ModelBase):
-                block |= self.__affected_models(group)
+                block |= self.__affected_models(group, [])
             else:
                 block.add(str(group))
         return block
 
-    def __affected_models(self, model):
+    def __affected_models(self, model, parents):
         curr_name = getattr(model, '_meta').object_name
         related_models = {curr_name}
+        parents.append(curr_name)
         for rel in [f for f in getattr(model, '_meta').get_fields()
                     if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
             rel_model_name = getattr(rel.field.model, '_meta').object_name
-            if rel_model_name not in related_models and rel_model_name != curr_name:
+            if rel_model_name not in related_models and rel_model_name != curr_name and rel_model_name not in parents:
                 related_models.add(rel_model_name)
-                related_models |= self.__affected_models(rel.field.model)
+                related_models |= self.__affected_models(rel.field.model, parents)
+        parents.pop()
         return related_models
 
 

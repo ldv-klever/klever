@@ -19,6 +19,7 @@ import argparse
 import errno
 import getpass
 import os
+import sys
 
 from deploys.openstack.openstack import OSKleverBaseImage, OSKleverDeveloperInstance, OSKleverExperimentalInstances
 from deploys.utils import get_logger, update_python_path
@@ -72,14 +73,21 @@ def main():
 
     logger = get_logger(__name__)
 
-    logger.info('{0} {1}'.format(args.action.capitalize(), args.entity))
+    logger.info('Start execution of action "{0}" for "{1}"'.format(args.action, args.entity))
 
-    if args.entity == 'Klever base image':
-        getattr(OSKleverBaseImage(args, logger), args.action)()
-    elif args.entity == 'Klever developer instance':
-        getattr(OSKleverDeveloperInstance(args, logger), args.action)()
-    elif args.entity == 'Klever experimental instances':
-        getattr(OSKleverExperimentalInstances(args, logger), args.action)()
-    else:
-        logger.error('Entity "{0}" is not supported'.format(args.entity))
-        return errno.ENOSYS
+    try:
+        if args.entity == 'Klever base image':
+            getattr(OSKleverBaseImage(args, logger), args.action)()
+        elif args.entity == 'Klever developer instance':
+            getattr(OSKleverDeveloperInstance(args, logger), args.action)()
+        elif args.entity == 'Klever experimental instances':
+            getattr(OSKleverExperimentalInstances(args, logger), args.action)()
+        else:
+            logger.error('Entity "{0}" is not supported'.format(args.entity))
+            sys.exit(errno.ENOSYS)
+    except SystemExit:
+        logger.error('Could not execute action "{0}" for "{1}" (analyze error messages above for details)'
+                     .format(args.action, args.entity))
+        raise
+
+    logger.info('Finish execution of action "{0}" for "{1}"'.format(args.action, args.entity))

@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file("$this")
+{
+#include <stddef.h>
+extern char *ldv_strdup(const char *s);
+extern char *ldv_strcpy(char *dest, const char *src);
+extern char *ldv_strncpy(char *dest, const char *src, size_t n);
+extern size_t ldv_strlen(const char *s);
+}
+
+around: call(char *strdup(..))
+{
+    return ldv_strdup($arg1);
+}
+
+around: call(char *strcpy(..))
+{
+    return ldv_strcpy($arg1, $arg2);
+}
+
+around: call(char *strncpy(..))
+{
+    return ldv_strncpy($arg1, $arg2, $arg3);
+}
+
+around: call(size_t strlen(..))
+{
+    return ldv_strlen($arg1);
+}

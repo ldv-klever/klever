@@ -119,10 +119,16 @@
             <div id="leaf_attributes" style="display: none">
                 <table class="ui celled compact purple table">
                     <tbody>
-                        {% for v in SelfAttrsData %}
+                        {% for a_id, a_name, a_value, a_data in SelfAttrsData %}
                             <tr>
-                                <th class="collapsing">{{ v.0 }}</th>
-                                <td class="collapsing">{{ v.1 }}</td>
+                                <th class="collapsing">{{ a_name }}</th>
+                                <td class="collapsing">
+                                    {% if a_data %}
+                                        <a class="attr-data-href" href="#" data-attr-id="{{ a_id }}">{{ a_value }}</a>
+                                    {% else %}
+                                        <span>{{ a_value }}</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -161,4 +167,18 @@
     <input id="report_type" type="hidden" value="{{ report_type }}">
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
+
+    <div id="file_content_modal" class="ui dinamic large modal">
+        <div class="content">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
+                </div>
+            </div>
+            <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
+        </div>
+    </div>
 {% endblock %}

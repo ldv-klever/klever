@@ -19,11 +19,12 @@ import json
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, F, Count, Case, When
+from django.db.models import F, Count, Case, When
 from django.template import loader
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
-from django.utils.timezone import now, timedelta
+from django.utils.text import format_lazy
+from django.utils.functional import cached_property
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
@@ -41,6 +42,7 @@ from jobs.utils import JobAccess
 from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR, MarkAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.tags import TagsInfo
+from marks.querysets import ListQuery
 
 
 MARK_TITLES = {
@@ -67,9 +69,10 @@ MARK_TITLES = {
     'ass_type': _('Association type'),
     'automatic': _('Automatic association'),
     'tags': _('Tags'),
-    'likes': string_concat(_('Likes'), '/', _('Dislikes')),
+    'likes': format_lazy('{0}/{1}', _('Likes'), _('Dislikes')),
     'buttons': '',
     'description': _('Description'),
+    'total_similarity': _('Total similarity'),
 }
 
 CHANGE_DATA = {
@@ -170,7 +173,7 @@ class ReportMarkTable:
         self.user = user
         self.report = report
         self.view = view
-        self.can_mark = MarkAccess(user, report).can_create()
+        self.can_mark = MarkAccess(user, report=report).can_create()
         self.statuses = MARK_STATUS
         self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):
@@ -341,259 +344,132 @@ class MarksList:
         self.user = user
         self.type = marks_type
         self.view = view
+        self._page_num = page
 
-        self.authors = []
+        self.page = None
+        columns, self.values = self.__marks_data()
+        self.header = Header(columns, MARK_TITLES).struct
 
-        self.selected_columns = self.__selected()
-        self.available_columns = self.__available()
-
-        self.columns = self.__get_columns()
-        self.marks = self.__get_marks()
-        self.attr_values = self.__get_attrs()
-
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_page(page, self.__get_values())
-
-    def __selected(self):
+    @cached_property
+    def selected_columns(self):
         columns = []
         for col in self.view['columns']:
-            if col not in self.__supported_columns():
-                return []
+            if col not in self.__supported_columns:
+                continue
             col_title = col
             if col_title in MARK_TITLES:
                 col_title = MARK_TITLES[col_title]
             columns.append({'value': col, 'title': col_title})
         return columns
 
-    def __available(self):
+    @cached_property
+    def available_columns(self):
         columns = []
-        for col in self.__supported_columns():
+        for col in self.__supported_columns:
             col_title = col
             if col_title in MARK_TITLES:
                 col_title = MARK_TITLES[col_title]
             columns.append({'value': col, 'title': col_title})
         return columns
 
+    @cached_property
     def __supported_columns(self):
+        columns = {'num_of_links'}
         if self.type == 'unknown':
-            return ['num_of_links', 'component', 'status', 'author', 'change_date', 'format', 'pattern', 'source']
-        return ['num_of_links', 'verdict', 'tags', 'status', 'author', 'change_date', 'format', 'source']
-
-    def __get_columns(self):
-        columns = ['checkbox', 'mark_num']
-        columns.extend(self.view['columns'])
+            columns.update({'component', 'pattern'})
+        else:
+            columns.update({'verdict', 'tags'})
+        if self.type == 'unsafe':
+            columns.add('total_similarity')
+        columns.update({'status', 'author', 'change_date', 'format', 'source'})
         return columns
 
-    def __get_marks(self):
-        filters = {}
-        unfilter = {'version': 0}
-        if 'status' in self.view:
-            if self.view['status'][0] == 'is':
-                filters['status'] = self.view['status'][1]
-            else:
-                unfilter['status'] = self.view['status'][1]
-        if 'verdict' in self.view:
-            if self.view['verdict'][0] == 'is':
-                filters['verdict'] = self.view['verdict'][1]
-            else:
-                unfilter['verdict'] = self.view['verdict'][1]
-        if 'component' in self.view:
-            if self.view['component'][0] == 'is':
-                filters['component__name'] = self.view['component'][1]
-            elif self.view['component'][0] == 'startswith':
-                filters['component__name__istartswith'] = self.view['component'][1]
-        if 'author' in self.view:
-            filters['author_id'] = self.view['author'][0]
-        if 'source' in self.view:
-            if self.view['source'][0] == 'is':
-                filters['type'] = self.view['source'][1]
-            else:
-                unfilter['type'] = self.view['source'][1]
-        if 'change_date' in self.view:
-            limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
-            if self.view['change_date'][0] == 'older':
-                filters['change_date__lt'] = limit_time
-            elif self.view['change_date'][0] == 'younger':
-                filters['change_date__gt'] = limit_time
+    def __paginate_objects(self, objects):
+        if 'elements' in self.view:
+            paginator = Paginator(objects, int(self.view['elements'][0]))
+            self.page = paginator.page(self._page_num)
+            return self.page.object_list, self.page.start_index()
+        return objects, 1
 
-        table_filters = Q(**filters)
-        for uf in unfilter:
-            table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
-        order_field = 'id'
-        if self.view['order'][1] == 'change_date':
-            order_field = 'change_date'
-        if self.type == 'unsafe':
-            return MarkUnsafe.objects.filter(table_filters).order_by(order_field)
-        elif self.type == 'safe':
-            return MarkSafe.objects.filter(table_filters).order_by(order_field)
-        return MarkUnknown.objects.filter(table_filters).order_by(order_field)
+    def __marks_data(self):
+        columns = ['checkbox', 'number']
+        columns.extend(self.view['columns'])
 
-    def __get_attrs(self):
-        if self.type == 'safe':
-            vers_model = MarkSafeHistory
-            attr_model = MarkSafeAttr
-        elif self.type == 'unsafe':
-            vers_model = MarkUnsafeHistory
-            attr_model = MarkUnsafeAttr
-        else:
-            vers_model = MarkUnknownHistory
-            attr_model = MarkUnknownAttr
-        last_versions = vers_model.objects.filter(version=F('mark__version'), mark__in=self.marks)
+        model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
+        # ReportSafe, self.view, ** self._kwargs
+        query = ListQuery(model_map[self.type], self.view)
+        objects, cnt = self.__paginate_objects(query.get_objects())
 
-        data = {}
-        attr_order = {}
-        for ma in attr_model.objects.filter(mark__in=last_versions).order_by('id')\
+        marks = {}
+        ordered_ids = []
+        for mark_data in objects:
+            ordered_ids.append(mark_data['id'])
+            marks[mark_data['id']] = mark_data
+
+        mattr_model = {'safe': MarkSafeAttr, 'unsafe': MarkUnsafeAttr, 'unknown': MarkUnknownAttr}
+        MarkSafeAttr.objects.filter()
+        attributes = {}
+        for r_id, a_name, a_value in mattr_model[self.type].objects\
+                .filter(mark__mark_id__in=ordered_ids, mark__version=F('mark__mark__version')).order_by('id')\
                 .values_list('mark__mark_id', 'attr__name__name', 'attr__value'):
-            if ma[0] not in data:
-                data[ma[0]] = {}
-                attr_order[ma[0]] = []
-            data[ma[0]][ma[1]] = ma[2]
-            attr_order[ma[0]].append(ma[1])
+            if a_name not in attributes:
+                columns.append(a_name)
+                attributes[a_name] = {}
+            attributes[a_name][r_id] = a_value
 
-        columns = []
-        for mark in self.marks:
-            if mark.id in attr_order:
-                for a_name in attr_order[mark.id]:
-                    if a_name not in columns:
-                        columns.append(a_name)
-
-        values = {}
-        for mark in self.marks:
-            values[mark] = {}
+        values_data = []
+        for m_id in ordered_ids:
+            values_row = []
             for col in columns:
-                cell_val = '-'
-                if mark.id in data and col in data[mark.id]:
-                    cell_val = data[mark.id][col]
-                values[mark][col] = cell_val
-        self.columns.extend(columns)
-        return values
-
-    def __get_values(self):
-        view_tags = []
-        if 'tags' in self.view:
-            view_tags = list(x.strip() for x in self.view['tags'][0].split(';'))
-
-        values = []
-        for mark in self.marks:
-            if mark.author not in self.authors:
-                self.authors.append(mark.author)
-            values_str = []
-            order_by_value = ''
-            for col in self.columns:
-                if col in {'mark_num', 'checkbox'}:
+                if col == 'checkbox':
+                    values_row.append({'checkbox': m_id})
                     continue
                 val = '-'
-                color = None
                 href = None
-                if col in self.attr_values[mark]:
-                    val = self.attr_values[mark][col]
-                    if self.__get_order() == col:
-                        order_by_value = val
-                    if not self.__filter_attr(col, val):
-                        break
+                color = None
+                if col in attributes:
+                    val = attributes[col].get(m_id, val)
+                elif col == 'number':
+                    val = cnt
+                    href = reverse('marks:mark', args=[self.type, m_id])
                 elif col == 'num_of_links':
-                    val = mark.markreport_set.count()
-                    if self.__get_order() == 'num_of_links':
-                        order_by_value = val
-                    if self.type == 'unsafe':
-                        broken = mark.markreport_set.exclude(error=None).count()
-                        if broken > 0:
-                            val = ungettext_lazy(
-                                '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
-                            ) % {'all': len(mark.markreport_set.all()), 'broken': broken}
+                    val = marks[m_id]['num_of_links']
+                    broken = marks[m_id].get('broken_links', 0)
+                    if broken > 0:
+                        val = ungettext_lazy(
+                            '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
+                        ) % {'all': marks[m_id]['num_of_links'], 'broken': broken}
                 elif col == 'verdict':
-                    val = mark.get_verdict_display()
                     if self.type == 'safe':
-                        color = SAFE_COLOR[mark.verdict]
-                    else:
-                        color = UNSAFE_COLOR[mark.verdict]
+                        val = MarkSafe(verdict=marks[m_id]['verdict']).get_verdict_display()
+                        color = SAFE_COLOR[marks[m_id]['verdict']]
+                    elif self.type == 'unsafe':
+                        val = MarkUnsafe(verdict=marks[m_id]['verdict']).get_verdict_display()
+                        color = UNSAFE_COLOR[marks[m_id]['verdict']]
+                elif col == 'tags':
+                    if 'tags' in marks[m_id] and marks[m_id]['tags']:
+                        val = ', '.join(sorted(marks[m_id]['tags']))
                 elif col == 'status':
-                    val = mark.get_status_display()
-                    color = STATUS_COLOR[mark.status]
+                    val = model_map[self.type](status=marks[m_id]['status']).get_status_display()
+                    color = STATUS_COLOR[marks[m_id]['status']]
                 elif col == 'author':
-                    if mark.author is not None:
-                        val = mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[mark.author_id])
+                    if marks[m_id].get('author_id'):
+                        val = '%s %s' % (marks[m_id]['first_name'], marks[m_id]['last_name'])
+                        href = reverse('users:show_profile', args=[int(marks[m_id]['author_id'])])
                 elif col == 'change_date':
-                    val = mark.change_date
+                    val = marks[m_id]['change_date']
                     if self.user.extended.data_format == 'hum':
                         val = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
-                elif col == 'format':
-                    val = mark.format
-                elif col == 'component':
-                    val = mark.component.name
-                elif col == 'pattern':
-                    val = mark.problem_pattern
                 elif col == 'source':
-                    val = mark.get_type_display()
-                elif col == 'tags':
-                    last_v = mark.versions.get(version=mark.version)
-                    if last_v is None:
-                        val = '-'
-                    else:
-                        tags = set(tag for tag, in last_v.tags.values_list('tag__tag'))
-                        if 'tags' in self.view and any(t not in tags for t in view_tags):
-                            break
-                        if len(tags) > 0:
-                            val = '; '.join(sorted(tags))
-                        else:
-                            val = '-'
-                values_str.append({'color': color, 'value': val, 'href': href})
-            else:
-                values.append((order_by_value, mark.id, values_str))
-
-        ordered_values = []
-        if self.__get_order() == 'num_of_links':
-            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
-                ordered_values.append((mark_id, val_str))
-        elif isinstance(self.__get_order(), str):
-            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
-                ordered_values.append((mark_id, val_str))
-        else:
-            ordered_values = list((x[1], x[2]) for x in values)
-        if self.view['order'][0] == 'up':
-            ordered_values = list(reversed(ordered_values))
-
-        final_values = []
-        cnt = 1
-        for mark_id, valstr in ordered_values:
-            valstr.insert(0, {'value': cnt, 'href': reverse('marks:mark', args=[self.type, mark_id])})
-            valstr.insert(0, {'checkbox': mark_id})
-            final_values.append(valstr)
+                    val = model_map[self.type](type=marks[m_id]['source']).get_type_display()
+                elif col == 'total_similarity':
+                    val = '%d%%' % (marks[m_id][col] * 100)
+                elif col in {'format', 'component', 'pattern'}:
+                    val = marks[m_id][col]
+                values_row.append({'color': color, 'value': val, 'href': href})
+            values_data.append(values_row)
             cnt += 1
-        return final_values
-
-    def __filter_attr(self, attribute, value):
-        if 'attr' in self.view and self.view['attr'][0] == attribute:
-            ftype = self.view['attr'][1]
-            fvalue = self.view['attr'][2]
-            if ftype == 'iexact' and fvalue.lower() != value.lower():
-                return False
-            elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
-                return False
-        return True
-
-    def __get_order(self):
-        if self.view['order'][1] == 'attr' and len(self.view['order'][2]) > 0:
-            return self.view['order'][2]
-        elif self.view['order'][1] == 'num_of_links':
-            return 'num_of_links'
-        elif self.view['order'][1] == 'change_date':
-            return 'change_date'
-        return None
-
-    def __get_page(self, page, values):
-        num_per_page = DEF_NUMBER_OF_ELEMENTS
-        if 'elements' in self.view:
-            num_per_page = int(self.view['elements'][0])
-        self.paginator = Paginator(values, num_per_page)
-        try:
-            values = self.paginator.page(page)
-        except PageNotAnInteger:
-            values = self.paginator.page(1)
-        except EmptyPage:
-            values = self.paginator.page(self.paginator.num_pages)
-        return values
+        return columns, values_data
 
 
 class MarkData:

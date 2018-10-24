@@ -33,7 +33,7 @@
         {% include 'users/views/viewColumns.html' %}
 
         {# Order #}
-        <h3 class="header">{% trans 'Order' %}</h3>
+        <h3 class="header">{% trans 'Order' %}<i class="link blue help icon note-popup" data-content="{% trans 'Sorting only works when sorted column is shown' %}"></i></h3>
         <div class="ui divider"></div>
         <input id="view_data_{{ view.type }}__order" value="list_null" data-list="radio_order_value__radio_order__order_attr" type="hidden">
         <div class="fields">
@@ -58,6 +58,19 @@
                     <input id="order_by_repnum__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="num_of_links"{% if view.order.1 == 'num_of_links' %} checked{% endif %}>
                     <label for="order_by_repnum__{{ view.type }}">{% trans 'Order by the number of associated leaf reports' %}</label>
                 </div>
+                {% if view.type == '7' %}
+                    <br>
+                    <div class="ui radio checkbox">
+                        <input id="order_by_similarity__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="total_similarity"{% if view.order.1 == 'total_similarity' %} checked{% endif %}>
+                        <label for="order_by_similarity__{{ view.type }}">{% trans 'Order by total similarity' %}</label>
+                    </div>
+                {% elif view.type == '9' %}
+                    <br>
+                    <div class="ui radio checkbox">
+                        <input id="order_by_component__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="component"{% if view.order.1 == 'component' %} checked{% endif %}>
+                        <label for="order_by_component__{{ view.type }}">{% trans 'Order by component name' %}</label>
+                    </div>
+                {% endif %}
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_attr__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="attr"{% if view.order.1 == 'attr' %} checked{% endif %}>
@@ -73,7 +86,7 @@
         </div>
     </div>
     <div class="ten wide column">
-        <h3>{% trans 'Filters' %}</h3>
+        <h3>{% trans 'Filters' %}<i class="link blue help icon note-popup" data-content="{% trans 'Filtering only works when filtered column is shown' %}"></i></h3>
         <div class="ui divider"></div>
 
         {# Status #}
@@ -268,6 +281,7 @@
                     <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="iendswith"{% if 'attr' in view and view.attr.1 == 'iendswith' %} selected{% endif %}>{% trans 'ends with' %}</option>
+                    <option value="icontains"{% if 'attr' in view and view.attr.1 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label for="view_{{ view.type }}__attr_type">&nbsp;</label>
             </div>

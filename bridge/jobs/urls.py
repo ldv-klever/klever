@@ -77,5 +77,4 @@ urlpatterns = [
     # Actions with reports
     path('upload_reports/<int:pk>/', views.UploadReportsView.as_view()),
     path('collapse_reports/<int:pk>/', views.CollapseReportsView.as_view()),
-    path('enable_safe_marks/<int:pk>/', views.EnableSafeMarks.as_view()),
 ]

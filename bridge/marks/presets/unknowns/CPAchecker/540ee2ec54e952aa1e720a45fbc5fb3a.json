@@ -1,4 +1,5 @@
 {
   "pattern": "A fatal error has been detected by the Java Runtime Environment",
-  "problem": "JRE fatal error"
+  "problem": "JRE fatal error",
+  "production": true
 }

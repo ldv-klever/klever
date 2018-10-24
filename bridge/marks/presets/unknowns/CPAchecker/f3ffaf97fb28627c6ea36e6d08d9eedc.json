@@ -1,4 +1,5 @@
 {
   "pattern": "memory exhausted",
-  "problem": "Out of memory"
+  "problem": "Out of memory",
+  "production": true
 }

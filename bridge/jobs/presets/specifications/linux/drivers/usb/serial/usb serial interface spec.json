@@ -1,0 +1,360 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "usb_serial_register_drivers": {
+        "declaration": "int usb_serial_register_drivers(struct usb_serial_driver *const serial_drivers[], const char *name, %usb_serial.usb_device_id%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      },
+      "usb_serial_deregister_drivers": {
+        "declaration": "void usb_serial_deregister_drivers(struct usb_serial_driver *const serial_drivers[])",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      }
+    },
+    "categories": {
+      "usb_serial": {
+        "containers": {
+          "usb_serial_driver": {
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "declaration": "struct usb_serial_driver driver",
+            "fields": {
+              "probe": "%usb_serial.probe%",
+              "attach": "%usb_serial.attach%",
+              "disconnect": "%usb_serial.disconnect%",
+              "release": "%usb_serial.release%",
+              "suspend": "%usb_serial.suspend%",
+              "resume": "%usb_serial.resume%",
+              "reset_resume": "%usb_serial.reset_resume%",
+              "port_probe": "%usb_serial.port_probe%",
+              "port_remove": "%usb_serial.port_remove%",
+              "open": "%usb_serial.open%",
+              "close": "%usb_serial.close%",
+              "write" : "%usb_serial.write%",
+              "hangup" : "%usb_serial.hangup%",
+
+              "flush_buffer" : "%usb_serial.flush_buffer%",
+              "chars_in_buffer" : "%usb_serial.chars_in_buffer%",
+              "set_termios" : "%usb_serial.set_termios%",
+              "read" : "%usb_serial.read%",
+              "poll" : "%usb_serial.poll%",
+              "ioctl" : "%usb_serial.ioctl%",
+              "compat_ioctl" : "%usb_serial.compat_ioctl%"
+            }
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%usb_serial.usb_serial%, %usb_serial.usb_device_id%)"
+          },
+          "attach": {
+            "declaration": "int (*attach)(%usb_serial.usb_serial%)"
+          },
+          "disconnect": {
+            "declaration": "void (*disconnect)(%usb_serial.usb_serial%)"
+          },
+          "release": {
+            "declaration": "void (*release)(%usb_serial.usb_serial%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%usb_serial.usb_serial%)"
+          },
+          "reset_resume": {
+            "declaration": "int (*reset_resume)(%usb_serial.usb_serial%)"
+          },
+          "port_probe": {
+            "declaration": "int (*port_probe)(%usb_serial.usb_serial_port%)"
+          },
+          "port_remove": {
+            "declaration": "int (*port_remove)(%usb_serial.usb_serial_port%)"
+          },
+          "open": {
+            "declaration": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+          },
+          "close": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "hangup": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "write": {
+            "declaration": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+          },
+          "flush_buffer": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "chars_in_buffer": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "set_termios": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "read": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "poll": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "ioctl": {
+            "declaration": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
+          },
+          "compat_ioctl": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          }
+        },
+        "resources": {
+          "usb_device_id": {
+            "declaration": "const struct usb_device_id *id",
+            "header": "linux/mod_devicetable.h",
+            "implemented in kernel": false
+          },
+          "usb_serial": {
+            "declaration": "struct usb_serial *serial",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "usb_serial_port": {
+            "declaration": "struct usb_serial_port *port",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "tty_struct": {
+            "declaration": "struct tty_struct *str",
+            "header": "linux/tty.h",
+            "implemented in kernel": true
+          }
+        }
+      }
+    }
+  },
+  "Linux 3.2": {
+    "functions models": {
+      "usb_serial_register": {
+        "declaration": "int usb_serial_register(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      },
+      "usb_serial_deregister": {
+        "declaration": "void usb_serial_deregister(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      }
+    },
+    "categories": {
+      "usb_serial": {
+        "containers": {
+          "usb_serial_driver": {
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "declaration": "struct usb_serial_driver driver",
+            "fields": {
+              "probe": "%usb_serial.probe%",
+              "attach": "%usb_serial.attach%",
+              "disconnect": "%usb_serial.disconnect%",
+              "release": "%usb_serial.release%",
+              "suspend": "%usb_serial.suspend%",
+              "resume": "%usb_serial.resume%",
+              "port_probe": "%usb_serial.port_probe%",
+              "port_remove": "%usb_serial.port_remove%",
+              "open": "%usb_serial.open%",
+              "close": "%usb_serial.close%",
+              "write": "%usb_serial.write%"
+            }
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%usb_serial.usb_serial%, %usb_serial.usb_device_id%)"
+          },
+          "attach": {
+            "declaration": "int (*attach)(%usb_serial.usb_serial%)"
+          },
+          "disconnect": {
+            "declaration": "void (*disconnect)(%usb_serial.usb_serial%)"
+          },
+          "release": {
+            "declaration": "void (*release)(%usb_serial.usb_serial%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%usb_serial.usb_serial%)"
+          },
+          "port_probe": {
+            "declaration": "int (*port_probe)(%usb_serial.usb_serial_port%)"
+          },
+          "port_remove": {
+            "declaration": "int (*port_remove)(%usb_serial.usb_serial_port%)"
+          },
+          "open": {
+            "declaration": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+          },
+          "close": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "write": {
+            "declaration": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+          }
+        },
+        "resources": {
+          "usb_device_id": {
+            "declaration": "const struct usb_device_id *id",
+            "header": "linux/mod_devicetable.h",
+            "implemented in kernel": false
+          },
+          "usb_serial": {
+            "declaration": "struct usb_serial *serial",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "usb_serial_port": {
+            "declaration": "struct usb_serial_port *port",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "tty_struct": {
+            "declaration": "struct tty_struct *str",
+            "header": "linux/tty.h",
+            "implemented in kernel": true
+          }
+        }
+      }
+    }
+  },
+  "Linux 2.6.33": {
+    "functions models": {
+      "usb_serial_register": {
+        "declaration": "int usb_serial_register(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      },
+      "usb_serial_deregister": {
+        "declaration": "void usb_serial_deregister(*%usb_serial.usb_serial_driver%)",
+        "headers": [
+          "linux/usb.h",
+          "linux/usb/serial.h"
+        ]
+      }
+    },
+    "categories": {
+      "usb_serial": {
+        "containers": {
+          "usb_serial_driver": {
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "declaration": "struct usb_serial_driver driver",
+            "fields": {
+              "probe": "%usb_serial.probe%",
+              "attach": "%usb_serial.attach%",
+              "disconnect": "%usb_serial.disconnect%",
+              "release": "%usb_serial.release%",
+              "suspend": "%usb_serial.suspend%",
+              "resume": "%usb_serial.resume%",
+              "port_probe": "%usb_serial.port_probe%",
+              "port_remove": "%usb_serial.port_remove%",
+              "open": "%usb_serial.open%",
+              "close": "%usb_serial.close%",
+              "write": "%usb_serial.write%"
+            }
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%usb_serial.usb_serial%, %usb_serial.usb_device_id%)"
+          },
+          "attach": {
+            "declaration": "int (*attach)(%usb_serial.usb_serial%)"
+          },
+          "disconnect": {
+            "declaration": "void (*disconnect)(%usb_serial.usb_serial%)"
+          },
+          "release": {
+            "declaration": "void (*release)(%usb_serial.usb_serial%)"
+          },
+          "suspend": {
+            "declaration": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
+          },
+          "resume": {
+            "declaration": "int (*resume)(%usb_serial.usb_serial%)"
+          },
+          "port_probe": {
+            "declaration": "int (*port_probe)(%usb_serial.usb_serial_port%)"
+          },
+          "port_remove": {
+            "declaration": "int (*port_remove)(%usb_serial.usb_serial_port%)"
+          },
+          "open": {
+            "declaration": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+          },
+          "close": {
+            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "write": {
+            "declaration": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+          }
+        },
+        "resources": {
+          "usb_device_id": {
+            "declaration": "const struct usb_device_id *id",
+            "header": "linux/mod_devicetable.h",
+            "implemented in kernel": false
+          },
+          "usb_serial": {
+            "declaration": "struct usb_serial *serial",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "usb_serial_port": {
+            "declaration": "struct usb_serial_port *port",
+            "headers": [
+              "linux/usb.h",
+              "linux/usb/serial.h"
+            ],
+            "implemented in kernel": true
+          },
+          "tty_struct": {
+            "declaration": "struct tty_struct *str",
+            "header": "linux/tty.h",
+            "implemented in kernel": true
+          }
+        }
+      }
+    }
+  }
+}

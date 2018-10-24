@@ -1,4 +1,5 @@
 {
   "pattern": "Tool 'cilly.asm.exe' exited with non-zero exit code",
-  "problem": "CIL failure"
+  "problem": "CIL failure",
+  "production": true
 }

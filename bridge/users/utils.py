@@ -18,7 +18,7 @@
 import json
 
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 
 from users.models import View
 
@@ -62,7 +62,7 @@ JOB_DATA_VIEW = {
         'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
     ],
     # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'confirmed_marks'],
-    'attr_stat': ['Rule specification']
+    'attr_stat': ['Requirement']
 
     # FILTERS:
     # unknown_component: [iexact|istartswith|icontains, <any text>]
@@ -90,9 +90,10 @@ REPORT_CHILDREN_VIEW = {
 
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
+    'columns': ['marks_number', 'total_similarity', 'report_verdict', 'tags',
+                'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
-    # 'order': ['down', 'attr', 'Rule specification'],
+    # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
     # 'verdict': [<ids from UNSAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
@@ -107,7 +108,7 @@ SAFES_VIEW = {
     'columns': ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     # order: [up|down, attr|parent_cpu|parent_wall|parent_memory, <any text, not empty for attr only>]
-    # 'order': ['down', 'attr', 'Rule specification'],
+    # 'order': ['down', 'attr', 'Requirement'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
     # 'verdict': [<ids from SAFE_VERDICTS>]
     # 'hidden': ['confirmed_marks']
@@ -134,8 +135,8 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    'columns': ['num_of_links', 'total_similarity', 'verdict', 'tags', 'status', 'author', 'format'],
+    # order: [up|down, change_date|num_of_links|attr|total_similarity, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -143,7 +144,7 @@ UNSAFE_MARKS_VIEW = {
     # verdict: [is|isnot, <id from MARK_UNSAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -151,7 +152,7 @@ UNSAFE_MARKS_VIEW = {
     # 'verdict': ['is', '0'],
     # 'author': [1]
     # 'source': ['is', '2'],
-    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
+    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 SAFE_MARKS_VIEW = {
@@ -165,7 +166,7 @@ SAFE_MARKS_VIEW = {
     # verdict: [is|isnot, <id from MARK_SAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -173,13 +174,13 @@ SAFE_MARKS_VIEW = {
     # 'verdict': ['is', '0'],
     # 'author': [1]
     # 'source': ['is', '2'],
-    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
+    # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
-    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
@@ -187,7 +188,7 @@ UNKNOWN_MARKS_VIEW = {
     # component: [is|startswith, <any text>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
-    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
@@ -368,13 +369,13 @@ class ViewData:
 
     def __get_view(self):
         if self._view is not None:
-            self._title = string_concat(_('View'), ' (', _('unsaved'), ')')
+            self._title = '{0} ({1})'.format(_('View'), _('unsaved'))
             self._view = json.loads(self._view)
             return
         if self._view_id is None:
             pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
             if pref_view:
-                self._title = string_concat(_('View'), ' (%s)' % pref_view.view.name)
+                self._title = '{0} ({1})'.format(_('View'), pref_view.view.name)
                 self._view_id = pref_view.view_id
                 self._view = json.loads(pref_view.view.view)
                 return
@@ -383,10 +384,10 @@ class ViewData:
                 Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
             ).first()
             if user_view:
-                self._title = string_concat(_('View'), ' (%s)' % user_view.name)
+                self._title = '{0} ({1})'.format(_('View'), user_view.name)
                 self._view_id = user_view.id
                 self._view = json.loads(user_view.view)
                 return
-        self._title = string_concat(_('View'), ' (', _('Default'), ')')
+        self._title = '{0} ({1})'.format(_('View'), _('Default'))
         self._view_id = 'default'
         self._view = DEFAULT_VIEW[self._type]

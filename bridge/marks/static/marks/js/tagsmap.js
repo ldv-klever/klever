@@ -89,7 +89,7 @@ $(document).ready(function () {
         remove_tag_modal.modal('show');
     });
     $('#confirm_remove_tag').click(function () {
-        $.ajax('/marks/tags/' + $('#tags_type').text() + '/delete/' + $('#edit_tag_id').val() + '/', {}, function (data) {
+        $.post('/marks/tags/' + $('#tags_type').text() + '/delete/' + $('#edit_tag_id').val() + '/', {}, function (data) {
             if (data.error) {
                 remove_tag_modal.modal('hide');
                 clear_modal();

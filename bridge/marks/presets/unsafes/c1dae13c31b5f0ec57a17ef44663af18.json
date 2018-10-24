@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:kernel:module"
     },
@@ -63,7 +63,7 @@
             "ldv_module_get": []
           },
           {
-            "ldv_module_refcount_7": [
+            "ldv_module_refcount_17": [
               {
                 "ldv_module_refcount": []
               }

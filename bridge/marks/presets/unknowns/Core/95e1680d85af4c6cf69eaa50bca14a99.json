@@ -1,5 +1,6 @@
 {
   "pattern": "core\\.components\\.ComponentError: Component \"(.+)\" failed",
   "problem": "{0} failure",
+  "production": true,
   "is regexp": true
 }

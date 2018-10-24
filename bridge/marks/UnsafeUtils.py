@@ -31,7 +31,7 @@ from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE,
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
 
 from users.models import User
-from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
+from reports.models import ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, MarkUnsafeAttr,\
     MarkUnsafeTag, UnsafeTag, UnsafeReportTag, ReportUnsafeTag,\
     MarkUnsafeCompare, ConvertedTraces, UnsafeAssociationLike
@@ -367,7 +367,7 @@ class ConnectMarks:
                 except BridgeException as e:
                     compare_error = str(e)
                 except Exception as e:
-                    logger.exception("Error traces comparison failed: %s" % e)
+                    logger.exception("Error traces comparison failed: %s" % e, exc_info=e)
                     compare_error = str(UNKNOWN_ERROR)
 
                 ass_type = ASSOCIATION_TYPE[0][0]
@@ -394,7 +394,7 @@ class ConnectMarks:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
         for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
-                .select_related('mark'):
+                .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -402,43 +402,28 @@ class ConnectMarks:
             old_verdict = unsafe.verdict
             new_verdict = self.__calc_verdict(unsafe_verdicts[unsafe])
             if old_verdict != new_verdict:
-                unsafes_to_update[unsafe] = new_verdict
+                if new_verdict not in unsafes_to_update:
+                    unsafes_to_update[new_verdict] = set()
+                unsafes_to_update[new_verdict].add(unsafe.id)
                 for mark_id in self.changes:
                     if unsafe in self.changes[mark_id]:
                         self.changes[mark_id][unsafe]['verdict2'] = new_verdict
         self.__new_verdicts(unsafes_to_update)
 
+    @transaction.atomic
+    def __new_verdicts(self, unsafes_to_update):
+        self.__is_not_used()
+        for v in unsafes_to_update:
+            ReportUnsafe.objects.filter(id__in=unsafes_to_update[v]).update(verdict=v)
+
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in verdicts:
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
-
-    @transaction.atomic
-    def __new_verdicts(self, unsafes):
-        self.__is_not_used()
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        for unsafe in unsafes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=unsafe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[unsafe.verdict]: 0}) \
-                .update(**{verdict_attrs[unsafe.verdict]: F(verdict_attrs[unsafe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[unsafes[unsafe]]: F(verdict_attrs[unsafes[unsafe]]) + 1
-            })
-            unsafe.verdict = unsafes[unsafe]
-            unsafe.save()
+        assert isinstance(verdicts, set), 'Set expected'
+        if len(verdicts) == 0:
+            return UNSAFE_VERDICTS[5][0]
+        elif len(verdicts) == 1:
+            return verdicts.pop()
+        return UNSAFE_VERDICTS[4][0]
 
     def __is_not_used(self):
         pass
@@ -497,33 +482,18 @@ class ConnectReport:
             ))
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in set(self._marks[m_id]['verdict'] for m_id in
-                     list(mr.mark_id for mr in new_markreports if mr.error is None and mr.result > 0)):
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
-        if self._unsafe.verdict != new_verdict:
-            self.__new_verdict(new_verdict)
+        verdicts = set(self._marks[m_id]['verdict'] for m_id in
+                       list(mr.mark_id for mr in new_markreports if mr.error is None and mr.result > 0))
+        if len(verdicts) == 0:
+            new_verdict = UNSAFE_VERDICTS[5][0]
+        elif len(verdicts) == 1:
+            new_verdict = verdicts.pop()
+        else:
+            new_verdict = UNSAFE_VERDICTS[4][0]
 
-    @transaction.atomic
-    def __new_verdict(self, new):
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=self._unsafe))
-        Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[self._unsafe.verdict]: 0}) \
-            .update(**{verdict_attrs[self._unsafe.verdict]: F(verdict_attrs[self._unsafe.verdict]) - 1})
-        Verdict.objects.filter(report_id__in=reports).update(**{verdict_attrs[new]: F(verdict_attrs[new]) + 1})
-        self._unsafe.verdict = new
-        self._unsafe.save()
+        if self._unsafe.verdict != new_verdict:
+            self._unsafe.verdict = new_verdict
+            self._unsafe.save()
 
 
 class RecalculateTags:
@@ -610,46 +580,36 @@ class UpdateVerdicts:
 
         unsafes_to_update = {}
         for unsafe in unsafe_verdicts:
-            old_verdict = unsafe.verdict
             new_verdict = self.__calc_verdict(unsafe_verdicts[unsafe])
-            if old_verdict != new_verdict:
-                unsafes_to_update[unsafe] = new_verdict
-                for mark_id in self.changes:
-                    if unsafe in self.changes[mark_id]:
-                        self.changes[mark_id][unsafe]['verdict2'] = new_verdict
+            if unsafe.verdict == new_verdict:
+                # Verdict wasn't changed
+                continue
+            if new_verdict not in unsafes_to_update:
+                unsafes_to_update[new_verdict] = set()
+            unsafes_to_update[new_verdict].add(unsafe.id)
+
+            for mark_id in self.changes:
+                if unsafe in self.changes[mark_id]:
+                    self.changes[mark_id][unsafe]['verdict2'] = new_verdict
         self.__new_verdicts(unsafes_to_update)
+
+    @transaction.atomic
+    def __new_verdicts(self, unsafes_to_update):
+        self.__is_not_used()
+        for v in unsafes_to_update:
+            ReportUnsafe.objects.filter(id__in=unsafes_to_update[v]).update(verdict=v)
 
     def __calc_verdict(self, verdicts):
         self.__is_not_used()
-        new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in verdicts:
-            if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
-                new_verdict = UNSAFE_VERDICTS[4][0]
-                break
-            else:
-                new_verdict = v
-        return new_verdict
-
-    @transaction.atomic
-    def __new_verdicts(self, unsafes):
-        self.__is_not_used()
-        verdict_attrs = {
-            '0': 'unsafe_unknown',
-            '1': 'unsafe_bug',
-            '2': 'unsafe_target_bug',
-            '3': 'unsafe_false_positive',
-            '4': 'unsafe_inconclusive',
-            '5': 'unsafe_unassociated'
-        }
-        for unsafe in unsafes:
-            reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(unsafe=unsafe))
-            Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[unsafe.verdict]: 0}) \
-                .update(**{verdict_attrs[unsafe.verdict]: F(verdict_attrs[unsafe.verdict]) - 1})
-            Verdict.objects.filter(report_id__in=reports).update(**{
-                verdict_attrs[unsafes[unsafe]]: F(verdict_attrs[unsafes[unsafe]]) + 1
-            })
-            unsafe.verdict = unsafes[unsafe]
-            unsafe.save()
+        # verdicts is set (otherwise there is bug here)
+        v_num = len(verdicts)
+        if v_num == 0:
+            # No marks
+            return UNSAFE_VERDICTS[5][0]
+        elif v_num == 1:
+            return verdicts.pop()
+        # Several different verdicts
+        return UNSAFE_VERDICTS[4][0]
 
     def __is_not_used(self):
         pass
@@ -665,10 +625,6 @@ class RecalculateConnections:
         UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
         ReportUnsafe.objects.filter(root__in=self._roots).update(verdict=UNSAFE_VERDICTS[5][0], has_confirmed=False)
-        Verdict.objects.filter(report__root__in=self._roots).update(
-            unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
-            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
-        )
         unsafes = []
         for unsafe in ReportUnsafe.objects.filter(root__in=self._roots):
             ConnectReport(unsafe)
@@ -808,6 +764,11 @@ class PopulateMarks:
                 data = json.load(fp)
             if not isinstance(data, dict):
                 raise BridgeException(_('Corrupted preset unsafe mark: wrong format'))
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                # Do not populate non-production marks
+                continue
+
             if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
                 raise BridgeException(_('Corrupted preset unsafe mark: not enough data'))
             if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
@@ -870,8 +831,10 @@ def delete_marks(marks):
 
 
 def update_confirmed_cache(unsafes):
-    unsafes = list(unsafe.id for unsafe in unsafes)
-    with_confirmed = set(r_id for r_id, in MarkUnsafeReport.objects.filter(
-        report_id__in=unsafes, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0).values_list('report_id'))
-    ReportUnsafe.objects.filter(id__in=unsafes).update(has_confirmed=False)
+    unsafes_set= set(unsafe.id for unsafe in unsafes)
+    with_confirmed = set(MarkUnsafeReport.objects.filter(
+        report_id__in=unsafes_set, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0
+    ).values_list('report_id', flat=True))
+
+    ReportUnsafe.objects.filter(id__in=unsafes_set - with_confirmed).update(has_confirmed=False)
     ReportUnsafe.objects.filter(id__in=with_confirmed).update(has_confirmed=True)

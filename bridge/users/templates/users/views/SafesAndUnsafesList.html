@@ -62,6 +62,13 @@
                     <input id="order_by_parent_memory__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="parent_memory"{% if view.order.1 == 'parent_memory' %} checked{% endif %}>
                     <label for="order_by_parent_memory__{{ view.type }}">{% trans 'Order by verifiers RAM' %}</label>
                 </div>
+            {% if view.type == '4' %}
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_by_total_similarity__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="total_similarity"{% if view.order.1 == 'total_similarity' %} checked{% endif %}>
+                    <label for="order_by_total_similarity__{{ view.type }}">{% trans 'Order by total similarity' %}</label>
+                </div>
+            {% endif %}
                 <br>
                 <div class="ui radio checkbox">
                     <input id="order_by_attr__{{ view.type }}" type="radio" name="view_{{ view.type }}__radio_order" value="attr"{% if view.order.1 == 'attr' %} checked{% endif %}>
@@ -108,6 +115,7 @@
                     <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="iendswith"{% if 'attr' in view and view.attr.1 == 'iendswith' %} selected{% endif %}>{% trans 'ends with' %}</option>
+                    <option value="icontains"{% if 'attr' in view and view.attr.1 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label for="view_{{ view.type }}__attr_type"></label>
             </div>

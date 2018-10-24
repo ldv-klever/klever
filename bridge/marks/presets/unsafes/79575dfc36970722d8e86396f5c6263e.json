@@ -11,9 +11,9 @@
       "value": "0/tests/acda82a/linux:emg:test"
     },
     {
-      "attr": "Linux kernel:Version",
+      "attr": "Linux:Version",
       "is_compare": true,
-      "value": "3.14.0"
+      "value": "v3.14"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -31,9 +31,9 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "linux:emg:test"
+      "value": "linux:test:environment model specifications"
     },
     {
       "attr": "Verification object",

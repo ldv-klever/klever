@@ -1,0 +1,53 @@
+{
+  "templates": {
+    "Linux modules": {
+      "program": "Linux",
+      "kernel": false,
+      "ignore dependencies": true
+    },
+    "Linux modules with callgraph": {
+      "program": "Linux",
+      "kernel": false
+    },
+    "Linux subsystems": {
+      "program": "Linux",
+      "kernel": true,
+      "separate nested subsystems": true,
+      "add modules by coverage": true
+    },
+    "Busybox applets": {
+      "program": "Busybox",
+      "include dependencies from libbb to applets fragments": true
+    }
+  },
+  "fragmentation sets": {
+    "Linux": {
+      "Linux modules with callgraph": {
+        "Linux 3.14": {}
+      },
+      "Linux modules": {
+        "Linux 3.14": {},
+        "Linux 2.6.33": {},
+        "Linux 4.6.7": {}
+      },
+      "Linux subsystems": {
+        "Linux 3.14": {}
+      }
+    },
+    "Busybox": {
+      "Busybox applets": {
+        "v1.28.3": {
+          "add to all fragments": [
+            "libbb"
+          ],
+          "exclude from all fragments": [
+            "libbb/getopt32.o",
+            "libbb/appletlib.o",
+            "libbb/verror_msg.o",
+            "libbb/perror_msg.o"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -57,8 +57,6 @@ def user_signin(request):
         Extended.objects.get(user=user)
     except ObjectDoesNotExist:
         extend_user(user)
-    if Job.objects.count() == 0 and user.is_staff:
-        return HttpResponseRedirect(reverse('population'))
     next_url = request.POST.get('next_url')
     if next_url is not None and next_url != '':
         return HttpResponseRedirect(next_url)

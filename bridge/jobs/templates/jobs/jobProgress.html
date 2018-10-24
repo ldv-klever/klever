@@ -27,13 +27,7 @@
                 {% if progress.start_decision == '-' %}
                     <span>-</span>
                 {% else %}
-                    {% if user.extended.data_format == 'hum' %}
-                        {{ progress.start_decision|naturaltime }}
-                    {% else %}
-                        {% timezone user.extended.timezone %}
-                            {{ progress.start_decision|date:"r" }}
-                        {% endtimezone %}
-                    {% endif %}
+                    {% if user.extended.data_format == 'hum' %}{{ progress.start_decision|naturaltime }}{% else %}{{ progress.start_decision|date:"r" }}{% endif %}
                 {% endif %}
             </td>
         </tr>
@@ -45,13 +39,7 @@
                 {% if progress.finish_decision == '-' %}
                     <span>-</span>
                 {% else %}
-                    {% if user.extended.data_format == 'hum' %}
-                        {{ progress.finish_decision|naturaltime }}
-                    {% else %}
-                        {% timezone user.extended.timezone %}
-                            {{ progress.finish_decision|date:"r" }}
-                        {% endtimezone %}
-                    {% endif %}
+                    {% if user.extended.data_format == 'hum' %}{{ progress.finish_decision|naturaltime }}{% else %}{{ progress.finish_decision|date:"r" }}{% endif %}
                 {% endif %}
             </td>
         </tr>
@@ -79,13 +67,7 @@
                             {% if progress.start_ts == '-' %}
                                 <span>-</span>
                             {% else %}
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ progress.start_ts|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ progress.start_ts|date:"r" }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ progress.start_ts|naturaltime }}{% else %}{{ progress.start_ts|date:"r" }}{% endif %}
                             {% endif %}
                         </li>
                     {% endif %}
@@ -107,13 +89,7 @@
                             {% if progress.finish_ts == '-' %}
                                 <span>-</span>
                             {% else %}
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ progress.finish_ts|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ progress.finish_ts|date:"r" }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ progress.finish_ts|naturaltime }}{% else %}{{ progress.finish_ts|date:"r" }}{% endif %}
                             {% endif %}
                         </li>
                     {% endif %}
@@ -132,13 +108,7 @@
                             {% if progress.start_sj == '-' %}
                                 <span>-</span>
                             {% else %}
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ progress.start_sj|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ progress.start_sj|date:"r" }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ progress.start_sj|naturaltime }}{% else %}{{ progress.start_sj|date:"r" }}{% endif %}
                             {% endif %}
                         </li>
                     {% endif %}
@@ -160,13 +130,7 @@
                             {% if progress.finish_sj == '-' %}
                                 <span>-</span>
                             {% else %}
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ progress.finish_sj|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ progress.finish_sj|date:"r" }}
-                                    {% endtimezone %}
-                                {% endif %}
+                                {% if user.extended.data_format == 'hum' %}{{ progress.finish_sj|naturaltime }}{% else %}{{ progress.finish_sj|date:"r" }}{% endif %}
                             {% endif %}
                         </li>
                     {% endif %}

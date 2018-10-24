@@ -17,6 +17,8 @@
 
 var def_file_to_open = 'job.json';
 
+(function($) { $.fn.getCodeMirror = function() { return (this).find('.CodeMirror')[0].CodeMirror } }(jQuery));
+
 function check_filename(str) {
     if (str.length > 0) {
         if (isASCII(str) || str.length < 30) {
@@ -32,13 +34,10 @@ function check_filename(str) {
 }
 
 function reselect_node(inst, node) {
-    var edit_file_area = $('#editfile_area'), commit_btn = $('#commit_file_changes');
+    var doc = $('#editfile_area').getCodeMirror();
     inst.deselect_node(node);
-    edit_file_area.val('');
-    edit_file_area.prop('disabled', true);
-    if (!commit_btn.hasClass('disabled')) {
-        commit_btn.addClass('disabled');
-    }
+    doc.setValue('');
+    doc.setOption('readOnly', true);
     inst.select_node(node);
 }
 
@@ -130,63 +129,26 @@ function replace_file_action(data) {
 }
 
 function load_file_content(node) {
-    var editfile_area = $('#editfile_area');
-    editfile_area.val('');
+    // Do nothing if file is not readable
+    if (!isFileReadable(node.text)) return;
 
     if (node.data && node.data.hashsum) {
         var cached = $('#cached_files').find('span[data-hashsum="' + node.data.hashsum + '"]');
         if (cached.length) {
-            editfile_area.val(cached.text());
-            editfile_area.prop('disabled', false);
+            set_editfile_area(node.text, cached.text());
         }
-        else if (isFileReadable(node.text)) {
+        else {
             $.get('/jobs/getfilecontent/' + node.data.hashsum + '/', {}, function (resp) {
-                if (resp.error) {
-                    err_notify(resp.error);
-                }
-                else {
-                    editfile_area.val(resp.content);
-                    editfile_area.prop('disabled', false);
+                if (resp.error) { err_notify(resp.error) } else {
+                    set_editfile_area(node.text, resp.content);
+                    // Caching file content
                     $('#cached_files').append($('<span>', {hidden: true, text: resp.content, 'data-hashsum': node.data.hashsum}));
                 }
             });
         }
     }
-    else if (isFileReadable(node.text)) editfile_area.prop('disabled', false);
-}
-
-function commit_file_changes(tree_div_id) {
-    var tree = $(tree_div_id).jstree(true), node = tree.get_selected(true)[0];
-    if (node) {
-        var formData = new FormData();
-        formData.append('file', new File([new Blob([$('#editfile_area').val()])], node.text));
-
-        $.ajax({
-            url: '/jobs/upload_file/', data: formData,
-            processData: false, contentType: false, type: 'POST',
-            success: function (resp) {
-                if (resp.error) {
-                    err_notify(resp.error)
-                }
-                else {
-                    node.data = {hashsum: resp.hashsum};
-                    $('#commit_file_changes').addClass('disabled');
-
-                    var cached_files = $('#cached_files'),
-                        cached = cached_files.find('span[data-hashsum="' + node.data.hashsum + '"]');
-                    if (!cached.length) {
-                        cached_files.append($('<span>', {
-                            hidden: true, text: $('#editfile_area').val(), 'data-hashsum': node.data.hashsum
-                        }));
-                    }
-                    success_notify($('#success__file_commited').text());
-                }
-            },
-            error: function () {
-                err_notify('File was not commited');
-            }
-        });
-    }
+    // If readable file was created and content is still empty
+    else set_editfile_area(node.text, '');
 }
 
 function download_file(data) {
@@ -197,10 +159,45 @@ function download_file(data) {
 }
 
 function clear_editfile_area() {
-    $('#commit_file_changes').addClass('disabled');
-    var editfile_area = $('#editfile_area');
-    editfile_area.prop('disabled', true);
-    editfile_area.val('');
+    // Clear editor content, history and make it read-Only
+    var doc = $('#editfile_area').getCodeMirror();
+    doc.setValue('');
+    doc.setOption('readOnly', true);
+    doc.clearHistory();
+    $('#editor_filename').empty();
+    $('#editor_unsaved').hide();
+}
+
+function set_editfile_area(filename, content) {
+    // Get highlighting mode
+    var h_mode = 'text/plain';
+    switch (getFileExtension(filename)) {
+        case 'json':
+            h_mode = {name: 'javascript', json: true};
+            break;
+        case 'c':
+        case 'h':
+        case 'i':
+        case 'aspect':
+        case 'tmpl':
+            h_mode = 'text/x-csrc';
+            break;
+        case 'xml':
+            h_mode = 'application/xml';
+            break;
+        case 'py':
+            h_mode = 'text/x-python';
+            break;
+    }
+
+    // Set editor content with mode, clear history and make it editable
+    var doc = $('#editfile_area').getCodeMirror();
+    doc.setValue(content);
+    doc.setOption('readOnly', false);
+    doc.setOption('mode', h_mode);
+    doc.clearHistory();
+
+    $('#editor_filename').text(filename);
 }
 
 function get_menu(node) {
@@ -269,6 +266,90 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
     $('#upload_file_modal').modal({transition: 'fly left'});
     $('.close-modal').click(function () {$('.ui.modal').modal('hide')});
 
+    function open_first_found_file() {
+        // Disable editor in case if file wouldn't be found
+        clear_editfile_area();
+
+        var instance = $(tree_div_id).jstree(true),
+            tree_data = instance._model.data,
+            root_id = tree_data['#']['children'][0],
+            first_file;
+        for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
+            var child_id = tree_data[root_id]['children'][i];
+            if (tree_data[child_id]['type'] == 'file') {
+                if (tree_data[child_id]['text'] == def_file_to_open) {
+                    first_file = tree_data[root_id]['children'][i];
+                    break;
+                }
+                else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
+                    first_file = tree_data[root_id]['children'][i];
+                }
+            }
+        }
+        if (first_file) instance.select_node(first_file);
+    }
+
+    function editorCtrlS() {
+        // The file wasn't changed
+        if ($('#editor_unsaved').is(':hidden')) return false;
+
+        var tree = $(tree_div_id).jstree(true), node = tree.get_selected(true)[0];
+        if (node) {
+            var formData = new FormData(), doc = $('#editfile_area').getCodeMirror(),
+                content = doc.getValue(), file_extension = getFileExtension(node.text);
+
+            if (file_extension === 'json') {
+                // Check if json is correct
+                try { JSON.parse(content) } catch (e) {
+                    err_notify($('#error__wrong_json').text());
+                    if (e instanceof SyntaxError) {
+                        var m = e.message.match(/.*position (\d+)/);
+                        if (m) {
+                            doc.focus();
+                            doc.setCursor(doc.posFromIndex(parseInt(m[1], 10)));
+                        }
+                    }
+                    // Json is incorrect
+                    return false;
+                }
+            }
+
+            formData.append('file', new File([new Blob([content])], node.text));
+            $.ajax({
+                url: '/jobs/upload_file/', data: formData,
+                processData: false, contentType: false, type: 'POST',
+                success: function (resp) {
+                    if (resp.error) { err_notify(resp.error) } else {
+                        node.data = {hashsum: resp.hashsum};
+
+                        var cached_files = $('#cached_files'),
+                            cached = cached_files.find('span[data-hashsum="' + node.data.hashsum + '"]');
+                        // Caching file content
+                        if (!cached.length) cached_files.append($('<span>', {text: content, 'data-hashsum': node.data.hashsum}));
+                        success_notify($('#success__file_commited').text());
+                        $('#editor_unsaved').hide();
+                    }
+                }, error: function () { err_notify('File was not commited') }
+            });
+        }
+    }
+
+    // Init files editor
+    $('#editor_help_icon').popup({popup: $('#editor_help_popup'), position: 'bottom right', lastResort: 'bottom right'});
+
+    var myCodeMirror = CodeMirror(
+        function (elt) { $('#editfile_area').append(elt) },
+        {
+            mode: {name: "javascript", json: true}, theme: "midnight", lineNumbers: true,
+            readOnly: true, extraKeys: {'Ctrl-S': editorCtrlS}
+        }
+    );
+    myCodeMirror.setSize('100%', '85vh');
+    myCodeMirror.on('change', function (doc, changeObj) {
+        if (changeObj.origin !== 'setValue') $('#editor_unsaved').show();
+    });
+
+    // Get files tree and init it
     $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {}, function (json) {
         if (json.error) {
             err_notify(json.error);
@@ -294,29 +375,11 @@ window.init_files_tree = function (tree_div_id, job_id, version) {
         }).on('select_node.jstree', function (e, data) {
             clear_editfile_area();
             if (data.node.type == 'file') load_file_content(data.node);
-        }).on('ready.jstree', function () {
-            var instance = $(tree_div_id).jstree(true),
-                tree_data = instance._model.data,
-                root_id = tree_data['#']['children'][0],
-                first_file;
-            for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
-                var child_id = tree_data[root_id]['children'][i];
-                if (tree_data[child_id]['type'] == 'file') {
-                    if (tree_data[child_id]['text'] == def_file_to_open) {
-                        first_file = tree_data[root_id]['children'][i];
-                        break;
-                    }
-                    else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
-                        first_file = tree_data[root_id]['children'][i];
-                    }
-                }
-            }
-            if (first_file) instance.select_node(first_file);
-        }).on('delete_node.jstree', clear_editfile_area);
+        })
+            .on('ready.jstree', open_first_found_file)
+            .on('refresh.jstree', open_first_found_file)
+            .on('delete_node.jstree', clear_editfile_area);
     }, 'json');
-
-    $('#commit_file_changes').click(function () { commit_file_changes(tree_div_id) });
-    $('#editfile_area').on('input', function () { $('#commit_file_changes').removeClass('disabled') });
 };
 
 window.get_files_data = function(tree_div_id) {
@@ -331,7 +394,8 @@ window.refresh_files_tree = function (tree_div_id, job_id, version) {
             err_notify(json.error);
             return false;
         }
-        $(tree_div_id).jstree(true).settings.core.data = [json];
-        $(tree_div_id).jstree(true).refresh();
+        var tree_inst = $(tree_div_id).jstree(true);
+        tree_inst.settings.core.data = [json];
+        tree_inst.refresh();
     }, 'json');
 };

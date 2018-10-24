@@ -428,11 +428,15 @@ window.update_colors = function (table) {
     });
 };
 
+window.getFileExtension = function(name) {
+    var found = name.lastIndexOf('.') + 1;
+    return found > 0 ? name.substr(found) : "";
+};
+
 window.isFileReadable = function(name) {
-    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
-    var found = name.lastIndexOf('.') + 1,
-        extension = (found > 0 ? name.substr(found) : "");
-    return ($.inArray(extension, readable_extensions) !== -1);
+    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
+        extension = getFileExtension(name);
+    return ($.inArray(extension, readable_extensions) !== -1 || name == 'README');
 };
 
 window.get_url_with_get_parameter = function (url, key, value) {
@@ -483,7 +487,8 @@ $(document).ready(function () {
         $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
     }
 
-    if ($('#show_upload_job_popup').length) {
+    var upload_btn = $('#show_upload_job_popup');
+    if (upload_btn.length && !upload_btn.hasClass('disabled')) {
         $('#upload_job_popup').modal({transition: 'vertical flip', onShow: function () {
             var parent_identifier = $('#job_identifier');
             if (parent_identifier.length) {
@@ -491,7 +496,9 @@ $(document).ready(function () {
             }
         }}).modal('attach events', '#show_upload_job_popup', 'show');
     }
-    if ($('#show_upload_jobtree_popup').length) {
+
+    var upload_tree_btn = $('#show_upload_jobtree_popup');
+    if (upload_tree_btn.length && !upload_tree_btn.hasClass('disabled')) {
         $('#upload_jobtree_popup').modal({transition: 'vertical flip', onShow: function () {
             var parent_identifier = $('#job_identifier');
             if (parent_identifier.length) {

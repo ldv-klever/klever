@@ -31,14 +31,14 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "linux:emg:test"
+      "value": "linux:test:environment model specifications"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/target_backend_v1/target_backend_invoke.ko"
+      "value": "ext-modules/target_backend_v.1/target_backend_invoke.ko"
     }
   ],
   "comparison": "thread_call_forests",

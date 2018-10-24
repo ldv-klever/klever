@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "ac4de081312a/drivers/leds/leds-lp5523.ko/linux:kernel:locking:mutex"
     },
     {
@@ -31,14 +31,14 @@
       "value": "manual"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:kernel:locking:mutex"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "drivers/leds/leds-lp5523.kodc2cdbf07c53"
+      "value": "drivers/leds/leds-lp5523.ko"
     }
   ],
   "description": "One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers",

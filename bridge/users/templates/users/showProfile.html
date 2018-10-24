@@ -51,11 +51,7 @@
                     <tbody>
                     {% for act in activity %}
                         <tr>
-                            <td>
-                                {% timezone user.extended.timezone %}
-                                    {{ act.date }}
-                                {% endtimezone %}
-                            </td>
+                            <td>{{ act.date }}</td>
                             <td style="color:{{ act.act_color }}">{{ act.act_type }}</td>
                             <td>{{ act.obj_type }}</td>
                             {% if act.href %}

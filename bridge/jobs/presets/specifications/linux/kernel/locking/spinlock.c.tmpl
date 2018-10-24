@@ -1,0 +1,174 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
+#include <verifier/nondet.h>
+
+// for arg_sign in spinlock_arg_signs
+static int ldv_spin{{ arg_sign.id }} = 1;
+
+/* MODEL_FUNC Check that spinlock{{ arg_sign.text }} was not locked and lock it */
+void ldv_spin_lock{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:double lock", ldv_spin{{ arg_sign.id }} == 1);
+	/* NOTE Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
+	/* NOTE Lock spinlock{{ arg_sign.text }} */
+	ldv_spin{{ arg_sign.id }} = 2;
+}
+
+/* MODEL_FUNC Check that spinlock{{ arg_sign.text }} was locked and unlock it */
+void ldv_spin_unlock{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spinlock{{ arg_sign.text }} must be locked */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:double unlock", ldv_spin{{ arg_sign.id }} == 2);
+	/* NOTE Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 2);
+	/* NOTE Unlock spinlock{{ arg_sign.text }} */
+	ldv_spin{{ arg_sign.id }} = 1;
+}
+
+/* MODEL_FUNC Check that spinlock{{ arg_sign.text }} was not locked and nondeterministically lock it */
+int ldv_spin_trylock{{ arg_sign.id }}(void)
+{
+	int is_spin_held_by_another_thread;
+
+	/* ASSERT It may be bug if spinlock{{ arg_sign.text }} is locked at this point */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* NOTE Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
+
+	/* NOTE Construct nondetermined result */
+	is_spin_held_by_another_thread = ldv_undef_int();
+
+	/* NOTE Nondeterministically lock spinlock{{ arg_sign.text }} */
+	if (is_spin_held_by_another_thread) {
+		/* NOTE Spinlock{{ arg_sign.text }} was not locked. Finish with fail */
+		return 0;
+	}
+	else {
+		/* NOTE Lock spinlock{{ arg_sign.text }} */
+		ldv_spin{{ arg_sign.id }} = 2;
+		/* NOTE Finish with success */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC The same thread can not both lock spinlock{{ arg_sign.text }} and wait until it will be unlocked */
+void ldv_spin_unlock_wait{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spinlock{{ arg_sign.text }} must not be locked by current thread */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* NOTE Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
+}
+
+/* MODEL_FUNC Check whether spinlock{{ arg_sign.text }} was locked */
+int ldv_spin_is_locked{{ arg_sign.id }}(void)
+{
+	int is_spin_held_by_another_thread;
+
+	/* NOTE Construct nondetermined result */
+	is_spin_held_by_another_thread = ldv_undef_int();
+
+	/* NOTE Nondeterministically understand whether spinlock{{ arg_sign.text }} was locked */
+	if(ldv_spin{{ arg_sign.id }} == 1 && !is_spin_held_by_another_thread) {
+		/* NOTE Spinlock{{ arg_sign.text }} is not locked */
+		return 0;
+	}
+	else {
+		/* NOTE Spinlock{{ arg_sign.text }} was locked */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC Check whether spinlock{{ arg_sign.text }} was not locked */
+int ldv_spin_can_lock{{ arg_sign.id }}(void)
+{
+	/* NOTE Inverse function for spin_is_locked() */
+	return !ldv_spin_is_locked{{ arg_sign.id }}();
+}
+
+/* MODEL_FUNC Check whether spinlock{{ arg_sign.text }} is contended */
+int ldv_spin_is_contended{{ arg_sign.id }}(void)
+{
+	int is_spin_contended;
+
+	/* NOTE Construct nondetermined result */
+	is_spin_contended = ldv_undef_int();
+
+	/* NOTE Nondeterministically understand whether spinlock{{ arg_sign.text }} is contended */
+	if(is_spin_contended) {
+		/* NOTE Spinlock{{ arg_sign.text }} is contended */
+		return 0;
+	}
+	else {
+		/* NOTE Spinlock{{ arg_sign.text }} is not contended */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC Lock spinlock{{ arg_sign.text }} if atomic decrement result is zero */
+int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
+{
+	int atomic_value_after_dec;
+
+	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* NOTE Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
+
+	/* NOTE Assign result of atomic decrement */
+	atomic_value_after_dec = ldv_undef_int();
+
+	/* NOTE Atomic decrement result is zero */
+	if (atomic_value_after_dec == 0) {
+		/* NOTE Lock spinlock{{ arg_sign.text }} */
+		ldv_spin{{ arg_sign.id }} = 2;
+		/* NOTE Finish with success */
+		return 1;
+	}
+
+	/* NOTE Atomic decrement result is not zero. Finish with fail without locking spin{{ arg_sign.text }} */
+	return 0;
+}
+// endfor
+
+/* MODEL_FUNC Check that all spinlocks are unlocked at the end */
+void ldv_check_final_state(void)
+{
+	// for arg_sign in spinlock_arg_signs
+	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked before finishing operation */
+	ldv_assert("linux:kernel:locking:spinlock::one thread:locked at exit", ldv_spin{{ arg_sign.id }} == 1);
+	// endfor
+}
+
+/* For 'linux:alloc:spinlock' requirement */
+int ldv_exclusive_spin_is_locked(void)
+{
+	// for arg_sign in spinlock_arg_signs
+	/* NOTE Nondeterministically understand whether spinlock{{ arg_sign.text }} was locked */
+	if(ldv_spin{{ arg_sign.id }} == 2) {
+		/* NOTE Spinlock{{ arg_sign.text }} is locked */
+		return 1;
+	}
+	// endfor
+	/* NOTE None of the spinlocks are locked */
+	return 0;
+}

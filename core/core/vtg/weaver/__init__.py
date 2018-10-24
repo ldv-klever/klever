@@ -19,6 +19,7 @@ import fileinput
 import json
 import os
 import re
+import clade.interface as clade_api
 
 import core.utils
 import core.vtg.utils
@@ -27,32 +28,43 @@ import core.vtg.plugins
 
 class Weaver(core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(Weaver, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                      separate_from_parent, include_child_resources)
 
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 
+        clade_api.setup(self.conf['build base'])
+        storage = clade_api.FileStorage()
+
+        # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
+        # with "-nostdinc" option and system stdarg.h couldn't be used.
+        aspectator_search_dir = '-isystem' + core.utils.execute(self.logger,
+                                                                ('aspectator', '-print-file-name=include'),
+                                                                collect_all_stdout=True)[0]
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
+            for extra_cc in grp['Extra CCs']:
+                if 'CC' in extra_cc:
+                    if extra_cc['CC'].isdigit():
+                        cc = clade_api.get_cc(extra_cc['CC'])
+                        cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
+                    else:
+                        with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
+                                  encoding='utf8') as fp:
+                            cc = json.load(fp)
 
-                if 'cc full desc file' in cc_extra_full_desc_file:
-                    with open(os.path.join(self.conf['main working directory'],
-                                           cc_extra_full_desc_file['cc full desc file']),
-                              encoding='utf8') as fp:
-                        cc_full_desc = json.load(fp)
+                    self.logger.info('Weave in C file "{0}"'.format(cc['in'][0]))
 
-                    self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
-
-                    cc_full_desc['out file'] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                        os.path.basename(cc_full_desc['out file']))[0], '.abs-paths.i'))
+                    cc['out'][0] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
+                        os.path.basename(cc['out'][0]))[0], '.abs-paths.i'))
 
                     # Produce aspect to be weaved in.
-                    if 'plugin aspects' in cc_extra_full_desc_file:
+                    if 'plugin aspects' in extra_cc:
                         self.logger.info('Concatenate all aspects of all plugins together')
 
                         # Resulting aspect.
@@ -62,7 +74,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         # aspects of other plugins while corresponding function declarations still need be at beginning
                         # of file.
                         aspects = []
-                        for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
+                        for plugin_aspects in extra_cc['plugin aspects']:
                             if plugin_aspects['plugin'] == 'RSG':
                                 aspects[0:0] = plugin_aspects['aspects']
                             else:
@@ -79,57 +91,45 @@ class Weaver(core.vtg.plugins.Plugin):
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
 
-                    # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
-                    # with "-nostdinc" option and system stdarg.h couldn't be used.
-                    stdout = core.utils.execute(self.logger,
-                                                ('aspectator', '-print-file-name=include'),
-                                                collect_all_stdout=True)
                     core.utils.execute(
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', cc_full_desc['in files'][0],
-                                  '--aspect', os.path.relpath(aspect,
-                                                              os.path.join(self.conf['main working directory'],
-                                                                           cc_full_desc['cwd'])),
-                                  # Besides header files specific for rule specifications will be searched for.
-                                  '--general-opts', "-I{0}".format(
-                                      os.path.relpath(os.path.dirname(
-                                          core.utils.find_file_or_dir(self.logger,
-                                                                      self.conf['main working directory'],
-                                                                      self.conf['rule specifications DB'])),
-                                                      os.path.join(self.conf['main working directory'],
-                                                                   cc_full_desc['cwd']))),
+                                  '--in', storage.normal_path(cc['in'][0]),
+                                  '--aspect', os.path.realpath(aspect),
+                                  # Besides header files specific for requirements specifications will be searched for.
+                                  '--general-opts', '-I' + os.path.realpath(
+                                    os.path.dirname(self.conf['requirements DB'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
-                                  '--out', os.path.relpath(cc_full_desc['out file'],
-                                                           os.path.join(self.conf['main working directory'],
-                                                                        cc_full_desc['cwd'])),
+                                  '--out', os.path.realpath(cc['out'][0]),
                                   '--back-end', 'src',
                                   '--debug', 'DEBUG'
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
-                              ['-isystem{0}'.format(stdout[0])]),
-                        cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
+                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                              [aspectator_search_dir]),
+                        cwd=storage.convert_path(cc['cwd']),
+                        timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
-                    self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
+                    self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
 
                     # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
-                    preprocessed_c_file = '{}.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                    preprocessed_c_file = '{}.i'.format(os.path.splitext(cc['out'][0])[0])
                     core.utils.execute(self.logger,
                                        (
                                            'aspectator',
                                            '-E',
-                                           '-x', 'c', cc_full_desc['out file'],
+                                           '-x', 'c', cc['out'][0],
                                            '-o', preprocessed_c_file
-                                       ))
+                                       ),
+                                       timeout=0.01)
                     if not self.conf['keep intermediate files']:
-                        os.remove(cc_full_desc['out file'])
+                        os.remove(cc['out'][0])
                     self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
-                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc['out'][0])[0])
                     with open(preprocessed_c_file, encoding='utf8') as fp_in, open(abs_paths_c_file, 'w',
                                                                                    encoding='utf8') as fp_out:
                         # Print preprocessor header as is.
@@ -147,8 +147,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(
-                                        os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(os.path.realpath(storage.storage_dir) + cc['cwd'], file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)
@@ -161,11 +160,11 @@ class Weaver(core.vtg.plugins.Plugin):
                 else:
                     extra_c_file = {}
 
-                if 'rule spec id' in cc_extra_full_desc_file:
-                    extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']
+                if 'requirement id' in extra_cc:
+                    extra_c_file['requirement id'] = extra_cc['requirement id']
 
-                if 'bug kinds' in cc_extra_full_desc_file:
-                    extra_c_file['bug kinds'] = cc_extra_full_desc_file['bug kinds']
+                if 'bug kinds' in extra_cc:
+                    extra_c_file['bug kinds'] = extra_cc['bug kinds']
 
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 

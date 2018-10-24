@@ -31,9 +31,9 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "test"
+      "value": "linux:test:common"
     },
     {
       "attr": "Verification object",
@@ -57,5 +57,4 @@
   "is_modifiable": true,
   "status": "1",
   "tags": [],
-  "verdict": "2"
-}
+  "verdict": "2"}

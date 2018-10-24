@@ -61,7 +61,7 @@ function update_decision_results(interval) {
     }
     $.post(
         '/jobs/decision_results/' + $('#job_id').val() + '/',
-        {view: collect_view_data('2')['view']},
+        {view_type: '2', view: collect_view_data('2')['view']},  // VIEW_TYPES[2]
         function (data) {
             if (data.error) {
                 err_notify(data.error);
@@ -119,8 +119,12 @@ function check_status(interval) {
 
 function activate_download_for_compet() {
     var dfc_modal = $('#dfc_modal');
-    $('#dfc_modal_show').popup();
-    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false}).modal('attach events', '#dfc_modal_show', 'show');
+    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false});
+    $('#dfc_modal_show').click(function () {
+        if ($(this).hasClass('disabled')) return false;
+        $('.browse').popup('hide');
+        dfc_modal.modal('show');
+    });
     dfc_modal.find('.ui.checkbox').checkbox();
     $('#dfc__f').parent().checkbox({
         onChecked: function () {
@@ -235,6 +239,13 @@ function clear_verification_files() {
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
     $('#resources-note').popup();
+    $('.menu-link').click(function (event) {
+        if ($(this).hasClass('disabled')) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    });
 
     init_files_tree('#filestree', $('#job_id').val(), $('#job_version').val());
     activate_download_for_compet();
@@ -254,25 +265,15 @@ $(document).ready(function () {
     var job_status_popup = $('#job_status_popup');
     if (job_status_popup.length) $('#job_status_popup_activator').popup({popup: job_status_popup, position: 'bottom center'});
 
-    var safe_marks_popup = $('#safe_marks_popup');
-    if (safe_marks_popup.length) {
-        $('#safe_marks_link').popup({
-            popup: safe_marks_popup,
-            hoverable: true,
-            delay: {show: 100, hide: 300},
-            variation: 'wide',
-            position: 'right center'
-        });
-        $('#change_safe_marks').click(function () {
-            $('#safe_marks_link').popup('hide');
-            $.post('/jobs/enable_safe_marks/' + $('#job_id').val() + '/', {}, error_or_reload);
-        });
-    }
-
-    $('#download_job_btn').click(function () { $('.browse').popup('hide') });
+    $('#download_job_btn').click(function () {
+        if ($(this).hasClass('disabled')) return false;
+        $('.browse').popup('hide');
+        return true;
+    });
 
     $('#upload_reports_popup').modal({transition: 'vertical flip'});
     $('#upload_reports_btn').click(function () {
+        if ($(this).hasClass('disabled')) return false;
         $('.browse').popup('hide');
         $('#upload_reports_popup').modal('show');
     });
@@ -312,21 +313,41 @@ $(document).ready(function () {
         return false;
     });
 
-    var num_of_updates = 0, is_filters_open = false, just_status = false, message_is_shown = false;
+    var num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');
+
+    function stop_autoupdate() {
+        if (autoupdate_btn.data('status') === 'off') {
+            // Already stopped
+            return false;
+        }
+        err_notify($('#error__autoupdate_off').text());
+        autoupdate_btn.text($('#start_autorefresh').text());
+        autoupdate_btn.data('status', 'off');
+    }
+    function start_autoupdate() {
+        if (autoupdate_btn.data('status') === 'on') {
+            // Already started
+            return false;
+        }
+        num_of_updates = 0;
+        autoupdate_btn.text($('#stop_autorefresh').text());
+        autoupdate_btn.data('status', 'on');
+    }
+
+    autoupdate_btn.click(function () { $(this).data('status') === 'on' ? stop_autoupdate() : start_autoupdate() });
+
     $('#job_filters_accordion').accordion({'onOpen': function() { is_filters_open = true }, 'onClose': function() { is_filters_open = false }});
     var interval = setInterval(function () {
         if ($.active > 0) return false;
         if (is_filters_open) return false;
-        update_decision_results(interval);
-        update_progress(interval);
-        check_status(interval);
-        num_of_updates++;
-        if (num_of_updates > 60) {
-            if (!message_is_shown) {
-                err_notify($('#error__autoupdate_off').text());
-                message_is_shown = true;
-            }
-            just_status = true;
+        if (autoupdate_btn.data('status') === 'on') {
+            // Autoupdate is turned on
+            update_decision_results(interval);
+            update_progress(interval);
+            num_of_updates++;
+            if (num_of_updates > 5) stop_autoupdate();
         }
+        // Always update the status
+        check_status(interval);
     }, 3000);
 });

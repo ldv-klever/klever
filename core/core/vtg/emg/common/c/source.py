@@ -16,10 +16,13 @@
 #
 
 import re
-import json
+import ujson
+import clade.interface as clade_api
 
+from core.utils import find_file_or_dir
+from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
-from core.vtg.emg.common.c.types import import_typedefs, import_declaration, extract_name, is_static
+from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
 
 
 class Source:
@@ -28,13 +31,13 @@ class Source:
     information about functions, variable initializations, a functions call graph, macros.
     """
 
-    def __init__(self, logger, conf, analysis_file):
+    def __init__(self, logger, conf, abstract_task):
         """
         Setup initial attributes and get logger object.
 
         :param logger: logging object.
         :param conf: Source code analysis configuration.
-        :param analysis_file: Name of the file with source analysis data.
+        :param abstract_task: Abstract verification task dictionary (given by VTG).
         :param conf: Configuration properties dictionary.
         """
         self.logger = logger
@@ -44,10 +47,15 @@ class Source:
         self._macros = dict()
         self.__function_calls_cache = dict()
 
-        self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
-        with open(analysis_file, encoding="utf8") as fh:
-            analysis_data = json.loads(fh.read())
-        self._import_code_analysis(analysis_data)
+        # Initialize Clade cient to make requests
+        self._clade = clade_api
+        self._clade.setup(self._conf['build base'])
+
+        # Ask for dependencies for each CC
+        cfiles, files_map = self._collect_file_dependencies(abstract_task)
+
+        # Read file with source analysis
+        self._import_code_analysis(self._clade, cfiles, files_map)
 
     @property
     def source_functions(self):
@@ -225,84 +233,179 @@ class Source:
         else:
             return None
 
-    def _import_code_analysis(self, source_analysis):
+    def _import_code_analysis(self, clade_api, cfiles, dependencies):
         """
         Read global variables, functions and macros to fill up the collection.
 
         :param source_analysis: Dictionary with the content of source analysis.
+        :param files_map: Dictionary to resolve main file by an included file.
         :return: None.
         """
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
-        if source_analysis and 'typedefs' in source_analysis:
-            import_typedefs(source_analysis['typedefs'])
+        typedef = clade_api.TypeDefinitions(cfiles).graph
+        if typedef:
+            import_typedefs(typedef)
+        variables = clade_api.VariableInitializations(cfiles)
+        if variables.vars:
+            self.logger.info("Import global variables initializations")
+            for path, vals in variables.vars.items():
+                for variable in vals:
+                    variable_name = extract_name(variable['declaration'])
+                    if not variable_name:
+                        raise ValueError('Global variable without a name')
+                    var = Variable(variable_name, variable['declaration'])
 
-        if 'global variable initializations' in source_analysis:
-            self.logger.info("Import types from global variables initializations")
-            for variable in source_analysis["global variable initializations"]:
-                variable_name = extract_name(variable['declaration'])
-                if not variable_name:
-                    raise ValueError('Global variable without a name')
-                var = Variable(variable_name, variable['declaration'])
+                    # Here we know, that if we met a variable in an another file then it is an another variable because
+                    # a program should contain a single global variable initialization
+                    self.set_source_variable(var, path)
+                    var.declaration_files.add(path)
+                    var.initialization_file = path
+                    var.static = is_static(variable['declaration'])
 
-                # Here we know, that if we met a variable in an another file then it is an another variable because
-                # a program should contain a single global variable initialization
-                self.set_source_variable(var, variable['path'])
-                var.declaration_files.add(variable['path'])
-                var.initialization_file = variable['path']
-                var.static = is_static(variable['declaration'])
+                    if 'value' in variable:
+                        var.value = variable['value']
 
-                if 'value' in variable:
-                    var.value = variable['value']
+        # Variables which are used in variables initalizations
+        self.logger.info("Import source functions")
+        vfunctions = variables.used_vars_functions
+        # Function scope definitions
+        fs = clade_api.FunctionsScopes(set(dependencies.keys())).scope_to_funcs
+        # Get functions defined in dependencies and in the main functions and have calls
+        cg = clade_api.CallGraph().partial_graph(set(dependencies.keys()))
+        # Add called functions
+        for scope in cg:
+            for func in cg[scope]:
+                desc = cg[scope][func]
+                if scope in cfiles:
+                    # Definition of the function is in the code of interest
+                    self._add_function(func, scope, fs, dependencies, cfiles)
+                elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
+                    if scope in fs and func in fs[scope]:
+                        # Function is called in the target code but defined in dependencies
+                        self._add_function(func, scope, fs, dependencies, cfiles)
+                    elif scope != 'unknown':
+                        self.logger.warning("There is no information on declarations of function {!r} from {!r} scope".
+                                            format(func, scope))
+        # Add functions missed in the call graph
+        for scope in (s for s in fs if s in cfiles):
+            for func in fs[scope]:
+                func_intf = self.get_source_function(func, scope)
+                if not func_intf:
+                    self._add_function(func, scope, fs, dependencies, cfiles)
 
-        if 'functions' in source_analysis:
-            self.logger.info("Import source functions")
-            for func in source_analysis['functions']:
-                for path in source_analysis['functions'][func]:
-                    description = source_analysis['functions'][func][path]
-                    declaration = import_declaration(description['signature'])
-                    func_intf = self.get_source_function(func, declaration=declaration)
-                    if func_intf and func_intf.declaration.compare(declaration):
-                        func_intf.declaration_files.add(path)
-                    else:
-                        func_intf = Function(func, description['signature'])
-                        func_intf.declaration_files.add(path)
-                    if 'definition' in description and description['definition']:
-                        func_intf.definition_file = path
-                    if 'static' in description:
-                        func_intf.static = description['static']
+        for func in self.source_functions:
+            for obj in self.get_source_functions(func):
+                scopes = set(obj.declaration_files).union(set(obj.header_files))
+                if not obj.definition_file:
+                    # It is likely be this way
+                    scopes.add('unknown')
+                for scope in (s for s in scopes if cg.get(s, dict()).get(func)):
+                    for cscope, desc in ((s, d) for s, d in cg[scope][func].get('called_in', {}).items()
+                                         if s in cfiles):
+                        for caller in desc:
+                            for line in desc[caller]:
+                                params = desc[caller][line].get('args')
+                                caller_intf = self.get_source_function(caller, cscope)
+                                obj.add_call(caller, cscope)
 
-                    func_intf.raw_declaration = description['signature']
-                    self.set_source_function(func_intf, path)
+                                if params:
+                                    # Here can be functions which are not defined or visible
+                                    for _, passed_func in list(params):
+                                        passed_obj = self.get_source_function(passed_func, cscope)
+                                        if not passed_obj:
+                                            passed_scope = self._search_function(passed_func, cscope, fs)
+                                            if passed_scope:
+                                                self._add_function(passed_func, passed_scope, fs, dependencies, cfiles)
+                                            else:
+                                                self.logger.warning("Cannot find function {!r} from scope {!r}".
+                                                                    format(passed_func, cscope))
+                                                # Ignore this call since model will not be correct without signature
+                                                params = None
+                                                break
+                                    caller_intf.call_in_function(obj, params)
 
-            # Then add calls
-            for func in source_analysis['functions']:
-                for path in source_analysis['functions'][func]:
-                    func_obj = self.get_source_function(func, path)
-                    description = source_analysis['functions'][func][path]
-                    if "called at" in description:
-                        for name in description["called at"]:
-                            func_obj.add_call(name, path)
-                    if "calls" in description:
-                        for name in description["calls"]:
-                            for call in description["calls"][name]:
-                                func_obj.call_in_function(name, call)
+        macros_file = get_conf_property(self._conf['source analysis'], 'macros white list')
+        if macros_file:
+            macros_file = find_file_or_dir(self.logger, self._conf['main working directory'], macros_file)
+            with open(macros_file, 'r', encoding='utf8') as fp:
+                white_list = ujson.load(fp)
+            if white_list:
+                macros = clade_api.MacroExpansions(white_list, cfiles).macros
+                for path, macros in macros.items():
+                    for macro, desc in macros.items():
+                        obj = self.get_macro(macro)
+                        if not obj:
+                            obj = Macro(macro)
+                        for call in desc.get('args', []):
+                            obj.add_parameters(path, call)
+                        self.set_macro(obj)
+
+    def _search_function(self, func_name, some_scope, fs):
+        # Be aware of  this funciton - it is costly
+        if some_scope in fs and func_name in fs[some_scope]:
+            return some_scope
+        elif 'unknown' in fs and func_name in fs['unknown']:
+            return 'unknown'
         else:
-            self.logger.warning("There is no any functions in source analysis")
+            for s in (s for s in fs if func_name in fs[s]):
+                return s
+        return None
 
-        self.logger.info("Remove functions which are not called at driver")
-        for func in list(self._source_functions.keys()):
-            if None in self._source_functions[func]:
-                del self._source_functions[func][None]
+    def _add_function(self, func, scope, fs, deps, cfiles):
+        fs_desc = fs[scope][func]
+        if scope == 'unknown':
+            key = list(fs_desc['declarations'].keys())[0]
+            signature = fs_desc['declarations'][key]['signature']
+            func_intf = Function(func, signature)
+            # Do not set definition file since it is out of scope of the target verification object
+        else:
+            signature = fs_desc.get('signature')
+            func_intf = Function(func, signature)
+            func_intf.definition_file = scope
 
-            if func not in source_analysis['functions'] or len(self._source_functions[func].keys()) == 0:
-                self.remove_source_function(func)
+        # Set static
+        if fs_desc.get('type') == "static":
+            func_intf.static = True
+        else:
+            func_intf.static = False
 
-        if 'macro expansions' in source_analysis:
-            for name in source_analysis['macro expansions']:
-                macro = Macro(name)
-                for path in source_analysis['macro expansions'][name]:
-                    if 'args' in source_analysis['macro expansions'][name][path]:
-                        for p in source_analysis['macro expansions'][name][path]['args']:
-                            macro.add_parameters(path, p)
-                self.set_macro(macro)
+        # Add declarations
+        files = {func_intf.definition_file} if func_intf.definition_file else set()
+        if fs_desc['declarations']:
+            files.update({f for f in fs_desc['declarations'] if f != 'unknown' and f in deps})
+        for file in files:
+            if file not in cfiles and file not in func_intf.header_files:
+                func_intf.header_files.append(file)
+            for cfile in deps[file]:
+                self.set_source_function(func_intf, cfile)
+                func_intf.declaration_files.add(cfile)
+
+    def _collect_file_dependencies(self, abstract_task):
+        """
+        Collect for each included header file or c file its "main" file to which it was included. This is required
+        since we cannot write aspects and instrument files which have no CC command so me build this map.
+
+        :param abstract_task: Abstract task dictionary.
+        :return: Collection dictionary {included file: {files that include this one}}.
+        """
+        collection = dict()
+        c_files = set()
+
+        def _collect_cc_deps(cfile, deps):
+            # Collect for each file CC entry to which it is included
+            for file in deps:
+                if file not in collection:
+                    collection[file] = set()
+                collection[file].add(cfile)
+
+        # Read each CC description and import map of files to in files
+        for group in abstract_task['grps']:
+            for desc in group['Extra CCs']:
+                cc_desc = self._clade.get_cc(desc['CC'])
+                c_file = cc_desc['in'][0]
+                # Now read deps
+                _collect_cc_deps(c_file, self._clade.get_cc_deps(desc['CC']))
+                c_files.add(c_file)
+
+        return c_files, collection

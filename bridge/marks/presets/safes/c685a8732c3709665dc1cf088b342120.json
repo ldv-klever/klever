@@ -8,7 +8,7 @@
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "35/tests/sync/race/simple/sync:race"
+      "value": "35/tests/linux/concurrency-safety/simple/sync:race"
     },
     {
       "attr": "Linux kernel:Version",
@@ -31,14 +31,14 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "sync:race"
+      "value": "linux:concurrency safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/simple/safe.ko"
+      "value": "ext-modules/linux/concurrency-safety/simple/safe.ko"
     }
   ],
   "description": "",

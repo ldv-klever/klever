@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-var do_not_count = [
-    'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier',
-    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
-    'tasks:start_ts', 'tasks:finish_ts', 'tasks:progress_ts', 'tasks:expected_time_ts',
-    'subjobs:start_sj', 'subjobs:finish_sj', 'subjobs:progress_sj', 'subjobs:expected_time_sj'
-];
+var countable = ['tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error',
+            'tasks:cancelled', 'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'subjobs:total_sj'],
+    countable_prefixes = ['safe', 'unsafe', 'tag', 'problem'];
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if ($.inArray(cell_id_data.slice(1, -1).join(':'), do_not_count) === -1) {
+        if ($.inArray(cell_id_data.slice(1, -1).join(':'), countable) > -1 || $.inArray(cell_id_data[1], countable_prefixes) > -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
@@ -43,7 +40,7 @@ function fill_all_values() {
 function fill_checked_values() {
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if ($.inArray(cell_id_data[1], do_not_count) === -1) {
+        if ($.inArray(cell_id_data.slice(1, -1).join(':'), countable) > -1 || $.inArray(cell_id_data[1], countable_prefixes) > -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false, is_checked = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
@@ -177,6 +174,7 @@ $(document).ready(function () {
 
     $('#download_selected_trees').click(function (event) {
         event.preventDefault();
+        if ($(this).hasClass('disabled')) return false;
 
         $('#jobs_actions_menu').popup('hide');
         var job_ids = [];

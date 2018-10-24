@@ -22,11 +22,28 @@
 {% block title %}{% if copy %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
 
 {% block jobs_head_block %}
-    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
-    <link href="{% static 'jobs/css/linedTextEditor.css' %}" rel="stylesheet">
+    {# Code Mirror stylesheets #}
+    <link rel="stylesheet" href="{% static 'codemirror/lib/codemirror.css' %}">
+    <link rel="stylesheet" href="{% static 'codemirror/theme/midnight.css' %}">
+    <link rel="stylesheet" href="{% static 'codemirror/addon/dialog/dialog.css' %}">
+    <link rel="stylesheet" href="{% static 'codemirror/addon/search/matchesonscrollbar.css' %}">
 
+    {# Code Mirror js libraries #}
+    <script src="{% static 'codemirror/lib/codemirror.js' %}"></script>
+    <script src="{% static 'codemirror/mode/javascript.js' %}"></script>
+    <script src="{% static 'codemirror/mode/clike.js' %}"></script>
+    <script src="{% static 'codemirror/mode/xml.js' %}"></script>
+    <script src="{% static 'codemirror/mode/python.js' %}"></script>
+    <script src="{% static 'codemirror/addon/dialog/dialog.js' %}"></script>
+    <script src="{% static 'codemirror/addon/search/searchcursor.js' %}"></script>
+    <script src="{% static 'codemirror/addon/scroll/annotatescrollbar.js' %}"></script>
+    <script src="{% static 'codemirror/addon/search/matchesonscrollbar.js' %}"></script>
+    <script src="{% static 'codemirror/addon/search/search.js' %}"></script>
+
+    {# Jstree #}
+    <link rel="stylesheet" href="{% static 'jstree/themes/default/style.min.css' %}">
     <script src="{% static 'jstree/jstree.min.js' %}"></script>
-    <script src="{% static 'jobs/js/linedTextEditor.js' %}"></script>
+
     <script src="{% static 'jobs/js/jobFilesEdit.js' %}"></script>
     <script src="{% static 'jobs/js/jobRolesEdit.js' %}"></script>
     <script src="{% static 'jobs/js/jobForm.js' %}"></script>
@@ -48,9 +65,10 @@
             {# Title, parent and description #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
-                <div class="ui fluid input field">
+                <div class="ui fluid input {% if copy %}error {% endif %}field">
                     <input id="job_name" type="text" value="{{ name }}">
                 </div>
+                {% if copy %}<p id="title_should_be_changed" class="error-comment">{% trans 'The title is used by the parent job' %}</p>{% endif %}
                 <br>
                 <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui fluid input field">
@@ -83,11 +101,34 @@
             <a href="{% url 'jobs:job' job_id %}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
         </div>
         <div class="nine wide column">
-
-            {# File cotent #}
-            <label for="editfile_area" class="purple-title">{% trans 'File content' %}</label>
-            <textarea id="editfile_area" disabled></textarea>
-            <button id="commit_file_changes" class="ui violet button disabled" style="float: right;">{% trans 'Commit changes' %}</button>
+            {# File editor #}
+            <h5 class="purple-title">&nbsp;<span id="editor_filename"></span> <span id="editor_unsaved" style="display:none;">({% trans 'unsaved' %})</span><i id="editor_help_icon" class="ui help blue link icon" style="float: right"></i></h5>
+            <div id="editfile_area"></div>
+            <div id="editor_help_popup" class="ui fluid popup right transition hidden">
+                <p style="color: red;">{% trans 'The editor must be focused for commands below' %}</p>
+                <div class="ui bulleted list">
+                    <div class="item"><b>Ctrl-S:</b> {% trans "save the file changes (it doesn't save the job)" %}</div>
+                    <div class="item"><b>Ctrl-F:</b> {% trans 'search in file' %}</div>
+                    <div class="item"><b>Ctrl-G:</b> {% trans 'find next' %}</div>
+                    <div class="item"><b>Shift-Ctrl-G:</b> {% trans 'find previous' %}</div>
+                    <div class="item"><b>Shift-Ctrl-F:</b> {% trans 'replace' %}</div>
+                    <div class="item"><b>Shift-Ctrl-R:</b> {% trans 'replace all' %}</div>
+                    <div class="item"><b>Ctrl-D:</b> {% trans 'deletes the whole line under the cursor' %}</div>
+                    <div class="item"><b>Ctrl-Z:</b> {% trans 'undo the last change' %}</div>
+                    <div class="item"><b>Ctrl-Y/Ctrl-Shift-Z:</b> {% trans 'redo the last undone change' %}</div>
+                    <div class="item"><b>Ctrl-Home:</b> {% trans 'move the cursor to the start of the file' %}</div>
+                    <div class="item"><b>Ctrl-End:</b> {% trans 'move the cursor to the end of the file' %}</div>
+                    <div class="item"><b>Alt-Left:</b> {% trans 'move the cursor to the start of the line' %}</div>
+                    <div class="item"><b>Alt-Right:</b> {% trans 'move the cursor to the end of the line' %}</div>
+                    <div class="item"><b>Ctrl-Backspace:</b> {% trans 'delete to the left of the group before the cursor' %}</div>
+                    <div class="item"><b>Ctrl-Delete:</b> {% trans 'delete to the start of the group after the cursor' %}</div>
+                    <div class="item"><b>Shift-Tab:</b> {% trans 'auto-indent the current line or selection' %}</div>
+                    <div class="item"><b>Ctrl-]:</b> {% trans 'indent the current line or selection by one indent unit' %}</div>
+                    <div class="item"><b>Ctrl-[:</b> {% trans 'dedent the current line or selection by one indent unit' %}</div>
+                    <div class="item"><b>Tab:</b> {% trans 'if something is selected, indent it by one indent unit; if nothing is selected, insert a tab character' %}</div>
+                </div>
+                <div><b>{% trans 'Other key bindings' %}:</b> Home, Up, Down, Left, Right, PageUp, PageDown, Ctrl-A, Ctrl-Left, Ctrl-Right, Delete, Backspace, Enter, Insert</div>
+            </div>
         </div>
     </div>
     <input id="job_id" value="{{ job_id }}" type="hidden">
@@ -107,6 +148,8 @@
         <span id="error__nofile_selected">{% trans "Please choose the file" %}</span>
         <span id="error__title_required">{% trans 'Title is required' %}</span>
         <span id="error__filename_not_ascii" hidden>{% trans "Names with non-ASCII characters must be less than 30 characters" %}</span>
+        <span id="error__wrong_json">{% trans 'JSON is wrong, please fix it' %}</span>
+        <span id="error__file_not_supported">{% trans 'The selected file is not supported' %}</span>
     </div>
 
     {# Warning modal for saving job without commiting file changes #}

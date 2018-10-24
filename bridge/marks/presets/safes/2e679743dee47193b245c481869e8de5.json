@@ -7,7 +7,7 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "9aaf9678ea3e/sound/pci/emu10k1/snd-emu10k1-synth.ko/linux:kernel:locking:spinlock"
     },
     {
@@ -31,14 +31,14 @@
       "value": "manual"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:kernel:locking:spinlock"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "sound/pci/emu10k1/snd-emu10k1-synth.koc507da9a45b7"
+      "value": "sound/pci/emu10k1/snd-emu10k1-synth.ko"
     }
   ],
   "description": "Target function uncovered and to fix it it is necessary to support catching of structures initalized as local variables and then find a way to call function pointer hw-&gt;get_synth_voice.",

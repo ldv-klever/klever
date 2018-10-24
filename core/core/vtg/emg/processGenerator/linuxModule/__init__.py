@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-import json
+import ujson
 import re
 import glob
 import os
@@ -49,11 +49,11 @@ def generate_processes(emg, source, processes, conf):
                                               get_necessary_conf_property(emg.conf, "main working directory"),
                                               get_necessary_conf_property(emg.conf, "EMG instances")),
                   encoding='utf8') as fp:
-            instance_maps = json.load(fp)
+            instance_maps = ujson.load(fp)
 
     # Import Specifications
     emg.logger.info("Search for interface and event specifications")
-    spec_dir = __get_path(emg.logger, emg.conf, "specifications directory")
+    spec_dir = os.path.dirname(emg.conf['requirements DB'])
     interface_spec, event_spec = __get_specs(emg.logger, emg.conf, spec_dir)
 
     emg.logger.info("Import interface categories specification")
@@ -63,9 +63,6 @@ def generate_processes(emg, source, processes, conf):
     emg.logger.info("Import event categories specification")
     abstract_processes = AbstractProcessImporter(emg.logger, conf)
     abstract_processes.parse_event_specification(event_spec)
-    roles_file = core.utils.find_file_or_dir(emg.logger,
-                                             get_necessary_conf_property(emg.conf, "main working directory"),
-                                             get_necessary_conf_property(conf, "roles map file"))
 
     # Now check that we have all necessary interface specifications
     unspecified_functions = [func for func in abstract_processes.models
@@ -74,10 +71,7 @@ def generate_processes(emg, source, processes, conf):
     if len(unspecified_functions) > 0:
         raise RuntimeError("You need to specify interface specifications for the following function models: {}"
                            .format(', '.join(unspecified_functions)))
-
-    with open(roles_file, encoding="utf8") as fh:
-        roles_map = json.loads(fh.read())
-    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes, roles_map)
+    process_model = ProcessModel(emg.logger, conf, interfaces, abstract_processes)
     abstract_processes.environment = {p.identifier: p for p in process_model.event_processes}
     abstract_processes.models = {p.identifier: p for p in process_model.model_processes}
 
@@ -101,7 +95,8 @@ def generate_processes(emg, source, processes, conf):
     instance_map_file = 'instance map.json'
     emg.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
     with open(instance_map_file, "w", encoding="utf8") as fd:
-        fd.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
+        fd.writelines(ujson.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4,
+                                  escape_forward_slashes=False))
 
     processes.parse_event_specification(data)
     processes.establish_peers()
@@ -123,8 +118,8 @@ def __get_specs(logger, conf, directory):
     for file in file_candidates:
         with open(file, encoding="utf8") as fh:
             try:
-                content = json.loads(fh.read())
-            except json.decoder.JSONDecodeError:
+                content = ujson.loads(fh.read())
+            except ValueError:
                 raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
         if isinstance(content, dict):
@@ -167,8 +162,8 @@ def __merge_spec_versions(collection, user_tag):
             else:
                 for new_tag in spec[tag]:
                     if new_tag in final_spec[tag]:
-                        raise KeyError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG"
-                                       " specification".format(new_tag, tag))
+                        raise RuntimeError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG"
+                                           " specification".format(new_tag, tag))
                     final_spec[tag][new_tag] = spec[tag][new_tag]
 
     def match_default_tag(e):
@@ -198,7 +193,7 @@ def __merge_spec_versions(collection, user_tag):
 def __save_collection(logger, collection, file):
     logger.info("Print final merged specification to '{}'".format(file))
     with open(file, "w", encoding="utf8") as fh:
-        json.dump(collection, fh, ensure_ascii=False, sort_keys=True, indent=4)
+        ujson.dump(collection, fh, ensure_ascii=False, sort_keys=True, indent=4, escape_forward_slashes=False)
 
 
 def __get_path(logger, conf, prop):
@@ -215,7 +210,7 @@ def __get_json_content(logger, conf, prop):
     file = __get_path(logger, conf, prop)
     if file:
         with open(file, encoding="utf8") as fh:
-            content = json.loads(fh.read())
+            content = ujson.loads(fh.read())
         return content
     else:
         return None

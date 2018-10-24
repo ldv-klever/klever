@@ -1,0 +1,63 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.2.dev594+g8a1aa1063.d20181018"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "15"
+    },
+    {
+      "attr": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.16.3-147-g2ba4b92e8773"
+    },
+    {
+      "attr": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "drivers/usb/dwc2/dwc2_gadget.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "Driver does not check return value of clk_prepare_enable().",
+  "error trace": [
+    [
+      {
+        "s3c_hsotg_probe": [
+          {
+            "ldv_clk_enable_clk_of_s3c_hsotg": []
+          },
+          {
+            "ldv_clk_disable_clk_of_s3c_hsotg": [
+              {
+                "ldv_assert_linux_drivers_clk2__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": false,
+  "status": "2",
+  "tags": [],
+  "verdict": "1"
+}

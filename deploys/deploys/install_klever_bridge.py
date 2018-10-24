@@ -60,7 +60,12 @@ def install_klever_bridge_development(logger, deploy_dir):
         logger.info('Prepare media directory')
         media = os.path.join(deploy_dir, 'klever/bridge/media')
         media_real = os.path.join(os.path.realpath(deploy_dir), 'klever-media')
-        shutil.rmtree(media)
+
+        if os.path.islink(media):
+            os.remove(media)
+        else:
+            shutil.rmtree(media)
+
         execute_cmd(logger, 'mkdir', '-p', media_real)
         execute_cmd(logger, 'ln', '-s', '-T', media_real, media)
 
@@ -73,7 +78,7 @@ def install_klever_bridge_development(logger, deploy_dir):
     start_services(logger, services)
 
 
-def install_klever_bridge_production(logger, deploy_dir):
+def install_klever_bridge_production(logger, deploy_dir, populate_just_production_presets=True):
     logger.info('Install/update production Klever Bridge')
 
     services = ('nginx', 'klever-bridge')
@@ -97,6 +102,8 @@ def install_klever_bridge_production(logger, deploy_dir):
     with Cd('/var/www/klever-bridge'):
         with open('bridge/settings.py', 'w') as fp:
             fp.write('from bridge.{0} import *\n'.format('production'))
+            if not populate_just_production_presets:
+                fp.write('POPULATE_JUST_PRODUCTION_PRESETS = False\n')
 
         _install_klever_bridge(logger)
 

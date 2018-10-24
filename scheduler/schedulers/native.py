@@ -17,18 +17,19 @@
 
 import concurrent.futures
 import json
-import logging
 import multiprocessing
 import os
 import shutil
 import signal
+import re
 
 import schedulers as schedulers
+import schedulers.runners as runners
 import schedulers.resource_scheduler
 import utils
 
 
-class Scheduler(schedulers.SchedulerExchange):
+class Native(runners.Speculative):
     """
     Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
@@ -48,22 +49,23 @@ class Scheduler(schedulers.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
 
-    def __init__(self, conf, work_dir):
+    def __init__(self, conf, logger, work_dir, server):
         """Do native scheduler specific initialization"""
-        super(Scheduler, self).__init__(conf, work_dir)
+        super(Native, self).__init__(conf, logger, work_dir, server)
         self._kv_url = None
         self._job_conf_prototype = None
         self._pool = None
         self._client_bin = None
         self._manager = None
-        self.init_scheduler()
+        self._log_file = 'info.log'
+        self.init()
 
-    def init_scheduler(self):
+    def init(self):
         """
         Initialize scheduler completely. This method should be called both at constructing stage and scheduler
         reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
         """
-        super(Scheduler, self).init_scheduler()
+        super(Native, self).init()
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
@@ -77,21 +79,21 @@ class Scheduler(schedulers.SchedulerExchange):
         self._get_task_configuration()
 
         if "Klever Bridge" not in self._job_conf_prototype:
-            logging.debug("Add Klever Bridge settings to client job configuration")
+            self.logger.debug("Add Klever Bridge settings to client job configuration")
             self._job_conf_prototype["Klever Bridge"] = self.conf["Klever Bridge"]
         else:
-            logging.debug("Use provided in configuration prototype Klever Bridge settings for jobs")
+            self.logger.debug("Use provided in configuration prototype Klever Bridge settings for jobs")
         if "common" not in self._job_conf_prototype:
-            logging.debug("Use the same 'common' options for jobs which is used for the scheduler")
+            self.logger.debug("Use the same 'common' options for jobs which is used for the scheduler")
         else:
-            logging.debug("Use provided in configuration prototype 'common' settings for jobs")
+            self.logger.debug("Use provided in configuration prototype 'common' settings for jobs")
 
         # Check node first time
         if "concurrent jobs" in self.conf["scheduler"]:
             concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
         else:
             concurrent_jobs = 1
-        self._manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
+        self._manager = schedulers.resource_scheduler.ResourceManager(self.logger, concurrent_jobs)
 
         if "wait controller initialization" in self.conf["scheduler"]:
             wc = self.conf["scheduler"]["wait controller initialization"]
@@ -126,7 +128,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
-        logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
+        self.logger.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
         if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
             self._pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
@@ -149,113 +151,17 @@ class Scheduler(schedulers.SchedulerExchange):
         new_tasks, new_jobs = self._manager.schedule(pending_tasks, pending_jobs)
         return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
-    def prepare_task(self, identifier, description):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param description: Dictionary with task description.
-        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, description, mode='task')
-
-    def prepare_job(self, identifier, configuration):
-        """
-        Prepare a working directory before starting the solution.
-
-        :param identifier: Verification task identifier.
-        :param configuration: Job configuration.
-        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
-        """
-        self._prepare_solution(identifier, configuration, mode='job')
-
-    def solve_task(self, identifier, description, user, password):
-        """
-        Solve given verification task.
-
-        :param identifier: Verification task identifier.
-        :param description: Verification task description dictionary.
-        :param user: User name.
-        :param password: Password.
-        :return: Return Future object.
-        """
-        logging.debug("Start solution of task {!r}".format(identifier))
-        self._manager.claim_resources(identifier, description, self._node_name, job=False)
-        return self._pool.submit(self._execute, self._task_processes[identifier])
-
-    def solve_job(self, identifier, configuration):
-        """
-        Solve given verification job.
-
-        :param identifier: Job identifier.
-        :param configuration: Job configuration.
-        :return: Return Future object.
-        """
-        logging.debug("Start solution of job {!r}".format(identifier))
-        self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
-        return self._pool.submit(self._execute, self._job_processes[identifier])
-
-    def flush(self):
-        """Start solution explicitly of all recently submitted tasks."""
-        super(Scheduler, self).flush()
-
-    def process_task_result(self, identifier, future):
-        """
-        Process result and send results to the server.
-
-        :param identifier: Task identifier string.
-        :param future: Future object.
-        :return: status of the task after solution: FINISHED.
-        :raise SchedulerException: in case of ERROR status.
-        """
-        return self._check_solution(identifier, future, mode='task')
-
-    def process_job_result(self, identifier, future):
-        """
-        Process future object status and send results to the server.
-
-        :param identifier: Job identifier string.
-        :param future: Future object.
-        :return: status of the job after solution: FINISHED.
-        :raise SchedulerException: in case of ERROR status.
-        """
-        return self._check_solution(identifier, future, mode='job')
-
-    def cancel_job(self, identifier, future, after_term=False):
-        """
-        Stop the job solution.
-
-        :param identifier: Verification task ID.
-        :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
-        """
-        return self._cancel_solution(identifier, future, mode='job', after_term=after_term)
-
-    def cancel_task(self, identifier, future, after_term=False):
-        """
-        Stop the task solution.
-
-        :param identifier: Verification task ID.
-        :param future: Future object.
-        :param after_term: Flag that signals that we already got a termination signal.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        :raise SchedulerException: In case of exception occured in future task.
-        """
-        return self._cancel_solution(identifier, future, mode='task', after_term=after_term)
-
     def terminate(self):
         """
         Abort solution of all running tasks and any other actions before termination.
         """
         # Submit an empty configuration
-        logging.debug("Submit an empty configuration list before shutting down")
+        self.logger.debug("Submit an empty configuration list before shutting down")
         configurations = []
         self.server.submit_nodes(configurations, looping=True)
 
         # Terminate
-        super(Scheduler, self).terminate()
+        super(Native, self).terminate()
 
         # Be sure that workers are killed
         self._pool.shutdown(wait=False)
@@ -271,8 +177,8 @@ class Scheduler(schedulers.SchedulerExchange):
         cacnel_jobs, cancel_tasks = self._manager.update_system_status(self._kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
         if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
-            logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
-                            "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
+            self.logger.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
+                                "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
         return self._manager.submit_status(self.server)
 
     def update_tools(self):
@@ -287,6 +193,101 @@ class Scheduler(schedulers.SchedulerExchange):
             # Submit tools
             self.server.submit_tools(verification_tools)
 
+    def _prepare_task(self, identifier, description):
+        """
+        Prepare a working directory before starting the solution.
+
+        :param identifier: Verification task identifier.
+        :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
+        """
+        self._prepare_solution(identifier, description, mode='task')
+
+    def _prepare_job(self, identifier, configuration):
+        """
+        Prepare a working directory before starting the solution.
+
+        :param identifier: Verification task identifier.
+        :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
+        """
+        self._prepare_solution(identifier, configuration, mode='job')
+
+    def _solve_task(self, identifier, description, user, password):
+        """
+        Solve given verification task.
+
+        :param identifier: Verification task identifier.
+        :param description: Verification task description dictionary.
+        :param user: User name.
+        :param password: Password.
+        :return: Return Future object.
+        """
+        self.logger.debug("Start solution of task {!r}".format(identifier))
+        self._manager.claim_resources(identifier, description, self._node_name, job=False)
+        return self._pool.submit(self._execute, self._log_file, self._task_processes[identifier])
+
+    def _solve_job(self, identifier, configuration):
+        """
+        Solve given verification job.
+
+        :param identifier: Job identifier.
+        :param configuration: Job configuration.
+        :return: Return Future object.
+        """
+        self.logger.debug("Start solution of job {!r}".format(identifier))
+        self._manager.claim_resources(identifier, configuration, self._node_name, job=True)
+        return self._pool.submit(self._execute, self._log_file, self._job_processes[identifier])
+
+    def flush(self):
+        """Start solution explicitly of all recently submitted tasks."""
+        super(Native, self).flush()
+
+    def _process_task_result(self, identifier, future, description):
+        """
+        Process result and send results to the server.
+
+        :param identifier: Task identifier string.
+        :param future: Future object.
+        :param description: Verification task description dictionary.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
+        """
+        return self._check_solution(identifier, future, mode='task')
+
+    def _process_job_result(self, identifier, future):
+        """
+        Process future object status and send results to the server.
+
+        :param identifier: Job identifier string.
+        :param future: Future object.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
+        """
+        return self._check_solution(identifier, future, mode='job')
+
+    def _cancel_job(self, identifier, future):
+        """
+        Stop the job solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self._cancel_solution(identifier, future, mode='job')
+
+    def _cancel_task(self, identifier, future):
+        """
+        Stop the task solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self._cancel_solution(identifier, future, mode='task')
+
     def _prepare_solution(self, identifier, configuration, mode='task'):
         """
         Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
@@ -296,7 +297,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param mode: 'task' or 'job'.
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
-        logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
+        self.logger.info("Going to prepare execution of the {} {}".format(mode, identifier))
         node_status = self._manager.node_info(self._node_name)
 
         if mode == 'task':
@@ -330,7 +331,7 @@ class Scheduler(schedulers.SchedulerExchange):
                     format(os.path.abspath(work_dir), current_space,
                            configuration["resource limits"]['disk memory size']))
 
-        if configuration["resource limits"]["CPU time"]:
+        if configuration["resource limits"].get("CPU time"):
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
         else:
@@ -343,6 +344,10 @@ class Scheduler(schedulers.SchedulerExchange):
             client_conf["common"]["working directory"] = work_dir
             for name in ("verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
+
+            # Speculative flag
+            if configuration.get('speculative'):
+                client_conf["speculative"] = True
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
@@ -404,10 +409,10 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status after solution: FINISHED.
         :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
-        logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
+        self.logger.info("Going to prepare execution of the {} {}".format(mode, identifier))
         return self._postprocess_solution(identifier, future, mode)
 
-    def _cancel_solution(self, identifier, future, mode='task', after_term=False):
+    def _cancel_solution(self, identifier, future, mode='task'):
         """
         Terminate process solving a process or a task, mark resources as released, clean working directory.
 
@@ -417,21 +422,19 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         :raise SchedulerException: raise if an exception occured during solution or results are inconsistent.
         """
-        logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
+        self.logger.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
             process = self._task_processes[identifier] if identifier in self._task_processes else None
         else:
             process = self._job_processes[identifier] if identifier in self._job_processes else None
         if process and process.pid:
             try:
-                if not after_term:
-                    # If the user really sent SIGINT then all children got it anyway and we must just wait.
-                    # If the user pressed a button in Bridge then we have to trigger signal manually.
-                    os.kill(process.pid, signal.SIGTERM)
-                logging.debug("Wait till {} {} become terminated".format(mode, identifier))
+                # If the user really sent SIGINT then all children got it anyway and we must just wait.
+                # If the user pressed a button in Bridge then we have to trigger signal manually.
+                os.kill(process.pid, signal.SIGTERM)
                 process.join()
             except Exception as err:
-                logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
+                self.logger.warning('Cannot terminate process {}: {}'.format(process.pid, err))
         return self._postprocess_solution(identifier, future, mode)
 
     def _postprocess_solution(self, identifier, future, mode):
@@ -463,7 +466,7 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             reserved_space = 0
 
-        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
+        self.logger.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
                 self._manager.release_resources(identifier, self._node_name, True if mode == 'job' else False,
@@ -473,7 +476,7 @@ class Scheduler(schedulers.SchedulerExchange):
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):
                     with open(logfile, mode='r', encoding="utf8") as f:
-                        logging.debug("Scheduler client log: {}".format(f.read()))
+                        self.logger.debug("Scheduler client log: {}".format(f.read()))
                 else:
                     raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
@@ -481,6 +484,15 @@ class Scheduler(schedulers.SchedulerExchange):
                 if os.path.isfile(errors_file):
                     with open(errors_file, mode='r', encoding="utf8") as f:
                         errors = f.readlines()
+                    if result == 0 and self.conf["scheduler"].get("ignore BenchExec warnings"):
+                        for msg in list(errors):
+                            match = re.search(r'WARNING - (.*)', msg)
+                            if match and (self.conf["scheduler"]["ignore BenchExec warnings"] is True or
+                                  (isinstance(self.conf["scheduler"]["ignore BenchExec warnings"], list) and
+                                   any(True for t in self.conf["scheduler"]["ignore BenchExec warnings"] if t in msg))):
+                                errors.remove(msg)
+                            elif re.search(r'benchexec(.*) outputted to STDERR', msg):
+                                errors.remove(msg)
                 else:
                     errors = []
 
@@ -490,47 +502,54 @@ class Scheduler(schedulers.SchedulerExchange):
                     error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
                                                                                                  result)
                 if len(errors) > 0 or result != 0:
-                    logging.warning(error_msg)
+                    self.logger.warning(error_msg)
                     raise schedulers.SchedulerException(error_msg)
             else:
-                logging.debug("Seems that {} {} has not been started".format(mode, identifier))
+                self.logger.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
-            logging.warning(error_msg)
+            self.logger.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
         finally:
             # Clean working directory
             if "keep working directory" not in self.conf["scheduler"] or \
                     not self.conf["scheduler"]["keep working directory"]:
-                logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
+                self.logger.debug("Clean task working directory {} for {}".format(work_dir, identifier))
                 shutil.rmtree(work_dir)
 
         return "FINISHED"
 
     @staticmethod
-    def _execute(process):
+    def _execute(logfile, process):
         """
         Common implementation for running of a multiprocessing process and for waiting until it terminates.
 
         :param process: multiprocessing.Process object.
         :raise SchedulerException: Raised if process cannot be executed or if its exit code cannot be determined.
         """
-        logging.debug("Future task {!r}: Going to start a new process which will start native scheduler client".
-                      format(process.name))
+        def log(msg):
+            """This avoids killing problem of logging loggers."""
+            if os.path.isfile(logfile):
+                with open(logfile, 'a') as fp:
+                    print(msg, file=fp)
+            else:
+                print(msg)
+
+        log("Future task {!r}: Going to start a new process which will start native scheduler client".
+            format(process.name))
         process.start()
-        logging.debug("Future task {!r}: get pid of the started process.".format(process.name))
+        log("Future task {!r}: get pid of the started process.".format(process.name))
         if process.pid:
-            logging.debug("Future task {!r}: the pid is {!r}.".format(process.name, process.pid))
+            log("Future task {!r}: the pid is {!r}.".format(process.name, process.pid))
             while process.is_alive():
                 j = process.join(5)
                 if j is not None:
                     break
-            logging.debug("Future task {!r}: join method returned {!r}.".format(process.name, str(j)))
-            logging.debug("Future task {!r}: process {!r} joined, going to check its exit code".
-                          format(process.name, process.pid))
+            log("Future task {!r}: join method returned {!r}.".format(process.name, str(j)))
+            log("Future task {!r}: process {!r} joined, going to check its exit code".
+                format(process.name, process.pid))
             ec = process.exitcode
-            logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
-                          format(process.name, process.pid, str(ec)))
+            log("Future task {!r}: exit code of the process {!r} is {!r}".format(process.name, process.pid, str(ec)))
             if ec is not None:
                 return ec
             else:
@@ -548,12 +567,12 @@ class Scheduler(schedulers.SchedulerExchange):
         :param args: Native scheduler client execution command arguments.
         :return: It exits with the exit code returned by a client.
         """
-        # todo: implement proper logging here, since usage of logging lead to hanging of threads dont know why
+        # todo: implement proper self.logger here, since usage of self.logger lead to hanging of threads dont know why
         ####### !!!! #######
         # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
-        # This is because bug in logging library. After an attempt to start the client with logging in a separate
-        # process and then kill it and start it again logging will HANG and you WILL NOT able to start the client again.
-        # This is known bug in logging, so do not waste your time here until it is fixed.
+        # This is because bug in self.logger library. After an attempt to start the client with self.logger in a
+        # separate process and then kill it and start it again self.logger will HANG and you WILL NOT able to start the
+        # client again. This is known bug in self.logger, so do not waste your time here until it is fixed.
         ####### !!!! #######
 
         # Kill handler
@@ -577,7 +596,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param identifier: A job or task identifier string.
         """
         work_dir = os.path.join(self.work_dir, entities, identifier)
-        logging.debug("Create working directory {}/{}".format(entities, identifier))
+        self.logger.debug("Create working directory {}/{}".format(entities, identifier))
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             os.makedirs(work_dir.encode("utf8"), exist_ok=True)
         else:
@@ -627,5 +646,3 @@ class Scheduler(schedulers.SchedulerExchange):
             cores.extend(vcores)
 
         return cores
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

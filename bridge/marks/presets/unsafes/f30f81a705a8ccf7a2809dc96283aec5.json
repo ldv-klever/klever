@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:kernel:locking:spinlock"
     },
@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv___ldv_atomic_dec_and_lock_25": [
+            "ldv___ldv_atomic_dec_and_lock_35": [
               {
                 "ldv_atomic_dec_and_lock_ldv_lock": [
                   {

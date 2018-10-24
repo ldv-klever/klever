@@ -59,7 +59,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     # Collect files
     files = set()
     for grp in avt['grps']:
-        files.update([f['in file'] for f in grp['cc extra full desc files'] if 'in file' in f])
+        files.update([f['in file'] for f in grp['Extra CCs'] if 'in file' in f])
     files = sorted(files)
     logger.info("Files found: {}".format(len(files)))
 
@@ -148,16 +148,20 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     # Set entry point function in abstract task
     logger.info("Add an entry point function name to the abstract verification task")
     avt["entry points"] = [cmodel.entry_name]
+    if get_conf_property(conf['translation options'], "code additional aspects"):
+        additional_aspects = [os.path.abspath(find_file_or_dir(logger, conf["main working directory"], f)) for f in
+                              get_conf_property(conf['translation options'], "code additional aspects")]
+    else:
+        additional_aspects = []
     for grp in avt['grps']:
         logger.info('Add aspects to C files of group {!r}'.format(grp['id']))
-        for cc_extra_full_desc_file in [f for f in grp['cc extra full desc files'] if 'in file' in f]:
+        for cc_extra_full_desc_file in [f for f in grp['Extra CCs'] if 'in file' in f]:
             if cc_extra_full_desc_file["in file"] in addictions:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
                 cc_extra_full_desc_file['plugin aspects'].append(
                     {
                         "plugin": "EMG",
-                        "aspects": [addictions[cc_extra_full_desc_file["in file"]]] +
-                                   get_conf_property(conf['translation options'], "code additional aspects")
+                        "aspects": [addictions[cc_extra_full_desc_file["in file"]]] + additional_aspects
                     }
                 )

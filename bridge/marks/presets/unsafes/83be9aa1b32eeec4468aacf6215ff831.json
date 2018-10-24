@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:alloc:spinlock"
     },
@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv_spin_trylock_35": [
+            "ldv_spin_trylock_45": [
               {
                 "ldv_spin_trylock_ldv_lock": [
                   {

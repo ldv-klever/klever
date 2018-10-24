@@ -103,6 +103,18 @@ function set_actions_for_scheduler_user() {
 $(document).ready(function () {
     $('.note-popup').popup();
 
+    function collect_parallelism() {
+        var parallelism_values = [];
+        $('.parallelism-values').each(function () { parallelism_values.push($(this).val()) });
+        return parallelism_values;
+    }
+
+    function collect_boolean() {
+        var bool_values = [];
+        $('.boolean-value').each(function () { bool_values.push($(this).is(':checked')) });
+        return bool_values;
+    }
+
     function collect_data() {
         return {
             mode: 'data',
@@ -110,21 +122,15 @@ $(document).ready(function () {
                 [
                     $('input[name="priority"]:checked').val(),
                     $('input[name="scheduler"]:checked').val(),
-                    parseInt($('#max_tasks').val())
+                    parseInt($('#max_tasks').val()),
+                    $('input[name=job_weight]:checked').val()
                 ],
-                [
-                    $('#sub_jobs_proc_parallelism__value').val(),
-                    $('#build_parallelism__value').val(),
-                    $('#tasks_gen_parallelism__value').val(),
-                    $('#results_processing_parallelism__value').val()
-                ],
+                collect_parallelism(),
                 [
                     parseFloat($('#max_ram').val().replace(/,/, '.')),
                     parseInt($('#max_cpus').val()),
                     parseFloat($('#max_disk').val().replace(/,/, '.')),
-                    $('#cpu_model').val(),
-                    parseFloat($('#max_cpu_time').val().replace(/,/, '.')),
-                    parseFloat($('#max_wall_time').val().replace(/,/, '.'))
+                    $('#cpu_model').val()
                 ],
                 [
                     $('#console_logging_level').val(),
@@ -132,17 +138,7 @@ $(document).ready(function () {
                     $('#file_logging_level').val(),
                     $('#file_log_formatter__value').val()
                 ],
-                [
-                    $('#keep_files_checkbox').is(':checked'),
-                    $('#upload_verifier_checkbox').is(':checked'),
-                    $('#upload_other_checkbox').is(':checked'),
-                    $('#allow_localdir_checkbox').is(':checked'),
-                    $('#ignore_core_checkbox').is(':checked'),
-                    $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
-                    $('#collect_total_code_coverage_checkbox').is(':checked'),
-                    $('#generate_makefiles_checkbox').is(':checked'),
-                    $('input[name=job_weight]:checked').val()
-                ]
+                collect_boolean()
             ])
         }
     }
@@ -182,10 +178,12 @@ $(document).ready(function () {
         var required_fields = [
             'max_tasks', 'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
-            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value'
+            'sub_jobs_proc_parallelism__value', 'tasks_gen_parallelism__value',
+            'results_processing_parallelism__value'
         ], err_found = false, numeric_fields = [
-            'max_tasks', 'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value', 'results_processing_parallelism__value',
-            'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
+            'max_tasks', 'sub_jobs_proc_parallelism__value', 'tasks_gen_parallelism__value',
+            'results_processing_parallelism__value',
+            'max_ram', 'max_cpus', 'max_disk'
         ];
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);
@@ -241,10 +239,11 @@ $(document).ready(function () {
                 success: function (data) {
                     if (data.error) {
                         err_notify(data.error);
+                        return false;
                     }
-                    else {
-                        $('#' + attr_input.attr('class') + '__value').val(data.value);
-                    }
+                    Object.keys(data).forEach(function(key) {
+                        $('#' + key + '__value').val(data[key]);
+                    });
                 }
             });
         });

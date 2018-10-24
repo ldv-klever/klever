@@ -3,42 +3,42 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev291+g448c905b.d20180212"
+      "value": "1.1rc3.dev488+g37f9c687d.d20180928"
     },
     {
-      "attr": "Name",
+      "attr": "Sub-job identifier",
       "is_compare": false,
-      "value": "4/tests/kernel_library/init.ko/test"
+      "value": "8"
     },
     {
-      "attr": "Linux kernel:Version",
+      "attr": "Project:Kind",
       "is_compare": false,
-      "value": "3.14.0"
+      "value": "Linux"
     },
     {
-      "attr": "Linux kernel:Architecture",
+      "attr": "Project:Arch",
       "is_compare": false,
       "value": "x86_64"
     },
     {
-      "attr": "Linux kernel:Configuration",
+      "attr": "Project:Version",
       "is_compare": false,
-      "value": "defconfig"
+      "value": "3.14.79"
     },
     {
-      "attr": "LKVOG strategy:Name",
+      "attr": "Project:Configuration",
       "is_compare": false,
-      "value": "manual"
+      "value": "allmodconfig"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "test"
+      "value": "linux:test:common"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/kernel_library/init.ko7af8612ee4ff"
+      "value": "ext-modules/kernel_library/init.ko"
     }
   ],
   "comparison": "thread_call_forests",
@@ -48,7 +48,7 @@
       {
         "init": [
           {
-            "export_with_error": [
+            "kernel_library_export_with_error": [
               {
                 "ldv_error": []
               }
@@ -58,7 +58,7 @@
       }
     ]
   ],
-  "is_modifiable": true,
+  "is_modifiable": false,
   "status": "1",
   "tags": [],
   "verdict": "2"

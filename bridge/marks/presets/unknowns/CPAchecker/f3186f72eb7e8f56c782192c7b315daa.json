@@ -7,13 +7,13 @@
     },
     {
       "attr": "Name",
-      "is_compare": true,
+      "is_compare": false,
       "value": "d8e172f3c0a5/drivers/spi/spi-imx.ko/linux:drivers:clk1"
     },
     {
-      "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.12.14"
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.12.14-127-gd8e172f3c0a5"
     },
     {
       "attr": "Linux kernel:Architecture",
@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:drivers:clk1"
     },

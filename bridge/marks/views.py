@@ -115,7 +115,7 @@ class MarksListView(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
         view_type_map = {'safe': VIEW_TYPES[8], 'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
         context['tabledata'] = MarksList(self.request.user, self.kwargs['type'],
                                          self.get_view(view_type_map[self.kwargs['type']]),
-                                         page=self.request.GET.get('page', 1))
+                                         page=int(self.request.GET.get('page', 1)))
         return context
 
 
@@ -258,7 +258,7 @@ class RemoveVersionsView(LoggedCallMixin, Bview.JsonDetailPostView):
     def get_context_data(self, **kwargs):
         if self.object.version == 0:
             raise BridgeException(_('The mark is being deleted'))
-        if not mutils.MarkAccess(self.request.user, self.object).can_edit():
+        if not mutils.MarkAccess(self.request.user, mark=self.object).can_edit():
             raise BridgeException(_("You don't have an access to edit this mark"))
 
         checked_versions = self.object.versions.filter(version__in=json.loads(self.request.POST['versions']))
@@ -363,10 +363,8 @@ class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
         if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
             raise BridgeException("You don't have an access to upload marks")
-        return UploadAllMarks(
-            self.request.user, extract_archive(self.request.FILES['file']).name,
-            bool(int(self.request.POST.get('delete', 0)))
-        ).numbers
+        marks_dir = extract_archive(self.request.FILES['file'])
+        return UploadAllMarks(self.request.user, marks_dir.name, bool(int(self.request.POST.get('delete', 0)))).numbers
 
 
 class SaveTagView(LoggedCallMixin, Bview.JsonView):
@@ -478,10 +476,9 @@ class ChangeAssociationView(LoggedCallMixin, Bview.JsonDetailPostView):
         if queryset is None:
             queryset = self.get_queryset()
         try:
-            obj = queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
+            return queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
         except queryset.model.DoesNotExist:
             raise Http404(_("The accosiation was not found"))
-        return obj
 
     def get_context_data(self, **kwargs):
         recalc = (self.kwargs['act'] == 'unconfirm' or self.object.type == ASSOCIATION_TYPE[2][0])

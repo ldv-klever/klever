@@ -30,7 +30,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from users.models import User
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory,\
     SafeTag, UnsafeTag, ConvertedTraces, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 
@@ -100,8 +100,6 @@ class MarkAccess:
         if not isinstance(self.user, User):
             return False
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if isinstance(self.report, ReportSafe) and not self.report.root.job.safe_marks:
-                return False
             if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
             first_v = self.report.root.job.versions.order_by('version').first()
@@ -338,7 +336,6 @@ def delete_marks(user, marks_type, mark_ids, report_id=None):
         return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
 
 
-
 class DownloadTags:
     def __init__(self, tags_type):
         self._type = tags_type
@@ -370,6 +367,7 @@ class UpdateAssociationCache:
     def __init__(self, association, recalc):
         self._association = association
         self._recalc = recalc
+        self.__update()
 
     def __update(self):
         if isinstance(self._association, MarkSafeReport):

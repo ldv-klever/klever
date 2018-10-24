@@ -1,0 +1,61 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.2.dev478+g0820cc677"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "1"
+    },
+    {
+      "attr": "Project:Kind",
+      "is_compare": false,
+      "value": "Linux"
+    },
+    {
+      "attr": "Project:Arch",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Project:Version",
+      "is_compare": false,
+      "value": "3.14.79"
+    },
+    {
+      "attr": "Project:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:test:common"
+    },
+    {
+      "attr": "Verification object",
+      "is_compare": true,
+      "value": "ext-modules/linux/err/is-err.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_error": []
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

@@ -29,7 +29,7 @@ from bridge.utils import unique_id
 
 def attrs_migrate(apps, schema_editor):
     attrs_ids = list(attr.id for attr in apps.get_model("reports", "Attr").objects
-                     .filter(name__name__in=['Verification object', 'Rule specification']))
+                     .filter(name__name__in=['Verification object', 'Requirement']))
     apps.get_model("reports", "ReportAttr").objects.filter(attr_id__in=attrs_ids).update(compare=True, associate=True)
 
 

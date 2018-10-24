@@ -1,5 +1,6 @@
 {
   "pattern": "There is no module initialization function provided",
   "problem": "No init",
+  "production": true,
   "link": "http://forge.ispras.ru/issues/6571"
 }

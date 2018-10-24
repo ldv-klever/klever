@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:usb:urb"
     },
@@ -44,11 +44,6 @@
   "comparison": "thread_call_forests",
   "description": "",
   "error trace": [
-    [
-      {
-        "ldv_initialize": []
-      }
-    ],
     [
       {
         "ldv_check_final_state": [

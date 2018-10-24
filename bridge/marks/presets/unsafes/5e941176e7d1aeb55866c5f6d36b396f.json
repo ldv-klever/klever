@@ -3,37 +3,32 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "0.3.dev649+g8df2dbfb4"
+      "value": "1.1rc3.dev603+g913dc9741.d20181022"
     },
     {
-      "attr": "Name",
+      "attr": "Sub-job identifier",
       "is_compare": false,
-      "value": "0/tests/acda82a/linux:emg:test"
+      "value": "0"
     },
     {
-      "attr": "Linux kernel:Version",
-      "is_compare": true,
-      "value": "2.6.33.20"
-    },
-    {
-      "attr": "Linux kernel:Architecture",
+      "attr": "Linux:Architecture",
       "is_compare": false,
       "value": "x86_64"
     },
     {
-      "attr": "Linux kernel:Configuration",
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v2.6.33.20"
+    },
+    {
+      "attr": "Linux:Configuration",
       "is_compare": false,
       "value": "allmodconfig"
     },
     {
-      "attr": "LKVOG strategy:Name",
-      "is_compare": false,
-      "value": "separate modules"
-    },
-    {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "linux:emg:test"
+      "value": "linux:test:environment model specifications"
     },
     {
       "attr": "Verification object",
@@ -56,18 +51,17 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_register": []
-          }
-        ]
-      }
-    ],
-    [
-      {
-        "ldv_setup": [
-          {
-            "ldv_invoke_reached": [
+            "ldv_emg_alloc_netdev_mq": [
               {
-                "ldv_assert_linux_emg_test": []
+                "ldv_setup": [
+                  {
+                    "ldv_invoke_reached": [
+                      {
+                        "ldv_assert_linux_emg_test": []
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

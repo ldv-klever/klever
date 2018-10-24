@@ -29,6 +29,8 @@ import queue
 import tempfile
 import shutil
 import resource
+import random
+import string
 
 
 class Cd:
@@ -121,7 +123,7 @@ class StreamQueue:
             self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False, filter_func=None,
+def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=False, filter_func=None,
             enforce_limitations=False):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
@@ -193,13 +195,21 @@ def reliable_rmtree(logger, directory):
         shutil.rmtree(directory, ignore_errors=True)
 
 
-def get_search_dirs(main_work_dir):
-    search_dirs = ['job/root', os.path.pardir]
+def get_search_dirs(main_work_dir, abs_paths=False):
+    search_dirs = ['job/root', os.path.pardir, 'job/root/specifications', os.path.join(os.path.pardir, 'specifications')]
+
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])
-    search_dirs = tuple(
-        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
-    return search_dirs
+
+    # All search directories are represented by either absolute paths (so, join does not have any effect) or paths
+    # relatively to main working directory. Thus, after this operation all search directories become absolute.
+    search_dirs = [os.path.realpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs]
+
+    if abs_paths:
+        return search_dirs
+
+    # Make search directories relative to current working directory if necessary.
+    return tuple(os.path.relpath(search_dir) for search_dir in search_dirs)
 
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
@@ -219,12 +229,41 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
 
 
-def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
-    search_dirs = get_search_dirs(main_work_dir)
-    for search_dir in search_dirs:
-        if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
-            return os.path.relpath(abs_path_to_file_or_dir, search_dir)
-    return os.path.normpath(abs_path_to_file_or_dir)
+def make_relative_path(dirs, file_or_dir, absolutize=False):
+    # Normalize paths first of all.
+    dirs = [os.path.normpath(d) for d in dirs]
+    file_or_dir = os.path.normpath(file_or_dir)
+
+    # Check all dirs are absolute or relative.
+    is_dirs_abs = False
+    if all(os.path.isabs(d) for d in dirs):
+        is_dirs_abs = True
+    elif all(not os.path.isabs(d) for d in dirs):
+        pass
+    else:
+        raise ValueError('Can not mix absolute and relative dirs')
+
+    if os.path.isabs(file_or_dir):
+        # Making absolute file_or_dir relative to relative dirs has no sense.
+        if not is_dirs_abs:
+            return file_or_dir
+    else:
+        # One needs to absolutize file_or_dir since it can be relative to Clade storage.
+        if absolutize:
+            if not is_dirs_abs:
+                raise ValueError('Do not absolutize file_or_dir for relative dirs')
+
+            file_or_dir = os.path.join(os.path.sep, file_or_dir)
+        # file_or_dir is already relative.
+        elif is_dirs_abs:
+            return file_or_dir
+
+    # Find and return if so path relative to the longest directory.
+    for d in sorted(dirs, key=lambda t: len(t), reverse=True):
+        if os.path.commonpath([file_or_dir, d]) == d:
+            return os.path.relpath(file_or_dir, d)
+
+    return file_or_dir
 
 
 def get_entity_val(logger, name, cmd):
@@ -423,32 +462,43 @@ class ExtendedJSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir=''):
+# Capitalize first letters of attribute names.
+def capitalize_attr_names(attrs):
+    # Each attribute is dictionary with one element which value is either string or array of subattributes.
+    for attr in attrs:
+        # Does capitalize attribute name.
+        attr['name'] = attr['name'][0].upper() + attr['name'][1:]
+
+        if isinstance(attr['value'], list):
+            capitalize_attr_names(attr['value'])
+
+
+def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='', data_files=None):
     logger.debug('Create {0} report'.format(kind))
 
     # Specify report type.
     report_data.update({'type': kind})
-
-    if 'attrs' in report_data:
-        # Capitalize first letters of attribute names.
-        def capitalize_attr_names(attrs):
-            # Each attribute is dictionary with one element which value is either string or array of subattributes.
-            for attr in attrs:
-                # Does capitalize attribute name.
-                attr['name'] = attr['name'][0].upper() + attr['name'][1:]
-
-                if isinstance(attr['value'], list):
-                    capitalize_attr_names(attr['value'])
-
-        capitalize_attr_names(report_data['attrs'])
 
     logger.debug('{0} going to modify report id'.format(kind.capitalize()))
     with report_id.get_lock():
         cur_report_id = report_id.value
         report_id.value += 1
 
+    if 'attrs' in report_data:
+        capitalize_attr_names(report_data['attrs'])
+
+        if data_files:
+            data_zip = '{} data attributes.zip'.format(cur_report_id)
+            with open(data_zip, mode='w+b', buffering=0) as f:
+                with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                    for df in data_files:
+                        zfp.write(df)
+                    os.fsync(zfp.fp)
+            report_data['attr data'] = data_zip
+
     logger.debug('{0} prepare file archive'.format(kind.capitalize()))
-    archives = []
+    data_archive = report_data.get('attr data')
+    archives = [os.path.abspath(data_archive)] if data_archive else []
     process_queue = [report_data]
     while process_queue:
         elem = process_queue.pop(0)
@@ -478,7 +528,8 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         json.dump(report_data, fp, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Create symlink to report file in current working directory.
-    cwd_report_file = os.path.join(report_dir, '{0} report.json'.format(kind))
+    prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    cwd_report_file = os.path.join(report_dir, '{} {} report.json'.format(prefix, kind))
     if os.path.isfile(cwd_report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(cwd_report_file))
     os.symlink(os.path.relpath(report_file, report_dir), cwd_report_file)
@@ -585,6 +636,27 @@ def time_units_converter(num, outunit=''):
     }
 
     return __converter(num, units_in_seconds, 'time', outunit)
+
+
+def read_max_resource_limitations(logger, conf):
+    """
+    Get maximum resource limitations that can be set for a verification task.
+
+    :param logger: Logger.
+    :param conf: Configuration dictionary.
+    :return: Dictionary.
+    """
+    # Read max restrictions for tasks
+    restrictions_file = find_file_or_dir(logger, conf["main working directory"], "tasks.json")
+    with open(restrictions_file, 'r', encoding='utf8') as fp:
+        restrictions = json.loads(fp.read())
+
+    # Make unit translation
+    for mem in (m for m in ("memory size", "disk memory size") if m in restrictions and restrictions[m] is not None):
+        restrictions[mem] = memory_units_converter(restrictions[mem])[0]
+    for t in (t for t in ("wall time", "CPU time") if t in restrictions and restrictions[t] is not None):
+        restrictions[t] = time_units_converter(restrictions[t])[0]
+    return restrictions
 
 
 def drain_queue(collection, given_queue):

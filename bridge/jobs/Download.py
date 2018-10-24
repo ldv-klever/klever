@@ -38,15 +38,16 @@ from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
     Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile, ErrorTraceSource
 from service.models import SolvingProgress, JobProgress, Scheduler
-from jobs.utils import change_job_status, GetConfiguration, remove_jobs_by_id
+from jobs.utils import change_job_status, remove_jobs_by_id
 from reports.utils import AttrData
 from service.utils import StartJobDecision
 from tools.utils import Recalculation
 
+from jobs.configuration import GetConfiguration
 from jobs.jobForm import LoadFilesTree, JobForm
 from reports.UploadReport import UploadReport
 
-ARCHIVE_FORMAT = 11
+ARCHIVE_FORMAT = 12
 
 
 class KleverCoreArchiveGen:
@@ -161,8 +162,7 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
-            'status': self.job.status, 'name': self.job.name,
-            'weight': self.job.weight, 'safe marks': self.job.safe_marks,
+            'status': self.job.status, 'name': self.job.name, 'weight': self.job.weight,
             'run_history': self.__add_run_history_files(), 'progress': self.__get_progress_data()
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
@@ -179,8 +179,8 @@ class JobArchiveGenerator:
                 'finish_date': sp.finish_date.timestamp() if sp.finish_date is not None else None,
                 'tasks_total': sp.tasks_total, 'tasks_pending': sp.tasks_pending,
                 'tasks_processing': sp.tasks_processing, 'tasks_finished': sp.tasks_finished,
-                'tasks_error': sp.tasks_error, 'tasks_cancelled': sp.tasks_cancelled, 'solutions': sp.solutions,
-                'error': sp.error, 'configuration': sp.configuration.decode('utf8')
+                'tasks_error': sp.tasks_error, 'tasks_cancelled': sp.tasks_cancelled,
+                'solutions': sp.solutions, 'error': sp.error
             })
         try:
             jp = JobProgress.objects.get(job=self.job)
@@ -543,7 +543,7 @@ class UploadJob:
             raise ValueError('job.json file was not found or contains wrong data')
         if self._jobdata.get('archive_format') != ARCHIVE_FORMAT:
             raise BridgeException(_("The job archive format is not supported"))
-        if any(x not in self._jobdata for x in ['name', 'status', 'run_history', 'weight', 'safe marks', 'progress']):
+        if any(x not in self._jobdata for x in ['name', 'status', 'run_history', 'weight', 'progress']):
             logger.error("The job data is not full")
             raise BridgeException(_("The job archive was corrupted"))
         if self._jobdata.get('format') != FORMAT:
@@ -586,9 +586,10 @@ class UploadJob:
             'identifier': self._jobdata.get('identifier'), 'parent': self._parent_id,
             'name': self._jobdata['name'], 'comment': versions[0]['comment'], 'description': versions[0]['description'],
             'global_role': versions[0]['global_role'], 'file_data': versions[0]['files'],
-            'weight': self._jobdata['weight'], 'safe marks': bool(self._jobdata['safe marks'])
+            'weight': self._jobdata['weight']
         })
 
+        last_conf = None
         # Uploading job's run history
         try:
             for rh in self._jobdata['run_history']:
@@ -600,11 +601,12 @@ class UploadJob:
                     logger.error('Job decision configuration was not found')
                     raise BridgeException(_("The job archive was corrupted"))
                 with open(run_conf, mode='rb') as fp:
-                    RunHistory.objects.create(
-                        job=self.job, status=rh['status'],
-                        date=datetime.fromtimestamp(rh['date'], pytz.timezone('UTC')),
-                        configuration=file_get_or_create(fp, 'config.json', JobFile)[0]
-                    )
+                    conf_file = file_get_or_create(fp, 'config.json', JobFile)[0]
+                RunHistory.objects.create(
+                    job=self.job, status=rh['status'], configuration=conf_file,
+                    date=datetime.fromtimestamp(rh['date'], pytz.timezone('UTC'))
+                )
+                last_conf = conf_file
         except Exception as e:
             self.job.delete()
             raise ValueError("Run history data is corrupted: %s" % e)
@@ -624,7 +626,7 @@ class UploadJob:
 
         # Change job's status as it was in downloaded archive
         change_job_status(self.job, self._jobdata['status'])
-        self.__create_progress(self.job, self._jobdata['progress'])
+        self.__create_progress(self.job, self._jobdata['progress'], last_conf)
 
     def __get_reports_files(self):
         report_files = {}
@@ -671,8 +673,10 @@ class UploadJob:
             self.job.delete()
             raise BridgeException(_("Unknown error while uploading reports"))
 
-    def __create_progress(self, job, data):
+    def __create_progress(self, job, data, conf_file):
         if 'scheduler' in data:
+            if conf_file is None:
+                raise ValueError("The job archive doesn't have run history files")
             try:
                 scheduler = Scheduler.objects.get(type=data['scheduler'])
             except ObjectDoesNotExist:
@@ -686,7 +690,7 @@ class UploadJob:
                 tasks_total=data['tasks_total'], tasks_pending=data['tasks_pending'],
                 tasks_processing=data['tasks_processing'], tasks_finished=data['tasks_finished'],
                 tasks_error=data['tasks_error'], tasks_cancelled=data['tasks_cancelled'],
-                solutions=data['solutions'], error=data['error'], configuration=data['configuration'].encode('utf8')
+                solutions=data['solutions'], error=data['error'], configuration=conf_file
             )
         if 'total_sj' in data:
             JobProgress.objects.create(
@@ -975,10 +979,7 @@ class UploadReportsWithoutDecision:
         return data
 
     def __prepare_job(self):
-        configuration = GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE).configuration
-        if configuration is None:
-            raise ValueError("Can't get default configuration")
-        StartJobDecision(self._user, self._job.id, configuration, fake=True)
+        StartJobDecision(self._user, self._job.id, GetConfiguration().configuration, fake=True)
         change_job_status(self._job, JOB_STATUS[2][0])
         self._job = Job.objects.get(id=self._job.id)
 

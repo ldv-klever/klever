@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:usb:gadget"
     },
@@ -48,7 +48,7 @@
       {
         "ldv_init": [
           {
-            "ldv_usb_gadget_probe_driver_13": [
+            "ldv_usb_gadget_probe_driver_23": [
               {
                 "ldv_register_usb_gadget": [
                   {
@@ -62,7 +62,7 @@
             ]
           },
           {
-            "ldv_alloc_chrdev_region_14": [
+            "ldv_alloc_chrdev_region_24": [
               {
                 "ldv_register_chrdev_region": [
                   {

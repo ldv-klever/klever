@@ -1,0 +1,65 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+struct module;
+
+extern int ldv_try_module_get(struct module *);
+extern void ldv_module_get(struct module *);
+extern void ldv_module_put(struct module *);
+extern unsigned int ldv_module_refcount(void);
+extern void ldv_module_put_and_exit(void);
+}
+
+around: execution(static inline int try_module_get(..)) ||
+        call(bool try_module_get(..))
+{
+	return ldv_try_module_get($arg1);
+}
+
+around: execution(static inline void __module_get(..)) ||
+        call(void __module_get(..))
+{
+	ldv_module_get($arg1);
+}
+
+around: call(void module_put(..)) ||
+        execution(static inline void module_put(..))
+{
+	ldv_module_put($arg1);
+}
+
+around: define(module_put_and_exit(code))
+{
+ldv_module_put_and_exit();
+}
+
+around: call(unsigned int module_refcount(..)) ||
+        call(unsigned long module_refcount(..))
+{
+	return ldv_module_refcount();
+}
+
+/* TODO: how this affects other requirements when using multiaspects verification? */
+/* nonseekable_open is a generic function, and it always returns zero in addition to setting some flags. For the
+ * purpose of this requirement, we assume it merely returns 0.
+ */
+around: call(int nonseekable_open(..))
+{
+	return 0;
+}

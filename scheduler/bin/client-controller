@@ -30,7 +30,7 @@ import controller as controller
 
 if __name__ == "__main__":
     # Parse configuration
-    conf = utils.common_initialization("Client controller")
+    conf, logger = utils.common_initialization("Client controller")
 
     # Check config
     if "client-controller" not in conf:
@@ -39,9 +39,9 @@ if __name__ == "__main__":
         raise KeyError("Provide configuration property 'node configuration' as a JSON-object")
 
     # Setup consul
-    consul_work_dir, consul_config_file = controller.setup_consul(conf)
+    consul_work_dir, consul_config_file = controller.setup_consul(conf, logger)
 
     # Run consul
-    controller.run_consul(conf, consul_work_dir, consul_config_file)
+    controller.run_consul(conf, logger, consul_work_dir, consul_config_file)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

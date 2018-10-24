@@ -91,6 +91,7 @@ class Function:
         self.called_at = dict()
         self.declaration_files = set()
         self.definition_file = None
+        self.header_files = list()
 
         if not declaration:
             declaration = 'void f(void)'
@@ -111,19 +112,21 @@ class Function:
         """
         return self.called_at.keys()
 
-    def call_in_function(self, func, parameters):
+    def call_in_function(self, func_obj, parameters=None):
         """
         Save information that the function calls in her body an another provided function with given arguments.
 
-        :param func: Name of the called function.
+        :param func_obj: Object of the called function.
         :param parameters: List of parameters. Currently all non-function pointers are None and for function pointers
                            the value is a explicit function name.
         :return: None
         """
-        if func not in self.calls:
-            self.calls[func] = [parameters]
-        else:
-            self.calls[func].append(parameters)
+        if func_obj.name not in self.calls:
+            self.calls[func_obj.name] = []
+        if parameters is not None:
+            p = dict(parameters)
+            self.calls[func_obj.name].append([p.get(str(i), 0)
+                                              for i in range(1, len(func_obj.declaration.parameters) + 1)])
 
     def add_call(self, func, path):
         """

@@ -8,7 +8,7 @@
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "0/tests/generic/memory/generic:memory"
+      "value": "0/tests/linux/memory-safety/generic:memory"
     },
     {
       "attr": "Linux kernel:Version",
@@ -31,14 +31,14 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "generic:memory"
+      "value": "linux:memory safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/generic/memory/ext_alloc_free_safe.ko"
+      "value": "ext-modules/linux/memory-safety/ext_alloc_free_safe.ko"
     }
   ],
   "description": "",

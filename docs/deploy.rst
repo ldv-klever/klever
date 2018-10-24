@@ -22,13 +22,20 @@ Please, be ready to spend quite much time if you follow this instruction first t
 Hardware Requirements
 ---------------------
 
-We recommend following hardware to deploy and to run Klever:
+We recommend following hardware to run Klever:
 
 * 64-bit CPU with 4 cores
 * 16 GB of memory
 * 100 GB of free disk space
 
 Increasing specified hardware characteristics in 2-4 times can reduce total verification time very considerably.
+If you are going to run Klever non-locally, hosts at which you will deploy Klever can have much less hardware
+characteristics.
+
+Software Requirements
+---------------------
+
+Deployment scripts most likely operate at any quite new Linux distribution.
 
 Deployment Variants
 -------------------

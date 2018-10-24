@@ -79,7 +79,7 @@ class Attr(models.Model):
 
 class Report(models.Model):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='+')
+    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
     identifier = models.CharField(max_length=255, unique=True)
 
     class Meta:
@@ -306,15 +306,6 @@ class ComponentResource(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_resource'
-
-
-class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='unknowns_cache')
-    component = models.ForeignKey(Component, models.PROTECT)
-    number = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_unknown'
 
 
 class CompareJobsInfo(models.Model):

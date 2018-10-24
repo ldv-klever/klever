@@ -300,7 +300,7 @@ def check_components(logger, components):
     if isinstance(components, list):
         for mc in (m for m in components if not m.is_alive()):
             # Here we expect an exception
-            logger.info("Some of the subcomponents running in the background failed")
+            logger.info("Some of the subcomponents running in the background exited: {!r}".format(mc.id))
             mc.join()
 
 
@@ -340,7 +340,7 @@ class CallbacksCaller:
 
 
 class Component(multiprocessing.Process, CallbacksCaller):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -352,7 +352,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
         self.parent_id = parent_id
         self.callbacks = callbacks
         self.mqs = mqs
-        self.locks = locks
         self.vals = vals
         self.attrs = attrs
         self.separate_from_parent = separate_from_parent
@@ -525,11 +524,6 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
-        with open('problem desc.txt', 'a', encoding='utf8') as fp:
-            if fp.tell():
-                fp.write('\n')
-            fp.write('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
-
         self.__finalize(stopped=True)
 
     def join(self, timeout=None, stopped=False):
@@ -559,7 +553,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
             setattr(subcomponent_class, 'main', executable)
         else:
             subcomponent_class = types.new_class(name, (executable,))
-        p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, self.vals,
+        p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals,
                                separate_from_parent=False, include_child_resources=include_child_resources)
         return p
 

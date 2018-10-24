@@ -31,7 +31,7 @@ from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 from users.models import User
 from reports.models import ReportAttr, ReportUnknown, ReportComponentLeaf, Component, Attr, AttrName
 from marks.models import MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnknownReport, UnknownProblem,\
-    ComponentMarkUnknownProblem, UnknownAssociationLike
+    UnknownAssociationLike
 
 
 class NewMark:
@@ -67,8 +67,8 @@ class NewMark:
 
         if 'problem' not in self._args or len(self._args['problem']) == 0:
             raise BridgeException(_('The problem is required'))
-        elif len(self._args['problem']) > 15:
-            raise BridgeException(_('The problem length must be less than 15 characters'))
+        elif len(self._args['problem']) > 20:
+            raise BridgeException(_('The problem length must be less than 20 characters'))
         if 'is_regexp' not in self._args or not isinstance(self._args['is_regexp'], bool):
             raise BridgeException()
 
@@ -150,7 +150,7 @@ class NewMark:
         else:
             self._args['identifier'] = unique_id()
         if MarkUnknown.objects.filter(component=component, problem_pattern=self._args['problem']).count() > 0:
-            raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
+            raise BridgeException(_('Could not upload the mark since it would be similar to the existing mark'))
         mark = MarkUnknown.objects.create(
             identifier=self._args['identifier'], author=self._user, change_date=now(),
             description=str(self._args.get('description', '')),
@@ -309,7 +309,7 @@ class ConnectMark:
             ).problem
             if problem is None:
                 continue
-            elif len(problem) > 15:
+            elif len(problem) > 20:
                 problem = 'Too long!'
                 logger.error("Problem '%s' for mark %s is too long" % (problem, self.mark.identifier), stack_info=True)
             if problem not in problems:
@@ -368,7 +368,7 @@ class ConnectReport:
             problem = MatchUnknown(problem_desc, mark.function, mark.problem_pattern, mark.is_regexp).problem
             if problem is None:
                 continue
-            elif len(problem) > 15:
+            elif len(problem) > 20:
                 problem = 'Too long!'
                 logger.error(
                     "Generated problem '%s' for mark %s is too long" % (problem, mark.identifier), stack_info=True
@@ -393,7 +393,6 @@ class RecalculateConnections:
 
     def __recalc(self):
         MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
-        ComponentMarkUnknownProblem.objects.filter(report__root__in=self._roots).delete()
         for unknown in ReportUnknown.objects.filter(root__in=self._roots):
             ConnectReport(unknown, False)
         update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
@@ -412,8 +411,8 @@ class CheckFunction:
 
         if isinstance(self.problem, str) and len(self.problem) == 0:
             self.problem = '-'
-        if self.problem is not None and len(self.problem) > 15:
-            raise BridgeException(_('The problem length must be less than 15 characters'))
+        if self.problem is not None and len(self.problem) > 20:
+            raise BridgeException(_('The problem length must be less than 20 characters'))
 
     def __match_desc_regexp(self):
         try:
@@ -562,8 +561,16 @@ class PopulateMarks:
                             raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
-                if not isinstance(data, dict) or any(x not in data for x in ['pattern', 'problem']):
+
+                if not isinstance(data, dict):
                     raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
+
+                if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                    # Do not populate non-production marks
+                    continue
+
+                if any(x not in data for x in ['pattern', 'problem']):
+                    raise BridgeException('Corrupted preset unknown mark: not enough data')
                 try:
                     re.compile(data['pattern'])
                 except re.error:
@@ -580,7 +587,7 @@ class PopulateMarks:
                     data['is regexp'] = False
 
                 if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['pattern']) == 0 \
-                        or not 0 < len(data['problem']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                        or not 0 < len(data['problem']) <= 20 or not isinstance(data['is_modifiable'], bool):
                     raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 if 'attrs' in data:
                     if not isinstance(data['attrs'], list):
@@ -659,18 +666,6 @@ def update_unknowns_cache(unknowns):
         marked_unknowns.add(mr.report_id)
 
     problems_data[None] = unknowns_ids - marked_unknowns
-
-    new_cache = []
-    for r_id in all_unknowns:
-        for p_id in problems_data:
-            for c_id in components_data:
-                number = len(all_unknowns[r_id] & problems_data[p_id] & components_data[c_id])
-                if number > 0:
-                    new_cache.append(ComponentMarkUnknownProblem(
-                        report_id=r_id, component_id=c_id, problem_id=p_id, number=number
-                    ))
-    ComponentMarkUnknownProblem.objects.filter(report_id__in=reports).delete()
-    ComponentMarkUnknownProblem.objects.bulk_create(new_cache)
 
 
 def delete_marks(marks):

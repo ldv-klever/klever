@@ -35,7 +35,6 @@ USER=klever
 # Read configuration variable file if it is present.
 [ -r /etc/default/klever ] && . /etc/default/klever
 DAEMON="$KLEVER_DEPLOYMENT_DIRECTORY"/klever/scheduler/bin/native-scheduler
-WORKDIR="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-programs
 CONFFILE="$KLEVER_DEPLOYMENT_DIRECTORY"/klever-conf/native-scheduler.json
 
 . /lib/lsb/init-functions
@@ -53,7 +52,7 @@ case "$1" in
         swapoff -a
         chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
 
-        export KLEVER_WORK_DIR="${WORKDIR}"
+        export KLEVER_BUILD_BASES="${KLEVER_BUILD_BASES}"
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
             --exec "${DAEMON}" -- "${CONFFILE}"
         then

@@ -24,6 +24,7 @@ import setuptools_scm.hacks
 import shutil
 import time
 import traceback
+import queue
 
 import core.job
 import core.session
@@ -83,10 +84,9 @@ class Core(core.components.CallbacksCaller):
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             os.makedirs('child resources'.encode('utf8'))
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
-                                                      {'build': multiprocessing.Manager().Lock()},
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
-            core.job.start_jobs(self, {'build': multiprocessing.Manager().Lock()}, {
+            core.job.start_jobs(self, {
                 'report id': self.report_id,
                 'coverage_finished': multiprocessing.Manager().dict()
             })
@@ -143,8 +143,8 @@ class Core(core.components.CallbacksCaller):
                     # Do not try to upload Core finish report if uploading of other reports already failed.
                     if not self.uploading_reports_process.exitcode:
                         self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks,
-                                                                  self.mqs, {'build': multiprocessing.Manager().Lock()},
-                                                                  {'report id': self.report_id}, session=self.session)
+                                                                  self.mqs, {'report id': self.report_id},
+                                                                  session=self.session)
                         self.uploading_reports_process.start()
                         self.logger.info('Wait for uploading Core finish report')
                         self.uploading_reports_process.join()
@@ -168,8 +168,8 @@ class Core(core.components.CallbacksCaller):
                         self.logger.info('Release working directory')
                     os.remove(self.is_solving_file)
 
-                # Remove dir if needed
-                if not self.conf['keep intermediate files']:
+                # Remove the whole working directory after all if needed.
+                if self.conf and not self.conf['keep intermediate files']:
                     shutil.rmtree(os.path.abspath('.'))
 
                 if self.logger:
@@ -277,37 +277,54 @@ class Core(core.components.CallbacksCaller):
 
 class Reporter(core.components.Component):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False, session=None):
-        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(Reporter, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                        separate_from_parent, include_child_resources)
         self.session = session
 
     def send_reports(self):
         while True:
-            # TODO: replace MQ with "reports and report file archives".
-            report_and_report_file_archives = self.mqs['report files'].get()
+            # Report batches of reports each 3 seconds. This reduces the number of requests quite considerably.
+            time.sleep(3)
 
-            if report_and_report_file_archives is None:
-                self.logger.debug('Report files message queue was terminated')
+            reports_and_report_file_archives = []
+            is_finish = False
+            while True:
+                try:
+                    # TODO: replace MQ with "reports and report file archives".
+                    report_and_report_file_archives = self.mqs['report files'].get_nowait()
+
+                    if report_and_report_file_archives is None:
+                        self.logger.debug('Report files message queue was terminated')
+                        is_finish = True
+                        break
+
+                    reports_and_report_file_archives.append(report_and_report_file_archives)
+                except queue.Empty:
+                    break
+
+            if reports_and_report_file_archives:
+                for report_and_report_file_archives in reports_and_report_file_archives:
+                    report_file_archives = report_and_report_file_archives.get('report file archives')
+                    self.logger.debug('Upload report file "{0}"{1}'.format(
+                        report_and_report_file_archives['report file'],
+                        ' with report file archives:\n{0}'
+                        .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
+                        if report_file_archives else ''))
+
+                self.session.upload_reports_and_report_file_archives(reports_and_report_file_archives)
+
+                # Remove reports and report file archives if needed.
+                if not self.conf['keep intermediate files']:
+                    for report_and_report_file_archives in reports_and_report_file_archives:
+                        os.remove(report_and_report_file_archives['report file'])
+                        report_file_archives = report_and_report_file_archives.get('report file archives')
+                        if report_file_archives:
+                            for archive in report_file_archives:
+                                os.remove(archive)
+
+            if is_finish:
                 break
-
-            report_file = report_and_report_file_archives['report file']
-            report_file_archives = report_and_report_file_archives.get('report file archives')
-
-            self.logger.debug('Upload report file "{0}"{1}'.format(
-                report_file,
-                ' with report file archives:\n{0}'
-                .format('\n'.join(['  {0}'.format(archive) for archive in report_file_archives]))
-                if report_file_archives else ''))
-
-            self.session.upload_report(report_file, report_file_archives)
-
-            # Remove report if needed
-            if not self.conf['keep intermediate files']:
-                os.remove(report_file)
-                if report_file_archives:
-                    for archive in report_file_archives:
-                        os.remove(archive)
 
     main = send_reports

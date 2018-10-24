@@ -1,4 +1,5 @@
 {
   "pattern": "Error: Invalid configuration",
-  "problem": "InvalidConf"
+  "problem": "InvalidConf",
+  "production": true
 }

@@ -19,15 +19,14 @@ import os
 
 import jinja2
 
-import core.utils
 import core.vtg.plugins
 
 
 class TR(core.vtg.plugins.Plugin):
 
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, vals, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
-        super(TR, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, vals, id, work_dir, attrs,
+        super(TR, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                  separate_from_parent, include_child_resources)
 
     def render_templates(self):
@@ -42,10 +41,8 @@ class TR(core.vtg.plugins.Plugin):
             self.abstract_task_desc['files'] = []
 
             env = jinja2.Environment(
-                # All templates reside in the same directory as rule specifications DB.
-                loader=jinja2.FileSystemLoader(os.path.dirname(
-                    core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                self.conf['rule specifications DB']))),
+                # All templates reside in the same directory as requirements DB.
+                loader=jinja2.FileSystemLoader(os.path.dirname(self.conf['requirements DB'])),
                 # This allows to start template statements with the specified prefix rather than to put them inside
                 # special "braces", e.g. in "{% ... %}" by default.
                 # "//" is the beginning of one-line C/C++ comments, so editors will likely treat these lines as

@@ -8,7 +8,7 @@
     {
       "attr": "Name",
       "is_compare": false,
-      "value": "34/tests/sync/race/lock-reduce/sync:race"
+      "value": "34/tests/linux/concurrency-safety/lock-reduce/sync:race"
     },
     {
       "attr": "Linux kernel:Version",
@@ -31,14 +31,14 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
-      "value": "sync:race"
+      "value": "linux:concurrency safety"
     },
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/sync/race/lock-reduce/safe.ko"
+      "value": "ext-modules/linux/concurrency-safety/lock-reduce/safe.ko"
     }
   ],
   "description": "",

@@ -31,7 +31,7 @@
       "value": "separate modules"
     },
     {
-      "attr": "Rule specification",
+      "attr": "Requirement",
       "is_compare": true,
       "value": "linux:drivers:base:dma-mapping"
     },
@@ -57,13 +57,9 @@
       {
         "ldv_init": [
           {
-            "ldv_dma_map_page_7": [
+            "ldv_dma_map_page": [
               {
-                "ldv_dma_map_page": [
-                  {
-                    "ldv_assert_linux_drivers_base_dma_mapping__unchecked": []
-                  }
-                ]
+                "ldv_assert_linux_drivers_base_dma_mapping__unchecked": []
               }
             ]
           }

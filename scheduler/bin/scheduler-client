@@ -41,4 +41,3 @@ else:
     cf = json.loads(str(args.conf))
     run_benchexec(args.mode, configuration=cf)
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

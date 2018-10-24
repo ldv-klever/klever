@@ -1,5 +1,6 @@
 {
   "client": {
+    "addon binaries": ["/abs/path/to/benchexec/bin"],
     "verification tools": {
       "CPAchecker": {
         "trunk:23430": "path to scripts/"
@@ -11,7 +12,6 @@
   },
   "common": {
     "working directory": null,
-    "keep working directory": false,
     "logging": {
       "version": 1,
       "disable_existing_loggers": false,

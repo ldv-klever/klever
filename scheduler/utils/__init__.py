@@ -31,7 +31,12 @@ import re
 import glob
 import multiprocessing
 import sys
+import consulate
 from xml.etree import ElementTree
+
+# This should prevent rumbling of urllib3
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("consulate").setLevel(logging.WARNING)
 
 
 class StreamQueue:
@@ -98,9 +103,6 @@ def common_initialization(tool, conf=None):
         with open(args.config, encoding="utf8") as fp:
             conf = json.load(fp)
 
-    # TODO: Do we need use version of the scheduler further?
-    # TODO: Do we need any checks of exclusive execution?
-
     # Check common configuration
     if "common" not in conf:
         raise KeyError("Provide configuration property 'common' as an JSON-object")
@@ -111,29 +113,33 @@ def common_initialization(tool, conf=None):
     else:
         conf["common"]['working directory'] = os.path.abspath(conf["common"]['working directory'])
 
-    if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
-        logging.info("Keep working directory from the previous run")
-    else:
-        logging.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
+    clean_dir = False
+    if os.path.isdir(conf["common"]['working directory']) and not conf["common"].get("keep working directory", False):
+        clean_dir = True
         shutil.rmtree(conf["common"]['working directory'], True)
-
-    logging.debug("Create working dir: {0}".format(conf["common"]['working directory']))
     os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
-
-    # Go to the working directory to avoid creating files elsewhere
     os.chdir(conf["common"]['working directory'])
 
-    # Start logging
+    # Configure logging
     if "logging" not in conf["common"]:
         raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
     logging.config.dictConfig(conf["common"]['logging'])
+    logger = logging.getLogger()
+
+    # Report about the dir
+    if clean_dir:
+        # Go to the working directory to avoid creating files elsewhere
+        logger.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
+        logger.debug("Create working dir: {0}".format(conf["common"]['working directory']))
+    else:
+        logger.info("Keep working directory from the previous run")
 
     def handle_exception(exc_type, exc_value, exc_traceback):
-        logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
     sys.excepthook = handle_exception
 
-    return conf
+    return conf, logger
 
 
 def split_archive_name(path):
@@ -297,13 +303,6 @@ def execute(args, env=None, cwd=None, timeout=0.5, logger=None, stderr=sys.stder
             except subprocess.TimeoutExpired:
                 print('{}: Process {} is still alive ...'.format(os.getpid(), pid))
                 # Lets try it again
-                # try:
-                #     os.killpg(os.getpgid(pid), signal.SIGTERM)
-                #     os.killpg(os.getpgid(pid), signal.SIGINT)
-                #     os.kill(pid, signal.SIGKILL)
-                # except ProcessLookupError:
-                #    terminate()
-                # It should not survive after kill, lets wait a couple of seconds
                 time.sleep(10)
 
         terminate()
@@ -424,20 +423,24 @@ def process_task_results(logger):
                     decision_results["resources"]["memory size"] = int(value)
                 elif name == "exitcode":
                     decision_results["exit code"] = int(value)
+                elif name == "status":
+                    decision_results["status"] = str(value)
 
     return decision_results
 
 
-def submit_task_results(logger, server, identifier, decision_results, solution_path):
+def submit_task_results(logger, server, scheduler_type, identifier, decision_results, solution_path, speculative=False):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
 
     :param logger: Logger object.
     :param server: server.AbstractServer object.
+    :param scheduler_type: Scheduler type.
     :param identifier: Task identifier.
     :param decision_results: Dictionary with decision results and measured resources.
     :param solution_path: Path to the directory with solution files.
+    :param speculative: Do not upload solution to Bridge.
     :return: None
     """
 
@@ -457,7 +460,13 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
                               os.path.join(os.path.relpath(dirpath, solution_path), filename))
             os.fsync(zfp.fp)
 
-    return server.submit_solution(identifier, decision_results, results_archive)
+    if not speculative:
+        ret = server.submit_solution(identifier, decision_results, results_archive)
+    else:
+        ret = True
+        logger.info("Do not upload speculative solution")
+    kv_upload_solution(logger, identifier, scheduler_type, decision_results)
+    return ret
 
 
 def extract_cpu_cores_info():
@@ -569,4 +578,57 @@ def time_units_converter(num, outunit=''):
 
     return __converter(num, units_in_seconds, 'time', outunit)
 
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+
+def kv_upload_solution(logger, identifier, scheduler_type, dataset):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param identifier: Task identifier.
+    :param scheduler_type: Scheduler type.
+    :param dataset: Data to save about the solution. This should be dictionary.
+    :return: None
+    """
+    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
+    session = consulate.Session()
+    try:
+        session.kv[key] = json.dumps(dataset)
+        return
+    except (AttributeError, KeyError):
+        logger.warning("Cannot save key {!r} to key-value storage".format(key))
+
+
+def kv_get_solution(logger, scheduler_type, identifier):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param scheduler_type: Type of the scheduler to avoif races.
+    :param identifier: Task identifier.
+    :return: None
+    """
+    key = 'solutions/{}/{}'.format(scheduler_type, identifier)
+    session = consulate.Session()
+    try:
+        return json.loads(session.kv[key])
+    except (AttributeError, KeyError) as err:
+        logger.warning("Cannot obtain key {!r} from key-value storage: {!r}".format(key, err))
+
+
+def kv_clear_solutions(logger, scheduler_type, identifier=None):
+    """
+    Upload data to controller storage.
+
+    :param logger: Logger object.
+    :param scheduler_type: Type of the scheduler to avoif races.
+    :param identifier: Task identifier.
+    :return: None
+    """
+    try:
+        session = consulate.Session()
+        if isinstance(identifier, str):
+            session.kv.delete('solutions/{}/{}'.format(scheduler_type, identifier), recurse=True)
+        else:
+            session.kv.delete('solutions/{}'.format(scheduler_type), recurse=True)
+    except (AttributeError, KeyError):
+        logger.warning("Key-value storage is inaccessible")
