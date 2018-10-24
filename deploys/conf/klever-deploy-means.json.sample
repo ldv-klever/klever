@@ -55,8 +55,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "d95cdf0",
-      "path": "addons/cif-d95cdf0.tar.gz",
+      "version": "ca9075",
+      "path": "addons/cif-ca9075.tar.gz",
       "executable path": "bin"
     },
     "CIL": {

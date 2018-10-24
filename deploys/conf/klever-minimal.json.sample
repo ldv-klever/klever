@@ -55,8 +55,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "d95cdf0",
-      "path": "https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz",
+      "version": "ca9075",
+      "path": "https://forge.ispras.ru/attachments/download/6006/cif-ca9075.tar.gz",
       "executable path": "bin"
     },
     "CIL": {
