@@ -39,7 +39,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "clade==2",
+      "ldv-clade",
       "jinja2",
       "graphviz",
       "ply",
@@ -47,6 +47,7 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
+      "LDV-BenchExec",
       "consulate"
     ]
   },
@@ -55,14 +56,9 @@
     "path": "."
   },
   "Klever Addons": {
-    "BenchExec": {
-      "version": "2c98ac73",
-      "path": "https://forge.ispras.ru/attachments/download/5848/BenchExec-1.17-dev.tar.xz",
-      "executable path": "bin"
-    },
     "CIF": {
-      "version": "d95cdf0",
-      "path": "https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz",
+      "version": "ca9075",
+      "path": "https://forge.ispras.ru/attachments/download/6006/cif-ca9075.tar.gz",
       "executable path": "bin"
     },
     "CIL": {

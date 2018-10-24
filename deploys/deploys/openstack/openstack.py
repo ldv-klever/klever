@@ -34,7 +34,7 @@ import cinderclient.client
 
 from deploys.openstack.instance import OSInstance
 from deploys.openstack.ssh import SSH
-from deploys.utils import get_password, install_entity, install_klever_addons, to_update
+from deploys.utils import get_password, install_entity, install_klever_addons, install_klever_build_bases, to_update
 
 
 class OSClients:
@@ -163,6 +163,7 @@ class OSKleverBaseImage(OSEntity):
 
         if len(klever_base_images) == 1:
             i = 0
+            # TODO: this does not work as expected as the only renaming is performed.
             while True:
                 deprecated_klever_base_image_name = klever_base_image_name + \
                     ' (deprecated{0})'.format(' ' + str(i) if i else '')
@@ -286,7 +287,7 @@ class OSKleverInstance(OSEntity):
 
         install_klever_addons(self.logger, 'klever-inst', deploy_conf, prev_deploy_info, cmd_fn, install_fn,
                               dump_cur_deploy_info)
-
+        install_klever_build_bases(self.logger, 'klever-inst/klever', deploy_conf, cmd_fn, install_fn)
         prev_deploy_info = get_prev_deploy_info()
 
         # Keeping entities to be updated in previous deployment information allows to properly deal when somethiing

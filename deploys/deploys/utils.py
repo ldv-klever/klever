@@ -108,12 +108,7 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     path = desc['path']
     o = urllib.parse.urlparse(path)
     if not o[0]:
-        if not os.path.isabs(path):
-            path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
-
-        # Avoid paths as symbolic links for all further operations. Some of them deal with symbolic links as we need,
-        # but other ones can perform unexpected things.
-        path = os.path.realpath(path)
+        path = make_canonical_path(path)
 
     refs = {}
     try:
@@ -266,6 +261,33 @@ def install_klever_addons(logger, deploy_dir, deploy_conf, prev_deploy_info, cmd
 
     if is_update_verification_backends:
         to_update(prev_deploy_info, 'Verification Backends', dump_cur_deploy_info_fn)
+
+
+def install_klever_build_bases(logger, deploy_dir, deploy_conf, cmd_fn, install_fn):
+    # Klever build bases are placed within Klever deployment directory. Do not do that when the latter is symbolic link
+    # since this can damage sources. Most likely in this case one will not deploy Klever build bases using configuration
+    # anyway but will place them directly within Klever source tree within directory "build bases".
+    if os.path.islink(deploy_dir):
+        return
+
+    if 'Klever Build Bases' in deploy_conf:
+        for klever_build_base in deploy_conf['Klever Build Bases']:
+            logger.info('Install Klever build base "{0}"'.format(klever_build_base))
+            klever_build_base = make_canonical_path(klever_build_base)
+            klever_build_base_deploy_dir = os.path.join(deploy_dir, 'build bases', os.path.basename(klever_build_base))
+            cmd_fn('rm', '-rf', klever_build_base_deploy_dir)
+            install_fn(klever_build_base, klever_build_base_deploy_dir, allow_symlink=True)
+
+
+def make_canonical_path(path):
+    if not os.path.isabs(path):
+        path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, path)
+
+    # Avoid paths as symbolic links for all further operations. Some of them deal with symbolic links as we need,
+    # but other ones can perform unexpected things.
+    path = os.path.realpath(path)
+
+    return path
 
 
 def need_verifiercloud_scheduler(prev_deploy_info):
