@@ -45,6 +45,7 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
+      "LDV-BenchExec",
       "consulate"
     ]
   },
@@ -53,11 +54,6 @@
     "path": "."
   },
   "Klever Addons": {
-    "BenchExec": {
-      "version": "2c98ac73",
-      "path": "addons/BenchExec-1.17-dev.tar.xz",
-      "executable path": "bin"
-    },
     "CIF": {
       "version": "d95cdf0",
       "path": "addons/cif-d95cdf0.tar.gz",

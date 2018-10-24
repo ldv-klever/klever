@@ -163,6 +163,7 @@ class OSKleverBaseImage(OSEntity):
 
         if len(klever_base_images) == 1:
             i = 0
+            # TODO: this does not work as expected as the only renaming is performed.
             while True:
                 deprecated_klever_base_image_name = klever_base_image_name + \
                     ' (deprecated{0})'.format(' ' + str(i) if i else '')
