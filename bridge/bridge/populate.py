@@ -191,8 +191,11 @@ class Population:
     def __populate_jobs(self):
         created_jobs = []
 
-        # Directory "specifications" and file "verifier profiles.json" should be added for all preset jobs.
+        # Directory "specifications" and files "program fragmentation.json" and "verifier profiles.json" should be added
+        # for all preset jobs.
         specs_children = self.__get_dir(os.path.join(self.jobs_dir, 'specifications'), 'specifications')
+        program_fragmentation = self.__get_file(os.path.join(self.jobs_dir, 'program fragmentation.json'),
+                                                'program fragmentation.json')
         verifier_profiles = self.__get_file(os.path.join(self.jobs_dir, 'verifier profiles.json'),
                                             'verifier profiles.json')
 
@@ -235,7 +238,8 @@ class Population:
                 'file_data': json.dumps([{
                     'type': 'root',
                     'text': 'Root',
-                    'children': [specs_children, verifier_profiles] + self.__get_children(dirpath)
+                    'children':
+                        [specs_children, program_fragmentation, verifier_profiles] + self.__get_children(dirpath)
                 }], ensure_ascii=False)
             })
 
