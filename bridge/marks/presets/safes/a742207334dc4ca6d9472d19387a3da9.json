@@ -38,7 +38,7 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "ext-modules/target_backend_v1/target_backend_callbacks.ko"
+      "value": "ext-modules/target_backend_v.1/target_backend_callbacks.ko"
     }
   ],
   "description": "",

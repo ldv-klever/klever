@@ -98,5 +98,105 @@
         }
       }
     }
+  },
+  "Linux 4.15": {
+    "functions models": {
+      "transport_backend_register": {
+        "declaration": "int transport_backend_register(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      },
+      "target_backend_unregister": {
+        "declaration": "void target_backend_unregister(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      }
+    },
+    "categories": {
+      "target_backend": {
+        "containers": {
+          "target_backend_ops": {
+            "declaration": "struct target_backend_ops ops",
+            "header": "target/target_core_backend.h",
+            "fields": {
+              "alloc_device": "%target_backend.alloc%",
+              "free_device": "%target_backend.free%",
+              "attach_hba": "%target_backend.attach_hba%",
+              "detach_hba": "%target_backend.detach_hba%"
+            }
+          }
+        },
+        "resources": {
+          "se_device": {
+            "declaration": "struct se_device *r"
+          },
+          "se_hba": {
+            "declaration": "struct se_hba *r"
+          }
+        },
+        "callbacks": {
+          "alloc": {
+            "declaration": "%target_backend.se_device% (*alloc)(%target_backend.se_hba%, const char *)"
+          },
+          "free": {
+            "declaration": "void (*free)(%target_backend.se_device%)"
+          },
+          "attach_hba": {
+            "declaration": "int (*attach_hba)(%target_backend.se_hba%, u32)"
+          },
+          "detach_hba": {
+            "declaration": "void (*detach_hba)(%target_backend.se_hba%)"
+          }
+        }
+      }
+    }
+  },
+  "Linux 4.17": {
+    "functions models": {
+      "transport_backend_register": {
+        "declaration": "int transport_backend_register(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      },
+      "target_backend_unregister": {
+        "declaration": "void target_backend_unregister(*%target_backend.target_backend_ops%)",
+        "header": "target/target_core_backend.h"
+      }
+    },
+    "categories": {
+      "target_backend": {
+        "containers": {
+          "target_backend_ops": {
+            "declaration": "struct target_backend_ops ops",
+            "header": "target/target_core_backend.h",
+            "fields": {
+              "alloc_device": "%target_backend.alloc%",
+              "free_device": "%target_backend.free%",
+              "attach_hba": "%target_backend.attach_hba%",
+              "detach_hba": "%target_backend.detach_hba%"
+            }
+          }
+        },
+        "resources": {
+          "se_device": {
+            "declaration": "struct se_device *r"
+          },
+          "se_hba": {
+            "declaration": "struct se_hba *r"
+          }
+        },
+        "callbacks": {
+          "alloc": {
+            "declaration": "%target_backend.se_device% (*alloc)(%target_backend.se_hba%, const char *)"
+          },
+          "free": {
+            "declaration": "void (*free)(%target_backend.se_device%)"
+          },
+          "attach_hba": {
+            "declaration": "int (*attach_hba)(%target_backend.se_hba%, u32)"
+          },
+          "detach_hba": {
+            "declaration": "void (*detach_hba)(%target_backend.se_hba%)"
+          }
+        }
+      }
+    }
   }
 }

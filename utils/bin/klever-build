@@ -224,7 +224,7 @@ target_program_descs = [
     #         'ext-modules/scsi_host_template_v.1',
     #         'ext-modules/seq_operations_v.1',
     #         'ext-modules/serial_core_v.1',
-    #         'ext-modules/target_backend_v1',
+    #         'ext-modules/target_backend_v.1',
     #         'ext-modules/tasklet_v.1',
     #         'ext-modules/timer_v.2',
     #         'ext-modules/tty_v.2',
@@ -385,7 +385,7 @@ target_program_descs = [
     #         "ext-modules/variables/remainder-assignment",
     #         "ext-modules/variables/right-shift-assignment"
     #     ]
-    # },
+    # }
     # # Validation on commits in Linux kernel Git repositories.
     # {
     #     'build base': 'build bases/validation/7ce77510c9c7~',
@@ -632,6 +632,83 @@ target_program_descs = [
     #         'linux/iio/triggered_buffer.h',
     #         'target/target_core_backend.h'
     #     ]
+    # }
+    # TODO: Unsupported tests:
+    # {
+    #     'build base': 'build bases/testing/57d7f5',
+    #     'name': 'Linux',
+    #     'Git repository version': 'v4.15.18',
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+    #     'loadable kernel modules': [
+    #         'ext-modules/block_device_operations_v.1',
+    #         'ext-modules/class_v.1',
+    #         'ext-modules/devm_threaded_irq_v.1',
+    #         'ext-modules/ethtool_ops_v.2',
+    #         'ext-modules/file_operations_v.1',
+    #         'ext-modules/hid_v.1',
+    #         'ext-modules/ieee80211_ops_v.1',
+    #         'ext-modules/iio_triggered_buffer_v.1',
+    #         'ext-modules/irq_v.2',
+    #         'ext-modules/net_device_ops_v.2',
+    #         'ext-modules/pci_driver_v.1',
+    #         'ext-modules/percpu_irq_v.1',
+    #         'ext-modules/platform_driver_v.1',
+    #         'ext-modules/proto_v.2',
+    #         'ext-modules/rtc_class_ops_v.1',
+    #         'ext-modules/scsi_host_template_v.1',
+    #         'ext-modules/seq_operations_v.1',
+    #         'ext-modules/serial_core_v.1',
+    #         'ext-modules/target_backend_v.1',
+    #         'ext-modules/tty_v.2',
+    #         'ext-modules/usb_driver_v.1',
+    #         'ext-modules/usb_serial_driver_v.2',
+    #         'ext-modules/timer_v.3',
+    #         'ext-modules/workqueue_v.1',
+    #         'ext-modules/urb_v.1',
+    #         'ext-modules/tasklet_v.2',
+    #         'ext-modules/kthread_v.1'
+    #     ],
+    #     'exclude extra headers': ['linux/poll.h'],
+    #     # Linux 4.15.18 can be built with new versions of GCC.
+    #     'extra Clade options': {}
+    # },
+    # {
+    #     'build base': 'build bases/testing/7a7e7e',
+    #     'name': 'Linux',
+    #     'Git repository version': 'v4.17.19',
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'environment model specs', 'tests'),
+    #     'loadable kernel modules': [
+    #         'ext-modules/block_device_operations_v.1',
+    #         'ext-modules/class_v.1',
+    #         'ext-modules/devm_threaded_irq_v.1',
+    #         'ext-modules/ethtool_ops_v.2',
+    #         'ext-modules/file_operations_v.1',
+    #         'ext-modules/hid_v.1',
+    #         'ext-modules/ieee80211_ops_v.1',
+    #         'ext-modules/iio_triggered_buffer_v.1',
+    #         'ext-modules/irq_v.2',
+    #         'ext-modules/net_device_ops_v.2',
+    #         'ext-modules/pci_driver_v.1',
+    #         'ext-modules/percpu_irq_v.1',
+    #         'ext-modules/platform_driver_v.1',
+    #         'ext-modules/proto_v.2',
+    #         'ext-modules/rtc_class_ops_v.1',
+    #         'ext-modules/scsi_host_template_v.1',
+    #         'ext-modules/seq_operations_v.1',
+    #         'ext-modules/serial_core_v.1',
+    #         'ext-modules/target_backend_v.1',
+    #         'ext-modules/tty_v.2',
+    #         'ext-modules/usb_driver_v.1',
+    #         'ext-modules/usb_serial_driver_v.2',
+    #         'ext-modules/timer_v.3',
+    #         'ext-modules/workqueue_v.1',
+    #         'ext-modules/urb_v.1',
+    #         'ext-modules/tasklet_v.2',
+    #         'ext-modules/kthread_v.1'
+    #     ],
+    #     'exclude extra headers': ['linux/poll.h'],
+    #     # Linux v4.17.19 can be built with new versions of GCC.
+    #     'extra Clade options': {}
     # }
 ]
 

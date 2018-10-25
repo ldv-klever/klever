@@ -227,15 +227,22 @@ around: FREE
 
 around: call(void framebuffer_release(..))
 {
-    ldv_free($arg1->apertures);
-    ldv_free($arg1);
+	if ($arg1 != 0) {
+		if ($arg1->apertures != 0) {
+			ldv_memory_free();
+		}
+		ldv_memory_free();
+	}
 }
 
 around: call(void rsi_91x_deinit(..))
 {
-    ldv_free($arg1->priv);
-    ldv_free($arg1->rsi_dev);
-    ldv_free($arg1);
+	if ($arg1->rsi_dev != 0) {
+		ldv_memory_free();
+	}
+	if ($arg1 != 0) {
+		ldv_memory_free();
+	}
 }
 
 // Workaround to find exactly the bug described in commit c0cc359.

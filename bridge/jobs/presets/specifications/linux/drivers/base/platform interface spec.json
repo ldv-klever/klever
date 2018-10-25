@@ -92,5 +92,95 @@
         }
       }
     }
+  },
+  "Linux 4.15": {
+    "functions models": {
+      "platform_driver_unregister": {
+        "declaration": "void platform_driver_unregister(*%platform.platform_driver%)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_probe": {
+        "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_register": {
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *owner)",
+        "header": "linux/platform_device.h"
+      }
+    },
+    "categories": {
+      "platform": {
+        "containers": {
+          "platform_driver": {
+            "declaration": "struct platform_driver driver",
+            "header": "linux/platform_device.h",
+            "fields": {
+              "probe": "%platform.probe%",
+              "remove": "%platform.release%"
+            }
+          }
+        },
+        "resources": {
+          "platform_device": {
+            "declaration": "struct platform_device *device",
+            "header": "linux/platform_device.h",
+            "implemented in kernel": true
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%platform.platform_device%)"
+          },
+          "release": {
+            "declaration": "int (*release)(%platform.platform_device%)"
+          }
+        }
+      }
+    }
+  },
+  "Linux 4.17": {
+    "functions models": {
+      "platform_driver_unregister": {
+        "declaration": "void platform_driver_unregister(*%platform.platform_driver%)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_probe": {
+        "declaration": "int __platform_driver_probe(*%platform.platform_driver%, %platform.probe%, struct module *module)",
+        "header": "linux/platform_device.h"
+      },
+      "__platform_driver_register": {
+        "declaration": "int __platform_driver_register(*%platform.platform_driver%, struct module *owner)",
+        "header": "linux/platform_device.h"
+      }
+    },
+    "categories": {
+      "platform": {
+        "containers": {
+          "platform_driver": {
+            "declaration": "struct platform_driver driver",
+            "header": "linux/platform_device.h",
+            "fields": {
+              "probe": "%platform.probe%",
+              "remove": "%platform.release%"
+            }
+          }
+        },
+        "resources": {
+          "platform_device": {
+            "declaration": "struct platform_device *device",
+            "header": "linux/platform_device.h",
+            "implemented in kernel": true
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "declaration": "int (*probe)(%platform.platform_device%)"
+          },
+          "release": {
+            "declaration": "int (*release)(%platform.platform_device%)"
+          }
+        }
+      }
+    }
   }
 }

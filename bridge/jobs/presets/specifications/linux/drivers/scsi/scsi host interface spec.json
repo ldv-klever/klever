@@ -59,5 +59,46 @@
         }
       }
     }
+  },
+  "Linux 4.17": {
+    "functions models": {
+      "scsi_add_host_with_dma": {
+        "declaration": "int scsi_add_host_with_dma(*%scsi_host_template.host%, struct device *, struct device *)",
+        "header": "scsi/scsi_host.h"
+      },
+      "scsi_add_host": {
+        "declaration": "int scsi_add_host(*%scsi_host_template.host%, struct device *)",
+        "header": "scsi/scsi_host.h"
+      },
+      "scsi_host_alloc": {
+        "declaration": "*%scsi_host_template.host% scsi_host_alloc(*%scsi_host_template.scsi_host_template%, int)",
+        "header": "scsi/scsi_host.h"
+      },
+      "scsi_remove_host": {
+        "declaration": "void scsi_remove_host(*%scsi_host_template.host%)",
+        "header": "scsi/scsi_host.h"
+      },
+      "scsi_host_put": {
+        "declaration": "void scsi_host_put(*%scsi_host_template.host%)",
+        "header": "scsi/scsi_host.h"
+      }
+    },
+    "categories": {
+      "scsi_host_template": {
+        "containers": {
+          "scsi_host_template": {
+            "declaration": "struct scsi_host_template ops",
+            "header": "scsi/scsi_host.h"
+          },
+          "host": {
+            "declaration": "struct Scsi_Host host",
+            "header": "scsi/scsi_host.h",
+            "fields": {
+              "hostt": "*%scsi_host_template.scsi_host_template%"
+            }
+          }
+        }
+      }
+    }
   }
 }

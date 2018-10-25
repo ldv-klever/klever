@@ -16,54 +16,38 @@
  */
 
 #include <linux/module.h>
-#include <target/target_core_base.h>
-#include <target/target_core_backend.h>
+#include <linux/timer.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-int flip_a_coin;
+struct timer_list ldv_timer;
+unsigned long expires;
 
-struct se_device * ldv_alloc_device(struct se_hba *hba, const char *name)
+void ldv_handler(struct timer_list *data)
 {
-	struct se_device *res;
-
-	ldv_invoke_callback();
-	res = ldv_undef_ptr();
-	if (res)
-		ldv_probe_up();
-	return res;
-}
-
-static void ldv_free_device(struct se_device *device)
-{
-	ldv_release_down();
 	ldv_invoke_callback();
 }
-
-static struct target_backend_ops ldv_driver = {
-	.alloc_device = ldv_alloc_device,
-	.free_device = ldv_free_device,
-};
 
 static int __init ldv_init(void)
 {
 	int ret = ldv_undef_int();
-	flip_a_coin = ldv_undef_int();
+	int flip_a_coin = ldv_undef_int();
+
+	timer_setup(&ldv_timer, ldv_handler, 0);
 	if (flip_a_coin) {
 		ldv_register();
-		ret = transport_backend_register(&ldv_driver);
-		if (ret)
-			ldv_deregister();
+		ret = mod_timer(& ldv_timer, jiffies + msecs_to_jiffies(200));
+		if (!ret) {
+			del_timer_sync(&ldv_timer);
+		}
+		ldv_deregister();
 	}
 	return ret;
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		target_backend_unregister(&ldv_driver);
-		ldv_deregister();
-	}
+	/* pass */
 }
 
 module_init(ldv_init);
