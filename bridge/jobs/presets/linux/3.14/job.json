@@ -1,14 +1,19 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "build base": "linux-3.14",
+  "build base": "linux-3.14.79",
   "program": "Linux",
   "version": "Linux-3.14",
   "fragmentation set": "Linux modules",
-  "add": ["drivers/net/usb/asix.ko"],
-  "specifications set": "Linux 3.14 (base)",
-  "extra CIF opts": [
-    "-D__GNUC__=4",
-    "-D__GNUC_MINOR__=6"
+  "add": [
+    "drivers/ata/pata_arasan_cf.ko",
+    "drivers/idle/i7300_idle.ko",
+    "drivers/uwb/hwa-rc.ko"
   ],
-  "requirements": ["linux:usb:coherent", "linux:memory safety", "linux:concurrency safety"]
+  "specifications set": "Linux 3.14 (base)",
+  "requirements": [
+    "linux:arch:io",
+    "linux:drivers:clk1",
+    "linux:kernel:locking:mutex",
+    "linux:memory safety"
+  ]
 }
