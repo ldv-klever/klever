@@ -36,7 +36,7 @@
       "value": "linux:test:common"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/mm/gfp/safe.ko"
     }

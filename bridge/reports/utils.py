@@ -757,7 +757,7 @@ class AttrData:
 
 
 class FilesForCompetitionArchive:
-    obj_attr = 'Verification object'
+    obj_attr = 'Program fragment'
     requirement_attr = 'Requirement'
 
     def __init__(self, job, filters):

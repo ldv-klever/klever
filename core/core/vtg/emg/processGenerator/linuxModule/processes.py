@@ -256,7 +256,7 @@ class ProcessModel:
                             self.__assign_label_interface(label, interfaces.get_or_restore_intf(interface))
                         except KeyError:
                             self.logger.warning("Process '{}' for category '{}' cannot be added, since it contains"
-                                                "unknown interfaces for this verification object".
+                                                "unknown interfaces for this program fragment".
                                                 format(new.name, new.category))
                             return None
 

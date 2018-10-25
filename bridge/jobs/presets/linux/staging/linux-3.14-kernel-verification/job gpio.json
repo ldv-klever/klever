@@ -46,7 +46,7 @@
                      "console_initcall",
                      "security_initcall",
                      "module_exit"],
-  "maximum verification object size": 30000,
+  "maximum program fragment size": 30000,
   "specifications set": "Linux 3.14 (base)",
   "requirements": [
     "linux:empty",

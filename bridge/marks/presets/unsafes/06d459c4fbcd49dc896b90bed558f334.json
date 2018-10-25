@@ -36,7 +36,7 @@
       "value": "linux:usb:urb"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/usb/urb/more-at-exit.ko"
     }

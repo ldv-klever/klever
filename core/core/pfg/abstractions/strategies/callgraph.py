@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from core.vog.abstractions.strategies import Abstract
+from core.pfg.abstractions.strategies import Abstract
 
 
 class Callgraph(Abstract):

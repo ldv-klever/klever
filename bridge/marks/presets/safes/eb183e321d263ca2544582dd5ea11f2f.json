@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/file_operations_v.1/cdev_init.ko"
     }

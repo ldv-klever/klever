@@ -19,7 +19,7 @@ import ujson
 import zipfile
 
 
-from core.vog.abstractions.strategies import Abstract
+from core.pfg.abstractions.strategies import Abstract
 import core.utils
 
 

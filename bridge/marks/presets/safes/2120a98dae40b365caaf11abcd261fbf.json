@@ -36,7 +36,7 @@
       "value": "linux:net:register"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/net/register/netdev2.ko"
     }

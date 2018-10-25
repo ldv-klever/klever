@@ -36,7 +36,7 @@
       "value": "linux:concurrency safety"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/concurrency-safety/unsorted/RaceTest7-safe.ko"
     }

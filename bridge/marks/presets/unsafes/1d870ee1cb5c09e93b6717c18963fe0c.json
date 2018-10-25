@@ -36,7 +36,7 @@
       "value": "linux:block:queue"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/block/queue/more-initial.ko"
     }

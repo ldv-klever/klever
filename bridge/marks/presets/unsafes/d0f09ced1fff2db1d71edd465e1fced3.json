@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications with function pointer analysis"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/kthread_v.1/kthread_run_invoke.ko"
     }

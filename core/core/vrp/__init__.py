@@ -60,7 +60,7 @@ class VRP(core.components.Component):
         # Read this in a callback
         self.verdict = None
         self.requirement = None
-        self.verification_object = None
+        self.program_fragment = None
 
         # Common initialization
         super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
@@ -180,9 +180,8 @@ class VRP(core.components.Component):
                 break
 
             status, data, attempt, source_paths = element
-            vo = data[2]['id']
+            pf = data[2]['id']
             requirement = data[3]
-            # Todo: Add verification object attribute
             attrs = [
                 {
                     "name": "Requirement",
@@ -192,8 +191,8 @@ class VRP(core.components.Component):
                 }
             ]
             if attempt:
-                new_id = "{}/{}/{}/RP".format(vo, requirement, attempt)
-                workdir = os.path.join(vo, requirement, str(attempt))
+                new_id = "{}/{}/{}/RP".format(pf, requirement, attempt)
+                workdir = os.path.join(pf, requirement, str(attempt))
                 attrs.append(
                     {
                         "name": "Rescheduling attempt",
@@ -203,9 +202,9 @@ class VRP(core.components.Component):
                     }
                 )
             else:
-                new_id = "{}/{}/RP".format(vo, requirement)
-                workdir = os.path.join(vo, requirement)
-            self.vals['task solution triples']['{}:{}'.format(vo, requirement)] = [None, None, None]
+                new_id = "{}/{}/RP".format(pf, requirement)
+                workdir = os.path.join(pf, requirement)
+            self.vals['task solution triples']['{}:{}'.format(pf, requirement)] = [None, None, None]
             try:
                 rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.vals, new_id,
                         workdir, attrs, separate_from_parent=True, qos_resource_limits=qos_resource_limits,
@@ -213,11 +212,11 @@ class VRP(core.components.Component):
                 rp.start()
                 rp.join()
             except core.components.ComponentError:
-                self.logger.debug("RP that processed {!r}, {!r} failed".format(vo, requirement))
+                self.logger.debug("RP that processed {!r}, {!r} failed".format(pf, requirement))
             finally:
-                solution = list(self.vals['task solution triples'].get('{}:{}'.format(vo, requirement)))
-                del self.vals['task solution triples']['{}:{}'.format(vo, requirement)]
-                self.mqs['processed tasks'].put((vo, requirement, solution))
+                solution = list(self.vals['task solution triples'].get('{}:{}'.format(pf, requirement)))
+                del self.vals['task solution triples']['{}:{}'.format(pf, requirement)]
+                self.mqs['processed tasks'].put((pf, requirement, solution))
 
         self.logger.info("VRP fetcher finishes its work")
 
@@ -240,7 +239,7 @@ class RP(core.components.Component):
         self.element = element
         self.verdict = None
         self.requirement = None
-        self.verification_object = None
+        self.program_fragment = None
         self.task_error = None
         self.verification_coverage = None
         self.source_paths = source_paths
@@ -262,23 +261,23 @@ class RP(core.components.Component):
         self.logger.info("VRP instance is ready to work")
         element = self.element
         status, data = element
-        task_id, opts, verification_object, requirement, verifier = data
-        self.verification_object = verification_object['id']
+        task_id, opts, program_fragment, requirement, verifier = data
+        self.program_fragment = program_fragment['id']
         self.requirement = requirement
-        self.results_key = '{}:{}'.format(self.verification_object, self.requirement)
+        self.results_key = '{}:{}'.format(self.program_fragment, self.requirement)
         self.logger.debug("Prcess results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines('\n'.join(sorted(f for grp in verification_object['grps'] for f in grp['files'])))
+            fp.writelines('\n'.join(sorted(f for grp in program_fragment['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
                           'attrs',
                           {
                               'id': self.id,
                               'attrs': [
                                   {
-                                      "name": "Verification object",
-                                      "value": verification_object['id'],
+                                      "name": "Program fragment",
+                                      "value": program_fragment['id'],
                                       "data": files_list_file,
                                       "compare": True,
                                       "associate": True

@@ -36,7 +36,7 @@
       "value": "linux:kernel:locking:mutex"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"
     }

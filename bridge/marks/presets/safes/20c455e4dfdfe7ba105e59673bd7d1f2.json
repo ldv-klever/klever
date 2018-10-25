@@ -36,7 +36,7 @@
       "value": "linux:drivers:clk1"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "drivers/staging/iio/adc/mxs-lradc.ko"
     }

@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/get_sb_v.1/get_sb_nodev_invoke.ko"
     }

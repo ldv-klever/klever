@@ -358,7 +358,7 @@ class Source:
             key = list(fs_desc['declarations'].keys())[0]
             signature = fs_desc['declarations'][key]['signature']
             func_intf = Function(func, signature)
-            # Do not set definition file since it is out of scope of the target verification object
+            # Do not set definition file since it is out of scope of the target program fragment
         else:
             signature = fs_desc.get('signature')
             func_intf = Function(func, signature)

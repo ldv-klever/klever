@@ -36,7 +36,7 @@
       "value": "linux:test:common"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/verifier/set/counter/add-1-add-2-remove-1-contains-2.ko"
     }

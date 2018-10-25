@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications with function pointer analysis"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/workqueue_v.1/queue_delayed_work_on_invoke.ko"
     }

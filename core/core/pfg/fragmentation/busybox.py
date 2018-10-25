@@ -18,7 +18,7 @@
 import os
 import re
 
-from core.vog.fragmentation import FragmentationAlgorythm
+from core.pfg.fragmentation import FragmentationAlgorythm
 
 
 class Busybox(FragmentationAlgorythm):

@@ -36,7 +36,7 @@
       "value": "linux:kernel:rcu:update:lock"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/kernel/rcu/update/lock/rcu-lock-at-exit.ko"
     }

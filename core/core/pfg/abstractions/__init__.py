@@ -19,8 +19,8 @@ import os
 import glob
 
 from core.utils import make_relative_path
-from core.vog.abstractions.files_repr import File
-from core.vog.abstractions.fragments_repr import Fragment
+from core.pfg.abstractions.files_repr import File
+from core.pfg.abstractions.fragments_repr import Fragment
 
 
 class Dependencies:

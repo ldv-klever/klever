@@ -9,7 +9,7 @@
   "ideal verdicts": [
     {
       "ideal verdict": "safe",
-      "verification object": [
+      "program fragment": [
         "ext-modules/linux/drivers/base/dd/safe.ko",
         "ext-modules/linux/drivers/spi/safe.ko",
         "ext-modules/linux/err/safe.ko",

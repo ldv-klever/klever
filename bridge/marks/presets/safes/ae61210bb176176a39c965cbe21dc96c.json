@@ -36,7 +36,7 @@
       "value": "linux:fs:sysfs"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/fs/sysfs/safe.ko"
     }

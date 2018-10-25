@@ -36,7 +36,7 @@
       "value": "linux:usb:dev"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/linux/usb/dev/safe.ko"
     }

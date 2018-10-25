@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/tty_v.2/tty_port_register_device.ko"
     }

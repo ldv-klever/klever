@@ -31,7 +31,7 @@
       "value": "linux:kernel:locking:mutex"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "drivers/w1/wire.ko"
     }

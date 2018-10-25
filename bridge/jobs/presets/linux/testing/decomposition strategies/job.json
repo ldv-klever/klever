@@ -70,8 +70,8 @@
         ]
       },
       "ideal verdicts": [
-        {"ideal verdict": "unsafe", "verification object": "ext-modules/several_groups/init.ko:0"},
-        {"ideal verdict": "safe", "verification object": "ext-modules/several_groups/init.ko:1"}
+        {"ideal verdict": "unsafe", "program fragment": "ext-modules/several_groups/init.ko:0"},
+        {"ideal verdict": "safe", "program fragment": "ext-modules/several_groups/init.ko:1"}
       ]
     },
     {

@@ -31,7 +31,7 @@
       "value": "linux:drivers:clk2"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "drivers/usb/dwc2/dwc2_gadget.ko"
     }

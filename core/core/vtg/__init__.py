@@ -37,15 +37,14 @@ def __launch_sub_job_components(context):
     context.mqs['pending tasks'] = multiprocessing.Queue()
     context.mqs['processed tasks'] = multiprocessing.Queue()
     context.mqs['prepared verification tasks'] = multiprocessing.Queue()
-    context.mqs['prepare verification objects'] = multiprocessing.Queue()
+    context.mqs['prepare program fragments'] = multiprocessing.Queue()
     context.mqs['processing tasks'] = multiprocessing.Queue()
-    context.mqs['verification obj desc files'] = multiprocessing.Queue()
-    context.mqs['verification obj descs num'] = multiprocessing.Queue()
+    context.mqs['program fragments desc files'] = multiprocessing.Queue()
 
 
 @core.components.after_callback
 def __prepare_descriptions_file(context):
-    context.mqs['verification obj desc files'].put(
+    context.mqs['program fragments desc files'].put(
         os.path.relpath(context.VO_FILE, context.conf['main working directory']))
 
 
@@ -333,47 +332,47 @@ class VTG(core.components.Component):
     def __generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
 
-        # Fetch object
-        vo_file = self.mqs['verification obj desc files'].get()
-        vo_file = os.path.join(self.conf['main working directory'], vo_file)
-        self.mqs['verification obj desc files'].close()
+        # Fetch fragment
+        pf_file = self.mqs['program fragments desc files'].get()
+        pf_file = os.path.join(self.conf['main working directory'], pf_file)
+        self.mqs['program fragments desc files'].close()
 
-        if os.path.isfile(vo_file):
-            with open(vo_file, 'r', encoding='utf8') as fp:
-                verification_obj_desc_files = \
-                    [os.path.join(self.conf['main working directory'], vof.strip()) for vof in fp.readlines()]
+        if os.path.isfile(pf_file):
+            with open(pf_file, 'r', encoding='utf8') as fp:
+                program_fragments_desc_files = \
+                    [os.path.join(self.conf['main working directory'], pf_file.strip()) for pf_file in fp.readlines()]
         else:
             raise FileNotFoundError
 
         # Drop a line to a progress watcher
-        total_vo_descriptions = len(verification_obj_desc_files)
+        total_pf_descriptions = len(program_fragments_desc_files)
         self.mqs['total tasks'].put([self.conf['sub-job identifier'],
-                                     int(total_vo_descriptions * len(self.requirement_descs))])
+                                     int(total_pf_descriptions * len(self.requirement_descs))])
 
-        vo_descriptions = dict()
+        pf_descriptions = dict()
         initial = dict()
 
-        # Fetch object
-        for verification_obj_desc_file in verification_obj_desc_files:
-            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+        # Fetch fragment
+        for program_fragment_desc_file in program_fragments_desc_files:
+            with open(os.path.join(self.conf['main working directory'], program_fragment_desc_file),
                       encoding='utf8') as fp:
-                verification_obj_desc = json.load(fp)
+                program_fragment_desc = json.load(fp)
             if not self.conf['keep intermediate files']:
-                os.remove(os.path.join(self.conf['main working directory'], verification_obj_desc_file))
+                os.remove(os.path.join(self.conf['main working directory'], program_fragment_desc_file))
             if len(self.requirement_descs) == 0:
-                self.logger.warning('Verification object {0} will not be verified since requirements'
-                                    ' are not specified'.format(verification_obj_desc['id']))
+                self.logger.warning('Program fragment {0} will not be verified since requirements'
+                                    ' are not specified'.format(program_fragment_desc['id']))
             else:
-                vo_descriptions[verification_obj_desc['id']] = verification_obj_desc
-                initial[verification_obj_desc['id']] = list(_requirement_classes.keys())
+                pf_descriptions[program_fragment_desc['id']] = program_fragment_desc
+                initial[program_fragment_desc['id']] = list(_requirement_classes.keys())
 
         processing_status = dict()
         delete_ready = dict()
         balancer = Balancer(self.conf, self.logger, processing_status)
 
-        def submit_task(vobj, rlcl, rlda, rescheduling=False):
-            resource_limitations = balancer.resource_limitations(vobj['id'], rlcl, rlda['id'])
-            self.mqs['prepare verification objects'].put((vobj, rlda, resource_limitations, rescheduling))
+        def submit_task(pf, rlcl, rlda, rescheduling=False):
+            resource_limitations = balancer.resource_limitations(pf['id'], rlcl, rlda['id'])
+            self.mqs['prepare program fragments'].put((pf, rlda, resource_limitations, rescheduling))
 
         max_tasks = int(self.conf['max solving tasks per sub-job'])
         active_tasks = 0
@@ -384,16 +383,16 @@ class VTG(core.components.Component):
             core.utils.drain_queue(pilot_statuses, self.mqs['prepared verification tasks'])
             # Process them
             for status in pilot_statuses:
-                vobject, requirement_name = status
+                prog_fragment, requirement_name = status
                 self.logger.info("Pilot verificatio task for {!r} and requirement name {!r} is prepared".
-                                 format(vobject, requirement_name))
+                                 format(prog_fragment, requirement_name))
                 requirement_class = resolve_requirement_class(requirement_name)
                 if requirement_class:
-                    if vobject in processing_status and requirement_class in processing_status[vobject] and \
-                            requirement_name in processing_status[vobject][requirement_class]:
-                        processing_status[vobject][requirement_class][requirement_name] = False
+                    if prog_fragment in processing_status and requirement_class in processing_status[prog_fragment] and\
+                            requirement_name in processing_status[prog_fragment][requirement_class]:
+                        processing_status[prog_fragment][requirement_class][requirement_name] = False
                 else:
-                    self.logger.warning("Do nothing with {} since no requirements to check".format(vobject))
+                    self.logger.warning("Do nothing with {} since no requirements to check".format(prog_fragment))
 
             # Fetch solutions
             solutions = []
@@ -404,117 +403,122 @@ class VTG(core.components.Component):
                 ready = []
                 core.utils.drain_queue(ready, self.mqs['delete dir'])
                 while len(ready) > 0:
-                    vo, requirement = ready.pop()
-                    if vo not in delete_ready:
-                        delete_ready[vo] = {requirement}
+                    pf, requirement = ready.pop()
+                    if pf not in delete_ready:
+                        delete_ready[pf] = {requirement}
                     else:
-                        delete_ready[vo].add(requirement)
+                        delete_ready[pf].add(requirement)
 
             # Process them
             for solution in solutions:
-                vobject, requirement_name, status_info = solution
+                prog_fragment, requirement_name, status_info = solution
                 self.logger.info("Verificatio task for {!r} and requirement {!r} is either finished or failed".
-                                 format(vobject, requirement_name))
+                                 format(prog_fragment, requirement_name))
                 requirement_class = resolve_requirement_class(requirement_name)
                 if requirement_class:
-                    final = balancer.add_solution(vobject, requirement_class, requirement_name, status_info)
+                    final = balancer.add_solution(prog_fragment, requirement_class, requirement_name, status_info)
                     if final:
                         self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'
                                                                   if status_info[0] == 'finished' else 'failed'])
-                        processing_status[vobject][requirement_class][requirement_name] = True
+                        processing_status[prog_fragment][requirement_class][requirement_name] = True
                     active_tasks -= 1
 
-            # Submit initial objects
-            for vo in list(initial.keys()):
-                while len(initial[vo]) > 0:
+            # Submit initial fragments
+            for pf in list(initial.keys()):
+                while len(initial[pf]) > 0:
                     if active_tasks < max_tasks:
-                        requirement_class = initial[vo].pop()
-                        vobject = vo_descriptions[vo]
+                        requirement_class = initial[pf].pop()
+                        prog_fragment = pf_descriptions[pf]
                         requirement_name = _requirement_classes[requirement_class][0]['id']
                         self.logger.info("Prepare initial verification tasks for {!r} and requirement {!r}".
-                                         format(vo, requirement_name))
-                        submit_task(vobject, requirement_class, _requirement_classes[requirement_class][0])
+                                         format(pf, requirement_name))
+                        submit_task(prog_fragment, requirement_class, _requirement_classes[requirement_class][0])
 
                         # Set status
-                        if vo not in processing_status:
-                            processing_status[vo] = {}
-                        processing_status[vo][requirement_class] = {requirement_name: None}
+                        if pf not in processing_status:
+                            processing_status[pf] = {}
+                        processing_status[pf][requirement_class] = {requirement_name: None}
                         active_tasks += 1
                     else:
                         break
                 else:
-                    self.logger.info("Trggered all initial tasks for verification object {!r}".format(vo))
-                    del initial[vo]
+                    self.logger.info("Trggered all initial tasks for program fragment {!r}".format(pf))
+                    del initial[pf]
 
             # Check statuses
-            for vobject in list(processing_status.keys()):
-                for requirement_class in list(processing_status[vobject].keys()):
+            for prog_fragment in list(processing_status.keys()):
+                for requirement_class in list(processing_status[prog_fragment].keys()):
                     # Check readiness for further tasks generation
-                    pilot_task_status = processing_status[vobject][requirement_class][_requirement_classes[requirement_class][0]['id']]
+                    pilot_task_status = processing_status[prog_fragment][requirement_class][_requirement_classes[
+                        requirement_class][0]['id']]
                     if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
-                        for requirement in [requirement for requirement in _requirement_classes[requirement_class][1:] if
-                                            requirement['id'] not in processing_status[vobject][requirement_class]]:
+                        for requirement in [requirement for requirement in _requirement_classes[requirement_class][1:]
+                                            if requirement['id'] not in
+                                               processing_status[prog_fragment][requirement_class]]:
                             if active_tasks < max_tasks:
                                 self.logger.info("Submit next verification task after having cached plugin results for "
-                                                 "verification object {!r} and requirement {!r}".format(vobject, requirement['id']))
-                                submit_task(vo_descriptions[vobject], requirement_class, requirement)
-                                processing_status[vobject][requirement_class][requirement['id']] = None
+                                                 "program fragment {!r} and requirement {!r}".
+                                                 format(prog_fragment, requirement['id']))
+                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement)
+                                processing_status[prog_fragment][requirement_class][requirement['id']] = None
                                 active_tasks += 1
                             else:
                                 break
 
                     # Check that we should reschedule tasks
                     for requirement in (r for r in _requirement_classes[requirement_class] if
-                                 r['id'] in processing_status[vobject][requirement_class] and
-                                 not processing_status[vobject][requirement_class][r['id']] and
-                                 balancer.is_there(vobject, requirement_class, r['id'])):
+                                 r['id'] in processing_status[prog_fragment][requirement_class] and
+                                 not processing_status[prog_fragment][requirement_class][r['id']] and
+                                 balancer.is_there(prog_fragment, requirement_class, r['id'])):
                         if active_tasks < max_tasks:
-                            attempt = balancer.do_rescheduling(vobject, requirement_class, requirement['id'])
+                            attempt = balancer.do_rescheduling(prog_fragment, requirement_class, requirement['id'])
                             if attempt:
-                                self.logger.info("Submit task {}:{} to solve it again".format(vobject, requirement['id']))
-                                submit_task(vo_descriptions[vobject], requirement_class, requirement, rescheduling=attempt)
+                                self.logger.info("Submit task {}:{} to solve it again".
+                                                 format(prog_fragment, requirement['id']))
+                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement, 
+                                            rescheduling=attempt)
                                 active_tasks += 1
-                            elif not balancer.need_rescheduling(vobject, requirement_class, requirement['id']):
-                                self.logger.info("Mark task {}:{} as solved".format(vobject, requirement['id']))
+                            elif not balancer.need_rescheduling(prog_fragment, requirement_class, requirement['id']):
+                                self.logger.info("Mark task {}:{} as solved".format(prog_fragment, requirement['id']))
                                 self.mqs['finished and failed tasks'].put([self.conf['sub-job identifier'], 'finished'])
-                                processing_status[vobject][requirement_class][requirement['id']] = True
+                                processing_status[prog_fragment][requirement_class][requirement['id']] = True
 
                     # Number of solved tasks
-                    solved = sum((1 if processing_status[vobject][requirement_class].get(r['id']) else 0
+                    solved = sum((1 if processing_status[prog_fragment][requirement_class].get(r['id']) else 0
                                   for r in _requirement_classes[requirement_class]))
                     # Number of requirements which are ready to delete
-                    deletable = len([r for r in processing_status[vobject][requirement_class]
-                                     if vobject in delete_ready and r in delete_ready[vobject]])
+                    deletable = len([r for r in processing_status[prog_fragment][requirement_class]
+                                     if prog_fragment in delete_ready and r in delete_ready[prog_fragment]])
                     # Total tasks for requirements
                     total = len(_requirement_classes[requirement_class])
 
                     if solved == total and (self.conf['keep intermediate files'] or
-                                            (vobject in delete_ready and solved == deletable)):
-                        self.logger.debug("Solved {} tasks for verification object {!r}".format(solved, vobject))
+                                            (prog_fragment in delete_ready and solved == deletable)):
+                        self.logger.debug("Solved {} tasks for program fragment {!r}".format(solved, prog_fragment))
                         if not self.conf['keep intermediate files']:
-                            for requirement in processing_status[vobject][requirement_class]:
-                                deldir = os.path.join(vobject, requirement)
+                            for requirement in processing_status[prog_fragment][requirement_class]:
+                                deldir = os.path.join(prog_fragment, requirement)
                                 core.utils.reliable_rmtree(self.logger, deldir)
-                        del processing_status[vobject][requirement_class]
+                        del processing_status[prog_fragment][requirement_class]
 
-                if len(processing_status[vobject]) == 0 and vobject not in initial:
-                    self.logger.info("All tasks for verification object {!r} are either solved or failed".
-                                     format(vobject))
-                    # Verification object is lastly processed
-                    del processing_status[vobject]
-                    del vo_descriptions[vobject]
-                    if vobject in delete_ready:
-                        del delete_ready[vobject]
+                if len(processing_status[prog_fragment]) == 0 and prog_fragment not in initial:
+                    self.logger.info("All tasks for program fragment {!r} are either solved or failed".
+                                     format(prog_fragment))
+                    # Program fragments is lastly processed
+                    del processing_status[prog_fragment]
+                    del pf_descriptions[prog_fragment]
+                    if prog_fragment in delete_ready:
+                        del delete_ready[prog_fragment]
 
-            if active_tasks == 0 and len(vo_descriptions) == 0 and len(initial) == 0:
-                self.mqs['prepare verification objects'].put(None)
+            if active_tasks == 0 and len(pf_descriptions) == 0 and len(initial) == 0:
+                self.mqs['prepare program fragments'].put(None)
                 self.mqs['prepared verification tasks'].close()
                 if not self.conf['keep intermediate files']:
                     self.mqs['delete dir'].close()
                 break
             else:
-                self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} verification object "
-                                  "descriptions".format(len(initial), active_tasks, len(vo_descriptions)))
+                self.logger.debug("There are {} initial tasks to be generated, {} active tasks, {} program fragment "
+                                  "descriptions".format(len(initial), active_tasks, len(pf_descriptions)))
 
             time.sleep(3)
 
@@ -537,7 +541,7 @@ class VTGWL(core.components.Component):
     def task_generating_loop(self):
         self.logger.info("Start VTGL worker")
         number = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
-        core.components.launch_queue_workers(self.logger, self.mqs['prepare verification objects'],
+        core.components.launch_queue_workers(self.logger, self.mqs['prepare program fragments'],
                                              self.vtgw_constructor, number, True)
         self.logger.info("Terminate VTGL worker")
 
@@ -562,7 +566,7 @@ class VTGWL(core.components.Component):
             workdir = os.path.join(element[0]['id'], element[1]['id'])
         return VTGW(self.conf, self.logger, self.parent_id, self.callbacks, self.mqs,
                     self.vals, identifier, workdir,
-                    attrs=attrs, separate_from_parent=True, verification_object=element[0], requirement=element[1],
+                    attrs=attrs, separate_from_parent=True, program_fragment=element[0], requirement=element[1],
                     resource_limits=element[2], rerun=element[3])
 
     main = task_generating_loop
@@ -571,11 +575,11 @@ class VTGWL(core.components.Component):
 class VTGW(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, vals, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False, verification_object=None, requirement=None,
+                 separate_from_parent=False, include_child_resources=False, program_fragment=None, requirement=None,
                  resource_limits=None, rerun=False):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, vals, id, work_dir, attrs,
                                    separate_from_parent, include_child_resources)
-        self.verification_object = verification_object
+        self.program_fragment = program_fragment
         self.requirement = requirement
         self.abstract_task_desc_file = None
         self.override_limits = resource_limits
@@ -587,15 +591,15 @@ class VTGW(core.components.Component):
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
-            fp.writelines('\n'.join(sorted(f for grp in self.verification_object['grps'] for f in grp['files'])))
+            fp.writelines('\n'.join(sorted(f for grp in self.program_fragment['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
                           'attrs',
                           {
                               'id': self.id,
                               'attrs': [
                                   {
-                                      "name": "Verification object",
-                                      "value": self.verification_object['id'],
+                                      "name": "Program fragment",
+                                      "value": self.program_fragment['id'],
                                       "data": files_list_file,
                                       "compare": True,
                                       "associate": True
@@ -608,7 +612,7 @@ class VTGW(core.components.Component):
                           data_files=[files_list_file])
 
         try:
-            self.generate_abstact_verification_task_desc(self.verification_object, self.requirement)
+            self.generate_abstact_verification_task_desc(self.program_fragment, self.requirement)
             if not self.vals['task solving flag'].value:
                 with self.vals['task solving flag'].get_lock():
                     self.vals['task solving flag'].value = 1
@@ -620,11 +624,11 @@ class VTGW(core.components.Component):
 
     main = tasks_generator_worker
 
-    def generate_abstact_verification_task_desc(self, verification_obj_desc, requirement_desc):
+    def generate_abstact_verification_task_desc(self, program_fragment_desc, requirement_desc):
         """Has a callback!"""
-        self.logger.info("Start generating tasks for verification object {!r} and requirement {!r}".
-                         format(verification_obj_desc['id'], requirement_desc['id']))
-        verification_object = verification_obj_desc['id']
+        self.logger.info("Start generating tasks for program fragment {!r} and requirement {!r}".
+                         format(program_fragment_desc['id'], requirement_desc['id']))
+        program_fragment = program_fragment_desc['id']
         self.requirement = requirement_desc['id']
 
         # Prepare pilot workdirs if it will be possible to reuse data
@@ -632,9 +636,9 @@ class VTGW(core.components.Component):
         pilot_requirement = _requirement_classes[requirement_class][0]['id']
         pilot_plugins_work_dir = os.path.join(os.path.pardir, pilot_requirement)
 
-        # Initial abstract verification task looks like corresponding verification object.
-        initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
-        initial_abstract_task_desc['id'] = '{0}/{1}'.format(verification_object, self.requirement)
+        # Initial abstract verification task looks like corresponding program fragment.
+        initial_abstract_task_desc = copy.deepcopy(program_fragment_desc)
+        initial_abstract_task_desc['id'] = '{0}/{1}'.format(program_fragment, self.requirement)
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
@@ -729,7 +733,7 @@ class VTGW(core.components.Component):
                         plugin_desc['name'] == 'EMG':
                     self.logger.debug("Signal to VTG that the cache preapred for the requirement {!r} is ready for the "
                                       "further use".format(pilot_requirement))
-                    self.mqs['prepared verification tasks'].put((verification_object, self.requirement))
+                    self.mqs['prepared verification tasks'].put((program_fragment, self.requirement))
 
             cur_abstract_task_desc_file = out_abstract_task_desc_file
         else:
@@ -755,7 +759,7 @@ class VTGW(core.components.Component):
 
                 # Plan for checking status
                 self.mqs['pending tasks'].put([
-                    [str(task_id), final_task_data["result processing"], self.verification_object,
+                    [str(task_id), final_task_data["result processing"], self.program_fragment,
                      self.requirement, final_task_data['verifier']],
                     self.rerun
                 ])
@@ -764,13 +768,13 @@ class VTGW(core.components.Component):
             else:
                 self.logger.warning("There is no verification task generated by the last plugin, expect {}".
                                     format(os.path.join(plugin_work_dir, 'task.json')))
-                self.mqs['processed tasks'].put((verification_object, self.requirement, [None, None, None]))
+                self.mqs['processed tasks'].put((program_fragment, self.requirement, [None, None, None]))
 
     def plugin_fail_processing(self):
         """The function has a callback in sub-job processing!"""
         self.logger.debug("VTGW that processed {!r}, {!r} failed".
-                          format(self.verification_object['id'], self.requirement))
-        self.mqs['processed tasks'].put((self.verification_object['id'], self.requirement, [None, None, None]))
+                          format(self.program_fragment['id'], self.requirement))
+        self.mqs['processed tasks'].put((self.program_fragment['id'], self.requirement, [None, None, None]))
 
     def join(self, timeout=None, stopped=False):
         try:
@@ -778,6 +782,6 @@ class VTGW(core.components.Component):
         finally:
             if not self.conf['keep intermediate files'] and not self.is_alive():
                 self.logger.debug("Indicate that the working directory can be deleted for: {!r}, {!r}".
-                                  format(self.verification_object['id'], self.requirement['id']))
-                self.mqs['delete dir'].put([self.verification_object['id'], self.requirement['id']])
+                                  format(self.program_fragment['id'], self.requirement['id']))
+                self.mqs['delete dir'].put([self.program_fragment['id'], self.requirement['id']])
         return ret

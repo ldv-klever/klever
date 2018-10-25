@@ -36,7 +36,7 @@
       "value": "linux:test:common"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/verifier/map/put-k1-v1-put-k2-v2-get-k1-v1-get-k2-v2.ko"
     }

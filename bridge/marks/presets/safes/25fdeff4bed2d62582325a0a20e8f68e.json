@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications with function pointer analysis"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/timer_v.2/del_timer_sync.ko"
     }

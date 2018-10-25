@@ -24,11 +24,11 @@ import core.components
 import core.utils
 
 
-class VOG(core.components.Component):
+class PFG(core.components.Component):
 
-    VO_FILE = 'verification_objects.json'
+    VO_FILE = 'program_fragments.json'
 
-    def generate_verification_objects(self):
+    def generate_program_fragments(self):
         # Collect and merge configuration
         fragdb = self.conf['program fragmentation DB']
         with open(fragdb, encoding='utf8') as fp:
@@ -61,7 +61,7 @@ class VOG(core.components.Component):
         self.excluded_clean = [d for d in self.dynamic_excluded_clean]
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
 
-    main = generate_verification_objects
+    main = generate_program_fragments
 
     def submit_project_attrs(self, attrs, dfiles):
         """Has a callback!"""
@@ -78,7 +78,7 @@ class VOG(core.components.Component):
 
     def prepare_descriptions_file(self, files):
         """Has a callback!"""
-        # Add dir to exlcuded from cleaning by lkvog
+        # Add dir to exlcuded from cleaning list
         for file in files:
             root_dir_id = file.split('/')[0]
             if root_dir_id not in self.dynamic_excluded_clean:
@@ -131,7 +131,7 @@ class VOG(core.components.Component):
 
     def _get_fragmentation_strategy(self, strategy_name):
         self.logger.info('Import fragmentation strategy {!r}'.format(strategy_name))
-        module_path = '.vog.fragmentation.{}'.format(strategy_name.lower())
+        module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower())
         project_package = importlib.import_module(module_path, 'core')
         cls = getattr(project_package, strategy_name.capitalize())
         return cls

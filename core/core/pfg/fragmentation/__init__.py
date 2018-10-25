@@ -21,13 +21,13 @@ import ujson
 from graphviz import Digraph
 
 from core.utils import make_relative_path
-from core.vog.abstractions import Dependencies
-from core.vog.abstractions.strategies import Abstract
+from core.pfg.abstractions import Dependencies
+from core.pfg.abstractions.strategies import Abstract
 
 
 class FragmentationAlgorythm:
 
-    VO_DIR = 'verification objects'
+    VO_DIR = 'program fragments'
     CLADE_PRESET = 'base'
 
     def __init__(self, logger, conf, desc, clade):
@@ -72,9 +72,9 @@ class FragmentationAlgorythm:
         self.logger.info("Collect dependencies if necessary for each fragment intended for verification")
         grps = self._do_postcomposition(deps)
 
-        # Prepare verification objects
-        self.logger.info("Generate verification objects")
-        fragments_files = self.__generate_verification_objects(deps, grps)
+        # Prepare program fragments
+        self.logger.info("Generate program fragments")
+        fragments_files = self.__generate_program_fragments(deps, grps)
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
@@ -203,39 +203,39 @@ class FragmentationAlgorythm:
 
         return attrs
 
-    def __generate_verification_objects(self, deps, grps):
+    def __generate_program_fragments(self, deps, grps):
         files = list()
         for name, grp in grps.items():
-            files.append(self.__describe_verification_object(deps, name, grp))
+            files.append(self.__describe_program_fragment(deps, name, grp))
         return files
 
-    def __describe_verification_object(self, deps, name, grp):
+    def __describe_program_fragment(self, deps, name, grp):
         # Determine fragment name
         self.logger.info('Generate fragment description {!r}'.format(name))
-        vo_desc = dict()
-        vo_desc['id'] = name
-        vo_desc['grps'] = list()
-        vo_desc['deps'] = dict()
+        pf_desc = dict()
+        pf_desc['id'] = name
+        pf_desc['grps'] = list()
+        pf_desc['deps'] = dict()
         for frag in grp:
-            vo_desc['grps'].append({
+            pf_desc['grps'].append({
                 'id': frag.name,
                 'CCs': frag.ccs,
                 'files': sorted(make_relative_path(self.source_paths, f.name) for f in frag.files)
             })
-            vo_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
-        self.logger.debug('verification object dependencies are {}'.format(vo_desc['deps']))
+            pf_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
+        self.logger.debug('program fragment dependencies are {}'.format(pf_desc['deps']))
 
-        vo_desc_file = os.path.join(self.VO_DIR, vo_desc['id'] + '.json')
-        if os.path.isfile(vo_desc_file):
-            raise FileExistsError('verification object description file {!r} already exists'.format(vo_desc_file))
-        self.logger.debug('Dump verification object description {!r} to file {!r}'.format(vo_desc['id'], vo_desc_file))
-        dir_path = os.path.dirname(vo_desc_file).encode('utf8')
+        pf_desc_file = os.path.join(self.VO_DIR, pf_desc['id'] + '.json')
+        if os.path.isfile(pf_desc_file):
+            raise FileExistsError('program fragment description file {!r} already exists'.format(pf_desc_file))
+        self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['id'], pf_desc_file))
+        dir_path = os.path.dirname(pf_desc_file).encode('utf8')
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
 
-        with open(vo_desc_file, 'w', encoding='utf8') as fp:
-            ujson.dump(vo_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
-        return vo_desc_file
+        with open(pf_desc_file, 'w', encoding='utf8') as fp:
+            ujson.dump(pf_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
+        return pf_desc_file
 
     def __print_fragments(self, deps):
         self.logger.info('Print fragments to working directory {!r}'.format(str(os.path.abspath(os.path.curdir))))

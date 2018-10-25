@@ -333,8 +333,8 @@ msgid "Requirements"
 msgstr "Требования"
 
 #: bridge/vars.py:402
-msgid "Verification objects"
-msgstr "Верификационные объекты"
+msgid "Program fragments"
+msgstr "Фрагменты программ"
 
 #: bridge/vars.py:406
 msgid "Sequentially"

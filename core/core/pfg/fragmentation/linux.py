@@ -16,9 +16,9 @@
 #
 
 from core.utils import make_relative_path
-from core.vog.fragmentation import FragmentationAlgorythm
-from core.vog.abstractions.strategies.callgraph import Callgraph
-from core.vog.abstractions.strategies.coverage import Coverage
+from core.pfg.fragmentation import FragmentationAlgorythm
+from core.pfg.abstractions.strategies.callgraph import Callgraph
+from core.pfg.abstractions.strategies.coverage import Coverage
 
 
 class Linux(FragmentationAlgorythm):

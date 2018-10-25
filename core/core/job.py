@@ -319,7 +319,7 @@ class RA(core.components.Component):
         # TODO: these 3 functions are very similar, so, they should be merged.
         def after_plugin_fail_processing(context):
             context.mqs['verification statuses'].put({
-                'verification object': context.verification_object['id'],
+                'program fragment': context.program_fragment['id'],
                 'requirement': context.requirement,
                 'verdict': 'non-verifier unknown',
                 'sub-job identifier': context.conf['sub-job identifier'],
@@ -329,7 +329,7 @@ class RA(core.components.Component):
 
         def after_process_failed_task(context):
             context.mqs['verification statuses'].put({
-                'verification object': context.verification_object,
+                'program fragment': context.program_fragment,
                 'requirement': context.requirement,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
@@ -339,7 +339,7 @@ class RA(core.components.Component):
 
         def after_process_single_verdict(context):
             context.mqs['verification statuses'].put({
-                'verification object': context.verification_object,
+                'program fragment': context.program_fragment,
                 'requirement': context.requirement,
                 'verdict': context.verdict,
                 'sub-job identifier': context.conf['sub-job identifier'],
@@ -363,31 +363,31 @@ class RA(core.components.Component):
 
             return False
 
-        verification_object = verification_status['verification object']
+        program_fragment = verification_status['program fragment']
         requirement = verification_status['requirement']
         ideal_verdicts = verification_status['ideal verdicts']
 
         matched_ideal_verdict = None
 
-        # Try to match exactly by both verification object and requirement.
+        # Try to match exactly by both program fragment and requirement.
         for ideal_verdict in ideal_verdicts:
-            if match_attr(verification_object, ideal_verdict.get('verification object')) \
+            if match_attr(program_fragment, ideal_verdict.get('program fragment')) \
                     and match_attr(requirement, ideal_verdict.get('requirement')):
                 matched_ideal_verdict = ideal_verdict
                 break
 
-        # Try to match just by verification object.
+        # Try to match just by program fragment.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
                 if 'requirement' not in ideal_verdict \
-                        and match_attr(verification_object, ideal_verdict.get('verification object')):
+                        and match_attr(program_fragment, ideal_verdict.get('program fragment')):
                     matched_ideal_verdict = ideal_verdict
                     break
 
         # Try to match just by requirement specification.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'verification object' not in ideal_verdict \
+                if 'program fragment' not in ideal_verdict \
                         and match_attr(requirement, ideal_verdict.get('requirement')):
                     matched_ideal_verdict = ideal_verdict
                     break
@@ -395,18 +395,18 @@ class RA(core.components.Component):
         # If nothing of above matched.
         if not matched_ideal_verdict:
             for ideal_verdict in ideal_verdicts:
-                if 'verification object' not in ideal_verdict and 'requirement' not in ideal_verdict:
+                if 'program fragment' not in ideal_verdict and 'requirement' not in ideal_verdict:
                     matched_ideal_verdict = ideal_verdict
                     break
 
         if not matched_ideal_verdict:
             raise ValueError(
-                'Could not match ideal verdict for verification object "{0}" and requirement "{1}"'
-                .format(verification_object, requirement))
+                'Could not match ideal verdict for program fragment "{0}" and requirement "{1}"'
+                .format(program_fragment, requirement))
 
         # This suffix will help to distinguish sub-jobs easier.
-        id_suffix = os.path.join(verification_object, requirement)\
-            if verification_object and requirement else ''
+        id_suffix = os.path.join(program_fragment, requirement)\
+            if program_fragment and requirement else ''
 
         return id_suffix, {
             'verdict': verification_status['verdict'],
@@ -425,7 +425,7 @@ class RA(core.components.Component):
 
         # Identifier suffix clarifies bug nature without preventing relation of verification results, so, just add it
         # to bug identifier. Sometimes just this concatenation actually serves as unique identifier, e.g. when a bug
-        # identifier is just a commit hash, while an identifier suffix contains a verification object and a requirement
+        # identifier is just a commit hash, while an identifier suffix contains a program fragment and a requirement
         # specification.
         bug_id = os.path.join(data['bug identifier'], id_suffix)
 
@@ -487,7 +487,7 @@ class Job(core.components.Component):
         'Validation on commits in Linux kernel Git repositories'
     ]
     JOB_CLASS_COMPONENTS = [
-        'VOG',
+        'PFG',
         'VTG',
         'VRP'
     ]

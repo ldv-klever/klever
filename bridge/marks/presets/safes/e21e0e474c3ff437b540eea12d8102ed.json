@@ -36,7 +36,7 @@
       "value": "linux:test:environment model specifications"
     },
     {
-      "attr": "Verification object",
+      "attr": "Program fragment",
       "is_compare": true,
       "value": "ext-modules/devm_threaded_irq_v.1/devm_request_threaded_irq.ko"
     }

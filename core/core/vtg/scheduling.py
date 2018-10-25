@@ -57,10 +57,10 @@ class Balancer:
     @property
     def limitation_tasks(self):
         """Iterate over all tracking tasks."""
-        for vo, classes in self._problematic.items():
+        for pf, classes in self._problematic.items():
             for requirements in classes.values():
                 for requirement, task in requirements.items():
-                    yield (self._issued_limits[vo][requirement], task)
+                    yield (self._issued_limits[pf][requirement], task)
 
     @property
     def rescheduling(self):
@@ -69,39 +69,39 @@ class Balancer:
         if self._rescheduling:
             return True
         else:
-            for vo, requirement_classes in self.processing.items():
-                if vo not in self._problematic:
+            for pf, requirement_classes in self.processing.items():
+                if pf not in self._problematic:
                     return False
                 else:
                     for rc, requirements in requirement_classes.items():
-                        if rc not in self._problematic[vo]:
+                        if rc not in self._problematic[pf]:
                             return False
                         else:
                             # Here we check that we do not have requirement for this VO for which we have unsolved runs,
                             # but it is Ok to have unfinished timeouts
                             requirements = {r for r, v in requirements.items() if v is not True}
-                            trequirements = set(self._problematic[vo][rc].keys())
+                            trequirements = set(self._problematic[pf][rc].keys())
                             if len(requirements.difference(trequirements)) > 0:
                                 return False
             self._rescheduling = True
             return True
 
-    def is_there(self, vobject, requirement_class, requirement_name):
+    def is_there(self, pf, requirement_class, requirement_name):
         """Check that task is tracked as a limit."""
-        if self._problematic.get(vobject) and self._problematic[vobject].get(requirement_class) and \
-                self._problematic[vobject][requirement_class].get(requirement_name):
+        if self._problematic.get(pf) and self._problematic[pf].get(requirement_class) and \
+                self._problematic[pf][requirement_class].get(requirement_name):
             return True
         return False
 
-    def do_rescheduling(self, vobject, requirement_class, requirement_name):
+    def do_rescheduling(self, pf, requirement_class, requirement_name):
         """Check that we rihgt now can reschedule this task if it is a timeout or memory limit."""
-        if self.is_there(vobject, requirement_class, requirement_name) and \
-                not self._problematic[vobject][requirement_class][requirement_name]['running']:
-            element = self._is_there_or_init(vobject, requirement_class, requirement_name)
+        if self.is_there(pf, requirement_class, requirement_name) and \
+                not self._problematic[pf][requirement_class][requirement_name]['running']:
+            element = self._is_there_or_init(pf, requirement_class, requirement_name)
             assert not element['running']
 
-            limitation = self._issued_limits[vobject][requirement_name]
-            self.logger.debug("Going to increass CPU time limitations for {}:{}".format(vobject, requirement_name))
+            limitation = self._issued_limits[pf][requirement_name]
+            self.logger.debug("Going to increass CPU time limitations for {}:{}".format(pf, requirement_name))
             if self.rescheduling and self._qos_limit.get('CPU time', 0) > 0:
                 have_time = self._have_time(limitation)
                 if have_time > 0:
@@ -113,31 +113,31 @@ class Balancer:
                         new_wall_limit = int(round(((limitation['wall time'] / limitation['CPU time']) * new_limit)))
                         limitation.update({'wall time': new_wall_limit})
                     self.logger.debug("Reschedule {}:{} with increased CPU and wall time limit: {}, {}".
-                                      format(vobject, requirement_name, new_limit, new_wall_limit))
+                                      format(pf, requirement_name, new_limit, new_wall_limit))
                     return element['attempt']
-            self.logger.debug("We cannot now run {}:{}".format(vobject, requirement_name))
+            self.logger.debug("We cannot now run {}:{}".format(pf, requirement_name))
         return False
 
-    def need_rescheduling(self, vobject, requirement_class, requirement_name):
+    def need_rescheduling(self, pf, requirement_class, requirement_name):
         """
         Check that in general this task need rescheduling but such rescheduling can be either done now or postponed.
         """
-        if self.is_there(vobject, requirement_class, requirement_name):
-            element = self._is_there_or_init(vobject, requirement_class, requirement_name)
+        if self.is_there(pf, requirement_class, requirement_name):
+            element = self._is_there_or_init(pf, requirement_class, requirement_name)
             if not element["running"]:
-                issued_limit = self._issued_limits[vobject][requirement_name]
+                issued_limit = self._issued_limits[pf][requirement_name]
                 if self._have_time(issued_limit) and self._qos_limit.get('CPU time', 0) > 0:
-                    self.logger.info("Task {}:{} will be solved again".format(vobject, requirement_name))
+                    self.logger.info("Task {}:{} will be solved again".format(pf, requirement_name))
                     return True
             else:
-                self.logger.info("Task {}:{} is still running".format(vobject, requirement_name))
+                self.logger.info("Task {}:{} is still running".format(pf, requirement_name))
                 return True
 
             # If we got there then this is a timelimit that will not be rescheduled ever, remove it
-            self._del_run(vobject, requirement_class, requirement_name)
+            self._del_run(pf, requirement_class, requirement_name)
         return False
 
-    def resource_limitations(self, vobject, requirement_class, requirement_name):
+    def resource_limitations(self, pf, requirement_class, requirement_name):
         """
         Issue a resource limitation for the task. If it is a timeout then previous method should already modify and
         increase the limitations.
@@ -148,43 +148,43 @@ class Balancer:
         limits.update(self._qos_limit)
 
         # Check do we have some statistics already
-        if self.is_there(vobject, requirement_class, requirement_name):
-            element = self._is_there_or_init(vobject, requirement_class, requirement_name)
-            limits = self._issued_limits[vobject][requirement_name]
+        if self.is_there(pf, requirement_class, requirement_name):
+            element = self._is_there_or_init(pf, requirement_class, requirement_name)
+            limits = self._issued_limits[pf][requirement_name]
             element['running'] = True
             element['attempt'] += 1
-            self.logger.debug("Issue an increased limitation for {}:{}".format(vobject, requirement_name))
+            self.logger.debug("Issue an increased limitation for {}:{}".format(pf, requirement_name))
 
-        self._add_limit(vobject, requirement_name, limits)
+        self._add_limit(pf, requirement_name, limits)
         return limits
 
-    def add_solution(self, vobject, requirement_class, requirement_name, status_info):
+    def add_solution(self, pf, requirement_class, requirement_name, status_info):
         """Save solution and return is this solution is final or not"""
         status, resources, limit_reason = status_info
 
         # Check that it is an error from scheduler
         if resources:
-            self.logger.debug("Task {}:{} finished".format(vobject, requirement_name))
+            self.logger.debug("Task {}:{} finished".format(pf, requirement_name))
             self._solved += 1
 
             if limit_reason in ('OUT OF MEMORY', 'TIMEOUT'):
-                self.logger.debug("Task {}:{} has been terminated due to limit".format(vobject, requirement_name))
-                element = self._is_there_or_init(vobject, requirement_class, requirement_name)
+                self.logger.debug("Task {}:{} has been terminated due to limit".format(pf, requirement_name))
+                element = self._is_there_or_init(pf, requirement_class, requirement_name)
                 element['status'] = limit_reason
                 element['running'] = False
                 # We need to check can we solve it again later
                 return False
-            elif self.is_there(vobject, requirement_class, requirement_name):
+            elif self.is_there(pf, requirement_class, requirement_name):
                 # Ok ,we solved this timelimit or memory limit
-                self._del_run(vobject, requirement_class, requirement_name)
-                self._remove_limit(vobject, requirement_name)
+                self._del_run(pf, requirement_class, requirement_name)
+                self._remove_limit(pf, requirement_name)
             else:
-                self._remove_limit(vobject, requirement_name)
+                self._remove_limit(pf, requirement_name)
         else:
-            self.logger.debug("Task {}:{} failed".format(vobject, requirement_name))
-            if self.is_there(vobject, requirement_class, requirement_name):
-                self._del_run(vobject, requirement_class, requirement_name)
-            self._remove_limit(vobject, requirement_name)
+            self.logger.debug("Task {}:{} failed".format(pf, requirement_name))
+            if self.is_there(pf, requirement_class, requirement_name):
+                self._del_run(pf, requirement_class, requirement_name)
+            self._remove_limit(pf, requirement_name)
 
         return True
 
@@ -204,30 +204,30 @@ class Balancer:
         else:
             return have_time / min_time
 
-    def _add_limit(self, vobject, requirement_name, limit):
+    def _add_limit(self, pf, requirement_name, limit):
         """Save resource limitation for a task."""
-        requirements = self._issued_limits.setdefault(vobject, dict())
+        requirements = self._issued_limits.setdefault(pf, dict())
         requirements.update({requirement_name: limit})
 
-    def _remove_limit(self, vobject, requirement_name):
+    def _remove_limit(self, pf, requirement_name):
         """Drop resource limitation for a task."""
-        del self._issued_limits[vobject][requirement_name]
-        if len(self._issued_limits[vobject]) == 0:
-            del self._issued_limits[vobject]
+        del self._issued_limits[pf][requirement_name]
+        if len(self._issued_limits[pf]) == 0:
+            del self._issued_limits[pf]
 
-    def _is_there_or_init(self, vobject, requirement_class, requirement_name):
+    def _is_there_or_init(self, pf, requirement_class, requirement_name):
         """Check that task is tracked as a time limit or otherwise start tracking it."""
-        classes = self._problematic.setdefault(vobject, dict())
+        classes = self._problematic.setdefault(pf, dict())
         requirements = classes.setdefault(requirement_class, dict())
         return requirements.setdefault(requirement_name, {'status': None, 'running': False, 'attempt': 1})
 
-    def _del_run(self, vobject, requirement_class, requirement_name):
+    def _del_run(self, pf, requirement_class, requirement_name):
         """Stop tracking error or limit task."""
-        del self._problematic[vobject][requirement_class][requirement_name]
-        if len(self._problematic[vobject][requirement_class]) == 0:
-            del self._problematic[vobject][requirement_class]
-        if len(self._problematic[vobject]) == 0:
-            del self._problematic[vobject]
+        del self._problematic[pf][requirement_class][requirement_name]
+        if len(self._problematic[pf][requirement_class]) == 0:
+            del self._problematic[pf][requirement_class]
+        if len(self._problematic[pf]) == 0:
+            del self._problematic[pf]
 
     def _have_time(self, limitation=None):
         """
