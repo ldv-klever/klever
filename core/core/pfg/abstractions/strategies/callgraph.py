@@ -29,11 +29,11 @@ class Callgraph(Abstract):
         :return: {GroupName: Set of Fragments}.
         """
         # First we need fragments that are completely fullfilled
-        max_deep = self.desc.get('dependencies recursive depth', 3)
-        max_size = self.desc.get('maximum files')
-        for fragment in self.deps.target_fragments:
+        max_deep = self.fragmentation_set_conf.get('dependencies recursive depth', 3)
+        max_size = self.fragmentation_set_conf.get('maximum files')
+        for fragment in self.program.target_fragments:
             name = fragment.name
-            files = self.deps.collect_dependencies(fragment.files, depth=max_deep, maxfrags=max_size)
-            fragments = self.deps.find_fragments_with_files(files)
+            files = self.program.collect_dependencies(fragment.files, depth=max_deep, max=max_size)
+            fragments = self.program.get_fragments_with_files(files)
             fragments.add(fragment)
             self.add_group(name, fragments)

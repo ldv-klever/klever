@@ -19,6 +19,11 @@
 class File:
 
     def __init__(self, name):
+        """
+        Represents a file of the program
+
+        :param name: Path to the file relatively to source firectory.
+        """
         # Identifier
         self.name = name
 
@@ -51,12 +56,22 @@ class File:
         return self.name.__cmp__(rhs.name)
 
     def add_predecessor(self, predecessor):
+        """
+        Add a predecessor - the file that calls functions from this one.
+
+        :param predecessor: File object.
+        """
         # Just ignore linking to self
         if predecessor.name != self.name:
             self.predecessors.add(predecessor)
             predecessor.successors.add(self)
 
     def add_successor(self, successor):
+        """
+        Add a successor - the file that exports functions to this one.
+
+        :param successor: File object.
+        """
         # Just ignore linking to self
         if successor.name != self.name:
             self.successors.add(successor)

@@ -21,40 +21,63 @@ import ujson
 from graphviz import Digraph
 
 from core.utils import make_relative_path
-from core.pfg.abstractions import Dependencies
+from core.pfg.abstractions import Program
 from core.pfg.abstractions.strategies import Abstract
 
 
 class FragmentationAlgorythm:
+    """
+    This is a generic class to implement fragmentation strategies for particular programs. This is not a fully abstract
+    class and sometimes can be directly used for verification without adaptation to program specifics.
+    """
 
-    VO_DIR = 'program fragments'
+    PF_DIR = 'program fragments'
     CLADE_PRESET = 'base'
 
     def __init__(self, logger, conf, desc, clade):
+        """
+        The strategy needs a logger and configuration as the rest Klever components but also it requires Clade interface
+        object (uninitialized yet) and the description of the fragmentation set.
+
+        :param logger: logging Logger object.
+        :param conf: Dictionary.
+        :param desc: Dictionary.
+        :param clade: Clade interface.
+        """
         # Simple attributes
         self.logger = logger
         self.conf = conf
-        self.desc = desc
-        self.clade = clade
-        self.dynamic_excluded_clean = list()
+        self.fragmentation_set_conf = desc
+        self.build_base = clade
+        self.files_to_keep = list()
+        self.common_attributes = list()
 
         # Import clade
-        self.clade.setup(self.conf['build base'], preset_configuration=self.CLADE_PRESET)
+        self.build_base.setup(self.conf['build base'], preset_configuration=self.CLADE_PRESET)
 
         # Complex attributes
         self.source_paths = self.__retrieve_source_paths()
         self.attributes = self.__attributes()
 
     def fragmentation(self):
+        """
+        It is the main function for a fragmentation strategy. The workflow is the following: it determines logical
+        components of the program called units, then chooses files and units that should be verified according to the
+        configuration provided by the user, gets the fragmentation set and reconstruct fragments if necessary according
+        to this manually provided description, then add dependencies if necessary to each fragment that should be
+        verified and generate the description of each program fragment. The description contains in addition to the
+        files names compilation commands to get their options and dependencies between files.
+        """
+
         # Extract dependencies
         self.logger.info("Start program fragmentation")
-        if self.desc.get('ignore dependencies'):
+        if self.fragmentation_set_conf.get('ignore dependencies'):
             self.logger.info("Use memory efficient mode with limitied dependencies extraction")
             memory_efficient_mode = True
         else:
             self.logger.info("Extract full dependencies between files and functions")
             memory_efficient_mode = False
-        deps = Dependencies(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
+        deps = Program(self.logger, self.build_base, self.source_paths, memory_efficient_mode=memory_efficient_mode)
 
         # Decompose using units
         self.logger.info("Determine units in the target program")
@@ -70,57 +93,75 @@ class FragmentationAlgorythm:
 
         # Prepare final optional addiction of fragments if necessary
         self.logger.info("Collect dependencies if necessary for each fragment intended for verification")
-        grps = self._do_postcomposition(deps)
+        grps = self._add_dependencies(deps)
 
         # Prepare program fragments
         self.logger.info("Generate program fragments")
-        fragments_files = self.__generate_program_fragments(deps, grps)
+        fragments_files = self.__generate_program_fragments_descriptions(deps, grps)
 
         # Prepare data attributes
         self.logger.info("Prepare data attributes for generated fragments")
         attr_data = self.__prepare_data_files(grps)
 
         # Print fragments
-        if self.desc.get('print fragments'):
+        if self.fragmentation_set_conf.get('print fragments'):
             self.__print_fragments(deps)
             for fragment in deps.fragments:
                 self.__draw_fragment(fragment)
 
         return attr_data, fragments_files
 
-    def _determine_units(self, deps):
+    def _determine_units(self, program):
+        """
+        Implement this function to extract logical components of the particular program. For programs for which nobody
+        created a specific strategy, there is no units at all.
+
+        :param program: Program object.
+        """
         pass
 
-    def _determine_targets(self, deps):
+    def _determine_targets(self, program):
+        """
+        Determine that program fragments that should be verified. We refer to these fragments as target fragments.
+
+        :param program:
+        :return:
+        """
         add = set(self.conf.get('add', set()))
         exclude = set(self.conf.get('exclude', set()))
 
         files = set()
         self.logger.info("Find files matched by given by the user expressions ('add' configuration properties)")
-        new_files, matched = deps.find_files_for_expressions(add)
+        new_files, matched = program.get_files_for_expressions(add)
         files.update(new_files)
         add.difference_update(matched)
         if len(add) > 0:
             raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
                              format(', '.join(add)))
         self.logger.info("Find files matched by given by the user expressions ('exclude' configuration properties)")
-        new_files, matched = deps.find_files_for_expressions(exclude)
+        new_files, matched = program.get_files_for_expressions(exclude)
         files.difference_update(new_files)
 
         for file in files:
-            self.logger.info('Mark file {!r} as a target'.format(file.name))
+            self.logger.debug('Mark file {!r} as a target'.format(file.name))
             file.target = True
 
-    def _do_manual_correction(self, deps):
+    def _do_manual_correction(self, program):
+        """
+        According to the fragmentation set configuration we need to change the content of logically extracted units or
+        create new ones.
+
+        :param program: Program object.
+        """
         self.logger.info("Adjust fragments according to the manually provided fragmentation set")
-        fragments = self.desc.get('fragments', dict())
-        remove = set(self.desc.get('exclude from all fragments', set()))
-        add = set(self.desc.get('add to all fragments', set()))
+        fragments = self.fragmentation_set_conf.get('fragments', dict())
+        remove = set(self.fragmentation_set_conf.get('exclude from all fragments', set()))
+        add = set(self.fragmentation_set_conf.get('add to all fragments', set()))
 
         # Collect files
         new = dict()
         for identifier, frags_exprs in ((i, set(e)) for i, e in fragments.items()):
-            files, matched = deps.find_files_for_expressions(frags_exprs)
+            files, matched = program.get_files_for_expressions(frags_exprs)
             frags_exprs.difference_update(matched)
             if len(frags_exprs) > 0:
                 raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
@@ -132,25 +173,25 @@ class FragmentationAlgorythm:
         all_files = set()
         for files in new.values():
             all_files.update(files)
-        relevant_fragments = deps.find_fragments_with_files(all_files)
+        relevant_fragments = program.get_fragments_with_files(all_files)
 
         # Add all
-        addiction, _ = deps.find_files_for_expressions(add)
+        addiction, _ = program.get_files_for_expressions(add)
 
         # Remove all
-        removal, _ = deps.find_files_for_expressions(remove)
+        removal, _ = program.get_files_for_expressions(remove)
 
         # Remove them
         for fragment in relevant_fragments:
-            deps.remove_fragment(fragment)
+            program.remove_fragment(fragment)
 
         # Create new fragments
         for name, files in new.items():
-            deps.create_fragment(name, files, add=True)
+            program.create_fragment(name, files, add=True)
 
         # Do modification
         empty = set()
-        for fragment in deps.fragments:
+        for fragment in program.fragments:
             fragment.files.update(addiction)
             fragment.files.difference_update(removal)
             if not fragment.files:
@@ -158,13 +199,26 @@ class FragmentationAlgorythm:
 
         # Remove empty
         for fragment in empty:
-            deps.remove_fragment(fragment)
+            program.remove_fragment(fragment)
 
-    def _do_postcomposition(self, deps):
-        aggregator = Abstract(self.logger, self.conf, self.desc, deps)
+    def _add_dependencies(self, program):
+        """
+        After we determined target fragments we may want to add dependent fragments. This should be implemented mostly
+        by strategies variants for particular programs.
+
+        :param program: Program object.
+        :return: Dictionary with sets of fragments.
+        """
+        aggregator = Abstract(self.logger, self.conf, self.fragmentation_set_conf, program)
         return aggregator.get_groups()
 
     def __prepare_data_files(self, grps):
+        """
+        Prepare data files that describe program fragments content.
+
+        :param grps: Dictionary with program fragments with dependencies.
+        :return: Attributes and dict a list of data files.
+        """
         data = dict()
         for name, frags in grps.items():
             data[name] = {f.name: sorted(make_relative_path(self.source_paths, l.name) for l in f.files) for f in frags}
@@ -184,14 +238,24 @@ class FragmentationAlgorythm:
            }], ['agregations description.json']
 
     def __retrieve_source_paths(self):
-        path = self.clade.FileStorage().convert_path('working source trees.json')
+        """
+        Extract the file with paths to source directories from the build base storage.
+
+        :return: A list of paths.
+        """
+        path = self.build_base.FileStorage().convert_path('working source trees.json')
         with open(path, 'r', encoding='utf8') as fp:
             paths = ujson.load(fp)
         return paths
 
     def __attributes(self):
+        """
+        Extract attributes that describe the program from the build base storage.
+
+        :return: Attributes list.
+        """
         attrs = []
-        path = self.clade.FileStorage().convert_path('project attrs.json')
+        path = self.build_base.FileStorage().convert_path('project attrs.json')
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as fp:
                 build_attrs = ujson.load(fp)
@@ -203,13 +267,28 @@ class FragmentationAlgorythm:
 
         return attrs
 
-    def __generate_program_fragments(self, deps, grps):
+    def __generate_program_fragments_descriptions(self, program, grps):
+        """
+        Generate json files with descriptions of each program fragment that should be verified.
+
+        :param program: Program object.
+        :param grps: Dictionary with program fragments with dependecnies.
+        :return: A list of file names.
+        """
         files = list()
         for name, grp in grps.items():
-            files.append(self.__describe_program_fragment(deps, name, grp))
+            files.append(self.__describe_program_fragment(program, name, grp))
         return files
 
-    def __describe_program_fragment(self, deps, name, grp):
+    def __describe_program_fragment(self, program, name, grp):
+        """
+        Create the JSON file for the given program fragment with dependencies.
+
+        :param program: Program object.
+        :param name: Name of the fragment.
+        :param grp: Set of fragments with dependencies.
+        :return: The name of the created file.
+        """
         # Determine fragment name
         self.logger.info('Generate fragment description {!r}'.format(name))
         pf_desc = dict()
@@ -222,10 +301,10 @@ class FragmentationAlgorythm:
                 'CCs': frag.ccs,
                 'files': sorted(make_relative_path(self.source_paths, f.name) for f in frag.files)
             })
-            pf_desc['deps'][frag.name] = [succ.name for succ in deps.fragment_successors(frag) if succ in grp]
+            pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag) if succ in grp]
         self.logger.debug('program fragment dependencies are {}'.format(pf_desc['deps']))
 
-        pf_desc_file = os.path.join(self.VO_DIR, pf_desc['id'] + '.json')
+        pf_desc_file = os.path.join(self.PF_DIR, pf_desc['id'] + '.json')
         if os.path.isfile(pf_desc_file):
             raise FileExistsError('program fragment description file {!r} already exists'.format(pf_desc_file))
         self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['id'], pf_desc_file))
@@ -237,18 +316,29 @@ class FragmentationAlgorythm:
             ujson.dump(pf_desc, fp, sort_keys=True, indent=4, ensure_ascii=False, escape_forward_slashes=False)
         return pf_desc_file
 
-    def __print_fragments(self, deps):
+    def __print_fragments(self, program):
+        """
+        Print a graph to illustrate dependencies between all program fragments. For large projects such graph can be
+        huge. By default this should be disabled.
+
+        :param program: Program object.
+        """
         self.logger.info('Print fragments to working directory {!r}'.format(str(os.path.abspath(os.path.curdir))))
         g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})
-        for fragment in deps.fragments:
+        for fragment in program.fragments:
             g.node(fragment.name, "{}".format(fragment.name) + (' (target)' if fragment.target else ''))
 
-        for fragment in deps.fragments:
-            for suc in deps.fragment_successors(fragment):
+        for fragment in program.fragments:
+            for suc in program.get_fragment_successors(fragment):
                 g.edge(fragment.name, suc.name)
         g.render('program fragments')
 
     def __draw_fragment(self, fragment):
+        """
+        Print a graph with files and dependencies between them for a fragment.
+
+        :param fragment: Fragment object.
+        """
         g = Digraph(graph_attr={'rankdir': 'LR'}, node_attr={'shape': 'rectangle'})
         for file in fragment.files:
             g.node(file.name,
@@ -261,4 +351,3 @@ class FragmentationAlgorythm:
         if not os.path.exists('fragments'):
             os.makedirs('fragments')
         g.render(os.path.join('fragments', fragment.name))
-

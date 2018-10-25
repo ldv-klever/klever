@@ -77,8 +77,8 @@ class Balancer:
                         if rc not in self._problematic[pf]:
                             return False
                         else:
-                            # Here we check that we do not have requirement for this VO for which we have unsolved runs,
-                            # but it is Ok to have unfinished timeouts
+                            # Here we check that we do not have requirement for this fragment for which we have unsolved
+                            # runs, but it is Ok to have unfinished timeouts
                             requirements = {r for r, v in requirements.items() if v is not True}
                             trequirements = set(self._problematic[pf][rc].keys())
                             if len(requirements.difference(trequirements)) > 0:

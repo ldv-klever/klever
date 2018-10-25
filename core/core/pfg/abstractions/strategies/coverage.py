@@ -29,11 +29,11 @@ class Coverage(Abstract):
     functions exported by target ones.
     """
 
-    def __init__(self, logger, conf, desc, deps):
-        super().__init__(logger, conf, desc, deps)
-        self.archive = self.desc.get('coverage archive')
-        self._black_list = set(self.desc.get('ignore fragments', set()))
-        self._white_list = set(self.desc.get('prefer fragments', set()))
+    def __init__(self, logger, conf, fragmentation_set_conf, program):
+        super().__init__(logger, conf, fragmentation_set_conf, program)
+        self.archive = self.fragmentation_set_conf.get('coverage archive')
+        self._black_list = set(self.fragmentation_set_conf.get('ignore fragments', set()))
+        self._white_list = set(self.fragmentation_set_conf.get('prefer fragments', set()))
 
         # Get archive
         archive = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], self.archive)
@@ -52,9 +52,13 @@ class Coverage(Abstract):
         self._func_coverage.pop('overall')
 
     def _make_groups(self):
+        """
+        For each target fragment search for fragments that call functions from files of this target fragment. But find
+        a minimal set and only that fragments that have these calls in the covered  code.
+        """
         # Get target fragments
-        cg = self.deps.clade.CallGraph().graph
-        for fragment in self.deps.target_fragments:
+        cg = self.program.clade.CallGraph().graph
+        for fragment in self.program.target_fragments:
             # Search for export functions
             ranking = dict()
             function_map = dict()
@@ -95,6 +99,15 @@ class Coverage(Abstract):
         self._func_coverage = None
 
     def _find_fragments(self, fragment, path, func, cg):
+        """
+        Find all fragments that contain calls of the given function.
+
+        :param fragment: Fragment object with the function definition.
+        :param path: file with the function definition.
+        :param func: function name.
+        :param cg: Callgraph dict.
+        :return: A set of Fragment objects.
+        """
         result = set()
         # Get functions from the callgraph
         desc = cg.get(path.name, dict()).get(func)
@@ -103,9 +116,9 @@ class Coverage(Abstract):
                                         if s != path.name and s in self._func_coverage):
                 if any(True for f in called_funcs if f in self._func_coverage[scope]):
                     # Found function call in covered functions retrieve Fragment and add to result
-                    frags = self.deps.find_fragments_with_files([scope])
+                    frags = self.program.get_fragments_with_files([scope])
                     for new in frags:
-                        if new in self.deps.fragment_predecessors(fragment):
+                        if new in self.program.get_fragment_predecessors(fragment):
                             result.add(new)
 
         return result

@@ -45,7 +45,7 @@ def __launch_sub_job_components(context):
 @core.components.after_callback
 def __prepare_descriptions_file(context):
     context.mqs['program fragments desc files'].put(
-        os.path.relpath(context.VO_FILE, context.conf['main working directory']))
+        os.path.relpath(context.PF_FILE, context.conf['main working directory']))
 
 
 @core.components.after_callback

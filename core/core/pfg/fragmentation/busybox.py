@@ -27,14 +27,20 @@ class Busybox(FragmentationAlgorythm):
 
     def __init__(self, logger, conf, desc, clade):
         super().__init__(logger, conf, desc, clade)
-        self._incorporate_libbb = self.desc.get("include dependencies from libbb to applets fragments")
+        self._incorporate_libbb = self.fragmentation_set_conf.get("include dependencies from libbb to applets fragments")
 
-    def _determine_units(self, deps):
+    def _determine_units(self, program):
+        """
+        Find all files that has \w+_main function and add dependecnies files except that ones that stored in libbb dir.
+        All files from the libbb directory add to the specific unit with the libbb name.
+
+        :param program: Program object.
+        """
         main_func = re.compile("\\w+main")
 
         libbb = set()
         applets = dict()
-        for file in deps.files:
+        for file in program.files:
             if os.path.commonpath(['libbb', file.name]):
                 libbb.add(file)
             else:
@@ -44,16 +50,16 @@ class Busybox(FragmentationAlgorythm):
                         name = os.path.splitext(name)[0]
                         applets[name] = {file}
                         if self._incorporate_libbb:
-                            dfiles = deps.collect_dependencies({file})
+                            dfiles = program.collect_dependencies({file})
                         else:
-                            dfiles = deps.collect_dependencies(
+                            dfiles = program.collect_dependencies(
                                 {file}, filter_func=lambda x: not os.path.commonpath(['libbb', x.name]))
                         applets[name].update(dfiles)
 
         # Create fragments for found applets and libbb
         for name, files in applets.items():
-            deps.create_fragment(name, files, add=True)
-        deps.create_fragment('libbb', libbb, add=True)
+            program.create_fragment(name, files, add=True)
+        program.create_fragment('libbb', libbb, add=True)
 
         self.logger.info('Found {} applets: {}'.format(len(applets), ', '.join(applets)))
 

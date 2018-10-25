@@ -27,12 +27,18 @@ class Linux(FragmentationAlgorythm):
 
     def __init__(self, logger, conf, desc, clade):
         super().__init__(logger, conf, desc, clade)
-        self._max_size = self.desc.get("maximum fragment size")
-        self._separate_nested = self.desc.get("separate nested subsystems", True)
-        self.kernel = self.desc.get("kernel", False)
+        self._max_size = self.fragmentation_set_conf.get("maximum fragment size")
+        self._separate_nested = self.fragmentation_set_conf.get("separate nested subsystems", True)
+        self.kernel = self.fragmentation_set_conf.get("kernel", False)
 
-    def _determine_units(self, deps):
-        for identifier, desc in deps.cmdg.LDs:
+    def _determine_units(self, program):
+        """
+        Create a module from all files compiled in .ko loadable module and files from directories compiled in modules
+        build-in files also separate in units.
+
+        :param program: Program object.
+        """
+        for identifier, desc in program.cmdg.LDs:
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
                 self.logger.warning("LD commands with several out files are not supported, skip commands: {!r}".
@@ -43,28 +49,41 @@ class Linux(FragmentationAlgorythm):
             if out.endswith('.ko') or out.endswith('built-in.o'):
                 rel_object_path = make_relative_path(self.source_paths, out)
                 name = rel_object_path
-                fragment = deps.create_fragment_from_ld(identifier, desc, name, deps.cmdg,
-                                                        out.endswith('built-in.o') and self._separate_nested)
+                fragment = program.create_fragment_from_ld(identifier, desc, name,
+                                                           out.endswith('built-in.o') and self._separate_nested)
                 if (not self._max_size or fragment.size <= self._max_size) and len(fragment.files) != 0:
-                    deps.add_fragment(fragment)
+                    program.add_fragment(fragment)
                 else:
                     self.logger.debug('Fragment {!r} is rejected since it exceeds maximum size or does not contain '
                                       'files {!r}'.format(fragment.name, fragment.size))
 
-    def _determine_targets(self, deps):
-        super()._determine_targets(deps)
-        for fragment in deps.target_fragments:
+    def _determine_targets(self, program):
+        """
+        There are two options: verification of modules, so all unts with .ko names can be target, and verification of
+        kernel, so only build-in can be targets.
+
+        :param program: Program object.
+        """
+        super()._determine_targets(program)
+        for fragment in program.target_fragments:
             if fragment.name.endswith('built-in.o') and not self.kernel:
                 fragment.target = False
             elif fragment.name.endswith('.ko') and self.kernel:
                 fragment.target = False
 
-    def _do_postcomposition(self, deps):
-        if self.desc.get('add modules by coverage'):
-            aggregator = Coverage(self.logger, self.conf, self.desc, deps)
+    def _add_dependencies(self, program):
+        """
+        Apply one of three options to add dependencies: add nothing (most often used), add dependencies on the base of
+        the function callgraph (rarely used) and add dependencies on the base of coverage (used at kernel verification).
+
+        :param program: Program object.
+        :return: Dictionary with sets of fragments.
+        """
+        if self.fragmentation_set_conf.get('add modules by coverage'):
+            aggregator = Coverage(self.logger, self.conf, self.fragmentation_set_conf, program)
             return aggregator.get_groups()
-        elif self.desc.get('add modules by callgraph'):
-            aggregator = Callgraph(self.logger, self.conf, self.desc, deps)
+        elif self.fragmentation_set_conf.get('add modules by callgraph'):
+            aggregator = Callgraph(self.logger, self.conf, self.fragmentation_set_conf, program)
             return aggregator.get_groups()
         else:
-            return super()._do_postcomposition(deps)
+            return super()._add_dependencies(program)

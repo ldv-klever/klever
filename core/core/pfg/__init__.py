@@ -26,10 +26,16 @@ import core.utils
 
 class PFG(core.components.Component):
 
-    VO_FILE = 'program_fragments.json'
+    PF_FILE = 'program_fragments.json'
 
     def generate_program_fragments(self):
+        """
+        This is the main function of the Program Fragment Generator. It gets the build base of the program, analyses
+        it and generates program fragments descriptions that VTG uses to generate verification tasks. Each program
+        fragment contains several sets of C files to be analyzed together independently from other files.
+        """
         # Collect and merge configuration
+        self.logger.info("Start program fragmentation stage")
         fragdb = self.conf['program fragmentation DB']
         with open(fragdb, encoding='utf8') as fp:
             fragdb = json.load(fp)
@@ -64,7 +70,13 @@ class PFG(core.components.Component):
     main = generate_program_fragments
 
     def submit_project_attrs(self, attrs, dfiles):
-        """Has a callback!"""
+        """
+        !Has a callback!
+        Submit project attribute to Bridge.
+
+        :param attrs: Prepared list of attributes.
+        :param dfiles: Fiels to attach as data attribute values.
+        """
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -77,7 +89,11 @@ class PFG(core.components.Component):
                           data_files=dfiles)
 
     def prepare_descriptions_file(self, files):
-        """Has a callback!"""
+        """
+        Get the list of file with program fragments descriptions and save it to the file to provide it to VTG.
+
+        :param files: The list of program fragment description files.
+        """
         # Add dir to exlcuded from cleaning list
         for file in files:
             root_dir_id = file.split('/')[0]
@@ -85,10 +101,22 @@ class PFG(core.components.Component):
                 self.logger.debug("Do not clean dir {!r} on component termination".format(root_dir_id))
                 self.dynamic_excluded_clean.append(root_dir_id)
 
-        with open(self.VO_FILE, 'w') as fp:
+        self.logger.info("Save file with program fragments descriptions {!r}".format(self.PF_FILE))
+        with open(self.PF_FILE, 'w') as fp:
             fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
 
     def _merge_configurations(self, db, program, version, dset):
+        """
+        Program fragmentation depends on a template and fragmentation set prepared for a particular program version.
+        This function reads the file with templates and fragmentation sets and merges required configuration properties
+        into the single dictionary.
+
+        :param db: Content of fragmentation sets file.
+        :param program: Program name.
+        :param version: Program version.
+        :param dset: Fragmentation set name.
+        :return: Merged dictionary.
+        """
         self.logger.info("Search for fragmentation description and configuration for {!r}".format(program))
 
         # Basic sanity checks
@@ -130,6 +158,13 @@ class PFG(core.components.Component):
         return template
 
     def _get_fragmentation_strategy(self, strategy_name):
+        """
+        The function dynamically searches for fragmentation strategy depending on the program and return its class
+        reference.
+
+        :param strategy_name:
+        :return: Fragmentation strategy class.
+        """
         self.logger.info('Import fragmentation strategy {!r}'.format(strategy_name))
         module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower())
         project_package = importlib.import_module(module_path, 'core')
