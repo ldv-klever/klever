@@ -73,6 +73,7 @@ MARK_TITLES = {
     'buttons': '',
     'description': _('Description'),
     'total_similarity': _('Total similarity'),
+    'identifier': _('Identifier')
 }
 
 CHANGE_DATA = {
@@ -381,7 +382,7 @@ class MarksList:
             columns.update({'verdict', 'tags'})
         if self.type == 'unsafe':
             columns.add('total_similarity')
-        columns.update({'status', 'author', 'change_date', 'format', 'source'})
+        columns.update({'status', 'author', 'change_date', 'format', 'source', 'identifier'})
         return columns
 
     def __paginate_objects(self, objects):
@@ -464,7 +465,7 @@ class MarksList:
                     val = model_map[self.type](type=marks[m_id]['source']).get_type_display()
                 elif col == 'total_similarity':
                     val = '%d%%' % (marks[m_id][col] * 100)
-                elif col in {'format', 'component', 'pattern'}:
+                elif col in {'format', 'component', 'pattern', 'identifier'}:
                     val = marks[m_id][col]
                 values_row.append({'color': color, 'value': val, 'href': href})
             values_data.append(values_row)

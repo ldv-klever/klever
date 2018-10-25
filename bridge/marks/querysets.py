@@ -153,6 +153,12 @@ class ListQuery:
                 operation = 'NOT (%s)' % operation
             self.sql.where(operation, 'status', args_list=[self.view['status'][1]])
 
+    def __process_identifier(self):
+        self.sql.select('identifier')
+
+        if 'identifier' in self.view:
+            self.sql.where("{0} = %s", 'identifier', args_list=[self.view['identifier'][0]])
+
     def __process_author(self):
         self.sql.join('LEFT OUTER', User, 'id', 'author_id')
         self.sql.select('author_id', ('first_name', User), ('last_name', User))

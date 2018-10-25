@@ -140,6 +140,7 @@ UNSAFE_MARKS_VIEW = {
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
+    # identifier: [<mark identifier>]
     # status: [is|isnot, <id from MARK_STATUS>]
     # verdict: [is|isnot, <id from MARK_UNSAFE>]
     # author: [<author id>]
@@ -162,6 +163,7 @@ SAFE_MARKS_VIEW = {
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
+    # identifier: [<mark identifier>]
     # status: [is|isnot, <id from MARK_STATUS>]
     # verdict: [is|isnot, <id from MARK_SAFE>]
     # author: [<author id>]
@@ -184,6 +186,7 @@ UNKNOWN_MARKS_VIEW = {
     'order': ['up', 'change_date'],
 
     # FILTERS:
+    # identifier: [<mark identifier>]
     # status: [is|isnot, <id from MARK_STATUS>]
     # component: [is|startswith, <any text>]
     # author: [<author id>]

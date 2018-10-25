@@ -89,6 +89,24 @@
         <h3>{% trans 'Filters' %}<i class="link blue help icon note-popup" data-content="{% trans 'Filtering only works when filtered column is shown' %}"></i></h3>
         <div class="ui divider"></div>
 
+        {# Identifier #}
+        <input id="view_data_{{ view.type }}__identifier" value="list_if_identifier_enable" data-list="identifier_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__identifier_enable"{% if 'identifier' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__identifier_enable">{% trans 'Identifier' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <h4 class="header">{% trans 'is' %}</h4>
+            </div>
+            <div class="field">
+                <input id="view_{{ view.type }}__identifier_value" type="text"{% if 'identifier' in view %} value="{{ view.identifier.0 }}"{% endif %}>
+                <label for="view_{{ view.type }}__identifier_value"></label>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
         {# Status #}
         <input id="view_data_{{ view.type }}__status" value="list_if_status_enable" data-list="status_type__status_value" type="hidden">
         <div class="ui checkbox">
