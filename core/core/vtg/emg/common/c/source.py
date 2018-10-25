@@ -269,10 +269,21 @@ class Source:
         # Variables which are used in variables initalizations
         self.logger.info("Import source functions")
         vfunctions = variables.used_vars_functions
-        # Function scope definitions
-        fs = clade_api.FunctionsScopes(set(dependencies.keys())).scope_to_funcs
+
         # Get functions defined in dependencies and in the main functions and have calls
         cg = clade_api.CallGraph().partial_graph(set(dependencies.keys()))
+
+        # Function scope definitions
+        # todo: maybe this should be fixed in Clade
+        # As we will not get definitions for library functions if there are in compiled parts we should add all scopes
+        # that are given for all function called from outside of the code we analyze
+        for scope in (s for s in cfiles if s in cg):
+            for func in (f for f in cg[scope] if cg[scope][f].get('calls')):
+                for dep in cg[scope][func].get('calls'):
+                    dependencies.setdefault(dep, set())
+                    dependencies[dep].add(scope)
+        fs = clade_api.FunctionsScopes(set(dependencies.keys()).union(cfiles)).scope_to_funcs
+
         # Add called functions
         for scope in cg:
             for func in cg[scope]:
@@ -280,6 +291,12 @@ class Source:
                 if scope in cfiles:
                     # Definition of the function is in the code of interest
                     self._add_function(func, scope, fs, dependencies, cfiles)
+                    # Add called functions
+                    for def_scope, cf_desc in desc.get('calls', dict()).items():
+                        if def_scope not in cfiles:
+                            for called_func in cf_desc:
+                                self._add_function(called_func, def_scope, fs, dependencies, cfiles)
+
                 elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
                     if scope in fs and func in fs[scope]:
                         # Function is called in the target code but defined in dependencies
