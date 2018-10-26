@@ -33,7 +33,7 @@ Then you should *install* Klever::
     $ sudo $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR install production
 
 After successfull installation one is able to *update* Klever multiple times to install new or to update alredy
-installed :ref:`klever_addons` and :ref:`target_software` as well as to update Klever itself::
+installed :ref:`klever_addons` and :ref:`klever_build_bases` as well as to update Klever itself::
 
     $ sudo $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR update production
 
