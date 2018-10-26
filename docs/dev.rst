@@ -150,7 +150,7 @@ At the "Welcome to PyCharm" window:
 
 #. Specify your preferences.
 #. :menuselection:`Open`.
-#. Specify the absolute path to directory :file:`$KLEVER_SRC/bridge`.
+#. Specify the absolute path to directory :term:`$KLEVER_SRC`.
 #. :menuselection:`OK`.
 
 Configuring the Python Interpreter
