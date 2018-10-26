@@ -41,7 +41,7 @@ class PFG(core.components.Component):
             fragdb = json.load(fp)
 
         # Make basic sanity checks and merge configurations
-        desc = self._merge_configurations(fragdb, self.conf['program'], self.conf['version'],
+        desc = self._merge_configurations(fragdb, self.conf['program'], self.conf.get('version'),
                                           self.conf['fragmentation set'])
 
         # Import project strategy
