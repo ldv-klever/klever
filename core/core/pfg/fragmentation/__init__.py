@@ -30,11 +30,9 @@ class FragmentationAlgorythm:
     This is a generic class to implement fragmentation strategies for particular programs. This is not a fully abstract
     class and sometimes can be directly used for verification without adaptation to program specifics.
     """
-
-    PF_DIR = 'program fragments'
     CLADE_PRESET = 'base'
 
-    def __init__(self, logger, conf, desc, clade):
+    def __init__(self, logger, conf, desc, clade, pf_dir):
         """
         The strategy needs a logger and configuration as the rest Klever components but also it requires Clade interface
         object (uninitialized yet) and the description of the fragmentation set.
@@ -43,12 +41,14 @@ class FragmentationAlgorythm:
         :param conf: Dictionary.
         :param desc: Dictionary.
         :param clade: Clade interface.
+        :param pf_dir: program fragments descriptions storage dir.
         """
         # Simple attributes
         self.logger = logger
         self.conf = conf
         self.fragmentation_set_conf = desc
         self.build_base = clade
+        self.pf_dir = pf_dir
         self.files_to_keep = list()
         self.common_attributes = list()
 
@@ -304,7 +304,7 @@ class FragmentationAlgorythm:
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag) if succ in grp]
         self.logger.debug('program fragment dependencies are {}'.format(pf_desc['deps']))
 
-        pf_desc_file = os.path.join(self.PF_DIR, pf_desc['id'] + '.json')
+        pf_desc_file = os.path.join(self.pf_dir, pf_desc['id'] + '.json')
         if os.path.isfile(pf_desc_file):
             raise FileExistsError('program fragment description file {!r} already exists'.format(pf_desc_file))
         self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['id'], pf_desc_file))

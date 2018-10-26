@@ -27,6 +27,7 @@ import core.utils
 class PFG(core.components.Component):
 
     PF_FILE = 'program_fragments.json'
+    PF_DIR = 'program fragments'
 
     def generate_program_fragments(self):
         """
@@ -52,7 +53,7 @@ class PFG(core.components.Component):
         strategy = self._get_fragmentation_strategy(program)
 
         # Fragmentation
-        strategy = strategy(self.logger, self.conf, desc, clade_api)
+        strategy = strategy(self.logger, self.conf, desc, clade_api, self.PF_DIR)
         attr_data, fragments_files = strategy.fragmentation()
 
         # Prepare attributes
@@ -61,11 +62,12 @@ class PFG(core.components.Component):
         attr_data[0].extend(strategy.common_attributes)
         self.submit_project_attrs(*attr_data)
 
-        self.dynamic_excluded_clean = []
         self.prepare_descriptions_file(fragments_files)
-        self.clean_dir = True
-        self.excluded_clean = [d for d in self.dynamic_excluded_clean]
+        self.excluded_clean = [self.PF_DIR, self.PF_FILE]
+        self.excluded_clean.extend(attr_data[1])
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
+        # todo: This does not work but I does not know why
+        #self.clean_dir = True
 
     main = generate_program_fragments
 
@@ -94,13 +96,6 @@ class PFG(core.components.Component):
 
         :param files: The list of program fragment description files.
         """
-        # Add dir to exlcuded from cleaning list
-        for file in files:
-            root_dir_id = file.split('/')[0]
-            if root_dir_id not in self.dynamic_excluded_clean:
-                self.logger.debug("Do not clean dir {!r} on component termination".format(root_dir_id))
-                self.dynamic_excluded_clean.append(root_dir_id)
-
         self.logger.info("Save file with program fragments descriptions {!r}".format(self.PF_FILE))
         with open(self.PF_FILE, 'w') as fp:
             fp.writelines((os.path.relpath(f, self.conf['main working directory']) + '\n' for f in files))
