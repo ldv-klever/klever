@@ -2,13 +2,12 @@
   <configuration default="false" name="docs" type="docs" factoryName="Sphinx task" singleton="true">
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
-    <envs />
-    <option name="SDK_HOME" value="" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../docs" />
-    <option name="IS_MODULE_SDK" value="true" />
+    <option name="SDK_HOME" value="/usr/bin/python3" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/docs" />
+    <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="false" />
     <option name="ADD_SOURCE_ROOTS" value="false" />
-    <module name="docs" />
+    <module name="" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
     <option name="docutils_input_file" value="." />
     <option name="docutils_output_file" value="_build" />

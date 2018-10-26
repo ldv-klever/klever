@@ -6,7 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/addons" />
       <excludeFolder url="file://$MODULE_DIR$/build bases" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Core" />
     <orderEntry type="module" module-name="Deploys" />
