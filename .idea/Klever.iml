@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/addons" />
+      <excludeFolder url="file://$MODULE_DIR$/build bases" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Core" />
+    <orderEntry type="module" module-name="Deploys" />
+    <orderEntry type="module" module-name="Docs" />
+    <orderEntry type="module" module-name="Presets" />
+    <orderEntry type="module" module-name="Scheduler" />
+    <orderEntry type="module" module-name="Utils" />
+    <orderEntry type="module" module-name="Bridge" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="projectConfiguration" value="py.test" />
+    <option name="PROJECT_TEST_RUNNER" value="py.test" />
+  </component>
+</module>
