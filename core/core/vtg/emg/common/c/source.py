@@ -294,7 +294,7 @@ class Source:
                     # Add called functions
                     for def_scope, cf_desc in desc.get('calls', dict()).items():
                         if def_scope not in cfiles:
-                            for called_func in cf_desc:
+                            for called_func in (f for f in cf_desc if def_scope in fs and f in fs[def_scope]):
                                 self._add_function(called_func, def_scope, fs, dependencies, cfiles)
 
                 elif ('called_in' in desc and set(desc['called_in'].keys()).intersection(cfiles)) or func in vfunctions:
