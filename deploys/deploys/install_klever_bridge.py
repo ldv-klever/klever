@@ -90,7 +90,7 @@ def install_klever_bridge_production(logger, deploy_dir, populate_just_productio
 
     logger.info('Update Klever Bridge source/binary code')
     shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
-    shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge', symlinks=True)
+    shutil.copytree(os.path.join(deploy_dir, 'klever/bridge'), '/var/www/klever-bridge')
 
     logger.info('Prepare media directory')
     media = '/var/www/klever-bridge/media'
