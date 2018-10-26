@@ -3,7 +3,7 @@
   "Common": {
     "build base": "testing/5b3d50",
     "program": "Linux",
-    "version": "Linux 3.14",
+    "version": "3.14",
     "fragmentation set": "Linux modules with callgraph",
     "specifications set": "Linux 3.14 (base)",
     "requirements": ["linux:test:common"],

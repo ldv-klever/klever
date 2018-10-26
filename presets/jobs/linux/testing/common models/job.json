@@ -2,7 +2,7 @@
   "Class": "Verification of Linux kernel modules",
   "build base": "testing/6e6e1c",
   "program": "Linux",
-  "version": "Linux 3.14",
+  "version": "3.14",
   "fragmentation set": "Linux modules",
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["linux:test:common"],

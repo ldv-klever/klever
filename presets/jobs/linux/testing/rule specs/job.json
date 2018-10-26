@@ -3,7 +3,7 @@
   "Common": {
     "build base": "testing/1de383",
     "program": "Linux",
-    "version": "Linux 3.14",
+    "version": "3.14",
     "fragmentation set": "Linux modules",
     "specifications set": "Linux 3.14 (base)",
     "extra CIF opts": [

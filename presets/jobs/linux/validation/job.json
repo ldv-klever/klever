@@ -2,7 +2,6 @@
   "Class": "Validation on commits in Linux kernel Git repositories",
   "Common": {
     "program": "Linux",
-    "version": "Linux 3.14",
     "fragmentation set": "Linux modules",
     "specifications set": "Linux 3.14 (base)",
     "extra CIF opts": [

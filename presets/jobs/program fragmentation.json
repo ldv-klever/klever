@@ -22,17 +22,9 @@
   },
   "fragmentation sets": {
     "Linux": {
-      "Linux modules with callgraph": {
-        "Linux 3.14": {}
-      },
-      "Linux modules": {
-        "Linux 3.14": {},
-        "Linux 2.6.33": {},
-        "Linux 4.6.7": {}
-      },
-      "Linux subsystems": {
-        "Linux 3.14": {}
-      }
+      "Linux modules with callgraph": {},
+      "Linux modules": {},
+      "Linux subsystems": {}
     },
     "Busybox": {
       "Busybox applets": {

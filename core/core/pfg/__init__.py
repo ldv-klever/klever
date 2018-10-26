@@ -123,10 +123,11 @@ class PFG(core.components.Component):
         if not db.get('fragmentation sets') or not db.get('templates'):
             raise KeyError("Provide both 'templates' and 'fragmentation sets' sections to 'program configuration'.json")
 
+        if program not in db['fragmentation sets'] or dset not in db['fragmentation sets'][program]:
+            raise KeyError('There is no prepared fragmentation set {!r} for program {!r}'.format(dset, program))
+        if version not in db['fragmentation sets'][program][dset]:
+            self.logger.warning("There is no fragmentation set description for provided version {!r}".format(version))
         desc = db['fragmentation sets'].get(program, dict()).get(dset, dict()).get(version, dict())
-        if not desc and not db['templates'].get(dset):
-            raise KeyError('There is no prepared fragmentation set {!r} for program {!r} of version {!r}'.
-                           format(dset, program, version))
 
         # Merge templates
         template = db['templates'][dset]

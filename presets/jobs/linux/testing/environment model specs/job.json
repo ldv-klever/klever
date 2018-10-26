@@ -3,7 +3,7 @@
   "Common": {
     "build base": "testing/606cdb",
     "program": "Linux",
-    "version": "Linux 3.14",
+    "version": "3.14",
     "fragmentation set": "Linux modules",
     "specifications set": "Linux 3.14 (base)",
     "requirements": ["linux:test:environment model specifications"],

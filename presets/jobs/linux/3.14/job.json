@@ -2,7 +2,7 @@
   "Class": "Verification of Linux kernel modules",
   "build base": "linux-3.14.79",
   "program": "Linux",
-  "version": "Linux-3.14",
+  "version": "3.14",
   "fragmentation set": "Linux modules",
   "add": [
     "drivers/ata/pata_arasan_cf.ko",
