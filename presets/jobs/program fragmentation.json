@@ -33,9 +33,6 @@
     "Busybox": {
       "Applets": {
         "1.28.3": {
-          "add to all fragments": [
-            "libbb"
-          ],
           "exclude from all fragments": [
             "libbb/getopt32.o",
             "libbb/appletlib.o",
