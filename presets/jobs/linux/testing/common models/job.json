@@ -32,5 +32,5 @@
     "-D__GNUC__=4",
     "-D__GNUC_MINOR__=6"
   ],
-  "add": ["**"]
+  "add targets": ["**"]
 }

@@ -127,8 +127,8 @@ class FragmentationAlgorythm:
         :param program:
         :return:
         """
-        add = set(self.conf.get('add', set()))
-        exclude = set(self.conf.get('exclude', set()))
+        add = set(self.conf.get('add targets', set()))
+        exclude = set(self.conf.get('exclude targets', set()))
 
         files = set()
         self.logger.info("Find files matched by given by the user expressions ('add' configuration properties)")

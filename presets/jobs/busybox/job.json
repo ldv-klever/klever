@@ -6,5 +6,5 @@
   "fragmentation set": "Busybox applets",
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["busybox:empty", "busybox:memory safety"],
-  "add": ["**"]
+  "add targets": ["**"]
 }

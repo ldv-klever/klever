@@ -14,18 +14,18 @@
     ]
   },
   "Sub-jobs": [
-    {"add": ["ext-modules/several_groups/init.ko"]},
-    {"add": ["ext-modules/multimodule_error/init.ko"]},
+    {"add targets": ["ext-modules/several_groups/init.ko"]},
+    {"add targets": ["ext-modules/multimodule_error/init.ko"]},
     {
-      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragments": {
         "ext-modules/multimodule_false_error/init.ko": [
           "ext-modules/multimodule_false_error/external.ko",
@@ -34,11 +34,11 @@
       }
     },
     {
-      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "add to all fragments": ["ext-modules/multimodule_false_error/external.ko"]
     },
     {
-      "add": ["ext-modules/multimodule_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_error/init.ko"],
       "fragments": {
         "ext-modules/multimodule_error/init.ko": [
           "ext-modules/multimodule_error/external.ko",
@@ -48,7 +48,7 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/multimodule_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_error/init.ko"],
       "fragments": {
         "ext-modules/multimodule_error/init.ko": [
           "ext-modules/multimodule_error/external.ko",
@@ -58,7 +58,7 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/several_groups/init.ko"],
+      "add targets": ["ext-modules/several_groups/init.ko"],
       "fragments": {
         "ext-modules/several_groups/init.ko:0": [
           "ext-modules/several_groups/library1.ko",
@@ -75,7 +75,7 @@
       ]
     },
     {
-      "add": ["ext-modules/kernel_library/init.ko"],
+      "add targets": ["ext-modules/kernel_library/init.ko"],
       "fragments": {
         "ext-modules/kernel_library/init.ko": [
           "ext-modules/kernel_library/init.ko",
@@ -87,7 +87,7 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/kernel_library/init.ko"],
+      "add targets": ["ext-modules/kernel_library/init.ko"],
       "fragments": {
         "ext-modules/kernel_library/init.ko": [
           "ext-modules/kernel_library/init.ko"
@@ -97,7 +97,7 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/load_order/init.ko"],
+      "add targets": ["ext-modules/load_order/init.ko"],
       "fragments": {
         "ext-modules/load_order/init.ko": [
           "ext-modules/load_order/init.ko",
@@ -107,7 +107,7 @@
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
-      "add": ["ext-modules/several_groups/ini*"],
+      "add targets": ["ext-modules/several_groups/ini*"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}],
       "fragmentation configuration options": {
         "kernel": false,
@@ -116,7 +116,7 @@
       }
     },
     {
-      "add": ["ext-modules/several_groups/init.ko"],
+      "add targets": ["ext-modules/several_groups/init.ko"],
       "exclude from all fragments": ["several_groups_export_with_error"],
       "fragmentation configuration options": {
         "kernel": false,
@@ -125,7 +125,7 @@
       }
     },
     {
-      "add": ["ext-modules/multimodule_false_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_false_error/init.ko"],
       "fragmentation configuration options": {
         "kernel": false,
         "add modules by callgraph": true,
@@ -133,7 +133,7 @@
       }
     },
     {
-      "add": ["ext-modules/multimodule_error/init.ko"],
+      "add targets": ["ext-modules/multimodule_error/init.ko"],
       "fragmentation configuration options": {
         "kernel": false,
         "add modules by callgraph": true,

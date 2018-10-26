@@ -75,35 +75,35 @@
   },
   "Sub-jobs": [
     {
-      "add": ["ext-modules/linux/alloc/irq"],
+      "add targets": ["ext-modules/linux/alloc/irq"],
       "requirements": ["linux:alloc:irq"]
     },
     {
-      "add": ["ext-modules/linux/alloc/spinlock"],
+      "add targets": ["ext-modules/linux/alloc/spinlock"],
       "requirements": ["linux:alloc:spinlock"]
     },
     {
-      "add": ["ext-modules/linux/alloc/usb-lock"],
+      "add targets": ["ext-modules/linux/alloc/usb-lock"],
       "requirements": ["linux:alloc:usb lock"]
     },
     {
-      "add": ["ext-modules/linux/arch/io"],
+      "add targets": ["ext-modules/linux/arch/io"],
       "requirements": ["linux:arch:io"]
     },
     {
-      "add": ["ext-modules/linux/block/genhd"],
+      "add targets": ["ext-modules/linux/block/genhd"],
       "requirements": ["linux:block:genhd"]
     },
     {
-      "add": ["ext-modules/linux/block/queue"],
+      "add targets": ["ext-modules/linux/block/queue"],
       "requirements": ["linux:block:queue"]
     },
     {
-      "add": ["ext-modules/linux/block/request"],
+      "add targets": ["ext-modules/linux/block/request"],
       "requirements": ["linux:block:request"]
     },
     {
-      "add": ["ext-modules/linux/concurrency-safety/lock-reduce"],
+      "add targets": ["ext-modules/linux/concurrency-safety/lock-reduce"],
       "requirements": ["linux:concurrency safety"]
     },
     {

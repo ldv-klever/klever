@@ -4,7 +4,7 @@
   "program": "Linux",
   "version": "Linux-3.14",
   "fragmentation set": "Linux modules",
-  "add": ["drivers/net/usb/asix.ko"],
+  "add targets": ["drivers/net/usb/asix.ko"],
   "specifications set": "Linux 3.14 (base)",
   "extra CIF opts": [
     "-D__GNUC__=4",

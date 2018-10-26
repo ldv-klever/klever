@@ -6,7 +6,7 @@
   "fragmentation set": "Linux modules",
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["linux:test:common"],
-  "add": ["**"],
+  "add targets": ["**"],
   "extra CIF opts": [
     "-D__GNUC__=4",
     "-D__GNUC_MINOR__=6"
