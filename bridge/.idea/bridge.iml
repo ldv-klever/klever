@@ -15,6 +15,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/jobs/presets" />
+      <excludeFolder url="file://$MODULE_DIR$/marks/presets" />
       <excludeFolder url="file://$MODULE_DIR$/media" />
       <excludeFolder url="file://$MODULE_DIR$/static/images" />
       <excludeFolder url="file://$MODULE_DIR$/static/semantic" />
