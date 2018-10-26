@@ -3,7 +3,7 @@
   "build base": "linux-3.14.79",
   "program": "Linux",
   "version": "3.14",
-  "fragmentation set": "Linux modules",
+  "fragmentation set": "Modules",
   "add targets": [
     "drivers/ata/pata_arasan_cf.ko",
     "drivers/idle/i7300_idle.ko",

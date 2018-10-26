@@ -3,7 +3,7 @@
   "build base": "testing/6e6e1c",
   "program": "Linux",
   "version": "3.14",
-  "fragmentation set": "Linux modules",
+  "fragmentation set": "Modules",
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["linux:test:common"],
   "ideal verdicts": [

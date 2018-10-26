@@ -1,14 +1,14 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "build base": "linux-3.14",
+  "build base": "linux-3.14.79",
   "program": "Linux",
-  "version": "Linux-3.14",
-  "fragmentation set": "Linux modules",
-  "add targets": ["drivers/net/usb/asix.ko"],
+  "version": "3.14.79",
+  "fragmentation set": "Subsystems",
+  "add targets": ["drivers/tty", "drivers/char", "drivers/gpio"],
   "specifications set": "Linux 3.14 (base)",
   "extra CIF opts": [
     "-D__GNUC__=4",
     "-D__GNUC_MINOR__=6"
   ],
-  "requirements": ["linux:usb:coherent", "linux:memory safety", "linux:concurrency safety"]
+  "requirements": ["linux:memory safety"]
 }

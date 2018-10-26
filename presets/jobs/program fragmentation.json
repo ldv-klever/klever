@@ -1,34 +1,38 @@
 {
   "templates": {
-    "Linux modules": {
+    "Modules": {
       "program": "Linux",
       "kernel": false,
       "ignore dependencies": true
     },
-    "Linux modules with callgraph": {
+    "Modules with callgraph": {
       "program": "Linux",
       "kernel": false
     },
-    "Linux subsystems": {
+    "Subsystems": {
+      "program": "Linux",
+      "kernel": true
+    },
+    "Subsystems with modules found by coverage": {
       "program": "Linux",
       "kernel": true,
-      "separate nested subsystems": true,
       "add modules by coverage": true
     },
-    "Busybox applets": {
+    "Applets": {
       "program": "Busybox",
       "include dependencies from libbb to applets fragments": true
     }
   },
   "fragmentation sets": {
     "Linux": {
-      "Linux modules with callgraph": {},
-      "Linux modules": {},
-      "Linux subsystems": {}
+      "Modules": {},
+      "Subsystems": {},
+      "Modules with callgraph": {},
+      "Subsystems with modules found by coverage": {}
     },
     "Busybox": {
-      "Busybox applets": {
-        "v1.28.3": {
+      "Applets": {
+        "1.28.3": {
           "add to all fragments": [
             "libbb"
           ],

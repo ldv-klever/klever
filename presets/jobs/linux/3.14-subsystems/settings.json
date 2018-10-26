@@ -1,5 +1,5 @@
 {
-    "name": "Kernel Linux 3.14",
-    "description": "<h3>Preset configurations and specifications for kernel verification of Linux 3.14</h3>",
+    "name": "Linux 3.14 kernel subsystems",
+    "description": "<h3>Preset configurations and specifications for kernel subsystems verification of Linux 3.14</h3>",
     "production": true
 }
