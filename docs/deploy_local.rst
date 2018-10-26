@@ -28,21 +28,29 @@ Prior to proceding to :ref:`local_deploy`, it is necessary to perform :ref:`depl
 Then you need to choose an appropriate deployment mode.
 One should select *development* only if one is going to develop Klever (see :ref:`dev_deploy` in addition).
 Otherwise, please, choose *production*.
-Then you should *install* Klever::
+Then you should *install* Klever:
 
-    $ sudo $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR install production
+.. parsed-literal::
+
+    $ sudo :term:`$KLEVER_SRC`/deploys/bin/deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` install production
 
 After successfull installation one is able to *update* Klever multiple times to install new or to update alredy
-installed :ref:`klever_addons` and :ref:`klever_build_bases` as well as to update Klever itself::
+installed :ref:`klever_addons` and :ref:`klever_build_bases` as well as to update Klever itself:
 
-    $ sudo $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR update production
+.. parsed-literal::
 
-To *uninstall* Klever, e.g. if something went wrong during installation, you need to run::
+    $ sudo :term:`$KLEVER_SRC`/deploys/bin/deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` update production
 
-    $ sudo $KLEVER_SRC/deploys/bin/deploy-local --deployment-directory $KLEVER_DEPLOY_DIR uninstall production
+To *uninstall* Klever, e.g. if something went wrong during installation, you need to run:
+
+.. parsed-literal::
+
+    $ sudo :term:`$KLEVER_SRC`/deploys/bin/deploy-local --deployment-directory :term:`$KLEVER_DEPLOY_DIR` uninstall production
 
 So that a normal sequence of actions for :ref:`local_deploy` is the following:
 ":menuselection:`install --> update --> update --> ... --> update --> uninstall`".
-In addition, there are several optional arguments which you can find out by running::
+In addition, there are several optional arguments which you can find out by running:
 
-    $ $KLEVER_SRC/deploys/bin/deploy-local --help
+.. parsed-literal::
+
+    $ :term:`$KLEVER_SRC`/deploys/bin/deploy-local --help

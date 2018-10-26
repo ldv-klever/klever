@@ -38,9 +38,11 @@ Additionally you need to install following Python3 packages:
   For :ref:`klever_dev_inst` many debug options are activated by default.
 * :ref:`klever_experiment_inst` - a specified number of OpenStack instances for performing various experiments.
 
-In addition to arguments mentioned below, there are several optional arguments which you can find out by running::
+In addition to arguments mentioned below, there are several optional arguments which you can find out by running:
 
-   $ $KLEVER_SRC/deploys/bin/deploy-openstack --help
+.. parsed-literal::
+
+   $ :term:`$KLEVER_SRC`/deploys/bin/deploy-openstack --help
 
 .. _klever_base_image:
 
@@ -48,9 +50,11 @@ Klever Base Image
 -----------------
 
 For :ref:`klever_base_image` you can execute actions *show*, *create* and *remove*.
-The normal workflow for :ref:`klever_base_image` is ":menuselection:`create --> remove`"::
+The normal workflow for :ref:`klever_base_image` is ":menuselection:`create --> remove`":
 
-    $ $KLEVER_SRC/deploys/bin/deploy-openstack --ssh-rsa-private-key-file $SSH_RSA_PRIVATE_KEY_FILE create "Klever base image"
+.. parsed-literal::
+
+    $ :term:`$KLEVER_SRC`/deploys/bin/deploy-openstack --ssh-rsa-private-key-file :term:`$SSH_RSA_PRIVATE_KEY_FILE` create "Klever base image"
 
 It is not necessary to *remove* :ref:`klever_base_image` ever for allowing one to understand what images running
 OpenStack instances are based on.
@@ -66,9 +70,11 @@ Klever Developer Instance
 
 For :ref:`klever_dev_inst` you can execute actions *show*, *create*, *update*, *ssh*, *remove*, *share* and *hide*.
 Basically you should perform actions with :ref:`klever_dev_inst` in the following order
-":menuselection:`create --> update --> update --> ... --> update --> remove`" exactly as for :ref:`local_deploy`::
+":menuselection:`create --> update --> update --> ... --> update --> remove`" exactly as for :ref:`local_deploy`:
 
-    $ $KLEVER_SRC/deploys/bin/deploy-openstack --ssh-rsa-private-key-file $SSH_RSA_PRIVATE_KEY_FILE create "Klever developer instance"
+.. parsed-literal::
+
+    $ :term:`$KLEVER_SRC`/deploys/bin/deploy-openstack --ssh-rsa-private-key-file :term:`$SSH_RSA_PRIVATE_KEY_FILE` create "Klever developer instance"
 
 In addition, between creating and removing you can also *share*/*hide* for/from the outside world :ref:`klever_dev_inst`
 and open an SSH connection to it.
@@ -80,9 +86,11 @@ Klever Experimental Instances
 -----------------------------
 
 For :ref:`klever_experiment_inst` you can execute actions *show*, *create* and *remove*.
-The normal workflow for :ref:`klever_experiment_inst` is ":menuselection:`create --> remove`"::
+The normal workflow for :ref:`klever_experiment_inst` is ":menuselection:`create --> remove`":
 
-    $ $KLEVER_SRC/deploys/bin/deploy-openstack --ssh-rsa-private-key-file $SSH_RSA_PRIVATE_KEY_FILE --instances $INSTANCES create "Klever experimental instances"
+.. parsed-literal::
+
+    $ :term:`$KLEVER_SRC`/deploys/bin/deploy-openstack --ssh-rsa-private-key-file :term:`$SSH_RSA_PRIVATE_KEY_FILE` --instances :term:`$INSTANCES` create "Klever experimental instances"
 
 Deployment Troubleshooting
 --------------------------
