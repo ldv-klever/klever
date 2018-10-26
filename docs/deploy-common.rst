@@ -30,17 +30,19 @@ To execute deployment scripts you need to install:
   `wget <https://www.gnu.org/software/wget/>`__
   (if you are going to deploy entities from corresponding sources).
 
-To deploy Klever one has to clone its Git repository (below a path to a directory where it is cloned is referred to as
-*$KLEVER_SRC*)::
+To deploy Klever one has to clone its Git repository (a path to a directory where it is cloned is referred to as
+:term:`$KLEVER_SRC`)::
 
     git clone --recursive https://forge.ispras.ru/git/klever.git
+
+.. note:: Alternatively one can use https://github.com/ldv-klever/klever.git.
 
 Then one has to get :ref:`klever_addons` and perhaps :ref:`klever_build_bases`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
 .. note:: You can omit getting :ref:`klever_addons` if you will use
-          :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` as :ref:`deploy_conf_file` since it contains
-          URLs for all required :ref:`klever_addons`.
+          :file:`deploys/conf/klever-minimal.json.sample` from :term:`$KLEVER_SRC` as :ref:`deploy_conf_file` since it
+          contains URLs for all required :ref:`klever_addons`.
 
 .. _klever_addons:
 
@@ -53,10 +55,10 @@ You can provide :ref:`klever_addons` in various forms:
 * Remote files, archives or Git repositories.
 
 Deployment scripts will take care of their appropriate extracting.
-The best place for :ref:`klever_addons` is directory :file:`addons` within *$KLEVER_SRC* (see
+The best place for :ref:`klever_addons` is directory :file:`addons` within :term:`$KLEVER_SRC` (see
 :ref:`klever_git_repo_struct`).
 
-.. note:: Git does not track :file:`$KLEVER_SRC/addons`.
+.. note:: Git does not track :file:`addons` from :term:`$KLEVER_SRC`.
 
 :ref:`klever_addons` include the following:
 
@@ -135,10 +137,10 @@ Klever Build Bases
 In addition to :ref:`klever_addons` one can provide :ref:`klever_build_bases` obtained for software to be verified.
 :ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
 All :ref:`klever_build_bases` should be presented as directories.
-The best place for :ref:`klever_build_bases` is directory :file:`build bases` within *$KLEVER_SRC* (see
+The best place for :ref:`klever_build_bases` is directory :file:`build bases` within :term:`$KLEVER_SRC` (see
 :ref:`klever_git_repo_struct`).
 
-.. note:: Git does not track :file:`$KLEVER_SRC/build bases`.
+.. note:: Git does not track :file:`build bases` from :term:`$KLEVER_SRC`.
 
 .. _deploy_conf_file:
 
@@ -147,16 +149,16 @@ Deployment Configuration File
 
 After getting :ref:`klever_addons` and :ref:`klever_build_bases` one needs to describe them within
 :ref:`deploy_conf_file`.
-First we recommend to copy :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` to some JSON file within
-:file:`$KLEVER_SRC/deploys/conf/` (see :ref:`klever_git_repo_struct`).
-Since deployment scripts use :file:`$KLEVER_SRC/deploys/conf/klever.json` by default this is the best place for that
-file.
+First we recommend to copy :file:`deploys/conf/klever-minimal.json.sample` from :term:`$KLEVER_SRC` to some JSON file
+within :file:`deploys/conf/` from :term:`$KLEVER_SRC` (see :ref:`klever_git_repo_struct`).
+Since deployment scripts use :file:`deploys/conf/klever.json` from :term:`$KLEVER_SRC` by default this is the best place
+for that file.
 
-.. note:: Git does not track :file:`$KLEVER_SRC/deploys/conf/*.json`.
+.. note:: Git does not track :file:`deploys/conf/*.json` from :term:`$KLEVER_SRC`.
 
-.. note:: :file:`$KLEVER_SRC/deploys/conf/klever-minimal.json.sample` is so consize as possible.
+.. note:: :file:`deploys/conf/klever-minimal.json.sample` from :term:`$KLEVER_SRC` is so consize as possible.
           One can find much more examples for describing :ref:`klever_addons` and :ref:`klever_build_bases` in
-          :file:`$KLEVER_SRC/deploys/conf/klever-deploy-means.json.sample`
+          :file:`deploys/conf/klever-deploy-means.json.sample` from :term:`$KLEVER_SRC`.
 
 Then you need to fix the sample to describe Klever and all required :ref:`klever_addons` and :ref:`klever_build_bases`.
 Generally there are 3 pairs within :ref:`deploy_conf_file` with names *Klever*, *Klever Addons* and *Klever Build Bases*
@@ -181,7 +183,7 @@ Each JSON object that describes a :ref:`Klever addon <klever_addons>` should alw
   Also, they clone or clean up Git repositories before checkouting, so, all uncommited changes will be ignored.
   To bypass Git checkouting and clean up you can specify version *CURRENT*.
   In this case Git repositories are treated like directories.
-* *Path* sets either a path relative to :file:`$KLEVER_SRC` or an absolute path to entity (binaries, source files,
+* *Path* sets either a path relative to :term:`$KLEVER_SRC` or an absolute path to entity (binaries, source files,
   configurations, etc.) or an entity URL.
 
 For some :ref:`klever_addons` it could be necessary to additionally specify *executable path* or/and *python path*
@@ -213,9 +215,9 @@ Structure of Klever Git Repository
 
 After :ref:`deploy_common` the Klever Git repository can look as follows:
 
-.. code::
+.. parsed-literal::
 
-    $KLEVER_SRC
+    :term:`$KLEVER_SRC`
     ├── addons
     │   ├── cif-d95cdf0.tar.gz
     │   ├── cil-1.5.1.tar.gz
