@@ -28,14 +28,30 @@ class File:
         self.name = name
 
         # Here we will store links to callgraph and definition scopes data
-        self.export_functions = dict()
-        self.import_functions = dict()
-        self.predecessors = set()
-        self.successors = set()
+        self._export_functions = dict()
+        self._import_functions = dict()
+        self._predecessors = set()
+        self._successors = set()
         self.abs_path = None
         self.cc = None
         self.size = 0
         self.target = False
+
+    @property
+    def successors(self):
+        return set(self._successors)
+
+    @property
+    def predecessors(self):
+        return set(self._predecessors)
+
+    @property
+    def export_functions(self):
+        return dict(self._export_functions)
+
+    @property
+    def import_functions(self):
+        return {f: desc[0] for f, desc in self._import_functions.items()}
 
     def __lt__(self, other):
         return self.name < other.name
@@ -63,8 +79,8 @@ class File:
         """
         # Just ignore linking to self
         if predecessor.name != self.name:
-            self.predecessors.add(predecessor)
-            predecessor.successors.add(self)
+            self._predecessors.add(predecessor)
+            predecessor._successors.add(self)
 
     def add_successor(self, successor):
         """
@@ -74,5 +90,36 @@ class File:
         """
         # Just ignore linking to self
         if successor.name != self.name:
-            self.successors.add(successor)
-            successor.predecessors.add(self)
+            self._successors.add(successor)
+            successor._predecessors.add(self)
+
+    def add_export_function(self, function_name, user_files=None):
+        """
+        Add an exported function.
+
+        :param function_name: Function name
+        :param user_files: None or a set of File objects that import this function.
+        """
+        # Just ignore linking to self
+        if function_name not in self._export_functions:
+            self._export_functions[function_name] = set()
+        if user_files:
+            self._export_functions[function_name].update(user_files)
+
+    def add_import_function(self, function_name, definition_scope, match_score):
+        if definition_scope.name == self.name:
+            raise ValueError("Cannot import function {!r} from itself: {!r}".format(function_name, self.name))
+
+        if function_name not in self._import_functions:
+            self._import_functions[function_name] = [definition_scope, match_score]
+            definition_scope.add_export_function(function_name, {self})
+            self.add_successor(definition_scope)
+        else:
+            # todo: maybe add logger there? But this is not a good place to debug the callgraph
+            # self.logger.warning('Cannot import function {!r} from two places: {!r} and {!r}'.
+            #                     format(function_name, self._import_functions[function_name][0],
+            #                            definition_scope.name))
+            if self._import_functions[function_name][1] < match_score:
+                self._import_functions[function_name] = [definition_scope, match_score]
+                definition_scope.add_export_function(function_name, {self})
+                self.add_successor(definition_scope)

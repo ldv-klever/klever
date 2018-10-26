@@ -31,11 +31,13 @@ class Coverage(Abstract):
 
     def __init__(self, logger, conf, fragmentation_set_conf, program):
         super().__init__(logger, conf, fragmentation_set_conf, program)
-        self.archive = self.fragmentation_set_conf.get('coverage archive')
+        self.archive = conf.get('coverage archive')
         self._black_list = set(self.fragmentation_set_conf.get('ignore fragments', set()))
         self._white_list = set(self.fragmentation_set_conf.get('prefer fragments', set()))
 
         # Get archive
+        if not self.archive:
+            raise ValueError("Provide 'coverage archive' configuration property with the coverage archive file name")
         archive = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], self.archive)
 
         # Extract/fetch file
@@ -57,8 +59,9 @@ class Coverage(Abstract):
         a minimal set and only that fragments that have these calls in the covered  code.
         """
         # Get target fragments
-        cg = self.program.clade.CallGraph().graph
+        cg = self.program.build_base.CallGraph().graph
         for fragment in self.program.target_fragments:
+            self.logger.info("Find fragments that call functions from the target fragment {!r}".format(fragment.name))
             # Search for export functions
             ranking = dict()
             function_map = dict()
@@ -120,5 +123,6 @@ class Coverage(Abstract):
                     for new in frags:
                         if new in self.program.get_fragment_predecessors(fragment):
                             result.add(new)
-
+        self.logger.debug("Found the following caller of function {!r} from {!r}: {!r}".
+                          format(func, path, ', '.join((f.name for f in result))))
         return result

@@ -407,7 +407,7 @@ class Program:
             for func, func_desc in functions.items():
                 tp = func_desc.get('type', 'static')
                 if tp != 'static':
-                    file_repr.export_functions.setdefault(func, set())
+                    file_repr.add_export_function(func)
 
                 for called_definition_scope, called_functions in \
                         ((s, d) for s, d in func_desc.get('calls', dict()).items()
@@ -416,22 +416,9 @@ class Program:
                     # Beware of such bugs in callgraph
                     for called_function in (c for c in called_functions
                                             if fs.get(called_definition_scope, dict()).get(c, dict()).
-                                                       get('type', 'static') != 'static'):
-                        if called_function not in file_repr.import_functions:
-                            file_repr.import_functions[called_function] = \
-                                [called_definition_file,
-                                 list(called_functions[called_function].values())[0]["match_type"]]
-                        elif file_repr.import_functions[called_function][0] != called_definition_file:
-                            self.logger.warning('Cannot import function {!r} from two places: {!r} and {!r}'.
-                                           format(called_function, file_repr.import_functions[called_function],
-                                                  called_definition_file.name))
-                            newmatch_type = list(called_functions[called_function].values())[0]["match_type"]
-                            if newmatch_type > file_repr.import_functions[called_function][1]:
-                                file_repr.import_functions[called_function] = [called_definition_file, newmatch_type]
-
-                        called_definition_file.add_predecessor(file_repr)
-                        called_definition_file.export_functions.setdefault(func, set())
-                        called_definition_file.export_functions[func].add(file_repr)
+                                            get('type', 'static') != 'static'):
+                        match_score = list(called_functions[called_function].values())[0]["match_type"]
+                        file_repr.add_import_function(called_function, called_definition_file, match_score)
 
         # Add rest global functions
         for path, functions in ((p, f) for p, f in fs.items() if p in self._files):
@@ -439,4 +426,4 @@ class Program:
             for func, func_desc in functions.items():
                 tp = func_desc.get('type', 'static')
                 if tp != 'static':
-                    file_repr.export_functions.setdefault(func, set())
+                    file_repr.add_export_function(func)
