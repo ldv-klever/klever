@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/../core/.idea/core.iml" filepath="$PROJECT_DIR$/../core/.idea/core.iml" />
       <module fileurl="file://$PROJECT_DIR$/../deploys/.idea/deploys.iml" filepath="$PROJECT_DIR$/../deploys/.idea/deploys.iml" />
       <module fileurl="file://$PROJECT_DIR$/../docs/.idea/docs.iml" filepath="$PROJECT_DIR$/../docs/.idea/docs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../presets/.idea/presets.iml" filepath="$PROJECT_DIR$/../presets/.idea/presets.iml" />
       <module fileurl="file://$PROJECT_DIR$/../scheduler/.idea/scheduler.iml" filepath="$PROJECT_DIR$/../scheduler/.idea/scheduler.iml" />
       <module fileurl="file://$PROJECT_DIR$/../utils/.idea/utils.iml" filepath="$PROJECT_DIR$/../utils/.idea/utils.iml" />
     </modules>
