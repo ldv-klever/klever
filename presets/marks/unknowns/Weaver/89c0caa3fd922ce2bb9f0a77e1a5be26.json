@@ -1,0 +1,8 @@
+{
+  "description": "",
+  "is regexp": false,
+  "is_modifiable": true,
+  "pattern": "tree node 'fix_trunc_expr' isn't supported",
+  "problem": "Unsup fix_trunc_expr",
+  "status": "0"
+}

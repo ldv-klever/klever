@@ -1,0 +1,8 @@
+{
+  "description": "",
+  "is regexp": false,
+  "is_modifiable": false,
+  "pattern": "tree node 'rdiv_expr' isn't supported",
+  "problem": "Unsup rdiv_expr",
+  "status": "0"
+}
