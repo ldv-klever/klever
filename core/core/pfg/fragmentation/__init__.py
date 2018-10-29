@@ -127,7 +127,10 @@ class FragmentationAlgorythm:
         :param program:
         :return:
         """
-        add = set(self.conf.get('add targets', set()))
+        add = set(self.conf.get('add targets'))
+        if not add:
+            raise RuntimeError("Set configuration property 'add targets' to specify which functions, files or fragments"
+                               " you want to verify")
         exclude = set(self.conf.get('exclude targets', set()))
 
         files = set()
