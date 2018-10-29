@@ -66,8 +66,7 @@ class PFG(core.components.Component):
         self.excluded_clean = [self.PF_DIR, self.PF_FILE]
         self.excluded_clean.extend(attr_data[1])
         self.logger.debug("Excluded {0}".format(self.excluded_clean))
-        # todo: This does not work but I does not know why
-        #self.clean_dir = True
+        self.clean_dir = True
 
     main = generate_program_fragments
 

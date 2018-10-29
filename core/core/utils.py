@@ -484,21 +484,30 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
         cur_report_id = report_id.value
         report_id.value += 1
 
+    prefix = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    archives = []
     if 'attrs' in report_data:
         capitalize_attr_names(report_data['attrs'])
 
         if data_files:
-            data_zip = '{} data attributes.zip'.format(cur_report_id)
+            archive_name = '{} data attributes.zip'.format(cur_report_id)
+            data_zip = os.path.join(main_work_dir, 'reports', archive_name)
             with open(data_zip, mode='w+b', buffering=0) as f:
                 with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
                     for df in data_files:
                         zfp.write(df)
                     os.fsync(zfp.fp)
-            report_data['attr data'] = data_zip
+            report_data['attr data'] = archive_name
+            archives.append(data_zip)
+
+            # Create symlink to report file in current working directory.
+            cwd_data_zip = os.path.join(report_dir, '{} {} data attributes.zip'.format(prefix, cur_report_id))
+            if os.path.isfile(cwd_data_zip):
+                raise FileExistsError('Report file "{0}" already exists'.format(cwd_data_zip))
+            os.symlink(os.path.relpath(data_zip, report_dir), cwd_data_zip)
+            logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), cwd_data_zip))
 
     logger.debug('{0} prepare file archive'.format(kind.capitalize()))
-    data_archive = report_data.get('attr data')
-    archives = [os.path.abspath(data_archive)] if data_archive else []
     process_queue = [report_data]
     while process_queue:
         elem = process_queue.pop(0)
