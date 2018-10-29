@@ -107,31 +107,31 @@
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "add": ["ext-modules/linux/concurrency-safety/simple"],
+      "add targets": ["ext-modules/linux/concurrency-safety/simple"],
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "add": ["ext-modules/linux/concurrency-safety/unsorted"],
+      "add targets": ["ext-modules/linux/concurrency-safety/unsorted"],
       "requirements": ["linux:concurrency safety"]
     },
     {
-      "add": ["ext-modules/linux/drivers/base/class"],
+      "add targets": ["ext-modules/linux/drivers/base/class"],
       "requirements": ["linux:drivers:base:class"]
     },
     {
-      "add": ["ext-modules/linux/drivers/base/dma-mapping"],
+      "add targets": ["ext-modules/linux/drivers/base/dma-mapping"],
       "requirements": ["linux:drivers:base:dma-mapping"]
     },
     {
-      "add": ["ext-modules/linux/drivers/clk1"],
+      "add targets": ["ext-modules/linux/drivers/clk1"],
       "requirements": ["linux:drivers:clk1"]
     },
     {
-      "add": ["ext-modules/linux/drivers/clk2"],
+      "add targets": ["ext-modules/linux/drivers/clk2"],
       "requirements": ["linux:drivers:clk2"]
     },
     {
-      "add": ["ext-modules/linux/empty"],
+      "add targets": ["ext-modules/linux/empty"],
       "requirements": [
         "linux:alloc:irq",
         "linux:alloc:spinlock",
@@ -142,92 +142,92 @@
       ]
     },
     {
-      "add": ["ext-modules/linux/fs/sysfs"],
+      "add targets": ["ext-modules/linux/fs/sysfs"],
       "requirements": ["linux:fs:sysfs"]
     },
     {
-      "add": ["ext-modules/linux/kernel/locking/mutex"],
+      "add targets": ["ext-modules/linux/kernel/locking/mutex"],
       "requirements": ["linux:kernel:locking:mutex"]
     },
     {
-      "add": ["ext-modules/linux/kernel/locking/rwlock"],
+      "add targets": ["ext-modules/linux/kernel/locking/rwlock"],
       "requirements": ["linux:kernel:locking:rwlock"]
     },
     {
-      "add": ["ext-modules/linux/kernel/locking/spinlock"],
+      "add targets": ["ext-modules/linux/kernel/locking/spinlock"],
       "requirements": ["linux:kernel:locking:spinlock"]
     },
     {
-      "add": ["ext-modules/linux/kernel/module"],
+      "add targets": ["ext-modules/linux/kernel/module"],
       "requirements": ["linux:kernel:module"]
     },
     {
-      "add": ["ext-modules/linux/kernel/rcu/srcu"],
+      "add targets": ["ext-modules/linux/kernel/rcu/srcu"],
       "requirements": ["linux:kernel:rcu:srcu"]
     },
     {
-      "add": ["ext-modules/linux/kernel/rcu/update/lock"],
+      "add targets": ["ext-modules/linux/kernel/rcu/update/lock"],
       "requirements": ["linux:kernel:rcu:update:lock"]
     },
     {
-      "add": ["ext-modules/linux/kernel/rcu/update/lock-bh"],
+      "add targets": ["ext-modules/linux/kernel/rcu/update/lock-bh"],
       "requirements": ["linux:kernel:rcu:update:lock bh"]
     },
     {
-      "add": ["ext-modules/linux/kernel/rcu/update/lock-sched"],
+      "add targets": ["ext-modules/linux/kernel/rcu/update/lock-sched"],
       "requirements": ["linux:kernel:rcu:update:lock sched"]
     },
     {
-      "add": ["ext-modules/linux/kernel/sched/completion"],
+      "add targets": ["ext-modules/linux/kernel/sched/completion"],
       "requirements": ["linux:kernel:sched:completion"]
     },
     {
       "build base": "testing/1cae6b",
-      "add": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
+      "add targets": ["ext-modules/linux/kernel/sched/completion-no-lockdep"],
       "requirements": ["linux:kernel:sched:completion"]
     },
     {
-      "add": ["ext-modules/linux/lib/find_bit"],
+      "add targets": ["ext-modules/linux/lib/find_bit"],
       "requirements": ["linux:lib:find_bit"]
     },
     {
-      "add": ["ext-modules/linux/lib/idr"],
+      "add targets": ["ext-modules/linux/lib/idr"],
       "requirements": ["linux:lib:idr"]
     },
     {
-      "add": ["ext-modules/linux/memory-safety"],
+      "add targets": ["ext-modules/linux/memory-safety"],
       "requirements": ["linux:memory safety"]
     },
     {
-      "add": ["ext-modules/linux/net/register"],
+      "add targets": ["ext-modules/linux/net/register"],
       "requirements": ["linux:net:register"]
     },
     {
-      "add": ["ext-modules/linux/net/rtnetlink"],
+      "add targets": ["ext-modules/linux/net/rtnetlink"],
       "requirements": ["linux:net:rtnetlink"]
     },
     {
-      "add": ["ext-modules/linux/net/sock"],
+      "add targets": ["ext-modules/linux/net/sock"],
       "requirements": ["linux:net:sock"]
     },
     {
-      "add": ["ext-modules/linux/usb/coherent"],
+      "add targets": ["ext-modules/linux/usb/coherent"],
       "requirements": ["linux:usb:coherent"]
     },
     {
-      "add": ["ext-modules/linux/usb/dev"],
+      "add targets": ["ext-modules/linux/usb/dev"],
       "requirements": ["linux:usb:dev"]
     },
     {
-      "add": ["ext-modules/linux/usb/gadget"],
+      "add targets": ["ext-modules/linux/usb/gadget"],
       "requirements": ["linux:usb:gadget"]
     },
     {
-      "add": ["ext-modules/linux/usb/register"],
+      "add targets": ["ext-modules/linux/usb/register"],
       "requirements": ["linux:usb:register"]
     },
     {
-      "add": ["ext-modules/linux/usb/urb"],
+      "add targets": ["ext-modules/linux/usb/urb"],
       "requirements": ["linux:usb:urb"]
     }
   ],

@@ -107,7 +107,7 @@
       "build base": "testing/455c6f",
       "version": "2.6.33",
       "specifications set": "Linux 2.6.33",
-      "add": [
+      "add targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
@@ -133,7 +133,7 @@
     },
     {
       "build base": "testing/fedc1e",
-      "add": [
+      "add targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
@@ -162,7 +162,7 @@
       "build base": "testing/01358e",
       "version": "4.6.7",
       "specifications set": "Linux 4.6.7",
-      "add": [
+      "add targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
@@ -191,7 +191,7 @@
       "build base": "testing/455c6f",
       "version": "2.6.33",
       "specifications set": "Linux 2.6.33",
-      "add": [
+      "add targets": [
         "ext-modules/timer_v.1",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
@@ -202,7 +202,7 @@
     },
     {
       "build base": "testing/fedc1e",
-      "add": [
+      "add targets": [
         "ext-modules/timer_v.1",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
@@ -215,7 +215,7 @@
       "build base": "testing/01358e",
       "version": "4.6.7",
       "specifications set": "Linux 4.6.7",
-      "add": [
+      "add targets": [
         "ext-modules/timer_v.2",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
@@ -230,7 +230,7 @@
       "build base": "testing/57d7f5",
       "version": "4.15",
       "specifications set": "Linux 4.15",
-      "add": [
+      "add targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
@@ -259,7 +259,7 @@
       "build base": "testing/7a7e7e",
       "version": "4.17",
       "specifications set": "Linux 4.17",
-      "add": [
+      "add targets": [
         "ext-modules/block_device_operations_v.1",
         "ext-modules/class_v.1",
         "ext-modules/devm_threaded_irq_v.1",
@@ -288,7 +288,7 @@
       "build base": "testing/57d7f5",
       "version": "4.15",
       "specifications set": "Linux 4.15",
-      "add": [
+      "add targets": [
         "ext-modules/timer_v.3",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
@@ -301,7 +301,7 @@
       "build base": "testing/7a7e7e",
       "version": "4.17",
       "specifications set": "Linux 4.17",
-      "add": [
+      "add targets": [
         "ext-modules/timer_v.3",
         "ext-modules/workqueue_v.1",
         "ext-modules/urb_v.1",
