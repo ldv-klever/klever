@@ -230,15 +230,13 @@ class FragmentationAlgorythm:
             ujson.dump(data, fp, sort_keys=True, indent=4, ensure_ascii=False,
                        escape_forward_slashes=False)
 
-        return [
-           {
-                'name': 'Fragmentation set',
-                'value': [
-                    {'name': 'program', 'value': self.conf['program'], 'data': 'agregations description.json'},
-                    {'name': 'version', 'value': self.conf['version']},
-                    {'name': 'template', 'value': self.conf['fragmentation set']}
-                ]
-           }], ['agregations description.json']
+        main_desc = [
+            {'name': 'program', 'value': self.conf['program'], 'data': 'agregations description.json'},
+            {'name': 'template', 'value': self.conf['fragmentation set']}
+        ]
+        if self.conf.get('version'):
+            main_desc.append({'name': 'version', 'value': self.conf['version']})
+        return [{'name': 'Fragmentation set', 'value': main_desc}], ['agregations description.json']
 
     def __retrieve_source_paths(self):
         """
