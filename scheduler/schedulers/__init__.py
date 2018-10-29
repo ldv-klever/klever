@@ -82,6 +82,8 @@ class Scheduler:
         else:
             self.server = bridge.Server(self.logger, self.conf["Klever Bridge"],
                                         os.path.join(self.work_dir, "requests"))
+        _old_tasks_status = None
+        _old_jobs_status = None
 
         # Check configuration completeness
         self.logger.debug("Check whether configuration contains all necessary data")
@@ -108,6 +110,11 @@ class Scheduler:
         This is just an algorythm, and all particular logic and resource management should be implemented in classes
         that inherits this one.
         """
+        def new_status(a, b):
+            return any(len({a[i], b[i]}) != 1 for i in range(len(a)))
+        _old_task_status = None
+        _old_job_status = None
+
         # For shorter expressions
         jbs = self.__jobs
         tks = self.__tasks
@@ -117,8 +124,6 @@ class Scheduler:
         to_cancel = set()
         while True:
             try:
-                # Prepare scheduler state
-                self.logger.info("Start scheduling iteration with statuses exchange with the server")
                 sch_ste = {
                     "tasks": {
                         "pending": [task_id for task_id in tks if "status" in tks[task_id] and
@@ -133,9 +138,12 @@ class Scheduler:
                                   tks[task_id]["status"] == "ERROR"]
                     },
                 }
-                self.logger.info("Scheduler has {} pending, {} processing, {} finished and {} error tasks".
-                                 format(len(sch_ste["tasks"]["pending"]), len(sch_ste["tasks"]["processing"]),
-                                        len(sch_ste["tasks"]["finished"]), len(sch_ste["tasks"]["error"])))
+                status = (len(sch_ste["tasks"]["pending"]), len(sch_ste["tasks"]["processing"]),
+                          len(sch_ste["tasks"]["finished"]), len(sch_ste["tasks"]["error"]))
+                if not _old_task_status or new_status(status, _old_task_status):
+                    self.logger.info("Scheduler has {} pending, {} processing, {} finished and {} error tasks".
+                                     format(*status))
+                    _old_task_status = status
                 sch_ste["jobs"] = {
                     "pending": [job_id for job_id in jbs if "status" in jbs[job_id] and
                                 jbs[job_id]["status"] == "PENDING"],
@@ -148,10 +156,12 @@ class Scheduler:
                     "cancelled": list(to_cancel)
                 }
                 # Update
-                self.logger.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs and {} "
-                                 "cancelled".format(len(sch_ste["jobs"]["pending"]), len(sch_ste["jobs"]["processing"]),
-                                                    len(sch_ste["jobs"]["finished"]), len(sch_ste["jobs"]["error"]),
-                                                    len(to_cancel)))
+                status = (len(sch_ste["jobs"]["pending"]), len(sch_ste["jobs"]["processing"]),
+                          len(sch_ste["jobs"]["finished"]), len(sch_ste["jobs"]["error"]), len(to_cancel))
+                if not _old_job_status or new_status(status, _old_job_status):
+                    self.logger.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs and {} "
+                                     "cancelled".format(*status))
+                    _old_job_status = status
                 if len(to_cancel) > 0:
                     transition_done = True
 
@@ -171,6 +181,8 @@ class Scheduler:
 
                 # Submit scheduler state and receive server state
                 if transition_done or self.__need_exchange:
+                    # Prepare scheduler state
+                    self.logger.debug("Start scheduling iteration with statuses exchange with the server")
                     transition_done = False
                     to_cancel = set()
                     ser_ste = self.server.exchange(sch_ste)
@@ -386,7 +398,6 @@ class Scheduler:
 
                 if submit:
                     # Schedule new tasks
-                    self.logger.info("Start scheduling new tasks")
                     pending_tasks = [tks[task_id] for task_id in tks if tks[task_id]["status"] == "PENDING"]
                     pending_jobs = [jbs[job_id] for job_id in jbs if jbs[job_id]["status"] == "PENDING"
                                     and not self.runner.is_solving(jbs[job_id])]
@@ -454,7 +465,7 @@ class Scheduler:
         elif int(time.time() - self.__last_exchange) > self.__current_period:
             return True
         else:
-            self.logger.info("Skip the next data exchange iteration with Bridge")
+            self.logger.debug("Skip the next data exchange iteration with Bridge")
             return False
 
     def __update_iteration_period(self):
