@@ -4,5 +4,6 @@
   "is_modifiable": false,
   "pattern": "Cannot compute size of incomplete type struct",
   "problem": "CannotComputeSize",
-  "status": "0"
+  "status": "0",
+  "production": true
 }
