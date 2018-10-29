@@ -341,6 +341,8 @@ class VTG(core.components.Component):
             with open(pf_file, 'r', encoding='utf8') as fp:
                 program_fragments_desc_files = \
                     [os.path.join(self.conf['main working directory'], pf_file.strip()) for pf_file in fp.readlines()]
+            if not self.conf['keep intermediate files']:
+                os.remove(pf_file)
         else:
             raise FileNotFoundError
 
