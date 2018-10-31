@@ -21,9 +21,45 @@ import zipfile
 import json
 import core.utils
 
+TRIMMED_WORKAROUND_REGEXES = [
+    [re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4\.6\.0/include/stdarg\.h"'),
+     re.compile('typedef __va_list __gnuc_va_list;'),
+     'typedef __builtin_va_list __gnuc_va_list;'],
+    [None,
+     re.compile('asm volatile goto.*;'),
+     '']
+]
+CIL_WORKAROUND_REGEXES = [
+    [re.compile('#line 49 ".*include/uapi/linux/swab\.h"'),
+     re.compile('extern int .*__builtin_bswap16.*;'),
+     ''],
+]
+
+
+def process_file(replacements, lines, fp):
+    triggers = []
+    # Each such expression occupies individual line, so just get rid of them.
+    for line in lines:
+
+        # Apply replacements
+        l = line
+        for target, replacement in (replacements[i][1:] for i in triggers):
+            l = target.sub(replacement, l)
+        triggers = []
+
+        # Match replacements for the next iteration
+        for index, element in enumerate(replacements):
+            line_match, target, replacement = element
+            if line_match:
+                if line_match.match(line):
+                    triggers.append(index)
+            else:
+                triggers.append(index)
+
+        fp.write(l)
+
 
 def trimmed_files(logger, conf, abstract_task_desc):
-    regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
     c_files = []
 
     # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
@@ -36,24 +72,9 @@ def trimmed_files(logger, conf, abstract_task_desc):
 
         with open(os.path.join(conf['main working directory'], extra_c_file['C file']),
                   encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
-            trigger = False
-
             # Specify original location to avoid references to *.trimmed.i files in error traces.
             fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
-            # Each such expression occupies individual line, so just get rid of them.
-            for line in fp_in:
-
-                # Asm volatile goto
-                l = re.sub(r'asm volatile goto.*;', '', line)
-
-                if not trigger and regex.match(line):
-                    trigger = True
-                elif trigger:
-                    l = line.replace('typedef __va_list __gnuc_va_list;',
-                                     'typedef __builtin_va_list __gnuc_va_list;')
-                    trigger = False
-
-                fp_out.write(l)
+            process_file(TRIMMED_WORKAROUND_REGEXES, fp_in, fp_out)
 
         extra_c_file['new C file'] = trimmed_c_file
         c_files.append(trimmed_c_file)
@@ -94,7 +115,11 @@ def merge_files(logger, conf, abstract_task_desc):
     core.utils.execute(logger, args=args, enforce_limitations=True)
     logger.debug('Merged source files was outputted to "cil.i"')
 
-    return 'cil.i'
+    with open('cil.i', encoding='utf8') as fp_in, open('cil.fixed.i', 'w', encoding='utf8') as fp_out:
+        # Specify original location to avoid references to *.trimmed.i files in error traces.
+        process_file(CIL_WORKAROUND_REGEXES, fp_in, fp_out)
+
+    return 'cil.fixed.i'
 
 
 def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
