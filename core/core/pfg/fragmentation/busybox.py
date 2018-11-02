@@ -28,6 +28,7 @@ class Busybox(FragmentationAlgorythm):
     def __init__(self, logger, conf, desc, clade, pf_dir):
         super().__init__(logger, conf, desc, clade, pf_dir)
         self._incorporate_libbb = self.fragmentation_set_conf.get("include dependencies from libbb to applets fragments")
+        self._match_files = dict()
 
     def _determine_units(self, program):
         """
@@ -59,7 +60,25 @@ class Busybox(FragmentationAlgorythm):
         # Create fragments for found applets and libbb
         for name, files in applets.items():
             program.create_fragment(name, files, add=True)
+
+            for file in files:
+                if file.name not in self._match_files:
+                    self._match_files[file.name] = 0
+                else:
+                    self._match_files[file.name] += 1
+
         program.create_fragment('libbb', libbb, add=True)
 
         self.logger.info('Found {} applets: {}'.format(len(applets), ', '.join(applets)))
 
+    def _determine_targets(self, program):
+        """
+        Determine that program fragments that should be verified. We refer to these fragments as target fragments.
+
+        :param program:
+        :return:
+        """
+        super()._determine_targets(program)
+        # Do not consider libbb files as targets
+        for file in (program._files[f] for f in self._match_files if self._match_files[f] > 0):
+            file.target = False
