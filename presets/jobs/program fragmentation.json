@@ -34,10 +34,10 @@
       "Applets": {
         "1.28.3": {
           "exclude from all fragments": [
-            "libbb/getopt32.o",
-            "libbb/appletlib.o",
-            "libbb/verror_msg.o",
-            "libbb/perror_msg.o"
+            "libbb/getopt32.c",
+            "libbb/appletlib.c",
+            "libbb/verror_msg.c",
+            "libbb/perror_msg.c"
           ]
         }
       }
