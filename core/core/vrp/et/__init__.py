@@ -21,7 +21,7 @@ from core.vrp.et.tmpvars import generic_simplifications
 from core.vrp.et.envmodel import envmodel_simplifications
 
 
-def import_error_trace(logger, witness):
+def import_error_trace(logger, witness, less_processing=False):
     # Parse witness
     po = ErrorTraceParser(logger, witness)
     trace = po.error_trace
@@ -30,13 +30,14 @@ def import_error_trace(logger, witness):
     trace.parse_model_comments()
 
     # Remove ugly code
-    generic_simplifications(logger, trace)
+    if not less_processing:
+        generic_simplifications(logger, trace)
 
     # Find violation
     trace.find_violation_path()
 
     # Make more difficult transformations
-    envmodel_simplifications(logger, trace)
+    envmodel_simplifications(logger, trace, less_processing)
 
     # Do final checks
     trace.final_checks()
@@ -58,7 +59,12 @@ if __name__ == '__main__':
     handler.setFormatter(formatter)
     gl_logger.addHandler(handler)
 
-    et = import_error_trace(gl_logger, 'witness.0.graphml')
+    # todo: to implement it in the right way we should add a graphical switch at Bridge to disable tolerable witness processing and do not apply this fallback always
+    try:
+        et = import_error_trace(gl_logger, 'witness.0.graphml')
+    except Exception:
+        gl_logger.warning('Cannot parse witness, let us try to disable our witness processing optimizations')
+        et = import_error_trace(gl_logger, 'witness.0.graphml', True)
 
     with open('error trace.json', 'w', encoding='utf8') as fp:
         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)

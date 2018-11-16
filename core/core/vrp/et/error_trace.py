@@ -458,6 +458,9 @@ class ErrorTrace:
         for edge in self.trace_iterator():
             file_id = edge['file']
             file = self.resolve_file(file_id)
+
+            if 'assumption' in edge or 'warn' in edge:
+                continue
             start_line = edge['start line']
 
             if 'enter' in edge:
