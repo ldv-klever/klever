@@ -19,7 +19,7 @@ import fileinput
 import json
 import os
 import re
-import clade.interface as clade_api
+from clade import Clade
 
 import core.utils
 import core.vtg.utils
@@ -36,8 +36,7 @@ class Weaver(core.vtg.plugins.Plugin):
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 
-        clade_api.setup(self.conf['build base'])
-        storage = clade_api.FileStorage()
+        clade = Clade(self.conf['build base'])
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
         # with "-nostdinc" option and system stdarg.h couldn't be used.
@@ -51,8 +50,7 @@ class Weaver(core.vtg.plugins.Plugin):
             for extra_cc in grp['Extra CCs']:
                 if 'CC' in extra_cc:
                     if extra_cc['CC'].isdigit():
-                        cc = clade_api.get_cc(extra_cc['CC'])
-                        cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
+                        cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
                     else:
                         with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
                                   encoding='utf8') as fp:
@@ -95,7 +93,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', storage.normal_path(cc['in'][0]),
+                                  '--in', clade.get_path_from_storage(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(
@@ -108,9 +106,9 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
-                        cwd=storage.convert_path(cc['cwd']),
+                        cwd=clade.get_path_from_storage(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))

@@ -17,7 +17,7 @@
 
 import fileinput
 import os
-import clade.interface as clade_api
+from clade import Clade
 
 import core.utils
 import core.vtg.plugins
@@ -33,10 +33,7 @@ class ASE(core.vtg.plugins.Plugin):
             raise KeyError(
                 'Value of option "request aspects" is not mandatory JSON object with request aspects as keys')
 
-        clade_api.setup(self.conf['build base'])
-        storage = clade_api.FileStorage()
-
-        self.request_arg_signs(storage)
+        self.request_arg_signs()
 
         if 'template context' not in self.abstract_task_desc:
             self.abstract_task_desc['template context'] = {}
@@ -69,8 +66,10 @@ class ASE(core.vtg.plugins.Plugin):
                     ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
             }
 
-    def request_arg_signs(self, storage):
+    def request_arg_signs(self):
         self.logger.info('Request argument signatures')
+
+        clade = Clade(work_dir=self.conf['build base'])
 
         for request_aspect in self.conf['request aspects']:
             request_aspect = core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -89,8 +88,7 @@ class ASE(core.vtg.plugins.Plugin):
                 for extra_cc in grp['Extra CCs']:
                     self.logger.info('Request argument signatures for C file "{0}"'.format(extra_cc['in file']))
 
-                    cc = clade_api.get_cc(extra_cc['CC'])
-                    cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
+                    cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
 
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(
@@ -123,7 +121,7 @@ class ASE(core.vtg.plugins.Plugin):
 
                     core.utils.execute(self.logger,
                                        tuple(['cif',
-                                              '--in', storage.normal_path(cc['in'][0]),
+                                              '--in', clade.get_path_from_storage(cc['in'][0]),
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
@@ -131,7 +129,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                                             core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                                              [
                                                  # Besides header files specific for requirements will be
                                                  # searched for.
@@ -140,7 +138,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                  aspectator_search_dir
                                              ]),
                                        env,
-                                       cwd=storage.convert_path(cc['cwd']),
+                                       cwd=clade.get_path_from_storage(cc['cwd']),
                                        timeout=0.01,
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 

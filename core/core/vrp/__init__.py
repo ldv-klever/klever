@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ElementTree
 import zipfile
 import multiprocessing
 
-import clade.interface as clade_api
+from clade import Clade
 
 from core.vrp.et import import_error_trace
 
@@ -253,8 +253,7 @@ class RP(core.components.Component):
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
         # Obtain file prefixes that can be removed from file paths.
-        clade_api.setup(self.conf['build base'])
-        self.storage = clade_api.FileStorage()
+        self.clade = Clade(self.conf['build base'])
         self.search_dirs = core.utils.get_search_dirs(self.conf['main working directory'], abs_paths=True)
 
     def fetcher(self):
@@ -534,7 +533,7 @@ class RP(core.components.Component):
         exception = None
         try:
             self.verification_coverage = LCOV(self.logger, os.path.join('output', 'coverage.info'),
-                                              self.storage, self.source_paths,
+                                              self.clade, self.source_paths,
                                               self.search_dirs, self.conf['main working directory'],
                                               opts.get('coverage'),
                                               os.path.join(self.conf['main working directory'],
@@ -581,7 +580,7 @@ class RP(core.components.Component):
 
         for file_name in file_names:
             # Remove storage from file names if files were put there.
-            new_file_name = core.utils.make_relative_path([self.storage.storage_dir], file_name)
+            new_file_name = core.utils.make_relative_path([self.clade.storage_dir], file_name)
 
             # Try to make paths relative to source paths or standard search directories.
             new_file_name = core.utils.make_relative_path(self.source_paths + self.search_dirs, new_file_name,

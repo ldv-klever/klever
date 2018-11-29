@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import re
 import importlib
 import json
 import multiprocessing
@@ -28,7 +27,7 @@ import core.utils
 import core.session
 
 from core.vtg.scheduling import Balancer
-import clade.interface as clade_api
+from clade import Clade
 
 
 @core.components.before_callback
@@ -477,7 +476,7 @@ class VTG(core.components.Component):
                             if attempt:
                                 self.logger.info("Submit task {}:{} to solve it again".
                                                  format(prog_fragment, requirement['id']))
-                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement, 
+                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement,
                                             rescheduling=attempt)
                                 active_tasks += 1
                             elif not balancer.need_rescheduling(prog_fragment, requirement_class, requirement['id']):
@@ -587,8 +586,7 @@ class VTGW(core.components.Component):
         self.override_limits = resource_limits
         self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        self.clade = clade_api
-        self.clade.setup(self.conf['build base'])
+        self.clade = Clade(self.conf['build base'])
 
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
@@ -646,7 +644,7 @@ class VTGW(core.components.Component):
             grp['Extra CCs'] = []
 
             for cc in grp['CCs']:
-                in_file = self.clade.get_cc(cc)['in'][0]
+                in_file = self.clade.get_cmd(cc)['in'][0]
                 grp['Extra CCs'].append({
                     'CC': cc,
                     'in file': in_file

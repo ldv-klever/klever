@@ -19,6 +19,7 @@ import os
 import ujson
 
 from graphviz import Digraph
+from clade import Clade
 
 from core.utils import make_relative_path
 from core.pfg.abstractions import Program
@@ -32,7 +33,7 @@ class FragmentationAlgorythm:
     """
     CLADE_PRESET = 'base'
 
-    def __init__(self, logger, conf, desc, clade, pf_dir):
+    def __init__(self, logger, conf, desc, pf_dir):
         """
         The strategy needs a logger and configuration as the rest Klever components but also it requires Clade interface
         object (uninitialized yet) and the description of the fragmentation set.
@@ -47,13 +48,12 @@ class FragmentationAlgorythm:
         self.logger = logger
         self.conf = conf
         self.fragmentation_set_conf = desc
-        self.build_base = clade
         self.pf_dir = pf_dir
         self.files_to_keep = list()
         self.common_attributes = list()
 
         # Import clade
-        self.build_base.setup(self.conf['build base'], preset_configuration=self.CLADE_PRESET)
+        self.clade = Clade(work_dir=self.conf['build base'], preset=self.CLADE_PRESET)
 
         # Complex attributes
         self.source_paths = self.__retrieve_source_paths()
@@ -77,7 +77,7 @@ class FragmentationAlgorythm:
         else:
             self.logger.info("Extract full dependencies between files and functions")
             memory_efficient_mode = False
-        deps = Program(self.logger, self.build_base, self.source_paths, memory_efficient_mode=memory_efficient_mode)
+        deps = Program(self.logger, self.clade, self.source_paths, memory_efficient_mode=memory_efficient_mode)
 
         # Decompose using units
         self.logger.info("Determine units in the target program")
@@ -244,7 +244,7 @@ class FragmentationAlgorythm:
 
         :return: A list of paths.
         """
-        path = self.build_base.FileStorage().convert_path('working source trees.json')
+        path = self.clade.get_path_from_storage('working source trees.json')
         with open(path, 'r', encoding='utf8') as fp:
             paths = ujson.load(fp)
         return paths
@@ -256,7 +256,7 @@ class FragmentationAlgorythm:
         :return: Attributes list.
         """
         attrs = []
-        path = self.build_base.FileStorage().convert_path('project attrs.json')
+        path = self.clade.get_path_from_storage('project attrs.json')
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as fp:
                 build_attrs = ujson.load(fp)

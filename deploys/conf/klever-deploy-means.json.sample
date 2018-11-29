@@ -39,7 +39,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "ldv-clade",
+      "clade",
       "jinja2",
       "graphviz",
       "ply",
