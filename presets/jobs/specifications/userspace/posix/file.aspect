@@ -15,4 +15,18 @@
  * limitations under the License.
  */
 
-#include <userspace/ldv.h>
+before: file ("$this")
+{
+extern int ldv_open(const char *pathname, int flags);
+extern int ldv_close(int fd);
+}
+
+around: call(int open(..))
+{
+	return ldv_open($arg1, $arg2);
+}
+
+around: call(int close(int fd))
+{
+	return ldv_close($arg1);
+}
