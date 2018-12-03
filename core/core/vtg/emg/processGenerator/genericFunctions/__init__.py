@@ -104,14 +104,11 @@ def __generate_calls(logger, emg, conf, functions_collection):
     tab += 1
     cnt = 0
     for expr in expressions:
-        if loop:
-            # Add a break after a function call
-            code.append(indented_line(tab, "case {}: ".format(cnt) + '{'))
-            code.append(indented_line(tab + 1, "{}".format(expr)))
-            code.append(indented_line(tab + 1, "break;"))
-            code.append(indented_line(tab, "}"))
-        else:
-            code.append(indented_line(tab, "case {}: {}".format(cnt, expr)))
+        # Add a break after a function call
+        code.append(indented_line(tab, "case {}: ".format(cnt) + '{'))
+        code.append(indented_line(tab + 1, "{}".format(expr)))
+        code.append(indented_line(tab + 1, "break;"))
+        code.append(indented_line(tab, "}"))
         cnt += 1
     if loop:
         code.append(indented_line(tab, "default: break;"))
