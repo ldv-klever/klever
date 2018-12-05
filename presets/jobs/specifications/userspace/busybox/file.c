@@ -18,6 +18,12 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+// From BusyBox
+#define NOT_LONE_DASH(s) ((s)[0] != '-' || (s)[1])
+#define stdin 0
+#define stdout 1
+#define stderr 2
+
 /* Files reference counter that shouldn't go lower its initial state. We do not distinguish different files. */
 /* NOTE Set files reference counter initial value at the beginning */
 int ldv_file_refcounter = 1;
@@ -25,19 +31,28 @@ int ldv_file_refcounter = 1;
 /* MODEL_FUNC Increment opened files reference counter unless the file descriptor is NULL */
 int ldv_open(const char *pathname, int flags)
 {
+    int fd;
+
+    ldv_assume(NOT_LONE_DASH(pathname));
+
     if (ldv_undef_int()) {
         /* NOTE Increment module reference counter according to the successful open */
 		ldv_file_refcounter++;
-		return ldv_undef_int_positive();
+		fd = ldv_undef_int_positive();
+		ldv_assume(fd != stdin && fd != stdout && fd != stderr);
+		return fd;
     } else {
         /* NOTE Open has failed */
-		return 0;
+		return ldv_undef_int_negative();
     }
 }
 
 /* MODEL_FUNC Close the file */
 int ldv_close(int fd)
 {
+	/* ASSERT Should not close standard streams such as stdin, stdout or stderr */
+	ldv_assert("busybox::close standard stream", fd != stdin && fd != stdout && fd != stderr);
+
 	/* NOTE Decrease files reference counter */
 	ldv_file_refcounter--;
 	// todo: this is not precise
@@ -48,5 +63,5 @@ int ldv_close(int fd)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Files reference counter should be decremented to its initial value before finishing operation */
-	ldv_assert("userspace:posix::open", ldv_file_refcounter == 1);
+	ldv_assert("busybox::left opened files", ldv_file_refcounter == 1);
 }
