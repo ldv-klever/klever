@@ -24,4 +24,23 @@ extern void ldv_bb_simple_perror_msg_and_die(void);
 around: call(void bb_error_msg_and_die(..))
 {
     ldv_bb_simple_perror_msg_and_die();
+
+}
+
+around: call(void bb_perror_msg_and_die(..))
+{
+    ldv_bb_simple_perror_msg_and_die();
+
+}
+
+around: call(void bb_simple_perror_msg(..))
+{
+    ldv_bb_simple_perror_msg_and_die();
+
+}
+
+around: call(void bb_simple_perror_msg_and_die(..))
+{
+    ldv_bb_simple_perror_msg_and_die();
+
 }
