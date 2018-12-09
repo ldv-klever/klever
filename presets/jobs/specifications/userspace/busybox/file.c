@@ -274,6 +274,9 @@ int ldv_fclose(FILE *fp)
 	if (fp == stdin || fp == stdout || fp == stderr)
 		/* NOTE Close a standard stream by its descriptor */
 		return 0;
+	if ((int) fp == 0 || (int) fp == 1 || (int) fp == 2)
+	    /* ASSERT Should use close to close descriptors */
+		ldv_assert("busybox::unknown FILE", 0);
 	if (fp == ldv_tmp_file1) {
 		/* ASSERT Should open the file before closing it */
 		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd1 == 3);
