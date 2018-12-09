@@ -920,8 +920,14 @@
       "open": {
         "description": "...",
         "RSG": {"models": {"userspace/busybox/file.c": {"bug kinds": [
-            "busybox::close standard stream",
-            "busybox::left opened files"
+            "busybox::check inexisting FILE object",
+            "busybox::open file twice",
+            "busybox::unknown fd",
+            "busybox::close instead of fclose",
+            "busybox::missed open",
+            "busybox::missed fopen",
+            "busybox::unknown FILE",
+            "busybox::missed close"
         ]}}}
       },
       "memory safety": {

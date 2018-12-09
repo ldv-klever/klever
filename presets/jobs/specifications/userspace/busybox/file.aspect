@@ -15,18 +15,78 @@
  * limitations under the License.
  */
 
+// TODO:
+// FILE *freopen(const char *pathname, const char *mode, FILE *stream);
+
 before: file ("$this")
 {
-extern int ldv_open(const char *pathname, int flags);
+#include <stdio.h>
+extern int ldv_fileno(FILE *stream);
+extern FILE *ldv_fopen(const char *pathname);
+extern FILE *ldv_fdopen(int fd);
+extern void ldv_faccess(FILE *stream);
+extern int ldv_fclose(FILE *fp);
+extern int ldv_open(const char *pathname);
+extern void ldv_access(int fd);
 extern int ldv_close(int fd);
+}
+
+around: call(int ldv_fileno(..))
+{
+	return ldv_fileno($arg1);
+}
+
+around: call(FILE *fopen(..))
+{
+	return ldv_fopen($arg1);
+}
+
+around: call(FILE *fdopen(..))
+{
+	return ldv_fdopen($arg1);
+}
+
+before: call(int fseek(..)) ||
+		call(long ftell(..)) ||
+		call(void rewind(..)) ||
+		call(int fgetpos(..)) ||
+		call(int fsetpos(..))        
+{
+	ldv_faccess($arg1);
+}
+
+before: call(size_t fread(..)) ||
+		call(size_t fwrite(..))        
+{
+	ldv_faccess($arg4);
+}
+
+around: call(int fclose(..))
+{
+	return ldv_fclose($arg1);
 }
 
 around: call(int open(..))
 {
-	return ldv_open($arg1, $arg2);
+	return ldv_open($arg1);
 }
 
-around: call(int close(int fd))
+before: call(off_t lseek(..)) ||
+		call(ssize_t read(..)) ||
+		call(ssize_t readv(..)) ||
+		call(ssize_t writev(..)) ||
+		call(ssize_t preadv(..)) ||
+		call(ssize_t pwritev(..)) ||
+		call(ssize_t preadv2(..)) ||
+		call(ssize_t pwritev2(..)) ||
+		call(ssize_t pread(..)) ||
+		call(ssize_t pwrite(..)) ||
+		call(int ioctl(..))
+{
+	ldv_access($arg1);
+}
+
+around: call(int close(..))
 {
 	return ldv_close($arg1);
 }
