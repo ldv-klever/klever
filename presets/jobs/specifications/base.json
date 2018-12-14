@@ -931,12 +931,12 @@
         "RSG": {"models": {"userspace/busybox/file.c": {"bug kinds": [
             "busybox::check inexisting FILE object",
             "busybox::open file twice",
-            "busybox::unknown fd",
             "busybox::close instead of fclose",
-            "busybox::missed open",
             "busybox::missed fopen",
             "busybox::unknown FILE",
-            "busybox::missed close"
+            "busybox::missed open",
+            "busybox::unknown fd",
+            "busybox::left opened files"
         ]}}}
       },
       "memory safety": {
