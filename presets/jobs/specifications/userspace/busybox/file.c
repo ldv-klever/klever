@@ -16,6 +16,7 @@
  */
 
 #include <verifier/common.h>
+#include <verifier/memory.h>
 #include <verifier/nondet.h>
 #include <stdio.h>
 
@@ -35,14 +36,22 @@ int ldv_tmp_file_fd5 = -1;
 FILE* ldv_tmp_file5 = 0;
 
 int ldv_fileno(FILE *stream);
-FILE *ldv_fopen(const char *pathname);
-int ldv_open(const char *pathname);
+FILE *ldv_fopen(void);
+int ldv_open(void);
 FILE *ldv_fdopen(int fd);
 int ldv_close(int fd);
 int ldv_fclose(FILE *fp);
 void ldv_faccess(FILE *stream);
 void ldv_access(int fd);
 void ldv_check_final_state(void);
+
+/* MODEL_FUNC Initialize standard streams */
+void ldv_initialize(void)
+{
+	stdin = ldv_reference_xmalloc(0);
+	stdout = ldv_reference_xmalloc(0);
+	stderr = ldv_reference_xmalloc(0);
+}
 
 /* MODEL_FUNC Get a file descriptor of the stream */
 int ldv_fileno(FILE *stream)
@@ -81,36 +90,36 @@ int ldv_fileno(FILE *stream)
 	return ret;
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
-FILE *ldv_fopen(const char *pathname)
+/* MODEL_FUNC Open a new stream */
+FILE *ldv_fopen(void)
 {
 	if (ldv_tmp_file_fd1 == -1) {
 	    ldv_tmp_file_fd1 = 3;
-		FILE* ldv_tmp_file1 = ldv_undef_ptr_non_null();
+		ldv_tmp_file1 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the first file */
 		return ldv_tmp_file1;
 	}
 	if (ldv_tmp_file_fd2 == -1) {
 	    ldv_tmp_file_fd2 = 4;
-		FILE* ldv_tmp_file2 = ldv_undef_ptr_non_null();
+		ldv_tmp_file2 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the second file */
 		return ldv_tmp_file2;
 	}
 	if (ldv_tmp_file_fd3 == -1) {
 	    ldv_tmp_file_fd3 = 5;
-		FILE* ldv_tmp_file3 = ldv_undef_ptr_non_null();
+		ldv_tmp_file3 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the third file */
 		return ldv_tmp_file3;
 	}
 	if (ldv_tmp_file_fd4 == -1) {
 	    ldv_tmp_file_fd4 = 6;
-		FILE* ldv_tmp_file4 = ldv_undef_ptr_non_null();
+		ldv_tmp_file4 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the fourth file */
-		return ldv_tmp_file1;
+		return ldv_tmp_file4;
 	}
 	if (ldv_tmp_file_fd5 == -1) {
 	    ldv_tmp_file_fd5 = 7;
-		FILE* ldv_tmp_file5 = ldv_undef_ptr_non_null();
+		ldv_tmp_file5 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the fifth file */
 		return ldv_tmp_file5;
 	}
@@ -120,8 +129,8 @@ FILE *ldv_fopen(const char *pathname)
 	    ldv_assume(0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
-int ldv_open(const char *pathname)
+/* MODEL_FUNC Open a new file */
+int ldv_open(void)
 {
 	if (ldv_tmp_file_fd1 == -1) {
 	    ldv_tmp_file_fd1 = 3;
@@ -154,7 +163,7 @@ int ldv_open(const char *pathname)
 	    ldv_assume(0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
+/* MODEL_FUNC Open a stream for an opened file descriptor */
 FILE *ldv_fdopen(int fd)
 {
 	if (fd == 0)
@@ -169,35 +178,35 @@ FILE *ldv_fdopen(int fd)
 	if (fd == 3) {
 		/* ASSERT Should open the first file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file1 == 0);
-		ldv_tmp_file1 = ldv_undef_ptr_non_null();
+		ldv_tmp_file1 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the first file */
 		return ldv_tmp_file1;
 	}
 	if (fd == 4) {
 		/* ASSERT Should open the second file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file2 == 0);
-		ldv_tmp_file2 = ldv_undef_ptr_non_null();
+		ldv_tmp_file2 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the second file */
 		return ldv_tmp_file2;
 	}
 	if (fd == 5) {
 		/* ASSERT Successfully opened the third file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file3 == 0);
-		ldv_tmp_file3 = ldv_undef_ptr_non_null();
+		ldv_tmp_file3 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the third file */
 		return ldv_tmp_file3;
 	}
 	if (fd == 6) {
 		/* ASSERT Should open the fourth file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file4 == 0);
-		ldv_tmp_file4 = ldv_undef_ptr_non_null();
+		ldv_tmp_file4 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the fourth file */
 		return ldv_tmp_file4;
 	}
 	if (fd == 7) {
 		/* ASSERT Should open the fifth file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file5 == 0);
-		ldv_tmp_file5 = ldv_undef_ptr_non_null();
+		ldv_tmp_file5 = ldv_reference_xmalloc(0);
 		/* NOTE Successfully opened the fifth file */
 		return ldv_tmp_file5;
 	}
@@ -208,7 +217,7 @@ FILE *ldv_fdopen(int fd)
 	    ldv_assert("busybox::unknown fd", 0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
+/* MODEL_FUNC Should close an opened file descriptor */
 int ldv_close(int fd)
 {
 	if (fd == 0 || fd == 1 || fd == 2)
@@ -268,15 +277,12 @@ int ldv_close(int fd)
 	ldv_assert("busybox::unknown fd", 0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
+/* MODEL_FUNC Should close an opened stream or a standard stream */
 int ldv_fclose(FILE *fp)
 {
 	if (fp == stdin || fp == stdout || fp == stderr)
 		/* NOTE Close a standard stream by its descriptor */
 		return 0;
-	if ((int) fp == 0 || (int) fp == 1 || (int) fp == 2)
-	    /* ASSERT Should use close to close descriptors */
-		ldv_assert("busybox::unknown FILE", 0);
 	if (fp == ldv_tmp_file1) {
 		/* ASSERT Should open the file before closing it */
 		ldv_assert("busybox::missed fopen", ldv_tmp_file_fd1 == 3);
@@ -321,7 +327,7 @@ int ldv_fclose(FILE *fp)
 	ldv_assert("busybox::unknown FILE", 0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
+/* MODEL_FUNC Should read from an opened stream */
 void ldv_faccess(FILE *fp)
 {
 	if (fp == stdin || fp == stdout || fp == stderr)
@@ -361,7 +367,7 @@ void ldv_faccess(FILE *fp)
 	ldv_assert("busybox::unknown FILE", 0);
 }
 
-/* MODEL_FUNC Check that files reference counter has its initial value at the end */
+/* MODEL_FUNC Should read from an opened file descriptor */
 void ldv_access(int fd)
 {
 	if (fd == 0 || fd == 1 || fd == 2)
@@ -402,14 +408,6 @@ void ldv_access(int fd)
 
 void ldv_check_final_state(void)
 {
-    /* ASSERT Missed closing the first file */
-	ldv_assert("busybox::missed close", ldv_tmp_file_fd1 == -1 && ldv_tmp_file1 == 0);
-	/* ASSERT Missed closing the second file */
-	ldv_assert("busybox::missed close", ldv_tmp_file_fd2 == -1 && ldv_tmp_file2 == 0);
-	/* ASSERT Missed closing the third file */
-	ldv_assert("busybox::missed close", ldv_tmp_file_fd3 == -1 && ldv_tmp_file3 == 0);
-	/* ASSERT Missed closing the fourth file */
-	ldv_assert("busybox::missed close", ldv_tmp_file_fd4 == -1 && ldv_tmp_file4 == 0);
-	/* ASSERT Missed closing the fifth file */
-	ldv_assert("busybox::missed close", ldv_tmp_file_fd5 == -1 && ldv_tmp_file5 == 0);
+	/* ASSERT Files reference counter should be decremented to its initial value before finishing operation */
+	ldv_assert("busybox::left opened files", ldv_file_refcounter == 1);
 }

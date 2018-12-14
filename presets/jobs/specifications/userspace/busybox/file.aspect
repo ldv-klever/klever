@@ -22,23 +22,23 @@ before: file ("$this")
 {
 #include <stdio.h>
 extern int ldv_fileno(FILE *stream);
-extern FILE *ldv_fopen(const char *pathname);
+extern FILE *ldv_fopen(void);
 extern FILE *ldv_fdopen(int fd);
 extern void ldv_faccess(FILE *stream);
 extern int ldv_fclose(FILE *fp);
-extern int ldv_open(const char *pathname);
+extern int ldv_open(void);
 extern void ldv_access(int fd);
 extern int ldv_close(int fd);
 }
 
-around: call(int ldv_fileno(..))
+around: call(int fileno_unlocked(..))
 {
 	return ldv_fileno($arg1);
 }
 
 around: call(FILE *fopen(..))
 {
-	return ldv_fopen($arg1);
+	return ldv_fopen();
 }
 
 around: call(FILE *fdopen(..))
@@ -66,13 +66,19 @@ around: call(int fclose(..))
 	return ldv_fclose($arg1);
 }
 
-around: call(int open(..))
+around: call(int open(..)) ||
+        call(int socket(..)) ||
+        call(int mkstemp(..)) ||
+        call(int mkostemp(..)) ||
+        call(int mkstemps(..)) ||
+        call(int mkostemps(..))
 {
-	return ldv_open($arg1);
+	return ldv_open();
 }
 
 before: call(off_t lseek(..)) ||
 		call(ssize_t read(..)) ||
+		call(ssize_t write(..)) ||
 		call(ssize_t readv(..)) ||
 		call(ssize_t writev(..)) ||
 		call(ssize_t preadv(..)) ||
