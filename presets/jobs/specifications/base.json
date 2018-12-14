@@ -936,7 +936,7 @@
             "busybox::unknown FILE",
             "busybox::missed open",
             "busybox::unknown fd",
-            "busybox::left opened files"
+            "busybox::missed close"
         ]}}}
       },
       "memory safety": {
