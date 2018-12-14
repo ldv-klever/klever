@@ -408,6 +408,14 @@ void ldv_access(int fd)
 
 void ldv_check_final_state(void)
 {
-	/* ASSERT Files reference counter should be decremented to its initial value before finishing operation */
-	ldv_assert("busybox::left opened files", ldv_file_refcounter == 1);
+    /* ASSERT Missed closing the first file */
+	ldv_assert("busybox::missed close", ldv_tmp_file1 == 0);
+	/* ASSERT Missed closing the second file */
+	ldv_assert("busybox::missed close", ldv_tmp_file2 == 0);
+	/* ASSERT Missed closing the third file */
+	ldv_assert("busybox::missed close", ldv_tmp_file3 == 0);
+	/* ASSERT Missed closing the fourth file */
+	ldv_assert("busybox::missed close", ldv_tmp_file4 == 0);
+	/* ASSERT Missed closing the fifth file */
+	ldv_assert("busybox::missed close", ldv_tmp_file5 == 0);
 }
