@@ -446,6 +446,11 @@ class ErrorTrace:
                     data.pop(-1)
             if 'enter' in edge:
                 data.append(edge['enter'])
+            if 'source' not in edge:
+                if 'enter' not in edge and 'return' not in edge:
+                    self.remove_edge_and_target_node(edge)
+                elif 'return' in edge:
+                    edge['source'] = 'return;'
 
             last_thread = edge['thread']
 
