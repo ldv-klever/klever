@@ -53,11 +53,7 @@
               "userspace/ldv.c": {},
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
-              "userspace/stdio.c": {},
-              "userspace/busybox/libbb/appletlib.c": {},
-              "userspace/busybox/libbb/verror_msg.c": {},
-              "userspace/busybox/libbb/perror_msg.c": {},
-              "userspace/busybox/libbb/xfuncs_printf.c": {}
+              "userspace/stdio.c": {}
             }
           }
         },
@@ -306,7 +302,20 @@
           }
         },
         "Weaver",
-        "FVTP"
+        {
+          "FVTP": {
+            "merge source files": false,
+            "verifier profile": "CPAchecker BAM BusyBox",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:29952"
+            },
+            "result processing": {
+              "coverage": "lightweight",
+              "collect function names": true
+            }
+          }
+        }
       ]
     }
   },
