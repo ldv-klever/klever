@@ -294,6 +294,7 @@
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
               "userspace/stdio.c": {},
+              "userspace/busybox/globals.c": {},
               "userspace/busybox/libbb/appletlib.c": {},
               "userspace/busybox/libbb/verror_msg.c": {},
               "userspace/busybox/libbb/perror_msg.c": {},
