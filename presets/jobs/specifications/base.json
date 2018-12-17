@@ -469,6 +469,7 @@
             "self parallel model": false,
             "not self parallel processes": ["linux/initialization"],
             "not self parallel processes from categories": ["usb"],
+            "not self parallel processes from scenarios": ["usb_serial_scenario"],
             "direct control functions calls": false,
             "nested automata": true,
             "allocate with sizeof": true,
