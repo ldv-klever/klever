@@ -39,7 +39,8 @@
               "close": "%usb_serial.close%",
               "write" : "%usb_serial.write%",
               "hangup" : "%usb_serial.hangup%",
-
+              "throttle" : "%usb_serial.throttle%",
+              "unthrottle" : "%usb_serial.unthrottle%",
               "flush_buffer" : "%usb_serial.flush_buffer%",
               "chars_in_buffer" : "%usb_serial.chars_in_buffer%",
               "set_termios" : "%usb_serial.set_termios%",
@@ -110,6 +111,12 @@
           },
           "compat_ioctl": {
             "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "throttle": {
+            "declaration": "void (*throttle)(%usb_serial.tty_struct%)"
+          },
+          "unthrottle": {
+            "declaration": "void (*unthrottle)(%usb_serial.tty_struct%)"
           }
         },
         "resources": {
