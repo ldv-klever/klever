@@ -29,6 +29,7 @@ extern int ldv_fclose(FILE *fp);
 extern int ldv_open(void);
 extern void ldv_access(int fd);
 extern int ldv_close(int fd);
+extern int ldv_pipe(int pipefd[2]);
 }
 
 around: call(int fileno_unlocked(..))
@@ -95,4 +96,10 @@ before: call(off_t lseek(..)) ||
 around: call(int close(..))
 {
 	return ldv_close($arg1);
+}
+
+around: call(int pipe(int pipefd[2])) ||
+        call(int pipe2(int pipefd[2], int flags))
+{
+	return ldv_pipe($arg1);
 }

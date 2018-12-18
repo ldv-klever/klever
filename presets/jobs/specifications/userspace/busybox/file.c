@@ -43,6 +43,7 @@ int ldv_close(int fd);
 int ldv_fclose(FILE *fp);
 void ldv_faccess(FILE *stream);
 void ldv_access(int fd);
+int ldv_pipe(int pipefd[2]);
 void ldv_check_final_state(void);
 
 /* MODEL_FUNC Initialize standard streams */
@@ -179,6 +180,7 @@ FILE *ldv_fdopen(int fd)
 		/* ASSERT Should open the first file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file1 == 0);
 		ldv_tmp_file1 = ldv_reference_xmalloc(0);
+		ldv_tmp_file_fd1 = 3;
 		/* NOTE Successfully opened the first file */
 		return ldv_tmp_file1;
 	}
@@ -186,6 +188,7 @@ FILE *ldv_fdopen(int fd)
 		/* ASSERT Should open the second file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file2 == 0);
 		ldv_tmp_file2 = ldv_reference_xmalloc(0);
+		ldv_tmp_file_fd2 = 4;
 		/* NOTE Successfully opened the second file */
 		return ldv_tmp_file2;
 	}
@@ -193,6 +196,7 @@ FILE *ldv_fdopen(int fd)
 		/* ASSERT Successfully opened the third file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file3 == 0);
 		ldv_tmp_file3 = ldv_reference_xmalloc(0);
+		ldv_tmp_file_fd3 = 5;
 		/* NOTE Successfully opened the third file */
 		return ldv_tmp_file3;
 	}
@@ -200,6 +204,7 @@ FILE *ldv_fdopen(int fd)
 		/* ASSERT Should open the fourth file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file4 == 0);
 		ldv_tmp_file4 = ldv_reference_xmalloc(0);
+		ldv_tmp_file_fd4 = 6;
 		/* NOTE Successfully opened the fourth file */
 		return ldv_tmp_file4;
 	}
@@ -207,6 +212,7 @@ FILE *ldv_fdopen(int fd)
 		/* ASSERT Should open the fifth file before accessing it */
 		ldv_assert("busybox::open file twice", ldv_tmp_file5 == 0);
 		ldv_tmp_file5 = ldv_reference_xmalloc(0);
+		ldv_tmp_file_fd5 = 7;
 		/* NOTE Successfully opened the fifth file */
 		return ldv_tmp_file5;
 	}
@@ -404,6 +410,20 @@ void ldv_access(int fd)
 	}
 	/* ASSERT Cannot access an unopened file */
 	ldv_assert("busybox::unknown fd", 0);
+}
+
+/* MODEL_FUNC Should open file descriptors for a pipe */
+int ldv_pipe(int pipefd[2])
+{
+    if (ldv_undef_int()) {
+        /* NOTE Open pipe file descriptors */
+        pipefd[0] = ldv_open();
+        pipefd[1] = ldv_open();
+        return 0;
+    } else {
+        /* NOTE Fail opening file descriptors */
+	    return -1;
+    }
 }
 
 void ldv_check_final_state(void)
