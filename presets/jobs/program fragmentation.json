@@ -40,7 +40,8 @@
             "libbb/perror_msg.c"
           ],
           "add to all fragments": [
-            "libbb/wfopen.c"
+            "libbb/wfopen.c",
+            "libbb/wfopen_input.c"
           ]
         }
       }
