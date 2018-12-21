@@ -248,7 +248,7 @@
         {
           "FVTP": {
             "merge source files": true,
-            "verifier profile": "reachability",
+            "verifier profile": "reachability with function pointers",
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:30112"
