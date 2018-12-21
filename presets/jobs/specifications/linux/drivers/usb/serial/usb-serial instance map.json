@@ -1,0 +1,147 @@
+{
+  "Linux 3.14 (base)": {
+    "instance maps": [
+      {
+        "fragments": [
+          "drivers/usb/serial/usbserial.ko"
+        ],
+        "instance map": {
+          "usb_serial": {
+            "tty_layer": [
+              [
+                {
+                  "%driver%": {
+                    "usb_serial.usb_serial_driver": "debug_device"
+                  },
+                  "%driver.throttle%": {
+                    "usb_serial.throttle": null
+                  },
+                  "%driver.unthrottle%": {
+                    "usb_serial.unthrottle": null
+                  },
+                  "%driver.write%": {
+                    "usb_serial.write": null
+                  },
+                  "%port%":{
+                      "usb_serial.usb_serial_port":null
+                  },
+                  "%resource%": {
+                    "usb_serial.tty_struct": null,
+                    "usb_serial.usb_serial": null
+                  },
+                  "%rest_line_attached_callbacks%": {
+                    "usb_serial.break_ctl": "& usb_debug_break_ctl",
+                    "usb_serial.process_read_urb": "& usb_debug_process_read_urb"
+                  }
+                },
+                [
+                  "& usb_debug_process_read_urb",
+                  "& usb_debug_break_ctl",
+                  "debug_device"
+                ]
+              ],
+              [
+                {
+                  "%driver%": {
+                    "usb_serial.usb_serial_driver": "usb_serial_generic_device"
+                  },
+                  "%driver.throttle%": {
+                    "usb_serial.throttle": "& usb_serial_generic_throttle"
+                  },
+                  "%driver.unthrottle%": {
+                    "usb_serial.unthrottle": "& usb_serial_generic_unthrottle"
+                  },
+                  "%driver.write%": {
+                    "usb_serial.write": null
+                  },
+                  "%port%":{
+                      "usb_serial.usb_serial_port":null
+                  },
+                  "%resource%": {
+                    "usb_serial.tty_struct": null,
+                    "usb_serial.usb_serial": null
+                  },
+                  "%rest_line_attached_callbacks%": {
+                    "usb_serial.break_ctl": null,
+                    "usb_serial.process_read_urb": null,
+                    "usb_serial.tiocmiwait": "& usb_serial_generic_tiocmiwait",
+                    "usb_serial.get_icount": "& usb_serial_generic_get_icount",
+                    "usb_serial.prepare_write_buffer": "& usb_serial_generic_prepare_write_buffer",
+                    "usb_serial.chars_in_buffer": "& usb_serial_generic_chars_in_buffer",
+                    "usb_serial.wait_until_sent": "& usb_serial_generic_wait_until_sent",
+                    "usb_serial.write_room": "& usb_serial_generic_write_room",
+                    "usb_serial.read_bulk_callback": "& usb_serial_generic_read_bulk_callback",
+                    "usb_serial.write_bulk_callback": "& usb_serial_generic_write_bulk_callback"
+                  }
+                },
+                [
+                  "usb_serial_generic_device",
+                  "& usb_serial_generic_throttle",
+                  "& usb_serial_generic_unthrottle"
+                ]
+              ]
+            ],
+            "usb_serial_scenario": [
+              [
+                {
+                  "%driver%": {
+                    "usb_serial.usb_serial_driver": "usb_serial_generic_device"
+                  },
+                  "%driver.attach%": {
+                    "usb_serial.attach": null
+                  },
+                  "%driver.close%": {
+                    "usb_serial.close": "& usb_serial_generic_close"
+                  },
+                  "%driver.disconnect%": {
+                    "usb_serial.disconnect": null
+                  },
+                  "%driver.open%": {
+                    "usb_serial.open": "& usb_serial_generic_open"
+                  },
+                  "%driver.port_probe%": {
+                    "usb_serial.port_probe": null
+                  },
+                  "%driver.port_remove%": {
+                    "usb_serial.port_remove": null
+                  },
+                  "%driver.probe%": {
+                    "usb_serial.probe": null
+                  },
+                  "%driver.release%": {
+                    "usb_serial.release": null
+                  },
+                  "%driver.reset_resume%": {
+                    "usb_serial.reset_resume": null
+                  },
+                  "%driver.resume%": {
+                    "usb_serial.resume": "& usb_serial_generic_resume"
+                  },
+                  "%driver.suspend%": {
+                    "usb_serial.suspend": null
+                  },
+                  "%port%":{
+                      "usb_serial.usb_serial_port":null
+                  },
+                  "%resource%": {
+                    "usb_serial.tty_struct": null,
+                    "usb_serial.usb_serial": null
+                  },
+                  "%ret%": {
+                  },
+                  "%usb_device_id%": {
+                    "usb_serial.usb_device_id": null
+                  }
+                },
+                [
+                  "usb_serial_generic_device",
+                  "& usb_serial_generic_resume"
+                ]
+              ]
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
