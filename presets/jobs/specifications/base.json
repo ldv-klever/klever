@@ -468,6 +468,7 @@
             "debug output": false,
             "self parallel processes": true,
             "self parallel model": false,
+            "do not skip signals": true,
             "not self parallel processes": ["linux/initialization"],
             "not self parallel processes from categories": ["usb"],
             "not self parallel processes from scenarios": ["usb_serial_scenario"],
