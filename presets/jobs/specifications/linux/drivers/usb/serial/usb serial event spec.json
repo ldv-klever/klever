@@ -40,6 +40,7 @@
           "success": {
             "comment": "Registration of USB serial callbacks has been successful.",
             "statements": [
+              "ldv_assume(!usb_serial_register_drivers($ARG1, $ARG2, $ARG3));",
               "return 0;"
             ]
           }
@@ -60,12 +61,18 @@
             ]
           }
         },
-        "process": "<assign>.[@deregister]",
+        "process": "<assign>.[@deregister].<call>",
         "actions": {
           "deregister": {
             "comment": "Deregister USB serial callbacks.",
             "parameters": [
               "%usb_device_id%"
+            ]
+          },
+          "call": {
+            "comment": "Call the function itself",
+            "statements": [
+              "usb_serial_deregister_drivers($ARG1);"
             ]
           },
           "assign": {
@@ -94,6 +101,12 @@
           },
           "resource": {
             "resource": true
+          },
+          "port": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ]
           },
           "driver": {
             "container": true,
@@ -134,6 +147,7 @@
             "comment": "Now register tty callbacks.",
             "parameters": [
               "%driver%",
+              "%port%",
               "%resource%"
             ]
           },
@@ -146,13 +160,15 @@
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%port% = $ALLOC(%port%);"
             ]
           },
           "free": {
             "comment": "Free usb_serial memory.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%resource%);",
+              "$FREE(%port%);"
             ]
           },
           "probed": {
@@ -280,7 +296,7 @@
             "comment": "Initialize serial port data.",
             "callback": "%driver.port_probe%",
             "parameters": [
-              "%resource%"
+              "%port%"
             ],
             "callback return value": "%ret%",
             "post-call": [
@@ -291,21 +307,21 @@
             "comment": "Free serial port data.",
             "callback": "%driver.port_remove%",
             "parameters": [
-              "%resource%"
+              "%port%"
             ]
           },
           "open": {
             "comment": "Line discipline is attached to the terminal.",
             "callback": "%driver.open%",
             "parameters": [
-              "%resource%"
+              "%resource%", "%port%"
             ]
           },
           "close": {
             "comment": "Line discipline is being unplugged from the terminal.",
             "callback": "%driver.close%",
             "parameters": [
-              "%resource%"
+              "%port%"
             ]
           }
         }
@@ -322,6 +338,12 @@
           "resource": {
             "resource": true
           },
+          "port": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ]
+          },
           "rest_line_attached_callbacks": {
             "callback": true
           }
@@ -335,7 +357,7 @@
           "register_tty_layer": {
             "comment": "Begin USB serial tty layer callbacks invocation scenario.",
             "parameters": [
-              "%driver%", "%resource%"
+              "%driver%", "%port%", "%resource%"
             ]
           },
           "deregister_tty_layer": {
