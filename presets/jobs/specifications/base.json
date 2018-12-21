@@ -142,6 +142,9 @@
                   ],
                   "kernel": false
                 }
+              },
+              {
+                "genericManual": {"enforce replacement": true}
               }
             ],
             "translation options": {
@@ -462,6 +465,9 @@
                 ],
                 "kernel": false
               }
+            },
+            {
+              "genericManual": {"enforce replacement": true}
             }
           ],
           "translation options": {
@@ -751,6 +757,9 @@
                 ],
                 "kernel": false
               }
+            },
+            {
+              "genericManual": {"enforce replacement": true}
             }
           ],
           "translation options": {
