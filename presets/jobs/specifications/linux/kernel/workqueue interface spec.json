@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "functions models": {
       "queue_work": {
-        "declaration": "static inline bool queue_work(struct workqueue_struct*, *%workqueue.work_struct%)",
+        "declaration": "bool queue_work(struct workqueue_struct*, *%workqueue.work_struct%)",
         "header": "linux/workqueue.h"
       },
       "flush_work": {
@@ -18,11 +18,11 @@
         "header": "linux/workqueue.h"
       },
       "queue_delayed_work": {
-        "declaration": "static inline bool queue_delayed_work(struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
+        "declaration": "bool queue_delayed_work(struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
         "header": "linux/workqueue.h"
       },
-      "queue_work_on": {
-        "declaration": "bool queue_work_on(int cpu, struct workqueue_struct*, *%workqueue.work_struct%)",
+      "schedule_work": {
+        "declaration": "bool schedule_work(*%workqueue.delayed_work%)",
         "header": "linux/workqueue.h"
       }
     },

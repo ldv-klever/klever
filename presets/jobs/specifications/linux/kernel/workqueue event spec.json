@@ -81,7 +81,7 @@
           }
         }
       },
-      "flush_work": {
+      "flush_work, schedule_work": {
         "comment": "Flush work.",
         "labels": {
           "work_struct": {
