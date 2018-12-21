@@ -29,7 +29,15 @@ from core.vtg.emg.processGenerator.linuxModule.process.procImporter import Abstr
 import core.vtg.utils
 
 
-def generate_processes(emg, source, processes, conf):
+def get_specification_kinds(specifications):
+    """Required by the framework function"""
+    specifications.setdefault("interface specification", {"tags": ['categories']})
+    specifications.setdefault("event specification", {"tags": ["environment processes", "functions models"]})
+    specifications.setdefault("instance maps", {"tags": ["instance maps"]})
+    return ["interface specification", "event specification", "instance maps"]
+
+
+def generate_processes(emg, source, processes, conf, specifications):
     """
     This generator generates processes for verifying Linux kernel modules and some parts of the Linux kernel itself.
      For instance, it adds function models for kernel functions and calls callbacks in the environment model.
@@ -39,31 +47,24 @@ def generate_processes(emg, source, processes, conf):
     :param source: Source collection object.
     :param processes: ProcessCollection object.
     :param conf: Configuration dictionary of this generator.
+    :param specifications: Dictionary with required specifications of required kinds
     :return: None.
     """
     # Get instance maps if possible
+    all_instance_maps = specifications["instance maps"].get("specification")
+    task_name = emg.abstract_task_desc['fragment']
     instance_maps = dict()
-    if get_conf_property(emg.conf, "EMG instances"):
-        emg.logger.info('Looking for a file with an instance map {!r}'.
-                        format(get_necessary_conf_property(emg.conf, "EMG instances")))
-        with open(core.utils.find_file_or_dir(emg.logger,
-                                              get_necessary_conf_property(emg.conf, "main working directory"),
-                                              get_necessary_conf_property(emg.conf, "EMG instances")),
-                  encoding='utf8') as fp:
-            instance_maps = ujson.load(fp)
-
-    # Import Specifications
-    emg.logger.info("Search for interface and event specifications")
-    spec_dir = os.path.dirname(emg.conf['requirements DB'])
-    interface_spec, event_spec = __get_specs(emg.logger, emg.conf, spec_dir)
+    for imap in all_instance_maps.get('instance maps', []):
+        if task_name in imap.get('fragments', []):
+            instance_maps = imap.get('instance map', dict())
 
     emg.logger.info("Import interface categories specification")
     interfaces = InterfaceCollection(emg.logger, conf)
-    interfaces.fill_up_collection(source, interface_spec)
+    interfaces.fill_up_collection(source, specifications["interface specification"]["specification"])
 
     emg.logger.info("Import event categories specification")
     abstract_processes = AbstractProcessImporter(emg.logger, conf)
-    abstract_processes.parse_event_specification(event_spec)
+    abstract_processes.parse_event_specification(specifications["event specification"]["specification"])
 
     # Now check that we have all necessary interface specifications
     unspecified_functions = [func for func in abstract_processes.models

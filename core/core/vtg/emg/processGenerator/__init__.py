@@ -15,8 +15,10 @@
 # limitations under the License.
 #
 
+import os
 import importlib
 from core.vtg.emg.common import get_necessary_conf_property
+from core.vtg.emg.common.specifications import get_specs
 from core.vtg.emg.common.process.collection import ProcessCollection
 
 
@@ -34,9 +36,22 @@ def generate_processes(emg, source):
     generator_names = ('.vtg.emg.processGenerator.{}'.format(e) for e in
                        [list(e.keys())[0] for e in get_necessary_conf_property(emg.conf, "intermediate model options")])
     configurations = [list(e.values())[0] for e in get_necessary_conf_property(emg.conf, "intermediate model options")]
-    generators = (importlib.import_module(name, 'core') for name in generator_names)
+    generators = [importlib.import_module(name, 'core') for name in generator_names]
 
     processes = ProcessCollection(emg.logger, emg.conf)
+
+    # Get first kinds of specifications
+    specifications = {}
+    kinds = dict()
+    for generator in generators:
+        kinds[generator.__name__] = generator.get_specification_kinds(specifications)
+
+    # Get specifications for each kind
+    # Import Specifications
+    emg.logger.info("Search for interface and event specifications")
+    get_specs(emg.logger, emg.conf, os.path.dirname(emg.conf['requirements DB']), specifications)
+
     for index, generator in enumerate(generators):
-        generator.generate_processes(emg, source, processes, configurations[index])
+        generator.generate_processes(emg, source, processes, configurations[index],
+                                     {kind: specifications[kind] for kind in kinds[generator.__name__]})
     return processes

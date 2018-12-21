@@ -641,6 +641,7 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding program fragment.
         initial_abstract_task_desc = copy.deepcopy(program_fragment_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(program_fragment, self.requirement)
+        initial_abstract_task_desc['fragment'] = program_fragment
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []

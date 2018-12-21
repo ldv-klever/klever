@@ -15,14 +15,17 @@
 # limitations under the License.
 #
 
-import ujson
-
-import core.utils
-from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
+from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.process.collection import ProcessCollection
 
 
-def generate_processes(emg, source, processes, conf):
+def get_specification_kinds(specifications):
+    """Required by the framework function"""
+    specifications.setdefault("manual event models", {"tags": ["manual event models"]})
+    return ["manual event models"]
+
+
+def generate_processes(emg, source, processes, conf, specifications):
     """
     This generator reads a manually prepared environment model description and some of them just adds to the already
     generated model and some generated processes with the same names it replaces by new manually prepared one. A user
@@ -40,31 +43,34 @@ def generate_processes(emg, source, processes, conf):
     or_processes = list(processes.environment.values())
     or_entry = processes.entry
 
+    all_instance_maps = specifications["manual event models"].get("specification")
+    fragment_name = emg.abstract_task_desc['fragment']
+    descriptions = None
+    for imap in all_instance_maps.get("manual event models", []):
+        if fragment_name in imap.get('fragments', []):
+            descriptions = imap.get("model", None)
+
     # Import manual process
-    filename = get_necessary_conf_property(conf, "process descriptions file")
-    emg.logger.info("Import manually prepared processes descriptions from {!r} and add them to the model".
-                    format(filename))
-    with open(core.utils.find_file_or_dir(emg.logger, get_necessary_conf_property(emg.conf, "main working directory"),
-                                          filename),
-              encoding='utf8') as fp:
-        descriptions = ujson.load(fp)
-    manual_processes = ProcessCollection(emg.logger, emg.conf)
-    manual_processes.parse_event_specification(descriptions)
+    if descriptions and ("functions models" in descriptions or "environment processes" in descriptions):
+        manual_processes = ProcessCollection(emg.logger, emg.conf)
+        manual_processes.parse_event_specification(descriptions)
 
-    # Decide on process replacements
-    if manual_processes.entry:
-        if (get_conf_property(conf, "enforce replacement") and or_entry) or not or_entry:
-            or_entry = manual_processes.entry
+        # Decide on process replacements
+        if manual_processes.entry:
+            if (get_conf_property(conf, "enforce replacement") and or_entry) or not or_entry:
+                or_entry = manual_processes.entry
 
-    # Replace rest processes
-    for collection, manual in ((or_models, manual_processes.models.values()),
-                               (or_processes, manual_processes.environment.values())):
-        for process in manual:
-            if process.pretty_id in {p.pretty_id for p in collection} and \
-                    get_conf_property(conf, "enforce replacement"):
-                collection[[p.pretty_id for p in collection].index(process.pretty_id)] = process
-            elif process.pretty_id not in {p.pretty_id for p in collection}:
-                collection.insert(0, process)
+        # Replace rest processes
+        for collection, manual in ((or_models, manual_processes.models.values()),
+                                   (or_processes, manual_processes.environment.values())):
+            for process in manual:
+                if process.pretty_id in {p.pretty_id for p in collection} and \
+                        get_conf_property(conf, "enforce replacement"):
+                    collection[[p.pretty_id for p in collection].index(process.pretty_id)] = process
+                elif process.pretty_id not in {p.pretty_id for p in collection}:
+                    collection.insert(0, process)
+    else:
+        emg.logger.info("There is no specification for {!r} or it has invalid format".format(fragment_name))
 
     processes.entry = or_entry
     processes.models = {p.pretty_id: p for p in or_models}
