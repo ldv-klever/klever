@@ -5,15 +5,15 @@
         "declaration": "void tasklet_init(*%tasklet.tasklet_struct%, *%tasklet.func%, %tasklet.data%);",
         "header":"linux/interrupt.h"
       },
-      "__tasklet_schedule": {
-        "declaration": "void __tasklet_schedule(*%tasklet.tasklet_struct%)",
+      "tasklet_schedule": {
+        "declaration": "void tasklet_schedule(*%tasklet.tasklet_struct%)",
         "header":"linux/interrupt.h"
       },
-      "__tasklet_hi_schedule": {
+      "tasklet_hi_schedule": {
         "declaration": "void __tasklet_hi_schedule(*%tasklet.tasklet_struct%)",
         "header":"linux/interrupt.h"
       },
-      "__tasklet_hi_schedule_first": {
+      "tasklet_hi_schedule_first": {
         "declaration": "void __tasklet_hi_schedule_first(*%tasklet.tasklet_struct%)",
         "header":"linux/interrupt.h"
       }
