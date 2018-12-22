@@ -212,6 +212,7 @@
                     "linux/pagemap.h",
                     "linux/poll.h",
                     "linux/blkdev.h",
+                    "linux/parport.h",
                     "target/target_core_base.h",
                     "target/target_core_backend.h"
                   ],
