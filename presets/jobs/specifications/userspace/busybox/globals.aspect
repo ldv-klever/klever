@@ -20,16 +20,24 @@ before: file("$this")
 #include <verifier/memory.h>
 struct globals;
 static struct globals *ldv_globals;
-extern void ldv_setup_common_bufsiz(void);
+void ldv_setup_common_bufsiz(void);
 }
 
 around: define(setup_common_bufsiz())
 {
-ldv_globals = ldv_xzalloc(sizeof(struct globals));ldv_setup_common_bufsiz
+ldv_setup_common_bufsiz
 }
-
 
 around: define(G)
 {
 (*ldv_globals)
+}
+
+after: file("$this")
+{
+#ifdef G
+void ldv_setup_common_bufsiz(void) {
+ldv_globals = ldv_xzalloc(sizeof(struct globals));
+}
+#endif      
 }
