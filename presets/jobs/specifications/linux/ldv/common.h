@@ -150,4 +150,9 @@ extern void ldv_add_disk(void);
  */
 extern void ldv_del_gendisk(void);
 
+/**
+ * ldv_check_alloc_flags() - check flags of a memory allocating function.
+ */
+extern void ldv_check_alloc_flags(gfp_t flags);
+
 #endif /* __LINUX_LDV_H */

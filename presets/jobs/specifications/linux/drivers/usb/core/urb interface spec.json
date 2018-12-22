@@ -12,6 +12,10 @@
       "usb_poison_urb": {
         "declaration": "int usb_poison_urb(*%urb.urb%);",
         "header":"linux/usb.h"
+      },
+      "usb_submit_urb": {
+        "declaration": "int usb_submit_urb(*%urb.urb%, gfp_t mem_flags);",
+        "header":"linux/usb.h"
       }
     },
     "categories": {
