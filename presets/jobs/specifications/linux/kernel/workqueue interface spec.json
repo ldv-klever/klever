@@ -22,7 +22,15 @@
         "header": "linux/workqueue.h"
       },
       "schedule_work": {
-        "declaration": "bool schedule_work(*%workqueue.delayed_work%)",
+        "declaration": "bool schedule_work(*%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "schedule_delayed_work": {
+        "declaration": "bool schedule_delayed_work(*%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "schedule_delayed_work_on": {
+        "declaration": "bool schedule_delayed_work_on(int cpu, *%workqueue.delayed_work%, unsigned long delay)",
         "header": "linux/workqueue.h"
       }
     },

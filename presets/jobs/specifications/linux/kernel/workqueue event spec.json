@@ -121,7 +121,7 @@
           }
         }
       },
-      "flush_delayed_work": {
+      "schedule_delayed_work, flush_delayed_work": {
         "comment": "Flush work.",
         "labels": {
           "delayed_work": {
@@ -161,7 +161,7 @@
           }
         }
       },
-      "queue_delayed_work": {
+      "queue_delayed_work, schedule_delayed_work_on": {
         "comment": "Queue delayed work on.",
         "labels": {
           "delayed_work": {
