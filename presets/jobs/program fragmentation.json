@@ -38,7 +38,7 @@
             ],
             "drivers/usb/serial/usb_wwan.ko": [
               "drivers/usb/serial/usb_wwan.ko",
-              "drivers/usb/serial/opticon.ko"
+              "drivers/usb/serial/option.ko"
             ]
           }
         }
