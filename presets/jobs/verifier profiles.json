@@ -52,8 +52,8 @@
       "description": "CPAchecker with BAM for reachability checking and FPA",
       "inherit": "CPAchecker BAM reachability FP",
       "add options": [
-        {"-setprop": "cpa.predicate.defaultArrayLength=2"},
-        {"-setprop": "cpa.predicate.maxArrayLength=2"}
+        {"-setprop": "cpa.predicate.defaultArrayLength=5"},
+        {"-setprop": "cpa.predicate.maxArrayLength=5"}
       ]
     },
     "CPAchecker SMG memory checking": {
