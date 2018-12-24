@@ -76,6 +76,94 @@
                 }
               },
               "process": "<assign>.[@deregister]"
+            },
+            "functions models/tty_unregister_driver": {
+              "actions": {
+                "assign": {
+                  "comment": "Get a tty driver structure.",
+                  "statements": [
+                    "%tty_driver% = $ARG1;",
+                    "%tty_operations% = %tty_driver%->ops;"
+                  ]
+                },
+                "failed": {
+                  "comment": "Failed to unregister TTY driver.",
+                  "statements": [
+                    "return ldv_undef_int_negative();"
+                  ]
+                },
+                "success": {
+                  "comment": "Successfully unregistered TTY driver.",
+                  "statements": [
+                    "return 0;"
+                  ]
+                }
+              },
+              "category": "functions models",
+              "comment": "Unregister a tty device. (Relevant to 'serial_ops')",
+              "headers": [
+                "linux/tty.h",
+                "linux/tty_driver.h"
+              ],
+              "identifier": "functions models/tty_unregister_driver",
+              "labels": {
+                "tty_driver": {
+                  "declaration": "struct tty_driver *tty_driver"
+                },
+                "tty_operations": {
+                  "declaration": "struct tty_operations *tty_operations",
+                  "value": "ldv_emg_alias_serial_ops_2"
+                }
+              },
+              "process": "<assign>.<success> | <failed>"
+            },
+            "functions models/tty_register_driver": {
+              "actions": {
+                "assign": {
+                  "comment": "Get a tty driver structure.",
+                  "statements": [
+                    "%tty_driver% = $ARG1;",
+                    "%tty_operations% = %tty_driver%->ops;"
+                  ]
+                },
+                "failed": {
+                  "comment": "Failed to register TTY driver.",
+                  "statements": [
+                    "return ldv_undef_int_negative();"
+                  ]
+                },
+                "success": {
+                  "comment": "Successfully registered TTY driver.",
+                  "statements": [
+                    "return 0;"
+                  ]
+                }
+              },
+              "category": "functions models",
+              "comment": "Register tty driver. (Relevant to 'serial_ops')",
+              "declarations": {
+                "drivers/usb/serial/usb-serial.c": {
+                  "serial_ops": "struct tty_operations *ldv_emg_alias_serial_ops_2 = & serial_ops;\n"
+                },
+                "environment model": {
+                  "serial_ops": "extern struct tty_operations *ldv_emg_alias_serial_ops_2;\n"
+                }
+              },
+              "headers": [
+                "linux/tty.h",
+                "linux/tty_driver.h"
+              ],
+              "identifier": "functions models/tty_register_driver",
+              "labels": {
+                "tty_driver": {
+                  "declaration": "struct tty_driver *tty_driver"
+                },
+                "tty_operations": {
+                  "declaration": "struct tty_operations *tty_operations",
+                  "value": "ldv_emg_alias_serial_ops_2"
+                }
+              },
+              "process": "<assign>.<success> | <failed>"
             }
           },
           "environment processes": {
@@ -756,18 +844,10 @@
                     "ldv_emg_wrapper_serial_close_16(%tty_struct%, %ldv_param_1_15%);"
                   ]
                 },
-                "deregister": {
+                "tty_deregister": {
                   "comment": "Finish {} callbacks invocations scenario.",
-                  "condition": [
-                    "%tty_driver% == $ARG1",
-                    "$ARG2 == ldv_emg_alias_serial_ops_2"
-                  ],
-                  "parameters": [
-                    "%tty_driver%",
-                    "%tty_operations%"
-                  ],
                   "peers": [
-                    "functions models/tty_unregister_driver"
+                    "usb/usb_scenario/usb_serial_driver"
                   ]
                 },
                 "free": {
@@ -820,7 +900,7 @@
                 },
                 "main": {
                   "comment": "Install tty or deregister.",
-                  "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_34>) | <install_failed>).{main} | <free>.(deregister)"
+                  "process": "<pre_call_30>.<lookup_32>.<post_call_31>.<install_33>.(<install_success>.<open_35>.(<open_success>.{call} | <open_failed>.<remove_34>) | <install_failed>).{main} | <free>.(tty_deregister)"
                 },
                 "open_35": {
                   "comment": "Open a tty device. Invoke callback open from tty_operations.",
@@ -996,17 +1076,10 @@
                     "%ldv_param_1_3% = $UALLOC(%ldv_param_1_3%);"
                   ]
                 },
-                "register": {
+                "tty_register": {
                   "comment": "Begin {} callbacks invocations scenario.",
-                  "condition": [
-                    "$ARG2 == ldv_emg_alias_serial_ops_2"
-                  ],
-                  "parameters": [
-                    "%tty_driver%",
-                    "%tty_operations%"
-                  ],
                   "peers": [
-                    "functions models/tty_register_driver"
+                    "usb/usb_scenario/usb_serial_driver"
                   ],
                   "replicative": true
                 },
@@ -1353,7 +1426,8 @@
                   "value": "1"
                 },
                 "tty_driver": {
-                  "declaration": "struct tty_driver *tty_driver"
+                  "declaration": "struct tty_driver *tty_driver",
+                  "value": "usb_serial_tty_driver"
                 },
                 "tty_operations": {
                   "declaration": "struct tty_operations *tty_operations",
@@ -1363,7 +1437,244 @@
                   "declaration": "struct tty_struct *tty_struct"
                 }
               },
-              "process": "(!register).<init>.{main}"
+              "process": "(!tty_register).<init>.{main}"
+            },
+            "usb/usb_scenario/usb_serial_driver": {
+              "actions": {
+                "alloc_interface": {
+                  "comment": "Allocate memory and initialize new USB interface.",
+                  "statements": [
+                    "%resource% = $ALLOC(%resource%);",
+                    "%usb_device% = $ALLOC(%usb_device%);",
+                    "%resource%->dev.parent = & %usb_device%->dev;"
+                  ]
+                },
+                "callback_2": {
+                  "comment": "No callbacks implemented to call here",
+                  "statements": [
+                    "/* Skip callback without implementations */"
+                  ]
+                },
+                "deregister": {
+                  "comment": "Finish {} callbacks invocations scenario.",
+                  "condition": [
+                    "%container% == $ARG1",
+                    "$ARG1 == ldv_emg_alias_usb_serial_driver_2"
+                  ],
+                  "parameters": [
+                    "%container%"
+                  ],
+                  "peers": [
+                    "functions models/usb_deregister"
+                  ]
+                },
+                "failed_probe": {
+                  "comment": "Association of driver-specific data with the USB interface has been failed.",
+                  "condition": [
+                    "%probe_retval% != 0"
+                  ]
+                },
+                "free_interface": {
+                  "comment": "Free allocated memory for USB interface.",
+                  "statements": [
+                    "$FREE(%resource%);",
+                    "$FREE(%usb_device%);"
+                  ]
+                },
+                "manage_interface": {
+                  "comment": "Manage particular interface on a device.",
+                  "process": "<pre_call_3>.<probe_5>.<post_call_4>.(<probe_success>.[tty_register].(<usb_reset>.<pre_12>.<post_13> | <pre_call_7>.<suspend_9>.<post_call_8>.(<resume_10> | <reset_resume_11>) | <callback_2> | <skip>).[tty_deregister].<release_6> | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
+                },
+                "tty_register": {
+                  "comment": "Register tty callbacks.",
+                  "condition": [],
+                  "parameters": [],
+                  "peers": [
+                    "tty/tty_scenario/serial_ops"
+                  ]
+                },
+                "tty_deregister": {
+                  "comment": "Deregister tty callbacks.",
+                  "condition": [],
+                  "parameters": [],
+                  "peers": [
+                    "tty/tty_scenario/serial_ops"
+                  ]
+                },
+                "post_13": {
+                  "comment": "Initialize device after reset. Invoke callback post from USB.",
+                  "entry point": true,
+                  "statements": [
+                    "if (%container%->post_reset) {",
+                    "\t/* LDV {\"call\": \"%container%->post_reset(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"post\"} */",
+                    "\t%container%->post_reset(%resource%);",
+                    "}"
+                  ]
+                },
+                "post_call_4": {
+                  "comment": "Free memory of adhoc callback parameters.",
+                  "statements": [
+                    "$FREE(%ldv_param_1_2%);"
+                  ]
+                },
+                "post_call_8": {
+                  "comment": "Free memory of adhoc callback parameters.",
+                  "statements": [
+                    "$FREE(%ldv_param_1_3%);"
+                  ]
+                },
+                "pre_12": {
+                  "comment": "Prepare for resetting device. Invoke callback pre from USB.",
+                  "entry point": true,
+                  "statements": [
+                    "if (%container%->pre_reset) {",
+                    "\t/* LDV {\"call\": \"%container%->pre_reset(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"pre\"} */",
+                    "\t%container%->pre_reset(%resource%);",
+                    "}"
+                  ]
+                },
+                "pre_call_3": {
+                  "comment": "Allocate memory for adhoc callback parameters.",
+                  "statements": [
+                    "%ldv_param_1_2% = $UALLOC(%ldv_param_1_2%);"
+                  ]
+                },
+                "pre_call_7": {
+                  "comment": "Allocate memory for adhoc callback parameters.",
+                  "statements": [
+                    "%ldv_param_1_3% = $UALLOC(%ldv_param_1_3%);"
+                  ]
+                },
+                "probe_5": {
+                  "comment": "Associate driver-specific data with the USB interface. Invoke callback probe from usb_driver.",
+                  "entry point": true,
+                  "statements": [
+                    "/* Callback pre-call */",
+                    "ldv_pre_probe();",
+                    "/* LDV {\"call\": \"%probe_retval% = ldv_emg_wrapper_usb_serial_probe_2(%resource%, %ldv_param_1_2%);\", \"type\": \"CALLBACK\", \"comment\": \"probe\"} */",
+                    "%probe_retval% = ldv_emg_wrapper_usb_serial_probe_2(%resource%, %ldv_param_1_2%);",
+                    "/* Callback post-call */",
+                    "%probe_retval% = ldv_post_probe(%probe_retval%);"
+                  ]
+                },
+                "probe_success": {
+                  "comment": "Check that interface has been probed successfully.",
+                  "condition": [
+                    "%probe_retval% == 0"
+                  ]
+                },
+                "register": {
+                  "comment": "Begin USB callbacks invocation scenario.",
+                  "condition": [
+                    "$ARG1 == ldv_emg_alias_usb_serial_driver_2"
+                  ],
+                  "parameters": [
+                    "%container%"
+                  ],
+                  "peers": [
+                    "functions models/usb_register_driver"
+                  ],
+                  "replicative": true
+                },
+                "release_6": {
+                  "comment": "USB interface is no more accessible. Invoke callback disconnect from usb_driver.",
+                  "entry point": true,
+                  "statements": [
+                    "/* LDV {\"call\": \"ldv_emg_wrapper_usb_serial_disconnect_3(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"release\"} */",
+                    "ldv_emg_wrapper_usb_serial_disconnect_3(%resource%);"
+                  ]
+                },
+                "reset_resume_11": {
+                  "comment": "Device is about to be resumed. Invoke callback reset_resume from USB.",
+                  "entry point": true,
+                  "statements": [
+                    "if (%container%->reset_resume) {",
+                    "\t/* LDV {\"call\": \"%container%->reset_resume(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"reset_resume\"} */",
+                    "\t%container%->reset_resume(%resource%);",
+                    "}"
+                  ]
+                },
+                "resume_10": {
+                  "comment": "Device is about to be resumed. Invoke callback resume from usb_driver.",
+                  "entry point": true,
+                  "statements": [
+                    "/* LDV {\"call\": \"usb_serial_resume(%resource%);\", \"type\": \"CALLBACK\", \"comment\": \"resume\"} */",
+                    "usb_serial_resume(%resource%);"
+                  ]
+                },
+                "skip": {
+                  "comment": "Do not suspend or reset device."
+                },
+                "suspend_9": {
+                  "comment": "Device is about to be suspended. Invoke callback suspend from usb_driver.",
+                  "entry point": true,
+                  "statements": [
+                    "/* LDV {\"call\": \"usb_serial_suspend(%resource%, *%ldv_param_1_3%);\", \"type\": \"CALLBACK\", \"comment\": \"suspend\"} */",
+                    "usb_serial_suspend(%resource%, *%ldv_param_1_3%);"
+                  ]
+                },
+                "usb_reset": {
+                  "comment": "Stub instead of the 'usb_reset' signal.",
+                  "statements": [
+                    "/* Skip signal 'usb_reset' as it has no peers */"
+                  ]
+                }
+              },
+              "category": "usb",
+              "comment": "Invoke usb callbacks. (Relevant to 'usb_serial_driver')",
+              "declarations": {
+                "environment model": {
+                  "& usb_serial_resume": "extern int usb_serial_resume(struct usb_interface *intf);\n",
+                  "& usb_serial_suspend": "extern int usb_serial_suspend(struct usb_interface *intf, pm_message_t message);\n",
+                  "usb_serial_disconnect": "extern void ldv_emg_wrapper_usb_serial_disconnect_3(struct usb_interface *);\n",
+                  "usb_serial_probe": "extern int ldv_emg_wrapper_usb_serial_probe_2(struct usb_interface *, struct usb_device_id *);\n"
+                }
+              },
+              "definitions": {
+                "drivers/usb/serial/usb-serial.c": {
+                  "usb_serial_disconnect": [
+                    "/* AUX_FUNC ldv_emg_wrapper_usb_serial_disconnect_3 */\n",
+                    "void ldv_emg_wrapper_usb_serial_disconnect_3(struct usb_interface *arg0) {\n",
+                    "\t usb_serial_disconnect(arg0);\n",
+                    "}\n",
+                    "\n"
+                  ],
+                  "usb_serial_probe": [
+                    "/* AUX_FUNC ldv_emg_wrapper_usb_serial_probe_2 */\n",
+                    "int ldv_emg_wrapper_usb_serial_probe_2(struct usb_interface *arg0, struct usb_device_id *arg1) {\n",
+                    "\treturn usb_serial_probe(arg0, arg1);\n",
+                    "}\n",
+                    "\n"
+                  ]
+                }
+              },
+              "headers": [
+                "linux/usb.h"
+              ],
+              "identifier": "usb/usb_scenario/usb_serial_driver",
+              "labels": {
+                "container": {
+                  "declaration": "struct usb_driver *container",
+                  "value": "ldv_emg_alias_usb_serial_driver_2"
+                },
+                "ldv_param_1_2": {
+                  "declaration": "struct usb_device_id *ldv_param_1_2"
+                },
+                "ldv_param_1_3": {
+                  "declaration": "struct pm_message *ldv_param_1_3"
+                },
+                "probe_retval": {
+                  "declaration": "int probe_retval",
+                  "value": "ldv_undef_int()"
+                },
+                "resource": {
+                  "declaration": "struct usb_interface *resource"
+                },
+                "usb_device": {
+                  "declaration": "struct usb_device *usb_device"
+                }
+              },
+              "process": "(!register).(<alloc_interface>.{manage_interface} | (deregister))"
             }
           }
         }

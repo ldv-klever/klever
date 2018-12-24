@@ -123,7 +123,7 @@
         "actions": {
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
@@ -313,6 +313,7 @@
           "open": {
             "comment": "Line discipline is attached to the terminal.",
             "callback": "%driver.open%",
+            "callback return value": "%ret%",
             "parameters": [
               "%resource%", "%port%"
             ]
