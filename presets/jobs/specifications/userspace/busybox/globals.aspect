@@ -25,7 +25,7 @@ void ldv_setup_common_bufsiz(void);
 
 around: define(setup_common_bufsiz())
 {
-ldv_setup_common_bufsiz
+ldv_setup_common_bufsiz()
 }
 
 around: define(G)
