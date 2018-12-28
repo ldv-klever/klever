@@ -398,8 +398,9 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(JobHistory.objects.filter(job=uploaded_job)), 2)
 
         # Check file content of uploaded job
-        response = self.client.get('/jobs/getfilecontent/%s/' % FileSystem.objects
-                                   .get(job__job=uploaded_job, job__version=2).file.hash_sum)
+        response = self.client.get('/jobs/api/file/{0}/'.format(
+            FileSystem.objects.get(job__job=uploaded_job, job__version=2).file.hash_sum
+        ))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -504,7 +505,7 @@ class TestJobs(KleverTestCase):
             return
 
         # Copy the job with autofilled name
-        response = self.client.post('/jobs/save_job_copy/%s/' % job_template.id)
+        response = self.client.post('/jobs/api/duplicate-job/', data={'parent': job_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -519,7 +520,7 @@ class TestJobs(KleverTestCase):
             self.fail("The job wasn't copied")
 
         # Copy job version
-        response = self.client.post('/jobs/copy_job_version/%s/' % job_pk)
+        response = self.client.patch('/jobs/api/duplicate/{}/'.format(job_pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -564,9 +565,9 @@ class TestJobs(KleverTestCase):
         })
 
         # Save job copy and copy new version
-        response = self.client.post('/jobs/save_job_copy/%s/' % job1.id)
+        response = self.client.post('/jobs/api/duplicate-job/', data={'parent': job1.pk})
         job2 = Job.objects.get(id=json.loads(str(response.content, encoding='utf8'))['id'])
-        self.client.post('/jobs/copy_job_version/%s/' % job2.id)
+        self.client.patch('/jobs/api/duplicate/{}/'.format(job2.id))
         self.assertEqual(JobHistory.objects.filter(job=job2).count(), 2)
 
         # Replace file for job2

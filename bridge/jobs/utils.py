@@ -19,17 +19,19 @@ import os
 import hashlib
 from datetime import datetime
 
-from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Case, When, IntegerField, F, BooleanField
+from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now, pytz
+from django.utils.functional import cached_property
 
 from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
-from bridge.utils import logger, BridgeException, file_get_or_create, get_templated_text
+from bridge.utils import logger, BridgeException, file_get_or_create
 from users.notifications import Notify
 
+from users.models import User
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr
 from marks.models import MarkSafeReport, MarkSafeTag, MarkUnsafeReport, MarkUnsafeTag, MarkUnknownReport
@@ -157,82 +159,87 @@ def get_job_parents(user, job):
 
 def get_job_children(user, job):
     children = []
-    for child in job.children.order_by('change_date'):
+    for child in job.children.order_by('name'):
         if JobAccess(user, child).can_view():
             children.append({'pk': child.pk, 'name': child.name})
     return children
 
 
 class JobAccess:
-
     def __init__(self, user, job=None):
         self.user = user
         self.job = job
-        self._is_author = False
-        self._job_role = None
-        self._user_role = user.extended.role
-        self._is_manager = (self._user_role == USER_ROLES[2][0])
-        self._is_expert = (self._user_role == USER_ROLES[3][0])
-        self._is_service = (self._user_role == USER_ROLES[4][0])
-        self._is_operator = False
-        try:
-            if self.job is not None:
-                self._is_operator = (user == self.job.reportroot.user)
-        except ObjectDoesNotExist:
-            pass
-        self.__get_prop(user)
+        self._is_author = (self.job is not None and self.job.author == user)
+        self._is_manager = (self.user.role == USER_ROLES[2][0])
+        self._is_expert = (self.user.role == USER_ROLES[3][0])
+        self._is_service = (self.user.role == USER_ROLES[4][0])
 
-    def klever_core_access(self):
+    @cached_property
+    def _job_role(self):
+        if self.job is None:
+            return None
+        last_version = self.job.versions.get(version=self.job.version)
+        last_v_role = last_version.userrole_set.filter(user=self.user).first()
+        return last_v_role.role if last_v_role else last_version.global_role
+
+    @cached_property
+    def _is_operator(self):
         if self.job is None:
             return False
-        return self._is_manager or self._is_service
+        try:
+            return self.user == self.job.reportroot.user
+        except ObjectDoesNotExist:
+            pass
+        return False
+
+    @cached_property
+    def _is_finished(self):
+        return self.job is not None and self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+
+    def can_view_jobs(self, queryset):
+        """Filter queryset by view job access"""
+
+        all_jobs_qs = queryset.values_list('id', flat=True)
+        if self._is_manager or self._is_expert:
+            return set(all_jobs_qs)
+
+        author_of_qs = queryset.filter(author=self.user).values_list('pk', flat=True)
+        with_custom_qs = UserRole.objects\
+            .filter(user=self.user, job_version__version=F('job_version__job__version'))\
+            .exclude(role=JOB_ROLES[0][0]).values_list('job_version__job_id', flat=True)
+        no_global_qs = JobHistory.objects\
+            .filter(version=F('job__version'), global_role=JOB_ROLES[0][0])\
+            .values_list('job_id', flat=True)
+
+        return set(all_jobs_qs) - (set(no_global_qs) - set(with_custom_qs) - set(author_of_qs))
+
+    def klever_core_access(self):
+        return self.job is not None and (self._is_manager or self._is_service)
 
     def can_decide(self):
-        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
-            return False
-        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self._is_finished and (self._is_manager or self._is_author or
+                                      self._job_role in {JOB_ROLES[3][0], JOB_ROLES[4][0]})
 
     def can_upload_reports(self):
-        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]:
-            return False
-        return self._is_manager or self._is_author or self._job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
+        return self.can_decide()
 
     def can_view(self):
         if self.job is None:
             return False
-        return self._is_manager or self._is_author or self._job_role != JOB_ROLES[0][0] or self._is_expert
-
-    def can_view_jobs(self, filters=None):
-        queryset = Job.objects.all()
-        if isinstance(filters, dict):
-            queryset = queryset.filter(**filters)
-        elif filters is not None:
-            queryset = queryset.filter(filters)
-        queryset = queryset.only('id')
-
-        all_jobs = set(j_id for j_id, in queryset.values_list('id'))
-
-        if self._is_manager or self._is_expert:
-            return all_jobs
-        author_of = set(jh.job_id for jh in JobHistory.objects.filter(version=1, change_author=self.user))
-        jobs_with_no_access = self.__get_jobs_with_roles([JOB_ROLES[0][0]])
-        return all_jobs - (jobs_with_no_access - author_of)
+        return self._is_manager or self._is_author or self._is_expert or self._job_role != JOB_ROLES[0][0]
 
     def can_create(self):
-        return self._user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
+        return self.user.role not in {USER_ROLES[0][0], USER_ROLES[4][0]}
 
     def can_edit(self):
-        if self.job is None:
-            return False
-        return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]] \
-            and (self._is_author or self._is_manager)
+        return self._is_finished and (self._is_author or self._is_manager)
 
     def can_stop(self):
-        if self.job is None:
-            return False
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self._is_operator or self._is_manager):
-            return True
-        return False
+        return self.job is not None and self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
+               and (self._is_operator or self._is_manager)
+
+    def can_download(self):
+        return self._is_finished and self.can_view()
 
     def can_delete(self):
         if self.job is None:
@@ -246,53 +253,16 @@ class JobAccess:
             return False
         return self._is_author or self._is_manager
 
-    def can_download(self):
-        return self.job is not None and self.job.status != JOB_STATUS[2][0]
-
     def can_collapse(self):
-        if self.job is None:
-            return False
-        return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]} \
-            and (self._is_author or self._is_manager) and self.job.weight == JOB_WEIGHT[0][0]
+        return self._is_finished and (self._is_author or self._is_manager) and self.job.weight == JOB_WEIGHT[0][0]
 
     def can_clear_verifications(self):
-        if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}:
-            return False
-        if not (self._is_author or self._is_manager):
-            return False
-        try:
-            return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
-                .exclude(verifier_input='').count() > 0
-        except ObjectDoesNotExist:
-            return False
+        queryset = ReportComponent.objects\
+            .filter(root=self.job.reportroot, verification=True).exclude(verifier_input='')
+        return self._is_finished and (self._is_author or self._is_manager) and queryset.count()
 
     def can_dfc(self):
-        return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
-
-    def __get_jobs_with_roles(self, roles):
-        jobs = set()
-        for j_id, in UserRole.objects.filter(user=self.user, job__version=F('job__job__version'), role__in=roles) \
-                .values_list('job__job_id'):
-            jobs.add(j_id)
-        for j_id, role in JobHistory.objects.exclude(job_id__in=jobs)\
-                .filter(version=F('job__version'), global_role__in=roles) \
-                .values_list('job_id', 'global_role'):
-            jobs.add(j_id)
-        return jobs
-
-    def __get_prop(self, user):
-        if self.job is not None:
-            try:
-                first_version = self.job.versions.get(version=1)
-                last_version = self.job.versions.get(version=self.job.version)
-            except ObjectDoesNotExist:
-                return
-            self._is_author = (first_version.change_author == user)
-            last_v_role = last_version.userrole_set.filter(user=user)
-            if len(last_v_role) > 0:
-                self._job_role = last_v_role[0].role
-            else:
-                self._job_role = last_version.global_role
+        return self.job is not None and self.job.status not in {JOB_STATUS[0][0], JOB_STATUS[1][0]}
 
 
 def get_job_by_identifier(identifier):
@@ -474,64 +444,10 @@ class ReplaceJobFile:
             raise ValueError("The file wasn't found")
 
         fp.seek(0)
-        db_file = file_get_or_create(fp, fp.name, JobFile, True)[0]
+        db_file = file_get_or_create(fp, fp.name, JobFile, True)
         fs = FileSystem.objects.get(id=self._file_to_replace)
         fs.file = db_file
         fs.save()
-
-
-def convert_time(val, acc):
-    def final_value(time, postfix):
-        fpart_len = len(str(round(time)))
-        if fpart_len > int(acc):
-            tmp_div = 10**(fpart_len - int(acc))
-            rounded_value = round(time/tmp_div) * tmp_div
-        elif fpart_len == int(acc):
-            rounded_value = round(time)
-        else:
-            rounded_value = round(time, int(acc) - fpart_len)
-        return get_templated_text('{% load l10n %}{{ val }} {{ postfix }}', val=rounded_value, postfix=postfix)
-
-    new_time = int(val)
-    try_div = new_time / 1000
-    if try_div < 1:
-        return final_value(new_time, _('ms'))
-    new_time = try_div
-    try_div = new_time / 60
-    if try_div < 1:
-        return final_value(new_time, _('s'))
-    new_time = try_div
-    try_div = new_time / 60
-    if try_div < 1:
-        return final_value(new_time, _('min'))
-    return final_value(try_div, _('h'))
-
-
-def convert_memory(val, acc):
-    def final_value(memory, postfix):
-        fpart_len = len(str(round(memory)))
-        if fpart_len > int(acc):
-            tmp_div = 10 ** (fpart_len - int(acc))
-            rounded_value = round(memory / tmp_div) * tmp_div
-        elif fpart_len == int(acc):
-            rounded_value = round(memory)
-        else:
-            rounded_value = round(memory, int(acc) - fpart_len)
-        return get_templated_text('{% load l10n %}{{ val }} {{ postfix }}', val=rounded_value, postfix=postfix)
-
-    new_mem = int(val)
-    try_div = new_mem / 10**3
-    if try_div < 1:
-        return final_value(new_mem, _('B'))
-    new_mem = try_div
-    try_div = new_mem / 10**3
-    if try_div < 1:
-        return final_value(new_mem, _('KB'))
-    new_mem = try_div
-    try_div = new_mem / 10**3
-    if try_div < 1:
-        return final_value(new_mem, _('MB'))
-    return final_value(try_div, _('GB'))
 
 
 def create_version(job, kwargs):
@@ -551,174 +467,6 @@ def create_version(job, kwargs):
         if len(user_roles_to_create) > 0:
             UserRole.objects.bulk_create(user_roles_to_create)
     return new_version
-
-
-def create_job(kwargs):
-    if 'name' not in kwargs or len(kwargs['name']) == 0:
-        logger.error('The job name was not got')
-        raise BridgeException()
-    try:
-        Job.objects.get(name=kwargs['name'])
-    except ObjectDoesNotExist:
-        pass
-    else:
-        raise BridgeException(_('The job name is already used'))
-
-    if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        logger.error('The job author was not got')
-        raise BridgeException()
-    newjob = Job(name=kwargs['name'], change_date=now(), change_author=kwargs['author'], parent=kwargs.get('parent'))
-
-    if 'identifier' in kwargs and kwargs['identifier'] is not None:
-        if Job.objects.filter(identifier=kwargs['identifier']).count() > 0:
-            # This exception will be occurred only on jobs population (if for preset jobs identifier would be set)
-            # or jobs uploading
-            raise BridgeException(_('The job with specified identifier already exists'))
-        newjob.identifier = kwargs['identifier']
-    else:
-        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
-        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
-    newjob.save()
-
-    new_version = create_version(newjob, kwargs)
-
-    if 'filedata' in kwargs:
-        try:
-            SaveFileData(kwargs['filedata'], new_version)
-        except Exception as e:
-            logger.exception(e)
-            newjob.delete()
-            raise BridgeException()
-    if 'absolute_url' in kwargs:
-        # newjob_url = reverse('jobs:job', args=[newjob.pk])
-        # Notify(newjob, 0, {'absurl': kwargs['absolute_url'] + newjob_url})
-        pass
-    else:
-        # Notify(newjob, 0)
-        pass
-    return newjob
-
-
-def update_job(kwargs):
-    if 'job' not in kwargs or not isinstance(kwargs['job'], Job):
-        raise ValueError('The job is required')
-    if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        raise ValueError('Change author is required')
-    if 'comment' not in kwargs:
-        kwargs['comment'] = ''
-    if 'parent' in kwargs:
-        kwargs['job'].parent = kwargs['parent']
-    if 'name' in kwargs and len(kwargs['name']) > 0:
-        try:
-            job = Job.objects.get(name=kwargs['name'])
-        except ObjectDoesNotExist:
-            pass
-        else:
-            if job.id != kwargs['job'].id:
-                raise BridgeException(_('The job name is already used'))
-        kwargs['job'].name = kwargs['name']
-    kwargs['job'].change_author = kwargs['author']
-    kwargs['job'].change_date = now()
-    kwargs['job'].version += 1
-    kwargs['job'].save()
-
-    newversion = create_version(kwargs['job'], kwargs)
-
-    if 'filedata' in kwargs:
-        try:
-            SaveFileData(kwargs['filedata'], newversion)
-        except Exception:
-            newversion.delete()
-            kwargs['job'].version -= 1
-            kwargs['job'].save()
-            raise
-    if 'absolute_url' in kwargs:
-        try:
-            Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
-    else:
-        try:
-            Notify(kwargs['job'], 1)
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
-
-
-def copy_job_version(user, job):
-    last_version = JobHistory.objects.get(job=job, version=job.version)
-    job.version += 1
-
-    new_version = JobHistory.objects.create(
-        job=job, version=job.version, change_author=user, comment='',
-        description=last_version.description, global_role=last_version.global_role
-    )
-
-    roles = []
-    for ur in UserRole.objects.filter(job=last_version):
-        roles.append(UserRole(job=new_version, user=ur.user, role=ur.role))
-    UserRole.objects.bulk_create(roles)
-
-    try:
-        fdata = FileData(last_version).filedata
-        for i in range(len(fdata)):
-            fdata[i]['type'] = str(fdata[i]['type'])
-        SaveFileData(fdata, new_version)
-    except Exception:
-        new_version.delete()
-        raise
-    job.change_date = new_version.change_date
-    job.change_author = user
-    job.save()
-
-
-def save_job_copy(user, job, name=None):
-    last_version = JobHistory.objects.get(job=job, version=job.version)
-
-    if isinstance(name, str) and len(name) > 0:
-        job_name = name
-        try:
-            Job.objects.get(name=job_name)
-        except ObjectDoesNotExist:
-            pass
-        else:
-            raise BridgeException('The job name is used already.')
-    else:
-        cnt = 1
-        while True:
-            job_name = "%s #COPY-%s" % (job.name, cnt)
-            try:
-                Job.objects.get(name=job_name)
-            except ObjectDoesNotExist:
-                break
-            cnt += 1
-
-    newjob = Job.objects.create(
-        identifier=hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')).hexdigest(),
-        name=job_name, change_date=now(), change_author=user, parent=job
-    )
-
-    new_version = JobHistory.objects.create(
-        job=newjob, version=newjob.version,
-        change_author=user, change_date=newjob.change_date, comment='',
-        description=last_version.description, global_role=last_version.global_role
-    )
-
-    roles = []
-    for ur in UserRole.objects.filter(job=last_version):
-        roles.append(UserRole(job=new_version, user=ur.user, role=ur.role))
-    UserRole.objects.bulk_create(roles)
-
-    try:
-        fdata = FileData(last_version).filedata
-        for i in range(len(fdata)):
-            fdata[i]['type'] = str(fdata[i]['type'])
-        SaveFileData(fdata, new_version)
-    except Exception:
-        new_version.delete()
-        job.version -= 1
-        job.save()
-        raise
-    return newjob
 
 
 def remove_jobs_by_id(user, job_ids):
@@ -767,7 +515,7 @@ class JobVersionsData:
             if j.version == self._job.version:
                 self.last_version = j
 
-            title = j.change_date.astimezone(pytz.timezone(self._user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
+            title = j.change_date.astimezone(pytz.timezone(self._user.timezone)).strftime("%d.%m.%Y %H:%M:%S")
             if j.change_author:
                 title += ' ({0})'.format(j.change_author.get_full_name())
             if j.comment:
@@ -794,34 +542,6 @@ def check_new_parent(job, parent):
     return True
 
 
-def get_resource_data(data_format, accuracy, resource):
-    if data_format == 'hum':
-        wall = convert_time(resource.wall_time, accuracy)
-        cpu = convert_time(resource.cpu_time, accuracy)
-        mem = convert_memory(resource.memory, accuracy)
-    else:
-        wall = "%s %s" % (resource.wall_time, _('ms'))
-        cpu = "%s %s" % (resource.cpu_time, _('ms'))
-        mem = "%s %s" % (resource.memory, _('B'))
-    return [wall, cpu, mem]
-
-
-def get_user_time(user, milliseconds):
-    if user.extended.data_format == 'hum':
-        converted = convert_time(int(milliseconds), user.extended.accuracy)
-    else:
-        converted = "%s %s" % (int(milliseconds), _('ms'))
-    return converted
-
-
-def get_user_memory(user, bytes_val):
-    if user.extended.data_format == 'hum':
-        converted = convert_memory(int(bytes_val), user.extended.accuracy)
-    else:
-        converted = "%s %s" % (int(bytes_val), _('B'))
-    return converted
-
-
 class CompareFileSet:
     def __init__(self, job1, job2):
         self.j1 = job1
@@ -835,54 +555,38 @@ class CompareFileSet:
         self.__get_comparison()
 
     def __get_comparison(self):
+        files1 = dict(self.j1.versions.order_by('-version').first()
+                      .filesystem_set.order_by('name').values_list('name', 'file__hash_sum'))
+        files2 = dict(self.j2.versions.order_by('-version').first()
+                      .filesystem_set.order_by('name').values_list('name', 'file__hash_sum'))
 
-        def get_files(job):
-            files = []
-            last_v = job.versions.order_by('-version').first()
-            files_data = {}
-            for f in last_v.filesystem_set.only('parent_id', 'name'):
-                files_data[f.pk] = (f.parent_id, f.name)
-            for f in last_v.filesystem_set.exclude(file=None).select_related('file')\
-                    .only('name', 'parent_id', 'file__hash_sum'):
-                f_name = f.name
-                parent = f.parent_id
-                while parent is not None:
-                    f_name = files_data[parent][1] + '/' + f_name
-                    parent = files_data[parent][0]
-                files.append([f_name, f.file.hash_sum])
-            return files
+        for name, f1_hash in files1.items():
+            readable = is_readable(name)
+            file_type = 'unmatched1'
+            href = None
 
-        files1 = get_files(self.j1)
-        files2 = get_files(self.j2)
-        for f1 in files1:
-            if f1[0] not in list(x[0] for x in files2):
-                if is_readable(f1[0]):
-                    self.data['unmatched1'].insert(0, [f1[0], f1[1]])
+            if name in files2:
+                if f1_hash == files2[name]:
+                    file_type = 'same'
+                    if readable:
+                        href = reverse('jobs:file-content', args=[f1_hash])
                 else:
-                    self.data['unmatched1'].append([f1[0]])
-            else:
-                for f2 in files2:
-                    if f2[0] == f1[0]:
-                        is_rdb = is_readable(f1[0])
-                        if f2[1] == f1[1]:
-                            if is_rdb:
-                                self.data['same'].insert(0, [f1[0], f1[1]])
-                            else:
-                                self.data['same'].append([f1[0]])
-                        else:
-                            if is_rdb:
-                                self.data['diff'].insert(0, [f1[0], f1[1], f2[1]])
-                            else:
-                                self.data['diff'].append([f1[0]])
-                        break
-        for f2 in files2:
-            if f2[0] not in list(x[0] for x in files1):
-                if is_readable(f2[0]):
-                    self.data['unmatched2'].insert(0, [f2[0], f2[1]])
-                else:
-                    self.data['unmatched2'].append([f2[0]])
+                    file_type = 'diff'
+                    if readable:
+                        href = reverse('jobs:files-diff', args=[f1_hash, files2[name]])
+            elif readable:
+                href = reverse('jobs:file-content', args=[f1_hash])
+
+            self.data[file_type].append({'name': name, 'href': href})
+
+        for f2_name in set(files2) - set(files1):
+            self.data['unmatched2'].append({
+                'name': f2_name,
+                'href': reverse('jobs:file-content', args=[files2[f2_name]]) if is_readable(f2_name) else None
+            })
 
 
+# TODO: use serializer JobStatusSerializer
 def change_job_status(job, status):
     if not isinstance(job, Job) or status not in set(x[0] for x in JOB_STATUS):
         return
@@ -905,19 +609,19 @@ class CompareJobVersions:
         self.paths, self.files = self.__compare_files()
 
     def __user_roles(self):
-        set1 = set(uid for uid, in UserRole.objects.filter(job=self.v1).values_list('user_id'))
-        set2 = set(uid for uid, in UserRole.objects.filter(job=self.v2).values_list('user_id'))
+        set1 = set(uid for uid, in UserRole.objects.filter(job_version=self.v1).values_list('user_id'))
+        set2 = set(uid for uid, in UserRole.objects.filter(job_version=self.v2).values_list('user_id'))
         if set1 != set2:
             return [
-                UserRole.objects.filter(job=self.v1).order_by('user__last_name').select_related('user'),
-                UserRole.objects.filter(job=self.v2).order_by('user__last_name').select_related('user')
+                UserRole.objects.filter(job_version=self.v1).order_by('user__last_name').select_related('user'),
+                UserRole.objects.filter(job_version=self.v2).order_by('user__last_name').select_related('user')
             ]
         return None
 
     def __get_files(self, version):
         self.__is_not_used()
         tree = {}
-        for f in FileSystem.objects.filter(job=version).order_by('id').select_related('file'):
+        for f in FileSystem.objects.filter(job_version=version).order_by('id').select_related('file'):
             tree[f.id] = {'parent': f.parent_id, 'name': f.name, 'hashsum': f.file.hash_sum if f.file else None}
         files = {}
         for f_id in tree:
@@ -971,8 +675,8 @@ class GetJobDecisionResults:
     def __init__(self, job):
         self.job = job
         try:
-            self.start_date = self.job.solvingprogress.start_date
-            self.finish_date = self.job.solvingprogress.finish_date
+            self.start_date = self.job.decision.start_date
+            self.finish_date = self.job.decision.finish_date
         except ObjectDoesNotExist:
             raise BridgeException('The job was not solved')
         try:
@@ -1109,7 +813,8 @@ class GetJobDecisionResults:
         marks = {}
         reports = {}
 
-        for mr in MarkUnknownReport.objects.filter(report__root=self.job.reportroot).select_related('mark'):
+        for mr in MarkUnknownReport.objects.filter(report__root=self.job.reportroot)\
+                .select_related('mark', 'mark__component'):
             if mr.report_id not in reports:
                 reports[mr.report_id] = {'attrs': [], 'marks': []}
             reports[mr.report_id]['marks'].append(mr.mark.identifier)

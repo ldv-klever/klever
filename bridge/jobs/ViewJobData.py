@@ -19,13 +19,18 @@ from django.db.models import Q, Count, Case, When, BooleanField, Value
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
+from rest_framework import serializers, fields
+
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException
 
 from reports.models import ReportAttr, ComponentInstances, ReportUnknown
-from marks.models import MarkUnknownReport
+from marks.models import MarkUnknownReport, SafeReportTag, UnsafeReportTag
 
-from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
+from marks.serializers import SafeTagSerializer, UnsafeTagSerializer
+
+from users.utils import HumanizedValue
+from jobs.utils import SAFES, UNSAFES, TITLES
 
 
 COLORS = {
@@ -33,6 +38,30 @@ COLORS = {
     'orange': '#D05A00',
     'purple': '#930BBD',
 }
+
+
+class SafeReportTagsSerializer(serializers.ModelSerializer):
+    tag = SafeTagSerializer()
+    padding = serializers.SerializerMethodField()
+
+    def get_padding(self, instance):
+        return 13 * instance.tag.get_level()
+
+    class Meta:
+        model = SafeReportTag
+        fields = ('tag', 'report', 'number', 'padding')
+
+
+class UnsafeReportTagsSerializer(serializers.ModelSerializer):
+    tag = UnsafeTagSerializer()
+    padding = serializers.SerializerMethodField()
+
+    def get_padding(self, instance):
+        return 13 * instance.tag.get_level()
+
+    class Meta:
+        model = UnsafeReportTag
+        fields = ('tag', 'report', 'number', 'padding')
 
 
 class ViewJobData:
@@ -89,61 +118,31 @@ class ViewJobData:
             problems.append((_('Without marks'), '0_0'))
         return problems
 
+    def __get_tags_children(self, tags_list, parent):
+        children = []
+        parent_id = parent['tag']['id'] if parent else None
+        if parent:
+            children.append(parent)
+        for tag_data in tags_list:
+            if tag_data['tag']['parent'] == parent_id:
+                children.extend(self.__get_tags_children(tags_list, tag_data))
+        return children
+
     def __safe_tags_info(self):
-        safe_tag_filter = {}
+        queryset = self.report.safe_tags.all()
         if 'safe_tag' in self.view:
-            safe_tag_filter['tag__tag__%s' % self.view['safe_tag'][0]] = self.view['safe_tag'][1]
-
-        tree_data = []
-        for st in self.report.safe_tags.filter(**safe_tag_filter).order_by('tag__tag').select_related('tag'):
-            tree_data.append({
-                'id': st.tag_id,
-                'parent': st.tag.parent_id,
-                'name': st.tag.tag,
-                'number': st.number,
-                'href': '%s?tag=%s' % (reverse('reports:safes', args=[st.report_id]), st.tag_id),
-                'description': st.tag.description
-            })
-
-        def get_children(parent, padding):
-            children = []
-            if parent['id'] is not None:
-                parent['padding'] = padding * 13
-                children.append(parent)
-            for t in tree_data:
-                if t['parent'] == parent['id']:
-                    children.extend(get_children(t, padding + 1))
-            return children
-
-        return get_children({'id': None}, -1)
+            queryset = queryset.filter(**{'tag__tag__%s' % self.view['safe_tag'][0]: self.view['safe_tag'][1]})
+        queryset = queryset.order_by('tag__tag').select_related('tag')
+        tags_list = SafeReportTagsSerializer(instance=queryset, many=True).data
+        return self.__get_tags_children(tags_list, {})
 
     def __unsafe_tags_info(self):
-        unsafe_tag_filter = {}
+        queryset = self.report.unsafe_tags.all()
         if 'unsafe_tag' in self.view:
-            unsafe_tag_filter['tag__tag__%s' % self.view['unsafe_tag'][0]] = self.view['unsafe_tag'][1]
-
-        tree_data = []
-        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter).order_by('tag__tag').select_related('tag'):
-            tree_data.append({
-                'id': ut.tag_id,
-                'parent': ut.tag.parent_id,
-                'name': ut.tag.tag,
-                'number': ut.number,
-                'href': '%s?tag=%s' % (reverse('reports:unsafes', args=[ut.report_id]), ut.tag_id),
-                'description': ut.tag.description
-            })
-
-        def get_children(parent, padding):
-            children = []
-            if parent['id'] is not None:
-                parent['padding'] = padding * 13
-                children.append(parent)
-            for t in tree_data:
-                if t['parent'] == parent['id']:
-                    children.extend(get_children(t, padding + 1))
-            return children
-
-        return get_children({'id': None}, -1)
+            queryset = queryset.filter(**{'tag__tag__%s' % self.view['unsafe_tag'][0]: self.view['unsafe_tag'][1]})
+        queryset = queryset.order_by('tag__tag').select_related('tag')
+        tags_list = UnsafeReportTagsSerializer(instance=queryset, many=True).data
+        return self.__get_tags_children(tags_list, {})
 
     def __resource_info(self):
         instances = {}
@@ -160,10 +159,11 @@ class ViewJobData:
 
         for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters))\
                 .select_related('component'):
-            if cr.component.name not in res_data:
-                res_data[cr.component.name] = {}
-            rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, cr)
-            res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
+            res_data[cr.component.name] = "{} {} {}".format(
+                HumanizedValue(cr.wall_time, user=self.user).timedelta,
+                HumanizedValue(cr.cpu_time, user=self.user).timedelta,
+                HumanizedValue(cr.memory, user=self.user).memory,
+            )
 
         resource_data = [
             {'component': x, 'val': res_data[x], 'instances': instances.get(x, '')} for x in sorted(res_data)
@@ -174,11 +174,13 @@ class ViewJobData:
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             res_total = self.report.resources_cache.filter(component=None).first()
-            if res_total is not None:
-                rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, res_total)
-                resource_data.append({
-                    'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2]), 'instances': ''
-                })
+            if res_total:
+                resources_value = "{} {} {}".format(
+                    HumanizedValue(res_total.wall_time, user=self.user).timedelta,
+                    HumanizedValue(res_total.cpu_time, user=self.user).timedelta,
+                    HumanizedValue(res_total.memory, user=self.user).memory,
+                )
+                resource_data.append({'component': _('Total'), 'val': resources_value, 'instances': ''})
         return resource_data
 
     def __unknowns_info(self):

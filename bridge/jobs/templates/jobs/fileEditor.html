@@ -1,0 +1,32 @@
+{% load i18n %}
+
+<h5 class="purple-title">&nbsp;<span class="editor-filename"></span> <span class="editor-status" style="display:none;">({% trans 'unsaved' %})</span><i class="ui help blue link icon editor-help-icon" style="float: right"></i></h5>
+<div class="editor-display"></div>
+<div class="ui fluid popup right transition hidden editor-help">
+    <p style="color: red;">{% trans 'The editor must be focused for commands below' %}</p>
+    <div class="ui bulleted list">
+        <div class="item"><b>Ctrl-S:</b> {% trans "save the file changes (it doesn't save the job)" %}</div>
+        <div class="item"><b>Ctrl-F:</b> {% trans 'search in file' %}</div>
+        <div class="item"><b>Ctrl-G:</b> {% trans 'find next' %}</div>
+        <div class="item"><b>Shift-Ctrl-G:</b> {% trans 'find previous' %}</div>
+        <div class="item"><b>Shift-Ctrl-F:</b> {% trans 'replace' %}</div>
+        <div class="item"><b>Shift-Ctrl-R:</b> {% trans 'replace all' %}</div>
+        <div class="item"><b>Ctrl-D:</b> {% trans 'deletes the whole line under the cursor' %}</div>
+        <div class="item"><b>Ctrl-Z:</b> {% trans 'undo the last change' %}</div>
+        <div class="item"><b>Ctrl-Y/Ctrl-Shift-Z:</b> {% trans 'redo the last undone change' %}</div>
+        <div class="item"><b>Ctrl-Home:</b> {% trans 'move the cursor to the start of the file' %}</div>
+        <div class="item"><b>Ctrl-End:</b> {% trans 'move the cursor to the end of the file' %}</div>
+        <div class="item"><b>Alt-Left:</b> {% trans 'move the cursor to the start of the line' %}</div>
+        <div class="item"><b>Alt-Right:</b> {% trans 'move the cursor to the end of the line' %}</div>
+        <div class="item"><b>Ctrl-Backspace:</b> {% trans 'delete to the left of the group before the cursor' %}</div>
+        <div class="item"><b>Ctrl-Delete:</b> {% trans 'delete to the start of the group after the cursor' %}</div>
+        <div class="item"><b>Shift-Tab:</b> {% trans 'auto-indent the current line or selection' %}</div>
+        <div class="item"><b>Ctrl-]:</b> {% trans 'indent the current line or selection by one indent unit' %}</div>
+        <div class="item"><b>Ctrl-[:</b> {% trans 'dedent the current line or selection by one indent unit' %}</div>
+        <div class="item"><b>Tab:</b> {% trans 'if something is selected, indent it by one indent unit; if nothing is selected, insert a tab character' %}</div>
+    </div>
+    <div><b>{% trans 'Other key bindings' %}:</b> Home, Up, Down, Left, Right, PageUp, PageDown, Ctrl-A, Ctrl-Left, Ctrl-Right, Delete, Backspace, Enter, Insert</div>
+</div>
+
+{# Cached opened files #}
+<div class="editor-cache" hidden></div>

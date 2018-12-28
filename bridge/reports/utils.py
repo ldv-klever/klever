@@ -36,8 +36,7 @@ from reports.models import ReportComponent, AttrFile, Attr, AttrName, ReportAttr
     ReportUnknown, ReportRoot
 from marks.models import UnknownProblem, SafeTag, UnsafeTag
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS
-from jobs.utils import get_resource_data, get_user_time, get_user_memory
+from users.utils import DEF_NUMBER_OF_ELEMENTS, HumanizedValue
 from marks.utils import SAFE_COLOR, UNSAFE_COLOR
 from reports.querysets import LeavesQuery
 
@@ -118,17 +117,13 @@ def get_parents(report):
     return parents_data
 
 
-def get_leaf_resources(user, report):
-    if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
-        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, report)
-        return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
-    return None
-
-
 def report_resources(report, user):
     if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
-        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, report)
-        return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
+        return {
+            'wall_time': HumanizedValue(report.wall_time, user=user).timedelta,
+            'cpu_time': HumanizedValue(report.cpu_time, user=user).timedelta,
+            'memory': HumanizedValue(report.memory, user=user).memory
+        }
     return None
 
 
@@ -279,11 +274,11 @@ class SafesTable:
                             for t in sorted(tags_numbers)
                         ])
                 elif col == 'verifiers:cpu':
-                    val = get_user_time(self.user, safes[rep_id]['cpu_time'])
+                    val = HumanizedValue(int(safes[rep_id]['cpu_time']), user=self.user).timedelta
                 elif col == 'verifiers:wall':
-                    val = get_user_time(self.user, safes[rep_id]['wall_time'])
+                    val = HumanizedValue(int(safes[rep_id]['wall_time']), user=self.user).timedelta
                 elif col == 'verifiers:memory':
-                    val = get_user_memory(self.user, safes[rep_id]['memory'])
+                    val = HumanizedValue(int(safes[rep_id]['memory']), user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
@@ -432,11 +427,11 @@ class UnsafesTable:
                     if 'tags' in unsafes and unsafes[rep_id]['tags']:
                         val = ', '.join(unsafes[rep_id]['tags'])
                 elif col == 'verifiers:cpu':
-                    val = get_user_time(self.user, unsafes[rep_id]['cpu_time'])
+                    val = HumanizedValue(int(unsafes[rep_id]['cpu_time']), user=self.user).timedelta
                 elif col == 'verifiers:wall':
-                    val = get_user_time(self.user, unsafes[rep_id]['wall_time'])
+                    val = HumanizedValue(int(unsafes[rep_id]['wall_time']), user=self.user).timedelta
                 elif col == 'verifiers:memory':
-                    val = get_user_memory(self.user, unsafes[rep_id]['memory'])
+                    val = HumanizedValue(int(unsafes[rep_id]['memory']), user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1
@@ -576,13 +571,13 @@ class UnknownsTable:
                                          for p in sorted(pr_numbers)])
                 elif col == 'verifiers:cpu':
                     if unknowns[rep_id]['cpu_time']:
-                        val = get_user_time(self.user, unknowns[rep_id]['cpu_time'])
+                        val = HumanizedValue(int(unknowns[rep_id]['cpu_time']), user=self.user).timedelta
                 elif col == 'verifiers:wall':
                     if unknowns[rep_id]['wall_time']:
-                        val = get_user_time(self.user, unknowns[rep_id]['wall_time'])
+                        val = HumanizedValue(int(unknowns[rep_id]['wall_time']), user=self.user).timedelta
                 elif col == 'verifiers:memory':
                     if unknowns[rep_id]['memory']:
-                        val = get_user_memory(self.user, unknowns[rep_id]['memory'])
+                        val = HumanizedValue(int(unknowns[rep_id]['memory']), user=self.user).memory
                 values_row.append({'value': val, 'color': color, 'href': href})
             values_data.append(values_row)
             cnt += 1

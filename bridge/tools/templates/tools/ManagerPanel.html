@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -26,7 +26,7 @@
 {% endblock %}
 
 {% block body_block %}
-    {% if user.extended.role != '2' %}
+    {% if user.role != '2' %}
         <h1>{% trans 'No access' %}</h1>
     {% else %}
         <div class="ui grid">

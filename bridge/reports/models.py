@@ -17,14 +17,17 @@
 
 import os
 import time
+
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from django.contrib.auth.models import User
 from django.core.files import File
 from django.utils.timezone import now
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
+from mptt.models import MPTTModel, TreeForeignKey
+
 from bridge.utils import RemoveFilesBeforeDelete, logger
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
+from users.models import User
 from jobs.models import Job
 
 
@@ -77,9 +80,9 @@ class Attr(models.Model):
         index_together = ["name", "value"]
 
 
-class Report(models.Model):
+class Report(MPTTModel):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
+    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
     identifier = models.CharField(max_length=255, unique=True)
 
     class Meta:

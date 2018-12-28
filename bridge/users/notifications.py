@@ -19,12 +19,12 @@ import json
 import smtplib
 from email.mime.text import MIMEText
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
 from bridge.vars import JOB_ROLES, USER_ROLES
 from bridge.utils import logger
 from jobs.models import Job
+from users.models import User
 
 
 SUBJECTS = {
@@ -84,7 +84,7 @@ class Notify(object):
             if user.email is not None and len(user.email) > 0:
                 message = UserMessage(
                     user, self.job, self.type, add_args).message
-                activate(user.extended.language)
+                activate(user.language)
                 if isinstance(message, MIMEText):
                     message['From'] = self.email
                     try:
@@ -107,7 +107,7 @@ class UserMessage(object):
         self.is_operator = False
         self.is_observer = False
         self.is_expert = False
-        self.is_manager = (self.user.extended.role == USER_ROLES[2][0])
+        self.is_manager = (self.user.role == USER_ROLES[2][0])
         self.change_user = None
         self.__get_job_prop(job)
         self.message = self.__get_message(job)

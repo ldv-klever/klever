@@ -16,18 +16,17 @@
 #
 
 from django.urls import path
+
 from users import views
 
 
 urlpatterns = [
-    path('signin/', views.user_signin, name='login'),
-    path('signout/', views.user_signout, name='logout'),
-    path('register/', views.register, name='register'),
-    path('edit/', views.edit_profile, name='edit_profile'),
+    path('signin/', views.BridgeLoginView.as_view(), name='login'),
+    path('signout/', views.BridgeLogoutView.as_view(), name='logout'),
+
+    path('register/', views.UserRegisterView.as_view(), name='register'),
+    path('edit/', views.EditProfileView.as_view(), name='edit_profile'),
     path('profile/<int:user_id>', views.show_profile, name='show_profile'),
-    path('service_signin/', views.service_signin),
-    path('service_signout/', views.service_signout),
-    path('ajax/save_notifications/', views.save_notifications),
 
     # View actions
     path('ajax/save_view/', views.save_view),

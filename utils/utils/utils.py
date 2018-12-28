@@ -40,7 +40,7 @@ class BridgeError(IOError):
 class Session:
     def __init__(self, args):
         self._args = args
-        self._host = self.__check_host(args.host)
+        self._host = self.__get_host(args.host)
 
         if args.username is None:
             raise ValueError("Username wasn't got")
@@ -52,17 +52,15 @@ class Session:
 
     def __enter__(self):
         self.session = requests.Session()
-        # Get initial value of CSRF token via useless GET request
-        self.__request('/users/service_signin/')
 
         # Sign in
-        self.__request('/users/service_signin/', {'username': self._username, 'password': self._password})
+        resp = self.__request('service/signin/', 'POST', data={
+            'username': self._username, 'password': self._password
+        })
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.__request('/users/service_signout/')
-
-    def __check_host(self, host):
+    def __get_host(self, host):
         self.__is_not_used()
 
         if not isinstance(host, str) or len(host) == 0:
@@ -73,33 +71,24 @@ class Session:
             host = host[:-1]
         return host
 
-    def __request(self, path_url, data=None, **kwargs):
+    def __request(self, path_url, method='GET', **kwargs):
         url = self._host + path_url
-        method = 'POST' if data else 'GET'
+        resp = self.session.request(method, url, **kwargs)
 
-        if data is None:
-            resp = self.session.get(url, **kwargs)
-        else:
-            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-            resp = self.session.post(url, data, **kwargs)
-
-        if resp.status_code != 200:
+        if resp.status_code >= 300:
             # with open('response error.html', 'w', encoding='utf8') as fp:
             #     fp.write(resp.text)
             status_code = resp.status_code
             resp.close()
-            raise UnexpectedStatusCode(
-                'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code, method, url)
-            )
-        if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-            error = resp.json()['error']
-            resp.close()
-            raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'.format(error, method, url))
-        else:
-            return resp
+            if resp.headers['content-type'] == 'application/json':
+                raise BridgeError('Got error "{0}" when send "{1}" request to "{2}"'
+                                  .format(resp.json(), method, url))
+            raise UnexpectedStatusCode('Got unexpected status code "{0}" when send "{1}" request to "{2}"'
+                                       .format(status_code, method, url))
+        return resp
 
-    def __download_archive(self, path_url, data, archive):
-        resp = self.__request(path_url, data, stream=True)
+    def __download_archive(self, path_url, archive):
+        resp = self.__request(path_url, stream=True)
 
         if archive is None:
             # Get filename from content disposition
@@ -124,18 +113,18 @@ class Session:
     def __get_job_id(self, job):
         if len(job) == 0:
             raise ValueError('The job identifier or its name is not set')
-        resp = self.__request('/jobs/get_job_field/', {'job': job, 'field': 'id'})
+        resp = self.__request('/jobs/get_job_field/', 'POST', data={'job': job, 'field': 'id'})
         return resp.json()['id']
 
     def download_job(self, job, archive):
-        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), None, archive)
+        return self.__download_archive('/jobs/downloadjob/{0}/'.format(self.__get_job_id(job)), archive)
 
     def upload_job(self, parent, archive):
         if len(parent) == 0:
             raise ValueError('The parent identifier or its name is not set')
-        resp = self.__request('/jobs/get_job_field/', {'job': parent, 'field': 'identifier'})
+        resp = self.__request('/jobs/get_job_field/', 'POST', data={'job': parent, 'field': 'identifier'})
         resp = self.__request(
-            '/jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), {},
+            '/jobs/upload_jobs/{0}/'.format(resp.json()['identifier']), 'POST',
             files=[('file', open(archive, 'rb', buffering=0))], stream=True
         )
         if resp.headers['content-type'] == 'application/json' and 'errors' in resp.json():
@@ -145,7 +134,7 @@ class Session:
 
     def upload_reports(self, job, archive):
         self.__request(
-            '/jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), {},
+            '/jobs/upload_reports/{0}/'.format(self.__get_job_id(job)), 'POST',
             files=[('archive', open(archive, 'rb', buffering=0))], stream=True
         )
 
@@ -160,35 +149,37 @@ class Session:
             fp.write(resp.json()['data'])
 
     def copy_job(self, job, name=None):
+        request_data = {'parent': self.__get_job_id(job)}
         if isinstance(name, str) and len(name) > 0:
-            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {'name': name})
-        else:
-            resp = self.__request('/jobs/save_job_copy/{0}/'.format(self.__get_job_id(job)), {})
+            request_data['name'] = name
+        resp = self.__request('/jobs/api/duplicate/', 'POST', data=request_data)
         return resp.json()['identifier']
 
     def copy_job_version(self, job):
-        self.__request('/jobs/copy_job_version/{0}/'.format(self.__get_job_id(job)), {})
+        self.__request('/jobs/api/duplicate/{0}/'.format(self.__get_job_id(job)), 'PATCH')
 
     def replace_files(self, job, new_files):
+        job_id = self.__get_job_id(job)
         for f_name in new_files:
             with open(new_files[f_name], mode='rb', buffering=0) as fp:
                 self.__request(
-                    '/jobs/replace_job_file/{0}/'.format(self.__get_job_id(job)),
-                    {'name': f_name}, files=[('file', fp)], stream=True
+                    '/jobs/api/replace-job-file/', 'POST',
+                    data={'name': f_name, 'job': job_id},
+                    files=[('file', fp)], stream=True
                 )
 
     def start_job_decision(self, job, data_fp):
         job_id = self.__get_job_id(job)
         if data_fp:
             self.__request(
-                '/jobs/run_decision/{0}/'.format(job_id), {'mode': 'file_conf'},
+                '/jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'file_conf'},
                 files=[('file_conf', data_fp)], stream=True
             )
         else:
-            self.__request('/jobs/run_decision/{0}/'.format(job_id), {'mode': 'fast'})
+            self.__request('/jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
-        return self.__download_archive('/marks/download-all/', None, archive)
+        return self.__download_archive('/marks/download-all/', archive)
 
     def __is_not_used(self):
         pass

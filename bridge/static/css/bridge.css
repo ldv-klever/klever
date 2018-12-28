@@ -129,3 +129,7 @@ body {
 .ui.buttons > .button {
     justify-content: center;
 }
+
+.errorlist {
+    color: #ff414c;
+}

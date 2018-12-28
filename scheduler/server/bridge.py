@@ -25,6 +25,7 @@ class Server(server.AbstractServer):
     """Exchange with gateway via net."""
 
     session = None
+    scheduler_type = None
 
     def register(self, scheduler_type=None):
         """
@@ -33,11 +34,8 @@ class Server(server.AbstractServer):
         :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
         # Create session
-        if scheduler_type:
-            data = {"scheduler": scheduler_type}
-        else:
-            data = {}
-        self.session = bridge.Session(self.logger, self.conf["name"], self.conf["user"], self.conf["password"], data)
+        self.scheduler_type = scheduler_type
+        self.session = bridge.Session(self.logger, self.conf["name"], self.conf["user"], self.conf["password"])
 
     def exchange(self, tasks):
         """
@@ -94,9 +92,9 @@ class Server(server.AbstractServer):
         tools_list = list()
         for tool in tools.keys():
             for version in tools[tool]:
-                tools_list.append({'tool': tool, 'version': version})
+                tools_list.append({'name': tool, 'version': version})
 
-        data = {"tools data": json.dumps(tools_list, ensure_ascii=False, sort_keys=True, indent=4)}
+        data = {'scheduler': self.scheduler_type, 'tools': tools_list}
         self.session.json_exchange("service/update_tools/", data)
 
     def stop(self):

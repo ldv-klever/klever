@@ -29,7 +29,7 @@ from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
     UNSAFE_VERDICTS
-from bridge.utils import unique_id, get_templated_text
+from bridge.utils import unique_id
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges,\
@@ -37,7 +37,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChan
     MarkUnsafeCompare, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, ConvertedTraces, \
     MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike, UnknownProblem
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS
+from users.utils import DEF_NUMBER_OF_ELEMENTS, HumanizedValue
 from jobs.utils import JobAccess
 from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR, MarkAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -458,9 +458,10 @@ class MarksList:
                         val = '%s %s' % (marks[m_id]['first_name'], marks[m_id]['last_name'])
                         href = reverse('users:show_profile', args=[int(marks[m_id]['author_id'])])
                 elif col == 'change_date':
+                    # TODO: check date type and use Humanize
                     val = marks[m_id]['change_date']
-                    if self.user.extended.data_format == 'hum':
-                        val = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
+                    if self.user.data_format == 'hum':
+                        val = HumanizedValue.get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
                 elif col == 'source':
                     val = model_map[self.type](type=marks[m_id]['source']).get_type_display()
                 elif col == 'total_similarity':

@@ -51,7 +51,7 @@ class NewMark:
         if not isinstance(self._args.get('comment'), str):
             self._args['comment'] = ''
 
-        if self._user.extended.role != USER_ROLES[2][0]:
+        if self._user.role != USER_ROLES[2][0]:
             self._args['is_modifiable'] = MarkUnknown._meta.get_field('is_modifiable').default
         elif not isinstance(self._args.get('is_modifiable'), bool):
             raise ValueError('Wrong type: is_modifiable (%s)' % type(self._args.get('is_modifiable')))

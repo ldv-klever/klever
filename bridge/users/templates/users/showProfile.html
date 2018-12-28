@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -24,15 +24,15 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="three wide column">
-            <h3><cite>{{ target.first_name }} {{ target.last_name }}</cite></h3>
+            <h3><cite>{{ target.get_full_name }}</cite></h3>
             <div class="ui list">
                 {% if target.email %}
                     <div class="item"><span style="color: #a7aab4">{% trans 'Email' %}: </span><ins style="color: #507ab4">{{ target.email }}</ins></div>
                 {% endif %}
                 <div class="item"><span style="color: #a7aab4">{% trans 'Administrator' %}: </span>{% if target.is_superuser %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.extended.get_role_display }}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.extended.timezone }}</div>
-                <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.extended.get_language_display }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.get_role_display }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.timezone }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.get_language_display }}</div>
             </div>
         </div>
         <div class="thirteen wide column">

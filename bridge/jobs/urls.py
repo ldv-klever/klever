@@ -16,7 +16,7 @@
 #
 
 from django.urls import path, re_path
-from jobs import views
+from jobs import views, api
 
 
 urlpatterns = [
@@ -25,26 +25,28 @@ urlpatterns = [
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
     path('decision_results/<int:pk>/', views.DecisionResults.as_view()),
     path('progress/<int:pk>/', views.JobProgress.as_view()),
-    path('status/<int:pk>/', views.JobStatus.as_view()),
+    path('api/job-status/<int:pk>/', api.JobStatusView.as_view()),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
 
     # Main actions with jobs
     path('remove/', views.RemoveJobsView.as_view()),
-    path('save_job_copy/<int:pk>/', views.SaveJobCopyView.as_view()),
-    path('decision_results_json/<int:pk>/', views.DecisionResultsJson.as_view()),
+    path('api/duplicate/', api.DuplicateJobAPIView.as_view(), name='api-duplicate-job'),
+    path('api/duplicate/<int:pk>/', api.DuplicateJobAPIView.as_view(), name='api-duplicate-version'),
+
+    path('api/decision-results/<int:pk>/', api.DecisionResultsAPIView.as_view(), name='api-decision-results'),
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
-    path('get_version_data/<int:job_id>/<int:version>/', views.GetJobHistoryData.as_view()),
-    path('get_version_roles/<int:job_id>/<int:version>/', views.GetJobHistoryRoles.as_view()),
-    path('get_version_files/<int:job_id>/<int:version>/', views.GetJobHistoryFiles.as_view()),
+    path('api/save-job/<int:pk>/', api.SaveJobView.as_view(), name='api-save-job'),
+    path('api/job-version/<int:job_id>/<int:version>/', api.JobVersionView.as_view(), name='api-job-version'),
 
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
-    path('upload_file/', views.UploadJobFileView.as_view()),
-    path('getfilecontent/<slug:hashsum>/', views.GetFileContentView.as_view()),
-    path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', views.GetFilesDiffView.as_view()),
-    path('replace_job_file/<int:job_id>/', views.ReplaceJobFileView.as_view()),
+    path('api/file/', api.CreateFileView.as_view()),
+    path('api/file/<slug:hashsum>/', api.FileContentView.as_view(), name='file-content'),
+
+    path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', api.GetFilesDiffView.as_view(), name='files-diff'),
+    path('api/replace-job-file/', api.ReplaceJobFileView.as_view()),
     path('downloadcompetfile/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='download_file_for_compet'),
 
     # Download/upload actions
@@ -57,7 +59,6 @@ urlpatterns = [
     # Actions with job versions
     path('remove_versions/<int:pk>/', views.RemoveJobVersions.as_view()),
     path('compare_versions/<int:pk>/', views.CompareJobVersionsView.as_view()),
-    path('copy_job_version/<int:pk>/', views.CopyJobVersionView.as_view()),
 
     # Actions with job solving
     path('prepare_run/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare_run'),

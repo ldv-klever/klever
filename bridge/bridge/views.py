@@ -21,13 +21,13 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils.translation import ugettext as _, activate
+from django.views.defaults import bad_request, permission_denied, page_not_found, server_error
 
 from tools.profiling import unparallel_group
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR
 from bridge.utils import logger, BridgeErrorResponse, BridgeException
 from bridge.populate import Population
 
-from users.models import Extended
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
 from reports.models import AttrName
 
@@ -43,26 +43,33 @@ def index_page(request):
 @login_required
 def population(request):
     try:
-        activate(request.user.extended.language)
+        activate(request.user.language)
     except ObjectDoesNotExist:
         activate(request.LANGUAGE_CODE)
-    if not request.user.extended or request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return BridgeErrorResponse(_("You don't have an access to this page"))
-    need_service = (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0)
     if request.method == 'POST':
-        service_username = request.POST.get('service_username', '')
-        if len(service_username) == 0:
-            service_username = None
-        if need_service and service_username is None:
-            return BridgeErrorResponse(_("Can't populate without Manager and service user"))
         try:
-            changes = Population(
-                user=request.user, service=(service_username, request.POST.get('service_password'))
-            ).changes
+            return render(request, 'bridge/Population.html', {'changes': Population(user=request.user).changes})
         except BridgeException as e:
-            return render(request, 'Population.html', {'error': str(e)})
+            return render(request, 'bridge/Population.html', {'error': str(e)})
         except Exception as e:
             logger.exception(e)
-            return render(request, 'Population.html', {'error': str(UNKNOWN_ERROR)})
-        return render(request, 'Population.html', {'changes': changes})
-    return render(request, 'Population.html', {'need_service': need_service})
+            return render(request, 'bridge/Population.html', {'error': str(UNKNOWN_ERROR)})
+    return render(request, 'bridge/Population.html', {})
+
+
+def error_400_view(request, exception):
+    return bad_request(request, exception, template_name='bridge/400.html')
+
+
+def error_403_view(request, exception):
+    return permission_denied(request, exception, template_name='bridge/403.html')
+
+
+def error_404_view(request, exception):
+    return page_not_found(request, exception, template_name='bridge/404.html')
+
+
+def error_500_view(request):
+    return server_error(request, template_name='bridge/500.html')

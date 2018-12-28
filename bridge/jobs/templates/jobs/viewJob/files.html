@@ -1,0 +1,48 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{# Requires 'jobs/js/jobFilesView.js' #}
+{% load i18n %}
+
+<div id="{{ div_id }}">
+    <div class="file-tree"></div>
+
+    {# Modal with file content #}
+    <div id="filetree_file_content_modal" class="ui dinamic large modal">
+        <div class="content">
+            <div class="ui grid">
+                <div class="fourteen wide column center aligned"><h3 class="ui header modal-title"></h3></div>
+                <div class="two wide column right aligned">
+                    <button class="ui icon red button modal-cancel"><i class="remove icon"></i></button>
+                </div>
+            </div>
+            <div class="filecontent ui olive segment"></div>
+        </div>
+    </div>
+</div>
+
+{# Initialize files tree #}
+<script type="application/javascript">
+    jQuery(function () {
+        var files_tree = new FilesTree('{{ div_id }}');
+        files_tree.set_labels({
+            'view': "{% trans 'View' %}",
+            'download': "{% trans 'Download' %}"
+        });
+        files_tree.initialize({{ data|safe }});
+    });
+</script>

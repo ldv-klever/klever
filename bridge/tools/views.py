@@ -38,7 +38,7 @@ from tools.profiling import unparallel_group, ProfileData, clear_old_logs, ExecL
 
 @login_required
 def manager_tools(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all(),
@@ -51,10 +51,10 @@ def manager_tools(request):
 @login_required
 @unparallel_group([Component])
 def rename_component(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     try:
         component = Component.objects.get(pk=int(request.POST.get('component_id', 0)))
@@ -73,10 +73,10 @@ def rename_component(request):
 @login_required
 @unparallel_group([Component])
 def clear_components(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(Component).delete()
     return JsonResponse({'message': _("All unused components were deleted, please reload the page")})
@@ -85,10 +85,10 @@ def clear_components(request):
 @login_required
 @unparallel_group([UnknownProblem])
 def clear_problems(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(UnknownProblem).delete()
     return JsonResponse({'message': _("All unused problems were deleted, please reload the page")})
@@ -97,10 +97,10 @@ def clear_problems(request):
 @login_required
 @unparallel_group([JobFile, ConvertedTraces, Computer, Component, UnknownProblem])
 def clear_system(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     ClearFiles()
     objects_without_relations(Computer).delete()
@@ -112,10 +112,10 @@ def clear_system(request):
 @login_required
 @unparallel_group([Job])
 def recalculation(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.extended.role != USER_ROLES[2][0]:
+    if request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     if 'type' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -131,13 +131,13 @@ def recalculation(request):
 
 @login_required
 def view_call_logs(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     return render(request, "tools/CallLogs.html", {})
 
 
 def call_list(request):
-    activate(request.user.extended.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+    activate(request.user.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
         return HttpResponse('<h1>Unknown error</h1>')
     action = request.POST.get('action')
     if action == 'between':
@@ -159,8 +159,8 @@ def call_list(request):
 
 
 def call_statistic(request):
-    activate(request.user.extended.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+    activate(request.user.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
         return HttpResponse('<h1>Unknown error</h1>')
     action = request.POST.get('action')
     data = None
@@ -181,8 +181,8 @@ def call_statistic(request):
 
 
 def processing_list(request):
-    activate(request.user.extended.language)
-    if not request.user.is_authenticated or request.user.extended.role != USER_ROLES[2][0]:
+    activate(request.user.language)
+    if not request.user.is_authenticated or request.user.role != USER_ROLES[2][0]:
         return HttpResponse('<h1>Unknown error</h1>')
     return render(request, "tools/ProcessingRequests.html", {
         'data': ProfileData().processing(), 'locked': LockTable.objects.filter(locked=True)
@@ -190,16 +190,16 @@ def processing_list(request):
 
 
 def clear_call_logs(request):
-    activate(request.user.extended.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+    activate(request.user.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': 'Unknown error'})
     clear_old_logs()
     return JsonResponse({'message': _('Logs were successfully cleared')})
 
 
 def clear_tasks(request):
-    activate(request.user.extended.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+    activate(request.user.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
         return JsonResponse({'error': 'Unknown error'})
     Task.objects.exclude(progress__job__status=JOB_STATUS[2][0]).delete()
     return JsonResponse({'message': _('Tasks were successfully deleted')})

@@ -15,160 +15,213 @@
  * limitations under the License.
  */
 
-var def_file_to_open = 'job.json';
+// (function($) { $.fn.getCodeMirror = function() { return (this).find('.CodeMirror')[0].CodeMirror } }(jQuery));
 
-(function($) { $.fn.getCodeMirror = function() { return (this).find('.CodeMirror')[0].CodeMirror } }(jQuery));
+function FilesTree(tree_id, editor_id) {
+    var tree_root = $('#' + tree_id);
+    this.tree_div = tree_root.find('.file-tree').first();
+    this.tree_upload_modal = tree_root.find('#filetree_upload_model').first();
+    this.tree_replace_modal = tree_root.find('#filetree_replace_modal').first();
+    this.tree_obj = null;
 
-function check_filename(str) {
-    if (str.length > 0) {
-        if (isASCII(str) || str.length < 30) {
-            return true;
-        }
-        else {
-            err_notify($("#error__filename_not_ascii").text());
-            return false;
-        }
-    }
-    err_notify($('#error__name_required').text());
-    return false;
+    this.mirror = null;
+    this.editor_div = $('#' + editor_id);
+    this.editor_status = this.editor_div.find('.editor-status').first();
+    this.editor_display = this.editor_div.find('.editor-display').first();
+    this.editor_filename = this.editor_div.find('.editor-filename').first();
+    this.editor_cache = this.editor_div.find('.editor-cache').first();
+
+    this.upload_file_url = '/jobs/api/file/';
+    this.get_file_url = '/jobs/api/file/{0}/';
+    this.download_file_url = '/jobs/downloadfile/{0}/?name={1}';
+    this.def_file_to_open = 'job.json';
+
+    this.messages = {
+        not_ascii: 'File name is not ascii',
+        filename_required: 'File name is required',
+        file_commited: 'The file was commited',
+        file_not_commited: 'The file was not commited',
+        file_required: 'Please select the file'
+    };
+    this.labels = {
+        'new': 'New',
+        'folder': 'Folder',
+        'file': 'File',
+        'upload': 'Upload',
+        'rename': 'Rename',
+        'delete': 'Delete',
+        'replace': 'Replace',
+        'download': 'Download'
+    };
+
+    this.icons = {
+        'file': 'file icon',
+        'download': 'download icon',
+        'folder_out': 'folder outline icon',
+        'file_out': 'file outline icon',
+        'upload': 'upload icon',
+        'rename': 'pencil icon',
+        'remove': 'remove icon',
+        'arch_vio': 'violet archive icon',
+        'folder_vio': 'violet folder icon'
+    };
+
+    return this;
 }
 
-function reselect_node(inst, node) {
-    var doc = $('#editfile_area').getCodeMirror();
-    inst.deselect_node(node);
-    doc.setValue('');
-    doc.setOption('readOnly', true);
-    inst.select_node(node);
-}
+FilesTree.prototype.ready_for_save = function() {
+    return this.editor_status.is(':hidden');
+};
 
-function uploadFileAction(data) {
-    var inst = $.jstree.reference(data.reference), node = inst.get_node(data.reference),
-        upload_file_modal = $('#upload_file_modal'), filename = $('#upload_file_name');
+FilesTree.prototype.serialize = function() {
+    return JSON.stringify(this.tree_obj.get_json('#', {'no_state': true,  'no_li_attr': true,  'no_a_attr': true}));
+};
 
-    upload_file_modal.find('.btn-file :file').on('fileselect', function (event, numFiles, label) {filename.val(label)});
+FilesTree.prototype.get_menu = function(node) {
+    var instance = this;
 
-    upload_file_modal.modal('show');
+    var tmp = $.jstree.defaults.contextmenu.items(),
+        node_type = instance.tree_obj.get_type(node);
+    delete tmp.ccp;
 
-    var confirm_btn = $('#upload_file_confirm');
-    confirm_btn.unbind('click');
-    confirm_btn.click(function () {
-        if ($('#upload_file_input').val().length <= 0) {
-            err_notify($('#error__nofile_selected').text());
-            return false;
-        }
-        if (!check_filename(filename.val())) {
-            return false;
-        }
-        inst.create_node(node, {'type': 'file'}, "last", function(new_node) {
-            setTimeout(function() {
-                var form_data = new FormData(),
-                    file_input = $('#upload_file_input');
-                form_data.append('file', file_input[0].files[0]);
-                confirm_btn.addClass('disabled');
-                $.ajax({
-                    url: '/jobs/upload_file/', data: form_data,
-                    dataType: 'json', processData: false, type: 'POST', contentType: false,
-                    mimeType: 'multipart/form-data', async: false,
-                    success: function (resp) {
-                        inst.rename_node(new_node, filename.val());
-                        inst.open_node(node);
-                        confirm_btn.removeClass('disabled');
-                        resp.error ? err_notify(resp.error) : new_node.data = {hashsum: resp.hashsum};
-                        upload_file_modal.modal('hide');
-                        filename.val('');
-                        file_input.replaceWith(file_input.clone(true));
-                    }
-                });
-            }, 0);
-        });
-    });
-}
-
-function replace_file_action(data) {
-    var inst = $.jstree.reference(data.reference), node = inst.get_node(data.reference),
-        replace_file_modal = $('#replace_file_modal'), filename = $('#replace_file_name');
-
-    replace_file_modal.find('.btn-file :file').on('fileselect', function (event, numFiles, label) {filename.val(label)});
-    $('#replaced_file_name').text(node.text);
-
-    replace_file_modal.modal('show');
-
-    var confirm_btn = $('#replace_file_confirm'), file_input = $('#replace_file_input');
-    confirm_btn.unbind('click');
-    confirm_btn.click(function () {
-        if (file_input.val().length <= 0) {
-            err_notify($('#error__nofile_selected').text());
-            return false;
-        }
-        if (!check_filename(filename.val())) {
-            return false;
-        }
-        var form_data = new FormData();
-        form_data.append('file', file_input[0].files[0]);
-        confirm_btn.addClass('disabled');
-        $.ajax({
-            url: '/jobs/upload_file/', data: form_data,
-            dataType: 'json', processData: false, type: 'POST', contentType: false,
-            mimeType: 'multipart/form-data', async: false,
-            success: function (resp) {
-                if (resp.error) {
-                    err_notify(resp.error);
-                }
-                else {
-                    inst.rename_node(node, filename.val());
-                    node.data = {hashsum: resp.hashsum};
-                    confirm_btn.removeClass('disabled');
-                    replace_file_modal.modal('hide');
-                    filename.val('');
-                    file_input.replaceWith(file_input.clone(true));
-                    reselect_node(inst, node);
-                }
+    if (node_type === "file") {
+        delete tmp.create;
+        tmp.replace = {
+            'label': instance.labels.replace, 'icon': instance.icons.file,
+            'action': function () {
+                instance.tree_replace_modal.find('.modal-title').text(node.text);
+                instance.tree_replace_modal.modal('show');
             }
-        });
-    });
-}
-
-function load_file_content(node) {
-    // Do nothing if file is not readable
-    if (!isFileReadable(node.text)) return;
-
-    if (node.data && node.data.hashsum) {
-        var cached = $('#cached_files').find('span[data-hashsum="' + node.data.hashsum + '"]');
-        if (cached.length) {
-            set_editfile_area(node.text, cached.text());
+        };
+        if (node.data && node.data['hashsum']) {
+            tmp.download = {
+                'label': instance.labels.download, 'icon': instance.icons.download,
+                'action': function () { instance.download_file() }
+            }
         }
-        else {
-            $.get('/jobs/getfilecontent/' + node.data.hashsum + '/', {}, function (resp) {
-                if (resp.error) { err_notify(resp.error) } else {
-                    set_editfile_area(node.text, resp.content);
-                    // Caching file content
-                    $('#cached_files').append($('<span>', {hidden: true, text: resp.content, 'data-hashsum': node.data.hashsum}));
+    }
+    else {
+        delete tmp.create.action;
+        tmp.create.label = instance.labels.new;
+        tmp.create.submenu = {
+            'create_folder': {
+                'separator_after': true, 'label': instance.labels.folder, 'icon': instance.icons.folder_out,
+                'action': function (data) {
+                    instance.tree_obj.create_node(
+                        instance.tree_obj.get_node(data.reference), {'type': 'folder'}, "first",
+                        function(new_node) { setTimeout(function() { instance.tree_obj.edit(new_node); }, 0); })
                 }
-            });
+            },
+            'create_file': {
+                'label': instance.labels.file, 'icon': instance.icons.file_out,
+                'action': function (data) {
+                    instance.tree_obj.create_node(
+                        instance.tree_obj.get_node(data.reference), {'type': 'file'}, "last",
+                        function(new_node) {
+                            setTimeout(function() {instance.tree_obj.edit(new_node);}, 0);
+                        });
+                }
+            },
+            'upload_file': {
+                'label': instance.labels.upload, 'icon': instance.icons.upload,
+                'action': function () { instance.tree_upload_modal.modal('show') }
+            }
+        };
+        if (node_type === "root") return {'create': tmp.create};
+    }
+
+    tmp.rename.label = instance.labels.rename;
+    tmp.rename.icon = instance.icons.rename;
+    tmp.remove.label = instance.labels.delete;
+    tmp.remove.icon = instance.icons.remove;
+    return tmp;
+};
+
+FilesTree.prototype.set_messages = function(messages) {
+    var instance = this;
+    $.each(messages, function (key, value) { instance.messages[key] = value });
+};
+
+FilesTree.prototype.set_labels = function(labels) {
+    var instance = this;
+    $.each(labels, function (key, value) { instance.labels[key] = value });
+};
+
+FilesTree.prototype.clear_editor = function() {
+    // Clear editor content, history and make it read-Only
+    this.mirror.setValue('');
+    this.mirror.setOption('readOnly', true);
+    this.mirror.clearHistory();
+    this.editor_filename.empty();
+    this.editor_status.hide();
+};
+
+FilesTree.prototype.open_first_file = function() {
+    // Clear and disable editor in case if file wouldn't be found
+    this.clear_editor();
+
+    var tree = this.tree_div.jstree(true),
+        tree_data = tree._model.data,
+        root_id = tree_data['#']['children'][0],
+        first_file;
+    for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
+        var child_id = tree_data[root_id]['children'][i];
+        if (tree_data[child_id]['type'] === 'file') {
+            if (tree_data[child_id]['text'] === this.def_file_to_open) {
+                first_file = tree_data[root_id]['children'][i];
+                break;
+            }
+            else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
+                first_file = tree_data[root_id]['children'][i];
+            }
         }
     }
-    // If readable file was created and content is still empty
-    else set_editfile_area(node.text, '');
-}
+    if (first_file) tree.select_node(first_file);
+};
 
-function download_file(data) {
-    var inst = $.jstree.reference(data.reference), node = inst.get_node(data.reference);
-    if (node.data && node.data['hashsum']) {
-        window.location.replace('/jobs/downloadfile/' + node.data['hashsum'] + '/?name=' + encodeURIComponent(node.text));
-    }
-}
+FilesTree.prototype.upload_file = function(data, on_success, on_error) {
+    var instance = this;
+    $.ajax({
+        url: instance.upload_file_url, type: 'POST',
+        data: data, dataType: "json", processData: false,  contentType: false,
+        success: function (resp) {
+            resp.error ? err_notify(resp.error) : on_success(resp.hashsum);
+        }, error: function (resp) {
+            var errors = flatten_api_errors(resp['responseJSON']);
+            $.each(errors, function (i, err) { err_notify(err) });
+            if (on_error) on_error();
+        }
+    });
+};
 
-function clear_editfile_area() {
-    // Clear editor content, history and make it read-Only
-    var doc = $('#editfile_area').getCodeMirror();
-    doc.setValue('');
-    doc.setOption('readOnly', true);
-    doc.clearHistory();
-    $('#editor_filename').empty();
-    $('#editor_unsaved').hide();
-}
+FilesTree.prototype.commit_file = function() {
+    var instance = this;
 
-function set_editfile_area(filename, content) {
+    // The file wasn't changed
+    if (instance.editor_status.is(':hidden')) return;
+
+    var node = instance.tree_obj.get_selected(true)[0];
+
+    // No selected node
+    if (!node) return;
+
+    var data = new FormData(), content = instance.mirror.getValue();
+    data.append('file', new File([new Blob([content])], node.text));
+
+    instance.upload_file(data, function (hash_sum) {
+        node.data = {hashsum: hash_sum};
+        var cached = instance.editor_cache.find('span[data-hashsum="' + hash_sum + '"]');
+
+        // Caching file content
+        if (!cached.length) instance.editor_cache.append(
+            $('<span>').text(content).data('hashsum', node.data.hashsum)
+        );
+        success_notify(instance.messages.file_commited);
+        instance.editor_status.hide();
+    });
+};
+
+FilesTree.prototype.set_editor_value = function(filename, content) {
     // Get highlighting mode
     var h_mode = 'text/plain';
     switch (getFileExtension(filename)) {
@@ -191,211 +244,223 @@ function set_editfile_area(filename, content) {
     }
 
     // Set editor content with mode, clear history and make it editable
-    var doc = $('#editfile_area').getCodeMirror();
-    doc.setValue(content);
-    doc.setOption('readOnly', false);
-    doc.setOption('mode', h_mode);
-    doc.clearHistory();
+    this.mirror.setValue(content);
+    this.mirror.setOption('readOnly', false);
+    this.mirror.setOption('mode', h_mode);
+    this.mirror.clearHistory();
+    this.editor_filename.text(filename);
+};
 
-    $('#editor_filename').text(filename);
-}
+FilesTree.prototype.load_file_content = function(node) {
+    // Do nothing if file is not readable
+    if (!isFileReadable(node.text)) return;
 
-function get_menu(node) {
-    var tmp = $.jstree.defaults.contextmenu.items(),
-        node_type = this.get_type(node);
-    delete tmp.ccp;
+    var instance = this;
 
-    if (node_type === "file") {
-        delete tmp.create;
-        tmp.replace = {
-            'label': $('#jstree_edit_replace_label').text(),
-            'icon': 'ui file icon',
-            'action': replace_file_action
-        };
-        if (node.data && node.data['hashsum']) {
-            tmp.download = {
-                'label': $('#jstree_download_label').text(),
-                'icon': 'ui download icon',
-                'action': download_file
-            }
+    if (node.data && node.data.hashsum) {
+        var cached = instance.editor_cache.find('span[data-hashsum="' + node.data.hashsum + '"]');
+        if (cached.length) {
+            instance.set_editor_value(node.text, cached.text());
         }
-    }
-    else {
-        delete tmp.create.action;
-        tmp.create.label = $('#jstree_new_label').text();
-        tmp.create.submenu = {
-            'create_folder': {
-                'separator_after': true,
-                'label': $('#jstree_new_folder_label').text(),
-                'icon': 'ui folder outline icon',
-                'action': function (data) {
-                    var inst = $.jstree.reference(data.reference), obj = inst.get_node(data.reference);
-                    inst.create_node(obj, {'type': 'folder'}, "first", function(new_node) {
-                        setTimeout(function() {inst.edit(new_node);}, 0);
-                    })
+        else {
+            $.get(instance.get_file_url.format(node.data.hashsum), {}, function (resp) {
+                if (resp.error) { err_notify(resp.error) } else {
+                    instance.set_editor_value(node.text, resp.content);
+                    // Caching file content
+                    instance.editor_cache.append(
+                        $('<span>', {hidden: true}).data('hashsum', node.data.hashsum).text(resp.content)
+                    );
                 }
-            },
-            'create_file': {
-                'label': $('#jstree_new_file_label').text(),
-                'icon': 'ui file outline icon',
-                'action': function (data) {
-                    var inst = $.jstree.reference(data.reference), obj = inst.get_node(data.reference);
-                    inst.create_node(obj, {'type': 'file'}, "last", function(new_node) {
-                        setTimeout(function() {inst.edit(new_node);}, 0);
-                    })
-                }
-            },
-            'upload_file': {
-                'label': $('#jstree_new_upload_label').text(),
-                'icon': 'ui upload icon',
-                'action': uploadFileAction
-            }
-        };
-        if (node_type === "root") return {'create': tmp.create};
-    }
-
-    tmp.rename.label = $('#jstree_rename_label').text();
-    tmp.rename.icon = 'ui pencil icon';
-    tmp.remove.label = $('#jstree_delete_label').text();
-    tmp.remove.icon = 'ui remove icon';
-    return tmp;
-}
-
-window.init_files_tree = function (tree_div_id, job_id, version) {
-    $('#replace_file_modal').modal({transition: 'fly left'});
-    $('#upload_file_modal').modal({transition: 'fly left'});
-    $('.close-modal').click(function () {$('.ui.modal').modal('hide')});
-
-    function open_first_found_file() {
-        // Disable editor in case if file wouldn't be found
-        clear_editfile_area();
-
-        var instance = $(tree_div_id).jstree(true),
-            tree_data = instance._model.data,
-            root_id = tree_data['#']['children'][0],
-            first_file;
-        for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
-            var child_id = tree_data[root_id]['children'][i];
-            if (tree_data[child_id]['type'] == 'file') {
-                if (tree_data[child_id]['text'] == def_file_to_open) {
-                    first_file = tree_data[root_id]['children'][i];
-                    break;
-                }
-                else if (!first_file && isFileReadable(tree_data[child_id]['text'])) {
-                    first_file = tree_data[root_id]['children'][i];
-                }
-            }
-        }
-        if (first_file) instance.select_node(first_file);
-    }
-
-    function editorCtrlS() {
-        // The file wasn't changed
-        if ($('#editor_unsaved').is(':hidden')) return false;
-
-        var tree = $(tree_div_id).jstree(true), node = tree.get_selected(true)[0];
-        if (node) {
-            var formData = new FormData(), doc = $('#editfile_area').getCodeMirror(),
-                content = doc.getValue(), file_extension = getFileExtension(node.text);
-
-            if (file_extension === 'json') {
-                // Check if json is correct
-                try { JSON.parse(content) } catch (e) {
-                    err_notify($('#error__wrong_json').text());
-                    if (e instanceof SyntaxError) {
-                        var m = e.message.match(/.*position (\d+)/);
-                        if (m) {
-                            doc.focus();
-                            doc.setCursor(doc.posFromIndex(parseInt(m[1], 10)));
-                        }
-                    }
-                    // Json is incorrect
-                    return false;
-                }
-            }
-
-            formData.append('file', new File([new Blob([content])], node.text));
-            $.ajax({
-                url: '/jobs/upload_file/', data: formData,
-                processData: false, contentType: false, type: 'POST',
-                success: function (resp) {
-                    if (resp.error) { err_notify(resp.error) } else {
-                        node.data = {hashsum: resp.hashsum};
-
-                        var cached_files = $('#cached_files'),
-                            cached = cached_files.find('span[data-hashsum="' + node.data.hashsum + '"]');
-                        // Caching file content
-                        if (!cached.length) cached_files.append($('<span>', {text: content, 'data-hashsum': node.data.hashsum}));
-                        success_notify($('#success__file_commited').text());
-                        $('#editor_unsaved').hide();
-                    }
-                }, error: function () { err_notify('File was not commited') }
             });
         }
     }
+    // If readable file was created and content is still empty
+    else instance.set_editor_value(node.text, '');
+};
 
-    // Init files editor
-    $('#editor_help_icon').popup({popup: $('#editor_help_popup'), position: 'bottom right', lastResort: 'bottom right'});
+FilesTree.prototype.add_file_node = function(filename, hashsum) {
+    var tree_inst = this.tree_obj, parent = tree_inst.get_selected(true)[0];
 
-    var myCodeMirror = CodeMirror(
-        function (elt) { $('#editfile_area').append(elt) },
-        {
-            mode: {name: "javascript", json: true}, theme: "midnight", lineNumbers: true,
-            readOnly: true, extraKeys: {'Ctrl-S': editorCtrlS}
+    tree_inst.create_node(parent, {'type': 'file'}, "last", function(new_node) {
+        setTimeout(function() {
+            tree_inst.rename_node(new_node, filename);
+            tree_inst.open_node(parent);
+            new_node.data = {hashsum: hashsum};
+            tree_inst.deselect_node(parent);
+            tree_inst.select_node(new_node);
+        }, 0);
+    });
+};
+
+FilesTree.prototype.check_filename = function(str) {
+    if (str.length > 0) {
+        if (isASCII(str) || str.length < 30) {
+            return true;
         }
-    );
-    myCodeMirror.setSize('100%', '85vh');
-    myCodeMirror.on('change', function (doc, changeObj) {
-        if (changeObj.origin !== 'setValue') $('#editor_unsaved').show();
+        else {
+            err_notify(this.messages.not_ascii);
+            return false;
+        }
+    }
+    err_notify(this.messages.filename_required);
+    return false;
+};
+
+FilesTree.prototype.initialize_modals = function() {
+    var instance = this;
+
+    // Initialize replace file modal
+    instance.tree_replace_modal.modal({transition: 'fly left'});
+    instance.tree_replace_modal.find('.modal-cancel').click(function () {
+        instance.tree_replace_modal.modal('hide')
     });
 
-    // Get files tree and init it
-    $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {}, function (json) {
-        if (json.error) {
-            err_notify(json.error);
+    // Upload new file and replace old one on confirm button click
+    instance.tree_replace_modal.find('.modal-confirm').click(function () {
+        var confirm_btn = $(this),
+            form_data = new FormData(instance.tree_replace_modal.find('.modal-form')[0]);
+
+        if (form_data.get('file').name.length === 0) {
+            err_notify(instance.messages.file_required);
             return false;
         }
 
-        $(tree_div_id).jstree({
-            "plugins" : ["contextmenu", "types", "unique", "dnd"],
-            'contextmenu': {'items': get_menu},
-            'types': {
-                'root': {'icon': 'ui violet archive icon'},
-                'folder': {'icon': 'ui violet folder icon'},
-                'file': {'valid_children': [], 'icon': 'ui file outline icon'}
-            },
-            'core' : {
-                'check_callback': function (operation, node) {
-                    return this.get_type(node) !== "root"
-                },
-                'strings': {'New node': 'name'},
-                'multiple': false,
-                'data': [json]
-            }
-        }).on('select_node.jstree', function (e, data) {
-            clear_editfile_area();
-            if (data.node.type == 'file') load_file_content(data.node);
+        if (!instance.check_filename(form_data.get('name'))) return false;
+
+        confirm_btn.addClass('loading disabled');
+        instance.upload_file(form_data, function (hash_sum) {
+            confirm_btn.removeClass('loading disabled');
+
+            // Update file node data (hashsum and name)
+            var node = instance.tree_obj.get_selected(true)[0];
+            instance.tree_obj.rename_node(node, form_data.get('name'));
+            node.data = {hashsum: hash_sum};
+
+            // Reselect the node to load new file content
+            instance.tree_obj.deselect_node(node);
+            instance.mirror.setValue('');
+            instance.mirror.setOption('readOnly', true);
+            instance.tree_obj.select_node(node);
+
+            // Hide modal
+            instance.tree_replace_modal.modal('hide');
+
+            // Clear form
+            var name_input = instance.tree_replace_modal.find('input[name="name"]'),
+                file_input = instance.tree_replace_modal.find('input[name="file"]');
+            name_input.val('');
+            file_input.replaceWith(file_input.clone(true));
+        }, function () { confirm_btn.removeClass('loading disabled') });
+    });
+
+    // Set file name on file select
+    instance.tree_replace_modal.find('input[name="file"]').on('fileselect', function () {
+        instance.tree_replace_modal.find('input[name="name"]').val(arguments[2])
+    });
+
+    // Initialize file upload modal
+    instance.tree_upload_modal.modal({transition: 'fly left'});
+    instance.tree_upload_modal.find('.modal-cancel').click(function () {
+        instance.tree_upload_modal.modal('hide')
+    });
+
+    // Upload new file on confirm
+    instance.tree_upload_modal.find('.modal-confirm').click(function () {
+        var confirm_btn = $(this),
+            form_data = new FormData(instance.tree_upload_modal.find('.modal-form')[0]);
+
+        if (form_data.get('file').name.length === 0) {
+            err_notify(instance.messages.file_required);
+            return false;
+        }
+
+        if (!instance.check_filename(form_data.get('name'))) return false;
+
+        confirm_btn.addClass('loading disabled');
+        instance.upload_file(form_data, function (hash_sum) {
+            confirm_btn.removeClass('loading disabled');
+
+            // Hide modal
+            instance.tree_upload_modal.modal('hide');
+
+            // Clear form
+            var name_input = instance.tree_upload_modal.find('input[name="name"]'),
+                file_input = instance.tree_upload_modal.find('input[name="file"]');
+            name_input.val('');
+            file_input.replaceWith(file_input.clone(true));
+
+            // Add node to the tree
+            instance.add_file_node(form_data.get('name'), hash_sum)
+        }, function () { confirm_btn.removeClass('loading disabled') });
+    });
+
+    // Set file name on file select
+    instance.tree_upload_modal.find('input[name="file"]').on('fileselect', function () {
+        instance.tree_upload_modal.find('input[name="name"]').val(arguments[2])
+    });
+};
+
+FilesTree.prototype.download_file = function() {
+    var node = this.tree_obj.get_selected(true)[0];
+    if (node.data && node.data['hashsum']) window.location.replace(
+        this.download_file_url.format(node.data['hashsum'], encodeURIComponent(node.text))
+    );
+};
+
+FilesTree.prototype.initialize = function (data) {
+    var instance = this;
+
+    // Already initialized, just refresh it
+    if (instance.tree_obj) {
+        instance.tree_obj.settings.core.data = data;
+        instance.tree_obj.refresh();
+        return;
+    }
+
+    // Init files editor help
+    instance.editor_div.find('.editor-help-icon').popup({
+        popup: instance.editor_div.find('.editor-help'),
+        position: 'bottom right', lastResort: 'bottom right'
+    });
+
+    // Init files editor window
+    instance.mirror = CodeMirror(function (elt) { instance.editor_display.append(elt) }, {
+        mode: {name: "javascript", json: true}, theme: "midnight", lineNumbers: true,
+        readOnly: true, extraKeys: {'Ctrl-S': function () { instance.commit_file(); }}
+    });
+    instance.mirror.setSize('100%', '85vh');
+    instance.mirror.on('change', function (doc, changeObj) {
+        if (changeObj.origin !== 'setValue') instance.editor_status.show();
+    });
+
+    // Initialize files tree
+    instance.tree_div.jstree({
+        "plugins" : ["contextmenu", "types", "unique", "dnd"],
+        'contextmenu': {'items': function (node) { return instance.get_menu(node) }},
+        'types': {
+            'root': {'icon': instance.icons.arch_vio},
+            'folder': {'icon': instance.icons.folder_vio},
+            'file': {'valid_children': [], 'icon': instance.icons.file_out}
+        },
+        'core' : {
+            'check_callback': function (operation, node) { return this.get_type(node) !== "root" },
+            'strings': {'New node': 'name'},
+            'multiple': false,
+            'data': data
+        }
+    })
+        .on('select_node.jstree', function (e, data) {
+            instance.clear_editor();
+            if (data.node.type === 'file') instance.load_file_content(data.node);
         })
-            .on('ready.jstree', open_first_found_file)
-            .on('refresh.jstree', open_first_found_file)
-            .on('delete_node.jstree', clear_editfile_area);
-    }, 'json');
-};
+        .on('ready.jstree', function () {
+            // Preserve tree instance; open root node; open first fouind file
+            instance.tree_obj = arguments[1].instance;
+            instance.tree_obj.open_node(instance.tree_obj.get_node('#').children[0]);
+            instance.open_first_file();
+        })
+        .on('refresh.jstree', function () { instance.open_first_file() })
+        .on('delete_node.jstree', function () { instance.clear_editor() });
 
-window.get_files_data = function(tree_div_id) {
-    return JSON.stringify($(tree_div_id).jstree(true).get_json('#', {
-        'no_state': true,  'no_li_attr': true,  'no_a_attr': true
-    }));
-};
-
-window.refresh_files_tree = function (tree_div_id, job_id, version) {
-    $.post('/jobs/get_version_files/' + job_id + '/' + version + '/', {}, function (json) {
-        if (json.error) {
-            err_notify(json.error);
-            return false;
-        }
-        var tree_inst = $(tree_div_id).jstree(true);
-        tree_inst.settings.core.data = [json];
-        tree_inst.refresh();
-    }, 'json');
+    instance.initialize_modals();
 };

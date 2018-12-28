@@ -29,7 +29,7 @@ import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
 from jobs.models import JOBFILE_DIR, JobFile
-from service.models import FILE_DIR, Solution, Task
+from service.models import SERVICE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR, ConvertedTraces
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
     ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
@@ -80,7 +80,7 @@ class ClearFiles:
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
         for s in Task.objects.values_list('archive'):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
-        files_directory = os.path.join(settings.MEDIA_ROOT, FILE_DIR)
+        files_directory = os.path.join(settings.MEDIA_ROOT, SERVICE_DIR)
         if os.path.exists(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
             for f in files_on_disk - files_in_the_system:

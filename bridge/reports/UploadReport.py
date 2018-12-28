@@ -32,7 +32,7 @@ import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
-from users.models import Extended
+from users.models import User
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown,\
     Component, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
     CoverageArchive, ErrorTraceSource
@@ -842,13 +842,13 @@ class CheckErrorTraces:
         self.__exit()
 
     def __check_traces(self):
-        manager = Extended.objects.filter(role=USER_ROLES[2][0]).first()
+        manager = User.objects.filter(role=USER_ROLES[2][0]).first()
         if not manager:
             raise ValueError("Can't check error traces without manager in the system")
 
         files = self.__get_list_of_sources()
         for tr_name in self._traces:
-            res = GetETV(self.__read_trace(tr_name), manager.user)
+            res = GetETV(self.__read_trace(tr_name), manager)
 
             if 'attrs' in res.data:
                 self.add_attrs[tr_name] = res.data['attrs']

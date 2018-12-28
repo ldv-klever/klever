@@ -161,8 +161,10 @@ class ReportComponentView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
             'SelfAttrsData': reports.utils.ReportAttrsTable(self.object).table_data,
             'parents': reports.utils.get_parents(self.object),
             'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
-            'TableData': reports.utils.ReportChildrenTable(self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
-                                                           page=self.request.GET.get('page', 1))
+            'TableData': reports.utils.ReportChildrenTable(
+                self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
+                page=self.request.GET.get('page', 1)
+            )
         }
 
 
@@ -354,7 +356,7 @@ class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return {
             'report': self.object, 'report_type': 'safe',
             'parents': reports.utils.get_parents(self.object),
-            'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
+            'resources': reports.utils.report_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'main_content': proof_content,
             'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
@@ -373,7 +375,7 @@ class ReportUnknownView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return {
             'report': self.object, 'report_type': 'unknown',
             'parents': reports.utils.get_parents(self.object),
-            'resources': reports.utils.get_leaf_resources(self.request.user, self.object),
+            'resources': reports.utils.report_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
@@ -401,8 +403,8 @@ class ReportUnsafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
             'report': self.object, 'report_type': 'unsafe', 'parents': reports.utils.get_parents(self.object),
             'SelfAttrsData': reports.utils.report_attibutes(self.object),
             'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
-            'etv': etv, 'include_assumptions': self.request.user.extended.assumptions, 'include_jquery_ui': True,
-            'resources': reports.utils.get_leaf_resources(self.request.user, self.object)
+            'etv': etv, 'include_assumptions': self.request.user.assumptions, 'include_jquery_ui': True,
+            'resources': reports.utils.report_resources(self.request.user, self.object)
         }
 
 
@@ -418,7 +420,7 @@ class FullscreenReportUnsafe(LoggedCallMixin, DetailView):
             raise BridgeException(code=400)
         return {
             'report': self.object,
-            'include_assumptions': self.request.user.extended.assumptions,
+            'include_assumptions': self.request.user.assumptions,
             'etv': GetETV(
                 ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
                 self.request.user

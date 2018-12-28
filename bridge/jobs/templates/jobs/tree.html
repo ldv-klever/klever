@@ -34,7 +34,7 @@
                 <div id="download_selected_jobs" class="item"><i class="ui download icon"></i>{% trans 'Download' %}</div>
 
                 {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                <div id="download_selected_trees" class="item{% if user.extended.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
+                <div id="download_selected_trees" class="item{% if user.role != '2' %} disabled{% endif %}"><i class="ui sitemap icon"></i>{% trans 'Download with children' %}</div>
                 <div id="show_remove_jobs_popup" class="item"><i class="ui remove icon"></i>{% trans 'Delete' %}</div>
             </div>
         </div>

@@ -15,27 +15,27 @@
 # limitations under the License.
 #
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.db.models import Q, F, Case, When, Count, BooleanField
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 
-from bridge.vars import USER_ROLES, PRIORITY, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
-from bridge.utils import get_templated_text
+from bridge.vars import USER_ROLES, PRIORITY, UNSAFE_VERDICTS, ASSOCIATION_TYPE, SafeVerdicts
+from bridge.tableHead import ComplexHeaderMixin
+
+from rest_framework import serializers, fields
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ComponentResource
 
-from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
-from service.models import SolvingProgress
-from service.utils import GetJobsProgresses
+from users.utils import HumanizedValue
+from jobs.utils import SAFES, UNSAFES, TITLES, JobAccess
+from service.models import Decision
+from service.serializers import ProgressSerializer
 
-
-DATE_COLUMNS = {
-    'date', 'tasks:start_ts', 'tasks:finish_ts', 'subjobs:start_sj', 'subjobs:finish_sj', 'start_date', 'finish_date'
-}
 
 TASKS_COLUMNS = [
     'tasks', 'tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error', 'tasks:cancelled',
@@ -49,87 +49,42 @@ SUBJOBS_COLUMNS = [
 ]
 
 
-class Header:
-    def __init__(self, columns, titles):
-        self.columns = columns
-        self.titles = titles
-        self._max_depth = self.__max_depth()
-
-    def head_struct(self):
-        col_data = []
-        for d in range(1, self._max_depth + 1):
-            col_data.append(self.__cellspan_level(d))
-        # For checkboxes
-        col_data[0].insert(0, {'column': '', 'rows': self._max_depth, 'columns': 1, 'title': ''})
-        return col_data
-
-    def __max_depth(self):
-        max_depth = 0
-        if len(self.columns):
-            max_depth = 1
-        for col in self.columns:
-            depth = len(col.split(':'))
-            if depth > max_depth:
-                max_depth = depth
-        return max_depth
-
-    def __title(self, column):
-        if column in self.titles:
-            return self.titles[column]
-        return column
-
-    def __cellspan_level(self, lvl):
-        # Get first lvl identifiers of all table columns.
-        # Example: 'a:b:c:d:e' (lvl=3) -> 'a:b:c'
-        # Example: 'a:b' (lvl=3) -> ''
-        # And then colecting single identifiers and their amount without ''.
-        # Example: [a, a, a, b, '', c, c, c, c, '', '', c, d, d] ->
-        # [(a, 3), (b, 1), (c, 4), (c, 1), (d, 2)]
-        columns_of_lvl = []
-        prev_col = ''
-        cnt = 0
-        for col in self.columns:
-            col_start = ''
-            col_parts = col.split(':')
-            if len(col_parts) >= lvl:
-                col_start = ':'.join(col_parts[:lvl])
-                if col_start == prev_col:
-                    cnt += 1
-                else:
-                    if prev_col != '':
-                        columns_of_lvl.append([prev_col, cnt])
-                    cnt = 1
-            else:
-                if prev_col != '':
-                    columns_of_lvl.append([prev_col, cnt])
-                cnt = 0
-            prev_col = col_start
-
-        if len(prev_col) > 0 and cnt > 0:
-            columns_of_lvl.append([prev_col, cnt])
-
-        # Collecting data of cell span for columns.
-        columns_data = []
-        for col in columns_of_lvl:
-            nrows = self._max_depth - lvl + 1
-            for column in self.columns:
-                if column.startswith(col[0] + ':') and col[0] != column:
-                    nrows = 1
-                    break
-            columns_data.append({'column': col[0], 'rows': nrows, 'columns': col[1], 'title': self.__title(col[0])})
-        return columns_data
+class DynamicFieldsSerializer(serializers.ModelSerializer):
+    def __init__(self, *args, **kwargs):
+        self._user = kwargs.pop('user', None)
+        all_fields = kwargs.pop('fields', None)
+        super().__init__(*args, **kwargs)
+        if all_fields:
+            for field_name in set(self.fields.keys()) - set(x.replace(':', '_') for x in all_fields):
+                self.fields.pop(field_name)
 
 
-class TableTree:
+class JobVersionSerializer(DynamicFieldsSerializer):
+    identifier = fields.UUIDField(source='job.identifier')
+    format = fields.IntegerField(source='job.format')
+    status = fields.CharField(source='job.get_status_display')
+    date = fields.SerializerMethodField()
+    author = fields.SerializerMethodField()
+
+    def get_date(self, instance):
+        return HumanizedValue(instance.change_date, user=self._user).date
+
+    def get_author(self, instance):
+        if not instance.change_author:
+            return None
+        return (
+            instance.change_author.get_full_name(),
+            reverse('users:show_profile', args=[instance.change_author_id])
+        )
+
+    class Meta:
+        model = JobHistory
+        fields = ('job', 'identifier', 'format', 'version', 'status', 'date', 'author')
+
+
+class TableTree(ComplexHeaderMixin):
     no_mark = _('Without marks')
     total = _('Total')
-
-    all_columns = ['role', 'author', 'date', 'status', 'unsafe'] + \
-        list("unsafe:{0}".format(u) for u in UNSAFES) + \
-        ['safe'] + list("safe:{0}".format(s) for s in SAFES) + \
-        TASKS_COLUMNS + SUBJOBS_COLUMNS + \
-        ['problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format',
-         'version', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator']
 
     def __init__(self, user, view):
         self._user = user
@@ -145,11 +100,11 @@ class TableTree:
         self._core = self.__get_core_reports()
 
         # Some titles are collected during __get_columns()
-        self._titles = TITLES
+        self._titles = TITLES.copy()
 
         # Should be after we get the tree because columns depends on what jobs are in the tree
         self._columns = self.__get_columns()
-        self.header = Header(self._columns, self._titles).head_struct()
+        self.header = self.head_struct(self._columns, self._titles)
 
         # Collecting data for tables cells
         self._values_data = {}
@@ -158,112 +113,109 @@ class TableTree:
         # Table footer data
         self.footer_title_length, self.footer = self.__get_footer()
 
+    @cached_property
+    def all_columns(self):
+        return ['role', 'author', 'date', 'status', 'unsafe'] + \
+               list("unsafe:{0}".format(u) for u in UNSAFES) + \
+               ['safe'] + list("safe:{0}".format(s) for s in SAFES) + \
+               TASKS_COLUMNS + SUBJOBS_COLUMNS + [
+                   'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format',
+                   'version', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+               ]
+
+    @cached_property
+    def all_columns_set(self):
+        return set(self.all_columns)
+
     def __column_title(self, column):
         col_parts = column.split(':')
         column_starts = []
-        for i in range(0, len(col_parts)):
+        for i in range(len(col_parts)):
             column_starts.append(':'.join(col_parts[:(i + 1)]))
-        titles = []
-        for col_st in column_starts:
-            titles.append(TITLES[col_st])
-        concated_title = titles[0]
-        for i in range(1, len(titles)):
-            concated_title = '{0}/{1}'.format(concated_title, titles[i])
-        return concated_title
+
+        titles = list(TITLES.get(col_st, col_st) for col_st in column_starts)
+        title_pattern = '/'.join(list('{%s}' % i for i in range(len(titles))))
+        return title_pattern.format(*titles)
 
     def __selected(self):
         return list({'value': col, 'title': self.__column_title(col)}
-                    for col in self.view['columns'] if col in self.all_columns)
+                    for col in self.view['columns'] if col in self.all_columns_set)
 
     def __available(self):
         return list({'value': col, 'title': self.__column_title(col)} for col in self.all_columns)
 
-    def __view_filters(self):
-        filters = {}
-        unfilters = {}
+    def __get_queryset(self):
+        qs_filter = Q()
 
         if 'title' in self.view:
-            filters['name__' + self.view['title'][0]] = self.view['title'][1]
+            qs_filter &= Q(**{'name__' + self.view['title'][0]: self.view['title'][1]})
 
         if 'change_author' in self.view:
-            if self.view['change_author'][0] == 'is':
-                filters['change_author__id'] = int(self.view['change_author'][1])
-            else:
-                unfilters['change_author__id'] = int(self.view['change_author'][1])
+            author_filter = Q(change_author_id=int(self.view['change_author'][1]))
+            qs_filter &= author_filter if self.view['change_author'][0] == 'is' else ~author_filter
 
         if 'change_date' in self.view:
             limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
-            if self.view['change_date'][0] == 'older':
-                filters['change_date__lt'] = limit_time
-            elif self.view['change_date'][0] == 'younger':
-                filters['change_date__gt'] = limit_time
+            qs_filter &= Q(**{'change_date__' + self.view['change_date'][0]: limit_time})
 
         if 'status' in self.view:
-            filters['status__in'] = self.view['status']
+            qs_filter &= Q(status__in=self.view['status'])
 
         if 'format' in self.view:
-            if self.view['format'][0] == 'is':
-                filters['format'] = int(self.view['format'][1])
-            elif self.view['format'][0] == 'isnot':
-                unfilters['format'] = int(self.view['format'][1])
+            format_filter = Q(format=int(self.view['format'][1]))
+            qs_filter &= format_filter if self.view['format'][0] == 'is' else ~format_filter
 
         if 'priority' in self.view:
-            if self.view['priority'][0] == 'e':
-                filters['solvingprogress__priority'] = self.view['priority'][1]
-            elif self.view['priority'][0] == 'me':
+            priority_filter = 'solvingprogress__priority'
+            priority_value = self.view['priority'][1]
+            if self.view['priority'][0] == 'me':
                 priorities = []
                 for pr in PRIORITY:
                     priorities.append(pr[0])
                     if pr[0] == self.view['priority'][1]:
-                        filters['solvingprogress__priority__in'] = priorities
+                        priority_filter += '__in'
+                        priority_value = priorities
                         break
             elif self.view['priority'][0] == 'le':
                 priorities = []
                 for pr in reversed(PRIORITY):
                     priorities.append(pr[0])
                     if pr[0] == self.view['priority'][1]:
-                        filters['solvingprogress__priority__in'] = priorities
+                        priority_filter += '__in'
+                        priority_value = priorities
                         break
+            qs_filter &= Q(**{priority_filter: priority_value})
 
         if 'finish_date' in self.view:
-            filters['solvingprogress__finish_date__month__' + self.view['finish_date'][0]] = \
-                int(self.view['finish_date'][1])
-            filters['solvingprogress__finish_date__year__' + self.view['finish_date'][0]] = \
-                int(self.view['finish_date'][2])
+            qs_filter &= Q(**{
+                'solvingprogress__finish_date__month__' + self.view['finish_date'][0]: int(self.view['finish_date'][1]),
+                'solvingprogress__finish_date__year__' + self.view['finish_date'][0]: int(self.view['finish_date'][2]),
+            })
 
         if 'weight' in self.view:
-            filters['weight__in'] = self.view['weight']
+            qs_filter &= Q(weight__in=self.view['weight'])
 
-        return filters, unfilters
+        return Job.objects.filter(qs_filter)
 
-    def __get_jobs_tree(self):
-        # Job order parameter
-        jobs_order = 'id'
-        if 'order' in self.view and len(self.view['order']) == 2:
-            if self.view['order'][1] == 'title':
-                jobs_order = 'name'
-            elif self.view['order'][1] == 'date':
-                jobs_order = 'change_date'
-            elif self.view['order'][1] == 'start':
-                jobs_order = 'solvingprogress__start_date'
-            elif self.view['order'][1] == 'finish':
-                jobs_order = 'solvingprogress__finish_date'
+    @property
+    def order(self):
+        order_map = {'title': 'name', 'start': 'decision__start_date', 'finish': 'decision__finish_date'}
+        if 'order' in self.view and len(self.view['order']) == 2 and self.view['order'][1] in order_map:
+            jobs_order = order_map[self.view['order'][1]]
             if self.view['order'][0] == 'up':
                 jobs_order = '-' + jobs_order
+            return jobs_order, 'id'
+        return 'id',
 
+    def __get_jobs_tree(self):
         # Jobs tree structure
-        tree_struct = {}
-        for job in Job.objects.only('id', 'parent_id'):
-            tree_struct[job.id] = job.parent_id
-
-        # Filters for jobs
-        filters, unfilters = self.__view_filters()
-        filters = Q(**filters)
-        for unf_v in unfilters:
-            filters &= ~Q(**{unf_v: unfilters[unf_v]})
+        tree_struct = dict(Job.objects.values_list('id', 'parent_id'))
 
         # Jobs' ids with view access
-        accessed = JobAccess(self._user).can_view_jobs(filters)
+        accessed = JobAccess(self._user).can_view_jobs(self.__get_queryset())
+
+        # Get roots' ids for querysets optimizations
+        roots = dict(ReportRoot.objects.filter(job_id__in=accessed).values_list('id', 'job_id'))
 
         # Add parents without access to show the tree structure
         jobs_in_tree = set(accessed)
@@ -274,7 +226,7 @@ class TableTree:
                 parent = tree_struct[parent]
 
         # Get ordered list of jobs
-        jobs_list = list(j.id for j in Job.objects.filter(id__in=jobs_in_tree).order_by(jobs_order).only('id'))
+        jobs_list = list(Job.objects.filter(id__in=jobs_in_tree).order_by(*self.order).values_list('id', flat=True))
 
         # Function collects children tree for specified job id (p_id)
         def get_job_children(p_id):
@@ -284,10 +236,6 @@ class TableTree:
                     children.append({'id': oj_id, 'parent': p_id})
                     children.extend(get_job_children(oj_id))
             return children
-
-        # Get roots' ids for DB reqeusts optimizations
-        roots = dict((r_id, j_id) for r_id, j_id in ReportRoot.objects.filter(job_id__in=accessed)
-                     .values_list('id', 'job_id'))
 
         return get_job_children(None), accessed, roots
 
@@ -299,7 +247,8 @@ class TableTree:
         return cores
 
     def __get_columns(self):
-        columns = ['name']
+        columns = ['checkbox', 'name']
+        self._titles['checkbox'] = ''
         extend_action = {
             'safe': lambda: ['safe:' + postfix for postfix in SAFES],
             'unsafe': lambda: ['unsafe:' + postfix for postfix in UNSAFES],
@@ -312,7 +261,7 @@ class TableTree:
             'subjobs': lambda: SUBJOBS_COLUMNS[1:]
         }
         for col in self.view['columns']:
-            if col in self.all_columns:
+            if col in self.all_columns_set:
                 if col in extend_action:
                     columns.extend(extend_action[col]())
                 else:
@@ -443,14 +392,11 @@ class TableTree:
                         cell_value = self._values_data[job['id']][col][0]
                         if cell_value != 0:
                             href = self._values_data[job['id']][col][1]
-                    else:
+                    elif self._values_data[job['id']][col] is not None:
                         cell_value = self._values_data[job['id']][col]
-                if col in DATE_COLUMNS:
-                    if self._user.extended.data_format == 'hum' and isinstance(cell_value, datetime):
-                        cell_value = get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=cell_value)
                 row_values.append({
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
-                    'value': cell_value, 'href': href
+                    'column': col, 'value': cell_value, 'href': href
                 })
             table_rows.append({
                 'id': job['id'], 'parent': job['parent'],
@@ -464,34 +410,31 @@ class TableTree:
             self._values_data[j_id] = {'name': name}
 
     def __collect_jobdata(self):
-        for j in Job.objects.filter(id__in=self._job_ids).select_related('change_author', 'parent'):
-            self._values_data[j.id].update({
-                'identifier': j.identifier, 'name': (j.name, reverse('jobs:job', args=[j.id])),
-                'format': j.format, 'version': j.version, 'date': j.change_date, 'status': j.get_status_display()
-            })
-            if j.id in self._core:
-                self._values_data[j.id]['status'] = (self._values_data[j.id]['status'],
-                                                     reverse('reports:component', args=[self._core[j.id]]))
-            if j.parent is not None:
-                self._values_data[j.id]['parent_id'] = j.parent.identifier
-            if j.change_author is not None:
-                self._values_data[j.id]['author'] = (j.change_author.get_full_name(),
-                                                     reverse('users:show_profile', args=[j.change_author_id]))
+        select_only = ['job_id', 'job__format', 'job__identifier', 'version', 'job__status', 'change_date']
+        versions_qs = JobHistory.objects.filter(version=F('job__version'), job_id__in=self._job_ids)\
+            .select_related('job')
+        if 'author' in self._columns:
+            versions_qs = versions_qs.select_related('change_author')
+            select_only += ['change_author_id', 'change_author__first_name', 'change_author__last_name']
+        versions_qs = versions_qs.only(*select_only)
+        for jh_data in JobVersionSerializer(
+                instance=versions_qs, many=True, user=self._user, fields=self._columns + ['job']
+        ).data:
+            job_id = jh_data.pop('job')
+            jh_data['name'] = (self._values_data[job_id]['name'], reverse('jobs:job', args=[job_id]))
+            if job_id in self._core and 'status' in jh_data:
+                jh_data['status'] = (jh_data['status'], reverse('reports:component', args=[self._core[job_id]]))
+            self._values_data[job_id].update(jh_data)
 
     def __get_safes_without_confirmed(self):
+        verdicts = SafeVerdicts()
+
         # Collect safes data
-        safe_columns_map = {
-            SAFE_VERDICTS[0][0]: 'safe:unknown',
-            SAFE_VERDICTS[1][0]: 'safe:incorrect',
-            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
-            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
-            SAFE_VERDICTS[4][0]: 'safe:unassociated'
-        }
         for r_id, v, number in ReportSafe.objects.filter(root_id__in=self._roots)\
                 .values('root_id').annotate(number=Count('id')).values_list('root_id', 'verdict', 'number'):
             j_id = self._roots[r_id]
             safes_url = reverse('reports:safes', args=[self._core[j_id]])
-            self._values_data[j_id][safe_columns_map[v]] = (number, '%s?verdict=%s' % (safes_url, v))
+            self._values_data[j_id][verdicts.column(v)] = (number, '%s?verdict=%s' % (safes_url, v))
             if 'safe:total' not in self._values_data[j_id]:
                 self._values_data[j_id]['safe:total'] = [0, safes_url]
             self._values_data[j_id]['safe:total'][0] += number
@@ -526,23 +469,18 @@ class TableTree:
                 self._values_data[j_id]['unsafe:total'] = tuple(self._values_data[j_id]['unsafe:total'])
 
     def __get_safes_with_confirmed(self):
+        verdicts = SafeVerdicts()
+
         # Collect safes data
-        safe_columns_map = {
-            SAFE_VERDICTS[0][0]: 'safe:unknown',
-            SAFE_VERDICTS[1][0]: 'safe:incorrect',
-            SAFE_VERDICTS[2][0]: 'safe:missed_bug',
-            SAFE_VERDICTS[3][0]: 'safe:inconclusive',
-            SAFE_VERDICTS[4][0]: 'safe:unassociated'
-        }
         for r_id, v, total, confirmed in ReportSafe.objects.filter(root_id__in=self._roots)\
                 .values('root_id').annotate(total=Count('id'), confirmed=Count(Case(When(has_confirmed=True, then=1))))\
                 .values_list('root_id', 'verdict', 'total', 'confirmed'):
             j_id = self._roots[r_id]
             url = reverse('reports:safes', args=[self._core[j_id]])
-            if v == SAFE_VERDICTS[4][0]:
-                self._values_data[j_id]['safe:unassociated'] = (total, '%s?verdict=%s' % (url, v))
+            if v == verdicts.unassociated:
+                self._values_data[j_id][verdicts.column(v)] = (total, '%s?verdict=%s' % (url, v))
             else:
-                self._values_data[j_id][safe_columns_map[v]] = '{0} ({1})'.format(
+                self._values_data[j_id][verdicts.column(v)] = '{0} ({1})'.format(
                     '<a href="{0}?verdict={1}&confirmed=1">{2}</a>'.format(url, v, confirmed) if confirmed > 0 else 0,
                     '<a href="{0}?verdict={1}">{2}</a>'.format(url, v, total) if total > 0 else 0
                 )
@@ -670,21 +608,20 @@ class TableTree:
             )
 
     def __collect_resourses(self):
-        data_format = self._user.extended.data_format
-        accuracy = self._user.extended.accuracy
         for cr in ComponentResource.objects.filter(report__root_id__in=self._roots, report__parent=None)\
                 .annotate(root_id=F('report__root_id')):
             job_id = self._roots[cr.root_id]
-            rd = get_resource_data(data_format, accuracy, cr)
-            resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
+            resourses_value = "{} {} {}".format(
+                HumanizedValue(cr.wall_time, user=self._user).timedelta,
+                HumanizedValue(cr.cpu_time, user=self._user).timedelta,
+                HumanizedValue(cr.memory, user=self._user).memory,
+            )
             if cr.component_id is None:
                 self._values_data[job_id]['resource:total'] = resourses_value
             else:
                 self._values_data[job_id]['resource:component_' + str(cr.component_id)] = resourses_value
 
     def __collect_roles(self):
-        user_role = self._user.extended.role
-
         is_author = set()
         for fv in JobHistory.objects.filter(job_id__in=self._job_ids, version=1, change_author_id=self._user.id)\
                 .only('job_id'):
@@ -697,14 +634,15 @@ class TableTree:
 
         job_user_roles = {}
         for ur in UserRole.objects\
-                .filter(user=self._user, job__job_id__in=self._job_ids, job__version=F('job__job__version'))\
-                .only('job__job_id', 'role'):
-            job_user_roles[ur.job.job_id] = ur.get_role_display()
+                .filter(user=self._user, job_version__job_id__in=self._job_ids,
+                        job_version__version=F('job_version__job__version'))\
+                .only('job_version__job_id', 'role'):
+            job_user_roles[ur.job_version.job_id] = ur.get_role_display()
 
         for j_id in self._job_ids:
             if j_id in is_author:
                 self._values_data[j_id]['role'] = _('Author')
-            elif user_role == USER_ROLES[2][0]:
+            elif self._user.role == USER_ROLES[2][0]:
                 self._values_data[j_id]['role'] = USER_ROLES[2][1]
             elif j_id in job_user_roles:
                 self._values_data[j_id]['role'] = job_user_roles[j_id]
@@ -712,12 +650,30 @@ class TableTree:
                 self._values_data[j_id]['role'] = global_roles[j_id]
 
     def __collect_progress_data(self):
-        jobs_with_progress = set()
-        progresses = GetJobsProgresses(self._user, self._job_ids).table_data()
-        for j_id in progresses:
-            self._values_data[j_id].update(progresses[j_id])
+        decisions_qs = Decision.objects.filter(job_id__in=self._job_ids)
 
-        for progress in SolvingProgress.objects.filter(job_id__in=self._job_ids):
+        for progress in ProgressSerializer(instance=decisions_qs, many=True).data:
+            job_progress = {'start_date': progress['start_date'], 'finish_date': progress['finish_date']}
+            if 'total_ts' in progress:
+                job_progress['tasks:total_ts'] = progress['total_ts']
+            if 'total_sj' in progress:
+                job_progress['subjobs:total_sj'] = progress['total_sj']
+            if 'progress_ts' in progress:
+                job_progress['tasks:progress_ts'] = progress['progress_ts']['progress']
+                job_progress['tasks:start_ts'] = progress['progress_ts']['start']
+                job_progress['tasks:finish_ts'] = progress['progress_ts']['finish']
+                if 'expected_time' in progress['progress_ts']:
+                    job_progress['tasks:expected_time_ts'] = progress['progress_ts']['expected_time']
+            if 'progress_sj' in progress:
+                job_progress['tasks:progress_sj'] = progress['progress_sj']['progress']
+                job_progress['tasks:start_sj'] = progress['progress_sj']['start']
+                job_progress['tasks:finish_sj'] = progress['progress_sj']['finish']
+                if 'expected_time' in progress['progress_sj']:
+                    job_progress['tasks:expected_time_sj'] = progress['progress_sj']['expected_time']
+
+            self._values_data[progress['job']].update(job_progress)
+
+        for progress in decisions_qs:
             self._values_data[progress.job_id].update({
                 'priority': progress.get_priority_display(),
                 'tasks:total': progress.tasks_total,
@@ -728,14 +684,11 @@ class TableTree:
                 'tasks:pending': progress.tasks_pending,
                 'tasks:solutions': progress.solutions
             })
-            if progress.start_date is not None:
-                self._values_data[progress.job_id]['start_date'] = progress.start_date
-                if progress.finish_date is not None:
-                    self._values_data[progress.job_id]['finish_date'] = progress.finish_date
-                    self._values_data[progress.job_id]['solution_wall_time'] = get_user_time(
-                        self._user, int((progress.finish_date - progress.start_date).total_seconds() * 1000)
-                    )
-            jobs_with_progress.add(progress.job_id)
+            if progress.start_date is not None and progress.finish_date is not None:
+                self._values_data[progress.job_id]['solution_wall_time'] = HumanizedValue(
+                    int((progress.finish_date - progress.start_date).total_seconds() * 1000),
+                    user=self._user
+                ).timedelta
 
         for root in ReportRoot.objects.filter(job_id__in=self._job_ids).select_related('user'):
             self._values_data[root.job_id]['operator'] = (
@@ -751,7 +704,7 @@ class TableTree:
         countable_prefexes = {'safe:', 'unsafe:', 'tag:', 'problem:'}
 
         # Footer title length
-        foot_length = 1
+        foot_length = 0
         for col in self._columns:
             if col in countable or any(col.startswith(prefix) for prefix in countable_prefexes):
                 break
@@ -763,7 +716,7 @@ class TableTree:
         footer = []
         if foot_length is not None and len(self.values) > 0:
             f_len = len(self.values[0]['values'])
-            for i in range(foot_length - 1, f_len):
+            for i in range(foot_length, f_len):
                 footer.append(self.values[0]['values'][i]['id'])
 
         return foot_length, footer

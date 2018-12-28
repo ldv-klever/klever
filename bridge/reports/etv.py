@@ -482,8 +482,8 @@ class ParseErrorTrace:
 
 class GetETV:
     def __init__(self, error_trace, user):
-        self.include_assumptions = user.extended.assumptions
-        self.triangles = user.extended.triangles
+        self.include_assumptions = user.assumptions
+        self.triangles = user.triangles
         self.data = json.loads(error_trace)
         self.err_trace_nodes = get_error_trace_nodes(self.data)
         self.threads = []

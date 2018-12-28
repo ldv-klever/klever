@@ -25,7 +25,7 @@ from bridge.populate import populate_users
 from bridge.utils import KleverTestCase
 from bridge.vars import USER_ROLES
 
-from users.models import User, Extended
+from users.models import User
 from jobs.models import Job
 from marks.models import MarkUnknown, SafeTag, UnsafeTag
 from service.models import Scheduler, SCHEDULER_TYPE
@@ -46,8 +46,7 @@ class TestPopulation(KleverTestCase):
         # Create admin, manager and user with no access
         User.objects.create_superuser('admin', '', 'admin')
         User.objects.create_user(username='user', password='user')
-        manager = User.objects.create_user(username='manager', password='manager')
-        Extended.objects.create(user=manager, role=USER_ROLES[2][0])
+        manager = User.objects.create_user(username='manager', password='manager', role=USER_ROLES[2][0])
 
         # Trying to get access without manager permission
         self.client.post(reverse('users:login'), {'username': 'user', 'password': 'user'})

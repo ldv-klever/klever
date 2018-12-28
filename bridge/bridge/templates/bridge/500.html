@@ -1,0 +1,9 @@
+{% extends 'bridge/base.html' %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Server error' %}{% endblock %}
+
+{% block body_block %}
+    <h3 class="ui red header">{% if exception %}{{ exception }}{% else %}{% trans "Unknown error" %}{% endif %}</h3>
+{% endblock %}

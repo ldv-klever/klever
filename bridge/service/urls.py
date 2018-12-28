@@ -15,11 +15,19 @@
 # limitations under the License.
 #
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.routers import DefaultRouter
+
 from service import views
 
+router = DefaultRouter()
+router.register('task', views.TaskAPIViewset, 'task')
 
 urlpatterns = [
+    path('', include(router.urls)),
+    path('signin/', obtain_auth_token),
+
     # TESTS
     path('test/', views.test, name='test'),
     path('ajax/fill_session/', views.fill_session),
@@ -28,7 +36,10 @@ urlpatterns = [
     path('set_schedulers_status/', views.set_schedulers_status),
     path('get_jobs_and_tasks/', views.get_jobs_and_tasks),
     path('schedule_task/', views.schedule_task),
-    path('update_tools/', views.update_tools),
+
+    path('update_tools/', views.UpdateToolsAPIView.as_view()),
+
+
     path('get_tasks_statuses/', views.get_tasks_statuses),
     path('remove_task/', views.remove_task),
     path('cancel_task/', views.cancel_task),

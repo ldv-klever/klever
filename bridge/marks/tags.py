@@ -33,7 +33,7 @@ class TagAccess:
         self._is_manager = self.__is_manager()
 
     def __is_manager(self):
-        return self.user is not None and self.user.extended.role == USER_ROLES[2][0]
+        return self.user is not None and self.user.role == USER_ROLES[2][0]
 
     def __has_edit_access(self):
         if self.tag is None or self.user is None:
@@ -344,10 +344,10 @@ class SaveTag:
         return True
 
     def __create_access(self):
-        if self.data['action'] == 'create' and self.user.extended.role != USER_ROLES[2][0]:
+        if self.data['action'] == 'create' and self.user.role != USER_ROLES[2][0]:
             self.access_model.objects.create(tag=self.tag, user=self.user, modification=True, child_creation=True)
 
-        if self.user.extended.role != USER_ROLES[2][0] or 'access' not in self.data:
+        if self.user.role != USER_ROLES[2][0] or 'access' not in self.data:
             return
         access = json.loads(self.data['access'])
         if access['edit'] is None:

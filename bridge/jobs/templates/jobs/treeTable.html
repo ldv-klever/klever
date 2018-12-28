@@ -34,20 +34,23 @@
             {% for row_data in TableData.values %}
                 <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
                     style="{% if row_data.black %}color: silver;{% endif %}{% if row_data.parent %}display:none;{% endif %}">
-                <td id="value__{{ row_data.id }}" class="one wide">
-                    <div class="ui fitted checkbox">
-                        <input type="checkbox" id="job_checkbox__{{ row_data.id }}">
-                        <label for="job_checkbox__{{ row_data.id }}"></label>
-                    </div>
-                </td>
                 {% for v in row_data.values %}
-                    <td id="value__{{ v.id }}__{{ row_data.id }}" class="collapsing">
-                        {% if v.href %}
-                            <a href="{{ v.href }}">{{ v.value }}</a>
-                        {% else %}
-                            <span>{{ v.value|safe }}</span>
-                        {% endif %}
-                    </td>
+                    {% if v.column == 'checkbox' %}
+                        <td id="value__{{ row_data.id }}" class="one wide">
+                            <div class="ui fitted checkbox">
+                                <input type="checkbox" id="job_checkbox__{{ row_data.id }}">
+                                <label for="job_checkbox__{{ row_data.id }}"></label>
+                            </div>
+                        </td>
+                    {% else %}
+                        <td id="value__{{ v.id }}__{{ row_data.id }}" class="collapsing">
+                            {% if v.href %}
+                                <a href="{{ v.href }}">{{ v.value }}</a>
+                            {% else %}
+                                <span>{{ v.value|safe }}</span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
                 {% endfor %}
                 </tr>
             {%  endfor %}

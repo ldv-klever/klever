@@ -22,7 +22,7 @@ from django.urls import reverse
 from bridge.utils import KleverTestCase
 from bridge.vars import LANGUAGES, DATAFORMAT
 
-from users.models import User, Extended, Notifications
+from users.models import User, Notifications
 from service.models import SchedulerUser
 
 
@@ -38,9 +38,6 @@ class TestLoginAndRegister(KleverTestCase):
 
         # All users are redirected to jobs tree page after login
         self.assertRedirects(response, reverse('jobs:tree'))
-
-        # User without "Extended" object must be extended after signing in
-        self.assertEqual(len(Extended.objects.filter(user__username=uname)), 1)
 
     def test_wrong_username(self):
         response = self.client.post(reverse('users:login'), {'username': 'unknown', 'password': 'unknown'})
@@ -70,16 +67,13 @@ class TestLoginAndRegister(KleverTestCase):
         # After successfull registration user must be redirected to login page
         self.assertRedirects(response, reverse('users:login'))
         # Check if new user exists in DB
-        self.assertEqual(len(Extended.objects.filter(
-            user__username='user', user__first_name='Firstname', user__last_name='Lastname',
+        self.assertEqual(len(User.objects.filter(
+            username='user', first_name='Firstname', last_name='Lastname',
             data_format=DATAFORMAT[1][0], accuracy=2, language=LANGUAGES[0][0]
         )), 1)
 
     def test_service(self):
-
-        Extended.objects.create(user=User.objects.create_user(
-            username='service', password='service', last_name='Lastname', first_name='Firstname'
-        ))
+        User.objects.create_user(username='service', password='service', last_name='Lastname', first_name='Firstname')
 
         response = self.client.get('/users/service_signin/')
         self.assertEqual(response.status_code, 200)
@@ -171,5 +165,3 @@ class TestLoggedInUser(KleverTestCase):
             'last_name': 'Newlastname', 'first_name': 'Newname'
         })
         self.assertEqual(response.status_code, 200)
-        # Check that other data didn't changed
-        self.assertEqual(len(Extended.objects.filter(user=self.user, accuracy=2)), 1)

@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import io
 import hashlib
 import logging
 import os
@@ -22,14 +23,14 @@ import shutil
 import tempfile
 import time
 import zipfile
+import json
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.core.files import File
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.template import loader
-from django.template import Template, Context
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now, activate as activate_timezone
@@ -78,7 +79,12 @@ def file_checksum(f):
     return md5.hexdigest()
 
 
-def file_get_or_create(fp, filename, table, check_size=False):
+def file_get_or_create(fp, filename, model, check_size=False):
+    if isinstance(fp, str):
+        fp = io.BytesIO(fp.encode('utf8'))
+    elif isinstance(fp, bytes):
+        fp = io.BytesIO(fp)
+
     if check_size:
         file_size = fp.seek(0, os.SEEK_END)
         if file_size > settings.MAX_FILE_SIZE:
@@ -88,19 +94,30 @@ def file_get_or_create(fp, filename, table, check_size=False):
                     filesizeformat(file_size)
                 ))
             )
+
+    if os.path.splitext(filename)[1] == '.json':
+        fp.seek(0)
+        file_content = fp.read().decode('utf8')
+        try:
+            json.loads(file_content)
+        except Exception as e:
+            print(file_content)
+            logger.exception(e)
+            raise BridgeException(_('The file is wrong json'))
+
     fp.seek(0)
-    check_sum = file_checksum(fp)
+    hash_sum = file_checksum(fp)
     try:
-        return table.objects.get(hash_sum=check_sum), check_sum
-    except ObjectDoesNotExist:
-        db_file = table(hash_sum=check_sum)
+        return model.objects.get(hash_sum=hash_sum)
+    except model.DoesNotExist:
+        db_file = model(hash_sum=hash_sum)
         db_file.file.save(filename, File(fp), save=True)
-        return db_file, check_sum
+        return db_file
 
 
 # archive - django.core.files.File object
 # Example: archive = File(open(<path>, mode='rb'))
-# Note: files from requests are already File objects
+# Note: files from requests are already File instances
 def extract_archive(archive):
     with tempfile.NamedTemporaryFile() as fp:
         for chunk in archive.chunks():
@@ -127,10 +144,6 @@ def tests_logging_conf():
                 settings.MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
             cnt += 1
     return tests_logging
-
-
-def get_templated_text(template, **kwargs):
-    return Template(template).render(Context(kwargs))
 
 
 # Logging overriding does not work (does not override it for tests but override it after tests done)
@@ -213,8 +226,8 @@ class OpenFiles:
 class RemoveFilesBeforeDelete:
     def __init__(self, obj):
         model_name = getattr(obj, '_meta').object_name
-        if model_name == 'SolvingProgress':
-            self.__remove_progress_files(obj)
+        if model_name == 'Decision':
+            self.__remove_decision_files(obj)
         elif model_name == 'ReportRoot':
             self.__remove_reports_files(obj)
         elif model_name == 'Job':
@@ -223,8 +236,10 @@ class RemoveFilesBeforeDelete:
             pass
         elif model_name == 'Task':
             self.__remove_task_files(obj)
+        elif model_name == 'Solution':
+            self.__remove_solution_files(obj)
 
-    def __remove_progress_files(self, progress):
+    def __remove_decision_files(self, progress):
         from service.models import Solution, Task
         for files in Solution.objects.filter(task__progress=progress).values_list('archive'):
             self.__remove(files)
@@ -254,6 +269,9 @@ class RemoveFilesBeforeDelete:
             pass
         files.add(task.archive.path)
         self.__remove(files)
+
+    def __remove_solution_files(self, solution):
+        self.__remove([solution.archive.path])
 
     def __remove(self, files):
         self.__is_not_used()
@@ -294,7 +312,7 @@ class BridgeErrorResponse(HttpResponseBadRequest):
         if isinstance(response, int):
             response = ERRORS.get(response, UNKNOWN_ERROR)
         super(BridgeErrorResponse, self).__init__(
-            loader.get_template('error.html').render({'message': response, 'back': back}),
+            loader.get_template('bridge/error.html').render({'message': response, 'back': back}),
             *args, **kwargs
         )
 
@@ -304,23 +322,24 @@ class BridgeMiddlware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated and request.user.extended.role != USER_ROLES[4][0]:
-            activate(request.user.extended.language)
-            activate_timezone(request.user.extended.timezone)
-        response = self.get_response(request)
-        return response
+        if request.user.is_authenticated and request.user.role != USER_ROLES[4][0]:
+            # Activate language and timezone for non-services
+            activate(request.user.language)
+            activate_timezone(request.user.timezone)
+        return self.get_response(request)
 
     def process_exception(self, request, exception):
         if isinstance(exception, BridgeException):
             if exception.response_type == 'json':
-                return JsonResponse({'error': str(exception.message)})
+                return JsonResponse({'error': str(exception.message)}, status=400)
             elif exception.response_type == 'html':
-                return HttpResponseBadRequest(loader.get_template('error.html').render({
+                return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
                     'user': request.user, 'message': exception.message, 'back': exception.back
                 }))
-        elif isinstance(exception, Http404):
+        elif isinstance(exception, (Http404, PermissionDenied)):
             return
-        logger.exception(exception)
-        return HttpResponseBadRequest(loader.get_template('error.html').render({
-            'user': request.user, 'message': str(UNKNOWN_ERROR)
-        }))
+        return
+        # logger.exception(exception)
+        # return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
+        #     'user': request.user, 'message': str(UNKNOWN_ERROR)
+        # }))

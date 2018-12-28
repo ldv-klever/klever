@@ -44,11 +44,6 @@
             </div>
             <div class="twelve wide field">
                 <div class="ui radio checkbox">
-                    <input id="order_value_date_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="date" {% if 'order' in view and view.order.1 == 'date' %} checked{% endif %}>
-                    <label for="order_value_date_{{ view.type }}">{% trans 'Date' %}</label>
-                </div>
-                <br>
-                <div class="ui radio checkbox">
                     <input id="order_value_title_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="title" {% if 'order' in view and view.order.1 == 'title' %} checked{% endif %}>
                     <label for="order_value_title_{{ view.type }}">{% trans 'Title' %}</label>
                 </div>
@@ -137,8 +132,8 @@
             <div class="field">
                 <label for="view_{{ view.type }}__date_type">&nbsp;</label>
                 <select id="view_{{ view.type }}__date_type" class="ui dropdown">
-                    <option value="older"{% if 'change_date' in view and view.change_date.0 == 'older' %} selected{% endif %}>{% trans 'older' %}</option>
-                    <option value="younger"{% if 'change_date' in view and view.change_date.0 == 'younger' %} selected{% endif %}>{% trans 'younger' %}</option>
+                    <option value="lt"{% if 'change_date' in view and view.change_date.0 == 'lt' %} selected{% endif %}>{% trans 'older' %}</option>
+                    <option value="gt"{% if 'change_date' in view and view.change_date.0 == 'gt' %} selected{% endif %}>{% trans 'younger' %}</option>
                 </select>
             </div>
             <div class="field">

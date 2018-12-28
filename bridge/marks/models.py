@@ -15,13 +15,16 @@
 # limitations under the License.
 #
 
-from django.contrib.auth.models import User
+import uuid
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
+from mptt.models import MPTTModel, TreeForeignKey
+
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown
 from jobs.models import Job
+from users.models import User
 
 CONVERTED_DIR = 'Error-traces'
 
@@ -80,7 +83,7 @@ class MarkUnsafeCompare(models.Model):
 
 # Abstract tables
 class Mark(models.Model):
-    identifier = models.CharField(max_length=255, unique=True)
+    identifier = models.UUIDField(unique=True, default=uuid.uuid4)
     job = models.ForeignKey(Job, models.SET_NULL, null=True, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
@@ -204,23 +207,29 @@ class UnsafeAssociationLike(models.Model):
 
 
 # Tags tables
-class SafeTag(models.Model):
+class SafeTag(MPTTModel):
     author = models.ForeignKey(User, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
+    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
+
+    class MPTTMeta:
+        order_insertion_by = ['tag']
 
     class Meta:
         db_table = "mark_safe_tag"
 
 
-class UnsafeTag(models.Model):
+class UnsafeTag(MPTTModel):
     author = models.ForeignKey(User, models.CASCADE)
-    parent = models.ForeignKey('self', models.CASCADE, null=True, related_name='children')
+    parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
+
+    class MPTTMeta:
+        order_insertion_by = ['tag']
 
     class Meta:
         db_table = "mark_unsafe_tag"

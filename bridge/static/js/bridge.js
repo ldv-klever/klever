@@ -50,8 +50,38 @@ $.ajaxSetup({
     }
 });
 $(document).ajaxError(function () {
-    err_notify($('#error__ajax_error').text());
+    // err_notify($('#error__ajax_error').text());
 });
+
+window.flatten_api_errors = function(data, labels) {
+    var errors_arr = [];
+
+    function get_label(key) {
+        return (key && labels && labels[key]) ? labels[key] : null;
+    }
+
+    function get_children_messages(obj, err_key) {
+        if (Array.isArray(obj)) {
+            $.each(obj, function (i, value) {
+                get_children_messages(value, err_key);
+            });
+        }
+        else if (typeof obj === 'object') {
+            $.each(obj, function (key, value) {
+                get_children_messages(value, key);
+            });
+        }
+        else {
+            var error_text = obj + '', label = get_label(err_key);
+            if (label) error_text = '{0}: {1}'.format(label, error_text);
+            if (errors_arr.indexOf(error_text) < 0) errors_arr.push(error_text);
+        }
+    }
+
+    get_children_messages(data);
+
+    return errors_arr;
+};
 
 $.extend({
     redirectPost: function (location, args) {
@@ -83,6 +113,7 @@ window.err_notify = function (message, duration) {
         notify_opts['autoHideDelay'] = duration;
     }
     $.notify(message, notify_opts);
+    return true;
 };
 
 window.success_notify = function (message) {
@@ -436,7 +467,7 @@ window.getFileExtension = function(name) {
 window.isFileReadable = function(name) {
     var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
         extension = getFileExtension(name);
-    return ($.inArray(extension, readable_extensions) !== -1 || name == 'README');
+    return ($.inArray(extension, readable_extensions) !== -1 || name === 'README');
 };
 
 window.get_url_with_get_parameter = function (url, key, value) {
@@ -450,6 +481,12 @@ window.get_url_with_get_parameter = function (url, key, value) {
     else {
         return url + '?' + key + '=' + value;
     }
+};
+
+String.prototype.format = String.prototype.f = function(){
+	var args = arguments;
+	return this.replace(/{(\d+)}/g, function(m, n){ return args[n] ? args[n] : m; });
+
 };
 
 $(document).ready(function () {
@@ -466,12 +503,7 @@ $(document).ready(function () {
     $('.ui.accordion').accordion();
     $('.note-popup').each(function () {
         var position = $(this).data('position');
-        if (position) {
-            $(this).popup({position: position});
-        }
-        else {
-            $(this).popup();
-        }
+        position ? $(this).popup({position: position}) : $(this).popup();
     });
 
     $('.page-link-icon').click(function () {

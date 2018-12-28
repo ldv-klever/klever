@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -17,14 +17,8 @@
 {% endcomment %}
 
 {% load i18n %}
-{% load staticfiles %}
-{% block title %}{% trans 'Settings' %}{% endblock %}
 
-{% block head_block %}
-    <script src="{% static 'users/js/users.js' %}"></script>
-    <script src="{% static 'users/js/schedulerUser.js' %}"></script>
-    <link href="{% static 'users/css/style.css' %}" rel="stylesheet">
-{% endblock %}
+{% block title %}{% trans 'Settings' %}{% endblock %}
 
 {% block body_block %}
     <div class="ui olive segment">
@@ -33,79 +27,20 @@
             {% csrf_token %}
             <div class="ui grid form">
                 <div class="five wide column">
-                    <div class="field">
-                        <label>{{ user_form.new_password.label }}</label>
-                        {{ user_form.new_password }}
-                        <br>{{ user_form.errors.new_password }}
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.retype_password.label }}</label>
-                        {{ user_form.retype_password }}
-                        <br>{{ user_form.errors.retype_password }}
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.email.label }}</label>
-                        {{ user_form.email }}
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.first_name.label }}</label>
-                        {{ user_form.first_name }}
-                        <br>{{ user_form.errors.first_name }}
-                    </div>
-                    <div class="field">
-                        <label>{{ user_form.last_name.label }}</label>
-                        {{ user_form.last_name }}
-                        <br>{{ user_form.errors.last_name }}
-                    </div>
+                    {% for field in form.column_0 %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
                 <div class="five wide column">
-                    <div class="field">
-                        <label>{{ profile_form.accuracy.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting is used just for the human-readable data format' %}"></i></label>
-                        {{ profile_form.accuracy }}
-                        <br>{{ profile_form.errors.accuracy }}
-                    </div>
-                    <div class="field">
-                        <label>{{ profile_form.data_format.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'Most of dates are not updated automatically, so human-readable dates could become outdated until you reload page by hand' %}"></i></label>
-                        {{ profile_form.data_format }}
-                    </div>
-                    <div class="field">
-                        <label>{{ profile_form.language.label }}</label>
-                        {{ profile_form.language }}
-                    </div>
-                    <div class="field">
-                        <label for="timezone">{% trans 'Time zone' %}</label>
-                        <select id="timezone" class="ui search dropdown" name="timezone">
-                            {% for tmz in timezones %}
-                                <option value="{{ tmz }}"{% if tmz == user.extended.timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <br>
-                    <div class="field">
-                        <div class="ui checkbox">
-                            {{ profile_form.assumptions }}
-                            <label>{{ profile_form.assumptions.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace assumptions. This can take very much time for big error traces.' %}"></i></label>
-                        </div>
-                        <br>
-                    </div>
-                    <div class="field">
-                        <div class="ui checkbox">
-                            {{ profile_form.triangles }}
-                            <label>{{ profile_form.triangles.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace closing triangles at the end of each thread.' %}"></i></label>
-                        </div>
-                        <br>
-                    </div>
-                    <div class="field">
-                        <div class="ui checkbox">
-                            {{ profile_form.coverage_data }}
-                            <label>{{ profile_form.coverage_data.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of coverage data and its statistic.' %}"></i></label>
-                        </div>
-                        <br>
-                    </div>
+                    {% for field in form.column_1 %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
                 <div class="six wide column">
                     <h3 class="header">{% trans 'VerifierCloud Credentials' %}</h3>
-                    {% include 'users/schedulerUser.html' %}
+                    {% for field in sch_form %}
+                        {% include 'bridge/forms/field.html' with field=field %}
+                    {% endfor %}
                 </div>
             </div>
             <div class="ui divider"></div>
@@ -113,10 +48,8 @@
             <br><br>
         </form>
     </div>
-    <!--
-    <div class="ui purple segment right aligned">
-        {% include 'users/notifications.html' %}
-    </div>
-    -->
     <br><br>
+    <script type="application/javascript">
+        jQuery(function () { $('.ui.dropdown').dropdown() });
+    </script>
 {% endblock %}

@@ -17,43 +17,45 @@
 
 import json
 from urllib.parse import unquote
-from difflib import unified_diff
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _, override
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView, View
 from django.views.generic.detail import SingleObjectMixin, DetailView
+
 
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
-from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES
-from bridge.utils import logger, file_get_or_create, extract_archive, BridgeException
+from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES, JOB_ROLES, ERRORS
+from bridge.utils import logger, extract_archive, BridgeException
 
 from users.models import User
 from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
-from service.utils import StartJobDecision, StopDecision, GetJobsProgresses
+from service.utils import StartJobDecision, StopDecision
+from service.serializers import ProgressSerializer
 
 import jobs.utils
-from jobs.jobForm import JobForm, role_info, LoadFilesTree, UserRolesForm
+from jobs.jobForm import UserRolesForm
 from jobs.models import Job, RunHistory, JobHistory, JobFile, FileSystem
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen,\
     UploadReportsWithoutDecision, JobsTreesGen, UploadTree
 from jobs.configuration import get_configuration_value, GetConfiguration, StartDecisionData
+from jobs.serializers import JobFormSerializerRO, ViewJobSerializerRO
 
 
-@method_decorator(login_required, name='dispatch')
-class JobsTree(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
+class JobsTree(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, TemplateView):
     template_name = 'jobs/tree.html'
 
     def get_context_data(self, **kwargs):
@@ -65,58 +67,61 @@ class JobsTree(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
         }
 
 
-@method_decorator(login_required, name='dispatch')
-class JobPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = Job
-    template_name = 'jobs/viewJob.html'
+    template_name = 'jobs/viewJob/main.html'
+
+    def get_queryset(self):
+        queryset = super(JobPage, self).get_queryset()
+        return queryset.select_related('author')
 
     def get_context_data(self, **kwargs):
-        job_access = jobs.utils.JobAccess(self.request.user, self.object)
-        if not job_access.can_view():
-            raise BridgeException(code=400)
-        versions = jobs.utils.JobVersionsData(self.object, self.request.user)
-        if versions.first_version is None:
-            logger.error("There is a job without versions")
-            raise BridgeException()
-        report = ReportComponent.objects.filter(root__job=self.object, parent=None).first()
+        context = super().get_context_data(**kwargs)
 
-        return {
-            'job': self.object, 'job_access': job_access, 'created_by': versions.first_version.change_author,
-            'versions': versions.versions, 'last_version': versions.last_version,
-            'roles': role_info(versions.last_version, self.request.user),
-            'parents': jobs.utils.get_job_parents(self.request.user, self.object),
-            'children': jobs.utils.get_job_children(self.request.user, self.object),
-            'progress': GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id],
-            'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), report)
-        }
+        # Check view access
+        context['job_access'] = jobs.utils.JobAccess(self.request.user, self.object)
+        if not context['job_access'].can_view():
+            raise PermissionDenied(ERRORS[400])
+
+        # Update with data from serialzier
+        context.update(ViewJobSerializerRO(instance=self.object, context={'request': self.request}).data)
+
+        # Add verification results
+        context['reportdata'] = ViewJobData(
+            self.request.user, self.get_view(VIEW_TYPES[2]),
+            ReportComponent.objects.filter(root__job=self.object, parent=None).first()
+        )
+        try:
+            # Add progress data
+            context['progress'] = ProgressSerializer(instance=self.object.decision).data
+        except ObjectDoesNotExist:
+            pass
+        return context
 
 
-class DecisionResults(LoggedCallMixin, Bview.DataViewMixin, Bview.DetailPostView):
+class DecisionResults(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, Bview.DetailPostView):
     model = Job
     template_name = 'jobs/DecisionResults.html'
+    raise_exception = True
 
     def get_context_data(self, **kwargs):
         report = ReportComponent.objects.filter(root__job=self.object, parent=None).first()
         return {'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), report)}
 
 
-class JobProgress(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
+class JobProgress(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     model = Job
-    template_name = 'jobs/jobProgress.html'
+    template_name = 'jobs/viewJob/progress.html'
+    raise_exception = True
 
     def get_context_data(self, **kwargs):
-        return {'progress': GetJobsProgresses(self.request.user, [self.object.id]).data[self.object.id]}
+        try:
+            return {'progress': ProgressSerializer(instance=self.object.decision).data}
+        except ObjectDoesNotExist:
+            return {}
 
 
-class JobStatus(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-
-    def get_context_data(self, **kwargs):
-        return {'status': self.object.status}
-
-
-@method_decorator(login_required, name='dispatch')
-class JobsFilesComparison(LoggedCallMixin, TemplateView):
+class JobsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'jobs/comparison.html'
 
     def get_context_data(self, **kwargs):
@@ -139,93 +144,19 @@ class RemoveJobsView(LoggedCallMixin, Bview.JsonView):
         return {}
 
 
-class SaveJobCopyView(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-    unparallel = [Job]
-
-    def get_context_data(self, **kwargs):
-        newjob = jobs.utils.save_job_copy(self.request.user, self.object, self.request.POST.get('name'))
-        return {'identifier': newjob.identifier, 'id': newjob.id}
-
-
-class DecisionResultsJson(LoggedCallMixin, Bview.JsonDetailView):
-    model = Job
-
-    def get_context_data(self, **kwargs):
-        res = jobs.utils.GetJobDecisionResults(self.object)
-        return {'data': json.dumps({
-            'name': res.job.name, 'status': res.job.status,
-            'start_date': res.start_date.timestamp() if res.start_date else None,
-            'finish_date': res.finish_date.timestamp() if res.finish_date else None,
-            'verdicts': res.verdicts, 'resources': res.resources,
-            'safes': res.safes, 'unsafes': res.unsafes, 'unknowns': res.unknowns
-        }, indent=2, sort_keys=True, ensure_ascii=False)}
-
-
 @method_decorator(login_required, name='dispatch')
 class JobFormPage(LoggedCallMixin, DetailView):
     model = Job
     template_name = 'jobs/jobForm.html'
 
-    def get_unparallel(self):
-        if self.request.method == 'POST':
-            return [Job]
-        return []
-
-    def post(self, *args, **kwargs):
-        self.is_not_used(*args, **kwargs)
-        try:
-            return JsonResponse({'job_id': JobForm(self.request.user, self.get_object(),
-                                                   self.kwargs['action']).save(self.request.POST).id})
-        except BridgeException as e:
-            raise BridgeException(str(e), response_type='json')
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException(response_type='json')
-
     def get_context_data(self, **kwargs):
         if not jobs.utils.JobAccess(self.request.user, self.object).can_view():
             raise BridgeException(code=400)
-        return JobForm(self.request.user, self.object, self.kwargs['action']).get_context()
 
-
-class GetJobHistoryData(LoggedCallMixin, Bview.JsonDetailView):
-    model = JobHistory
-
-    def get_object(self, queryset=None):
-        try:
-            obj = self.get_queryset().get(job_id=self.kwargs['job_id'], version=self.kwargs['version'])
-        except ObjectDoesNotExist:
-            raise BridgeException(_("The job version was not found"))
-        if not jobs.utils.JobAccess(self.request.user, obj.job).can_view():
-            raise BridgeException(code=400)
-        return obj
-
-    def get_context_data(self, **kwargs):
-        return {'description': self.object.description}
-
-
-class GetJobHistoryRoles(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
-    model = JobHistory
-    template_name = 'jobs/userRolesForm.html'
-
-    def get_object(self, queryset=None):
-        try:
-            obj = self.get_queryset().get(job_id=self.kwargs['job_id'], version=self.kwargs['version'])
-        except ObjectDoesNotExist:
-            raise BridgeException(_('Job version was not found'))
-        if not jobs.utils.JobAccess(self.request.user, obj.job).can_view():
-            raise BridgeException(code=400)
-        return obj
-
-    def get_context_data(self, **kwargs):
-        return UserRolesForm(self.request.user, self.object).get_context()
-
-
-class GetJobHistoryFiles(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        opened = 'opened' not in self.request.POST or json.loads(self.request.POST['opened'])
-        return LoadFilesTree(self.kwargs['job_id'], self.kwargs['version'], opened).as_json()
+        context = super().get_context_data(**kwargs)
+        context.update(JobFormSerializerRO(instance=self.object).data)
+        context.update({'action': self.kwargs['action'], 'job_roles': JOB_ROLES})
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -241,50 +172,6 @@ class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingRes
         self.object = self.get_object()
         self.file_size = len(self.object.file)
         return FileWrapper(self.object.file, 8192)
-
-
-class UploadJobFileView(LoggedCallMixin, Bview.JsonView):
-    unparallel = [JobFile]
-
-    def get_context_data(self, **kwargs):
-        fname = self.request.FILES['file'].name
-        if not all(ord(c) < 128 for c in fname):
-            title_size = len(fname)
-            if title_size > 30:
-                fname = fname[(title_size - 30):]
-        return {'hashsum': file_get_or_create(self.request.FILES['file'], fname, JobFile, True)[1]}
-
-
-class GetFileContentView(LoggedCallMixin, Bview.JsonDetailView):
-    model = JobFile
-    slug_url_kwarg = 'hashsum'
-    slug_field = 'hash_sum'
-
-    def get_context_data(self, **kwargs):
-        return {'content': self.object.file.read().decode('utf8')}
-
-
-class GetFilesDiffView(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        try:
-            f1 = jobs.utils.JobFile.objects.get(hash_sum=self.kwargs['hashsum1'])
-            f2 = jobs.utils.JobFile.objects.get(hash_sum=self.kwargs['hashsum2'])
-        except ObjectDoesNotExist:
-            raise BridgeException(_("The file was not found"))
-        with f1.file as fp1, f2.file as fp2:
-            lines1 = fp1.read().decode('utf8').split('\n')
-            lines2 = fp2.read().decode('utf8').split('\n')
-            name1 = self.request.POST.get('name1', 'Old')
-            name2 = self.request.POST.get('name2', 'Old')
-            return {'content': '\n'.join(list(unified_diff(lines1, lines2, fromfile=name1, tofile=name2)))}
-
-
-class ReplaceJobFileView(LoggedCallMixin, Bview.JsonView):
-    unparallel = [FileSystem]
-
-    def get_context_data(self, **kwargs):
-        jobs.utils.ReplaceJobFile(self.kwargs['job_id'], self.request.POST['name'], self.request.FILES['file'])
-        return {}
 
 
 @method_decorator(login_required, name='dispatch')
@@ -327,7 +214,7 @@ class DownloadJobsListView(LoggedCallMixin, Bview.StreamingResponsePostView):
 @method_decorator(login_required, name='dispatch')
 class DownloadJobsTreeView(LoggedCallMixin, Bview.StreamingResponsePostView):
     def get_generator(self):
-        if self.request.user.extended.role != USER_ROLES[2][0]:
+        if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
         self.file_name = 'KleverJobs.zip'
         return JobsTreesGen(json.loads(self.request.POST['job_ids']))
@@ -363,7 +250,7 @@ class UploadJobsTreeView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
-        if self.request.user.extended.role != USER_ROLES[2][0]:
+        if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("You don't have an access to upload jobs tree"))
         if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
             raise BridgeException(_("There are jobs in progress right now, uploading may corrupt it results. "
@@ -395,17 +282,6 @@ class CompareJobVersionsView(LoggedCallMixin, Bview.DetailPostView):
         if job_versions.count() != 2:
             raise BridgeException(_('The page is outdated, reload it please'))
         return {'data': jobs.utils.CompareJobVersions(*list(job_versions))}
-
-
-class CopyJobVersionView(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-    unparallel = [Job]
-
-    def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_edit():
-            raise BridgeException(code=400)
-        jobs.utils.copy_job_version(self.request.user, self.object)
-        return {}
 
 
 class PrepareDecisionView(LoggedCallMixin, DetailView):

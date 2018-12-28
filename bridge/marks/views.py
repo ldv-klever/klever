@@ -70,7 +70,7 @@ class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
 
         versions = []
         for m in history_set:
-            mark_time = m.change_date.astimezone(pytz.timezone(self.request.user.extended.timezone))
+            mark_time = m.change_date.astimezone(pytz.timezone(self.request.user.timezone))
             title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
             if m.author is not None:
                 title += " (%s)" % m.author.get_full_name()
@@ -173,7 +173,7 @@ class MarkFormView(LoggedCallMixin, DetailView):
                 if m.version == self.object.version:
                     title = _("Current version")
                 else:
-                    change_time = m.change_date.astimezone(pytz.timezone(self.request.user.extended.timezone))
+                    change_time = m.change_date.astimezone(pytz.timezone(self.request.user.timezone))
                     title = change_time.strftime("%d.%m.%Y %H:%M:%S")
                     if m.author is not None:
                         title += " (%s)" % m.author.get_full_name()
@@ -346,7 +346,7 @@ class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.Strea
             return super().dispatch(request, *args, **kwargs)
 
     def get_generator(self):
-        if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        if self.request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
             raise BridgeException("You don't have an access to download all marks")
         generator = AllMarksGen()
         self.file_name = generator.name
@@ -361,7 +361,7 @@ class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
             return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        if self.request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        if self.request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
             raise BridgeException("You don't have an access to upload marks")
         marks_dir = extract_archive(self.request.FILES['file'])
         return UploadAllMarks(self.request.user, marks_dir.name, bool(int(self.request.POST.get('delete', 0)))).numbers
@@ -414,15 +414,15 @@ class TagDataView(LoggedCallMixin, Bview.JsonView):
         context = {}
         user_access = {'access_edit': [], 'access_child': [], 'all': []}
 
-        if self.request.user.extended.role == USER_ROLES[2][0]:
-            for u in User.objects.exclude(extended__role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
+        if self.request.user.role == USER_ROLES[2][0]:
+            for u in User.objects.exclude(role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
                 user_access['all'].append([u.id, u.get_full_name()])
 
         if 'tag_id' in self.request.POST:
             res = GetParents(self.request.POST['tag_id'], self.kwargs['type'])
             context['parents'] = json.dumps(res.parents_ids)
             context['current'] = res.tag.parent_id if res.tag.parent_id is not None else 0
-            if self.request.user.extended.role == USER_ROLES[2][0]:
+            if self.request.user.role == USER_ROLES[2][0]:
                 tag_access_model = self.model_map[self.kwargs['type']][1]
                 user_access['access_edit'] = list(u_id for u_id, in tag_access_model.objects
                                                   .filter(tag=res.tag, modification=True).values_list('user_id'))

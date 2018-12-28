@@ -67,7 +67,7 @@ class NewMark:
             logger.exception("Get MarkUnsafeCompare(pk=%s)" % self._args['compare_id'])
             raise BridgeException(_('The error traces comparison function was not found'))
 
-        if self._user.extended.role != USER_ROLES[2][0]:
+        if self._user.role != USER_ROLES[2][0]:
             self._args['is_modifiable'] = MarkUnsafe._meta.get_field('is_modifiable').default
         elif not isinstance(self._args.get('is_modifiable'), bool):
             raise ValueError('Wrong type: is_modifiable (%s)' % type(self._args.get('is_modifiable')))
@@ -144,7 +144,7 @@ class NewMark:
 
         if error_trace is not None and file_checksum(error_trace) != last_v.error_trace.hash_sum:
             do_recalc = True
-            error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+            error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)
         else:
             error_trace = last_v.error_trace
 
@@ -184,7 +184,7 @@ class NewMark:
             self._args['identifier'] = unique_id()
         error_trace = file_get_or_create(BytesIO(json.dumps(
             json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
-        ).encode('utf8')), ET_FILE_NAME, ConvertedTraces)[0]
+        ).encode('utf8')), ET_FILE_NAME, ConvertedTraces)
         mark = MarkUnsafe.objects.create(
             identifier=self._args['identifier'], author=self._user, change_date=now(), format=self._args['format'],
             type=MARK_TYPE[2][0], function=self._comparison, description=str(self._args.get('description', '')),
@@ -726,7 +726,7 @@ class PopulateMarks:
                 function_id=self._marks_data[mark.identifier]['f_id'],
                 error_trace=file_get_or_create(
                     self._marks_data[mark.identifier]['error trace'], ET_FILE_NAME, ConvertedTraces
-                )[0]
+                )
             ))
         MarkUnsafeHistory.objects.bulk_create(marks_versions)
         return created_marks

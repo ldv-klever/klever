@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -147,7 +147,7 @@
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
             {% endif %}
             {% if report.covnum > 0 %}
-                <a href="{% if user.extended.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
+                <a href="{% if user.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
             {% endif %}
         </div>
     </div>

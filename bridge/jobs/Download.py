@@ -37,7 +37,7 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
     Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile, ErrorTraceSource
-from service.models import SolvingProgress, JobProgress, Scheduler
+from service.models import Scheduler, Decision
 from jobs.utils import change_job_status, remove_jobs_by_id
 from reports.utils import AttrData
 from service.utils import StartJobDecision
@@ -169,7 +169,7 @@ class JobArchiveGenerator:
     def __get_progress_data(self):
         data = {}
         try:
-            sp = SolvingProgress.objects.get(job=self.job)
+            sp = Decision.objects.get(job=self.job)
         except ObjectDoesNotExist:
             pass
         else:
@@ -183,7 +183,7 @@ class JobArchiveGenerator:
                 'solutions': sp.solutions, 'error': sp.error
             })
         try:
-            jp = JobProgress.objects.get(job=self.job)
+            jp = Decision.objects.get(job=self.job)
         except ObjectDoesNotExist:
             pass
         else:
@@ -601,7 +601,7 @@ class UploadJob:
                     logger.error('Job decision configuration was not found')
                     raise BridgeException(_("The job archive was corrupted"))
                 with open(run_conf, mode='rb') as fp:
-                    conf_file = file_get_or_create(fp, 'config.json', JobFile)[0]
+                    conf_file = file_get_or_create(fp, 'config.json', JobFile)
                 RunHistory.objects.create(
                     job=self.job, status=rh['status'], configuration=conf_file,
                     date=datetime.fromtimestamp(rh['date'], pytz.timezone('UTC'))
@@ -681,7 +681,7 @@ class UploadJob:
                 scheduler = Scheduler.objects.get(type=data['scheduler'])
             except ObjectDoesNotExist:
                 raise BridgeException(_('Scheduler for the job was not found'))
-            SolvingProgress.objects.create(
+            Decision.objects.create(
                 job=job, scheduler=scheduler, fake=True, priority=data['priority'],
                 start_date=datetime.fromtimestamp(data['start_date'], pytz.timezone('UTC'))
                 if data['start_date'] is not None else None,
@@ -693,7 +693,7 @@ class UploadJob:
                 solutions=data['solutions'], error=data['error'], configuration=conf_file
             )
         if 'total_sj' in data:
-            JobProgress.objects.create(
+            Decision.objects.create(
                 job=job,
                 total_sj=data['total_sj'], failed_sj=data['failed_sj'], solved_sj=data['solved_sj'],
                 start_sj=datetime.fromtimestamp(data['start_sj'], pytz.timezone('UTC'))

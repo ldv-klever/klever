@@ -48,19 +48,7 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.data.tags_unsafe|length %}
-                    <h5 class="header ui orange">{% trans 'Tags' %}</h5>
-                    <div class="ui list">
-                        {% for t in reportdata.data.tags_unsafe %}
-                            <div class="item" style="padding-left: {{ t.padding }}px;">
-                                <i class="tag tiny orange icon"></i>
-                                <div class="content">
-                                    <span{% if t.description != '' %} id="tag_description_id_{{ t.id }}" class="tag-description-popup" data-variation="very wide" data-content="{{ t.description }}"{% endif %}>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                {% include 'jobs/decision/report_tags.html' with report_tags=reportdata.data.tags_unsafe tags_type='unsafe' %}
                 {% if reportdata.data.unsafes_attr_stat|length %}
                     <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.attr_stat.0 }}"</h5>
                     <div class="ui small list">
@@ -104,19 +92,7 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.data.tags_safe|length %}
-                    <h5 class="header ui green">{% trans 'Tags' %}</h5>
-                    <div class="ui list">
-                        {% for t in reportdata.data.tags_safe %}
-                            <div class="item" style="padding-left: {{ t.padding }}px;">
-                                <i class="tag green icon"></i>
-                                <div class="content">
-                                    <span{% if t.description != '' %} id="tag_description_id_{{ t.id }}" class="tag-description-popup" data-variation="very wide" data-content="{{ t.description }}"{% endif %}>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                {% include 'jobs/decision/report_tags.html' with report_tags=reportdata.data.tags_safe tags_type='safe' %}
                 {% if reportdata.data.safes_attr_stat|length %}
                     <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.attr_stat.0 }}"</h5>
                     <div class="ui small list">

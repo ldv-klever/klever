@@ -24,27 +24,21 @@ function error_or_reload(data) {
 function update_decision_results(interval) {
 
     function hide_resource_note() {
-        var res_note = $('#resources-note');
-        var is_hidden = res_note.popup('is hidden');
-        if (!is_hidden) {
-            res_note.popup('hide');
-        }
+        var res_note = $('#resources-note'),
+            is_hidden = res_note.popup('is hidden');
+        if (!is_hidden) res_note.popup('hide');
         return is_hidden;
     }
     function activate_resource_note(is_hidden) {
         var res_note = $('#resources-note');
         res_note.popup();
-        if (!is_hidden) {
-            res_note.popup('show');
-        }
+        if (!is_hidden) res_note.popup('show');
     }
     function hide_tag_popup() {
         var shown_tag_description_id = null;
         $('.tag-description-popup').each(function () {
             $(this).popup('hide');
-            if (!$(this).popup('is hidden')) {
-                shown_tag_description_id = $(this).attr('id').replace('tag_description_id_', '')
-            }
+            if (!$(this).popup('is hidden')) shown_tag_description_id = $(this).attr('id');
         });
         return shown_tag_description_id;
     }
@@ -53,15 +47,13 @@ function update_decision_results(interval) {
             $(this).popup({html: $(this).attr('data-content'), hoverable: true});
         });
         if (tag_id) {
-            var tag_descr = $('#tag_description_id_' + tag_id);
-            if (tag_descr.length) {
-                tag_descr.popup('show');
-            }
+            var tag_descr = $('#' + tag_id);
+            if (tag_descr.length) tag_descr.popup('show');
         }
     }
     $.post(
         '/jobs/decision_results/' + $('#job_id').val() + '/',
-        {view_type: '2', view: collect_view_data('2')['view']},  // VIEW_TYPES[2]
+        collect_view_data('2'),  // VIEW_TYPES[2]
         function (data) {
             if (data.error) {
                 err_notify(data.error);
@@ -100,20 +92,12 @@ function update_progress(interval) {
 }
 
 function check_status(interval) {
-    $.post(
-        '/jobs/status/' + $('#job_id').val() + '/',
-        {},
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-                clearInterval(interval);
-            }
-            else if (data.status != $('#job_status_value').val()) {
-                window.location.replace('');
-            }
-        }
-    ).fail(function () {
-        clearInterval(interval);
+    $.get('/jobs/api/job-status/{0}/'.format($('#job_id').val()), {}, function (data) {
+        if (data.status !== $('#job_status_value').val()) window.location.replace('');
+    }, 'json').fail(function (resp) {
+        var errors = flatten_api_errors(resp['responseJSON']);
+        $.each(errors, function (i, err_text) { err_notify(err_text) });
+        clearInterval(interval)
     });
 }
 
@@ -154,7 +138,7 @@ function activate_download_for_compet() {
             });
             svcomp_filters.push(unknowns_filters);
         }
-        if (svcomp_filters.length == 0) {
+        if (svcomp_filters.length === 0) {
             err_notify($('#error___dfc_notype').text());
         }
         else {
@@ -247,7 +231,6 @@ $(document).ready(function () {
         return true;
     });
 
-    init_files_tree('#filestree', $('#job_id').val(), $('#job_version').val());
     activate_download_for_compet();
     activate_run_history();
     init_versions_list();
@@ -345,7 +328,7 @@ $(document).ready(function () {
             update_decision_results(interval);
             update_progress(interval);
             num_of_updates++;
-            if (num_of_updates > 5) stop_autoupdate();
+            if (num_of_updates > 20) stop_autoupdate();
         }
         // Always update the status
         check_status(interval);

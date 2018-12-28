@@ -27,24 +27,36 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 
-from tools.profiling import unparallel_group
+from tools.profiling import unparallel_group, LoggedCallMixin
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, TASK_STATUS, PRIORITY, JOB_STATUS
 from bridge.utils import logger
 
+from rest_framework.generics import CreateAPIView
+from rest_framework.viewsets import ModelViewSet
+
+from bridge.access import ServicePermission
+from users.models import SchedulerUser
 from jobs.models import Job
-from service.models import Scheduler, SolvingProgress, Task, VerificationTool, NodesConfiguration, SchedulerUser,\
-    Workload
+from service.models import Scheduler, Task, VerificationTool, NodesConfiguration, Workload, Decision
 
 import service.utils
 from jobs.utils import change_job_status
 from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 
+from service.serializers import UpdateToolsSerializer, TaskSerializer
 
-@unparallel_group([SolvingProgress])
+
+class TaskAPIViewset(ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    permission_classes = (ServicePermission,)
+
+
+@unparallel_group([Decision])
 def schedule_task(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if 'job id' not in request.session:
         return JsonResponse({'error': 'Session does not have job id'})
@@ -72,7 +84,7 @@ def schedule_task(request):
 def get_tasks_statuses(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -93,7 +105,7 @@ def get_tasks_statuses(request):
 def download_solution(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -121,7 +133,7 @@ def download_solution(request):
 def remove_task(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -138,11 +150,11 @@ def remove_task(request):
     return JsonResponse({})
 
 
-@unparallel_group([SolvingProgress])
+@unparallel_group([Decision])
 def cancel_task(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -162,7 +174,7 @@ def cancel_task(request):
 def get_jobs_and_tasks(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})
@@ -186,7 +198,7 @@ def get_jobs_and_tasks(request):
 def download_task(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -209,11 +221,11 @@ def download_task(request):
     return response
 
 
-@unparallel_group([SolvingProgress])
+@unparallel_group([Decision])
 def upload_solution(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -242,7 +254,7 @@ def upload_solution(request):
 def update_nodes(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -257,31 +269,17 @@ def update_nodes(request):
     return JsonResponse({})
 
 
-@unparallel_group([VerificationTool])
-def update_tools(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in {USER_ROLES[2][0], USER_ROLES[4][0]}:
-        return JsonResponse({'error': 'No access'})
-    if 'scheduler' not in request.session:
-        return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    if 'tools data' not in request.POST:
-        return JsonResponse({'error': 'Tools data is not specified'})
-    try:
-        service.utils.UpdateTools(request.session['scheduler'], request.POST['tools data'])
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(e)})
-    return JsonResponse({})
+class UpdateToolsAPIView(LoggedCallMixin, CreateAPIView):
+    unparallel = [VerificationTool]
+    serializer_class = UpdateToolsSerializer
+    permission_classes = (ServicePermission,)
 
 
 @unparallel_group([Scheduler, Job])
 def set_schedulers_status(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
@@ -298,7 +296,7 @@ def set_schedulers_status(request):
 @login_required
 @unparallel_group([NodesConfiguration, Workload])
 def schedulers_info(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     return render(request, 'service/scheduler.html', {
         'schedulers': Scheduler.objects.all(), 'data': service.utils.NodesData()
     })
@@ -355,7 +353,7 @@ def process_job(request):
 @login_required
 @unparallel_group([SchedulerUser])
 def add_scheduler_user(request):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     if request.method != 'POST' or 'login' not in request.POST or len(request.POST['login']) == 0 \
             or 'password' not in request.POST or len(request.POST['password']) == 0:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -369,7 +367,7 @@ def add_scheduler_user(request):
 def update_progress(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})

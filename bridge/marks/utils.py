@@ -69,11 +69,11 @@ class MarkAccess:
     def can_edit(self):
         if not isinstance(self.user, User):
             return False
-        if self.user.extended.role == USER_ROLES[2][0]:
+        if self.user.role == USER_ROLES[2][0]:
             return True
         if not self.mark.is_modifiable or self.mark.version == 0:
             return False
-        if self.user.extended.role == USER_ROLES[3][0]:
+        if self.user.role == USER_ROLES[3][0]:
             return True
         if isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
             first_vers = self.mark.versions.order_by('version').first()
@@ -100,7 +100,7 @@ class MarkAccess:
         if not isinstance(self.user, User):
             return False
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+            if self.user.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
             first_v = self.report.root.job.versions.order_by('version').first()
             if first_v.change_author == self.user:
@@ -117,18 +117,18 @@ class MarkAccess:
                     return True
             except ObjectDoesNotExist:
                 return False
-        elif self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+        elif self.user.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
             return True
         return False
 
     def can_delete(self):
         if not isinstance(self.user, User):
             return False
-        if self.user.extended.role == USER_ROLES[2][0]:
+        if self.user.role == USER_ROLES[2][0]:
             return True
         if not self.mark.is_modifiable or self.mark.version == 0:
             return False
-        if self.user.extended.role == USER_ROLES[3][0]:
+        if self.user.role == USER_ROLES[3][0]:
             return True
         authors = list(set(v_id for v_id, in self.mark.versions.values_list('author_id') if v_id is not None))
         if len(authors) == 1 and authors[0] == self.user.id:
@@ -142,13 +142,13 @@ class MarkAccess:
         if mark_version.version in {1, self.mark.version} or self.mark.version == 0:
             return False
         # Manager can remove all other versions
-        if self.user.extended.role == USER_ROLES[2][0]:
+        if self.user.role == USER_ROLES[2][0]:
             return True
         # Others can't remove versions if mark is frozen.
         if not self.mark.is_modifiable:
             return False
         # Expert can remove all versions.
-        if self.user.extended.role == USER_ROLES[3][0]:
+        if self.user.role == USER_ROLES[3][0]:
             return True
         # Others can remove version only if they are authors of it.
         if mark_version.author == self.user:
@@ -158,7 +158,7 @@ class MarkAccess:
     def can_freeze(self):
         if not isinstance(self.user, User):
             return False
-        return self.user.extended.role == USER_ROLES[2][0]
+        return self.user.role == USER_ROLES[2][0]
 
 
 class TagsInfo:

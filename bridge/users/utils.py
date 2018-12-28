@@ -16,24 +16,29 @@
 #
 
 import json
+from datetime import date
 
 from django.db.models import Q
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import cached_property
 
-from users.models import View
+from bridge.vars import DATAFORMAT
+
+from users.models import DataView, User
 
 
 DEF_NUMBER_OF_ELEMENTS = 18
 
 JOB_TREE_VIEW = {
     'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
-    # order: [up|down, title|date|start|finish]
-    'order': ['up', 'date'],
+    # order: [up|down, title|start|finish]
+    'order': ['down', 'title'],
 
     # FILTERS:
     # title: [iexact|istartswith|icontains, <any text>]
     # change_author: [is|isnot, <id from User model>]
-    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
+    # change_date: [gt|lt, <int number>, weeks|days|hours|minutes]
     # status: <list of identifiers from JOB_STATUS>
     # resource_component: [iexact|istartswith|icontains, <any text>]
     # problem_component: [iexact|istartswith|icontains, <any text>]
@@ -45,7 +50,7 @@ JOB_TREE_VIEW = {
     # EXAMPLES:
     # 'title': ['istartswith', 'Title of the job'],
     # 'change_author': ['is', '1'],
-    # 'change_date': ['younger', '2', 'weeks'],
+    # 'change_date': ['gt', '2', 'weeks'],
     # 'status': ['2', '5', '1'],
     # 'resource_component': ['istartswith', 'D'],
     # 'problem_component': ['iexact', 'BLAST'],
@@ -368,7 +373,7 @@ class ViewData:
             self._view_id = request_args.get('view_id')
 
     def __views(self):
-        return View.objects.filter(Q(type=self._type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
+        return DataView.objects.filter(Q(type=self._type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_view(self):
         if self._view is not None:
@@ -383,7 +388,7 @@ class ViewData:
                 self._view = json.loads(pref_view.view.view)
                 return
         elif self._view_id != 'default':
-            user_view = View.objects.filter(
+            user_view = DataView.objects.filter(
                 Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
             ).first()
             if user_view:
@@ -394,3 +399,95 @@ class ViewData:
         self._title = '{0} ({1})'.format(_('View'), _('Default'))
         self._view_id = 'default'
         self._view = DEFAULT_VIEW[self._type]
+
+
+class HumanizedValue:
+    measures = {
+        'time': {
+            'default': _('ms'),
+            'humanized': ((1000, _('s')), (60, _('min')), (60, _('h')))
+        },
+        'memory': {
+            'default': _('B'),
+            'humanized': ((1000, _('KB')), (1000, _('MB')), (1000, _('GB')))
+        }
+    }
+
+    def __init__(self, value, user=None, default='-'):
+        self.initial_value = value
+        self.default = default
+        self.user = user
+
+    @cached_property
+    def humanized(self):
+        return isinstance(self.user, User) and self.user.data_format == DATAFORMAT[1][0]
+
+    @property
+    def date(self):
+        # datetime is subclass of date
+        if not isinstance(self.initial_value, date):
+            return self.default
+
+        # Get template for the date
+        return self.get_templated_text(
+            '{%% load humanize %%}{{ date|%s }}' % ('naturaltime' if self.humanized else 'date:"r"'),
+            date=self.initial_value
+        )
+
+    @property
+    def timedelta(self):
+        # value is milliseconds
+        if not isinstance(self.initial_value, int):
+            return self.default
+
+        value, postfix = self.__value_with_postfix('time')
+        return self.get_templated_text(
+            '{% load l10n %}{{ value }} {{ postfix }}', value=value, postfix=postfix
+        )
+
+    @property
+    def memory(self):
+        # value is bytes
+        if not isinstance(self.initial_value, int):
+            return self.default
+
+        value, postfix = self.__value_with_postfix('memory')
+        return self.get_templated_text(
+            '{% load l10n %}{{ value }} {{ postfix }}', value=value, postfix=postfix
+        )
+
+    def __round_float(self, value):
+        if not self.humanized:
+            return value
+        accuracy = int(self.user.accuracy)
+        fpart_len = len(str(round(value)))
+        if fpart_len > accuracy:
+            tmp_div = 10 ** (fpart_len - accuracy)
+            return round(value / tmp_div) * tmp_div
+        if fpart_len < accuracy:
+            return round(value, accuracy - fpart_len)
+        return round(value)
+
+    def __value_with_postfix(self, value_type):
+        value = self.initial_value
+        if value_type not in self.measures:
+            return value, ''
+
+        postfix = self.measures[value_type]['default']
+
+        if not self.humanized:
+            # Return initial_value with default postfix
+            return value, postfix
+
+        for m, p in self.measures[value_type]['humanized']:
+            new_value = value / m
+            if new_value < 1:
+                break
+            postfix = p
+            value = new_value
+        value = self.__round_float(value)
+        return value, postfix
+
+    @classmethod
+    def get_templated_text(cls, template, **kwargs):
+        return Template(template).render(Context(kwargs))

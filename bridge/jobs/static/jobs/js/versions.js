@@ -65,7 +65,7 @@ function init_file_actions() {
         var file_name = $(this).text(), href = $(this).attr('href');
         if (isFileReadable(file_name)) {
             event.preventDefault();
-            $.get('/jobs/getfilecontent/' + $(this).data('hashsum') + '/', {}, function (data) {
+            $.get('/jobs/api/file/{0}/'.format($(this).data('hashsum')), {}, function (data) {
                 if (data.error) {
                     err_notify(data.error);
                 }

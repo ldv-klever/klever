@@ -1,0 +1,18 @@
+<div class="field">
+    {% if field.field.widget.input_type == 'checkbox' %}
+        <div class="ui checkbox">
+            {{ field }}
+            <label>
+                <span>{{ field.label }}</span>
+                {% if field.help_text %}<i class="ui help blue icon note-popup" data-content="{{ field.help_text }}"></i>{% endif %}
+            </label>
+        </div>
+    {% else %}
+        <label for="{{ field.id_for_label }}">
+            <span>{{ field.label }}</span>
+            {% if field.help_text %}<i class="ui help blue icon note-popup" data-content="{{ field.help_text }}"></i>{% endif %}
+        </label>
+        {{ field }}
+    {% endif %}
+    <small>{{ field.errors }}</small>
+</div>

@@ -29,7 +29,7 @@ from django.urls import reverse
 
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
 from bridge.utils import KleverTestCase
-from bridge.populate import populate_users
+# from bridge.populate import populate_users
 
 from users.models import User
 from jobs.models import Job

@@ -20,158 +20,96 @@ import json
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout, models
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView, LogoutView
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.db.models import Q
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render, get_object_or_404
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
+from django.views.generic import CreateView, UpdateView
+
+from rest_framework.generics import ListAPIView
 
 from tools.profiling import unparallel_group
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger
-from bridge.populate import extend_user
 
 from jobs.models import Job
+from jobs.models import JobHistory
+from jobs.utils import JobAccess
+from marks.models import MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 
-from users.forms import UserExtendedForm, UserForm, EditUserForm
-from users.models import Notifications, Extended, User, View, PreferableView
-
-
-@unparallel_group(['User'])
-def user_signin(request):
-    activate(request.LANGUAGE_CODE)
-    if not isinstance(request.user, models.AnonymousUser):
-        logout(request)
-    if request.method != 'POST':
-        return render(request, 'users/login.html')
-    user = authenticate(username=request.POST.get('username'), password=request.POST.get('password'))
-    if user is None:
-        return render(request, 'users/login.html', {'login_errors': _("Incorrect username or password")})
-    if not user.is_active:
-        return render(request, 'users/login.html', {'login_errors': _("Account has been disabled")})
-    login(request, user)
-    try:
-        Extended.objects.get(user=user)
-    except ObjectDoesNotExist:
-        extend_user(user)
-    next_url = request.POST.get('next_url')
-    if next_url is not None and next_url != '':
-        return HttpResponseRedirect(next_url)
-    return HttpResponseRedirect(reverse('jobs:tree'))
+from users.forms import BridgeAuthForm, RegisterForm, EditProfileForm, SchedulerUserForm
+from users.models import User, DataView, PreferableView, SchedulerUser
 
 
-def user_signout(request):
-    logout(request)
-    return HttpResponseRedirect(reverse('users:login'))
+class BridgeLoginView(LoginView):
+    template_name = 'users/login.html'
+    success_url = reverse_lazy('jobs:tree')
+    authentication_form = BridgeAuthForm
 
 
-def register(request):
-    activate(request.LANGUAGE_CODE)
-    if not isinstance(request.user, models.AnonymousUser):
-        logout(request)
+class BridgeLogoutView(LogoutView):
+    next_page = 'users:login'
 
-    if request.method == 'POST':
-        user_form = UserForm(data=request.POST)
-        profile_form = UserExtendedForm(data=request.POST)
-        user_tz = request.POST.get('timezone')
-        if user_form.is_valid() and profile_form.is_valid():
-            user = user_form.save()
-            user.set_password(user.password)
-            profile = profile_form.save(commit=False)
-            profile.user = user
-            if user_tz:
-                profile.timezone = user_tz
+
+class UserRegisterView(CreateView):
+    form_class = RegisterForm
+    success_url = reverse_lazy('users:login')
+    template_name = 'users/register.html'
+
+
+class EditProfileView(LoginRequiredMixin, UpdateView):
+    form_class = EditProfileForm
+    template_name = 'users/edit-profile.html'
+    success_url = reverse_lazy('users:edit_profile')
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def get_sch_form(self):
+        sch_kwargs = {'initial': {}, 'prefix': 'sch'}
+        if self.request.method in ('POST', 'PUT'):
+            sch_kwargs.update({'data': self.request.POST})
+        if hasattr(self, 'object'):
             try:
-                profile.save()
-            except:
-                raise ValidationError("Can't save user to the database!")
-            user.save()
-            return HttpResponseRedirect(reverse('users:login'))
-    else:
-        user_form = UserForm()
-        profile_form = UserExtendedForm()
+                sch_inst = SchedulerUser.objects.get(user=self.object)
+            except SchedulerUser.DoesNotExist:
+                sch_inst = SchedulerUser(user=self.object)
+            sch_kwargs.update({'instance': sch_inst})
+        return SchedulerUserForm(**sch_kwargs)
 
-    return render(request, 'users/register.html', {
-        'user_form': user_form,
-        'profile_form': profile_form,
-        'timezones': pytz.common_timezones,
-        'def_timezone': settings.DEF_USER['timezone']
-    })
+    def get_context_data(self, **kwargs):
+        if 'sch_form' not in kwargs:
+            kwargs['sch_form'] = self.get_sch_form()
+        return super().get_context_data(**kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        sch_form = self.get_sch_form()
+        if form.is_valid() and sch_form.is_valid():
+            self.object = form.save()
+            sch_form.save()
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form, sch_form=sch_form))
 
 
-@login_required
-@unparallel_group([User])
-def edit_profile(request):
-    activate(request.user.extended.language)
-
-    if request.method == 'POST':
-        user_form = EditUserForm(data=request.POST, request=request, instance=request.user)
-        profile_form = UserExtendedForm(data=request.POST, instance=request.user.extended)
-        user_tz = request.POST.get('timezone')
-        if user_form.is_valid() and profile_form.is_valid():
-            user = user_form.save(commit=False)
-            new_pass = request.POST.get('new_password')
-            do_redirect = False
-            if len(new_pass) > 0:
-                user.set_password(new_pass)
-                do_redirect = True
-            user.save()
-            profile = profile_form.save(commit=False)
-            profile.user = user
-            if user_tz:
-                profile.timezone = user_tz
-            profile.save()
-            if 'sch_login' in request.POST and 'sch_password' in request.POST:
-                if len(request.POST['sch_login']) > 0 and len(request.POST['sch_password']) > 0:
-                    from service.models import SchedulerUser
-                    try:
-                        sch_user = SchedulerUser.objects.get(user=request.user)
-                    except ObjectDoesNotExist:
-                        sch_user = SchedulerUser()
-                        sch_user.user = request.user
-                    sch_user.login = request.POST['sch_login']
-                    sch_user.password = request.POST['sch_password']
-                    sch_user.save()
-                elif len(request.POST['sch_login']) == 0:
-                    try:
-                        request.user.scheduleruser.delete()
-                    except ObjectDoesNotExist:
-                        pass
-
-            if do_redirect:
-                return HttpResponseRedirect(reverse('users:login'))
-            else:
-                return HttpResponseRedirect(reverse('users:edit_profile'))
-    else:
-        user_form = EditUserForm(instance=request.user)
-        profile_form = UserExtendedForm(instance=request.user.extended)
-
-    from users.notifications import NotifyData
-    return render(
-        request,
-        'users/edit-profile.html',
-        {
-            'user_form': user_form,
-            'tdata': NotifyData(request.user),
-            'profile_form': profile_form,
-            'profile_errors': profile_form.errors,
-            'user_errors': user_form.errors,
-            'timezones': pytz.common_timezones,
-            'LANGUAGES': LANGUAGES
-        })
+class JobChangesView(ListAPIView):
+    def get_queryset(self):
+        return JobHistory.objects.filter(change_author_id=self.kwargs['user_id']).select_related('job')
 
 
 @login_required
 @unparallel_group([])
 def show_profile(request, user_id):
-    activate(request.user.extended.language)
+    activate(request.user.language)
     target = get_object_or_404(User, pk=user_id)
-    from jobs.models import JobHistory
-    from jobs.utils import JobAccess
-    from marks.models import MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
 
     activity = []
     for act in JobHistory.objects.filter(change_author=target).order_by('-change_date')[:30]:
@@ -312,27 +250,6 @@ def service_signout(request):
     return HttpResponse('')
 
 
-@login_required
-@unparallel_group([Notifications])
-def save_notifications(request):
-    activate(request.user.extended.language)
-    if request.method == 'POST':
-        try:
-            new_ntf = request.user.notifications
-        except ObjectDoesNotExist:
-            new_ntf = Notifications()
-            new_ntf.user = request.user
-        try:
-            new_ntf.self_ntf = json.loads(request.POST.get('self_ntf', 'false'))
-        except Exception as e:
-            logger.error("Can't parse json: %s" % e, stack_info=True)
-            return JsonResponse({'error': str(UNKNOWN_ERROR)})
-        new_ntf.settings = request.POST.get('notifications', '[]')
-        new_ntf.save()
-        return JsonResponse({'message': _('Saved')})
-    return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-
 @unparallel_group([PreferableView, 'View'])
 def preferable_view(request):
     if not request.user.is_authenticated:
@@ -385,7 +302,7 @@ def check_view_name(request):
     return JsonResponse({})
 
 
-@unparallel_group([View])
+@unparallel_group([DataView])
 def save_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': _('You are not signing in')})
@@ -419,7 +336,7 @@ def save_view(request):
     })
 
 
-@unparallel_group([View])
+@unparallel_group([DataView])
 def remove_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': _('You are not signing in')})
@@ -441,7 +358,7 @@ def remove_view(request):
     return JsonResponse({'message': _("The view was successfully removed")})
 
 
-@unparallel_group([View])
+@unparallel_group([DataView])
 def share_view(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': _('You are not signing in')})

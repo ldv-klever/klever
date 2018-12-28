@@ -16,6 +16,7 @@
 #
 
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
+from django.utils.functional import cached_property
 
 FORMAT = 1
 
@@ -120,6 +121,7 @@ UNSAFE_VERDICTS = (
     ('5', _('Without marks')),
 )
 
+# TODO: clear usages
 SAFE_VERDICTS = (
     ('0', _('Unknown')),
     ('1', _('Incorrect proof')),
@@ -128,11 +130,56 @@ SAFE_VERDICTS = (
     ('4', _('Without marks')),
 )
 
+
+class SafeVerdicts:
+    verdicts = (
+        ('0', _('Unknown')),
+        ('1', _('Incorrect proof')),
+        ('2', _('Missed target bug')),
+        ('3', _('Incompatible marks')),
+        ('4', _('Without marks')),
+    )
+    column_map = {
+        '0': 'safe:unknown',
+        '1': 'safe:incorrect',
+        '2': 'safe:missed_bug',
+        '3': 'safe:inconclusive',
+        '4': 'safe:unassociated'
+    }
+    unassociated = '4'
+    columns_data = (
+        ('safe', _('Safes'), ''),
+        ('safe:missed_bug', _('Missed target bugs'), '#C70646'),  # red
+        ('safe:incorrect', _('Incorrect proof'), '#D05A00'),  # orange
+        ('safe:unknown', _('Unknown'), '#930BBD'),  # purple
+        ('safe:inconclusive', _('Incompatible marks'), '#C70646'),  # red
+        ('safe:unassociated', _('Without marks'), ''),
+        ('safe:total', _('Total'), ''),
+    )
+
+    @cached_property
+    def _verdict_dict(self):
+        return dict(self.verdicts)
+
+    def translate(self, verdict):
+        return self._verdict_dict[verdict]
+
+    def column(self, verdict):
+        return self.column_map[verdict]
+
+    def columns(self, with_root=False):
+        pass
+
+    @property
+    def default(self):
+        return self.verdicts[4][0]
+
+
 VIEW_TYPES = (
     ('0', 'component attributes'),  # Currently unused
-    ('1', 'jobTree'),
+    ('1', 'jobTree'),  # jobs tree
     ('2', 'DecisionResults'),  # job page
-    ('3', 'reportChildren'),
+    ('3', 'reportChildren'),  # report children
     ('4', 'SafesAndUnsafesList'),  # unsafes list
     ('5', 'SafesAndUnsafesList'),  # safes list
     ('6', 'UnknownsList'),  # unknowns list
@@ -157,8 +204,8 @@ SCHEDULER_STATUS = (
 )
 
 SCHEDULER_TYPE = (
-    ('0', 'Klever'),
-    ('1', 'VerifierCloud')
+    ('Klever', 'Klever'),
+    ('VerifierCloud', 'VerifierCloud')
 )
 
 PRIORITY = (
@@ -207,3 +254,5 @@ ASSOCIATION_TYPE = (
     ('1', _('Confirmed')),
     ('2', _('Unconfirmed'))
 )
+
+MPTT_FIELDS = ('level', 'lft', 'rght', 'level', 'tree_id')

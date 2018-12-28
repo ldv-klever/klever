@@ -71,13 +71,13 @@ class UserRolesForm:
         self._version = job_version
 
     def __user_roles(self):
-        roles_data = {
-            'user_roles': [], 'available_users': [],
-            'global': (self._version.global_role, self._version.get_global_role_display()),
-        }
+        roles_data = {'user_roles': [], 'available_users': [], 'global_role': self._version.global_role}
 
+        first_version = self._version.job.versions.order_by('version').first()
         # Only author and manager can edit the job, so they can't change the role for each other
-        users = [self._user.id, self._version.job.versions.order_by('version').first().change_author.id]
+        users = [self._user.id]
+        if first_version.change_author:
+            users.append(first_version.change_author_id)
 
         for ur in self._version.userrole_set.exclude(user_id__in=users).order_by('user__last_name'):
             roles_data['user_roles'].append({
@@ -87,7 +87,7 @@ class UserRolesForm:
             users.append(ur.user_id)
 
         for u in User.objects.exclude(id__in=users).order_by('last_name'):
-            roles_data['available_users'].append({'id': u.id, 'name': u.get_full_name()})
+            roles_data['available_users'].append({'value': u.id, 'name': u.get_full_name()})
 
         return roles_data
 
@@ -112,6 +112,10 @@ class JobForm:
         self._copy = (action == 'copy')
 
     def get_context(self):
+        from jobs.serializers import JobFormSerializerRO
+        data = JobFormSerializerRO(instance=self.job_version()).data
+        data['copy'] = self._copy
+        return data
         data = {
             'job_id': self._job.id, 'name': self._job.name, 'parent': '',
             'description': self.job_version().description,
@@ -123,7 +127,7 @@ class JobForm:
             if self._job.version == j_version.version:
                 title = _("Current version")
             else:
-                job_time = j_version.change_date.astimezone(pytz.timezone(self._user.extended.timezone))
+                job_time = j_version.change_date.astimezone(pytz.timezone(self._user.timezone))
                 title = '%s (%s): %s' % (
                     job_time.strftime("%d.%m.%Y %H:%M:%S"),
                     j_version.change_author.get_full_name(), j_version.comment)
@@ -156,7 +160,7 @@ class JobForm:
             parent = get_job_by_identifier(identifier)
             if not self.__is_parent_valid(parent):
                 raise BridgeException(_("The specified parent can't be set for this job"))
-        elif self._user.extended.role != USER_ROLES[2][0]:
+        elif self._user.role != USER_ROLES[2][0]:
             raise BridgeException(_("The parent identifier is required for this job"))
         return parent
 
@@ -252,7 +256,7 @@ class LoadFilesTree:
     def __files_tree(self, job_id, version):
         self.__is_not_used()
         data = {}
-        for fs in FileSystem.objects.filter(job__job_id=job_id, job__version=version):
+        for fs in FileSystem.objects.filter(job_version__job_id=job_id, job_version__version=version):
             data[fs.id] = {
                 'parent': fs.parent_id, 'name': fs.name,
                 'f_id': fs.file_id, 'file': fs.file.hash_sum if fs.file else None
@@ -352,7 +356,7 @@ class UploadFilesTree:
             if child['type'] == 'file':
                 if 'data' not in child or 'hashsum' not in child['data']:
                     if self._empty is None:
-                        self._empty = file_get_or_create(BytesIO(), child['text'], JobFile, False)[0]
+                        self._empty = file_get_or_create(BytesIO(), child['text'], JobFile, False)
                     file_id = self._empty.id
                 elif child['data']['hashsum'] in self._files:
                     file_id = self._files[child['data']['hashsum']]

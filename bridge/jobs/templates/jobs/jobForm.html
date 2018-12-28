@@ -19,7 +19,7 @@
 {% load i18n %}
 {% load staticfiles %}
 
-{% block title %}{% if copy %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
+{% block title %}{% if action == 'copy' %}{% trans 'Job Copying' %}{% else %}{% trans 'Job Editing' %}{% endif %}{% endblock %}
 
 {% block jobs_head_block %}
     {# Code Mirror stylesheets #}
@@ -57,7 +57,7 @@
             <label for="job_version_selector" class="purple-title">{% trans 'Previous versions' %}</label>
             <select id="job_version_selector" class="ui dropdown fluid">
                 {% for jv in versions %}
-                    <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
+                    <option value="{{ jv.version }}"{% if jv.version == object.version %} selected{% endif %}>{{ jv.title }}</option>
                 {% endfor %}
             </select>
             <br>
@@ -65,14 +65,14 @@
             {# Title, parent and description #}
             <div class="ui violet segment" style="margin-bottom: 0;">
                 <label for="job_name"><strong>{% trans 'Title' %}</strong></label>
-                <div class="ui fluid input {% if copy %}error {% endif %}field">
+                <div class="ui fluid input{% if action == 'copy' %} error{% endif %} field">
                     <input id="job_name" type="text" value="{{ name }}">
                 </div>
-                {% if copy %}<p id="title_should_be_changed" class="error-comment">{% trans 'The title is used by the parent job' %}</p>{% endif %}
+                {% if action == 'copy' %}<p id="title_should_be_changed" class="error-comment">{% trans 'The title is used by the parent job' %}</p>{% endif %}
                 <br>
                 <label for="parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui fluid input field">
-                    <input id="parent_identifier" maxlength="32" type="text" value="{{ parent }}">
+                    <input id="parent_identifier" maxlength="36" type="text" value="{% if action == 'copy' %}{{ object.identifier }}{% else %}{{ parent }}{% endif %}">
                 </div>
                 <br>
                 <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
@@ -82,13 +82,13 @@
             </div>
 
             {# Files table #}
-            <div id="filestree"></div>
+            <div id="filestree">{% include 'jobs/fileTreeEdit.html' %}</div>
 
             {# Roles #}
-            <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;"></div>
+            <div id="user_roles_form" style="margin-top: 10px;margin-bottom: 10px;">{% include 'jobs/userRolesForm.html' %}</div>
 
             {# Comment for editing job only #}
-            {% if not copy %}
+            {% if action == 'edit' %}
                 <label for="job_comment"><strong>{% trans "Change comment" %}</strong></label>
                 <div class="ui input fluid">
                     <input id="job_comment" type="text" placeholder="{% trans 'Comment' %}">
@@ -98,59 +98,14 @@
             {# Action Buttons #}
             <br>
             <button id="save_job_btn" type="submit" class="ui olive button">{% trans 'Save' %}</button>
-            <a href="{% url 'jobs:job' job_id %}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
+            <a href="{% url 'jobs:job' object.id %}" class="ui violet button" style="float: right">{% trans 'Cancel' %}</a>
         </div>
-        <div class="nine wide column">
+        <div id="editor_container" class="nine wide column">
             {# File editor #}
-            <h5 class="purple-title">&nbsp;<span id="editor_filename"></span> <span id="editor_unsaved" style="display:none;">({% trans 'unsaved' %})</span><i id="editor_help_icon" class="ui help blue link icon" style="float: right"></i></h5>
-            <div id="editfile_area"></div>
-            <div id="editor_help_popup" class="ui fluid popup right transition hidden">
-                <p style="color: red;">{% trans 'The editor must be focused for commands below' %}</p>
-                <div class="ui bulleted list">
-                    <div class="item"><b>Ctrl-S:</b> {% trans "save the file changes (it doesn't save the job)" %}</div>
-                    <div class="item"><b>Ctrl-F:</b> {% trans 'search in file' %}</div>
-                    <div class="item"><b>Ctrl-G:</b> {% trans 'find next' %}</div>
-                    <div class="item"><b>Shift-Ctrl-G:</b> {% trans 'find previous' %}</div>
-                    <div class="item"><b>Shift-Ctrl-F:</b> {% trans 'replace' %}</div>
-                    <div class="item"><b>Shift-Ctrl-R:</b> {% trans 'replace all' %}</div>
-                    <div class="item"><b>Ctrl-D:</b> {% trans 'deletes the whole line under the cursor' %}</div>
-                    <div class="item"><b>Ctrl-Z:</b> {% trans 'undo the last change' %}</div>
-                    <div class="item"><b>Ctrl-Y/Ctrl-Shift-Z:</b> {% trans 'redo the last undone change' %}</div>
-                    <div class="item"><b>Ctrl-Home:</b> {% trans 'move the cursor to the start of the file' %}</div>
-                    <div class="item"><b>Ctrl-End:</b> {% trans 'move the cursor to the end of the file' %}</div>
-                    <div class="item"><b>Alt-Left:</b> {% trans 'move the cursor to the start of the line' %}</div>
-                    <div class="item"><b>Alt-Right:</b> {% trans 'move the cursor to the end of the line' %}</div>
-                    <div class="item"><b>Ctrl-Backspace:</b> {% trans 'delete to the left of the group before the cursor' %}</div>
-                    <div class="item"><b>Ctrl-Delete:</b> {% trans 'delete to the start of the group after the cursor' %}</div>
-                    <div class="item"><b>Shift-Tab:</b> {% trans 'auto-indent the current line or selection' %}</div>
-                    <div class="item"><b>Ctrl-]:</b> {% trans 'indent the current line or selection by one indent unit' %}</div>
-                    <div class="item"><b>Ctrl-[:</b> {% trans 'dedent the current line or selection by one indent unit' %}</div>
-                    <div class="item"><b>Tab:</b> {% trans 'if something is selected, indent it by one indent unit; if nothing is selected, insert a tab character' %}</div>
-                </div>
-                <div><b>{% trans 'Other key bindings' %}:</b> Home, Up, Down, Left, Right, PageUp, PageDown, Ctrl-A, Ctrl-Left, Ctrl-Right, Delete, Backspace, Enter, Insert</div>
-            </div>
+            {% include 'jobs/fileEditor.html' %}
         </div>
     </div>
-    <input id="job_id" value="{{ job_id }}" type="hidden">
-
-    {# Translatable text for javascript #}
-    <div hidden>
-        <span id="jstree_new_label">{% trans 'New' %}</span>
-        <span id="jstree_new_folder_label">{% trans 'Folder' %}</span>
-        <span id="jstree_new_file_label">{% trans 'File' %}</span>
-        <span id="jstree_new_upload_label">{% trans 'Upload' %}</span>
-        <span id="jstree_rename_label">{% trans 'Rename' %} (F2)</span>
-        <span id="jstree_delete_label">{% trans 'Delete' %}</span>
-        <span id="jstree_edit_replace_label">{% trans 'Replace' %}</span>
-        <span id="jstree_download_label">{% trans 'Download' %}</span>
-
-        <span id="success__file_commited">{% trans 'The file was commited' %}</span>
-        <span id="error__nofile_selected">{% trans "Please choose the file" %}</span>
-        <span id="error__title_required">{% trans 'Title is required' %}</span>
-        <span id="error__filename_not_ascii" hidden>{% trans "Names with non-ASCII characters must be less than 30 characters" %}</span>
-        <span id="error__wrong_json">{% trans 'JSON is wrong, please fix it' %}</span>
-        <span id="error__file_not_supported">{% trans 'The selected file is not supported' %}</span>
-    </div>
+    <input id="job_version" value="{{ version }}" type="hidden">
 
     {# Warning modal for saving job without commiting file changes #}
     <div id="file_not_commited_modal" class="ui basic modal">
@@ -169,63 +124,84 @@
         </div>
     </div>
 
-    {# Upload file modal #}
-    <div id="upload_file_modal" class="ui small dinamic modal">
-        <div class="ui header">{% trans 'New file' %}</div>
-        <div class="content">
-            <div class="ui grid">
-                <div class="three wide column">
-                    <br>
-                    <span id="upload_file_input_btn" class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_file_input" type="file"></span>
-                </div>
-                <div class="seven wide column">
-                    <label for="upload_file_name"><strong>{% trans 'Name' %}</strong></label>
-                    <div class="ui input fluid">
-                        <input id="upload_file_name" type="text">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="ui grid">
-                <div class="eight wide column left aligned">
-                    <button type="button" class="ui violet button close-modal">{% trans 'Cancel' %}</button>
-                </div>
-                <div class="eight wide column right aligned">
-                    <button id="upload_file_confirm" type="button" class="ui olive button">{% trans 'Upload' %}</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script type="application/javascript">
+        jQuery(function () {
+            var job_id = "{{ object.id }}", versions_selector = $('#job_version_selector');
 
-    {# Replace file modal #}
-    <div id="replace_file_modal" class="ui small dinamic modal">
-        <div class="ui header">{% trans 'Replace' %} '<span id="replaced_file_name"></span>'</div>
-        <div class="content">
-            <div class="ui grid">
-                <div class="ten wide column right aligned">
-                    <label for="new_file_name"></label>
-                    <div class="ui action input">
-                        <div class="ui input">
-                            <input id="replace_file_name" type="text" placeholder="{% trans 'Name' %}">
-                        </div>
-                        <span id="replace_file_input_btn" class="ui violet button btn-file">{% trans 'Browse' %}<input id="replace_file_input" type="file"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="ui grid">
-                <div class="eight wide column left aligned">
-                    <button type="button" class="ui violet button close-modal">{% trans 'Cancel' %}</button>
-                </div>
-                <div class="eight wide column right aligned">
-                    <button id="replace_file_confirm" type="button" class="ui orange button">{% trans 'Replace' %}</button>
-                </div>
-            </div>
-        </div>
-    </div>
+            versions_selector.dropdown();
 
-    {# Cached opened files #}
-    <div id="cached_files" hidden></div>
+            var job_form = new JobForm(job_id, "{{ action }}"),
+                roles_form = new UserRoleForm('user_roles_form'),
+                files_form = new FilesTree('filestree', 'editor_container');
+
+            job_form.initialize({
+                name: 'job_name',
+                comment: 'job_comment',
+                version: 'job_version',
+                description: 'description',
+                parent: 'parent_identifier'
+            }, {
+                name: "{% trans 'Title' %}",
+                description: "{% trans 'Description' %}",
+                comment: "{% trans 'Change comment' %}",
+                version: "{% trans 'Latest version' %}",
+                parent: "{% trans 'Parent' %}"
+            });
+
+            files_form.set_messages({
+                not_ascii: "{% trans 'Names with non-ASCII characters must be less than 30 characters' %}",
+                title_required: "{% trans 'Title is required' %}",
+                file_commited: "{% trans 'The file was commited' %}",
+                file_not_commited: "{% trans 'The file was not commited' %}",
+                file_required: "{% trans 'Please choose the file' %}"
+            });
+            files_form.set_labels({
+                'new': "{% trans 'New' %}",
+                'folder': "{% trans 'Folder' %}",
+                'file': "{% trans 'File' %}",
+                'upload': "{% trans 'Upload' %}",
+                'rename': "{% trans 'Rename' %} (F2)",
+                'delete': "{% trans 'Delete' %}",
+                'replace': "{% trans 'Replace' %}",
+                'download': "{% trans 'Download' %}"
+            });
+
+            function get_version_data() {
+                var version = versions_selector.children('option:selected').val();
+
+                $.get('/jobs/api/job-version/{0}/{1}/'.format(job_id, version), {}, function (data) {
+                    if (data.error) return err_notify(data.error);
+                    $('#job_name').val(data['name']);
+                    $('#description').val(data['description']);
+                    roles_form.initialize(data['roles']);
+                    files_form.initialize(data['files']);
+                });
+            }
+
+            function save_job() {
+                job_form.save({
+                    global_role: roles_form.global_role(),
+                    user_roles: roles_form.get_roles(),
+                    files: files_form.serialize()
+                });
+            }
+
+            get_version_data();
+
+            $('#file_not_commited_modal').modal({transition: 'fade in', autofocus: false, closable: false});
+            $('#close_save_job_btn').click(function () { $('#file_not_commited_modal').modal('hide') });
+            $('#confirm_save_job_btn').click(save_job);
+
+            $('#save_job_btn').click(function () {
+                files_form.ready_for_save() ? save_job() : $('#file_not_commited_modal').modal('show');
+            });
+
+            versions_selector.change(get_version_data);
+
+            $('#job_name').on('input', function () {
+                $(this).parent().removeClass('error');
+                $('#title_should_be_changed').remove();
+            });
+        });
+    </script>
 {% endblock %}

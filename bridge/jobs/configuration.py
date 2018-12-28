@@ -24,7 +24,8 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, SCHEDULER_STATUS
 from bridge.utils import logger, BridgeException
 
-from service.models import Scheduler, SchedulerUser
+from users.models import SchedulerUser
+from service.models import Scheduler
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   scheduling and decision weight:

@@ -35,3 +35,8 @@ urlpatterns = [
     path('population/', views.population, name='population'),
     path('media/<path>', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True})
 ]
+
+handler400 = 'bridge.views.error_400_view'
+handler403 = 'bridge.views.error_403_view'
+handler404 = 'bridge.views.error_404_view'
+handler500 = 'bridge.views.error_500_view'

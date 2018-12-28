@@ -107,7 +107,7 @@ class GetConvertedErrorTrace:
             et_file = file_get_or_create(BytesIO(
                 json.dumps(self._parsed_trace, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
             ), ET_FILE_NAME, ConvertedTraces
-            )[0]
+            )
             ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
             return et_file
 

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -74,7 +74,7 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            {% if user.extended.data_format == 'hum' %}{{ markdata.mark_version.change_date|naturaltime }}{% else %}{{ markdata.mark_version.change_date }}{% endif %}
+                            {% if user.data_format == 'hum' %}{{ markdata.mark_version.change_date|naturaltime }}{% else %}{{ markdata.mark_version.change_date }}{% endif %}
                             {% if markdata.mark_version.author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' markdata.mark_version.author_id %}">{{ markdata.mark_version.author.get_full_name }}</a>)
                             {% endif %}
@@ -180,7 +180,7 @@
             {# Mark versions list #}
             {% if access.can_edit %}
                 {% trans 'Mark versions' as versions_title %}
-                {% include 'jobs/viewVersions.html' with versions=versions title=versions_title %}
+                {% include 'marks/versions.html' with versions=versions title=versions_title %}
             {% endif %}
 
             <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>

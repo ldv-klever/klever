@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bridge/base.html' %}
 {% comment "License" %}
 % Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
 % Ivannikov Institute for System Programming of the Russian Academy of Sciences
@@ -113,7 +113,7 @@
                 <br>
                 <label class="bold-text" for="tag_description">{% trans 'Description' %}</label>
                 <textarea id="tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
-                {% if user.extended.role == '2' %}
+                {% if user.role == '2' %}
                     <br><br>
                     <div id="edit_tag_user_access_selection"></div>
                 {% endif %}
@@ -152,7 +152,7 @@
                 <br>
                 <label class="bold-text" for="create_tag_description">{% trans 'Description' %}</label>
                 <textarea id="create_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
-                {% if user.extended.role == '2' %}
+                {% if user.role == '2' %}
                     <br><br>
                     <div id="create_tag_user_access_selection"></div>
                 {% endif %}
