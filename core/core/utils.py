@@ -217,6 +217,7 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = get_search_dirs(main_work_dir)
 
     for search_dir in search_dirs:
+        # TODO: there is an undocumented feature here. If file_or_dir will be absolute one os.path.join will return it. If it exists find_file_or_dir will assume that it is located in first search directory and return it.
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
         if os.path.isfile(found_file_or_dir):
             logger.debug('Find file "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
