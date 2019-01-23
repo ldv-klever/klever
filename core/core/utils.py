@@ -198,8 +198,8 @@ def reliable_rmtree(logger, directory):
 def get_search_dirs(main_work_dir, abs_paths=False):
     search_dirs = ['job/root', os.path.pardir]
 
-    if 'KLEVER_WORK_DIR' in os.environ:
-        search_dirs.append(os.environ['KLEVER_WORK_DIR'])
+    if 'KLEVER_DATA_DIR' in os.environ:
+        search_dirs.append(os.environ['KLEVER_DATA_DIR'])
 
     # All search directories are represented by either absolute paths (so, join does not have any effect) or paths
     # relatively to main working directory. Thus, after this operation all search directories become absolute.
