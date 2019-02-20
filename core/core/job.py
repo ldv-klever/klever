@@ -20,6 +20,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import tarfile
 import time
 import zipfile
 
@@ -507,15 +508,35 @@ class Job(core.components.Component):
         self.component_processes = []
 
     def __set_build_base(self):
-        # todo: This can be extracted to an util function and can be used by demand instead of importing clade in all components
         if 'build base' in self.common_components_conf:
-            if 'KLEVER_BUILD_BASES' not in os.environ:
-                raise KeyError('Can not find build bases when environment variable KLEVER_BUILD_BASES is not set')
+            # Try to find specified build base either in normal way or additionally in directory "build bases" that is
+            # convenient to use when working with many build bases.
+            try:
+                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                         self.common_components_conf['build base'])
+            except FileNotFoundError:
+                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                         os.path.join('build bases',
+                                                                      self.common_components_conf['build base']))
 
-            build_base = os.path.join(os.environ['KLEVER_BUILD_BASES'], self.common_components_conf['build base'])
+            # We need to specify absolute path to build base since it will be used in different Klever components.
+            build_base = os.path.realpath(build_base)
+
+            # Extract build base from archive. There should not be any intermediate directories in archives.
+            if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
+                if tarfile.is_tarfile(build_base):
+                    self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
+                    with tarfile.open(build_base) as TarFile:
+                        TarFile.extractall('build base')
+                else:
+                    self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
+                    with zipfile.ZipFile(build_base) as zfp:
+                        zfp.extractall('build base')
+
+                build_base = os.path.realpath('build base')
 
             if not os.path.isdir(build_base):
-                raise FileExistsError('Build base "{0}" is not a directory'.format(build_base))
+                raise FileExistsError('Build base "{0}" is neither a directory'.format(build_base))
         else:
             raise KeyError("Provide 'build base' configuration option to start verification")
 

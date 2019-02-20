@@ -241,7 +241,7 @@ class OSKleverInstance(OSEntity):
                 with tempfile.NamedTemporaryFile('w', encoding='utf8') as fp:
                     # TODO: avoid using "/home/debian" - rename ssh username to instance username and add option to provide instance user home directory.
                     fp.write('KLEVER_DEPLOYMENT_DIRECTORY=/home/debian/klever-inst\n')
-                    fp.write('KLEVER_BUILD_BASES="/home/debian/klever-inst/klever/build bases"\n')
+                    fp.write('KLEVER_DATA_DIR="/home/debian/klever-inst/klever/build bases"\n')
                     fp.flush()
                     ssh.sftp_put(fp.name, '/etc/default/klever', sudo=True, directory=os.path.sep)
 
