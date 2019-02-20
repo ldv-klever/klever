@@ -183,7 +183,9 @@ class RSG(core.vtg.plugins.Plugin):
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
         clade = Clade(self.conf['build base'])
-        empty_cc = clade.get_compilation_cmds_by_file(self.conf['opts file'])
+        # TODO: make path to opts_file absolute
+        opts_file = self.conf['opts file']
+        empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
         if not empty_cc:
             raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
         elif len(empty_cc) > 1:
@@ -208,7 +210,7 @@ class RSG(core.vtg.plugins.Plugin):
                     json.dump({
                         'cwd': empty_cc['cwd'],
                         'in': [os.path.relpath(model['bug kinds preprocessed C file'],
-                                               os.path.realpath(clade.get_path_from_storage(empty_cc['cwd'])))],
+                                               os.path.realpath(clade.get_storage_path(empty_cc['cwd'])))],
                         'out': [os.path.realpath(out_file)],
                         'opts': empty_cc['opts'] +
                                 ['-DLDV_SETS_MODEL_' + (model['sets model']

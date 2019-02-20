@@ -38,7 +38,8 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
-        for identifier, desc in program.cmdg.LDs:
+        for desc in program.clade.get_all_cmds_by_type("LD"):
+            identifier = desc['id']
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
                 self.logger.warning("LD commands with several out files are not supported, skip commands: {!r}".

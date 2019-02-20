@@ -93,7 +93,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', clade.get_path_from_storage(cc['in'][0]),
+                                  '--in', clade.get_storage_path(os.path.join(cc['cwd'], cc['in'][0])),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(
@@ -108,7 +108,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
-                        cwd=clade.get_path_from_storage(cc['cwd']),
+                        cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
@@ -145,7 +145,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(os.path.join(os.path.realpath(storage.storage_dir) + cc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'], file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)

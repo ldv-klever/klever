@@ -246,9 +246,9 @@ class Source:
         if typedef:
             import_typedefs(typedef)
         variables = self._clade.get_variables(cfiles)
-        if variables.vars:
+        if variables:
             self.logger.info("Import global variables initializations")
-            for path, vals in variables.vars.items():
+            for path, vals in variables.items():
                 for variable in vals:
                     variable_name = extract_name(variable['declaration'])
                     if not variable_name:
@@ -267,7 +267,7 @@ class Source:
 
         # Variables which are used in variables initalizations
         self.logger.info("Import source functions")
-        vfunctions = variables.used_vars_functions
+        vfunctions = self._clade.get_used_in_vars_functions()
 
         # Get functions defined in dependencies and in the main functions and have calls
         cg = self._clade.get_callgraph(set(dependencies.keys()))

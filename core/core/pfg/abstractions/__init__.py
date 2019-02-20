@@ -91,7 +91,8 @@ class Program:
         ccs = self.clade.get_root_cmds_by_type(identifier, "CC")
 
         files = set()
-        for i, d in ccs:
+        for i in ccs:
+            d = self.clade.get_cmd(i)
             self.__check_cc(d)
             for in_file in d['in']:
                 in_file = self.__get_cmd_file(in_file, d)
@@ -205,7 +206,7 @@ class Program:
         # Found files
         suitable_files = set()
         # Optimizations: collect in advance absolute file paths
-        convert = self.clade.get_path_from_storage
+        convert = self.clade.get_storage_path
         reversed = {f.abs_path: f for f in self.files}
         all_abs_files = set(reversed.keys())
         all_abs_dirs = dict()
@@ -338,8 +339,9 @@ class Program:
         """Analyze CC commands and add all found .c files for further program decomposition."""
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
-        convert = self.clade.get_path_from_storage
-        for identifier, desc in ((i, d) for i, d in self.clade.compilation_cmds if d.get('out') and len(d.get('out')) > 0):
+        convert = self.clade.get_storage_path
+        for desc in (d for d in self.clade.compilation_cmds if d.get('out') and len(d.get('out')) > 0):
+            identifier = desc['id']
             for name in desc.get('in'):
                 name = self.__get_cmd_file(name, desc)
                 if name not in self._files:
@@ -375,7 +377,7 @@ class Program:
         """
         if not os.path.isabs(path):
             path = os.path.join(desc['cwd'], path)
-            path = make_relative_path(self.source_paths, path)
+            # path = make_relative_path(self.source_paths, path)
         return path
 
     def __check_cc(self, desc):

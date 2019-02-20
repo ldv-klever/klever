@@ -887,7 +887,7 @@ class CProgram:
             clade_conf = self._CLADE_CONF
 
         clade = Clade(work_dir=self.target_program_desc['build base'],
-                      cmd_file=os.path.join(self.work_src_tree, 'cmds.txt'),
+                      cmds_file=os.path.join(self.work_src_tree, 'cmds.txt'),
                       conf=clade_conf,
                       preset=self._CLADE_PRESET)
         clade.parse_all()

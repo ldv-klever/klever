@@ -121,7 +121,7 @@ class ASE(core.vtg.plugins.Plugin):
 
                     core.utils.execute(self.logger,
                                        tuple(['cif',
-                                              '--in', clade.get_path_from_storage(cc['in'][0]),
+                                              '--in', clade.get_storage_path(cc['in'][0]),
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
@@ -138,7 +138,7 @@ class ASE(core.vtg.plugins.Plugin):
                                                  aspectator_search_dir
                                              ]),
                                        env,
-                                       cwd=clade.get_path_from_storage(cc['cwd']),
+                                       cwd=clade.get_storage_path(cc['cwd']),
                                        timeout=0.01,
                                        filter_func=core.vtg.utils.CIFErrorFilter())
 

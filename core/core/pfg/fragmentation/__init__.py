@@ -244,7 +244,7 @@ class FragmentationAlgorythm:
 
         :return: A list of paths.
         """
-        path = self.clade.get_path_from_storage('working source trees.json')
+        path = self.clade.get_storage_path('working source trees.json')
         with open(path, 'r', encoding='utf8') as fp:
             paths = ujson.load(fp)
         return paths
@@ -256,7 +256,7 @@ class FragmentationAlgorythm:
         :return: Attributes list.
         """
         attrs = []
-        path = self.clade.get_path_from_storage('project attrs.json')
+        path = self.clade.get_storage_path('project attrs.json')
         if os.path.isfile(path):
             with open(path, 'r', encoding='utf8') as fp:
                 build_attrs = ujson.load(fp)
