@@ -33,6 +33,7 @@ from clade import Clade
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
+    context.mqs['VTG source paths'] = multiprocessing.Queue()
     context.mqs['pending tasks'] = multiprocessing.Queue()
     context.mqs['processed tasks'] = multiprocessing.Queue()
     context.mqs['prepared verification tasks'] = multiprocessing.Queue()
@@ -50,6 +51,7 @@ def __prepare_descriptions_file(context):
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+    context.mqs['VTG source paths'].put(context.source_paths)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -314,6 +316,10 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.vals['report id'],
                           self.conf['main working directory'])
+
+        source_paths = self.mqs['VTG source paths'].get()
+        self.mqs['VTG source paths'].close()
+        self.conf['source paths'] = source_paths
 
         # Start plugins
         if not self.conf['keep intermediate files']:

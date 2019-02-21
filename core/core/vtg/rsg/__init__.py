@@ -183,13 +183,21 @@ class RSG(core.vtg.plugins.Plugin):
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
         clade = Clade(self.conf['build base'])
-        # TODO: make path to opts_file absolute
-        opts_file = self.conf['opts file']
-        empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
+
+        # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute
+        # path. The former is relative to one of source paths.
+        for path in self.conf['source paths']:
+            opts_file = os.path.join(path, self.conf['opts file'])
+            try:
+                empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
+            except KeyError:
+                pass
+
         if not empty_cc:
             raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
         elif len(empty_cc) > 1:
             self.logger.warning("There are more than one cc command for {!r}".format(self.conf['project']['opts file']))
+
         empty_cc = empty_cc.pop()
         empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])
 
