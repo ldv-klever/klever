@@ -421,7 +421,7 @@ class Source:
                 cc_desc = self._clade.get_cmd(desc['CC'])
                 c_file = cc_desc['in'][0]
                 # Now read deps
-                _collect_cc_deps(c_file, self._clade.get_cc_deps(desc['CC']))
+                _collect_cc_deps(c_file, self._clade.get_cmd_deps(desc['CC']))
                 c_files.add(c_file)
 
         return c_files, collection
