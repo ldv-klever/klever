@@ -95,8 +95,6 @@ class Program:
             d = self.clade.get_cmd(i)
             self.__check_cc(d)
             for in_file in d['in']:
-                in_file = self.__get_cmd_file(in_file, d)
-
                 if not in_file.endswith('.c'):
                     self.logger.warning("You should implement more strict filters to reject CC commands with such "
                                         "input files as {!r}".format(in_file))
@@ -343,7 +341,6 @@ class Program:
         for desc in (d for d in self.clade.compilation_cmds if d.get('out') and len(d.get('out')) > 0):
             identifier = desc['id']
             for name in desc.get('in'):
-                name = self.__get_cmd_file(name, desc)
                 if name not in self._files:
                     file = File(name)
                     for path in self.source_paths:
@@ -364,21 +361,6 @@ class Program:
                     except (KeyError, IndexError):
                         file.size = 0
                     self._files[name] = file
-
-    def __get_cmd_file(self, path, desc):
-        """
-        Get path to the file given as an input or output file of the command. The path can be relative to CWD dir ot the
-        command or be absolute. The result path should be either relative to the source directory where source file are
-        stored or absolute.
-
-        :param path: Path string.
-        :param desc: Command description dict.
-        :return: New path string.
-        """
-        if not os.path.isabs(path):
-            path = os.path.join(desc['cwd'], path)
-            # path = make_relative_path(self.source_paths, path)
-        return path
 
     def __check_cc(self, desc):
         """

@@ -56,6 +56,15 @@ class Weaver(core.vtg.plugins.Plugin):
                                   encoding='utf8') as fp:
                             cc = json.load(fp)
 
+                        # extra_cc is a cc command that is not from Clade
+                        # Thus paths in it need to be converted to be absolute
+                        # like in other Clade commands
+                        if "cwd" in cc and "in" in cc:
+                            cc["in"] = [os.path.join(cc["cwd"], cc_in) for cc_in in cc["in"]]
+
+                        if "cwd" in cc and "out" in cc:
+                            cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
+
                     self.logger.info('Weave in C file "{0}"'.format(cc['in'][0]))
 
                     cc['out'][0] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
@@ -93,7 +102,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', clade.get_storage_path(os.path.join(cc['cwd'], cc['in'][0])),
+                                  '--in', clade.get_storage_path(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(
