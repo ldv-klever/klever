@@ -119,7 +119,7 @@ class Klever:
 
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
-            fp.write('KLEVER_BUILD_BASES="{0}"\n'
+            fp.write('KLEVER_DATA_DIR="{0}"\n'
                      .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
 
         self._install_or_update_deps()
