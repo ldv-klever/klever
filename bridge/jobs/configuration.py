@@ -61,7 +61,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['LOW', '0', 100, '1'],
             ['slow'],
-            [1.0, 0, 100.0, None],
+            [2.0, 0, 100.0, None],
             ['NONE', 'brief', 'NONE', 'brief'],
             [False, False, False, False, False, True]
         ]
@@ -71,7 +71,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['IDLE', '0', 100, '0'],
             ['quick'],
-            [1.0, 0, 100.0, None],
+            [2.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             [True, True, False, True, True, True]
         ]
@@ -81,7 +81,7 @@ KLEVER_CORE_DEF_MODES = [
         'values': [
             ['IDLE', '0', 100, '0'],
             ['quick'],
-            [1.0, 0, 100.0, None],
+            [2.0, 0, 100.0, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             [True, True, True, True, True, True]
         ]
