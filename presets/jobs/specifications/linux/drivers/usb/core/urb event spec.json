@@ -48,7 +48,7 @@
 	            "interface": "urb.urb"
 	          }
 	        },
-	        "process": "<assign>.[callback].<success> | <fail>",
+	        "process": "<assign>.[callback]",
 	        "actions": {
 	          "callback": {
 	            "comment": "Call the urb callback.",
@@ -62,18 +62,6 @@
 	            "statements": [
 	              "%urb% = $ARG1;"
 	            ]
-	          },
-	          "success": {
-	            "comment": "Successfully killed urb.",
-	            "statements": [
-	              "return 0;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Failed to kill urb.",
-	            "statements": [
-	              "return ldv_undef_int_negative();"
-	            ]
 	          }
 	        }
   		},
@@ -86,7 +74,7 @@
 	            "interface": "urb.urb"
 	          }
 	        },
-	        "process": "<assign>.[callback].<success> | <fail>",
+	        "process": "<assign>.[callback]",
 	        "actions": {
 	          "callback": {
 	            "comment": "Call the urb callback.",
@@ -99,18 +87,6 @@
 	            "comment": "Get the urb structure from arguments to poison urb.",
 	            "statements": [
 	              "%urb% = $ARG1;"
-	            ]
-	          },
-	          "success": {
-	            "comment": "Successfully poisoned urb.",
-	            "statements": [
-	              "return 0;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Failed to poison urb.",
-	            "statements": [
-	              "return ldv_undef_int_negative();"
 	            ]
 	          }
 	        }
