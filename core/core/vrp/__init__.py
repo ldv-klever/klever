@@ -265,7 +265,7 @@ class RP(core.components.Component):
         self.program_fragment = program_fragment['id']
         self.requirement = requirement
         self.results_key = '{}:{}'.format(self.program_fragment, self.requirement)
-        self.logger.debug("Prcess results of task {}".format(task_id))
+        self.logger.debug("Process results of task {}".format(task_id))
 
         files_list_file = 'files list.txt'
         with open(files_list_file, 'w', encoding='utf8') as fp:
