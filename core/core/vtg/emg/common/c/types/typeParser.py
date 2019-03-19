@@ -387,6 +387,7 @@ def p_pointer(p):
 def p_direct_declarator(p):
     """
     direct_declarator : direct_declarator array_list
+                      | direct_declarator PARENTH_OPEN PARENTH_CLOSE
                       | direct_declarator PARENTH_OPEN function_parameters_list PARENTH_CLOSE
                       | PARENTH_OPEN declarator PARENTH_CLOSE
                       | IDENTIFIER
@@ -473,6 +474,7 @@ def p_abstract_declarator(p):
 def p_direct_abstract_declarator(p):
     """
     direct_abstract_declarator : direct_abstract_declarator array_list
+                               | direct_abstract_declarator PARENTH_OPEN PARENTH_CLOSE
                                | direct_abstract_declarator PARENTH_OPEN function_parameters_list PARENTH_CLOSE
                                | PARENTH_OPEN abstract_declarator PARENTH_CLOSE
     """
@@ -557,6 +559,7 @@ def declarator_processing(p):
 def direct_declarator_processing(p):
     """
     [abstract_]declarator : direct_[abstract_]declarator array_list
+                          | direct_[abstract_]declarator PARENTH_OPEN PARENTH_CLOSE
                           | direct_[abstract_]declarator PARENTH_OPEN function_parameters_list PARENTH_CLOSE
                           | PARENTH_OPEN [abstract_]declarator PARENTH_CLOSE
                           [| IDENTIFIER]
@@ -575,7 +578,10 @@ def direct_declarator_processing(p):
             new = {'arrays': p[2]}
             p[0] = [new] + p[1]
         else:
-            if len(p) == 5:
+            if p[2] == '(' and p[3] == ')':
+                p[0] = p[1]
+                p[0][0]['function arguments'] = []
+            elif len(p) == 5:
                 p[0] = p[1]
 
                 if len(p[3]) == 1 and isinstance(p[3][0], dict) and 'type specifier' in p[3][0] and \

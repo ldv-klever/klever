@@ -48,9 +48,14 @@ def generate_processes(emg, source, processes, conf):
     expressions = [re.compile(e) for e in get_conf_property(conf, "functions to call")]
     strict = get_conf_property(conf, "prefer not called")
     for func in source.source_functions:
-        obj = source.get_source_function(func)
-        if not obj.static and (not strict or strict and len(obj.called_at) == 0) and \
-                (not expressions or any(e.fullmatch(func) for e in expressions)):
+        obj = source.get_source_functions(func)
+        if len(obj) != 1:
+            emg.logger.warning("There are invalid count of definitions of function {!r}".format(func))
+            continue
+        obj = obj[0]
+        if (not strict or strict and len(obj.called_at) == 0) and \
+                (not expressions or any(e.fullmatch(func) for e in expressions)) and\
+                obj.definition_file:
             emg.logger.info("Add function {!r} to call in the environment model".format(func))
             functions_collection[func] = obj
         else:

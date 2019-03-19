@@ -28,7 +28,7 @@ import tarfile
 import tempfile
 import urllib.parse
 
-import clade.interface as clade_api
+from clade import Clade
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
@@ -82,7 +82,7 @@ common_target_program_descs = {
             'linux/spi/spi.h',
             'linux/fb.h'
         ],
-        'extra Clade options': {'Info.extra CIF opts': [
+        'extra Clade options': {'Info.extra_CIF_opts': [
             '-D__GNUC__=4',
             '-D__GNUC_MINOR__=6'
         ]}
@@ -91,40 +91,40 @@ common_target_program_descs = {
 
 target_program_descs = [
     # # Testing on loadable Linux kernel modules.
-    # {
-    #     'build base': 'build bases/testing/5b3d50',
-    #     'name': 'Linux',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'decomposition strategies', 'tests'),
-    #     'loadable kernel modules': [
-    #         'ext-modules/kernel_library',
-    #         'ext-modules/load_order',
-    #         'ext-modules/multimodule_error',
-    #         'ext-modules/multimodule_false_error',
-    #         'ext-modules/several_groups'
-    #     ]
-    # },
-    # {
-    #     'build base': 'build bases/testing/6e6e1c',
-    #     'name': 'Linux',
-    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests'),
-    #     'loadable kernel modules': [
-    #         "ext-modules/linux/drivers/base/dd",
-    #         "ext-modules/linux/drivers/spi",
-    #         "ext-modules/linux/err",
-    #         "ext-modules/linux/ldv/common",
-    #         "ext-modules/linux/mm/gfp",
-    #         "ext-modules/linux/mm/slab",
-    #         "ext-modules/verifier/common",
-    #         "ext-modules/verifier/gcc",
-    #         "ext-modules/verifier/map",
-    #         "ext-modules/verifier/memory",
-    #         "ext-modules/verifier/nondet",
-    #         "ext-modules/verifier/set/counter",
-    #         "ext-modules/verifier/set/flag",
-    #         "ext-modules/verifier/set/nonnegative-counter",
-    #         "ext-modules/verifier/thread"
-    #     ]
-    # },
+    {
+        'build base': 'build bases/testing/5b3d50',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'decomposition strategies', 'tests'),
+        'loadable kernel modules': [
+            'ext-modules/kernel_library',
+            'ext-modules/load_order',
+            'ext-modules/multimodule_error',
+            'ext-modules/multimodule_false_error',
+            'ext-modules/several_groups'
+        ]
+    },
+    {
+        'build base': 'build bases/testing/6e6e1c',
+        'name': 'Linux',
+        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests'),
+        'loadable kernel modules': [
+            "ext-modules/linux/drivers/base/dd",
+            "ext-modules/linux/drivers/spi",
+            "ext-modules/linux/err",
+            "ext-modules/linux/ldv/common",
+            "ext-modules/linux/mm/gfp",
+            "ext-modules/linux/mm/slab",
+            "ext-modules/verifier/common",
+            "ext-modules/verifier/gcc",
+            "ext-modules/verifier/map",
+            "ext-modules/verifier/memory",
+            "ext-modules/verifier/nondet",
+            "ext-modules/verifier/set/counter",
+            "ext-modules/verifier/set/flag",
+            "ext-modules/verifier/set/nonnegative-counter",
+            "ext-modules/verifier/thread"
+        ]
+    }
     # {
     #     'build base': 'build bases/testing/455c6f',
     #     'name': 'Linux',
@@ -886,9 +886,11 @@ class CProgram:
         else:
             clade_conf = self._CLADE_CONF
 
-        clade_api.initialize_extensions(self.target_program_desc['build base'],
-                                        os.path.join(self.work_src_tree, 'cmds.txt'),
-                                        clade_conf, self._CLADE_PRESET)
+        clade = Clade(work_dir=self.target_program_desc['build base'],
+                      cmds_file=os.path.join(self.work_src_tree, 'cmds.txt'),
+                      conf=clade_conf,
+                      preset=self._CLADE_PRESET)
+        clade.parse_all()
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
         attrs = [
@@ -899,7 +901,6 @@ class CProgram:
             }
         ]
 
-        storage = clade_api.FileStorage()
         tmp_dir = tempfile.mkdtemp()
         for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
                            (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json')),
@@ -907,7 +908,7 @@ class CProgram:
             with open(file, 'w', encoding='utf8') as fp:
                 json.dump(data, fp, sort_keys=True, indent=4)
 
-            storage.save_file(file, os.path.basename(file))
+            clade.add_file_to_storage(file, os.path.basename(file))
 
         shutil.rmtree(tmp_dir)
 

@@ -18,6 +18,7 @@
 from core.vtg.emg.common.c.types import import_declaration
 
 __grammar_tests = [
+    "int _prf(int (*func)())",
     "static int func(int, void (*)(void))",
     "static int (*func)(int, void (*)(void))",
     "static int (*func [])(int, void (*)(void))",

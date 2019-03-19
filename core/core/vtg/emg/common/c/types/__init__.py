@@ -207,7 +207,7 @@ def import_declaration(declaration, ast=None, track_typedef=False):
             if ret.ret_typedef and not _type_collection[ret.identifier].ret_typedef:
                 _type_collection[ret.identifier].ret_typedef = ret.ret_typedef
             for index, pt in enumerate(_type_collection[ret.identifier].params_typedef):
-                if not pt and ret.params_typedef[index]:
+                if not pt and len(ret.params_typedef) > index and ret.params_typedef[index]:
                     _type_collection[ret.identifier].params_typedef[index] = ret.params_typedef[index]
         ret = _type_collection[ret.identifier]
 
