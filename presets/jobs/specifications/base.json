@@ -307,12 +307,70 @@
         "Weaver",
         "FVTP"
       ]
+    },
+    "Zephyr": {
+      "description": "...",
+      "template": "Userspace",
+      "plugins": [
+        {
+          "EMG": {
+            "initialize requirements": true,
+            "check final state": true,
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [
+              {
+                "genericFunctions": {
+                  "infinite call": false,
+                  "initialize strings as null terminated": false,
+                  "functions to call": ["\\w*_initialize"]
+                }
+              }
+            ],
+            "translation options": {
+              "entry point": "ldv_main",
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": true,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "propogate headers to instrumented files": true,
+              "additional headers": [
+                "verifier/common.h",
+                "verifier/nondet.h",
+                "verifier/memory.h"
+              ]
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "opts file": "applets/applets.c",
+            "common models": {
+              "verifier/common.c": {},
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/reference memory.c": {}
+            }
+          }
+        },
+        "Weaver",
+        "FVTP"
+      ]
     }
   },
   "requirements": {
     "empty": {
       "description": "...",
       "template": "Empty"
+    },
+    "zephyr": {
+      "empty": {
+        "description": "..."
+      }
     },
     "linux": {
       "description": "Linux specifications",

@@ -1,5 +1,8 @@
 {
   "templates": {
+    "zephr": {
+      "program": "Zephyr"
+    },
     "Modules": {
       "program": "Linux",
       "kernel": false,
@@ -39,6 +42,18 @@
             "libbb/verror_msg.c",
             "libbb/perror_msg.c"
           ]
+        }
+      }
+    },
+    "Zephyr": {
+      "zephr": {
+        "1.13.0": {
+          "fragments": {
+            "myfragment1": [
+              "drivers/i2c/i2c_dw.c"
+            ]
+          },
+          "exclude from all fragments": []
         }
       }
     }
