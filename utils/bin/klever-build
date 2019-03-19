@@ -91,40 +91,51 @@ common_target_program_descs = {
 
 target_program_descs = [
     # # Testing on loadable Linux kernel modules.
-    {
-        'build base': 'build bases/testing/5b3d50',
-        'name': 'Linux',
-        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'decomposition strategies', 'tests'),
-        'loadable kernel modules': [
-            'ext-modules/kernel_library',
-            'ext-modules/load_order',
-            'ext-modules/multimodule_error',
-            'ext-modules/multimodule_false_error',
-            'ext-modules/several_groups'
-        ]
-    },
-    {
-        'build base': 'build bases/testing/6e6e1c',
-        'name': 'Linux',
-        'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests'),
-        'loadable kernel modules': [
-            "ext-modules/linux/drivers/base/dd",
-            "ext-modules/linux/drivers/spi",
-            "ext-modules/linux/err",
-            "ext-modules/linux/ldv/common",
-            "ext-modules/linux/mm/gfp",
-            "ext-modules/linux/mm/slab",
-            "ext-modules/verifier/common",
-            "ext-modules/verifier/gcc",
-            "ext-modules/verifier/map",
-            "ext-modules/verifier/memory",
-            "ext-modules/verifier/nondet",
-            "ext-modules/verifier/set/counter",
-            "ext-modules/verifier/set/flag",
-            "ext-modules/verifier/set/nonnegative-counter",
-            "ext-modules/verifier/thread"
-        ]
-    }
+    # {
+    #     'build base': 'build bases/linux-3.14.79',
+    #     'name': 'Linux',
+    #     'Git repository version': 'v3.14.79',
+    #     'loadable kernel modules': [
+    #         'drivers/ata/pata_arasan_cf.ko',
+    #         'drivers/idle/i7300_idle.ko',
+    #         'drivers/uwb/hwa-rc.ko'
+    #     ]
+    # },
+    # # Testing on artificial loadable Linux kernel modules.
+    # {
+    #     'build base': 'build bases/testing/5b3d50',
+    #     'name': 'Linux',
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'decomposition strategies', 'tests'),
+    #     'loadable kernel modules': [
+    #         'ext-modules/kernel_library',
+    #         'ext-modules/load_order',
+    #         'ext-modules/multimodule_error',
+    #         'ext-modules/multimodule_false_error',
+    #         'ext-modules/several_groups'
+    #     ]
+    # },
+    # {
+    #     'build base': 'build bases/testing/6e6e1c',
+    #     'name': 'Linux',
+    #     'external modules': os.path.join(preset_jobs_dir, 'linux', 'testing', 'common models', 'tests'),
+    #     'loadable kernel modules': [
+    #         "ext-modules/linux/drivers/base/dd",
+    #         "ext-modules/linux/drivers/spi",
+    #         "ext-modules/linux/err",
+    #         "ext-modules/linux/ldv/common",
+    #         "ext-modules/linux/mm/gfp",
+    #         "ext-modules/linux/mm/slab",
+    #         "ext-modules/verifier/common",
+    #         "ext-modules/verifier/gcc",
+    #         "ext-modules/verifier/map",
+    #         "ext-modules/verifier/memory",
+    #         "ext-modules/verifier/nondet",
+    #         "ext-modules/verifier/set/counter",
+    #         "ext-modules/verifier/set/flag",
+    #         "ext-modules/verifier/set/nonnegative-counter",
+    #         "ext-modules/verifier/thread"
+    #     ]
+    # },
     # {
     #     'build base': 'build bases/testing/455c6f',
     #     'name': 'Linux',
@@ -385,7 +396,7 @@ target_program_descs = [
     #         "ext-modules/variables/remainder-assignment",
     #         "ext-modules/variables/right-shift-assignment"
     #     ]
-    # }
+    # },
     # # Validation on commits in Linux kernel Git repositories.
     # {
     #     'build base': 'build bases/validation/7ce77510c9c7~',

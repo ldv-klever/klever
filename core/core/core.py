@@ -59,6 +59,7 @@ class Core(core.components.CallbacksCaller):
             self.prepare_work_dir()
             self.change_work_dir()
             self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
+            self.logger.info('Solve job "{0}"'.format(self.conf['identifier']))
             version = self.get_version()
             self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,

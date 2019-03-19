@@ -21,66 +21,6 @@ import zipfile
 import json
 import core.utils
 
-TRIMMED_WORKAROUND_REGEXES = [
-    [re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4\.6\.0/include/stdarg\.h"'),
-     re.compile('typedef __va_list __gnuc_va_list;'),
-     'typedef __builtin_va_list __gnuc_va_list;'],
-    [None,
-     re.compile('asm volatile goto.*;'),
-     '']
-]
-CIL_WORKAROUND_REGEXES = [
-    [re.compile('#line 49 ".*include/uapi/linux/swab\.h"'),
-     re.compile('extern int .*__builtin_bswap16.*;'),
-     ''],
-]
-
-
-def process_file(replacements, lines, fp):
-    triggers = []
-    # Each such expression occupies individual line, so just get rid of them.
-    for line in lines:
-
-        # Apply replacements
-        l = line
-        for target, replacement in (replacements[i][1:] for i in triggers):
-            l = target.sub(replacement, l)
-        triggers = []
-
-        # Match replacements for the next iteration
-        for index, element in enumerate(replacements):
-            line_match, target, replacement = element
-            if line_match:
-                if line_match.match(line):
-                    triggers.append(index)
-            else:
-                triggers.append(index)
-
-        fp.write(l)
-
-
-def trimmed_files(logger, conf, abstract_task_desc):
-    c_files = []
-
-    # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
-    logger.debug('Ignore asm goto expressions')
-    for extra_c_file in abstract_task_desc['extra C files']:
-        if 'C file' not in extra_c_file:
-            continue
-
-        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
-
-        with open(os.path.join(conf['main working directory'], extra_c_file['C file']),
-                  encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
-            # Specify original location to avoid references to *.trimmed.i files in error traces.
-            fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
-            process_file(TRIMMED_WORKAROUND_REGEXES, fp_in, fp_out)
-
-        extra_c_file['new C file'] = trimmed_c_file
-        c_files.append(trimmed_c_file)
-
-    return c_files
-
 
 def merge_files(logger, conf, abstract_task_desc):
     """
@@ -92,34 +32,37 @@ def merge_files(logger, conf, abstract_task_desc):
     :return: A file name of the newly created file.
     """
     logger.info('Merge source files by means of CIL')
-    c_files = trimmed_files(logger, conf, abstract_task_desc)
 
     args = [
-               'cilly.asm.exe',
-               '--printCilAsIs',
-               '--domakeCFG',
-               '--decil',
-               '--noInsertImplicitCasts',
-               # Now supported by CPAchecker frontend.
-               '--useLogicalOperators',
-               '--ignore-merge-conflicts',
-               # Don't transform simple function calls to calls-by-pointers.
-               '--no-convert-direct-calls',
-               # Don't transform s->f to pointer arithmetic.
-               '--no-convert-field-offsets',
-               # Don't transform structure fields into variables or arrays.
-               '--no-split-structs',
-               '--rmUnusedInlines',
-               '--out', 'cil.i',
-           ] + c_files
+               'toplevel.opt',
+               # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
+               '-no-autoload-plugins', '-no-findlib',
+               # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
+               '-machdep', 'gcc_' + conf['architecture'],
+               # Compatibility with C11 (ISO/IEC 9899:2011).
+               '-c11',
+               # In our mode this is the only warning resulting to errors by default.
+               '-kernel-warn-key', 'CERT:MSC:38=active',
+               # Removing unused functions helps to reduce CPAchecker computational resources consumption very-very
+               # considerably.
+               '-remove-unused-inline-functions', '-remove-unused-static-functions',
+               # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
+               # sequentially.
+               '-no-annot',
+               # Rest options.
+               '-keep-logical-operators',
+               '-aggressive-merging',
+               '-print', '-print-lines', '-no-print-annot',
+               '-ocode', 'cil.i',
+           ] + [os.path.join(conf['main working directory'], extra_c_file['C file'])
+                for extra_c_file in abstract_task_desc['extra C files']
+                if 'C file' in extra_c_file]
+
     core.utils.execute(logger, args=args, enforce_limitations=True)
+
     logger.debug('Merged source files was outputted to "cil.i"')
 
-    with open('cil.i', encoding='utf8') as fp_in, open('cil.fixed.i', 'w', encoding='utf8') as fp_out:
-        # Specify original location to avoid references to *.trimmed.i files in error traces.
-        process_file(CIL_WORKAROUND_REGEXES, fp_in, fp_out)
-
-    return 'cil.fixed.i'
+    return 'cil.i'
 
 
 def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
