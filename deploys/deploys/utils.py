@@ -202,7 +202,9 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
                 cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), archive)
 
             cmd_fn('rm', '-rf', '{0}'.format(archive))
-        elif os.path.isfile(path) or os.path.isdir(path):
+        elif os.path.isfile(path):
+            install_fn(path, os.path.join(deploy_dir, os.path.basename(path)), allow_symlink=True)
+        elif os.path.isdir(path):
             install_fn(path, deploy_dir, allow_symlink=True)
         else:
             logger.error('Could not install "{0}" since it is provided in the unsupported format'.format(name))
