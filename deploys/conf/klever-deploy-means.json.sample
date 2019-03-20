@@ -63,7 +63,8 @@
     },
     "CIL": {
       "version": "9c08d50",
-      "path": "https://forge.ispras.ru/attachments/download/6328/toplevel.opt.tar.gz"
+      "path": "https://forge.ispras.ru/attachments/download/6328/toplevel.opt.tar.gz",
+      "executable path": "."
     },
     "Consul": {
       "version": "0.9.2",
