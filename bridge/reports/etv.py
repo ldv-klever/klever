@@ -17,14 +17,25 @@
 
 import re
 import json
+from collections import OrderedDict
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from django.utils.functional import cached_property
 
-from bridge.vars import ERROR_TRACE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException
 
 from reports.models import ReportUnsafe
+
+
+HIGHLIGHT_CLASSES = {
+    'number': 'ETVNumber',
+    'comment': 'ETVComment',
+    'text': 'ETVText',
+    'key1': 'ETVKey1',
+    'key2': 'ETVKey2'
+}
 
 
 TAB_LENGTH = 4
@@ -480,10 +491,10 @@ class ParseErrorTrace:
         pass
 
 
-class GetETV:
-    def __init__(self, error_trace, user):
-        self.include_assumptions = user.assumptions
-        self.triangles = user.triangles
+class GetETVOld:
+    def __init__(self, error_trace, user=None):
+        self.include_assumptions = user.assumptions if user else settings.DEF_USER['assumptions']
+        self.triangles = user.triangles if user else settings.DEF_USER['triangles']
         self.data = json.loads(error_trace)
         self.err_trace_nodes = get_error_trace_nodes(self.data)
         self.threads = []
@@ -537,6 +548,284 @@ class GetETV:
         return '%s<span style="background-color:%s;"> </span>%s' % (
             ' ' * thread, THREAD_COLORS[thread % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread - 1)
         )
+
+
+class GetETV:
+    global_thread = 'global'
+
+    def __init__(self, error_trace, user=None):
+        self.include_assumptions = user.assumptions if user else settings.DEF_USER['assumptions']
+        self.triangles = user.triangles if user else settings.DEF_USER['triangles']
+        self.trace = error_trace
+        self._max_line_len = 0
+        self._curr_scope = 0
+        self.shown_scopes = set()
+        self.assumptions = {}
+        self._scope_assumptions = {}
+
+        self._threads = self.__get_threads()
+        self.globals = self.__get_global_vars()
+        self.html_trace = self.__parse_node(self.trace['trace'])
+
+    def __get_threads(self):
+        threads = []
+        if self.trace.get('global variable declarations'):
+            threads.append(self.global_thread)
+        threads.extend(self.__get_child_threads(self.trace['trace']))
+        return threads
+
+    def __get_child_threads(self, node_obj):
+        threads = []
+        if node_obj.get('line'):
+            self._max_line_len = max(self._max_line_len, len(str(node_obj['line'])))
+        if node_obj['type'] == 'thread':
+            assert node_obj['thread'] != self.global_thread
+            threads.append(node_obj['thread'])
+        if 'children' in node_obj:
+            for child in node_obj['children']:
+                for thread_id in self.__get_child_threads(child):
+                    if thread_id not in threads:
+                        threads.append(thread_id)
+        return threads
+
+    def __get_global_vars(self):
+        if 'global variable declarations' not in self.trace:
+            return None
+        global_data = {
+            'thread': self._html_thread['global'],
+            'line': self.__get_line(),
+            'offset': ' ',
+            'source': _('Global variable declarations'),
+            'lines': []
+        }
+        assert isinstance(self.trace['global variable declarations'], list), 'Not a list'
+        for node in self.trace['global variable declarations']:
+            global_data['lines'].append({
+                'thread': self._html_thread['global'],
+                'line': self.__get_line(node['line']),
+                'file': self.trace['files'][node['file']],
+                'offset': ' ',
+                'source': self.__parse_source(node),
+                'note': node.get('note'),
+                'display': node.get('display')
+            })
+        return global_data
+
+    @property
+    def _new_scope(self):
+        self._curr_scope += 1
+        return self._curr_scope
+
+    def __parse_node(self, node, depth=0, thread=None, has_asc_note=False, scope=0):
+        # Statement
+        if node['type'] == 'statement':
+            node_data = self.__parse_statement(node, depth, thread, scope)
+            if node_data.get('warn'):
+                # If statement has warn, show current scope
+                self.shown_scopes.add(scope)
+            elif node_data.get('note') and not has_asc_note:
+                # If statement has note and there are no notes in ascendants then show current scope
+                self.shown_scopes.add(scope)
+            return [node_data]
+
+        # Thread
+        if node['type'] == 'thread':
+            thread_scope = self._new_scope
+
+            # Always show functions of each thread root scope
+            self.shown_scopes.add(thread_scope)
+
+            children_trace = []
+            for child_node in node['children']:
+                children_trace.extend(self.__parse_node(
+                    child_node, depth=0, thread=node['thread'], has_asc_note=False, scope=thread_scope
+                ))
+            return children_trace
+
+        # Function call
+        if node['type'] == 'function call':
+            enter_data = self.__parse_function(node, depth, thread, scope)
+            func_scope = self._new_scope
+            enter_data['inner_scope'] = func_scope
+
+            if enter_data.get('warn') or enter_data.get('note') and not has_asc_note:
+                self.shown_scopes.add(scope)
+
+            child_depth = depth + 1
+            child_asc_note = bool(has_asc_note or enter_data.get('note') or enter_data.get('warn'))
+            children_trace = []
+            for child_node in node['children']:
+                children_trace.extend(self.__parse_node(
+                    child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=func_scope
+                ))
+
+            # Function scope can be added while children parsing
+            if func_scope in self.shown_scopes:
+                self.shown_scopes.add(scope)
+                # Open function by default if its scope is shown
+                enter_data['opened'] = True
+
+            # Closing triangle
+            exit_data = self.__parse_exit(depth, thread, func_scope)
+
+            return [enter_data] + children_trace + [exit_data]
+
+        # Action
+        if node['type'] == 'action':
+            enter_data = self.__parse_action(node, depth, thread, scope)
+            act_scope = self._new_scope
+            enter_data['inner_scope'] = act_scope
+
+            if enter_data['callback']:
+                # Show all callback actions
+                self.shown_scopes.add(scope)
+
+            child_depth = depth + 1
+            child_asc_note = has_asc_note or bool(enter_data.get('note') or enter_data.get('warn'))
+            children_trace = []
+            for child_node in node['children']:
+                children_trace.extend(self.__parse_node(
+                    child_node, depth=child_depth, thread=thread, has_asc_note=child_asc_note, scope=act_scope
+                ))
+
+            # Action scope can be added while children parsing
+            if act_scope in self.shown_scopes:
+                # Open action by default if its scope is shown and show action scope
+                self.shown_scopes.add(scope)
+                enter_data['opened'] = True
+
+            if not self.triangles:
+                return [enter_data] + children_trace
+
+            # Closing triangle
+            exit_data = self.__parse_exit(depth, thread, act_scope)
+            return [enter_data] + children_trace + [exit_data]
+
+    def __parse_statement(self, node, depth, thread, scope):
+        statement_data = {
+            'type': node['type'],
+            'thread': self._html_thread[thread],
+            'line': self.__get_line(node['line']),
+            'file': self.trace['files'][node['file']],
+            'offset': ' ' * (TAB_LENGTH * depth + 1),
+            'source': self.__parse_source(node),
+            'display': node.get('display'),
+            'scope': scope
+        }
+
+        # Add note/warn
+        if node.get('note'):
+            if node.get('violation'):
+                statement_data['warn'] = node['note']
+            else:
+                statement_data['note'] = node['note']
+
+        # Add assumptions
+        if self.include_assumptions:
+            statement_data['old_assumptions'], statement_data['new_assumptions'] = self.__get_assumptions(node, scope)
+
+        return statement_data
+
+    def __parse_function(self, node, depth, thread, scope):
+        func_data = self.__parse_statement(node, depth, thread, scope)
+        func_data['opened'] = False
+        return func_data
+
+    def __parse_action(self, node, depth, thread, scope):
+        return {
+            'type': node['type'],
+            'callback': node.get('callback', False),
+            'thread': self._html_thread[thread],
+            'line': self.__get_line(node['line']),
+            'file': self.trace['files'][node['file']],
+            'offset': ' ' * (TAB_LENGTH * depth + 1),
+            'display': node['display'],
+            'scope': scope,
+            'opened': False
+        }
+
+    def __parse_exit(self, depth, thread, scope):
+        return {
+            'type': 'exit',
+            'line': self.__get_line(),
+            'thread': self._html_thread[thread],
+            'offset': ' ' * (TAB_LENGTH * depth + 1),
+            'scope': scope
+        }
+
+    def __parse_source(self, node):
+        source = node['source']
+        highlights = node.get('highlights', [])
+        h_dict = OrderedDict()
+
+        # Validate highlights
+        source_len = len(source)
+        prev_end = 0
+        for start, end, h_name in sorted(highlights, key=lambda x: (x[1], x[2])):
+            assert isinstance(start, int) and isinstance(end, int)
+            assert prev_end <= start < end
+            assert h_name in HIGHLIGHT_CLASSES
+            if prev_end < start:
+                h_dict[(prev_end, start)] = None
+            h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
+            prev_end = end
+        if prev_end < source_len:
+            h_dict[(prev_end, source_len)] = None
+        elif prev_end > source_len:
+            raise ValueError
+
+        result = ''
+        for start, end in reversed(h_dict):
+            result = self.__wrap_code(source[start:end], h_dict[(start, end)]) + result
+        return result
+
+    def __wrap_code(self, code, code_class=None):
+        if code_class is None:
+            return code
+        return '<span class="%s">%s</span>' % (code_class, code)
+
+    def __get_line(self, line=None):
+        line_str = '' if line is None else str(line)
+        line_offset = ' ' * (self._max_line_len - len(line_str))
+        return '{0}{1}'.format(line_offset, line_str)
+
+    @cached_property
+    def _html_thread(self):
+        html_pattern = '{prefix}<span style="background-color:{color};"> </span>{postfix}'
+        threads_num = len(self._threads)
+        threads_html = {}
+        for i, th in enumerate(self._threads):
+            threads_html[th] = html_pattern.format(
+                prefix=' ' * i,
+                color=THREAD_COLORS[i % len(THREAD_COLORS)],
+                postfix=' ' * (threads_num - i - 1)
+            )
+        threads_html['global'] = ' ' * threads_num
+        return threads_html
+
+    def __get_assumptions(self, node, scope):
+        if not self.include_assumptions:
+            return None, None
+
+        old_assumptions = None
+        if scope in self._scope_assumptions:
+            old_assumptions = '_'.join(self._scope_assumptions[scope])
+
+        cnt = len(self.assumptions)
+        new_assumptions = None
+        if node.get('assumption'):
+            new_assumptions = []
+            self._scope_assumptions.setdefault(scope, [])
+            for assume in node['assumption'].split(';'):
+                if assume not in self.assumptions:
+                    self.assumptions[assume] = cnt
+                    cnt += 1
+                assume_id = str(self.assumptions[assume])
+                new_assumptions.append(assume_id)
+                self._scope_assumptions[scope].append(assume_id)
+            new_assumptions = '_'.join(new_assumptions)
+
+        return old_assumptions, new_assumptions
 
 
 class GetSource:
@@ -660,276 +949,3 @@ class GetSource:
 
     def __is_not_used(self):
         pass
-
-
-class Forest:
-    def __init__(self):
-        self._cnt = 1
-        self._level = 0
-        self.call_stack = []
-        self._forest = []
-
-    def scope(self):
-        return self.call_stack[-1] if len(self.call_stack) > 0 else None
-
-    def enter_func(self, func_name, is_model=False):
-        while len(self._forest) <= self._level:
-            self._forest.append([])
-        new_scope = '%s__%s' % (self._cnt, func_name)
-        self._forest[self._level].append({
-            'name': new_scope,
-            'parent': self.scope(),
-            'model': is_model
-        })
-        self.call_stack.append(new_scope)
-        self._level += 1
-        self._cnt += 1
-
-    def mark_current_scope(self):
-        if self._level < 1:
-            return
-        for i in range(len(self._forest[self._level - 1])):
-            if self._forest[self._level - 1][i]['name'] == self.call_stack[-1]:
-                self._forest[self._level - 1][i]['model'] = True
-                break
-
-    def return_from_func(self):
-        self._level -= 1
-        if not self.call_stack:
-            raise BridgeException(_('The number of function returns is more than number of its calls'))
-        self.call_stack.pop()
-
-    def get_forest(self):
-        self.__exclude_functions()
-        if len(self._forest) == 0:
-            return None
-        final_forest = self.__convert_forest()
-        self.__init__()
-        return final_forest
-
-    def add_note(self, note):
-        while len(self._forest) <= self._level:
-            self._forest.append([])
-        self._forest[self._level].append({
-            'name': note,
-            'parent': self.scope(),
-            'model': True
-        })
-
-    def __not_model_leaf(self, i, j):
-        if self._forest[i][j]['model']:
-            return False
-        elif len(self._forest) > i + 1:
-            for ch_j in range(len(self._forest[i + 1])):
-                if self._forest[i + 1][ch_j]['parent'] == self._forest[i][j]['name']:
-                    return False
-        return True
-
-    def __exclude_functions(self):
-        for i in reversed(range(0, len(self._forest))):
-            new_level = []
-            for j in range(0, len(self._forest[i])):
-                if not self.__not_model_leaf(i, j):
-                    new_level.append(self._forest[i][j])
-            if len(new_level) == 0:
-                del self._forest[i]
-            else:
-                self._forest[i] = new_level
-
-    def __get_children(self, lvl, j):
-        children = []
-        if len(self._forest) > lvl + 1:
-            for ch_j in range(0, len(self._forest[lvl + 1])):
-                if self._forest[lvl + 1][ch_j]['parent'] == self._forest[lvl][j]['name']:
-                    children.append({
-                        re.sub('^\d+__', '', self._forest[lvl + 1][ch_j]['name']): self.__get_children(lvl + 1, ch_j)
-                    })
-        return children
-
-    def __convert_forest(self):
-        final_forest = []
-        for j in range(len(self._forest[0])):
-            final_forest.append({
-                re.sub('^\d+__', '', self._forest[0][j]['name']): self.__get_children(0, j)
-            })
-        return final_forest
-
-
-class ErrorTraceForests:
-    def __init__(self, error_trace, all_threads=False):
-        self.data = json.loads(error_trace)
-        self.all_threads = all_threads
-        try:
-            self.trace = self.__get_forests(get_error_trace_nodes(self.data))
-        except BridgeException as e:
-            raise BridgeException(_('Error trace convertion error: %(error)s') % {'error': str(e)})
-
-    def __get_forests(self, edge_trace):
-        threads = {}
-        thread_order = []
-        for edge_id in edge_trace:
-            if 'thread' not in self.data['edges'][edge_id]:
-                raise ValueError('All error trace edges should have thread')
-            if self.data['edges'][edge_id]['thread'] not in threads:
-                thread_order.append(self.data['edges'][edge_id]['thread'])
-                threads[self.data['edges'][edge_id]['thread']] = []
-            threads[self.data['edges'][edge_id]['thread']].append(edge_id)
-        forests = []
-        if self.all_threads:
-            for t in thread_order:
-                forests.extend(self.__collect_forests(threads[t]))
-        else:
-            for t in thread_order:
-                forests.extend(self.__get_callback_forests(threads[t]))
-        return forests
-
-    def __get_callback_forests(self, edge_trace):
-        forests = []
-        forest = Forest()
-        collect_names = False
-        double_return = set()
-        curr_action = -1
-        for edge_id in edge_trace:
-            edge_data = self.data['edges'][edge_id]
-            if len(forest.call_stack) == 0 and edge_data.get('action', -1) != curr_action >= 0:
-                collect_names = False
-                curr_action = -1
-                curr_forest = forest.get_forest()
-                if curr_forest is not None:
-                    forests.append(curr_forest)
-            if curr_action == -1 and 'action' in edge_data and edge_data['action'] in self.data['callback actions']:
-                collect_names = True
-                curr_action = edge_data['action']
-            if collect_names:
-                is_model = 'note' in edge_data or 'warn' in edge_data
-                if 'enter' in edge_data:
-                    forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
-                    if 'return' in edge_data:
-                        if edge_data['enter'] == edge_data['return']:
-                            forest.return_from_func()
-                        else:
-                            double_return.add(forest.scope())
-                elif 'return' in edge_data:
-                    old_scope = forest.scope()
-                    forest.return_from_func()
-                    while old_scope in double_return:
-                        double_return.remove(old_scope)
-                        old_scope = forest.scope()
-                        forest.return_from_func()
-                elif is_model:
-                    forest.mark_current_scope()
-
-        if collect_names:
-            curr_forest = forest.get_forest()
-            if curr_forest is not None:
-                forests.append(curr_forest)
-        return forests
-
-    def __collect_forests(self, edge_trace):
-        forests = []
-        forest = {'full': Forest(), 'callback': Forest()}
-        fname = 'full'
-        curr_action = -1
-        double_return = set()
-        for edge_id in edge_trace:
-            edge_data = self.data['edges'][edge_id]
-            if fname == 'callback' and len(forest['callback'].call_stack) == 0 \
-                    and edge_data.get('action', -1) != curr_action:
-                curr_action = -1
-                curr_forest = forest['callback'].get_forest()
-                if curr_forest is not None:
-                    forests.append(curr_forest)
-                fname = 'full'
-            if curr_action == -1 and 'action' in edge_data and edge_data['action'] in self.data['callback actions']:
-                fname = 'callback'
-                curr_action = edge_data['action']
-
-            is_model = 'note' in edge_data or 'warn' in edge_data
-            if 'enter' in edge_data:
-                forest[fname].enter_func(self.data['funcs'][edge_data['enter']], is_model)
-                if 'return' in edge_data:
-                    if edge_data['enter'] == edge_data['return']:
-                        forest[fname].return_from_func()
-                    else:
-                        double_return.add(forest[fname].scope())
-            elif 'return' in edge_data:
-                old_scope = forest[fname].scope()
-                forest[fname].return_from_func()
-                while old_scope in double_return:
-                    double_return.remove(old_scope)
-                    old_scope = forest[fname].scope()
-                    forest[fname].return_from_func()
-            elif is_model:
-                forest[fname].mark_current_scope()
-
-        if fname == 'callback':
-            curr_forest = forest['callback'].get_forest()
-            if curr_forest is not None:
-                forests.append(curr_forest)
-        curr_forest = forest['full'].get_forest()
-        if curr_forest is not None:
-            forests.append(curr_forest)
-        return forests
-
-    def __get_thread_forest(self, edge_trace):
-        forest = Forest()
-        double_return = set()
-        for edge_id in edge_trace:
-            edge_data = self.data['edges'][edge_id]
-            is_model = 'note' in edge_data or 'warn' in edge_data
-            if 'enter' in edge_data:
-                forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
-                if 'return' in edge_data:
-                    if edge_data['enter'] == edge_data['return']:
-                        forest.return_from_func()
-                    else:
-                        double_return.add(forest.scope())
-            elif 'return' in edge_data:
-                old_scope = forest.scope()
-                forest.return_from_func()
-                while old_scope in double_return:
-                    double_return.remove(old_scope)
-                    old_scope = forest.scope()
-                    forest.return_from_func()
-            elif is_model:
-                forest.mark_current_scope()
-
-        curr_forest = forest.get_forest()
-        if curr_forest is not None and len(curr_forest) > 0:
-            return curr_forest
-        return []
-
-
-def etv_callstack(unsafe_id=None, file_name='test.txt'):
-    if unsafe_id:
-        unsafe = ReportUnsafe.objects.get(id=unsafe_id)
-    else:
-        unsafe = ReportUnsafe.objects.all().first()
-    content = ArchiveFileContent(unsafe, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8')
-    data = json.loads(content)
-    trace = ''
-    double_returns = set()
-    ind = 0
-    for x in data['edges']:
-        if 'enter' in x:
-            if 'action' in x:
-                trace += '%s%s(%s)[action_%s] {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'], x['action'])
-            else:
-                trace += '%s%s(%s) {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'])
-            ind += 2
-            if 'return' in x:
-                double_returns.add(x['enter'])
-        elif 'return' in x:
-            ind -= 2
-            if 'action' in x:
-                trace += '%s}(%s)[action_%s]\n' % (' ' * ind, x['return'], x['action'])
-            else:
-                trace += '%s}(%s)\n' % (' ' * ind, x['return'])
-            if x['return'] in double_returns:
-                ind -= 2
-                trace += '%s}(DOUBLE)\n' % (' ' * ind)
-                double_returns.remove(x['return'])
-        elif 'action' in x:
-            trace += '%sACTION(%s)\n' % (' ' * ind, x['action'])
-    with open(file_name, mode='w', encoding='utf8') as fp:
-        fp.write(trace)

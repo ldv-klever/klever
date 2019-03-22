@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "tree node 'asm_expr' isn't supported",
+  "link": "https://forge.ispras.ru/issues/7143",
+  "problem_pattern": "Unsup AsmExpr",
+  "production": true
+}

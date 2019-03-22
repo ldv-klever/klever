@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "There is no module initialization function provided",
+  "link": "http://forge.ispras.ru/issues/6571",
+  "problem_pattern": "No init",
+  "production": true
+}

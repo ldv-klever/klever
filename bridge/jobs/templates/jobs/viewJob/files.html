@@ -38,7 +38,7 @@
 {# Initialize files tree #}
 <script type="application/javascript">
     jQuery(function () {
-        var files_tree = new FilesTree('{{ div_id }}');
+        let files_tree = new FilesTree('{{ div_id }}');
         files_tree.set_labels({
             'view': "{% trans 'View' %}",
             'download': "{% trans 'Download' %}"

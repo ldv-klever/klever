@@ -30,7 +30,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import SERVICE_DIR, Solution, Task
-from marks.models import CONVERTED_DIR, ConvertedTraces
+from marks.models import CONVERTED_DIR
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
     ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
 
@@ -141,7 +141,8 @@ class RecalculateCoverageCache:
     def __recalc(self):
         CoverageFile.objects.filter(archive__report__root__in=self.roots).delete()
         CoverageDataStatistics.objects.filter(archive__report__root__in=self.roots).delete()
-        for report in ReportComponent.objects.filter(root__in=self.roots, covnum__gt=0):
+        # TODO: ensure that each report is unique in queryset
+        for report in ReportComponent.objects.filter(root__in=self.roots).exclude(coverages=None):
             FillCoverageCache(report)
 
 

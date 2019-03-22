@@ -79,8 +79,7 @@ class Notify(object):
             # TODO: analize exception
             # logger.exception("SMTP registration error: %s" % e)
             return
-        for user in User.objects.filter(
-                ~Q(notifications__settings='[]') & ~Q(notifications=None)):
+        for user in User.objects.filter(~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:
                 message = UserMessage(
                     user, self.job, self.type, add_args).message

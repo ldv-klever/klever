@@ -1,0 +1,6 @@
+{
+  "attrs": [],
+  "function": "memory exhausted",
+  "problem_pattern": "Out of memory",
+  "production": true
+}

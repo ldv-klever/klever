@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "attr": {
+      "type": "object",
+      "title": "Report attribute",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the attribute",
+          "examples": [
+            "Linux:version",
+            "Verification object"
+          ],
+          "maxLength": 63
+        },
+        "value": {
+          "type": "string",
+          "description": "The value of the attribute",
+          "examples": [
+            "3.7.0"
+          ],
+          "maxLength": 255
+        },
+        "compare": {
+          "type": "boolean",
+          "description": "Is attribute compared in jobs comparison",
+          "default": false,
+          "examples": [
+            false
+          ]
+        },
+        "associate": {
+          "$id": "#/properties/associate",
+          "type": "boolean",
+          "description": "Is attribute used in marks associations by default",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "data": {
+          "type": "string",
+          "description": "The path to the file in the attached archive with attributes data",
+          "examples": [
+            "path/to/the/file"
+          ]
+        }
+      }
+    }
+  },
+  "type": "object",
+  "required": [
+    "type",
+    "component",
+    "identifier"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "pattern": "^start$"
+    },
+    "component": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b.*$"
+    },
+    "parent": {
+      "type": "string",
+      "pattern": "^\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b.*$"
+    },
+    "data": {
+      "type": "object",
+      "description": "The report data object",
+      "additionalProperties": true
+    },
+    "attrs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/attr"
+      }
+    },
+    "attr_data": {
+      "type": "string",
+      "description": "The name of the attached archive with attributes data"
+    }
+  }
+}

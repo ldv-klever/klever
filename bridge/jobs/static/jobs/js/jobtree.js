@@ -15,180 +15,104 @@
  * limitations under the License.
  */
 
-var countable = ['tasks:pending', 'tasks:processing', 'tasks:finished', 'tasks:error',
-            'tasks:cancelled', 'tasks:total', 'tasks:solutions', 'tasks:total_ts', 'subjobs:total_sj'],
-    countable_prefixes = ['safe', 'unsafe', 'tag', 'problem'];
-
-function fill_all_values() {
-    $("td[id^='all__']").each(function() {
-        var cell_id_data = $(this).attr('id').split('__');
-        if ($.inArray(cell_id_data.slice(1, -1).join(':'), countable) > -1 || $.inArray(cell_id_data[1], countable_prefixes) > -1) {
-            cell_id_data[0] = 'value';
-            var sum = 0, have_numbers = false;
-            $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
-                var num = parseInt($(this).children().first().text());
-                isNaN(num) ? num = 0 : have_numbers = true;
-                sum += num;
-            });
-            if (have_numbers) {
-                $(this).text(sum);
-            }
-        }
-    });
-}
-
-function fill_checked_values() {
-    $("td[id^='checked__']").each(function() {
-        var cell_id_data = $(this).attr('id').split('__');
-        if ($.inArray(cell_id_data.slice(1, -1).join(':'), countable) > -1 || $.inArray(cell_id_data[1], countable_prefixes) > -1) {
-            cell_id_data[0] = 'value';
-            var sum = 0, have_numbers = false, is_checked = false;
-            $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
-                if ($('#job_checkbox__' + $(this).attr('id').split('__').slice(-1)[0]).is(':checked')) {
-                    is_checked = true;
-                    var num = parseInt($(this).children().first().text());
-                    isNaN(num) ? num = 0 : have_numbers = true;
-                    sum += num;
-                }
-            });
-            (have_numbers === true && is_checked === true) ? $(this).text(sum) : $(this).text('-');
-        }
-    });
-}
-
-function check_jobs_access(jobs) {
-    var status = true;
-    $.ajax({
-        url: '/jobs/check_download_access/',
-        type: 'POST',
-        dataType: 'json',
-        data: {jobs: JSON.stringify(jobs)},
-        async: false,
-        success: function (res) {
-            if (res.error) {
-                err_notify(res.message);
-                status = false;
-            }
-        }
-    });
-    return status;
-}
-
-function compare_reports() {
-    var sel_jobs = [];
-    $('input[id^="job_checkbox__"]:checked').each(function () {
-        sel_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
-    });
-    if (sel_jobs.length !== 2) {
-        err_notify($('#error__no_jobs_to_compare').text());
-        return false;
-    }
-    $('#dimmer_of_page').addClass('active');
-    $.post('/jobs/check_compare_access/', {job1: sel_jobs[0], job2: sel_jobs[1]}, function (data) {
-        if (data.error) {
-            $('#dimmer_of_page').removeClass('active');
-            err_notify(data.error);
-        }
-        else {
-            $.post('/reports/fill_compare_cache/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                data.error ? err_notify(data.error) : window.location.href = '/reports/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
-            }, 'json');
-        }
-    }, 'json');
-}
-
-function compare_files() {
-    var selected_jobs = [];
-    $('input[id^="job_checkbox__"]:checked').each(function () {
-        selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
-    });
-    if (selected_jobs.length !== 2) {
-        err_notify($('#error__no_jobs_to_compare').text());
-        return false;
-    }
-    window.location.href = '/jobs/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
-}
-
 $(document).ready(function () {
+    function fill_all_values() {
+        $('.all-footer-col').each(function () {
+            let column = $(this).data('column'), sum = 0;
+            $('.cell-column-' + column).each(function () {
+                let number = $(this).data('number');
+                if (number) sum += parseInt(number);
+            });
+            $(this).text(sum);
+        });
+    }
+
+    function fill_checked_values() {
+        $('.checked-footer-col').each(function () {
+            let column = $(this).data('column'), sum = 0, has_checked = false;
+            $('.job-checkbox:checked').each(function () {
+                let number = $('.cell-column-' + column + '.cell-row-' + $(this).data('row')).first().data('number');
+                if (number) sum += parseInt(number);
+                has_checked = true;
+            });
+            $(this).text(has_checked ? sum : '-');
+        });
+    }
+
+
+    function compare_reports() {
+        let sel_jobs = [];
+        $('.job-checkbox:checked').each(function () { sel_jobs.push($(this).data('row')) });
+        if (sel_jobs.length !== 2) return err_notify($('#error__no_jobs_to_compare').text());
+
+        $('#dimmer_of_page').addClass('active');
+        $.post('/jobs/api/can_compare/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function () {
+            $.post('/reports/fill_compare_cache/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function () {
+                $('#dimmer_of_page').removeClass('active');
+                window.location.href = '/reports/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
+            }, 'json');
+        }, 'json');
+    }
+
+    function compare_files() {
+        let sel_jobs = [];
+        $('.job-checkbox:checked').each(function () { sel_jobs.push($(this).data('row')) });
+        if (sel_jobs.length !== 2) return err_notify($('#error__no_jobs_to_compare').text());
+        window.location.href = '/jobs/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
+    }
+
     $('.ui.dropdown').dropdown();
 
     $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#show_remove_jobs_popup').click(function () {
         $('#jobs_actions_menu').popup('hide');
-        var jobs_for_delete = [], confirm_delete_btn = $('#delete_jobs_btn'),
-            confirm_delete_modal = $('#remove_jobs_popup');
-        $("input[id^='job_checkbox__']").each(function () {
-            if ($(this).is(':checked')) {
-                jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
-            }
-        });
-        if (!jobs_for_delete.length) {
-            err_notify($('#error__no_jobs_to_delete').text());
-            confirm_delete_modal.modal('hide');
-        }
-        else {
-            confirm_delete_modal.modal('show');
-            confirm_delete_btn.unbind();
-            confirm_delete_btn.click(function () {
-                confirm_delete_modal.modal('hide');
-                $('#dimmer_of_page').addClass('active');
-                $.post(
-                    '/jobs/remove/',
-                    {jobs: JSON.stringify(jobs_for_delete)},
-                    function (data) {
-                        $('#dimmer_of_page').removeClass('active');
-                        data.error ? err_notify(data.error) : window.location.replace('');
-                    },
-                    'json'
-                );
+        let jobs_for_delete = [], confirm_delete_btn = $('#delete_jobs_btn');
+        $('.job-checkbox:checked').each(function () { jobs_for_delete.push($(this).data('row')) });
+        if (!jobs_for_delete.length) return err_notify($('#error__no_jobs_to_delete').text());
+
+        $('#remove_jobs_popup').modal('show');
+        confirm_delete_btn.unbind().click(function () {
+            $('#remove_jobs_popup').modal('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.each(jobs_for_delete, function (i, job_id) {
+                $.delete('/jobs/api/' + job_id + '/remove/', {}, function () {
+                    $('#dimmer_of_page').removeClass('active');
+                }, 'json');
             });
-        }
+            // When all delete requests are finished then reload the page
+            $(document).ajaxStop(function () { window.location.replace('') });
+        });
     });
 
     inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
     fill_all_values();
-    $("input[id^='job_checkbox__']").change(fill_checked_values);
+    $('.job-checkbox').change(fill_checked_values);
 
     $('#cancel_remove_jobs').click(function () {
-        $('#remove_jobs_popup').modal('hide');
+        $('#remove_jobs_popup').modal('hide')
     });
 
     $('#download_selected_jobs').click(function (event) {
         event.preventDefault();
 
         $('#jobs_actions_menu').popup('hide');
-        var job_ids = [];
-        $('input[id^="job_checkbox__"]:checked').each(function () {
-            job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
+        let job_ids = [];
+        $('.job-checkbox:checked').each(function () { job_ids.push($(this).data('row')) });
+        if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
+        let job_ids_json = JSON.stringify(job_ids);
+        $.post('/jobs/api/can_download/', {jobs: job_ids_json}, function () {
+            $.redirectPost('/jobs/downloadtrees/', {job_ids: job_ids_json});
         });
-        if (job_ids.length) {
-            if (check_jobs_access(job_ids)) {
-                $.redirectPost('/jobs/downloadjobs/', {job_ids: JSON.stringify(job_ids)});
-            }
-        }
-        else {
-            err_notify($('#error__no_jobs_to_download').text());
-        }
     });
 
     $('#download_selected_trees').click(function (event) {
         event.preventDefault();
         if ($(this).hasClass('disabled')) return false;
-
         $('#jobs_actions_menu').popup('hide');
-        var job_ids = [];
-        $('input[id^="job_checkbox__"]:checked').each(function () {
-            job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
-        });
-        if (job_ids.length) {
-            if (check_jobs_access(job_ids)) {
-                $.redirectPost('/jobs/downloadtrees/', {job_ids: JSON.stringify(job_ids)});
-            }
-        }
-        else {
-            err_notify($('#error__no_jobs_to_download').text());
-        }
+        let job_ids = [];
+        $('.job-checkbox:checked').each(function () { job_ids.push($(this).data('row')) });
+        if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
+        $.redirectPost('/jobs/downloadtrees/', {job_ids: JSON.stringify(job_ids)});
     });
 
     $('#compare_reports_btn').click(compare_reports);

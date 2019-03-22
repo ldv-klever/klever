@@ -27,8 +27,8 @@ from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
 from bridge.utils import BridgeException, logger
 
 from jobs.models import Job, JobFile
-from reports.models import Component, Computer
-from marks.models import UnknownProblem, ConvertedTraces
+from reports.models import Computer
+# from marks.models import ConvertedTraces
 from service.models import Task
 from tools.models import LockTable
 
@@ -49,7 +49,7 @@ def manager_tools(request):
 
 
 @login_required
-@unparallel_group([Component])
+@unparallel_group([])
 def rename_component(request):
     activate(request.user.language)
     if request.method != 'POST':
@@ -71,7 +71,7 @@ def rename_component(request):
 
 
 @login_required
-@unparallel_group([Component])
+@unparallel_group([])
 def clear_components(request):
     activate(request.user.language)
     if request.method != 'POST':
@@ -83,7 +83,7 @@ def clear_components(request):
 
 
 @login_required
-@unparallel_group([UnknownProblem])
+@unparallel_group([])
 def clear_problems(request):
     activate(request.user.language)
     if request.method != 'POST':
@@ -95,7 +95,7 @@ def clear_problems(request):
 
 
 @login_required
-@unparallel_group([JobFile, ConvertedTraces, Computer, Component, UnknownProblem])
+@unparallel_group([JobFile, Computer])
 def clear_system(request):
     activate(request.user.language)
     if request.method != 'POST':

@@ -16,7 +16,7 @@
  */
 
 window.get_tags_values = function () {
-    var selected_tags = [];
+    let selected_tags = [];
     $('#selected_tags').children('span').each(function () {
         selected_tags.push($(this).text());
     });
@@ -24,22 +24,12 @@ window.get_tags_values = function () {
 };
 
 window.drow_connections = function () {
-    $('.tagsmap').find(".line").each(function () {
-        var for_style = [];
-        $.each($(this).attr('class').split(/\s+/), function (a, cl_name) {
-            var img_types;
-            if (cl_name.startsWith('line-')) {
-                 img_types = cl_name.replace('line-', '').split('');
-            }
-            if (img_types) {
-                $.each(img_types, function (a, img_t) {
-                    for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
-                });
-            }
+    $('.tag-tree-link').each(function () {
+        let for_style = [];
+        $.each($(this).data('links').split(''), function (a, img_t) {
+            for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
         });
-        if (for_style.length) {
-            $(this).attr('style', "background: " + for_style.join(',') + ';');
-        }
+        if (for_style.length) $(this).attr('style', "background: " + for_style.join(',') + ';');
     });
 };
 

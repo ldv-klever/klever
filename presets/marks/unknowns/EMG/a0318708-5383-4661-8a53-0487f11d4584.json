@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "description": "EMG cannot generate a callback call.",
+  "function": "Cannot resolve callback",
+  "link": "http://forge.ispras.ru/issues/7560",
+  "problem_pattern": "No callback",
+  "production": true
+}

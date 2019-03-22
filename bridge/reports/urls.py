@@ -16,14 +16,14 @@
 #
 
 from django.urls import path
-from reports import views
+from reports import views, api
 
 
 urlpatterns = [
     # ReportComponent page
     path('component/<int:pk>/', views.ReportComponentView.as_view(), name='component'),
     path('log/<int:report_id>/', views.ComponentLogView.as_view(), name='log'),
-    path('logcontent/<int:report_id>/', views.ComponentLogContent.as_view()),
+    path('logcontent/<int:report_id>/', views.ComponentLogContentView.as_view()),
     path('attrdata/<int:pk>/', views.AttrDataFileView.as_view()),
     path('attrdata-content/<int:pk>/', views.AttrDataContentView.as_view()),
     path('component/<int:pk>/download_files/', views.DownloadVerifierFiles.as_view(), name='download_files'),
@@ -42,9 +42,10 @@ urlpatterns = [
     path('download-error-trace/<int:unsafe_id>/', views.DownloadErrorTrace.as_view(), name='download_error_trace'),
 
     # Reports comparison
-    path('fill_compare_cache/<int:job1_id>/<int:job2_id>/', views.FillComparisonCacheView.as_view()),
+    path('api/fill-comparison/<int:job1_id>/<int:job2_id>/',
+         api.FillComparisonView.as_view(), name='api-fill-comparison'),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.ReportsComparisonView.as_view(), name='comparison'),
-    path('get_compare_jobs_data/<int:info_id>/', views.ReportsComparisonData.as_view()),
+    path('get_compare_jobs_data/<int:info_id>/', views.ReportsComparisonDataView.as_view()),
 
     # Coverage
     path('coverage/<int:report_id>/', views.CoverageView.as_view(), name='coverage'),

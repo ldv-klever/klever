@@ -34,7 +34,7 @@ from bridge.utils import KleverTestCase
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, CompareJobsInfo, CoverageArchive,\
-    CompareJobsCache, CoverageFile, ReportAttr
+    CoverageFile, ReportAttr
 
 
 LINUX_ATTR = {'name': 'Linux kernel', 'value': [
@@ -514,10 +514,9 @@ class TestReports(KleverTestCase):
                 fp.write(content)
 
         # Remove decided job
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([job.pk])})
+        response = self.client.post('/jobs/api/%s/remove/' % job.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get parent for uploading
         if job.parent is None:

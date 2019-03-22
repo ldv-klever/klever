@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "attr": {
+      "type": "object",
+      "title": "Report attribute",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "The name of the attribute",
+          "examples": [
+            "Linux:version",
+            "Verification object"
+          ],
+          "maxLength": 63
+        },
+        "value": {
+          "type": "string",
+          "title": "The value of the attribute",
+          "examples": [
+            "3.7.0"
+          ],
+          "maxLength": 255
+        },
+        "compare": {
+          "type": "boolean",
+          "title": "Is attribute compared in jobs comparison",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "associate": {
+          "$id": "#/properties/associate",
+          "type": "boolean",
+          "title": "Is attribute used in marks associations by default",
+          "default": false,
+          "examples": [
+            true
+          ]
+        },
+        "data": {
+          "type": "string",
+          "title": "The path to the file in the attached archive with attributes data",
+          "examples": [
+            "path/to/the/file.json"
+          ]
+        }
+      }
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b.*$",
+      "maxLength": 255,
+      "examples": [
+        "e499a86d-7c0a-4da8-ac11-9acfb83d84b0/",
+        "e499a86d-7c0a-4da8-ac11-9acfb83d84b0/Subjob/1"
+      ]
+    }
+  },
+  "type": "object",
+  "required": [
+    "type",
+    "component",
+    "identifier",
+    "wall_time",
+    "cpu_time",
+    "memory"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "pattern": "^verification$"
+    },
+    "component": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "identifier": {
+      "$ref": "#/definitions/identifier"
+    },
+    "parent": {
+      "$ref": "#/definitions/identifier"
+    },
+    "data": {
+      "type": "object",
+      "title": "The report data object",
+      "additionalProperties": true
+    },
+    "attrs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/attr"
+      }
+    },
+    "attr_data": {
+      "type": "string",
+      "description": "The name of the attached archive with attributes data"
+    },
+    "cpu_time": {
+      "type": "integer"
+    },
+    "wall_time": {
+      "type": "integer"
+    },
+    "memory": {
+      "type": "integer"
+    },
+    "log": {
+      "type": "string",
+      "title": "Component log.",
+      "description": "The name of the attached archive. It will not be saved for lightweight jobs."
+    }
+  }
+}

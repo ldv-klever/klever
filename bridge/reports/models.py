@@ -16,19 +16,24 @@
 #
 
 import os
-import time
+import uuid
 
+from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import JSONField, ArrayField
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
+from django.db.models.signals import post_delete
 from django.core.files import File
 from django.utils.timezone import now
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.utils import RemoveFilesBeforeDelete, logger
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
+from bridge.utils import CheckArchiveError, WithFilesMixin, remove_instance_files
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT, REPORT_ARCHIVE
 from users.models import User
 from jobs.models import Job
+
+MAX_COMPONENT_LEN = 20
 
 
 def get_component_path(instance, filename):
@@ -57,39 +62,29 @@ class ReportRoot(models.Model):
         db_table = 'report_root'
 
 
-@receiver(pre_delete, sender=ReportRoot)
-def reportroot_delete_signal(**kwargs):
-    t1 = time.time()
-    RemoveFilesBeforeDelete(kwargs['instance'])
-    logger.info('Deleting ReportRoot files took %s seconds.' % (time.time() - t1))
-
-
-class AttrName(models.Model):
-    name = models.CharField(max_length=63, unique=True, db_index=True)
-
-    class Meta:
-        db_table = 'attr_name'
-
-
-class Attr(models.Model):
-    name = models.ForeignKey(AttrName, models.CASCADE)
+class AttrBase(models.Model):
+    name = models.CharField(max_length=64, db_index=True)
     value = models.CharField(max_length=255)
 
     class Meta:
-        db_table = 'attr'
-        index_together = ["name", "value"]
+        abstract = True
 
 
 class Report(MPTTModel):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
     parent = TreeForeignKey('self', models.CASCADE, null=True, related_name='children')
-    identifier = models.CharField(max_length=255, unique=True)
+    identifier = models.CharField(max_length=255, db_index=True)
+    cpu_time = models.BigIntegerField(null=True)
+    wall_time = models.BigIntegerField(null=True)
+    memory = models.BigIntegerField(null=True)
 
     class Meta:
         db_table = 'report'
+        unique_together = [('root', 'identifier')]
+        index_together = [('root', 'identifier')]
 
 
-class AttrFile(models.Model):
+class AttrFile(WithFilesMixin, models.Model):
     root = models.ForeignKey(ReportRoot, models.CASCADE)
     file = models.FileField(upload_to=get_attr_data_path)
 
@@ -97,14 +92,7 @@ class AttrFile(models.Model):
         db_table = 'report_attr_file'
 
 
-@receiver(pre_delete, sender=AttrFile)
-def attrfile_delete_signal(**kwargs):
-    source = kwargs['instance']
-    source.file.storage.delete(source.file.path)
-
-
-class ReportAttr(models.Model):
-    attr = models.ForeignKey(Attr, models.CASCADE)
+class ReportAttr(AttrBase):
     report = models.ForeignKey(Report, models.CASCADE, related_name='attrs')
     compare = models.BooleanField(default=False)
     associate = models.BooleanField(default=False)
@@ -112,197 +100,140 @@ class ReportAttr(models.Model):
 
     class Meta:
         db_table = 'report_attrs'
+        indexes = [models.Index(fields=['name', 'value'])]
 
 
 class Computer(models.Model):
-    description = models.TextField()
+    identifier = models.CharField(max_length=128, db_index=True)
+    display = models.CharField(max_length=512)
+    data = JSONField()
 
     class Meta:
         db_table = 'computer'
 
 
-class Component(models.Model):
-    name = models.CharField(max_length=20, unique=True, db_index=True)
+class OriginalSources(WithFilesMixin, models.Model):
+    identifier = models.CharField(max_length=128, unique=True, db_index=True)
+    archive = models.FileField(upload_to='Sources/%Y/%m')
 
-    def __str__(self):
-        return self.name
+    def add_archive(self, fp, save=False):
+        self.archive.save(REPORT_ARCHIVE['sources'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+            raise CheckArchiveError('OriginalSources.archive was not saved')
 
     class Meta:
-        db_table = 'component'
+        db_table = 'report_original_sources'
 
 
-class ReportComponent(Report):
+class AdditionalSources(WithFilesMixin, models.Model):
+    root = models.ForeignKey(ReportRoot, models.CASCADE)
+    archive = models.FileField(upload_to='Sources/%Y/%m')
+
+    def add_archive(self, fp, save=False):
+        self.archive.save(REPORT_ARCHIVE['sources'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
+            raise CheckArchiveError('AdditionalSources.archive was not saved')
+
+    class Meta:
+        db_table = 'report_additional_sources'
+
+
+class ReportComponent(WithFilesMixin, Report):
     computer = models.ForeignKey(Computer, models.CASCADE)
-    component = models.ForeignKey(Component, models.PROTECT)
+    component = models.CharField(max_length=MAX_COMPONENT_LEN)
     verification = models.BooleanField(default=False)
-    cpu_time = models.BigIntegerField(null=True)
-    wall_time = models.BigIntegerField(null=True)
-    memory = models.BigIntegerField(null=True)
-    start_date = models.DateTimeField()
+
+    start_date = models.DateTimeField(default=now)
     finish_date = models.DateTimeField(null=True)
+
+    data = JSONField(null=True)
     log = models.FileField(upload_to=get_component_path, null=True)
-    covnum = models.PositiveSmallIntegerField(default=0)
     verifier_input = models.FileField(upload_to=get_component_path, null=True)
-    data = models.FileField(upload_to=get_component_path, null=True)
 
-    def new_data(self, fname, fp, save=False):
-        self.data.save(fname, File(fp), save)
+    # Sources for Subjobs/Verification reports
+    original = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
+    additional = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
 
-    def add_log(self, fname, fp, save=False):
-        self.log.save(fname, File(fp), save)
+    def add_log(self, fp, save=False):
+        self.log.save(REPORT_ARCHIVE['log'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.log.name)):
+            raise CheckArchiveError('ReportComponent.log was not saved')
 
-    def add_verifier_input(self, fname, fp, save=False):
-        self.verifier_input.save(fname, File(fp), save)
+    def add_verifier_input(self, fp, save=False):
+        self.verifier_input.save(REPORT_ARCHIVE['verifier input'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.verifier_input.name)):
+            raise CheckArchiveError('ReportComponent.verifier_input was not saved')
 
     class Meta:
         db_table = 'report_component'
 
 
-@receiver(pre_delete, sender=ReportComponent)
-def report_component_delete_signal(**kwargs):
-    report = kwargs['instance']
-    if report.log:
-        report.log.storage.delete(report.log.path)
-    if report.verifier_input:
-        report.verifier_input.storage.delete(report.verifier_input.path)
-    if report.data:
-        report.data.storage.delete(report.data.path)
-
-
-class CoverageArchive(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='coverages')
-    identifier = models.CharField(max_length=128, default='')
-    archive = models.FileField(upload_to=get_coverage_arch_dir)
-
-    def save_archive(self, fname, fp):
-        self.archive.save(fname, File(fp), True)
-
-    class Meta:
-        db_table = 'report_coverage_archive'
-
-
-@receiver(pre_delete, sender=CoverageArchive)
-def coverage_archive_delete_signal(**kwargs):
-    arch = kwargs['instance']
-    arch.archive.storage.delete(arch.archive.path)
-
-
-class ErrorTraceSource(models.Model):
-    root = models.ForeignKey(ReportRoot, models.CASCADE)
-    archive = models.FileField(upload_to='Unsafes/Sources/%Y/%m')
-
-    def add_sources(self, fname, fp, save=False):
-        self.archive.save(fname, File(fp), save)
-
-    class Meta:
-        db_table = 'report_et_source'
-
-
-@receiver(pre_delete, sender=ErrorTraceSource)
-def source_delete_signal(**kwargs):
-    source = kwargs['instance']
-    source.archive.storage.delete(source.archive.path)
-
-
-class ReportUnsafe(Report):
-    trace_id = models.CharField(max_length=32, unique=True, db_index=True)
-    error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
-    source = models.ForeignKey(ErrorTraceSource, models.CASCADE)
-    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
-    memory = models.BigIntegerField()
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    has_confirmed = models.BooleanField(default=False)
-
-    def add_trace(self, fname, fp, save=False):
-        self.error_trace.save(fname, File(fp), save)
-
-    class Meta:
-        db_table = 'report_unsafe'
-
-
-@receiver(pre_delete, sender=ReportUnsafe)
-def unsafe_delete_signal(**kwargs):
-    unsafe = kwargs['instance']
-    unsafe.error_trace.storage.delete(unsafe.error_trace.path)
-
-
-class ReportSafe(Report):
-    proof = models.FileField(upload_to='Safes/%Y/%m', null=True)
-    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
-    memory = models.BigIntegerField()
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    has_confirmed = models.BooleanField(default=False)
-
-    def add_proof(self, fname, fp, save=False):
-        self.proof.save(fname, File(fp), save)
-
-    class Meta:
-        db_table = 'report_safe'
-
-
-@receiver(pre_delete, sender=ReportSafe)
-def safe_delete_signal(**kwargs):
-    safe = kwargs['instance']
-    if safe.proof:
-        safe.proof.storage.delete(safe.proof.path)
-
-
-class ReportUnknown(Report):
-    component = models.ForeignKey(Component, models.PROTECT)
-    problem_description = models.FileField(upload_to='Unknowns/%Y/%m')
-    memory = models.BigIntegerField(null=True)
-    cpu_time = models.BigIntegerField(null=True)
-    wall_time = models.BigIntegerField(null=True)
-
-    def add_problem_desc(self, fname, fp, save=False):
-        self.problem_description.save(fname, File(fp), save)
-
-    class Meta:
-        db_table = 'report_unknown'
-
-
-@receiver(pre_delete, sender=ReportUnknown)
-def unknown_delete_signal(**kwargs):
-    unknown = kwargs['instance']
-    unknown.problem_description.storage.delete(unknown.problem_description.path)
-
-
 class ReportComponentLeaf(models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='leaves')
-    safe = models.ForeignKey(ReportSafe, models.CASCADE, null=True, related_name='leaves')
-    unsafe = models.ForeignKey(ReportUnsafe, models.CASCADE, null=True, related_name='leaves')
-    unknown = models.ForeignKey(ReportUnknown, models.CASCADE, null=True, related_name='leaves')
+    content_type = models.ForeignKey(ContentType, models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         db_table = 'cache_report_component_leaf'
 
 
-class Verdict(models.Model):
-    report = models.OneToOneField(ReportComponent, models.CASCADE)
-    unsafe = models.PositiveIntegerField(default=0)
-    unsafe_bug = models.PositiveIntegerField(default=0)
-    unsafe_target_bug = models.PositiveIntegerField(default=0)
-    unsafe_false_positive = models.PositiveIntegerField(default=0)
-    unsafe_unknown = models.PositiveIntegerField(default=0)
-    unsafe_unassociated = models.PositiveIntegerField(default=0)
-    unsafe_inconclusive = models.PositiveIntegerField(default=0)
-    safe = models.PositiveIntegerField(default=0)
-    safe_missed_bug = models.PositiveIntegerField(default=0)
-    safe_incorrect_proof = models.PositiveIntegerField(default=0)
-    safe_unknown = models.PositiveIntegerField(default=0)
-    safe_unassociated = models.PositiveIntegerField(default=0)
-    safe_inconclusive = models.PositiveIntegerField(default=0)
-    unknown = models.PositiveIntegerField(default=0)
+class CoverageArchive(WithFilesMixin, models.Model):
+    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='coverages')
+    identifier = models.CharField(max_length=128, default='')
+    archive = models.FileField(upload_to=get_coverage_arch_dir)
+
+    def add_coverage(self, fp, save=False):
+        self.archive.save(REPORT_ARCHIVE['coverage'], File(fp), save=save)
 
     class Meta:
-        db_table = "cache_report_verdict"
+        db_table = 'report_coverage_archive'
+
+
+class ReportUnsafe(WithFilesMixin, Report):
+    trace_id = models.UUIDField(unique=True, db_index=True, default=uuid.uuid4)
+    error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
+    leaves = GenericRelation(ReportComponentLeaf, related_query_name='unsafes')
+
+    def add_trace(self, fp, save=False):
+        self.error_trace.save(REPORT_ARCHIVE['error trace'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.error_trace.name)):
+            raise CheckArchiveError('ReportUnsafe.error_trace was not saved')
+
+    class Meta:
+        db_table = 'report_unsafe'
+
+
+class ReportSafe(WithFilesMixin, Report):
+    proof = models.FileField(upload_to='Safes/%Y/%m', null=True)
+    leaves = GenericRelation(ReportComponentLeaf, related_query_name='safes')
+
+    def add_proof(self, fp, save=False):
+        self.proof.save(REPORT_ARCHIVE['proof'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.proof.name)):
+            raise CheckArchiveError('ReportSafe.proof was not saved')
+
+    class Meta:
+        db_table = 'report_safe'
+
+
+class ReportUnknown(WithFilesMixin, Report):
+    component = models.CharField(max_length=MAX_COMPONENT_LEN)
+    problem_description = models.FileField(upload_to='Unknowns/%Y/%m')
+    leaves = GenericRelation(ReportComponentLeaf, related_query_name='unknowns')
+
+    def add_problem_desc(self, fp, save=False):
+        self.problem_description.save(REPORT_ARCHIVE['problem desc'], File(fp), save)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.problem_description.name)):
+            raise CheckArchiveError('ReportUnknown.problem_description was not saved')
+
+    class Meta:
+        db_table = 'report_unknown'
 
 
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='resources_cache')
-    component = models.ForeignKey(Component, models.PROTECT, null=True)
+    component = models.CharField(max_length=MAX_COMPONENT_LEN, null=True)
     cpu_time = models.BigIntegerField(default=0)
     wall_time = models.BigIntegerField(default=0)
     memory = models.BigIntegerField(default=0)
@@ -315,28 +246,49 @@ class CompareJobsInfo(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     root1 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
     root2 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
-    attr_names = models.CharField(max_length=64)
+    names = ArrayField(models.CharField(max_length=64))
 
     class Meta:
         db_table = 'cache_report_jobs_compare_info'
 
 
-class CompareJobsCache(models.Model):
+class ComparisonObject(models.Model):
     info = models.ForeignKey(CompareJobsInfo, models.CASCADE)
-    attr_values = models.CharField(max_length=64, db_index=True)
+    values = ArrayField(models.CharField(max_length=255))
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
-    reports1 = models.TextField()
-    reports2 = models.TextField()
 
     class Meta:
-        db_table = 'cache_report_jobs_compare'
+        db_table = 'cache_report_comparison_object'
         index_together = ["info", "verdict1", "verdict2"]
+
+
+class ComparisonLink(models.Model):
+    comparison = models.ForeignKey(ComparisonObject, models.CASCADE, related_name='links')
+    content_type = models.ForeignKey(ContentType, models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        db_table = 'cache_report_comparison_link'
+
+
+# class CompareJobsCache(models.Model):
+#     info = models.ForeignKey(CompareJobsInfo, models.CASCADE)
+#     attr_values = models.CharField(max_length=64, db_index=True)
+#     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+#     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+#     reports1 = models.TextField()
+#     reports2 = models.TextField()
+#
+#     class Meta:
+#         db_table = 'cache_report_jobs_compare'
+#         index_together = ["info", "verdict1", "verdict2"]
 
 
 class ComponentInstances(models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE)
-    component = models.ForeignKey(Component, models.CASCADE)
+    component = models.CharField(max_length=MAX_COMPONENT_LEN)
     in_progress = models.PositiveIntegerField(default=0)
     total = models.PositiveIntegerField(default=0)
 
@@ -344,7 +296,7 @@ class ComponentInstances(models.Model):
         db_table = 'cache_report_component_instances'
 
 
-class CoverageFile(models.Model):
+class CoverageFile(WithFilesMixin, models.Model):
     archive = models.ForeignKey(CoverageArchive, models.CASCADE)
     name = models.CharField(max_length=1024)
     file = models.FileField(upload_to=get_coverage_dir, null=True)
@@ -355,13 +307,6 @@ class CoverageFile(models.Model):
 
     class Meta:
         db_table = 'cache_report_coverage_file'
-
-
-@receiver(pre_delete, sender=CoverageFile)
-def coverage_file_delete_signal(**kwargs):
-    covfile = kwargs['instance']
-    if covfile.file:
-        covfile.file.storage.delete(covfile.file.path)
 
 
 class CoverageDataValue(models.Model):
@@ -382,7 +327,7 @@ class CoverageData(models.Model):
         db_table = 'cache_report_coverage_data'
 
 
-class CoverageDataStatistics(models.Model):
+class CoverageDataStatistics(WithFilesMixin, models.Model):
     archive = models.ForeignKey(CoverageArchive, models.CASCADE)
     name = models.CharField(max_length=128)
     data = models.FileField(upload_to='CoverageData')
@@ -391,7 +336,13 @@ class CoverageDataStatistics(models.Model):
         db_table = 'cache_report_coverage_data_stat'
 
 
-@receiver(pre_delete, sender=CoverageDataStatistics)
-def coverage_data_stat_delete_signal(**kwargs):
-    covdatastat = kwargs['instance']
-    covdatastat.data.storage.delete(covdatastat.data.path)
+post_delete.connect(remove_instance_files, sender=AttrFile)
+post_delete.connect(remove_instance_files, sender=OriginalSources)
+post_delete.connect(remove_instance_files, sender=AdditionalSources)
+post_delete.connect(remove_instance_files, sender=ReportComponent)
+post_delete.connect(remove_instance_files, sender=CoverageArchive)
+post_delete.connect(remove_instance_files, sender=ReportUnsafe)
+post_delete.connect(remove_instance_files, sender=ReportSafe)
+post_delete.connect(remove_instance_files, sender=CoverageDataStatistics)
+post_delete.connect(remove_instance_files, sender=CoverageFile)
+post_delete.connect(remove_instance_files, sender=ReportUnknown)

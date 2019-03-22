@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "MachineModel.java:636",
+  "link": "https://forge.ispras.ru/issues/7125",
+  "problem_pattern": "#7125",
+  "production": true
+}

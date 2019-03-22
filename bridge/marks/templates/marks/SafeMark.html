@@ -1,0 +1,212 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load tz %}
+{% load humanize %}
+{% load staticfiles %}
+
+{% block title %}{% trans 'Safes mark' %}{% endblock %}
+
+{% block head_block %}
+    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/mark.js' %}"></script>
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="seven wide column">
+            {# Mark menu #}
+            <div class="ui violet inverted menu top attached">
+                <a class="browse item">{% trans 'Mark' %}<i class="dropdown icon"></i></a>
+                <div class="ui inverted popup bottom left transition hidden">
+                    <a href="{% url 'marks:download_mark' 'safe' mark.pk %}" class="item">{% trans 'Download' %}</a>
+                    <a href="{% url 'marks:download_preset_mark' 'safe' mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
+                    <a href="{% url 'marks:mark_form' 'safe' mark.pk 'edit' %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
+                    <a id="show_remove_mark_popup" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
+                </div>
+            </div>
+            <table class="ui selectable compact inverted violet table attached">
+                <tbody>
+                    <tr>
+                        <th class="right aligned">{% trans 'Format' %}</th>
+                        <td>{{ mark.format }}</td>
+                    </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Identifier' %}</th>
+                        <td>{{ mark.identifier }}</td>
+                    </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Source' %}</th>
+                        <td>{{ mark.get_type_display }}</td>
+                    </tr>
+                    {% if mark.author %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Author' %}</th>
+                            <td><a class="violet-link" href="{% url 'users:show_profile' mark.author.pk %}">{{ mark.author.get_full_name }}</a></td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <th class="right aligned">{% trans 'Last change' %}</th>
+                        <td>
+                            {# TODO #}
+                            {% if user.data_format == 'hum' %}{{ mark_version.change_date|naturaltime }}{% else %}{{ mark_version.change_date }}{% endif %}
+                            {% if mark_version.author %}
+                                (<a class="violet-link" href="{% url 'users:show_profile' mark_version.author_id %}">{{ mark_version.author.get_full_name }}</a>)
+                            {% endif %}
+                            {% if mark_version.comment|length %}
+                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ mark_version.comment }}"</small></p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Status' %}</th>
+                        <td><span class="mark-status-{{ mark.status }}">{{ mark.get_status_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Verdict' %}</th>
+                        <td><span class="safe-verdict-{{ mark.verdict }}">{{ mark.get_verdict_display }}</span></td>
+                    </tr>
+                    {% if mark.description %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Description' %}</th>
+                            <td>{{ mark.description|safe }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+            <br>
+            <div class="ui horizontal segments" style="margin-top: 0">
+                <div class="ui pink segment">
+                    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                </div>
+            </div>
+
+            {# Attributes #}
+            <div class="ui styled accordion fluid">
+                <div class="title">
+                    <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                </div>
+                <div class="content">
+                    <div style="overflow-x:auto;">
+                        <table class="ui celled compact purple table">
+                            <tbody>
+                                {% for attr in mark_version.attrs.all %}
+                                    <tr>
+                                        <th class="collapsing">{{ attr.name }}</th>
+                                        <td class="collapsing">
+                                            {% if attr.is_compare %}
+                                                <i class="ui green small checkmark icon"></i>
+                                            {% else %}
+                                                <i class="ui red small remove icon"></i>
+                                            {% endif %}
+                                            {{ attr.value }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="nine wide column">
+            {# Mark versions list #}
+            {% if access.can_edit %}
+                {% trans 'Mark versions' as versions_title %}
+                {% include 'marks/versions.html' with versions=versions title=versions_title %}
+            {% endif %}
+
+            <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
+            {# View for associated reports #}
+            {% include reports.view.template with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+
+            {# Associated reports table #}
+            {% if reports.values|length %}
+                <br>
+                <div>
+                    {% if reports.values.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ reports.values.previous_page_number }}"></i>
+                    {% endif %}
+                    <span>{% blocktrans with n1=reports.values.number n2=reports.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if reports.values.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ reports.values.next_page_number }}"></i>
+                    {% endif %}
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="ui compact teal celled selectable table alternate-color">
+                        <thead>
+                            {% for column_row in reports.header %}
+                                <tr>
+                                {% for coldata in column_row %}
+                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for row_data in reports.values %}
+                                <tr>
+                                    {% for v in row_data %}
+                                        <td class="collapsing">
+                                            {% if v.href %}
+                                                <a href="{{ v.href }}">{{ v.value }}</a>
+                                            {% else %}
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {%  endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <h5>{% trans 'The list of associated reports is empty. Maybe it is because of the selected view.' %}</h5>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if access.can_delete %}
+        <div id="remove_mark_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'The action is irreversible' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_remove_mark" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="confirm_remove_mark" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
+    <input id="mark_type" type="hidden" value="safe">
+    {% if report_id %}
+        <input id="report_id" type="hidden" value="{{ report_id }}">
+    {% endif %}
+{% endblock %}

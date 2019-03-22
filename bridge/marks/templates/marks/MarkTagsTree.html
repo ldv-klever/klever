@@ -18,13 +18,13 @@
 {% load i18n %}
 
 <table>
-    {% for row in tags %}
+    {% for row in tree.table %}
         <tr>
         {% for cell in row %}
-            {% if cell|value_type == "<class 'str'>" %}
-                <td class="line line-{{ cell }}">&nbsp;</td>
-            {% elif cell|value_type == "<class 'marks.tags.TagData'>" %}
-                <td id="tag_id_{{ cell.id }}" class="mark-tag {{ tags_type }}">{{ cell.name }}{% if not view_tags %}<i id="remove_tag_{{ cell.id }}" class="ui icon remove remove-tag-from-mark"></i>{% endif %}</td>
+            {% if cell and cell.type == 'link' %}
+                <td class="tag-tree-link" data-links="{{ cell.value }}">&nbsp;</td>
+            {% elif cell and cell.type == 'tag' %}
+                <td data-tag="{{ cell.value.id }}" class="mark-tag {{ tree.type }}">{{ cell.name }}{% if not tree.view_only %}<i data-tag="{{ cell.value.id }}" class="ui icon remove remove-tag-from-mark"></i>{% endif %}</td>
             {% else %}
                 <td>&nbsp;</td>
             {% endif %}
@@ -32,13 +32,14 @@
         </tr>
     {% endfor %}
 </table>
-<input id="tags_type" type="hidden" value="{{ tags_type }}">
+<input id="tags_type" type="hidden" value="{{ tree.type }}">
+
 <div class="popups">
-    {% for row in tags %}
+    {% for row in tree.table %}
         {% for cell in row %}
-            {% if cell|value_type == "<class 'marks.tags.TagData'>" and cell.description != '' %}
-                <div id="tag_popup_{{ cell.id }}" class="ui popup" style="min-width: 250px;">
-                    <div class="content">{{ cell.description|safe }}</div>
+            {% if cell and cell.type == 'tag' and cell.value.description|length %}
+                <div id="tag_popup_{{ cell.value.id }}" class="ui popup" style="min-width: 250px;">
+                    <div class="content">{{ cell.value.description|safe }}</div>
                 </div>
             {% endif %}
         {% endfor %}

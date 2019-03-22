@@ -16,7 +16,6 @@
 #
 
 import os
-import hashlib
 from datetime import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -213,6 +212,14 @@ class JobAccess:
 
         return set(all_jobs_qs) - (set(no_global_qs) - set(with_custom_qs) - set(author_of_qs))
 
+    def can_download_jobs(self, queryset):
+        """Check if all jobs in queryset can be downloaded"""
+        finished_statues = {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+        if any(job.status not in finished_statues for job in queryset):
+            return False
+        jobs_ids = self.can_view_jobs(queryset)
+        return len(jobs_ids) == len(queryset)
+
     def klever_core_access(self):
         return self.job is not None and (self._is_manager or self._is_service)
 
@@ -244,17 +251,16 @@ class JobAccess:
     def can_delete(self):
         if self.job is None:
             return False
-        for ch in self.job.children.all():
-            if not JobAccess(self.user, ch).can_delete():
+        for job in self.job.get_descendants(include_self=True):
+            is_finished = job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+            if not is_finished or not self._is_manager and job.author != self.user:
                 return False
-        if self._is_manager and self.job.status == JOB_STATUS[3]:
-            return True
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-            return False
-        return self._is_author or self._is_manager
+        return True
 
     def can_collapse(self):
-        return self._is_finished and (self._is_author or self._is_manager) and self.job.weight == JOB_WEIGHT[0][0]
+        return self._is_finished and (self._is_author or self._is_manager) \
+               and self.job.weight == JOB_WEIGHT[0][0] \
+               and ReportComponent.objects.filter(component='Subjob').count() == 0
 
     def can_clear_verifications(self):
         queryset = ReportComponent.objects\
@@ -467,36 +473,6 @@ def create_version(job, kwargs):
         if len(user_roles_to_create) > 0:
             UserRole.objects.bulk_create(user_roles_to_create)
     return new_version
-
-
-def remove_jobs_by_id(user, job_ids):
-    job_struct = {}
-    all_jobs = {}
-    for j in Job.objects.only('id', 'parent_id'):
-        if j.parent_id not in job_struct:
-            job_struct[j.parent_id] = set()
-        job_struct[j.parent_id].add(j.id)
-        all_jobs[j.id] = j
-
-    def remove_job_with_children(j_id):
-        j_id = int(j_id)
-        if j_id not in all_jobs:
-            return
-        if j_id in list(job_struct):
-            for ch_id in job_struct[j_id]:
-                remove_job_with_children(ch_id)
-            del job_struct[j_id]
-        if not JobAccess(user, all_jobs[j_id]).can_delete():
-            raise BridgeException(_("You don't have an access to delete one of the children"))
-        try:
-            Notify(all_jobs[j_id], 2)
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
-        all_jobs[j_id].delete()
-        del all_jobs[j_id]
-
-    for job_id in job_ids:
-        remove_job_with_children(job_id)
 
 
 class JobVersionsData:

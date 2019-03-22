@@ -17,44 +17,36 @@
 
 <div class="ui grid">
     <div class="seven wide column right aligned">
-        <h3>{{ verdict1 }} (<a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>)</h3>
+        <h3>{{ data.comparison.get_verdict1_display }} (<a href="{% url 'jobs:job' data.info.root1.job_id %}" class="job-href-1">{{ data.info.root1.job.name }}</a>)</h3>
     </div>
     <div class="two wide column center aligned">
         <h3><i class="arrow right icon"></i></h3>
     </div>
     <div class="seven wide column">
-        <h3>{{ verdict2 }} (<a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a>)</h3>
+        <h3>{{ data.comparison.get_verdict2_display }} (<a href="{% url 'jobs:job' data.info.root2.job_id %}" class="job-href-2">{{ data.info.root2.job.name }}</a>)</h3>
     </div>
 </div>
 <div class="ui grid">
-    <div class="eight wide column reports-column column1" style="overflow-x: auto; white-space: nowrap;">
-        {% include 'reports/comparisonTree.html' with data=data.0 %}
+    <div class="eight wide column reports-column column1">
+        {% include 'reports/comparisonTree.html' with tree=data.tree1 %}
     </div>
     <div class="vertical divider"></div>
-    <div class="seven wide column reports-column column2" style="overflow-x: auto; white-space: nowrap;">
-        {% include 'reports/comparisonTree.html' with data=data.1 %}
+    <div class="seven wide column reports-column column2">
+        {% include 'reports/comparisonTree.html' with tree=data.tree2 %}
     </div>
 </div>
 <br>
 <div style="text-align: center">
     <div class="ui basic buttons">
-        {% if pages.backward %}
+        {% if data.pages.backward %}
             <button id="fast_backward_btn" class="ui icon button"><i class="ui fast backward icon"></i></button>
             <button id="backward_btn" class="ui icon button"><i class="ui backward icon"></i></button>
         {% endif %}
-        <button class="ui disabled button"><span style="font-weight: bold">{{ pages.num }}/{{ pages.total }}</span></button>
-        {% if pages.forward %}
+        <button class="ui disabled button"><span style="font-weight: bold"><span id="current_page">{{ data.pages.page }}</span>/<span id="total_pages">{{ data.pages.total }}</span></span></button>
+        {% if data.pages.forward %}
             <button id="forward_btn" class="ui icon button"><i class="ui forward icon"></i></button>
             <button id="fast_forward_btn" class="ui icon button"><i class="ui fast forward icon"></i></button>
         {% endif %}
     </div>
 </div>
-<input id="total_pages" type="hidden" value="{{ pages.total }}">
-
-<input id="current_page_num" type="hidden" value="{{ pages.num }}">
-{% if verdict %}
-    <input id="current_verdict" type="hidden" value="{{ verdict }}">
-{% elif attrs %}
-    <input id="attrs_search_value" type="hidden" value="{{ attrs }}">
-{% endif %}
 <br>

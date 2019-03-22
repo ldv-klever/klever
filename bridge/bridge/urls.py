@@ -32,7 +32,6 @@ urlpatterns = [
     path('service/', include(('service.urls', 'service'), namespace='service')),
     path('tools/', include(('tools.urls', 'tools'), namespace='tools')),
     path('', views.index_page),
-    path('population/', views.population, name='population'),
     path('media/<path>', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True})
 ]
 

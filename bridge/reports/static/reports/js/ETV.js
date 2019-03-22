@@ -16,51 +16,32 @@
  */
 
 $(document).ready(function () {
-    var ready_for_next_string = false, etv_window = $('#ETV_error_trace'), etv_attrs = $('#etv-attributes');
+    var etv_window = $('#ETV_error_trace'), source_window = $('#ETV_source_code');
+    if (!etv_window.length) return false;
 
-    if (etv_attrs.length) {
-        $('#error_trace_options').popup({
-            popup: etv_attrs,
-            position: 'right center',
-            hoverable: true,
-            lastResort: true,
-            delay: {
-                show: 100,
-                hide: 100
-            }
-        });
-    }
-    if (!etv_window.length) {
-        return false;
+    function select_source_line(line) {
+        var selected_src_line = $('#ETVSrcL_' + line);
+        if (selected_src_line.length) {
+            source_window.scrollTop(source_window.scrollTop() + selected_src_line.position().top - source_window.height() * 3/10);
+            selected_src_line.parent().addClass('ETVSelectedLine');
+        }
+        else err_notify($('#error___line_not_found').text());
     }
 
     function get_source_code(line, filename) {
-
-        var source_code_window = $('#ETV_source_code');
-
-        function select_src_string() {
-            var selected_src_line = $('#ETVSrcL_' + line);
-            if (selected_src_line.length) {
-                source_code_window.scrollTop(source_code_window.scrollTop() + selected_src_line.position().top - source_code_window.height() * 3/10);
-                selected_src_line.parent().addClass('ETVSelectedLine');
-            }
-            else {
-                err_notify($('#error___line_not_found').text());
-            }
-        }
         if (filename === $('#ETVSourceTitleFull').text()) {
-            select_src_string();
+            select_source_line(line);
         }
         else {
-            ready_for_next_string = false;
             $.ajax({
                 url: '/reports/get_source/' + $('#report_pk').val() + '/',
                 type: 'POST',
                 data: {file_name: filename},
                 success: function (data) {
+                    // TODO
                     if (data.error) {
                         $('#ETVSourceTitle').empty();
-                        source_code_window.empty();
+                        source_window.empty();
                         err_notify(data.error);
                     }
                     else if (data.name && data.content) {
@@ -69,72 +50,15 @@ $(document).ready(function () {
                         $('#ETVSourceTitleFull').text(data.name);
                         title_place.popup();
                         src_filename_trunc();
-                        source_code_window.html(data.content);
-                        select_src_string();
-                        ready_for_next_string = true;
+                        source_window.html(data.content);
+                        select_source_line();
                     }
                 }
             });
         }
     }
-    $('#ETVSourceTitle').click(function () {
-        src_filename_trunc();
-    });
 
-    function open_function(hidelink, shift_pressed, change_state) {
-        if (change_state) {
-            var func_line = hidelink.parent().parent(), collapse_icon = hidelink.find('i').first();
-            collapse_icon.removeClass('right');
-            collapse_icon.addClass('down');
-            func_line.removeClass('func_collapsed');
-            func_line.find('.ETV_FuncName').hide();
-            func_line.find('.ETV_FuncCode').show();
-        }
-        $('.' + hidelink.attr('id')).each(function () {
-            var inner_hidelink = $(this).find('.ETV_HideLink');
-            if (!($(this).hasClass('commented') && ($(this).hasClass('func_collapsed') || inner_hidelink.length == 0))) {
-                $(this).show();
-            }
-            if (inner_hidelink.length == 1) {
-                if ($(this).hasClass('func_collapsed')) {
-                    if (shift_pressed) {
-                        $(this).show();
-                        open_function(inner_hidelink, shift_pressed, shift_pressed);
-                    }
-                    else if (!$(this).hasClass('commented')) {
-                        $(this).show();
-                    }
-                }
-                else {
-                    $(this).show();
-                    open_function(inner_hidelink, shift_pressed, false);
-                }
-            }
-            else if (!$(this).hasClass('commented')) {
-                $(this).show();
-            }
-        });
-    }
-
-    function close_function(hidelink, shift_pressed, change_state) {
-        if (change_state) {
-            var func_line = hidelink.parent().parent(), collapse_icon = hidelink.find('i').first();
-            collapse_icon.removeClass('down');
-            collapse_icon.addClass('right');
-            func_line.addClass('func_collapsed');
-            func_line.find('.ETV_FuncCode').hide();
-            func_line.find('.ETV_FuncName').show();
-        }
-        $('.' + hidelink.attr('id')).each(function () {
-            $(this).hide();
-            var inner_hidelink = $(this).find('.ETV_HideLink');
-            if (inner_hidelink.length == 1) {
-                close_function(inner_hidelink, shift_pressed, shift_pressed);
-            }
-        });
-    }
-
-    $('.ETV_GlobalExpanderLink').click(function (event) {
+    $('.ETV_GlobalExpander').click(function (event) {
         event.preventDefault();
         var global_icon = $(this).find('i').first();
         if (global_icon.hasClass('unhide')) {
@@ -147,17 +71,158 @@ $(document).ready(function () {
         }
     });
 
-    $('.ETV_HideLink').click(function (event) {
-        event.preventDefault();
-        if ($(this).find('i').first().hasClass('right')) {
-            open_function($(this), event.shiftKey, true);
+    function show_scope(node) {
+        if (!node.hasClass('scope_opened')) {
+            node.addClass('scope_opened');
+            node.find('.ETV_EnterLink').switchClass('right', 'down');
+        }
+        etv_window.find('.scope-' + node.data('scope')).each(function () {
+            var node_type = $(this).data('type');
+
+            if (node_type === 'statement') {
+                if (!$(this).hasClass('commented')) $(this).show();
+            }
+            else if (node_type === 'function call' || node_type === 'action') {
+                var has_note = $(this).hasClass('commented'),
+                    was_opened = $(this).hasClass('scope_opened');
+
+                // Actions can't have notes so it is always shown here
+                if (!has_note || was_opened) $(this).show();
+
+                // Open scope if it was opened earlier
+                if (was_opened) show_scope($(this));
+            }
+            else $(this).show();  // note or exit
+        });
+    }
+
+    function hide_scope(node, shift_pressed, change_state) {
+        if (change_state && node.hasClass('scope_opened')) {
+            node.removeClass('scope_opened');
+            node.find('.ETV_EnterLink').switchClass('down', 'right');
+        }
+        etv_window.find('.scope-' + node.data('scope')).each(function () {
+            $(this).hide();
+            var node_type = $(this).data('type');
+            if (node_type === 'function call' || node_type === 'action') {
+                hide_scope($(this), shift_pressed, shift_pressed);
+            }
+        });
+    }
+
+    function show_scope_shift(node) {
+        if (!node.hasClass('scope_opened')) {
+            node.addClass('scope_opened');
+            node.find('.ETV_EnterLink').switchClass('right', 'down');
+        }
+        etv_window.find('.scope-' + node.data('scope')).each(function () {
+            var node_type = $(this).data('type');
+            if (node_type === 'statement') {
+                // Even on shift click statements with notes are not shown
+                if (!$(this).hasClass('commented')) $(this).show();
+            }
+            else if (node_type === 'function call' || node_type === 'action') {
+                $(this).show();
+                show_scope_shift($(this));
+            }
+            else $(this).show();  // note or exit
+        });
+    }
+    function show_display(node) {
+        node.find('.ETV_OpenEye').switchClass('unhide', 'hide');
+        node.find('.ETV_Display').hide();
+        node.find('.ETV_Source').show();
+
+        // Show statements without comments if scope is shown
+        if (node.data('type') === 'function call' && node.hasClass('scope_opened')) {
+            etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').show()
+        }
+    }
+    function hide_display(node) {
+        node.find('.ETV_OpenEye').switchClass('hide', 'unhide');
+        node.find('.ETV_Display').show();
+        node.find('.ETV_Source').hide();
+
+        // Hide statements without comments if scope is shown
+        if (node.data('type') === 'function call' && node.hasClass('scope_opened')) {
+            etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').hide()
+        }
+    }
+
+    $('.ETV_EnterLink').click(function (event) {
+        var node = $(this).parent().parent();
+        if (node.hasClass('scope_opened')) {
+            hide_scope(node, event.shiftKey, true);
         }
         else {
-            close_function($(this), event.shiftKey, true);
+            if (event.shiftKey) show_scope_shift(node);
+            else show_scope(node);
         }
     });
-    $('.ETV_DownHideLink').click(function () {
-        $('#' + $(this).parent().parent().attr('class')).click();
+    $('.ETV_ExitLink').click(function (event) {
+        var node = $('span[data-scope="' + $(this).data('scope') + '"]').first();
+        hide_scope(node, event.shiftKey, true);
+    });
+
+    $('.ETV_OpenEye').click(function () {
+        var node = $(this).parent().parent();
+        if ($(this).hasClass('hide')) hide_display(node);
+        else show_display(node);
+    });
+
+    $('.ETV_LINE').click(function () {
+        var node = $(this).parent().parent();
+
+        // Unselect everything first
+        etv_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
+        etv_window.find('.ETV_LN_Note_Selected').removeClass('ETV_LN_Note_Selected');
+        etv_window.find('.ETV_LN_Warning_Selected').removeClass('ETV_LN_Warning_Selected');
+
+        // Select clicked line
+        node.addClass('ETVSelectedLine');
+
+        // Get source code if node has file and line number
+        var line_num = parseInt($(this).text(), 10),
+            filename = $(this).data('file');
+        if (filename && line_num) get_source_code(line_num, filename);
+
+        // Show assumptions
+        var assume_window = $('#ETV_assumes');
+        if (assume_window.length) {
+            // Show old assumptions
+            var old_assumes = node.find('.ETV_OldAssumptions');
+            if (old_assumes.length) {
+                $.each(old_assumes.text().split('_'), function (i, v) {
+                    var curr_assume = $('#assumption_' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<p>', {text: curr_assume.text()}));
+                    }
+                });
+            }
+            // Show new assumptions
+            var new_assumes = node.find('.ETV_NewAssumptions');
+            if (new_assumes.length) {
+                $.each(new_assumes.text().split('_'), function (i, v) {
+                    var curr_assume = $('#assumption_' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<span>', {text: curr_assume.text(), 'class': 'ETV_NewAssumption'}));
+                    }
+                });
+            }
+        }
+    });
+
+    $('.ETV_Action').click(function () {
+        var node = $(this).parent().parent(), enter_link = node.find('.ETV_EnterLink');
+        // If action can be collapsed/expanded, do it
+        if (enter_link.length) enter_link.click();
+        // Get source for the action
+        node.find('.ETV_LINE').click();
+    });
+    $('.ETV_CallbackAction').click(function () {
+        // Callback actions are always shown
+        // Get source for the callback action
+        $(this).parent().parent().find('.ETV_LINE').click();
     });
 
     $('.ETV_La').click(function (event) {
@@ -200,234 +265,45 @@ $(document).ready(function () {
         }
     });
     $('.ETV_ShowCommentCode').click(function () {
-        var next_code = $(this).parent().parent().next('span');
-        if (next_code.length > 0) {
-            if (next_code.is(':hidden')) {
-                next_code.show();
-                if (next_code.find('.ETV_HideLink').find('i').hasClass('right')) {
-                    next_code.find('.ETV_HideLink').click();
-                }
-                var next_src_link = next_code.find('.ETV_La').first();
-                if (next_src_link.length) {
-                    next_src_link.click();
-                }
-            }
-            else {
-                if (next_code.find('.ETV_HideLink').find('i').hasClass('down')) {
-                    next_code.find('.ETV_HideLink').click();
-                }
-                next_code.hide();
-            }
-        }
-    });
-
-    function select_next_line() {
-        var selected_line = etv_window.find('.ETVSelectedLine').first();
-        if (selected_line.length) {
-            var next_line = selected_line.next(),
-                next_line_link;
-            while (next_line.length) {
-                if (next_line.is(':visible')) {
-                    if (next_line.find('a.ETV_La').length) {
-                        next_line_link = next_line.find('a.ETV_La');
-                        if (next_line_link.length) {
-                            next_line_link.click();
-                            return true;
-                        }
-                    }
-                    else if (next_line.find('a.ETV_ShowCommentCode').length && !next_line.next('span').is(':visible')) {
-                        next_line.next('span').find('.ETV_La').click();
-                        next_line.addClass('ETVSelectedLine');
-                        return true;
-                    }
-                }
-                next_line = next_line.next()
-            }
-        }
-        return false;
-    }
-    function select_prev_line() {
-        var selected_line = etv_window.find('.ETVSelectedLine').first();
-        if (selected_line.length) {
-            var prev_line = selected_line.prev(),
-                prev_line_link;
-            while (prev_line.length) {
-                if (prev_line.is(':visible')) {
-                    if (prev_line.find('a.ETV_La').length) {
-                        prev_line_link = prev_line.find('a.ETV_La');
-                        if (prev_line_link.length) {
-                            prev_line_link.click();
-                            return true;
-                        }
-                    }
-                    else if (prev_line.find('a.ETV_ShowCommentCode').length && !prev_line.next('span').is(':visible')) {
-                        prev_line.next('span').find('.ETV_La').click();
-                        prev_line.addClass('ETVSelectedLine');
-                        return true;
-                    }
-                }
-                prev_line = prev_line.prev()
-            }
-        }
-        return false;
-    }
-    $('#etv_next_step').click(select_next_line);
-    $('#etv_prev_step').click(select_prev_line);
-
-    var interval;
-    function play_etv_forward() {
-        var selected_line = etv_window.find('.ETVSelectedLine').first();
-        if (!selected_line.length) {
-            err_notify($('#error___no_selected_line').text());
-            clearInterval(interval);
-            return false;
-        }
-        if ($.active > 0 || !ready_for_next_string) {
-            return false;
-        }
-        etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 3/10);
-        if (!select_next_line()) {
-            clearInterval(interval);
-            success_notify($('#play_finished').text());
-            return false;
-        }
-        return false;
-    }
-    function play_etv_backward() {
-        var selected_line = etv_window.find('.ETVSelectedLine').first();
-        if (!selected_line.length) {
-            err_notify($('#error___no_selected_line').text());
-            clearInterval(interval);
-            return false;
-        }
-        if ($.active > 0 || !ready_for_next_string) {
-            return false;
-        }
-        etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 7/10);
-        if (!select_prev_line()) {
-            clearInterval(interval);
-            success_notify($('#play_finished').text());
-            return false;
-        }
-        return false;
-    }
-
-    $('#etv_play_forward').click(function () {
-        clearInterval(interval);
-        var speed = parseInt($('#select_speed').val());
-        interval = setInterval(play_etv_forward, speed * 1000);
-    });
-    $('#etv_play_backward').click(function () {
-        clearInterval(interval);
-        var speed = parseInt($('#select_speed').val());
-        interval = setInterval(play_etv_backward, speed * 1000);
-    });
-    $('#etv_pause_play').click(function () {
-        clearInterval(interval);
-    });
-
-    $('.ETV_LN_Note, .ETV_LN_Warning').click(function () {
-        var next_src_link = $(this).parent().next('span').find('.ETV_La').first();
-        if (next_src_link.length) {
-            next_src_link.click();
-        }
-        if ($(this).hasClass('ETV_LN_Note')) {
-            $(this).addClass('ETV_LN_Note_Selected');
+        var node = $(this).parent().parent().next('span');
+        if (node.is(':hidden')) {
+            node.show();
+            // If next node is function call with allowed collapsing then that node will have enter link, click it
+            node.find('.ETV_EnterLink').click();
+            node.find('.ETV_LINE').click();
         }
         else {
-            $(this).addClass('ETV_LN_Warning_Selected');
+            // Collapse the scope first
+            if (node.hasClass('scope_opened')) node.find('.ETV_EnterLink').click();
+            node.hide();
         }
+    });
+
+    $('.ETV_LN_Note').click(function () {
+        $(this).parent().next('span').find('.ETV_LINE').click();
+        $(this).addClass('ETV_LN_Note_Selected');
+    });
+    $('.ETV_LN_Warning').click(function () {
+        $(this).parent().next('span').find('.ETV_LINE').click();
+        $(this).addClass('ETV_LN_Warning_Selected');
     });
 
     etv_window.scroll(function () {
         $(this).find('.ETV_LN').css('left', $(this).scrollLeft());
     });
-    $('#ETV_source_code').scroll(function () {
+    source_window.scroll(function () {
         $(this).find('.ETVSrcL').css('left', $(this).scrollLeft());
     });
-    $('#etv_start').click(function () {
-        etv_window.children().each(function () {
-            if ($(this).is(':visible')) {
-                var line_link = $(this).find('a.ETV_La');
-                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
-                if (line_link.length) {
-                    line_link.click();
-                    return false;
-                }
-            }
-        });
-        $('#etv_play_forward').click();
-    });
 
-    $('#etv_start_backward').click(function () {
-        var next_child = etv_window.children().last();
-        while (next_child) {
-            if (next_child.is(':visible')) {
-                var line_link = next_child.find('a.ETV_La');
-                if (line_link.length) {
-                    etv_window.scrollTop(etv_window.scrollTop() + next_child.position().top - etv_window.height() * 7/10);
-                    line_link.click();
-                    next_child = null;
-                }
-            }
-            if (next_child) {
-                next_child = next_child.prev();
-            }
-        }
-        $('#etv_play_backward').click();
-    });
     etv_window.children().each(function () {
         if ($(this).is(':visible')) {
-            var line_link = $(this).find('a.ETV_La');
-            etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+            var line_link = $(this).find('.ETV_LINE');
             if (line_link.length) {
+                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
                 line_link.click();
                 return false;
             }
         }
     });
-    $('.ETV_Action').click(function () {
-        $(this).parent().find('.ETV_HideLink').click();
-        var src_link = $(this).parent().parent().find('.ETV_La').first();
-        if (src_link.length) {
-            src_link.click();
-        }
-    });
-    $('.ETV_CallbackAction').click(function () {
-        $(this).parent().find('.ETV_HideLink').click();
-        var src_link = $(this).parent().parent().find('.ETV_La').first();
-        if (src_link.length) {
-            src_link.click();
-        }
-    });
-
-    $('.ETV_ShowCode').click(function () {
-        var whole_line = $(this).parent().parent(), scope = $(this).attr('id'), showcode_icon = $(this).find('i');
-        if (showcode_icon.hasClass('unhide')) {
-            showcode_icon.removeClass('unhide').addClass('hide');
-            whole_line.find('.ETV_FuncCode').show();
-            whole_line.find('.ETV_FuncName').hide();
-            $('.' + scope).each(function () {
-                var curr_line_type = $(this).attr('data-type');
-                if ((curr_line_type == 'normal' || curr_line_type == 'eye-control') && (!$(this).hasClass('commented'))) {
-                    $(this).show();
-                }
-            });
-        }
-        else {
-            showcode_icon.removeClass('hide').addClass('unhide');
-            whole_line.find('.ETV_FuncCode').hide();
-            whole_line.find('.ETV_FuncName').show();
-            $('.' + scope).each(function () {
-                var curr_line_type = $(this).attr('data-type'),
-                    curr_hidelink = $(this).find('a[class="ETV_HideLink"]');
-                if (!($(this).hasClass('func_collapsed') && curr_hidelink.length)) {
-                    curr_hidelink.click();
-                }
-                if (curr_line_type == 'normal' || curr_line_type == 'eye-control') {
-                    $(this).hide();
-                }
-            });
-        }
-    });
+    $('#ETVSourceTitle').click(function () { src_filename_trunc() });
 });

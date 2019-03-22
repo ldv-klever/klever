@@ -38,20 +38,21 @@ from bridge.utils import logger, extract_archive, BridgeException
 
 from users.models import User
 from reports.models import ReportComponent
-from reports.UploadReport import UploadReport, CollapseReports
-from reports.comparison import can_compare
+from reports.UploadReport import collapse_reports
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision
-from service.serializers import ProgressSerializer
+from service.serializers import ProgressSerializerRO
 
-import jobs.utils
-from jobs.jobForm import UserRolesForm
+from jobs.utils import (
+    months_choices, years_choices, delete_versions, get_job_by_name_or_id,
+    JobAccess, CompareFileSet, CompareJobVersions
+)
 from jobs.models import Job, RunHistory, JobHistory, JobFile, FileSystem
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen,\
-    UploadReportsWithoutDecision, JobsTreesGen, UploadTree
-from jobs.configuration import get_configuration_value, GetConfiguration, StartDecisionData
+    UploadReportsWithoutDecision, JobsTreesGen, UploadTree, JobFileGenerator, JobConfGenerator
+from jobs.configuration import GetConfiguration, StartDecisionData
 from jobs.serializers import JobFormSerializerRO, ViewJobSerializerRO
 
 
@@ -62,7 +63,7 @@ class JobsTree(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, Templat
         return {
             'users': User.objects.all(),
             'statuses': JOB_STATUS, 'weights': JOB_WEIGHT, 'priorities': list(reversed(PRIORITY)),
-            'months': jobs.utils.months_choices(), 'years': jobs.utils.years_choices(),
+            'months': months_choices(), 'years': years_choices(),
             'TableData': TableTree(self.request.user, self.get_view(VIEW_TYPES[1]))
         }
 
@@ -79,11 +80,11 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
         context = super().get_context_data(**kwargs)
 
         # Check view access
-        context['job_access'] = jobs.utils.JobAccess(self.request.user, self.object)
+        context['job_access'] = JobAccess(self.request.user, self.object)
         if not context['job_access'].can_view():
             raise PermissionDenied(ERRORS[400])
 
-        # Update with data from serialzier
+        # Update with data from serializer
         context.update(ViewJobSerializerRO(instance=self.object, context={'request': self.request}).data)
 
         # Add verification results
@@ -93,7 +94,7 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
         )
         try:
             # Add progress data
-            context['progress'] = ProgressSerializer(instance=self.object.decision).data
+            context['progress'] = ProgressSerializerRO(instance=self.object.decision).data
         except ObjectDoesNotExist:
             pass
         return context
@@ -116,7 +117,7 @@ class JobProgress(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, 
 
     def get_context_data(self, **kwargs):
         try:
-            return {'progress': ProgressSerializer(instance=self.object.decision).data}
+            return {'progress': ProgressSerializerRO(instance=self.object.decision).data}
         except ObjectDoesNotExist:
             return {}
 
@@ -130,37 +131,25 @@ class JobsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):
             job2 = Job.objects.get(id=self.kwargs['job2_id'])
         except ObjectDoesNotExist:
             raise BridgeException(code=405)
-        if not jobs.utils.JobAccess(self.request.user, job1).can_view() \
-                or not jobs.utils.JobAccess(self.request.user, job2).can_view():
+        if not JobAccess(self.request.user, job1).can_view() or not JobAccess(self.request.user, job2).can_view():
             raise BridgeException(code=401)
-        return {'job1': job1, 'job2': job2, 'data': jobs.utils.CompareFileSet(job1, job2).data}
+        return {'job1': job1, 'job2': job2, 'data': CompareFileSet(job1, job2).data}
 
 
-class RemoveJobsView(LoggedCallMixin, Bview.JsonView):
-    unparallel = [Job]
-
-    def get_context_data(self, **kwargs):
-        jobs.utils.remove_jobs_by_id(self.request.user, json.loads(self.request.POST.get('jobs', '[]')))
-        return {}
-
-
-@method_decorator(login_required, name='dispatch')
-class JobFormPage(LoggedCallMixin, DetailView):
+class JobFormPage(LoginRequiredMixin, LoggedCallMixin, DetailView):
     model = Job
     template_name = 'jobs/jobForm.html'
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_view():
+        if not JobAccess(self.request.user, self.object).can_view():
             raise BridgeException(code=400)
-
         context = super().get_context_data(**kwargs)
         context.update(JobFormSerializerRO(instance=self.object).data)
         context.update({'action': self.kwargs['action'], 'job_roles': JOB_ROLES})
         return context
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadJobFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = JobFile
     slug_url_kwarg = 'hash_sum'
     slug_field = 'hash_sum'
@@ -169,54 +158,56 @@ class DownloadJobFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingRes
         return unquote(self.request.GET.get('name', 'filename'))
 
     def get_generator(self):
-        self.object = self.get_object()
-        self.file_size = len(self.object.file)
-        return FileWrapper(self.object.file, 8192)
+        return JobFileGenerator(self.get_object())
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadFilesForCompetition(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponsePostView):
+class DownloadFilesForCompetition(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = Job
     file_name = 'svcomp.zip'
+    http_method = 'post'
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_dfc():
+        # TODO: get request with query parameters
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance).can_dfc():
             raise BridgeException(code=400)
-        return FilesForCompetitionArchive(self.object, json.loads(self.request.POST['filters']))
+        return FilesForCompetitionArchive(instance, json.loads(self.request.POST['filters']))
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadJobView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = Job
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_download():
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance).can_download():
             raise BridgeException(code=400)
-        generator = JobArchiveGenerator(self.object)
-        self.file_name = generator.arcname
-        return generator
+        return JobArchiveGenerator(instance)
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadJobsListView(LoggedCallMixin, Bview.StreamingResponsePostView):
+class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
+    http_method = 'post'
+
     def get_generator(self):
+        # TODO: GET request
+        print(self.request.GET.getlist('jobs'))
+
         jobs_list = Job.objects.filter(pk__in=json.loads(self.request.POST['job_ids']))
         for job in jobs_list:
-            if not jobs.utils.JobAccess(self.request.user, job).can_download():
+            if not JobAccess(self.request.user, job).can_download():
                 raise BridgeException(
                     _("You don't have an access to one of the selected jobs"), back=reverse('jobs:tree'))
         self.file_name = 'KleverJobs.zip'
         return JobsArchivesGen(jobs_list)
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadJobsTreeView(LoggedCallMixin, Bview.StreamingResponsePostView):
+class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
+    http_method = 'post'
+    file_name = 'KleverJobs.zip'
+
     def get_generator(self):
+        # TODO: GET request
         if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
-        self.file_name = 'KleverJobs.zip'
         return JobsTreesGen(json.loads(self.request.POST['job_ids']))
 
 
@@ -224,7 +215,8 @@ class UploadJobsView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user).can_create():
+        # TODO: move to API
+        if not JobAccess(self.request.user).can_create():
             raise BridgeException(_("You don't have an access to upload jobs"))
         for f in self.request.FILES.getlist('file'):
             try:
@@ -250,6 +242,7 @@ class UploadJobsTreeView(LoggedCallMixin, Bview.JsonView):
     unparallel = [Job, 'AttrName']
 
     def get_context_data(self, **kwargs):
+        # TODO: move to API
         if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("You don't have an access to upload jobs tree"))
         if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
@@ -266,9 +259,10 @@ class RemoveJobVersions(LoggedCallMixin, Bview.JsonDetailPostView):
     unparallel = ['Job', JobHistory]
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_edit():
+        # TODO: move to API
+        if not JobAccess(self.request.user, self.object).can_edit():
             raise BridgeException(code=400)
-        jobs.utils.delete_versions(self.object, json.loads(self.request.POST.get('versions', '[]')))
+        delete_versions(self.object, json.loads(self.request.POST.get('versions', '[]')))
         return {'message': _('Selected versions were successfully deleted')}
 
 
@@ -281,7 +275,7 @@ class CompareJobVersionsView(LoggedCallMixin, Bview.DetailPostView):
         job_versions = JobHistory.objects.filter(job=self.object, version__in=versions).order_by('change_date')
         if job_versions.count() != 2:
             raise BridgeException(_('The page is outdated, reload it please'))
-        return {'data': jobs.utils.CompareJobVersions(*list(job_versions))}
+        return {'data': CompareJobVersions(*list(job_versions))}
 
 
 class PrepareDecisionView(LoggedCallMixin, DetailView):
@@ -294,7 +288,7 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         try:
             return self.render_to_response(self.get_context_data(object=self.object))
         except BridgeException as e:
-            raise BridgeException(e, back=reverse('jobs:prepare_run', args=[self.object.pk]))
+            raise BridgeException(e.message, back=reverse('jobs:prepare_run', args=[self.object.pk]))
         except Exception as e:
             logger.exception(e)
             raise BridgeException(back=reverse('jobs:prepare_run', args=[self.object.pk]))
@@ -317,22 +311,14 @@ class PrepareDecisionView(LoggedCallMixin, DetailView):
         return context
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadRunConfigurationView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadRunConfigurationView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = RunHistory
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not jobs.utils.JobAccess(self.request.user, self.object.job).can_view():
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance.job).can_view():
             raise BridgeException(code=400)
-        self.file_name = "job-%s.conf" % self.object.job.identifier[:5]
-        self.file_size = len(self.object.configuration.file)
-        return FileWrapper(self.object.configuration.file, 8192)
-
-
-class GetDefStartJobValue(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        return get_configuration_value(self.request.POST['name'], self.request.POST['value'])
+        return JobConfGenerator(instance)
 
 
 class StartDecision(LoggedCallMixin, Bview.JsonView):
@@ -363,55 +349,15 @@ class StopDecisionView(LoggedCallMixin, Bview.JsonDetailPostView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_stop():
+        if not JobAccess(self.request.user, self.object).can_stop():
             raise BridgeException(_("You don't have an access to stop decision of this job"))
         StopDecision(self.object)
         return {}
 
 
-class DecideJobServiceView(LoggedCallMixin, SingleObjectMixin,
-                           Bview.JSONResponseMixin, Bview.StreamingResponsePostView):
-    model = Job
-    unparallel = [Job, 'AttrName']
-
-    def dispatch(self, request, *args, **kwargs):
-        with override(settings.DEFAULT_LANGUAGE):
-            return super().dispatch(request, *args, **kwargs)
-
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-        return queryset.get(id=int(self.request.session['job id']), format=int(self.request.POST['job format']))
-
-    def get_generator(self):
-        self.object = self.get_object()
-
-        if 'job format' not in self.request.POST:
-            raise BridgeException('Job format is not specified')
-        if 'report' not in self.request.POST:
-            raise BridgeException('Start report is not specified')
-
-        attempt = int(self.request.POST.get('attempt', 0))
-        if not jobs.utils.JobAccess(self.request.user, self.object).klever_core_access():
-            raise BridgeException('User "{0}" doesn\'t have access to decide the job "{1}"'
-                                  .format(self.request.user, self.object.identifier))
-        if attempt == 0:
-            if self.object.status != JOB_STATUS[1][0]:
-                raise BridgeException('Only pending jobs can be decided')
-            jobs.utils.change_job_status(self.object, JOB_STATUS[2][0])
-
-        err = UploadReport(self.object, json.loads(self.request.POST.get('report', '{}')), attempt=attempt).error
-        if err is not None:
-            raise BridgeException(err)
-
-        generator = KleverCoreArchiveGen(self.object)
-        self.file_name = generator.arcname
-        return generator
-
-
 class GetJobFieldView(LoggedCallMixin, Bview.JsonView):
     def get_context_data(self, **kwargs):
-        job = jobs.utils.get_job_by_name_or_id(self.request.POST['job'])
+        job = get_job_by_name_or_id(self.request.POST['job'])
         return {self.request.POST['field']: getattr(job, self.request.POST['field'])}
 
 
@@ -420,30 +366,6 @@ class DoJobHasChildrenView(LoggedCallMixin, Bview.JsonDetailPostView):
 
     def get_context_data(self, **kwargs):
         return {'children': (self.object.children.count() > 0)}
-
-
-class CheckDownloadAccessView(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        for job_id in json.loads(self.request.POST.get('jobs', '[]')):
-            try:
-                job = Job.objects.get(id=int(job_id))
-            except ObjectDoesNotExist:
-                raise BridgeException(code=405)
-            if not jobs.utils.JobAccess(self.request.user, job).can_download():
-                raise BridgeException(code=401)
-        return {}
-
-
-class CheckCompareAccessView(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        try:
-            j1 = Job.objects.get(id=self.request.POST.get('job1', 0))
-            j2 = Job.objects.get(id=self.request.POST.get('job2', 0))
-        except ObjectDoesNotExist:
-            raise BridgeException(code=405)
-        if not can_compare(self.request.user, j1, j2):
-            raise BridgeException(code=401)
-        return {}
 
 
 class JobProgressJson(LoggedCallMixin, Bview.JsonDetailView):
@@ -480,7 +402,7 @@ class UploadReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_decide():
+        if not JobAccess(self.request.user, self.object).can_decide():
             raise BridgeException(_("You don't have an access to upload reports for this job"))
 
         try:
@@ -498,7 +420,7 @@ class CollapseReportsView(LoggedCallMixin, Bview.JsonDetailPostView):
     unparallel = [Job]
 
     def get_context_data(self, **kwargs):
-        if not jobs.utils.JobAccess(self.request.user, self.object).can_collapse():
+        if not JobAccess(self.request.user, self.object).can_collapse():
             raise BridgeException(_("You don't have an access to collapse reports"))
-        CollapseReports(self.object)
+        collapse_reports(self.object)
         return {}

@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "description": "EMG generates a parameter of incomplete type for a callback.",
+  "function": "has incomplete type",
+  "link": "http://forge.ispras.ru/issues/7244",
+  "problem_pattern": "Incompl arg",
+  "production": true
+}

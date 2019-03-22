@@ -108,28 +108,19 @@
         <div class="ui divider"></div>
 
         {# Status #}
-        <input id="view_data_{{ view.type }}__status" value="list_if_status_enable" data-list="status_type__status_value" type="hidden">
+        <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status_enable" type="hidden">
         <div class="ui checkbox">
             <input type="checkbox" id="view_condition_{{ view.type }}__status_enable"{% if 'status' in view %} checked{% endif %}>
             <label for="view_condition_{{ view.type }}__status_enable">{% trans 'Status' %}</label>
         </div>
         <br><br>
         <div class="inline fields" style="margin-left: 15px;">
-            <div class="field">
-                <select id="view_{{ view.type }}__status_type" class="ui dropdown">
-                    <option value="is"{% if 'status' in view and view.status.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="isnot"{% if 'status' in view and view.status.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
-                </select>
-                <label for="view_{{ view.type }}__status_type"></label>
-            </div>
-            <div class="field">
-                <select id="view_{{ view.type }}__status_value" class="ui dropdown">
-                    {% for status in statuses %}
-                        <option value="{{ status.0 }}"{% if 'status' in view and view.status.1 == status.0 %} selected{% endif %}>{{ status.1 }}</option>
-                    {% endfor %}
-                </select>
-                <label for="view_{{ view.type }}__status_value"></label>
-            </div>
+            {% for status in statuses %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view.type }}__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'status' in view and status.0 in view.status %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__status__{{ status.0 }}">{{ status.1 }}</label>
+                </div>
+            {% endfor %}
         </div>
         <div class="ui divider"></div>
 
@@ -253,8 +244,8 @@
             </div>
             <div class="field">
                 <select id="view_{{ view.type }}__source_value" class="ui dropdown">
-                    {% for mtype in mark_types %}
-                        <option value="{{ mtype.0 }}"{% if 'source' in view and view.source.1 == mtype.0 %} selected{% endif %}>{{ mtype.1 }}</option>
+                    {% for source in sources %}
+                        <option value="{{ source.0 }}"{% if 'source' in view and view.source.1 == source.0 %} selected{% endif %}>{{ source.1 }}</option>
                     {% endfor %}
                 </select>
                 <label for="view_{{ view.type }}__source_value"></label>

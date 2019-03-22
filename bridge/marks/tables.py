@@ -16,31 +16,36 @@
 #
 
 import json
+from datetime import timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import F, Count, Case, When
+from django.db.models.expressions import RawSQL
 from django.template import loader
 from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
+from django.utils.timezone import now
 
 from bridge.tableHead import Header
 from bridge.vars import MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE, SAFE_VERDICTS,\
-    UNSAFE_VERDICTS
-from bridge.utils import unique_id
+    UNSAFE_VERDICTS, MARK_SOURCE
+from bridge.utils import unique_id, BridgeException
 
+from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges,\
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown,\
     MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr,\
-    MarkUnsafeCompare, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, ConvertedTraces, \
-    MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike, UnknownProblem
+    MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
+    MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 from users.utils import DEF_NUMBER_OF_ELEMENTS, HumanizedValue
 from jobs.utils import JobAccess
 from marks.utils import UNSAFE_COLOR, SAFE_COLOR, STATUS_COLOR, MarkAccess
-from marks.CompareTrace import DEFAULT_COMPARE
+from marks.UnsafeUtils import DEFAULT_COMPARE
 from marks.tags import TagsInfo
 from marks.querysets import ListQuery
 
@@ -158,14 +163,12 @@ class MarkChangesTable:
             cache = MarkAssociationsChanges.objects.get(user=user)
         except ObjectDoesNotExist:
             cache = MarkAssociationsChanges(user=user)
-        cache.identifier = unique_id()
-
-        cache.table_data = json.dumps({
+        cache.table_data = {
             'href': reverse('marks:mark', args=[self.mark_type, self.mark.pk]),
             'values': self.values, 'attrs': self.attrs
-        }, ensure_ascii=False, sort_keys=True, indent=2)
+        }
         cache.save()
-        return cache.identifier
+        return str(cache.identifier)
 
 
 # Table data for showing links between the specified report and marks
@@ -340,7 +343,193 @@ class ReportMarkTable:
         return value_data
 
 
-class MarksList:
+class SafeMarksList:
+    mark_table = 'mark_safe'
+    columns_list = [
+        'num_of_links', 'verdict', 'tags', 'status', 'author',
+        'change_date', 'format', 'source', 'identifier'
+    ]
+
+    def __init__(self, user, view, query_params):
+        self.user = user
+        self.view = view
+        self.paginator, self.page = self.__get_queryset(query_params)
+        self.authors = User.objects.all()
+        self.verdicts = MARK_SAFE
+        self.statuses = MARK_STATUS
+        self.sources = MARK_SOURCE
+        self.title = _('Safe marks')
+
+        self.header, self.values = self.__marks_data()
+
+    @cached_property
+    def selected_columns(self):
+        supported_columns = set(self.columns_list)
+        columns = []
+        for col in self.view['columns']:
+            if col not in supported_columns:
+                continue
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    @cached_property
+    def available_columns(self):
+        columns = []
+        for col in self.columns_list:
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __get_queryset(self, query_params):
+        qs_filters = {'version': F('mark__version')}
+        annotations = {}
+
+        # Filters
+        if 'identifier' in self.view:
+            qs_filters['mark__identifier'] = self.view['identifier']
+        if 'status' in self.view:
+            qs_filters['status__in'] = self.view['status']
+        if 'verdict' in self.view:
+            qs_filters['verdict__in'] = self.view['verdict']
+        if 'source' in self.view:
+            qs_filters['mark__source__in'] = self.view['source']
+        if 'author' in self.view:
+            qs_filters['author_id'] = self.view['author']
+        if 'attr' in self.view:
+            annotations['attr_value'] = RawSQL(
+                "\"{}\".\"cache_attrs\"->>%s".format(self.mark_table),
+                (self.view['attr'][0],)
+            )
+            qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
+        if 'change_date' in self.view:
+            filter_type = 'lt' if self.view['change_date'][0] == 'older' else 'gt'
+            value = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
+            qs_filters['change_date__{}'.format(filter_type)] = value
+
+        # Sorting
+        ordering = 'id'
+        if 'order' in self.view:
+            if self.view['order'][1] == 'change_date':
+                ordering = 'change_date'
+            elif self.view['order'][1] == 'attr':
+                annotations['ordering_attr'] = RawSQL(
+                    "\"{}\".\"cache_attrs\"->>%s".format(self.mark_table),
+                    (self.view['order'][2],)
+                )
+                ordering = 'ordering_attr'
+            if self.view['order'][0] == 'up':
+                ordering = '-' + ordering
+
+        queryset = MarkSafeHistory.objects
+        if annotations:
+            queryset = queryset.annotate(**annotations)
+        queryset = queryset.filter(**qs_filters).order_by(ordering).select_related('mark', 'author')
+        return self.__paginate_queryset(queryset, query_params.get('page', 1))
+
+    def __paginate_queryset(self, queryset, page):
+        num_per_page = DEF_NUMBER_OF_ELEMENTS
+        if 'elements' in self.view:
+            num_per_page = int(self.view['elements'][0])
+
+        paginator = Paginator(queryset, num_per_page)
+        try:
+            page_number = int(page)
+        except ValueError:
+            if page == 'last':
+                page_number = paginator.num_pages
+            else:
+                raise BridgeException()
+        try:
+            values = paginator.page(page_number)
+        except PageNotAnInteger:
+            values = paginator.page(1)
+        except EmptyPage:
+            values = paginator.page(paginator.num_pages)
+        return paginator, values
+
+    @cached_property
+    def _marks_ids(self):
+        return list(mark_version.mark_id for mark_version in self.page)
+
+    @property
+    def _attrs_queryset(self):
+        qs_filters = {
+            'mark_version__mark_id__in': self._marks_ids,
+            'mark_version__mark__version': F('mark_version__version'),
+            'is_compare': True
+        }
+        fields = ['mark_version__mark_id', 'name', 'value']
+        return MarkSafeAttr.objects.filter(**qs_filters).order_by('id').values_list(*fields)
+
+    def __marks_data(self):
+        cnt = (self.page.number - 1) * self.paginator.per_page + 1
+
+        columns = ['number']
+        columns.extend(self.view['columns'])
+
+        links_numbers = dict(MarkSafe.objects.filter(id__in=self._marks_ids).values('id')
+                             .annotate(number=Count('markreport_set')).values_list('id', 'number'))
+
+        attributes = {}
+        for m_id, a_name, a_value in self._attrs_queryset:
+            if a_name not in attributes:
+                columns.append(a_name)
+                attributes[a_name] = {}
+            attributes[a_name][m_id] = a_value
+
+        values_data = []
+        for mark_version in self.page:
+            mark_id = mark_version.mark_id
+            values_row = []
+            for col in columns:
+                val = '-'
+                href = None
+                color = None
+                if col == 'checkbox':
+                    values_row.append({'checkbox': mark_id})
+                    continue
+                elif col in attributes:
+                    val = attributes[col].get(mark_id, '-')
+                elif col == 'number':
+                    val = cnt
+                    href = reverse('marks:safe', args=[mark_id])
+                elif col == 'num_of_links':
+                    val = links_numbers.get(mark_id, 0)
+                elif col == 'verdict':
+                    val = mark_version.get_verdict_display()
+                    color = SAFE_COLOR[mark_version.verdict]
+                elif col == 'tags':
+                    if mark_version.mark.cache_tags:
+                        val = ','.join(mark_version.mark.cache_tags)
+                elif col == 'status':
+                    val = mark_version.get_status_display()
+                    color = STATUS_COLOR[mark_version.status]
+                elif col == 'author' and mark_version.author:
+                    val = mark_version.author.get_full_name()
+                    href = reverse('users:show_profile', args=[mark_version.author_id])
+                elif col == 'change_date':
+                    val = mark_version.change_date
+                    if self.user.data_format == 'hum':
+                        val = HumanizedValue.get_templated_text('{% load humanize %}{{ date|naturaltime }}', date=val)
+                elif col == 'source':
+                    val = mark_version.mark.get_source_display()
+                elif col == 'format':
+                    val = mark_version.mark.format
+                elif col == 'identifier':
+                    val = str(mark_version.mark.identifier)
+
+                values_row.append({'value': val, 'color': color, 'href': href})
+            values_data.append(values_row)
+            cnt += 1
+        return Header(columns, MARK_TITLES).struct, values_data
+
+
+class MarksListOld:
     def __init__(self, user, marks_type, view, page=1):
         self.user = user
         self.type = marks_type
@@ -715,7 +904,7 @@ class MarkReportsTable:
         return values
 
 
-class AssociationChangesTable:
+class AssociationChangesTableOld:
     def __init__(self, obj, view):
         self.view = view
         self._data = json.loads(obj.table_data)
@@ -901,3 +1090,189 @@ class AssociationChangesTable:
 
     def __is_not_used(self):
         pass
+
+
+class AssociationChangesTable:
+    def __init__(self, changes_obj, view):
+        self.view = view
+        self._data = changes_obj.table_data
+        self._problems_names = {}
+        self.href = self._data['href']
+
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            self.verdicts = SAFE_VERDICTS
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            self.verdicts = UNSAFE_VERDICTS
+
+        self.columns = self.__get_columns()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    @cached_property
+    def selected_columns(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    @cached_property
+    def available_columns(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        supported_columns = ['change_kind', 'job', 'format']
+        if self.view['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
+            supported_columns.append('sum_verdict')
+            supported_columns.append('tags')
+        else:
+            supported_columns.append('problems')
+        return supported_columns
+
+    def __verdict_change(self, report_id, mark_type):
+        vtmpl = '<span style="color:{0}">{1}</span>'
+        if mark_type == 'unsafe':
+            colors = UNSAFE_COLOR
+            tmp_leaf = ReportUnsafe()
+        elif mark_type == 'safe':
+            colors = SAFE_COLOR
+            tmp_leaf = ReportSafe()
+        else:
+            return '-'
+
+        tmp_leaf.verdict = self._data['values'][report_id]['old_verdict']
+        val1 = tmp_leaf.get_verdict_display()
+        if self._data['values'][report_id]['old_verdict'] == self._data['values'][report_id]['new_verdict']:
+            return vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1)
+
+        tmp_leaf.verdict = self._data['values'][report_id]['new_verdict']
+        val2 = tmp_leaf.get_verdict_display()
+        return '<i class="ui long arrow right icon"></i>'.join([
+            vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1),
+            vtmpl.format(colors[self._data['values'][report_id]['new_verdict']], val2)
+        ])
+
+    def __get_columns(self):
+        columns = ['report']
+        columns.extend(self.view['columns'])
+        columns.extend(self._data.get('attrs', []))
+        return columns
+
+    def __get_values(self):
+        values = []
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            mark_type = 'safe'
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            mark_type = 'unsafe'
+        elif self.view['type'] == VIEW_TYPES[18][0]:
+            mark_type = 'unknown'
+            problems_ids = []
+            for r_id in self._data['values']:
+                if 'problems' in self._data['values'][r_id]:
+                    for p_id in self._data['values'][r_id]['problems']:
+                        problems_ids.append(int(p_id))
+            for problem in UnknownProblem.objects.filter(id__in=problems_ids):
+                self._problems_names[problem.id] = problem.name
+        else:
+            return []
+
+        cnt = 0
+        for report_id in self._data['values']:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if not self.__filter_row(report_id):
+                    cnt -= 1
+                    break
+                if col == 'report':
+                    val = cnt
+                    if mark_type == 'unsafe':
+                        href = reverse('reports:unsafe', args=[self._data['values'][report_id]['trace_id']])
+                    else:
+                        href = reverse('reports:%s' % mark_type, args=[report_id])
+                elif col == 'sum_verdict':
+                    val = self.__verdict_change(report_id, mark_type)
+                elif col == 'change_kind':
+                    if self._data['values'][report_id]['change_kind'] in CHANGE_DATA:
+                        val = CHANGE_DATA[self._data['values'][report_id]['change_kind']][0]
+                        color = CHANGE_DATA[self._data['values'][report_id]['change_kind']][1]
+                elif col == 'job':
+                    val = self._data['values'][report_id]['job'][1]
+                    href = reverse('jobs:job', args=[self._data['values'][report_id]['job'][0]])
+                elif col == 'format':
+                    val = self._data['values'][report_id]['format']
+                elif col == 'tags':
+                    val = loader.get_template('marks/tagsChanges.html')\
+                        .render({'tags': self._data['values'][report_id].get('tags'), 'type': mark_type})
+                elif col == 'problems':
+                    val = loader.get_template('marks/problemsChanges.html').render({
+                        'type': mark_type, 'problems': self.__get_problem_change(self._data['values'][report_id])
+                    })
+                elif col in self._data['values'][report_id]:
+                    val = self._data['values'][report_id][col]
+                values_str.append({'value': str(val), 'color': color, 'href': href})
+            else:
+                values.append(values_str)
+        return values
+
+    def __get_problem_change(self, changes):
+        problems_change = []
+        if 'problems' in changes:
+            for p_id in changes['problems']:
+                if int(p_id) in self._problems_names:
+                    problems_change.append([
+                        self._problems_names[int(p_id)], changes['problems'][p_id][0], changes['problems'][p_id][1]
+                    ])
+        return sorted(problems_change)
+
+    def __filter_row(self, r_id):
+        if 'change_kind' in self.view and self._data['values'][r_id]['change_kind'] not in self.view['change_kind']:
+                return False
+        if 'old_verdict' in self.view and self._data['values'][r_id]['old_verdict'] not in self.view['old_verdict']:
+                return False
+        if 'new_verdict' in self.view and self._data['values'][r_id]['new_verdict'] not in self.view['new_verdict']:
+                return False
+        if 'job_title' in self.view:
+            job_title = self._data['values'][r_id]['job'][1].lower()
+            pattern = self.view['job_title'][1].lower()
+            if self.view['job_title'][0] == 'iexact' and job_title != pattern \
+                    or self.view['job_title'][0] == 'istartswith' and not job_title.startswith(pattern) \
+                    or self.view['job_title'][0] == 'icontains' and pattern not in job_title:
+                return False
+        if 'format' in self.view:
+            view_format = int(self.view['format'][1])
+            job_format = int(self._data['values'][r_id]['format'])
+            if self.view['format'][0] == 'is' and view_format != job_format \
+                    or self.view['format'][0] == 'isnot' and view_format == job_format:
+                return False
+
+        if 'attr' in self.view:
+            for col in self._data['values'][r_id]:
+                if col == self.view['attr'][0]:
+                    ftype = self.view['attr'][1]
+                    fvalue = self.view['attr'][2]
+                    value = self._data['values'][r_id][col]
+                    if ftype == 'iexact' and fvalue.lower() != value.lower():
+                        return False
+                    elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
+                        return False
+                    elif ftype == 'icontains' and fvalue.lower() not in value.lower():
+                        return False
+        if 'hidden' in self.view and 'unchanged' in self.view['hidden']:
+            if self._data['values'][r_id]['old_verdict'] == self._data['values'][r_id]['new_verdict'] \
+                    and self._data['values'][r_id].get('tags') is None:
+                return False
+        return True

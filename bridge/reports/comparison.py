@@ -17,233 +17,216 @@
 
 import re
 import json
+from collections import OrderedDict
 
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import COMPARE_VERDICT
+from bridge.vars import COMPARE_VERDICT, JOB_WEIGHT, ASSOCIATION_TYPE
 from bridge.utils import BridgeException
 
-from users.models import User
-from jobs.models import Job
-from reports.models import AttrName, Attr, ReportAttr, ReportComponentLeaf, CompareJobsInfo, CompareJobsCache,\
-    Report, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+from reports.models import (
+    ReportAttr, CompareJobsInfo, ComparisonObject, ComparisonLink,
+    ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+)
 
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 
-from jobs.utils import JobAccess
 from marks.utils import UNSAFE_COLOR, SAFE_COLOR
 
 
-def can_compare(user, job1, job2):
-    if not isinstance(job1, Job) or not isinstance(job2, Job) or not isinstance(user, User):
-        return False
-    if not JobAccess(user, job1).can_view() or not JobAccess(user, job2).can_view():
-        return False
-    return True
+class GetComparisonObjects:
+    def __init__(self, root, names):
+        self._root = root
+        self._names = names
+
+    def __fill_leaf_objects(self, data, leaf_type):
+        qs = ReportAttr.objects.filter(report__root=self._root, compare=True)\
+            .exclude(**{'report__report{}'.format(leaf_type): None})
+        for attr in qs:
+            if attr.report_id not in data:
+                data[attr.report_id] = {
+                    'type': leaf_type,
+                    'values': OrderedDict(list((attr_name, '-') for attr_name in self._names))
+                }
+            data[attr.report_id]['values'][attr.name] = attr.value
+
+    def get_leaf_values(self):
+        data = {}
+        self.__fill_leaf_objects(data, 'safe')
+        self.__fill_leaf_objects(data, 'unsafe')
+        self.__fill_leaf_objects(data, 'unknown')
+
+        attr_data = {}
+        for r_id in data:
+            values_tuple = tuple(data[r_id]['values'].values())
+            attr_data.setdefault(values_tuple, [])
+            attr_data[values_tuple].append({'id': r_id, 'type': data[r_id]['type']})
+        return attr_data
 
 
-class ReportTree:
-    def __init__(self, root, name_ids):
-        self._name_ids = name_ids
-        self.attr_values = {}
-        self._report_tree = {}
-        self._leaves = {'u': set(), 's': set(), 'f': set()}
-        self.__get_tree(root)
-
-    def __get_tree(self, root):
-        core_id = None
-        for r_id, p_id in Report.objects.filter(root=root).values_list('id', 'parent_id'):
-            self._report_tree[r_id] = p_id
-            if p_id is None:
-                core_id = r_id
-
-        leaves_fields = {'u': 'unsafe_id', 's': 'safe_id', 'f': 'unknown_id'}
-        # core has all leaves of the job
-        for leaf in ReportComponentLeaf.objects.filter(report_id=core_id).values('safe_id', 'unsafe_id', 'unknown_id'):
-            # There is often number of safes > unknowns > unsafes
-            for l_type in 'sfu':
-                l_id = leaf[leaves_fields[l_type]]
-                if l_id is not None:
-                    self._leaves[l_type].add(l_id)
-                    break
-
-        # The order is important
-        for l_type in 'usf':
-            self.__fill_leaves_vals(l_type)
-
-    def __fill_leaves_vals(self, l_type):
-        leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=self._leaves[l_type], attr__name_id__in=self._name_ids)\
-                .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
-            if ra.report_id not in leaves_attrs:
-                leaves_attrs[ra.report_id] = {}
-            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr_id
-
-        for l_id in self._leaves[l_type]:
-            if l_id in leaves_attrs:
-                attrs_id = '|'.join(
-                    str(leaves_attrs[l_id][n_id]) if n_id in leaves_attrs[l_id] else '-' for n_id in self._name_ids
-                )
-            else:
-                attrs_id = '|'.join(['-'] * len(self._name_ids))
-
-            branch_ids = [(l_type, l_id)]
-            parent = self._report_tree[l_id]
-            while parent is not None:
-                branch_ids.insert(0, ('c', parent))
-                parent = self._report_tree[parent]
-
-            if attrs_id in self.attr_values:
-                if l_type == 's':
-                    self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[5][0]
-                elif l_type == 'f':
-                    for branch in self.attr_values[attrs_id]['branches']:
-                        if branch[-1][0] != 'u':
-                            self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[5][0]
-                            break
-                    else:
-                        self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[2][0]
-                self.attr_values[attrs_id]['branches'].append(branch_ids)
-            else:
-                if l_type == 'u':
-                    verdict = COMPARE_VERDICT[1][0]
-                elif l_type == 's':
-                    verdict = COMPARE_VERDICT[0][0]
-                else:
-                    verdict = COMPARE_VERDICT[3][0]
-                self.attr_values[attrs_id] = {'branches': [branch_ids], 'verdict': verdict}
-
-
-class CompareTree:
+class FillComparisonCache:
     def __init__(self, user, root1, root2):
-        self.user = user
+        self._user = user
         self._root1 = root1
         self._root2 = root2
-
-        self._name_ids = self.__get_attr_names()
-        self.tree1 = ReportTree(self._root1, self._name_ids)
-        self.tree2 = ReportTree(self._root2, self._name_ids)
-
-        self.attr_values = {}
-        self.__compare_values()
-        self.__fill_cache()
+        self._names = self.__get_attr_names()
+        self._info = self.__create_info()
+        self.__fill_data()
 
     def __get_attr_names(self):
-        names1 = set(aname for aname, in ReportAttr.objects.filter(report__root=self._root1, compare=True)
-                     .values_list('attr__name_id'))
-        names2 = set(aname for aname, in ReportAttr.objects.filter(report__root=self._root2, compare=True)
-                     .values_list('attr__name_id'))
+        names1 = set(ReportAttr.objects.filter(report__root=self._root1, compare=True).values_list('name', flat=True))
+        names2 = set(ReportAttr.objects.filter(report__root=self._root2, compare=True).values_list('name', flat=True))
         if names1 != names2:
             raise BridgeException(_("Jobs with different sets of attributes to compare can't be compared"))
-        return sorted(names1)
+        return list(sorted(names1))
 
-    def __compare_values(self):
-        for a_id in self.tree1.attr_values:
-            self.attr_values[a_id] = {
-                'v1': self.tree1.attr_values[a_id]['verdict'],
-                'v2': COMPARE_VERDICT[4][0],
-                'branches1': self.tree1.attr_values[a_id]['branches'],
-                'branches2': []
-            }
-            if a_id in self.tree2.attr_values:
-                self.attr_values[a_id]['v2'] = self.tree2.attr_values[a_id]['verdict']
-                self.attr_values[a_id]['branches2'] = self.tree2.attr_values[a_id]['branches']
-        for a_id in self.tree2.attr_values:
-            if a_id not in self.tree1.attr_values:
-                self.attr_values[a_id] = {
-                    'v1': COMPARE_VERDICT[4][0],
-                    'v2': self.tree2.attr_values[a_id]['verdict'],
-                    'branches1': [],
-                    'branches2': self.tree2.attr_values[a_id]['branches']
-                }
-
-    def __fill_cache(self):
-        info = CompareJobsInfo.objects.create(
-            user=self.user, root1=self._root1, root2=self._root2,
-            attr_names='|'.join(str(nid) for nid in self._name_ids)
+    def __create_info(self):
+        return CompareJobsInfo.objects.create(
+            user=self._user, root1=self._root1, root2=self._root2, names=self._names
         )
-        CompareJobsCache.objects.bulk_create(list(CompareJobsCache(
-            info=info, attr_values=x,
-            verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
-            reports1=json.dumps(self.attr_values[x]['branches1'], ensure_ascii=False),
-            reports2=json.dumps(self.attr_values[x]['branches2'], ensure_ascii=False)
-        ) for x in self.attr_values))
+
+    def __fill_data(self):
+        ct_map = {
+            'safe': ContentType.objects.get_for_model(ReportSafe),
+            'unsafe': ContentType.objects.get_for_model(ReportUnsafe),
+            'unknown': ContentType.objects.get_for_model(ReportUnknown),
+        }
+        data1 = GetComparisonObjects(self._root1, self._names).get_leaf_values()
+        data2 = GetComparisonObjects(self._root2, self._names).get_leaf_values()
+
+        # Calculate total verdicts for each batch of attributes values
+        verdicts_data = OrderedDict()
+        for values_tuple in data1:
+            verdicts_data[values_tuple] = {
+                'verdict1': self.__calc_verdict(data1[values_tuple]),
+                'verdict2': COMPARE_VERDICT[4][0]
+            }
+        for values_tuple in data2:
+            verdict2 = self.__calc_verdict(data2[values_tuple])
+            if values_tuple in verdicts_data:
+                verdicts_data[values_tuple]['verdict2'] = verdict2
+            else:
+                verdicts_data[values_tuple] = {'verdict1': COMPARE_VERDICT[4][0], 'verdict2': verdict2}
+
+        # Create new comparison objects
+        res = ComparisonObject.objects.bulk_create(list(ComparisonObject(
+            info=self._info, values=list(values_tuple),
+            verdict1=verdicts_data[values_tuple]['verdict1'],
+            verdict2=verdicts_data[values_tuple]['verdict2']
+        ) for values_tuple in verdicts_data))
+        for new_obj in res:
+            verdicts_data[tuple(new_obj.values)]['pk'] = new_obj.pk
+
+        # Create new comparison links
+        new_links = []
+        for values_tuple in data1:
+            for report in data1[values_tuple]:
+                new_links.append(ComparisonLink(
+                    object_id=report['id'], content_type=ct_map[report['type']],
+                    comparison_id=verdicts_data[values_tuple]['pk']
+                ))
+        for values_tuple in data2:
+            for report in data2[values_tuple]:
+                new_links.append(ComparisonLink(
+                    object_id=report['id'], content_type=ct_map[report['type']],
+                    comparison_id=verdicts_data[values_tuple]['pk']
+                ))
+        ComparisonLink.objects.bulk_create(new_links)
+
+    def __calc_verdict(self, reports):
+        if len(reports) == 1:
+            if reports[0]['type'] == 'safe':
+                return COMPARE_VERDICT[0][0]
+            elif reports[0]['type'] == 'unknown':
+                return COMPARE_VERDICT[3][0]
+            return COMPARE_VERDICT[1][0]
+        has_unknown = False
+        for rep in reports:
+            if rep['type'] == 'safe':
+                return COMPARE_VERDICT[5][0]
+            elif rep['type'] == 'unknown':
+                if has_unknown:
+                    return COMPARE_VERDICT[5][0]
+                has_unknown = True
+        return COMPARE_VERDICT[2][0] if has_unknown else COMPARE_VERDICT[1][0]
 
 
 class ComparisonTableData:
     def __init__(self, user, root1, root2):
-        self.data = []
-        self.info = 0
-        self.attrs = []
-        self.__get_data(user, root1, root2)
-
-    def __get_data(self, user, root1, root2):
         try:
-            info = CompareJobsInfo.objects.get(user=user, root1=root1, root2=root2)
+            self.info = CompareJobsInfo.objects.get(user=user, root1=root1, root2=root2)
         except ObjectDoesNotExist:
             raise BridgeException(_('The comparison cache was not found'))
-        self.info = info.pk
+        self.table_rows = self.__get_table_data()
+        self.attrs = self.__get_attrs()
+        self.lightweight = (root1.job.weight == root2.job.weight == JOB_WEIGHT[1][0])
 
+    def __get_table_data(self):
         numbers = {}
-        for v1, v2, num in CompareJobsCache.objects.filter(info=info).values('verdict1', 'verdict2')\
-                .annotate(number=Count('id')).values_list('verdict1', 'verdict2', 'number'):
+        for v1, v2, num in ComparisonObject.objects.filter(info=self.info)\
+                .values('verdict1', 'verdict2').annotate(number=Count('links', distinct=True))\
+                .values_list('verdict1', 'verdict2', 'number'):
             numbers[(v1, v2)] = num
 
+        head_row = [{'class': 'job-th-0', 'value': ''}] + \
+                   [{'class': 'job-th-2', 'value': v[1]} for v in COMPARE_VERDICT]
+        table_data = [head_row]
+
         for v1 in COMPARE_VERDICT:
-            row_data = []
+            row_data = [{'class': 'job-th-1 right aligned', 'value': v1[1]}]
             for v2 in COMPARE_VERDICT:
-                num = '-'
-                if (v1[0], v2[0]) in numbers:
-                    num = (numbers[(v1[0], v2[0])], v2[0])
-                row_data.append(num)
-            self.data.append(row_data)
+                verdict_tuple = (v1[0], v2[0])
+                row_data.append({
+                    'value': numbers.get(verdict_tuple, '-'),
+                    'verdict': '{0}_{1}'.format(*verdict_tuple)
+                })
+            table_data.append(row_data)
+        return table_data
 
-        all_attrs = {}
-        names_ids = list(int(x) for x in info.attr_names.split('|'))
-        for aname in AttrName.objects.filter(id__in=names_ids):
-            all_attrs[aname.id] = {'values': set(), 'name': aname.name}
-        if len(all_attrs) != len(names_ids):
-            raise BridgeException(_('The comparison cache was corrupted'))
+    def __get_attrs(self):
+        all_attrs = OrderedDict((attr_name, set()) for attr_name in self.info.names)
+        for cmp_obj in ComparisonObject.objects.filter(info=self.info):
+            i = 0
+            for attr_name in all_attrs:
+                if cmp_obj.values[i] != '-':
+                    all_attrs[attr_name].add(cmp_obj.values[i])
+                i += 1
 
-        for compare in info.comparejobscache_set.all():
-            attr_values = compare.attr_values.split('|')
-            if len(attr_values) != len(names_ids):
-                raise BridgeException(_('The comparison cache was corrupted'))
-            for i in range(len(attr_values)):
-                if attr_values[i] == '-':
-                    continue
-                all_attrs[names_ids[i]]['values'].add(attr_values[i])
-
-        for an_id in names_ids:
-            values = []
-            if len(all_attrs[an_id]['values']) > 0:
-                values = list(Attr.objects.filter(id__in=all_attrs[an_id]['values'])
-                              .order_by('value').values_list('id', 'value'))
-            self.attrs.append({'name': all_attrs[an_id]['name'], 'values': values})
+        i = 0
+        attrs_values = []
+        for attr_name in all_attrs:
+            attrs_values.append({'name': attr_name, 'id': i, 'values': list(sorted(all_attrs[attr_name]))})
+            i += 1
+        return attrs_values
 
 
 class ComparisonData:
     def __init__(self, info, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
         self.info = info
-        self._attr_names = list(int(x) for x in self.info.attr_names.split('|'))
-        self.v1 = self.v2 = None
+
+        # Never show components when both jobs are lightweight
+        self.hide_components = bool(int(hide_components)) or self.lightweight
         self.hide_attrs = bool(int(hide_attrs))
-        self.hide_components = bool(int(hide_components))
-        self.attr_search = False
+
         self.pages = {
             'backward': True,
             'forward': True,
-            'num': page_num,
+            'page': page_num,
             'total': 0
         }
-        self.data = self.__get_data(verdict, attrs)
+        self.comparison = self.__paginate(verdict, attrs)
+        self.tree1, self.tree2 = self.__get_trees()
+
+    @property
+    def lightweight(self):
+        return self.info.root1.job.weight == self.info.root2.job.weight == JOB_WEIGHT[1][0]
 
     def __get_verdicts(self, verdict):
-        self.__is_not_used()
-        m = re.match('^(\d)_(\d)$', verdict)
+        m = re.match(r'^(\d)_(\d)$', verdict)
         if m is None:
             raise BridgeException()
         v1 = m.group(1)
@@ -252,256 +235,261 @@ class ComparisonData:
             raise BridgeException()
         return v1, v2
 
-    def __get_data(self, verdict=None, search_attrs=None):
-        if search_attrs is not None:
-            try:
-                search_attrs = '|'.join(json.loads(search_attrs))
-            except ValueError:
-                raise BridgeException()
-            if '__REGEXP_ANY__' in search_attrs:
-                search_attrs = re.escape(search_attrs)
-                search_attrs = search_attrs.replace('__REGEXP_ANY__', '\d+')
-                search_attrs = '^' + search_attrs + '$'
-                data = self.info.comparejobscache_set.filter(attr_values__regex=search_attrs).order_by('id')
-            else:
-                data = self.info.comparejobscache_set.filter(attr_values=search_attrs).order_by('id')
-            self.attr_search = True
+    def __paginate(self, verdict=None, search_attrs=None):
+        # Filter queryset
+        qs_filters = {'info': self.info}
+        if search_attrs:
+            search_attr_values = json.loads(search_attrs)
+            for i in range(len(self.info.names)):
+                if search_attr_values[i] != '__ANY__':
+                    qs_filters['values__{}'.format(i)] = search_attr_values[i]
         elif verdict is not None:
-            (v1, v2) = self.__get_verdicts(verdict)
-            data = self.info.comparejobscache_set.filter(verdict1=v1, verdict2=v2).order_by('id')
+            qs_filters['verdict1'], qs_filters['verdict2'] = self.__get_verdicts(verdict)
         else:
             raise BridgeException()
-        self.pages['total'] = len(data)
+        queryset = ComparisonObject.objects.filter(**qs_filters).order_by('id')
+
+        # Get needed page and pages info
+        self.pages['total'] = queryset.count()
         if self.pages['total'] < self.pages['num']:
             raise BridgeException(_('Required reports were not found'))
-        self.pages['backward'] = (self.pages['num'] > 1)
-        self.pages['forward'] = (self.pages['num'] < self.pages['total'])
-        data = data[self.pages['num'] - 1]
-        for v in COMPARE_VERDICT:
-            if data.verdict1 == v[0]:
-                self.v1 = v[1]
-            if data.verdict2 == v[0]:
-                self.v2 = v[1]
+        self.pages['backward'] = (self.pages['page'] > 1)
+        self.pages['forward'] = (self.pages['page'] < self.pages['total'])
+        return queryset[self.pages['page'] - 1]
 
-        try:
-            branches = self.__compare_reports(data)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The report was not found, please recalculate the comparison cache'))
-        if branches is None:
-            raise BridgeException()
+    def __get_trees(self):
+        tree1 = ComparisonTree()
+        tree2 = ComparisonTree()
+        for link in ComparisonLink.objects.filter(comparison=self.comparison).order_by('object_id'):
+            report = link.content_object
+            if report.root_id == self.info.root1_id:
+                tree1.update_tree(report, self.hide_components)
+            else:
+                tree2.update_tree(report, self.hide_components)
 
-        final_data = []
-        for branch in branches:
-            ordered = []
-            for i in sorted(list(branch)):
-                if len(branch[i]) > 0:
-                    ordered.append(branch[i])
-            final_data.append(ordered)
-        return final_data
+        blocks1 = tree1.blocks
+        blocks2 = tree2.blocks
 
-    def __compare_reports(self, c):
-        data1 = self.__get_reports_data(json.loads(c.reports1))
-        data2 = self.__get_reports_data(json.loads(c.reports2))
-        for i in sorted(list(data1)):
-            if i not in data2:
-                break
-            blocks = self.__compare_lists(data1[i], data2[i])
-            if isinstance(blocks, list) and len(blocks) == 2:
-                data1[i] = blocks[0]
-                data2[i] = blocks[1]
-        return [data1, data2]
-
-    def __compare_lists(self, blocks1, blocks2):
+        # Compare attributes
         for b1 in blocks1:
             for b2 in blocks2:
-                if b1.block_class != b2.block_class or b1.type == 'm':
+                if b1.block_class != b2.block_class:
                     continue
-                for a1 in b1.list:
-                    if a1['name'] not in list(x['name'] for x in b2.list):
-                        a1['color'] = '#c60806'
-                    for a2 in b2.list:
-                        if a2['name'] not in list(x['name'] for x in b1.list):
-                            a2['color'] = '#c60806'
-                        if a1['name'] == a2['name'] and a1['value'] != a2['value']:
-                            a1['color'] = a2['color'] = '#af49bd'
-        if self.hide_attrs:
-            for b1 in blocks1:
-                for b2 in blocks2:
-                    if b1.block_class != b2.block_class or b1.type == 'm':
-                        continue
-                    for b in [b1, b2]:
-                        new_list = []
-                        for a in b.list:
-                            if 'color' in a:
-                                new_list.append(a)
-                        b.list = new_list
-        if self.hide_components:
-            for_del = {
-                'b1': [],
-                'b2': []
-            }
-            for i in range(len(blocks1)):
-                for j in range(len(blocks2)):
-                    if blocks1[i].block_class != blocks2[j].block_class or blocks1[i].type != 'c':
-                        continue
-                    if blocks1[i].list == blocks2[j].list and blocks1[i].add_info == blocks2[j].add_info:
-                        for_del['b1'].append(i)
-                        for_del['b2'].append(j)
-            new_blocks1 = []
-            for i in range(0, len(blocks1)):
-                if i not in for_del['b1']:
-                    new_blocks1.append(blocks1[i])
-            new_blocks2 = []
-            for i in range(0, len(blocks2)):
-                if i not in for_del['b2']:
-                    new_blocks2.append(blocks2[i])
-            return [new_blocks1, new_blocks2]
-        return None
-
-    def __get_reports_data(self, reports):
-        branch_data = {}
-        get_block = {
-            'u': (self.__unsafe_data, self.__unsafe_mark_data),
-            's': (self.__safe_data, self.__safe_mark_data),
-            'f': (self.__unknown_data, self.__unknown_mark_data)
-        }
-        added_ids = set()
-        for branch in reports:
-            cnt = 1
-            parent = None
-            for rdata in branch:
-                if cnt not in branch_data:
-                    branch_data[cnt] = []
-                if rdata[1] in added_ids:
-                    pass
-                elif rdata[0] == 'c':
-                    branch_data[cnt].append(
-                        self.__component_data(rdata[1], parent)
-                    )
-                elif rdata[0] in 'usf':
-                    branch_data[cnt].append(
-                        get_block[rdata[0]][0](rdata[1], parent)
-                    )
-                    cnt += 1
-                    for b in get_block[rdata[0]][1](rdata[1]):
-                        if cnt not in branch_data:
-                            branch_data[cnt] = []
-                        if b.id not in list(x.id for x in branch_data[cnt]):
-                            branch_data[cnt].append(b)
+                for attr in b1.attrs:
+                    attr['type'] = 'unmatched'
+                for attr in b2.attrs:
+                    attr['type'] = 'unmatched'
+                for attr1 in b1.attrs:
+                    for attr2 in b2.attrs:
+                        if attr1['name'] != attr2['name']:
+                            continue
+                        if attr1['value'] == attr2['value']:
+                            attr1['type'] = attr2['type'] = 'compared' if attr1['compare'] else 'normal'
                         else:
-                            for i in range(len(branch_data[cnt])):
-                                if b.id == branch_data[cnt][i].id:
-                                    if rdata[0] == 'f' \
-                                            and b.add_info[0]['value'] != branch_data[cnt][i].add_info[0]['value']:
-                                        branch_data[cnt].append(b)
-                                    else:
-                                        branch_data[cnt][i].parents.extend(b.parents)
-                                    break
-                    break
-                parent = rdata[1]
-                cnt += 1
-                added_ids.add(rdata[1])
-        return branch_data
+                            attr1['type'] = attr2['type'] = 'different'
 
-    def __component_data(self, report_id, parent_id):
-        report = ReportComponent.objects.get(pk=report_id)
-        block = CompareBlock('c_%s' % report_id, 'c', report.component.name, 'comp_%s' % report.component_id)
-        if parent_id is not None:
-            block.parents.append('c_%s' % parent_id)
-        block.list = self.__get_attrs_list(report)
-        block.href = reverse('reports:component', args=[report.pk])
-        return block
+        # Hide normal attributes
+        if self.hide_attrs:
+            for block in blocks1 + blocks2:
+                if not block.attrs:
+                    continue
+                block.attrs = list(attr for attr in block.attrs if attr['type'] != 'normal')
 
-    def __unsafe_data(self, report_id, parent_id):
-        report = ReportUnsafe.objects.get(pk=report_id)
-        block = CompareBlock('u_%s' % report_id, 'u', _('Unsafe'), 'unsafe')
-        block.parents.append('c_%s' % parent_id)
-        block.add_info = {'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]}
-        block.list = self.__get_attrs_list(report)
-        block.href = reverse('reports:unsafe', args=[report.trace_id])
-        return block
-
-    def __safe_data(self, report_id, parent_id):
-        report = ReportSafe.objects.get(pk=report_id)
-        block = CompareBlock('s_%s' % report_id, 's', _('Safe'), 'safe')
-        block.parents.append('c_%s' % parent_id)
-        block.add_info = {'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]}
-        block.list = self.__get_attrs_list(report)
-        block.href = reverse('reports:safe', args=[report.pk])
-        return block
-
-    def __unknown_data(self, report_id, parent_id):
-        report = ReportUnknown.objects.get(pk=report_id)
-        block = CompareBlock('f_%s' % report_id, 'f', _('Unknown'), 'unknown-%s' % report.component.name)
-        block.parents.append('c_%s' % parent_id)
-        problems = list(x.problem.name for x in report.markreport_set.select_related('problem').order_by('id'))
-        if len(problems) > 0:
-            block.add_info = {'value': '; '.join(problems), 'color': '#c60806'}
-        else:
-            block.add_info = {'value': _('Without marks')}
-        block.list = self.__get_attrs_list(report)
-        block.href = reverse('reports:unknown', args=[report.pk])
-        return block
-
-    def __get_attrs_list(self, report):
-        attrs_list = []
-        for an_id, a_name, a_val in report.attrs.values_list('attr__name_id', 'attr__name__name', 'attr__value')\
-                .order_by('attr__name__name'):
-            attr_data = {'name': a_name, 'value': a_val}
-            if an_id in self._attr_names:
-                attr_data['color'] = '#8bb72c'
-            attrs_list.append(attr_data)
-        return attrs_list
-
-    def __unsafe_mark_data(self, report_id):
-        self.__is_not_used()
-        blocks = []
-        for mark in MarkUnsafeReport.objects.filter(report_id=report_id, result__gt=0, type__in='01')\
-                .select_related('mark'):
-            block = CompareBlock('um_%s' % mark.mark_id, 'm', _('Unsafes mark'))
-            block.parents.append('u_%s' % report_id)
-            block.add_info = {'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:mark', args=['unsafe', mark.mark_id])
-            for t in mark.mark.versions.order_by('-version').first().tags.all():
-                block.list.append({'name': None, 'value': t.tag.tag})
-            blocks.append(block)
-        return blocks
-
-    def __safe_mark_data(self, report_id):
-        self.__is_not_used()
-        blocks = []
-        for mark in MarkSafeReport.objects.filter(report_id=report_id).select_related('mark'):
-            block = CompareBlock('sm_%s' % mark.mark_id, 'm', _('Safes mark'))
-            block.parents.append('s_%s' % report_id)
-            block.add_info = {'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:mark', args=['safe', mark.mark_id])
-            for t in mark.mark.versions.order_by('-version').first().tags.all():
-                block.list.append({'name': None, 'value': t.tag.tag})
-            blocks.append(block)
-        return blocks
-
-    def __unknown_mark_data(self, report_id):
-        self.__is_not_used()
-        blocks = []
-        for mark in MarkUnknownReport.objects.filter(report_id=report_id).select_related('problem'):
-            block = CompareBlock("fm_%s" % mark.mark_id, 'm', _('Unknowns mark'))
-            block.parents.append('f_%s' % report_id)
-            block.add_info = {'value': mark.problem.name}
-            block.href = reverse('marks:mark', args=['unknown', mark.mark_id])
-            blocks.append(block)
-        return blocks
-
-    def __is_not_used(self):
-        pass
+        return tree1, tree2
 
 
 class CompareBlock:
-    def __init__(self, block_id, block_type, title, block_class=None):
+    def __init__(self, block_id, block_class=None):
         self.id = block_id
-        self.block_class = block_class if block_class is not None else self.id
-        self.type = block_type
-        self.title = title
-        self.parents = []
-        self.list = []
-        self.add_info = None
+        self.block_class = block_class or self.id
+
+        self.parent = None
+        self.children = []
+
+        self.type = None
+        self.title = ''
+        self.subtitle = None
         self.href = None
+        self.tags = None
+        self.attrs = None
+
+    def add_child(self, child):
+        self.children.append(child)
+        child.parent = self
+
+    def __get_attrs(self, report):
+        attrs_list = list(ReportAttr.objects.filter(report=report).order_by('name').values('name', 'value', 'compare'))
+        for attr in attrs_list:
+            attr['type'] = 'compared' if attr['compare'] else 'normal'
+        return attrs_list
+
+    def __get_tags(self, mark):
+        return list(mark.versions.order_by('-version').first().tags.values_list('tag__tag', flat=True))
+
+    @property
+    def ascendants(self):
+        branch = []
+        if self.parent:
+            branch.extend(self.parent.ascendants)
+        branch.append(self)
+        return branch
+
+    @property
+    def root(self):
+        if self.parent:
+            return self.parent.root
+        return self
+
+
+class UnknownMarkBlock(CompareBlock):
+    def __init__(self, mark_report):
+        super().__init__("fm_{}".format(mark_report.mark_id))
+        self.type = 'mark'
+        self.title = _('Unknowns mark')
+        self.href = reverse('marks:mark', args=['unknown', mark_report.mark_id])
+        self.subtitle = {'text': mark_report.problem}
+
+
+class SafeMarkBlock(CompareBlock):
+    def __init__(self, mark_report):
+        super().__init__("sm_{}".format(mark_report.mark_id))
+        self.type = 'mark'
+        self.title = _('Safes mark')
+        self.href = reverse('marks:mark', args=['safe', mark_report.mark_id])
+        self.subtitle = {
+            'text': mark_report.mark.get_verdict_display(),
+            'color': SAFE_COLOR[mark_report.mark.verdict]
+        }
+        self.tags = self.__get_tags(mark_report.mark)
+
+
+class UnsafeMarkBlock(CompareBlock):
+    def __init__(self, mark_report):
+        super().__init__("um_{}".format(mark_report.mark_id))
+        self.type = 'mark'
+        self.title = _('Unsafes mark')
+        self.href = reverse('marks:mark', args=['unsafe', mark_report.mark_id])
+        self.subtitle = {
+            'text': mark_report.mark.get_verdict_display(),
+            'color': UNSAFE_COLOR[mark_report.mark.verdict]
+        }
+        self.tags = self.__get_tags(mark_report.mark)
+
+
+class UnknownBlock(CompareBlock):
+    def __init__(self, report):
+        super().__init__("f_{}".format(report.pk), block_class='unknown_{}'.format(report.component))
+        self.type = 'unknown'
+        self.title = _('Unknown')
+        self.href = reverse('reports:unknown', args=[report.pk])
+        self.subtitle = {'text': report.component}
+        self.attrs = self.__get_attrs(report)
+
+
+class UnsafeBlock(CompareBlock):
+    def __init__(self, report):
+        super().__init__("u_{}".format(report.pk), block_class='unsafe')
+        self.type = 'unsafe'
+        self.title = _('Unsafe')
+        self.href = reverse('reports:unsafe', args=[report.pk])
+        self.subtitle = {
+            'text': report.get_verdict_display(),
+            'color': UNSAFE_COLOR[report.verdict]
+        }
+        self.attrs = self.__get_attrs(report)
+
+
+class SafeBlock(CompareBlock):
+    def __init__(self, report):
+        super().__init__("s_{}".format(report.pk), block_class='safe')
+        self.type = 'safe'
+        self.title = _('Safe')
+        self.href = reverse('reports:safe', args=[report.pk])
+        self.subtitle = {
+            'text': report.get_verdict_display(),
+            'color': SAFE_COLOR[report.verdict]
+        }
+        self.attrs = self.__get_attrs(report)
+
+
+class ComponentBlock(CompareBlock):
+    def __init__(self, report):
+        super().__init__("c_{}".format(report.pk), block_class=report.component)
+        self.type = 'component'
+        self.title = report.component
+        self.href = reverse('reports:component', args=[report.pk])
+        self.attrs = self.__get_attrs(report)
+
+
+class ComparisonTree:
+    def __init__(self):
+        self._blocks = {}
+        self._leaves = []
+
+    def __get_reports_branch(self, report):
+        curr_parent = None
+        parents_ids = list(r.pk for r in report.get_ancestors())
+        for report in ReportComponent.objects.filter(id__in=parents_ids).order_by('id'):
+            if report.pk not in self._blocks:
+                self._blocks[report.pk] = ComponentBlock(report)
+                if curr_parent:
+                    curr_parent.add_child(self._blocks[report.pk])
+            curr_parent = self._blocks[report.pk]
+        return curr_parent
+
+    def update_tree(self, report, hide_components):
+        # Get parents branch if components are shown
+        parent = None
+        if not hide_components:
+            parent = self.__get_reports_branch(report)
+
+        # Create new leaf block with marks children
+        if isinstance(report, ReportSafe):
+            new_block = SafeBlock(report)
+            mr_qs = MarkSafeReport.objects.filter(report=report).select_related('mark')
+            children = list(SafeMarkBlock(mr) for mr in mr_qs)
+        elif isinstance(report, ReportUnsafe):
+            new_block = UnsafeBlock(report)
+            mr_qs = MarkUnsafeReport.objects.filter(
+                report=report, result__gt=0,
+                type__in=[ASSOCIATION_TYPE[0][0], ASSOCIATION_TYPE[1][0]]
+            ).select_related('mark')
+            children = list(UnsafeMarkBlock(mr) for mr in mr_qs)
+        else:
+            new_block = UnknownBlock(report)
+            mr_qs = MarkUnknownReport.objects.filter(report=report)
+            children = list(UnknownMarkBlock(mr) for mr in mr_qs)
+
+        # Link new block with parent and children
+        if parent:
+            parent.add_child(new_block)
+        for child in children:
+            new_block.add_child(child)
+
+        self._leaves.append(new_block)
+
+    @property
+    def blocks(self):
+        blocks_list = []
+        for leaf in self._leaves:
+            # Includes leaf
+            for parent in leaf.ascendants:
+                if parent not in blocks_list:
+                    blocks_list.append(parent)
+        return blocks_list
+
+    def levels(self):
+        # initialize first level (Core or leaves)
+        current_level = []
+        for leaf in self._leaves:
+            leaf_root = leaf.root
+            if leaf_root not in current_level:
+                current_level.append(leaf_root)
+
+        while len(current_level):
+            yield current_level
+            next_level = []
+            for block in current_level:
+                for child in block.children:
+                    next_level.append(child)
+            current_level = next_level

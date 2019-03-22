@@ -20,6 +20,9 @@ from django.core.management.base import BaseCommand, CommandError
 from bridge.vars import USER_ROLES
 from users.models import User
 from jobs.population import JobsPopulation
+from marks.population import (
+    PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
+)
 
 
 class Command(BaseCommand):
@@ -44,38 +47,64 @@ class Command(BaseCommand):
             try:
                 res = JobsPopulation().populate()
             except Exception as e:
+                # TODO
                 raise
-                raise CommandError('Jobs population failed: %s' % e)
+                # raise CommandError('Jobs population failed: %s' % e)
             self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % len(res))
 
         # Safe marks
         if options['all'] or options['marks'] or options['marks_s']:
             self.stdout.write('Safe marks population started')
-            res = []
-            self.stdout.write("Safe marks were populated successfully. Number of new marks: %s" % len(res))
+            try:
+                res = PopulateSafeMarks()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Safe marks population failed: %s' % e)
+            self.stdout.write("{} of {} safe marks were populated".format(res.created, res.total))
 
         # Unsafe marks
         if options['all'] or options['marks'] or options['marks_u']:
             self.stdout.write('Unsafe marks population started')
-            res = []
-            self.stdout.write("Unsafe marks were populated successfully. Number of new marks: %s" % len(res))
+            try:
+                res = PopulateUnsafeMarks()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Unsafe marks population failed: %s' % e)
+            self.stdout.write("{} of {} unsafe marks were populated".format(res.created, res.total))
 
         # Unknown marks
         if options['all'] or options['marks'] or options['marks_f']:
             self.stdout.write('Unknown marks population started')
-            res = []
-            self.stdout.write("Unknown marks were populated successfully. Number of new marks: %s" % len(res))
+            try:
+                res = PopulateUnknownMarks()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Unknown marks population failed: %s' % e)
+            self.stdout.write("{} of {} unknown marks were populated".format(res.created, res.total))
 
         # Safe tags
         if options['all'] or options['tags'] or options['tags_s']:
             self.stdout.write('Safe tags population started')
-            res = []
-            self.stdout.write("Safe tags were populated successfully. Number of new tags: %s" % len(res))
+            try:
+                res = PopulateSafeTags()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Safe tags population failed: %s' % e)
+            self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
 
         # Unsafe tags
         if options['all'] or options['tags'] or options['tags_u']:
             self.stdout.write('Unsafe tags population started')
-            res = []
-            self.stdout.write("Unsafe tags were populated successfully. Number of new tags: %s" % len(res))
+            try:
+                res = PopulateUnsafeTags()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Unsafe tags population failed: %s' % e)
+            self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
 
-        self.stdout.write('Population was successfully finished')
+        self.stdout.write('Population was successfully finished!')

@@ -42,7 +42,6 @@ JOB_TREE_VIEW = {
     # status: <list of identifiers from JOB_STATUS>
     # resource_component: [iexact|istartswith|icontains, <any text>]
     # problem_component: [iexact|istartswith|icontains, <any text>]
-    # problem_problem: [iexact|istartswith|icontains, <any text>]
     # format: [is|isnot, <number>]
     # priority: [le|e|me, <identifier from PRIORITY>]
     # finish_date: [is|older|younger, <month number>, <year>]
@@ -54,7 +53,6 @@ JOB_TREE_VIEW = {
     # 'status': ['2', '5', '1'],
     # 'resource_component': ['istartswith', 'D'],
     # 'problem_component': ['iexact', 'BLAST'],
-    # 'problem_problem': ['icontains', '1'],
     # 'format': ['is', '1'],
     # 'priority': ['me', 'LOW'],
     # 'finish_date': ['is', '1', '2016'],
@@ -149,7 +147,7 @@ UNSAFE_MARKS_VIEW = {
     # status: [is|isnot, <id from MARK_STATUS>]
     # verdict: [is|isnot, <id from MARK_UNSAFE>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
+    # source: [is|isnot, <id from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
@@ -164,15 +162,15 @@ UNSAFE_MARKS_VIEW = {
 SAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
+    # order: [up|down, change_date|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from MARK_SAFE>]
+    # status: [<ids from MARK_STATUS>]
+    # verdict: [<ids from MARK_SAFE>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
+    # source: [<ids from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
@@ -195,7 +193,7 @@ UNKNOWN_MARKS_VIEW = {
     # status: [is|isnot, <id from MARK_STATUS>]
     # component: [is|startswith, <any text>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_TYPE>]
+    # source: [is|isnot, <id from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
@@ -345,6 +343,7 @@ class ViewData:
         self._views = self.__views()
         self._view = None
         self._view_id = None
+        self._unsaved = False
         self.__get_args(request_args)
         self.__get_view()
 
@@ -362,6 +361,8 @@ class ViewData:
             return self._views
         elif item == 'view_id':
             return self._view_id
+        elif item == 'is_unsaved':
+            return self._unsaved
         return self._view.get(item)
 
     def __get_template(self, view_name):
@@ -379,6 +380,7 @@ class ViewData:
         if self._view is not None:
             self._title = '{0} ({1})'.format(_('View'), _('unsaved'))
             self._view = json.loads(self._view)
+            self._unsaved = True
             return
         if self._view_id is None:
             pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
@@ -455,6 +457,14 @@ class HumanizedValue:
         return self.get_templated_text(
             '{% load l10n %}{{ value }} {{ postfix }}', value=value, postfix=postfix
         )
+
+    @property
+    def float(self):
+        if isinstance(self.initial_value, int):
+            self.initial_value = float(self.initial_value)
+        elif not isinstance(self.initial_value, float):
+            return self.default
+        return str(self.__round_float(self.initial_value))
 
     def __round_float(self, value):
         if not self.humanized:

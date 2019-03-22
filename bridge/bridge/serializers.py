@@ -1,33 +1,25 @@
-from django.contrib.humanize.templatetags.humanize import naturaltime
+import datetime
+import pytz
 
-from rest_framework.fields import DateTimeField
+from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import DATAFORMAT
+from rest_framework import fields
 
 
-class NaturalDateTimeField(DateTimeField):
+class TimeStampField(fields.Field):
+    default_error_messages = {'invalid': _('Timastamp format is wrong. Float expected.')}
+
     def __init__(self, *args, **kwargs):
+        self.timezone = kwargs.pop('timezone', 'UTC')
         super().__init__(*args, **kwargs)
-        self.format = 'r'
 
     def to_internal_value(self, value):
-        if not value:
-            return None
-        if self.root and hasattr(self.root, 'context') and 'request' in self.root.context:
-            user = self.root.context['request'].user
-            if user.is_authenticated and user.data_format == DATAFORMAT[1][0]:
-                return naturaltime(value)
-
-        output_format = getattr(self, 'format', api_settings.DATETIME_FORMAT)
-
-        if output_format is None or isinstance(value, six.string_types):
+        if isinstance(value, datetime.datetime):
             return value
+        try:
+            return datetime.datetime.fromtimestamp(float(value), pytz.timezone(self.timezone))
+        except (ValueError, TypeError):
+            self.fail('invalid')
 
-        value = self.enforce_timezone(value)
-
-        if output_format.lower() == ISO_8601:
-            value = value.isoformat()
-            if value.endswith('+00:00'):
-                value = value[:-6] + 'Z'
-            return value
-        return value.strftime(output_format)
+    def to_representation(self, value):
+        return value.timestamp() if value else None

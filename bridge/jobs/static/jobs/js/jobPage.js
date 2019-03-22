@@ -175,12 +175,11 @@ function show_warn_modal(btn, warn_text_id, action_func, disabled) {
 
 function remove_job() {
     $('#dimmer_of_page').addClass('active');
-    $.post(
-        '/jobs/remove/',
-        {jobs: JSON.stringify([$('#job_id').val()])},
+    $.delete(
+        '/jobs/api/' + $('#job_id').val() + '/remove/', {},
         function (data) {
             $('#dimmer_of_page').removeClass('active');
-            data.error ? err_notify(data.error) : window.location.replace('/jobs/');
+            window.location.replace('/jobs/');
         }, 'json'
     );
 }

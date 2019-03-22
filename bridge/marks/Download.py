@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkUnsafeCompare
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils

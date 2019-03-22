@@ -16,22 +16,28 @@
 #
 
 
+import json
+import mimetypes
+
 from difflib import unified_diff
 
 from django.db.models import F
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, StreamingHttpResponse
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView, get_object_or_404, GenericAPIView, CreateAPIView, UpdateAPIView
+from rest_framework.generics import (
+    RetrieveAPIView, get_object_or_404, GenericAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+)
 from rest_framework.mixins import UpdateModelMixin, CreateModelMixin
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
-from bridge.access import WriteJobPermission, ViewJobPermission
+from bridge.access import WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission
 from bridge.vars import JOB_STATUS
+from bridge.utils import logger
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job, JobHistory, JobFile, FileSystem
@@ -39,6 +45,9 @@ from jobs.serializers import (
     JobFilesField, CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
     DuplicateJobSerializer
 )
+from jobs.configuration import get_configuration_value
+from jobs.Download import KleverCoreArchiveGen
+from jobs.utils import JobAccess
 from reports.serializers import DecisionResultsSerializerRO
 
 
@@ -86,13 +95,11 @@ class JobHistoryFiles(RetrieveAPIView):
 
 class CreateFileView(LoggedCallMixin, CreateAPIView):
     unparallel = [JobFile]
-    # queryset = JobFile.objects.all()
     serializer_class = JobFileSerializer
     permission_classes = (IsAuthenticated,)
 
 
 class FileContentView(LoggedCallMixin, RetrieveAPIView):
-    lookup_url_kwarg = 'hashsum'
     lookup_field = 'hash_sum'
     queryset = JobFile.objects.all()
     permission_classes = (IsAuthenticated,)
@@ -158,7 +165,7 @@ class ReplaceJobFileView(LoggedCallMixin, UpdateAPIView):
         return Response({})
 
 
-class DuplicateJobAPIView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, GenericAPIView):
+class DuplicateJobView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, GenericAPIView):
     unparallel = [Job]
     serializer_class = DuplicateJobSerializer
     permission_classes = (WriteJobPermission,)
@@ -170,7 +177,7 @@ class DuplicateJobAPIView(LoggedCallMixin, UpdateModelMixin, CreateModelMixin, G
         return self.partial_update(request, *args, **kwargs)
 
 
-class DecisionResultsAPIView(LoggedCallMixin, RetrieveAPIView):
+class DecisionResultsView(LoggedCallMixin, RetrieveAPIView):
     serializer_class = DecisionResultsSerializerRO
     permission_classes = (ViewJobPermission,)
     queryset = Job.objects.all()
@@ -182,3 +189,72 @@ class DecisionResultsAPIView(LoggedCallMixin, RetrieveAPIView):
         if obj.status in {JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]}:
             raise exceptions.ValidationError(detail='The job is not decided yet')
         return obj
+
+
+class RemoveJobView(LoggedCallMixin, DestroyAPIView):
+    permission_classes = (DestroyJobPermission,)
+    queryset = Job.objects.all()
+
+
+# TODO
+class UploadJobsAPIView(LoggedCallMixin, APIView):
+    unparallel = [Job, 'AttrName']
+    permission_classes = (WriteJobPermission,)
+
+
+class CoreJobArchiveView(LoggedCallMixin, RetrieveAPIView):
+    unparallel = ['Job']
+    permission_classes = (ServicePermission,)
+    queryset = Job.objects.all()
+    lookup_field = 'identifier'
+    lookup_url_kwarg = 'identifier'
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance.status == JOB_STATUS[1][0]:
+            # Update pending job
+            serializer = JobStatusSerializer(instance=instance, data={'status': JOB_STATUS[2][0]})
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+        elif instance.status != JOB_STATUS[2][0]:
+            raise exceptions.APIException('The job is not solving')
+
+        generator = KleverCoreArchiveGen(instance)
+        mimetype = mimetypes.guess_type(generator.arcname)[0]
+        response = StreamingHttpResponse(generator, content_type=mimetype)
+        response['Content-Disposition'] = 'attachment; filename="%s"' % generator.arcname
+        return response
+
+
+class StartJobDefValue(LoggedCallMixin, APIView):
+    def post(self, request):
+        try:
+            return get_configuration_value(request.data['name'], request.data['value'])
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException()
+
+
+class CheckDownloadAccessView(LoggedCallMixin, APIView):
+    def post(self, request):
+        job_ids = json.loads(request.POST.get('jobs', '[]'))
+        jobs_qs = Job.objects.filter(id__in=job_ids)
+        if len(jobs_qs) != len(job_ids):
+            raise exceptions.APIException(_('One of the selected jobs was not found'))
+        if not JobAccess(self.request.user).can_download_jobs(jobs_qs):
+            raise exceptions.APIException(_("You don't have an access to one of the selected jobs"))
+        # TODO: check if None data is allowed
+        return Response()
+
+
+class CheckCompareAccessView(LoggedCallMixin, APIView):
+    def post(self, request):
+        try:
+            j1 = Job.objects.get(id=self.kwargs['job1'])
+            j2 = Job.objects.get(id=self.kwargs['job2'])
+        except Job.DoesNotExist:
+            raise exceptions.APIException(_('One of the selected jobs was not found'))
+        if not JobAccess(self.request.user, job=j1).can_view() or not JobAccess(self.request.user, job=j2).can_view():
+            raise exceptions.APIException(_("You don't have an access to one of the selected jobs"))
+        return Response({})

@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "description": "EMG declares and operates with variables of types non-visible in the file with an entry point.",
+  "function": "implicit declaration of function",
+  "link": "http://forge.ispras.ru/issues/7244",
+  "problem_pattern": "Implicit decl",
+  "production": true
+}

@@ -25,7 +25,7 @@ from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 from bridge.utils import logger, BridgeException
 
 from reports.models import ReportAttr, ComponentInstances, ReportUnknown
-from marks.models import MarkUnknownReport, SafeReportTag, UnsafeReportTag
+from marks.models import MarkUnknownReport
 
 from marks.serializers import SafeTagSerializer, UnsafeTagSerializer
 
@@ -40,28 +40,28 @@ COLORS = {
 }
 
 
-class SafeReportTagsSerializer(serializers.ModelSerializer):
-    tag = SafeTagSerializer()
-    padding = serializers.SerializerMethodField()
-
-    def get_padding(self, instance):
-        return 13 * instance.tag.get_level()
-
-    class Meta:
-        model = SafeReportTag
-        fields = ('tag', 'report', 'number', 'padding')
-
-
-class UnsafeReportTagsSerializer(serializers.ModelSerializer):
-    tag = UnsafeTagSerializer()
-    padding = serializers.SerializerMethodField()
-
-    def get_padding(self, instance):
-        return 13 * instance.tag.get_level()
-
-    class Meta:
-        model = UnsafeReportTag
-        fields = ('tag', 'report', 'number', 'padding')
+# class SafeReportTagsSerializer(serializers.ModelSerializer):
+#     tag = SafeTagSerializer()
+#     padding = serializers.SerializerMethodField()
+#
+#     def get_padding(self, instance):
+#         return 13 * instance.tag.get_level()
+#
+#     class Meta:
+#         model = SafeReportTag
+#         fields = ('tag', 'report', 'number', 'padding')
+#
+#
+# class UnsafeReportTagsSerializer(serializers.ModelSerializer):
+#     tag = UnsafeTagSerializer()
+#     padding = serializers.SerializerMethodField()
+#
+#     def get_padding(self, instance):
+#         return 13 * instance.tag.get_level()
+#
+#     class Meta:
+#         model = UnsafeReportTag
+#         fields = ('tag', 'report', 'number', 'padding')
 
 
 class ViewJobData:

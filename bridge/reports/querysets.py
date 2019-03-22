@@ -5,10 +5,10 @@ from django.utils.functional import cached_property
 from bridge.vars import ASSOCIATION_TYPE
 from bridge.rawQuery import RawQuery, EmptyQuery
 
-from reports.models import Component, Report, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ReportAttr, Attr, AttrName
+from reports.models import Report, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
+    ReportAttr
 from marks.models import MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, SafeTag, UnsafeTag,\
-    SafeReportTag, UnsafeReportTag, UnknownProblem
+    SafeReportTag, UnsafeReportTag
 
 
 class LeavesQuery:

@@ -36,19 +36,14 @@
                     style="{% if row_data.black %}color: silver;{% endif %}{% if row_data.parent %}display:none;{% endif %}">
                 {% for v in row_data.values %}
                     {% if v.column == 'checkbox' %}
-                        <td id="value__{{ row_data.id }}" class="one wide">
+                        <td class="one wide">
                             <div class="ui fitted checkbox">
-                                <input type="checkbox" id="job_checkbox__{{ row_data.id }}">
-                                <label for="job_checkbox__{{ row_data.id }}"></label>
+                                <input class="job-checkbox" type="checkbox" data-row="{{ row_data.id }}" placeholder="">
                             </div>
                         </td>
                     {% else %}
-                        <td id="value__{{ v.id }}__{{ row_data.id }}" class="collapsing">
-                            {% if v.href %}
-                                <a href="{{ v.href }}">{{ v.value }}</a>
-                            {% else %}
-                                <span>{{ v.value|safe }}</span>
-                            {% endif %}
+                        <td class="collapsing cell-column-{{ v.column }} cell-row-{{ row_data.id }}"{% if v.number %} data-number="{{ v.number }}"{% endif %}>
+                            {% if v.html %}{{ v.html|safe }}{% elif v.text %}{{ v.text }}{% endif %}
                         </td>
                     {% endif %}
                 {% endfor %}
@@ -59,14 +54,14 @@
         <thead>
         <tr style="background: #cafdff;">
             <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All' %}</th>
-            {% for fc in TableData.footer %}
-                <td id="all__{{ fc }}">-</td>
+            {% for fcol in TableData.footer %}
+                {% if fcol %}<td class="all-footer-col" data-column="{{ fcol }}">-</td>{% else %}<td>-</td>{% endif %}
             {% endfor %}
         </tr>
         <tr style="background: #cafdff">
             <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All for checked' %}</th>
-            {% for fc in TableData.footer %}
-                <td id="checked__{{ fc }}">-</td>
+            {% for fcol in TableData.footer %}
+                {% if fcol %}<td class="checked-footer-col" data-column="{{ fcol }}">-</td>{% else %}<td>-</td>{% endif %}
             {% endfor %}
         </tr>
         </thead>

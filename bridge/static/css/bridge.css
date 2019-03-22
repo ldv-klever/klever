@@ -105,6 +105,7 @@ body {
 }
 
 .small-text {
+    float: right;
     color: #9d7ac9;
     font-size: 0.9em;
     font-style: italic;
@@ -132,4 +133,8 @@ body {
 
 .errorlist {
     color: #ff414c;
+}
+
+.tag-popup {
+    min-width:260px!important;
 }

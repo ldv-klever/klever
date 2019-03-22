@@ -19,6 +19,7 @@ import json
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F
 from django.http import JsonResponse, Http404
 from django.template.defaulttags import register
@@ -32,21 +33,23 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
-from bridge.vars import USER_ROLES, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
+from bridge.vars import USER_ROLES, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_SOURCE, ASSOCIATION_TYPE,\
     VIEW_TYPES, PROBLEM_DESC_FILE
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkAssociationsChanges,\
+    UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,\
     SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 import marks.utils as mutils
-from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
+from marks.tags import GetParents, SaveTag, TagsInfo, TagAccess, AllTagsTree, DownloadTags
 from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks, PresetMarkFile
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
+from marks.tables import MarkData, MarkReportsTable, SafeMarksList, AssociationChangesTable
+
+from marks.serializers import SMVlistSerializerRO
 
 
 @register.filter
@@ -54,8 +57,28 @@ def value_type(value):
     return str(type(value))
 
 
-@method_decorator(login_required, name='dispatch')
-class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class SafeMarkPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'marks/SafeMark.html'
+    model = MarkSafe
+
+    def get_context_data(self, **kwargs):
+        history_set = self.object.versions.select_related('mark', 'author').order_by('-version')
+        mark_version = history_set[0]
+        return {
+            'mark': self.object, 'mark_version': mark_version,
+            'access': mutils.MarkAccess(self.request.user, mark=self.object),
+            'versions': SMVlistSerializerRO(instance=history_set, many=True).data,
+            'report_id': self.request.GET.get('report_to_redirect'),
+            'tags': TagsInfo('safe', list(mt.tag.pk for mt in mark_version.tags.all())),
+
+            'ass_types': ASSOCIATION_TYPE, 'view_tags': True,
+            'reports': MarkReportsTable(self.request.user, self.object,
+                                        self.get_view(VIEW_TYPES[14]),
+                                        page=self.request.GET.get('page', 1))
+        }
+
+
+class MarkPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     template_name = 'marks/Mark.html'
     model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
 
@@ -63,8 +86,6 @@ class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return self.model_map[self.kwargs['type']].objects.all()
 
     def get_context_data(self, **kwargs):
-        if self.object.version == 0:
-            raise BridgeException(code=605)
         view_type_map = {'safe': VIEW_TYPES[14], 'unsafe': VIEW_TYPES[13], 'unknown': VIEW_TYPES[15]}
         history_set = self.object.versions.order_by('-version')
 
@@ -91,7 +112,7 @@ class MarkPage(LoggedCallMixin, Bview.DataViewMixin, DetailView):
 
 @method_decorator(login_required, name='dispatch')
 class AssociationChangesView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
-    model = MarkAssociationsChanges
+    # model = MarkAssociationsChanges
     template_name = 'marks/SaveMarkResult.html'
     slug_field = 'identifier'
     slug_url_kwarg = 'association_id'
@@ -101,21 +122,28 @@ class AssociationChangesView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return {'TableData': AssociationChangesTable(self.object, self.get_view(view_type_map[self.kwargs['type']]))}
 
 
+class SafeMarksListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, TemplateView):
+    template_name = 'marks/SafeMarkList.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tabledata'] = SafeMarksList(self.request.user, self.get_view(VIEW_TYPES[8]), self.request.GET)
+        return context
+
+
 @method_decorator(login_required, name='dispatch')
 class MarksListView(LoggedCallMixin, Bview.DataViewMixin, TemplateView):
     template_name = 'marks/MarkList.html'
 
     def get_context_data(self, **kwargs):
-        context = {'authors': User.objects.all(), 'statuses': MARK_STATUS, 'mark_types': MARK_TYPE}
-        if self.kwargs['type'] == 'safe':
-            context['verdicts'] = MARK_SAFE
-        elif self.kwargs['type'] == 'unsafe':
-            context['verdicts'] = MARK_UNSAFE
+        context = super().get_context_data(**kwargs)
 
-        view_type_map = {'safe': VIEW_TYPES[8], 'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
-        context['tabledata'] = MarksList(self.request.user, self.kwargs['type'],
-                                         self.get_view(view_type_map[self.kwargs['type']]),
-                                         page=int(self.request.GET.get('page', 1)))
+        view_type_map = {'unsafe': VIEW_TYPES[7], 'unknown': VIEW_TYPES[9]}
+        context['tabledata'] = SafeMarksList(
+            self.request.user,
+            self.get_view(view_type_map[self.kwargs['type']]),
+            self.request.GET
+        )
         return context
 
 
@@ -126,37 +154,6 @@ class MarkFormView(LoggedCallMixin, DetailView):
         'create': {'safe': ReportSafe, 'unsafe': ReportUnsafe, 'unknown': ReportUnknown}
     }
     template_name = 'marks/MarkForm.html'
-
-    def get_unparallel(self):
-        if self.request.method == 'POST':
-            return [MarkSafe, MarkUnsafe, MarkUnknown]
-        return []
-
-    def post(self, *args, **kwargs):
-        self.is_not_used(*args, **kwargs)
-
-        self.object = self.get_object()
-        if self.kwargs['action'] == 'create' \
-                and not mutils.MarkAccess(self.request.user, report=self.object).can_create():
-            raise BridgeException(_("You don't have an access to create new marks"), response_type='json')
-        elif self.kwargs['action'] == 'edit' \
-                and not mutils.MarkAccess(self.request.user, mark=self.object).can_edit():
-            raise BridgeException(_("You don't have an access to edit this mark"), response_type='json')
-
-        try:
-            res = mutils.NewMark(self.request.user, self.object, json.loads(self.request.POST['data']))
-            if self.kwargs['action'] == 'edit':
-                res.change_mark()
-            else:
-                res.create_mark()
-            cache_id = MarkChangesTable(self.request.user, res.mark, res.changes).cache_id
-        except BridgeException as e:
-            raise BridgeException(str(e), response_type='json')
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException(response_type='json')
-
-        return JsonResponse({'cache_id': cache_id})
 
     def get_queryset(self):
         return self.model_map[self.kwargs['action']][self.kwargs['type']].objects.all()
@@ -341,6 +338,8 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
 
 
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
+    unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
+
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
             return super().dispatch(request, *args, **kwargs)
@@ -375,36 +374,21 @@ class SaveTagView(LoggedCallMixin, Bview.JsonView):
         return {}
 
 
-@method_decorator(login_required, name='dispatch')
-class TagsTreeView(LoggedCallMixin, TemplateView):
+class TagsTreeView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'marks/TagsTree.html'
 
     def get_context_data(self, **kwargs):
-        return {
-            'title': _('Safe tags') if self.kwargs['type'] == 'safe' else _('Unsafe tags'),
-            'tags_type': self.kwargs['type'],
-            'tags': GetTagsData(self.kwargs['type'], user=self.request.user).table.data,
-            'can_create': TagAccess(self.request.user, None).create()
-        }
-
-
-@method_decorator(login_required, name='dispatch')
-class DownloadTagsView(LoggedCallMixin, Bview.StreamingResponseView):
-    def get_generator(self):
-        generator = mutils.DownloadTags(self.kwargs['type'])
-        self.file_name = 'Tags-%s.json' % self.kwargs['type']
-        self.file_size = generator.file_size()
-        return generator
-
-
-class UploadTagsView(LoggedCallMixin, Bview.JsonView):
-    def get_context_data(self, **kwargs):
-        if not TagAccess(self.request.user, None).create():
-            raise BridgeException(_("You don't have an access to upload tags"))
-        if 'file' not in self.request.FILES:
+        if self.kwargs['type'] not in {'safe', 'unsafe'}:
             raise BridgeException()
-        CreateTagsFromFile(self.request.user, self.request.FILES['file'], self.kwargs['type'])
-        return {}
+        context = super().get_context_data(**kwargs)
+        context['title'] = _('Safe tags') if self.kwargs['type'] == 'safe' else _('Unsafe tags')
+        context['tree'] = AllTagsTree(self.request.user, self.kwargs['type'])
+        return context
+
+
+class DownloadTagsView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
+    def get_generator(self):
+        return DownloadTags(self.kwargs['type'])
 
 
 class TagDataView(LoggedCallMixin, Bview.JsonView):
@@ -527,7 +511,7 @@ class DeleteMarksView(LoggedCallMixin, Bview.JsonView):
 
 
 class GetFuncDescription(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = MarkUnsafeCompare
+    # model = MarkUnsafeCompare
 
     def get_context_data(self, **kwargs):
         return {
@@ -542,7 +526,6 @@ class CheckUnknownMarkView(LoggedCallMixin, Bview.JsonDetailPostView):
 
     def get_context_data(self, **kwargs):
         res = mutils.UnknownUtils.CheckFunction(
-            ArchiveFileContent(self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
-            self.request.POST['function'], self.request.POST['pattern'], self.request.POST['is_regex']
+            self.object, self.request.POST['function'], self.request.POST['pattern'], self.request.POST['is_regex']
         )
         return {'result': res.match, 'problem': res.problem, 'matched': int(res.problem is not None)}

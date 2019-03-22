@@ -31,7 +31,7 @@ import marks.UnknownUtils as UnknownUtils
 from users.models import User
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory,\
-    SafeTag, UnsafeTag, ConvertedTraces, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
+    SafeTag, UnsafeTag, ConvertedTrace, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 
 STATUS_COLOR = {
@@ -60,7 +60,6 @@ SAFE_COLOR = {
 
 
 class MarkAccess:
-
     def __init__(self, user, mark=None, report=None):
         self.user = user
         self.mark = mark
@@ -99,27 +98,24 @@ class MarkAccess:
     def can_create(self):
         if not isinstance(self.user, User):
             return False
-        if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if self.user.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
-                return True
-            first_v = self.report.root.job.versions.order_by('version').first()
-            if first_v.change_author == self.user:
-                return True
-            try:
-                last_v = self.report.root.job.versions.get(version=self.report.root.job.version)
-            except ObjectDoesNotExist:
-                return False
-            if last_v.global_role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                return True
-            try:
-                user_role = last_v.userrole_set.get(user=self.user)
-                if user_role.role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
-                    return True
-            except ObjectDoesNotExist:
-                return False
-        elif self.user.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+        if self.user.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
             return True
-        return False
+        if not isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
+            return False
+        if self.report.root.job.author == self.user:
+            return True
+        try:
+            last_v = self.report.root.job.versions.get(version=self.report.root.job.version)
+        except ObjectDoesNotExist:
+            return False
+        if last_v.global_role in {JOB_ROLES[2][0], JOB_ROLES[4][0]}:
+            return True
+        try:
+            user_role = last_v.userrole_set.get(user=self.user)
+            if user_role.role in {JOB_ROLES[2][0], JOB_ROLES[4][0]}:
+                return True
+        except ObjectDoesNotExist:
+            return False
 
     def can_delete(self):
         if not isinstance(self.user, User):
@@ -334,33 +330,6 @@ def delete_marks(user, marks_type, mark_ids, report_id=None):
         except ObjectDoesNotExist:
             return None
         return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
-
-
-class DownloadTags:
-    def __init__(self, tags_type):
-        self._type = tags_type
-        self._data = self.__get_tags_data()
-
-    def __iter__(self):
-        yield self._data
-
-    def file_size(self):
-        return len(self._data)
-
-    def __get_tags_data(self):
-        if self._type == 'safe':
-            tags_model = SafeTag
-        elif self._type == 'unsafe':
-            tags_model = UnsafeTag
-        else:
-            return b''
-        tags_data = []
-        for tag in tags_model.objects.all():
-            tag_data = {'name': tag.tag, 'description': tag.description}
-            if tag.parent is not None:
-                tag_data['parent'] = tag.parent.tag
-            tags_data.append(tag_data)
-        return json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
 
 
 class UpdateAssociationCache:

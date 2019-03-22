@@ -63,7 +63,7 @@
                 {% endif %}
                 <tr id="computer_description_tr" data-variation="very wide">
                     <th class="right aligned">{% trans 'Computer' %}</th>
-                    <td>{{ computer.name }}</td>
+                    <td>{{ report.computer.display }}</td>
                 </tr>
             </tbody>
         </table>
@@ -123,10 +123,10 @@
             </div>
         </div>
         <div id="computer_info_popup" class="ui popup">
-            <div class="header">{{ computer.name }}</div>
+            <div class="header">{{ report.computer.display }}</div>
             <div class="content" style="white-space:nowrap;">
-                {% for c_data in computer.data %}
-                    <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br>
+                {% for prop in report.computer.data %}
+                    <p><span class="purple-subtitle">{{ prop.0 }}: </span>{{ prop.1 }}</p>
                 {% endfor %}
             </div>
         </div>
@@ -146,53 +146,32 @@
             {% if report.verifier_input %}
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
             {% endif %}
-            {% if report.covnum > 0 %}
+            {% if report.coverages.count > 0 %}
                 <a href="{% if user.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
             {% endif %}
         </div>
     </div>
 
     <div class="ten wide column">
-        <div class="ui breadcrumb">
-            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
-            <div class="ui special popup">
-                <div class="header">{{ parents.0.title }}</div>
-                <div class="content">
-                    {% for attr in parents.0.attrs %}
-                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
-                    {% endfor %}
-                </div>
-            </div>
-            {% for parent in parents|slice:"1:" %}
-                <i class="right arrow icon divider"></i>
-                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
-                <div class="ui special popup">
-                    <div class="header">{{ parent.title }}</div>
-                    <div class="content">
-                        {% for attr in parent.attrs %}
-                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+        {% include 'reports/parents_breadcrumb.html' with parents=parents %}
+
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
             {% include TableData.view.template with view=TableData.view %}
-            {% if TableData.table_data.values|length %}
+            {% if TableData.values|length %}
                 <div>
-                    {% if TableData.table_data.values.has_previous %}
-                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+                    {% if TableData.page.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.page.previous_page_number }}"></i>
                     {% endif %}
-                    <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-                    {% if TableData.table_data.values.has_next %}
-                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+                    <span>{% blocktrans with n1=TableData.page.number n2=TableData.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if TableData.page.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.page.next_page_number }}"></i>
                     {% endif %}
                 </div>
                 <div style="overflow: auto;max-height: 40vh;">
                     <table class="ui celled compact teal table selectable alternate-color">
                         <thead>
-                            {% for column_row in TableData.table_data.header %}
+                            {% for column_row in TableData.header %}
                                 <tr>
                                 {% for coldata in column_row %}
                                     <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -201,12 +180,17 @@
                             {% endfor %}
                         </thead>
                         <tbody>
-                            {% for v in TableData.table_data.values %}
+                            {% for row in TableData.values %}
                                 <tr>
-                                    <td class="collapsing"><a href="{% url 'reports:component' v.pk %}">{{ v.component.name }}</a></td>
-                                    {% for attr in v.attrs %}
-                                        <td class="collapsing"><span>{{ attr }}</span></td>
+                                    <td class="collapsing">
+                                    {% for cell_data in row %}
+                                        {% if cell_data.href %}
+                                            <a href="{{ cell_data.href }}">{{ cell_data.value }}</a>
+                                        {% else %}
+                                            <span>{{ cell_data.value }}</span>
+                                        {% endif %}
                                     {% endfor %}
+                                    </td>
                                 </tr>
                             {%  endfor %}
                         </tbody>

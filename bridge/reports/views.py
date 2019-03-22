@@ -22,8 +22,9 @@ from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _, override
 from django.template.defaulttags import register
@@ -32,7 +33,7 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
-from bridge.vars import JOB_STATUS, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE
+from bridge.vars import JOB_STATUS, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -40,12 +41,12 @@ from jobs.models import Job
 from marks.tables import ReportMarkTable
 from service.models import Task
 from reports.models import ReportRoot, Report, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
-    AttrName, ReportAttr, CompareJobsInfo, CoverageArchive
+    ReportAttr, CompareJobsInfo, CoverageArchive
 
 import reports.utils
 from reports.UploadReport import UploadReport
 from reports.etv import GetSource, GetETV
-from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+from reports.comparison import ComparisonTableData, ComparisonData
 from reports.coverage import GetCoverage, GetCoverageSrcHTML
 
 
@@ -143,22 +144,20 @@ def calculate_validation_stats(validation_results):
     return validation_stats
 
 
-@method_decorator(login_required, name='dispatch')
-class ReportComponentView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     template_name = 'reports/ReportMain.html'
 
     def get_context_data(self, **kwargs):
         job = self.object.root.job
-        if not JobAccess(self.request.user, job).can_view():
+        if not JobAccess(self.request.user, job).can_view() or job.weight == JOB_WEIGHT[1][0]:
             raise BridgeException(code=400)
         return {
             'report': self.object,
             'status': reports.utils.ReportStatus(self.object),
             'data': reports.utils.ReportData(self.object),
             'resources': reports.utils.report_resources(self.object, self.request.user),
-            'computer': reports.utils.computer_description(self.object.computer.description),
-            'SelfAttrsData': reports.utils.ReportAttrsTable(self.object).table_data,
+            'SelfAttrsData': reports.utils.ReportAttrsTable(self.object),
             'parents': reports.utils.get_parents(self.object),
             'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
             'TableData': reports.utils.ReportChildrenTable(
@@ -168,177 +167,168 @@ class ReportComponentView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         }
 
 
-@method_decorator(login_required, name='dispatch')
-class ComponentLogView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance.root.job).can_view():
             return BridgeErrorResponse(400)
-        if not self.object.log:
-            raise BridgeException(_("The component doesn't have log"))
-
-        content = ArchiveFileContent(self.object, 'log', LOG_FILE).content
-        self.file_size = len(content)
-        return FileWrapper(BytesIO(content), 8192)
-
-    def get_filename(self):
-        return '%s-log.txt' % self.object.component.name
+        return reports.utils.ComponentLogGenerator(instance)
 
 
-class ComponentLogContent(LoggedCallMixin, Bview.JsonDetailView):
+class ComponentLogContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
 
-    def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
+    def get(self, *args, **kwargs):
+        report = self.get_object()
+        if not JobAccess(self.request.user, report.root.job).can_view():
             raise BridgeException(code=400)
-        if not self.object.log:
+        if not report.log:
             raise BridgeException(_("The component doesn't have log"))
 
-        content = ArchiveFileContent(self.object, 'log', LOG_FILE).content
+        content = ArchiveFileContent(report, 'log', LOG_FILE).content
         if len(content) > 10 ** 5:
             content = str(_('The component log is huge and can not be shown but you can download it'))
         else:
             content = content.decode('utf8')
-        return {'content': content}
+        return HttpResponse(content)
 
 
-@method_decorator(login_required, name='dispatch')
-class AttrDataFileView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = ReportAttr
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not JobAccess(self.request.user, self.object.report.root.job).can_view():
-            raise BridgeException(code=400)
-        if not self.object.data:
-            raise BridgeException(_("The attribute doesn't have data"))
-
-        content = self.object.data.file.read()
-        self.file_size = len(content)
-        return FileWrapper(BytesIO(content), 8192)
-
-    def get_filename(self):
-        return 'Attr-Data' + os.path.splitext(self.object.data.file.name)[-1]
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance.report.root.job).can_view():
+            return BridgeErrorResponse(400)
+        return reports.utils.AttrDataGenerator(instance)
 
 
-class AttrDataContentView(LoggedCallMixin, Bview.JsonDetailView):
+class AttrDataContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     model = ReportAttr
 
-    def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.report.root.job).can_view():
+    def get(self, *args, **kwargs):
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance.report.root.job).can_view():
             raise BridgeException(code=400)
-        if not self.object.data:
+        if not instance.data:
             raise BridgeException(_("The attribute doesn't have data"))
 
-        content = self.object.data.file.read()
+        content = instance.data.file.read()
         if len(content) > 10 ** 5:
             content = str(_('The attribute data is huge and can not be shown but you can download it'))
         else:
             content = content.decode('utf8')
-        return {'content': content}
+        return HttpResponse(content)
 
 
-@method_decorator(login_required, name='dispatch')
-class DownloadVerifierFiles(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model = ReportComponent
 
     def get_generator(self):
-        self.object = self.get_object()
-        if not self.object.verifier_input:
-            raise BridgeException(_("The report doesn't have input files of static verifiers"))
-        return FileWrapper(self.object.verifier_input.file, 8192)
-
-    def get_filename(self):
-        return '%s files.zip' % self.object.component.name
+        instance = self.get_object()
+        if not JobAccess(self.request.user, instance.report.root.job).can_view():
+            return BridgeErrorResponse(400)
+        return reports.utils.VerifierFilesGenerator(instance)
 
 
-@method_decorator(login_required, name='dispatch')
-class SafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class SafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
-        values = context['TableData'].table_data['values']
-        number_of_objects = context['TableData'].page.paginator.count
 
-        # If there is only one element in table, and first column of table is link, redirect to this link
-        if request.GET.get('view_type') != VIEW_TYPES[5][0] \
-                and number_of_objects == 1 and isinstance(values[0], list) \
-                and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
-            return HttpResponseRedirect(values[0][0]['href'])
-        return self.render_to_response(context)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        # Check job access
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        tbl = reports.utils.SafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[5]), self.request.GET)
-        context.update({'report': self.object, 'TableData': tbl})
-        return context
+
+        # Get safes data
+        safes_data = reports.utils.SafesTable(
+            self.request.user, self.object, self.get_view(VIEW_TYPES[5]), self.request.GET
+        )
+
+        # Get context
+        context = self.get_context_data(report=self.object)
+
+        # Redirect if needed
+        if hasattr(safes_data, 'redirect'):
+            return HttpResponseRedirect(safes_data.redirect)
+
+        context['TableData'] = safes_data
+        return self.render_to_response(context)
 
 
-@method_decorator(login_required, name='dispatch')
-class UnsafesListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
-        values = context['TableData'].table_data['values']
-        number_of_objects = context['TableData'].page.paginator.count
 
-        # If there is only one element in table, and first column of table is link, redirect to this link
-        if request.GET.get('view_type') != VIEW_TYPES[4][0] \
-                and number_of_objects == 1 and isinstance(values[0], list) \
-                and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
-            return HttpResponseRedirect(values[0][0]['href'])
-        return self.render_to_response(context)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        # Check job access
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        tbl = reports.utils.UnsafesTable(self.request.user, self.object, self.get_view(VIEW_TYPES[4]), self.request.GET)
-        context.update({'report': self.object, 'TableData': tbl})
-        return context
+
+        # Get unsafes data
+        unsafes_data = reports.utils.UnsafesTable(
+            self.request.user, self.object, self.get_view(VIEW_TYPES[4]), self.request.GET
+        )
+
+        # Get context
+        context = self.get_context_data(report=self.object)
+
+        # Redirect if needed
+        if hasattr(unsafes_data, 'redirect'):
+            return HttpResponseRedirect(unsafes_data.redirect)
+
+        context['TableData'] = unsafes_data
+        return self.render_to_response(context)
 
 
-@method_decorator(login_required, name='dispatch')
-class UnknownsListView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
 
+    def __init__(self, *args, **kwargs):
+        self.object = None
+        super().__init__(*args, **kwargs)
+
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        context = self.get_context_data(object=self.object)
-        values = context['TableData'].table_data['values']
-        number_of_objects = context['TableData'].page.paginator.count
 
-        # If there is only one element in table, and first column of table is link, redirect to this link
-        if request.GET.get('view_type') != VIEW_TYPES[6][0] \
-                and number_of_objects == 1 and isinstance(values[0], list) \
-                and len(values[0]) > 0 and 'href' in values[0][0] and values[0][0]['href']:
-            return HttpResponseRedirect(values[0][0]['href'])
-        return self.render_to_response(context)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        # Check job access
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        tbl = reports.utils.UnknownsTable(self.request.user, self.object,
-                                          self.get_view(VIEW_TYPES[6]), self.request.GET)
-        context.update({'report': self.object, 'TableData': tbl})
-        return context
+
+        # Get unknowns data
+        unknowns_data = reports.utils.UnknownsTable(
+            self.request.user, self.object, self.get_view(VIEW_TYPES[6]), self.request.GET
+        )
+
+        # Get context
+        context = self.get_context_data(report=self.object)
+
+        # Redirect if needed
+        if hasattr(unknowns_data, 'redirect'):
+            return HttpResponseRedirect(unknowns_data.redirect)
+
+        context['TableData'] = unknowns_data
+        return self.render_to_response(context)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -357,7 +347,7 @@ class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
             'report': self.object, 'report_type': 'safe',
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.report_resources(self.request.user, self.object),
-            'SelfAttrsData': reports.utils.report_attibutes(self.object),
+            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': proof_content,
             'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
         }
@@ -376,7 +366,7 @@ class ReportUnknownView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
             'report': self.object, 'report_type': 'unknown',
             'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.report_resources(self.request.user, self.object),
-            'SelfAttrsData': reports.utils.report_attibutes(self.object),
+            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
             'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
@@ -401,7 +391,7 @@ class ReportUnsafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
             etv = None
         return {
             'report': self.object, 'report_type': 'unsafe', 'parents': reports.utils.get_parents(self.object),
-            'SelfAttrsData': reports.utils.report_attibutes(self.object),
+            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
             'etv': etv, 'include_assumptions': self.request.user.assumptions, 'include_jquery_ui': True,
             'resources': reports.utils.report_resources(self.request.user, self.object)
@@ -452,26 +442,7 @@ class DownloadErrorTrace(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResp
         return FileWrapper(BytesIO(content), 8192)
 
 
-class FillComparisonCacheView(LoggedCallMixin, Bview.JsonView):
-    unparallel = ['Job', 'ReportRoot', CompareJobsInfo]
-
-    def get_context_data(self, **kwargs):
-        try:
-            r1 = ReportRoot.objects.get(job_id=self.kwargs['job1_id'])
-            r2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
-        except ObjectDoesNotExist:
-            raise BridgeException(code=406)
-        if not can_compare(self.request.user, r1.job, r2.job):
-            raise BridgeException(code=401)
-        try:
-            CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
-        except ObjectDoesNotExist:
-            CompareTree(self.request.user, r1, r2)
-        return {}
-
-
-@method_decorator(login_required, name='dispatch')
-class ReportsComparisonView(LoggedCallMixin, TemplateView):
+class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'reports/comparison.html'
 
     def get_context_data(self, **kwargs):
@@ -480,34 +451,26 @@ class ReportsComparisonView(LoggedCallMixin, TemplateView):
             root2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
         except ObjectDoesNotExist:
             raise BridgeException(code=406)
-        if not can_compare(self.request.user, root1.job, root2.job):
+        if not JobAccess(self.request.user, job=root1.job) or not JobAccess(self.request.user, job=root2.job):
             raise BridgeException(code=401)
-        res = ComparisonTableData(self.request.user, root1, root2)
         return {
             'job1': root1.job, 'job2': root2.job,
-            'tabledata': res.data, 'compare_info': res.info, 'attrs': res.attrs
+            'data': ComparisonTableData(self.request.user, root1, root2)
         }
 
 
-class ReportsComparisonData(LoggedCallMixin, Bview.DetailPostView):
+class ReportsComparisonDataView(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
     template_name = 'reports/comparisonData.html'
     model = CompareJobsInfo
     pk_url_kwarg = 'info_id'
 
     def get_context_data(self, **kwargs):
-        if all(x not in self.request.POST for x in ['verdict', 'attrs']):
-            raise BridgeException()
-        res = ComparisonData(
-            self.object, int(self.request.POST.get('page_num', 1)),
-            self.request.POST.get('hide_attrs', 0), self.request.POST.get('hide_components', 0),
-            self.request.POST.get('verdict'), self.request.POST.get('attrs')
-        )
         return {
-            'verdict1': res.v1, 'verdict2': res.v2,
-            'job1': self.object.root1.job, 'job2': self.object.root2.job,
-            'data': res.data, 'pages': res.pages,
-            'verdict': self.request.POST.get('verdict'),
-            'attrs': self.request.POST.get('attrs')
+            'data': ComparisonData(
+                self.object, int(self.request.GET.get('page', 1)),
+                self.request.GET.get('hide_attrs', 0), self.request.GET.get('hide_components', 0),
+                self.request.GET.get('verdict'), self.request.GET.get('attrs')
+            )
         }
 
 
@@ -560,7 +523,7 @@ class DownloadCoverageView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingRe
 
 class UploadReportView(LoggedCallMixin, Bview.JsonDetailPostView):
     model = Job
-    unparallel = [ReportRoot, AttrName, Task]
+    unparallel = [ReportRoot, Task]
 
     def dispatch(self, request, *args, **kwargs):
         with override(settings.DEFAULT_LANGUAGE):
@@ -581,23 +544,18 @@ class UploadReportView(LoggedCallMixin, Bview.JsonDetailPostView):
         if self.object.status != JOB_STATUS[2][0]:
             raise BridgeException('Reports can be uploaded only for processing jobs')
 
-        archives = {}
-        for f in self.request.FILES.getlist('file'):
-            archives[f.name] = f
+        archives = dict((f.name, f) for f in self.request.FILES.getlist('file'))
 
         if 'report' in self.request.POST:
             data = json.loads(self.request.POST['report'])
-            err = UploadReport(self.object, data, archives).error
+            err = UploadReport(self.object, archives).upload_all([data])
             if err is not None:
                 raise BridgeException(err)
         elif 'reports' in self.request.POST:
             data = json.loads(self.request.POST['reports'])
             if not isinstance(data, list):
                 raise BridgeException('Wrong format of reports data')
-            for d in data:
-                err = UploadReport(self.object, d, archives).error
-                if err is not None:
-                    raise BridgeException(err)
+            UploadReport(self.object, archives).upload_all(data)
         else:
             raise BridgeException('Report json data is required')
         return {}

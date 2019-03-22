@@ -70,7 +70,7 @@ FilesTree.prototype.open_file_content = function(node) {
         $.get(instance.get_file_url.format(node.data.hashsum), {}, function (resp) {
             if (resp.error) { err_notify(resp.error) } else {
                 instance.file_content_modal.find('.modal-title').text(node.text);
-                instance.file_content_modal.find('.filecontent').text(resp.content);
+                instance.file_content_modal.find('.filecontent').text(resp);
                 instance.file_content_modal.modal('show');
             }
         });

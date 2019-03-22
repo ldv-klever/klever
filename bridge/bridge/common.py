@@ -36,7 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework', 'rest_framework.authtoken', 'mptt',
-    'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users',
+    'bridge', 'jobs', 'marks', 'reports', 'service', 'tools', 'users', 'caches'
 )
 
 MIDDLEWARE = (
@@ -165,7 +165,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50
+    'PAGE_SIZE': 50,
+    'NON_FIELD_ERRORS_KEY': 'general'
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB

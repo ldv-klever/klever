@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "java.lang.NullPointerException",
+  "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/NullPointerException.html",
+  "problem_pattern": "NPE",
+  "production": true
+}

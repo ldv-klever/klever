@@ -17,857 +17,716 @@
 
 import os
 import json
+import uuid
 import zipfile
-from io import BytesIO
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
+from django.db import transaction
 from django.db.models import Q, F
 from django.utils.timezone import now
+from django.utils.functional import cached_property
 
-from bridge.vars import REPORT_ARCHIVE, JOB_WEIGHT, JOB_STATUS, USER_ROLES
-from bridge.utils import logger, unique_id
+from rest_framework import exceptions, fields, serializers
+
+from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE
+from bridge.utils import logger, extract_archive, CheckArchiveError
 
 import marks.SafeUtils as SafeUtils
 import marks.UnsafeUtils as UnsafeUtils
 import marks.UnknownUtils as UnknownUtils
 
-from users.models import User
-from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown,\
-    Component, ComponentResource, ReportAttr, ReportComponentLeaf, Computer, ComponentInstances,\
-    CoverageArchive, ErrorTraceSource
-from service.models import Task
-from reports.utils import AttrData
-from service.utils import FinishJobDecision, KleverCoreStartDecision
-from tools.utils import RecalculateLeaves
+from reports.models import (
+    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ComponentResource, ReportAttr,
+    ReportComponentLeaf, ComponentInstances, CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources
+)
+from service.models import Task, Decision
+from service.utils import FinishJobDecision
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
-from reports.coverage import FillCoverageCache
-from reports.etv import GetETV
+from reports.serializers import ReportAttrSerializer, ComputerSerializer
 
-
-AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
-AVTG_FAIL_NAME = 'faulty generated abstract verification task descriptions'
-VTG_FAIL_NAME = 'faulty processed abstract verification task descriptions'
-BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verification task'
+SUBJOB_NAME = 'Subjob'
 
 
-class CheckArchiveError(Exception):
-    pass
+class ReportParentField(serializers.SlugRelatedField):
+    queryset = ReportComponent.objects
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('slug_field', 'identifier')
+        super(ReportParentField, self).__init__(*args, **kwargs)
+
+    def get_queryset(self):
+        return super().get_queryset().filter(root=self.root.reportroot)
+
+
+class ReportAttrsField(fields.ListField):
+    default_error_messages = {
+        'wrong_format': 'Attributes has wrong format',
+        'data_not_found': 'Attribute file was not found: {name}'
+    }
+    child = ReportAttrSerializer()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._files = None  # Attributes data
+
+    def get_value(self, dictionary):
+        # Get db files dictionary from parent serializer data
+        self._files = dictionary.get('attr_data', {})
+        return super().get_value(dictionary)
+
+    def __attr_children(self, *args, children=None, compare=False, associate=False, data=None):
+        attrs_data = []
+        if isinstance(children, list):
+            for child in children:
+                if not isinstance(child, dict) or 'name' not in child or 'value' not in child:
+                    self.fail('wrong_format')
+                attrs_data.extend(self.__attr_children(
+                    child['name'].replace(':', '_'), *args,
+                    children=child['value'],
+                    compare=child.get('compare', False),
+                    associate=child.get('associate', False),
+                    data=child.get('data')
+                ))
+        elif isinstance(children, str) and args:
+            if data and data not in self._files:
+                self.fail('data_not_found', name=data)
+            return [{
+                'name': ':'.join(reversed(args)), 'value': children,
+                'compare': compare, 'associate': associate,
+                'data_id': self._files[data] if data else None
+            }]
+        else:
+            self.fail('wrong_format')
+        return attrs_data
+
+    def to_internal_value(self, data):
+        if not isinstance(data, list):
+            self.fail('not_a_list', input_type=type(data))
+        return super().to_internal_value(self.__attr_children(children=data))
+
+
+class UploadBaseSerializer(serializers.ModelSerializer):
+    default_error_messages = {
+        'data_not_dict': 'Dictionary expected.',
+        'light_subjob': "Subjobs aren't allowed for lightweight jobs"
+    }
+    parent = ReportParentField()
+    attrs = ReportAttrsField(required=False)
+
+    def __init__(self, *args, **kwargs):
+        self.reportroot = kwargs.pop('reportroot')
+        self._fullweight = kwargs.pop('fullweight', True)
+        custom_fields = kwargs.pop('fields', None)
+        super().__init__(*args, **kwargs)
+        if custom_fields:
+            for field_name in set(self.fields) - set(custom_fields):
+                self.fields.pop(field_name)
+
+    def validate_component(self, value):
+        if value == SUBJOB_NAME and not self._fullweight:
+            self.fail('light_subjob')
+        return value
+
+    def validate_data(self, value):
+        # Do not save report data for lightweight jobs
+        if not self._fullweight:
+            return None
+        if not isinstance(value, dict):
+            self.fail('data_not_dict')
+
+        # Update old report data
+        if self.instance and self.instance.data:
+            value = self.instance.data.update(value)
+        return value
+
+    def validate_log(self, value):
+        # Do not save log for lightweight jobs
+        return value if self._fullweight else None
+
+    def __get_computer(self, value, parent=None):
+        if value:
+            return Computer.objects.get_or_create(identifier=value.pop('identifier'), defaults=value)[0]
+        elif isinstance(parent, ReportComponent):
+            # Inherit parent computer
+            return parent.computer
+        raise exceptions.ValidationError(detail={'computer': "Required"})
+
+    def __parent_attributes(self, parent, select_fields=None):
+        if not select_fields:
+            select_fields = ['name', 'value', 'compare', 'associate', 'data_id']
+        parents_ids = parent.get_ancestors(include_self=True).values_list('id', flat=True)
+        return list(ReportAttr.objects.filter(report_id__in=parents_ids)
+                    .order_by('report_id', 'id').values(*select_fields))
+
+    def __validate_attrs(self, attrs, parent=None):
+        if not attrs:
+            return []
+
+        new_attrs = list(attrdata['name'] for attrdata in attrs)
+        new_attrs_set = set(new_attrs)
+        if len(new_attrs_set) != len(new_attrs):
+            raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine attributes'})
+
+        if self.instance:
+            parent = self.instance.parent
+            old_attrs_set = set(ReportAttr.objects.filter(report=self.instance).values_list('name', flat=True))
+            if old_attrs_set & new_attrs_set:
+                raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine attributes'})
+
+        if parent:
+            ancestors_attrs = self.__parent_attributes(parent, select_fields=['name'])
+            ancestors_attrs_set = set(p_attr['name'] for p_attr in ancestors_attrs)
+            if ancestors_attrs_set & new_attrs_set:
+                raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine parent attributes'})
+        return attrs
+
+    def validate(self, value):
+        # Do not allow to change finished ReportComponent instances
+        if isinstance(self.instance, ReportComponent) and self.instance.finish_date is not None:
+            raise exceptions.ValidationError(detail={'finish_date': "The report is finished already"})
+
+        # Validate attributes
+        value['attrs'] = self.__validate_attrs(value.get('attrs'), parent=value.get('parent'))
+
+        # Validate computer
+        if 'computer' in self.fields:
+            value['computer'] = self.__get_computer(value.get('computer'), parent=value.get('parent'))
+
+        value['root'] = self.reportroot
+        return value
+
+    def create(self, validated_data):
+        attrs = validated_data.pop('attrs', [])
+        instance = super().create(validated_data)
+        ReportAttr.objects.bulk_create(list(ReportAttr(report=instance, **attrdata) for attrdata in attrs))
+        return instance
+
+    def update(self, instance, validated_data):
+        attrs = validated_data.pop('attrs', [])
+        instance = super().update(instance, validated_data)
+        ReportAttr.objects.bulk_create(list(ReportAttr(report=instance, **attrdata) for attrdata in attrs))
+        return instance
+
+
+class ReportComponentSerializer(UploadBaseSerializer):
+    computer = ComputerSerializer(required=False)
+
+    def validate(self, value):
+        # Validate report parent
+        if not value.get('parent'):
+            if ReportComponent.objects.filter(root=self.reportroot, parent=None).exists():
+                raise exceptions.ValidationError(detail={'parent': "The report parent is required"})
+        elif value['parent'].parent is not None and value['component'] == SUBJOB_NAME:
+            raise exceptions.ValidationError(detail={'parent': "Subjob parent is not Core"})
+
+        return super().validate(value)
+
+    class Meta:
+        model = ReportComponent
+        fields = (
+            'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
+            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log'
+        )
+        extra_kwargs = {
+            'cpu_time': {'allow_null': False, 'required': True},
+            'wall_time': {'allow_null': False, 'required': True},
+            'memory': {'allow_null': False, 'required': True},
+            'finish_date': {'allow_null': False, 'required': True},
+            'parent': {'allow_null': True, 'required': False}
+        }
+
+
+class ReportVerificationSerializer(UploadBaseSerializer):
+    computer = ComputerSerializer(required=False)
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects, required=False)
+    original = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects)
+
+    def validate(self, value):
+        # If task is set then get verifier input archive from it
+        if value.get('task'):
+            with value['task'].archive.file as fp:
+                value['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier input'])
+        value['verification'] = True
+        return super().validate(value)
+
+    class Meta:
+        model = ReportComponent
+        fields = (
+            'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
+            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original'
+        )
+        extra_kwargs = {
+            'cpu_time': {'allow_null': False, 'required': True},
+            'wall_time': {'allow_null': False, 'required': True},
+            'memory': {'allow_null': False, 'required': True}
+        }
+
+
+class ReportUnknownSerializer(UploadBaseSerializer):
+    def create(self, validated_data):
+        cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
+        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
+        validated_data['component'] = validated_data['parent'].component
+        if validated_data['parent'].verification:
+            validated_data['cpu_time'] = validated_data['parent'].cpu_time
+            validated_data['wall_time'] = validated_data['parent'].wall_time
+            validated_data['memory'] = validated_data['parent'].memory
+        instance = super().create(validated_data)
+        cache_obj.report = instance
+        cache_obj.save()
+        return instance
+
+    class Meta:
+        model = ReportUnknown
+        fields = ('identifier', 'parent', 'attrs', 'problem_description')
+
+
+class ReportSafeSerializer(UploadBaseSerializer):
+    def validate(self, value):
+        if not value['parent'].verification:
+            raise exceptions.ValidationError(detail={'parent': "The safe parent must be a verification report"})
+        return super().validate(value)
+
+    def create(self, validated_data):
+        cache_obj = ReportSafeCache(job_id=validated_data['root'].job_id)
+        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
+        validated_data['cpu_time'] = validated_data['parent'].cpu_time
+        validated_data['wall_time'] = validated_data['parent'].wall_time
+        validated_data['memory'] = validated_data['parent'].memory
+        instance = super().create(validated_data)
+        cache_obj.report = instance
+        cache_obj.save()
+        return instance
+
+    class Meta:
+        model = ReportSafe
+        fields = ('identifier', 'parent', 'attrs', 'proof')
+
+
+class ReportUnsafeSerializer(UploadBaseSerializer):
+    default_error_messages = {
+        'wrong_format': 'Error trace has wrong format'
+    }
+
+    def __check_node(self, node):
+        if not isinstance(node, dict):
+            self.fail('wrong_format')
+        if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
+            self.fail('wrong_format')
+        if node['type'] == 'function call':
+            required_fields = ['line', 'file', 'source', 'children', 'display']
+        elif node['type'] == 'statement':
+            required_fields = ['line', 'file', 'source']
+        elif node['type'] == 'action':
+            required_fields = ['line', 'file', 'display']
+        else:
+            required_fields = ['thread']
+        for field_name in required_fields:
+            if field_name not in node or node[required_fields] is None:
+                self.fail('wrong_format')
+        if node.get('children'):
+            for child in node['children']:
+                self.__check_node(child)
+
+    def validate_error_trace(self, archive):
+        try:
+            with zipfile.ZipFile(archive, mode='r') as zfp:
+                error_trace = json.loads(zfp.read(ERROR_TRACE_FILE).decode('utf8'))
+        except Exception as e:
+            logger.exception(e)
+            self.fail('wrong_format')
+        archive.seek(0)
+        if not isinstance(error_trace, dict) or 'trace' not in error_trace or \
+                not isinstance(error_trace.get('files'), list):
+            self.fail('wrong_format')
+        self.__check_node(error_trace['trace'])
+        if error_trace['trace']['type'] != 'thread':
+            self.fail('wrong_format')
+        return archive
+
+    def create(self, validated_data):
+        cache_obj = ReportUnsafeCache(job_id=validated_data['root'].job_id)
+        # Random unique identifier
+        validated_data['identifier'] = '{0}/unsafe/{1}'.format(validated_data['parent'].identifier, uuid.uuid4())[:255]
+        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
+        validated_data['cpu_time'] = validated_data['parent'].cpu_time
+        validated_data['wall_time'] = validated_data['parent'].wall_time
+        validated_data['memory'] = validated_data['parent'].memory
+        instance = super().create(validated_data)
+        cache_obj.report = instance
+        cache_obj.save()
+        return instance
+
+    class Meta:
+        model = ReportUnsafe
+        fields = ('parent', 'error_trace', 'attrs')
 
 
 class UploadReport:
-    def __init__(self, job, data, archives=None, attempt=0):
-        self.error = None
+    def __init__(self, job, archives=None):
         self.job = job
         self.archives = archives
-        self.attempt = attempt
-        self.data = {}
-        self.ordered_attrs = []
-        try:
-            self.__check_data(data)
-            self.__check_archives(self.data['id'])
-            self.parent = self.__get_parent()
-            self._parents_branch = self.__get_parents_branch()
-            self.root = self.__get_root_report()
-            self.__upload()
-        except CheckArchiveError as e:
-            logger.info(str(e))
-            self.error = 'ZIP error'
-        except Exception as e:
-            logger.exception(e)
-            self.__job_failed(str(e))
-            self.error = str(e)
 
-    def __job_failed(self, error=None):
-        if 'id' in self.data:
-            error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + str(error)
-        FinishJobDecision(self.job, JOB_STATUS[5][0], error)
+    def upload_all(self, reports):
+        # Check that all archives are valid ZIP files
+        self.__check_archives()
+        for report in reports:
+            try:
+                self.__upload(report)
+            except Exception as e:
+                self.__process_exception(e)
 
-    def __check_data(self, data):
-        if not isinstance(data, dict):
-            raise ValueError('report data is not a dictionary')
-        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
-                or not data['id'].startswith('/'):
-            raise ValueError('type and id are required or have wrong format')
-        if 'parent id' in data and not isinstance(data['parent id'], str):
-            raise ValueError('parent id has wrong format')
-
-        if 'resources' in data:
-            if not isinstance(data['resources'], dict) \
-                    or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                raise ValueError('resources have wrong format')
-
-        self.data = {'type': data['type'], 'id': data['id']}
-        if 'comp' in data:
-            self.__check_comp(data['comp'])
-        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 20:
-            raise ValueError('component name {!r} is too long (max 20 symbols expected)'.format(data['name']))
-        if 'data' in data and not isinstance(data['data'], dict):
-            raise ValueError('report data must be a dictionary object')
-
-        if data['type'] == 'start':
-            if data['id'] == '/':
-                if self.attempt == 0:
-                    KleverCoreStartDecision(self.job)
-                try:
-                    self.data.update({
-                        'attrs': data['attrs'],
-                        'comp': data['comp'],
-                    })
-                except KeyError as e:
-                    raise ValueError("property '%s' is required." % e)
-                if 'attr data' in data:
-                    self.data['attr data'] = data['attr data']
-                    if self.data['attr data'] not in self.archives:
-                        raise ValueError("Attr data archive wasn't found in the archives list")
-            else:
-                try:
-                    self.data.update({
-                        'parent id': data['parent id'],
-                        'name': data['name']
-                    })
-                except KeyError as e:
-                    raise ValueError("property '%s' is required." % e)
-                if 'attrs' in data:
-                    self.data['attrs'] = data['attrs']
-                    if 'attr data' in data:
-                        self.data['attr data'] = data['attr data']
-                        if self.data['attr data'] not in self.archives:
-                            raise ValueError("Attr data archive wasn't found in the archives list")
-                if 'comp' in data:
-                    self.data['comp'] = data['comp']
-        elif data['type'] == 'finish':
-            try:
-                self.data['resources'] = data['resources']
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if 'data' in data:
-                self.data.update({'data': data['data']})
-            if 'log' in data:
-                self.data['log'] = data['log']
-                if self.data['log'] not in self.archives:
-                    raise ValueError("Log archive wasn't found in the archives list")
-        elif data['type'] == 'attrs':
-            try:
-                self.data['attrs'] = data['attrs']
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if 'attr data' in data:
-                self.data['attr data'] = data['attr data']
-                if self.data['attr data'] not in self.archives:
-                    raise ValueError("Attr data archive wasn't found in the archives list")
-        elif data['type'] == 'verification':
-            try:
-                self.data.update({
-                    'parent id': data['parent id'],
-                    'attrs': data['attrs'],
-                    'name': data['name'],
-                    'resources': data['resources']
-                })
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if 'attr data' in data:
-                self.data['attr data'] = data['attr data']
-                if self.data['attr data'] not in self.archives:
-                    raise ValueError("Attr data archive wasn't found in the archives list")
-            if 'data' in data:
-                self.data.update({'data': data['data']})
-            if 'comp' in data:
-                self.data['comp'] = data['comp']
-            if 'log' in data:
-                self.data['log'] = data['log']
-                if self.data['log'] not in self.archives:
-                    raise ValueError("Log archive wasn't found in the archives list")
-            if 'coverage' in data:
-                self.data['coverage'] = data['coverage']
-                if not isinstance(self.data['coverage'], str):
-                    raise ValueError("Coverage for verification report must be a string")
-                if self.data['coverage'] not in self.archives:
-                    raise ValueError("Coverage archive wasn't found in the archives list")
-            if 'task identifier' in data:
-                try:
-                    self.data['task'] = Task.objects.get(id=data['task identifier'])
-                except ObjectDoesNotExist:
-                    raise ValueError('The task with id "%s" was not found' % data['task identifier'])
-            elif 'input files of static verifiers' in data:
-                self.data['verifier input'] = data['input files of static verifiers']
-                if self.data['verifier input'] not in self.archives:
-                    raise ValueError("Archive with input files of static verifiers wasn't found in the archives list")
-        elif data['type'] == 'verification finish':
-            pass
-        elif data['type'] == 'safe':
-            try:
-                self.data.update({
-                    'parent id': data['parent id'],
-                    'attrs': data['attrs']
-                })
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if 'attr data' in data:
-                self.data['attr data'] = data['attr data']
-                if self.data['attr data'] not in self.archives:
-                    raise ValueError("Attr data archive wasn't found in the archives list")
-            if 'proof' in data:
-                self.data['proof'] = data['proof']
-                if self.data['proof'] not in self.archives:
-                    raise ValueError("Proof archive wasn't found in the archives list")
-        elif data['type'] == 'unknown':
-            try:
-                self.data.update({
-                    'parent id': data['parent id'],
-                    'problem desc': data['problem desc']
-                })
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if self.data['problem desc'] not in self.archives:
-                raise ValueError("Problem description archive wasn't found in the archives list")
-            if 'attrs' in data:
-                self.data['attrs'] = data['attrs']
-                if 'attr data' in data:
-                    self.data['attr data'] = data['attr data']
-                    if self.data['attr data'] not in self.archives:
-                        raise ValueError("Attr data archive wasn't found in the archives list")
-        elif data['type'] == 'unsafe':
-            try:
-                self.data.update({
-                    'parent id': data['parent id'],
-                    'error traces': data['error traces'],
-                    'sources': data['sources'],
-                    'attrs': data['attrs'],
-                })
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if 'attr data' in data:
-                self.data['attr data'] = data['attr data']
-                if self.data['attr data'] not in self.archives:
-                    raise ValueError("Attr data archive wasn't found in the archives list")
-            if len(self.data['error traces']) == 0:
-                raise ValueError("There are no error traces in report")
-            if any(x not in self.archives for x in self.data['error traces']):
-                raise ValueError("One of the error traces archives wasn't found in the archives list")
-            if self.data['sources'] not in self.archives:
-                raise ValueError("Error trace sources archive wasn't found in the archives list")
-        elif data['type'] == 'data':
-            try:
-                self.data.update({'data': data['data']})
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-        elif data['type'] == 'job coverage':
-            try:
-                self.data['coverage'] = data['coverage']
-            except KeyError as e:
-                raise ValueError("property '%s' is required." % e)
-            if not isinstance(self.data['coverage'], dict):
-                raise ValueError("Coverage for component '%s' must be a dictionary" % self.data['id'])
-            if any(x not in self.archives for x in self.data['coverage'].values()):
-                raise ValueError("One of coverage archives wasn't found in the archives list")
+    def __process_exception(self, exc):
+        if isinstance(exc, CheckArchiveError):
+            raise exceptions.ValidationError(detail={'ZIP': 'Zip archive check has failed: {}'.format(exc)})
+        if isinstance(exc, exceptions.ValidationError):
+            err_detail = exc.detail
         else:
-            raise ValueError("report type is not supported")
+            err_detail = {settings.NON_FIELD_ERRORS_KEY: 'Unknown error: {}'.format(exc)}
+        # TODO: process exceptions in FinishJobDecision
+        FinishJobDecision(self.job, JOB_STATUS[5][0], self.__collapse_detail(err_detail))
+        raise exceptions.ValidationError(detail=err_detail)
 
-    def __check_comp(self, descr):
-        self.__is_not_used()
-        if not isinstance(descr, list):
-            raise ValueError('wrong computer description format')
-        for d in descr:
-            if not isinstance(d, dict) or len(d) != 1:
-                raise ValueError('wrong computer description format')
-            if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
-                raise ValueError('wrong computer description format')
+    def __collapse_detail(self, value):
+        # TODO: collapse error structure to string
+        return str(value)
 
-    def __get_root_report(self):
-        try:
-            return ReportRoot.objects.get(job=self.job)
-        except ObjectDoesNotExist:
-            raise ValueError("the job is corrupted: can't find report root")
+    def __upload(self, data):
+        assert isinstance(data, dict), 'Report data not a dict'
 
-    def __get_parent(self):
-        if 'parent id' in self.data:
-            try:
-                return ReportComponent.objects.get(
-                    root=self.job.reportroot,
-                    identifier=self.job.identifier + self.data['parent id']
-                )
-            except ObjectDoesNotExist:
-                raise ValueError('report parent was not found')
-        elif self.data['id'] == '/':
-            return None
-        else:
-            try:
-                curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
-                return ReportComponent.objects.get(id=curr_report.parent_id)
-            except ObjectDoesNotExist:
-                raise ValueError('report or its parent was not found')
-
-    def __get_parents_branch(self):
-        branch = []
-        parent = self.parent
-        while parent is not None:
-            branch.insert(0, parent)
-            if parent.parent_id is not None:
-                parent = ReportComponent.objects.get(id=parent.parent_id)
-            else:
-                parent = None
-        return branch
-
-    def __upload(self):
-        actions = {
+        # Check report type
+        if 'type' not in data:
+            raise exceptions.ValidationError(detail={'type': 'Required'})
+        supported_actions = {
             'start': self.__create_report_component,
             'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
             'verification': self.__create_verification_report,
             'verification finish': self.__finish_verification_report,
-            'unsafe': self.__create_unsafe_reports,
+            'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
-            'data': self.__update_report_data,
-            'job coverage': self.__upload_job_coverage
+            'data': self.__upload_report_data,
+            'coverage': self.__upload_coverage,
+            'sources': self.__upload_additional_sources
         }
-        identifier = self.job.identifier + self.data['id']
-        actions[self.data['type']](identifier)
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
-            logger.error("Attributes were redefined. List of attributes that should be unique: %s" % self.ordered_attrs)
-            raise ValueError("attributes were redefined")
+        if data['type'] not in supported_actions:
+            raise exceptions.ValidationError(detail={'type': 'Is not supported'})
 
-    def __create_report_component(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-            if self.attempt > 0:
-                report.start_date = now()
-                report.save()
-                return
-            else:
-                raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=False,
-                component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
-            )
+        # Upload report
+        supported_actions[data['type']](data)
 
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
-
-        if save_add_data and 'data' in self.data:
-            report.new_data('report-data.json', BytesIO(
-                json.dumps(self.data['data'], ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-            ))
-
-        if 'comp' in self.data:
-            report.computer = Computer.objects.get_or_create(
-                description=json.dumps(self.data['comp'], ensure_ascii=False, sort_keys=True, indent=4)
-            )[0]
-        else:
-            report.computer = self.parent.computer
-
-        report.save()
-
-        if 'attrs' in self.data:
-            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-
-        for parent in self._parents_branch:
-            try:
-                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
-            except ObjectDoesNotExist:
-                comp_inst = ComponentInstances(report=parent, component=report.component)
-            comp_inst.in_progress += 1
-            comp_inst.total += 1
-            comp_inst.save()
-
-        # Reports for other components will be deleted for lightweight job
-        if save_add_data:
-            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
-
-    def __create_verification_report(self, identifier):
-        try:
-            ReportComponent.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), verification=True,
-                component=Component.objects.get_or_create(name=self.data['name'])[0],
-                covnum=int('coverage' in self.data)
-            )
-        if 'data' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
-            report.new_data('report-data.json', BytesIO(json.dumps(
-                self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
-            ).encode('utf8')))
-
-        if 'comp' in self.data:
-            report.computer = Computer.objects.get_or_create(
-                description=json.dumps(self.data['comp'], ensure_ascii=False, sort_keys=True, indent=4)
-            )[0]
-        else:
-            report.computer = self.parent.computer
-
-        report.cpu_time = int(self.data['resources']['CPU time'])
-        report.memory = int(self.data['resources']['memory size'])
-        report.wall_time = int(self.data['resources']['wall time'])
-
-        if 'log' in self.data and self.job.weight == JOB_WEIGHT[0][0]:
-            report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
-
-        if 'task' in self.data:
-            with self.data['task'].archive.file as fp:
-                report.add_verifier_input(REPORT_ARCHIVE['verifier input'], fp)
-        elif 'verifier input' in self.data:
-            report.add_verifier_input(REPORT_ARCHIVE['verifier input'], self.archives[self.data['verifier input']])
-
-        report.save()
-
-        if 'coverage' in self.data:
-            carch = CoverageArchive(report=report)
-            carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage']])
-
-        # Check that report archives were successfully saved on disk
-        for field_name in ['log', 'verifier_input']:
-            arch_name = report.__getattribute__(field_name).name
-            if arch_name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, arch_name)):
-                report.delete()
-                raise CheckArchiveError('Report archive "%s" was not saved' % field_name)
-
-        self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-        self.__update_parent_resources(report)
-
-        for parent in self._parents_branch:
-            try:
-                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
-            except ObjectDoesNotExist:
-                comp_inst = ComponentInstances(report=parent, component=report.component)
-            comp_inst.in_progress += 1
-            comp_inst.total += 1
-            comp_inst.save()
-
-        # Other verification reports will be deleted
-        if self.job.weight == JOB_WEIGHT[0][0] or report.covnum > 0 or report.verifier_input:
-            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
-        if report.covnum > 0:
-            FillCoverageCache(report)
-
-    def __upload_job_coverage(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-        except ObjectDoesNotExist:
-            raise ValueError('updated report does not exist')
-        if self.parent is None or self.parent.parent is None:
-            report.covnum = len(self.data['coverage'])
-            for cov_id in self.data['coverage']:
-                carch = CoverageArchive(report=report, identifier=cov_id)
-                carch.save_archive(REPORT_ARCHIVE['coverage'], self.archives[self.data['coverage'][cov_id]])
-            report.save()
-            FillCoverageCache(report)
-        else:
-            raise ValueError('coverage can be uploaded only for Core and first-level reports')
-
-    def __update_attrs(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-        except ObjectDoesNotExist:
-            raise ValueError('updated report does not exist')
-        self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-
-    def __update_report_data(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-        except ObjectDoesNotExist:
-            raise ValueError('updated report does not exist')
-
-        self.__update_dict_data(report, self.data['data'])
-
-    def __update_dict_data(self, report, new_data):
-        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None:
-            report.save()
-            return
-        if not isinstance(new_data, dict):
-            raise ValueError("report's data must be a dictionary")
-        if report.data:
-            with report.data as fp:
-                old_data = json.loads(fp.read().decode('utf8'))
-                old_data.update(new_data)
-                new_data = old_data
-            report.data.storage.delete(report.data.path)
-        report.new_data('report-data.json', BytesIO(json.dumps(new_data, indent=2).encode('utf8')), True)
-
-    def __finish_report_component(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-        except ObjectDoesNotExist:
-            raise ValueError('updated report does not exist')
-        if report.finish_date is not None:
-            raise ValueError('trying to finish the finished component')
-
-        report.cpu_time = int(self.data['resources']['CPU time'])
-        report.memory = int(self.data['resources']['memory size'])
-        report.wall_time = int(self.data['resources']['wall time'])
-
-        save_add_data = (self.job.weight == JOB_WEIGHT[0][0] or self.parent is None or self.parent.parent is None)
-        if save_add_data and 'log' in self.data:
-            report.add_log(REPORT_ARCHIVE['log'], self.archives[self.data['log']])
-
-        report.finish_date = now()
-
-        if save_add_data and 'data' in self.data:
-            # Report is saved after the data is updated
-            self.__update_dict_data(report, self.data['data'])
-        else:
-            report.save()
-
-        if report.log.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.log.name)):
-            report.delete()
-            raise CheckArchiveError('Report archive "log" was not saved')
-
-        if 'attrs' in self.data:
-            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-        self.__update_parent_resources(report)
-
-        report_ids = set(r.id for r in self._parents_branch)
-        component_id = report.component_id
-
-        if not save_add_data and ReportComponent.objects.filter(parent=report).count() == 0:
-            report.delete()
-        else:
-            report_ids.add(report.id)
-        ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
-            .update(in_progress=(F('in_progress') - 1))
-
-    def __finish_verification_report(self, identifier):
-        try:
-            report = ReportComponent.objects.get(identifier=identifier)
-        except ObjectDoesNotExist:
-            raise ValueError('verification report does not exist')
-
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-            report.parent = self._parents_branch[-1]
-
-        report_ids = set(r.id for r in self._parents_branch)
-        component_id = report.component_id
-
-        # I hope that verification reports can't have component reports as its children
-        if self.job.weight == JOB_WEIGHT[1][0] and Report.objects.filter(parent=report).count() == 0:
-            report.delete()
-        else:
-            report.finish_date = now()
-            report.save()
-            report_ids.add(report.id)
-        ComponentInstances.objects.filter(report_id__in=report_ids, component_id=component_id, in_progress__gt=0) \
-            .update(in_progress=(F('in_progress') - 1))
-
-    def __create_report_unknown(self, identifier):
-        try:
-            ReportUnknown.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            report = ReportUnknown(
-                identifier=identifier, parent=self.parent, root=self.root,
-                component=self.parent.component, problem_description=self.data['problem desc']
-            )
-        if self.parent.verification:
-            report.cpu_time = self.parent.cpu_time
-            report.wall_time = self.parent.wall_time
-            report.memory = self.parent.memory
-        report.add_problem_desc(REPORT_ARCHIVE['problem desc'], self.archives[self.data['problem desc']], True)
-        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.problem_description.name)):
-            report.delete()
-            raise CheckArchiveError('Report archive "problem desc" was not saved')
-        self.__create_leaf_attrs(report)
-        self.__fill_leaf_cache(report)
-
-    def __create_report_safe(self, identifier):
-        try:
-            ReportSafe.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            if self.parent.cpu_time is None:
-                raise ValueError('safe parent need to be verification report and must have cpu_time')
-            report = ReportSafe(
-                identifier=identifier, parent=self.parent, root=self.root, cpu_time=self.parent.cpu_time,
-                wall_time=self.parent.wall_time, memory=self.parent.memory
-            )
-        if 'proof' in self.data:
-            report.add_proof(REPORT_ARCHIVE['proof'], self.archives[self.data['proof']], True)
-            if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.proof.name)):
-                report.delete()
-                raise CheckArchiveError('Report archive "proof" was not saved')
-        else:
-            report.save()
-        self.__create_leaf_attrs(report)
-        self.__fill_leaf_cache(report)
-
-    def __create_unsafe_reports(self, identifier):
-        et_archs = {}
-        for arch_name in self.data['error traces']:
-            et_archs[arch_name] = self.archives[arch_name]
-        res = CheckErrorTraces(et_archs, self.archives[self.data['sources']])
-
-        source = ErrorTraceSource(root=self.root)
-        source.add_sources(REPORT_ARCHIVE['sources'], self.archives[self.data['sources']], True)
-
-        cnt = 1
-        unsafes = []
-        for arch_name in self.data['error traces']:
-            try:
-                ReportUnsafe.objects.get(identifier=identifier + '/{0}'.format(cnt))
-                raise ValueError('the report with specified identifier already exists')
-            except ObjectDoesNotExist:
-                if self.parent.cpu_time is None:
-                    raise ValueError('unsafe parent need to be verification report and must have cpu_time')
-                report = ReportUnsafe(
-                    identifier=identifier + '/{0}'.format(cnt), parent=self.parent, root=self.root,
-                    trace_id=unique_id(), source=source,
-                    cpu_time=self.parent.cpu_time, wall_time=self.parent.wall_time, memory=self.parent.memory
-                )
-
-            report.add_trace(REPORT_ARCHIVE['error trace'], self.archives[arch_name], True)
-            if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.error_trace.name)):
-                report.delete()
-                raise CheckArchiveError('Report archive "error trace" was not saved')
-
-            self.__create_leaf_attrs(report, res.add_attrs.get(arch_name))
-            unsafes.append(report)
-            cnt += 1
-        self.__fill_unsafes_cache(unsafes)
-
-    def __create_leaf_attrs(self, leaf, add_attrs=None):
-        self.ordered_attrs = []
-        parent_attrs = []
-        for p in self._parents_branch:
-            for ra in p.attrs.order_by('id').select_related('attr__name'):
-                self.ordered_attrs.append(ra.attr.name.name)
-                parent_attrs.append(ReportAttr(
-                    attr_id=ra.attr_id, report=leaf, compare=ra.compare, associate=ra.associate, data_id=ra.data_id
-                ))
-        ReportAttr.objects.bulk_create(parent_attrs)
-
-        if 'attrs' in self.data:
-            self.ordered_attrs += self.__save_attrs(leaf.id, self.data['attrs'])
-        if add_attrs is not None:
-            self.ordered_attrs += self.__save_attrs(leaf.id, add_attrs)
-
-    def __fill_unsafes_cache(self, reports):
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-            if self.parent.verifier_input or self.parent.covnum > 0:
-                # After verification finish report self.parent.parent will be Core/first-level report
-                self._parents_branch.append(self.parent)
-            else:
-                ReportUnsafe.objects.filter(id__in=list(r.id for r in reports)).update(parent=self._parents_branch[-1])
-
-        leaves = []
-        for p in self._parents_branch:
-            leaves.extend(list(ReportComponentLeaf(report=p, unsafe=unsafe) for unsafe in reports))
-        ReportComponentLeaf.objects.bulk_create(leaves)
-        for leaf in reports:
-            UnsafeUtils.ConnectReport(leaf)
-        UnsafeUtils.RecalculateTags(reports)
-
-    def __fill_leaf_cache(self, leaf):
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__cut_parents_branch()
-            if self.parent.verifier_input or self.parent.covnum > 0:
-                # After verification finish report self.parent.parent will be Core/first-level report
-                self._parents_branch.append(self.parent)
-            else:
-                leaf.parent = self._parents_branch[-1]
-                leaf.save()
-
-        if self.data['type'] == 'unknown':
-            self.__fill_unknown_cache(leaf)
-            UnknownUtils.ConnectReport(leaf)
-        elif self.data['type'] == 'safe':
-            self.__fill_safe_cache(leaf)
-            SafeUtils.ConnectReport(leaf)
-            SafeUtils.RecalculateTags([leaf])
-
-    def __cut_parents_branch(self):
-        if len(self._parents_branch) > 1:
-            # Just Core and first-level report
-            self._parents_branch = self._parents_branch[:2]
-        elif len(self._parents_branch) > 0:
-            # Just Core report
-            self._parents_branch = self._parents_branch[:1]
-
-    def __fill_unknown_cache(self, unknown):
-        for p in self._parents_branch:
-            ReportComponentLeaf.objects.create(report=p, unknown=unknown)
-
-    def __fill_safe_cache(self, safe):
-        for p in self._parents_branch:
-            ReportComponentLeaf.objects.create(report=p, safe=safe)
-
-    def __update_parent_resources(self, report):
-
-        def update_total_resources(rep):
-            res_set = rep.resources_cache.filter(~Q(component=None)).values_list('cpu_time', 'wall_time', 'memory')
-            if len(res_set) > 0:
-                try:
-                    total_compres = rep.resources_cache.get(component=None)
-                except ObjectDoesNotExist:
-                    total_compres = ComponentResource()
-                    total_compres.report = rep
-                total_compres.cpu_time = sum(list(cr[0] for cr in res_set))
-                total_compres.wall_time = sum(list(cr[1] for cr in res_set))
-                total_compres.memory = max(list(cr[2] for cr in res_set))
-                total_compres.save()
-
-        report.resources_cache.get_or_create(component=report.component, defaults={
-            'wall_time': report.wall_time, 'cpu_time': report.cpu_time, 'memory': report.memory
-        })
-        if ReportComponent.objects.filter(parent_id=report.id).count() > 0:
-            update_total_resources(report)
-
-        for p in self._parents_branch:
-            try:
-                compres = p.resources_cache.get(component=report.component)
-            except ObjectDoesNotExist:
-                compres = ComponentResource(component=report.component, report=p)
-            compres.cpu_time += report.cpu_time
-            compres.wall_time += report.wall_time
-            compres.memory = max(report.memory, compres.memory)
-            compres.save()
-            update_total_resources(p)
-
-    def __attr_children(self, name, value, compare=False, associate=False, data=None):
-        attr_data = []
-        if isinstance(value, list):
-            for v in value:
-                if not isinstance(v, dict) or 'name' not in v or 'value' not in v:
-                    raise ValueError('Wrong format of report attribute')
-                for n in self.__attr_children(v['name'].replace(':', '_'), v['value'], v.get('compare', False),
-                                              v.get('associate', False), v.get('data')):
-                    attr_data.append(("%s:%s" % (name, n[0]) if len(name) > 0 else n[0], n[1], n[2], n[3], n[4]))
-        elif isinstance(value, str):
-            attr_data = [(name, value, compare, associate, data)]
-        else:
-            raise ValueError('Wrong format of report attributes')
-        return attr_data
-
-    def __save_attrs(self, report_id, attrs):
-        if not isinstance(attrs, list):
-            return []
-        attr_archive = None
-        if 'attr data' in self.data:
-            attr_archive = self.archives[self.data['attr data']]
-        attrdata = AttrData(self.root.id, attr_archive)
-        attrorder = []
-        for attr, value, compare, associate, data in self.__attr_children('', attrs):
-            attrorder.append(attr)
-            attrdata.add(report_id, attr, value, compare, associate, data)
-        attrdata.upload()
-        if isinstance(self.parent, ReportComponent) and self.data['type'] in {'start', 'attrs', 'verification'}:
-            names = set(x[0] for x in ReportAttr.objects.filter(report_id=report_id).values_list('attr__name_id'))
-            for parent in self._parents_branch:
-                if parent.attrs.filter(attr__name_id__in=names).count() > 0:
-                    raise ValueError("The report has redefined parent's attributes")
-        return attrorder
-
-    def __check_archives(self, report_id):
+    def __check_archives(self):
         if self.archives is None:
             self.archives = {}
         for arch in self.archives.values():
             if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
-                raise CheckArchiveError('The archive "%s" of report "%s" is not a ZIP file' % (arch.name, report_id))
+                raise CheckArchiveError('The archive "{}" is not a ZIP file'.format(arch.name))
 
-    def __is_not_used(self):
-        pass
+    def __start_decision(self):
+        try:
+            progress = Decision.objects.get(job=self.job)
+        except Decision.DoesNotExist:
+            raise exceptions.ValidationError(detail={'job': "The decision wasn't successfully started"})
+        if progress.start_date is not None:
+            raise exceptions.ValidationError(detail={'job': "Decision start date is filled already"})
+        elif progress.finish_date is not None:
+            raise exceptions.ValidationError(detail={'job': "The job is not solving already"})
+        progress.start_date = now()
+        progress.save()
 
+    def __get_archive(self, arch_name):
+        if not arch_name:
+            return None
+        if arch_name not in self.archives:
+            raise exceptions.ValidationError(detail={'archives': 'Archive "{}" was not attached'.format(arch_name)})
+        self.archives[arch_name].seek(0)
+        return self.archives[arch_name]
 
-class CollapseReports:
-    def __init__(self, job):
-        self.job = job
-        if self.job.weight != JOB_WEIGHT[0][0]:
+    @cached_property
+    def root(self):
+        try:
+            return ReportRoot.objects.get(job=self.job)
+        except ReportRoot.DoesNotExist:
+            raise exceptions.ValidationError(detail={'job': 'The job was not started properly'})
+
+    @cached_property
+    def _is_fullweight(self):
+        return self.job.weight == JOB_WEIGHT[0][0]
+
+    def __get_report(self, identifier, model=ReportComponent):
+        if not identifier:
+            raise exceptions.ValidationError(detail={'identifier': "Required"})
+        try:
+            return model.objects.get(root=self.root, identifier=identifier)
+        except model.DoesNotExist:
+            raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
+
+    def __ancestors_for_cache(self, report):
+        ancestors_qs = report.get_ancestors()
+        if not self._is_fullweight:
+            # Update cache just for Core and verification reports as other reports will be deleted
+            ancestors_qs = ancestors_qs.filter(Q(parent=None) | Q(verification=True))
+        return list(parent.pk for parent in ancestors_qs)
+
+    def __create_report_component(self, data):
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        serializer = ReportComponentSerializer(
+            data=data, fullweight=self._is_fullweight, reportroot=self.root,
+            fields={'identifier', 'parent', 'component', 'attrs', 'data', 'computer', 'log'}
+        )
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
+        self.__update_instances_cache(report, self.__ancestors_for_cache(report))
+
+        if report.parent is None:
+            self.__start_decision()
+
+    def __create_verification_report(self, data):
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        data['log'] = self.__get_archive(data.get('log'))
+        data['verifier_input'] = self.__get_archive(data.pop('input files of static verifiers', None))
+
+        serializer = ReportVerificationSerializer(data=data, fullweight=self._is_fullweight, reportroot=self.root)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
+
+        # Upload coverage for the report
+        if 'coverage' in data:
+            carch = CoverageArchive(report=report)
+            carch.add_coverage(self.__get_archive(data['coverage']), save=True)
+
+        ancestrors_ids = self.__ancestors_for_cache(report)
+        self.__update_resources_cache(report, ancestrors_ids)
+        self.__update_instances_cache(report, ancestrors_ids)
+
+    def __upload_coverage(self, data):
+        # Uploads global coverage
+        report = self.__get_report(data.get('identifier'))
+        if not self._is_fullweight:
+            # Upload for Core for lightweight jobs
+            report = report.get_ancestors().first()
+        for cov_id in data['coverage']:
+            carch = CoverageArchive(report=report, identifier=cov_id)
+            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=True)
+
+    def __upload_additional_sources(self, data):
+        report = self.__get_report(data.get('identifier'))
+        instance = AdditionalSources(root=self.root)
+        instance.add_archive(self.__get_archive(data['sources']), save=True)
+        report.additional = instance
+        report.save()
+
+    def __update_attrs(self, data):
+        report = self.__get_report(data.get('identifier'))
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        serializer = ReportComponentSerializer(
+            instance=report, data=data, reportroot=report.root,
+            fullweight=self._is_fullweight, fields={'attrs'}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+    def __upload_report_data(self, data):
+        if not self._is_fullweight:
             return
-        self.__collapse()
-        self.job.weight = JOB_WEIGHT[1][0]
-        self.job.save()
+        report = self.__get_report(data.get('identifier'))
+        serializer = ReportComponentSerializer(instance=report, data=data, reportroot=report.root, fields={'data'})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-    def __collapse(self):
-        root = self.job.reportroot
-        sub_jobs = {}
-        sj_reports = set()
-        rel_reports = [
-            'safe__parent__reportcomponent', 'unsafe__parent__reportcomponent', 'unknown__parent__reportcomponent'
-        ]
+    def __finish_report_component(self, data):
+        report = self.__get_report(data.get('identifier'))
+        data['finish_date'] = now()
+        data['log'] = self.__get_archive(data.get('log'))
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        serializer = ReportComponentSerializer(
+            instance=report, data=data, reportroot=report.root,
+            fields={'finish_date', 'wall_time', 'cpu_time', 'memory', 'attrs', 'data', 'log'}
+        )
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
 
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report__parent__parent=None)\
-                .exclude(report__parent=None).select_related(*rel_reports):
-            if leaf.report_id not in sub_jobs:
-                sub_jobs[leaf.report_id] = set()
-            for fname in ['safe', 'unsafe', 'unknown']:
-                report = getattr(leaf, fname)
-                if report:
-                    sj_reports.add(report.id)
-                    if report.parent.reportcomponent.covnum > 0 or report.parent.reportcomponent.verifier_input:
-                        sub_jobs[leaf.report_id].add(report.parent_id)
-                    else:
-                        sub_jobs[leaf.report_id].add(report.id)
-                    break
-        for sj_id in sub_jobs:
-            Report.objects.filter(id__in=sub_jobs[sj_id]).update(parent_id=sj_id)
+        # Get report ancestors before report might be deleted
+        parents_ids = self.__ancestors_for_cache(report)
+        if report.parent and not self._is_fullweight:
+            # WARNING: If report has children it will be deleted!
+            # It means verification reports (children) are not finished yet.
+            report.delete()
+        self.__update_resources_cache(report, parents_ids)
 
-        core_id = ReportComponent.objects.get(root=root, parent=None).id
-        core_reports = set()
-        for leaf in ReportComponentLeaf.objects.filter(report__root=root, report_id=core_id)\
-                .select_related(*rel_reports):
-            for fname in ['safe', 'unsafe', 'unknown']:
-                report = getattr(leaf, fname)
-                if report:
-                    if report.id in sj_reports:
-                        break
-                    if report.parent.reportcomponent.covnum > 0 or report.parent.reportcomponent.verifier_input:
-                        core_reports.add(report.parent_id)
-                    else:
-                        core_reports.add(report.id)
-                    break
-        Report.objects.filter(id__in=core_reports).update(parent_id=core_id)
+        if report.pk:
+            # Include self for updating component instances cache
+            parents_ids.append(report.pk)
+        ComponentInstances.objects.filter(report_id__in=parents_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
 
-        ReportComponent.objects.filter(root=root, verifier_input='', covnum=0)\
-            .exclude(id__in=set(sub_jobs) | {core_id}).delete()
+    def __finish_verification_report(self, data):
+        report = self.__get_report(data.get('identifier'))
+        if not report.verification:
+            raise exceptions.ValidationError(detail={'identifier': "The report is not verification"})
 
-        RecalculateLeaves([root])
+        # Get report ancestors before report might be deleted
+        ancestors_ids = self.__ancestors_for_cache(report)
+        if not self._is_fullweight:
+            # Set parent to Core for lightweight jobs
+            report.parent_id = ancestors_ids[0]
+
+        if not self._is_fullweight and report.is_leaf_node():
+            # Remove verification report if it doesn't have children for lightweight jobs
+            report.delete()
+        else:
+            # Save report with new data
+            report.finish_date = now()
+            report.save()
+            # Update instances cache also for self
+            ancestors_ids.append(report.pk)
+
+        # Update instances cache
+        ComponentInstances.objects.filter(report_id__in=ancestors_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
+
+    def __create_report_unknown(self, data):
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        data['problem_description'] = self.__get_archive(data['problem desc'])
+        serializer = ReportUnknownSerializer(data=data, reportroot=self.root)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
+
+        # Get ancestors before parent might me changed
+        ancestors_ids = self.__ancestors_for_cache(report)
+
+        if not self._is_fullweight and not report.parent.verification:
+            # Change parent to Core
+            report.parent_id = ancestors_ids[0]
+            report.save()
+
+        # Caching leaves for each tree branch node
+        ReportComponentLeaf.objects.bulk_create(list(
+            ReportComponentLeaf(report_id=parent_id, unknown=report) for parent_id in ancestors_ids
+        ))
+
+        # Connect report with marks
+        UnknownUtils.ConnectReport(report)
+
+    def __create_report_safe(self, data):
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        data['proof'] = self.__get_archive(data.get('proof'))
+        serializer = ReportSafeSerializer(data=data, reportroot=self.root)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
+
+        # Caching leaves for each tree branch node
+        ReportComponentLeaf.objects.bulk_create(list(
+            ReportComponentLeaf(report_id=parent_id, safe=report)
+            for parent_id in self.__ancestors_for_cache(report)
+        ))
+
+        # Connect report with marks
+        SafeUtils.ConnectReport(report)
+
+    def __create_report_unsafe(self, data):
+        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        data['error_trace'] = self.__get_archive(data.get('error_trace'))
+        serializer = ReportUnsafeSerializer(data=data, reportroot=self.root)
+        serializer.is_valid(raise_exception=True)
+        report = serializer.save()
+
+        # Caching leaves for each tree branch node
+        ReportComponentLeaf.objects.bulk_create(list(
+            ReportComponentLeaf(report_id=parent_id, safe=report)
+            for parent_id in self.__ancestors_for_cache(report)
+        ))
+
+        # Connect new unsafe with marks
+        UnsafeUtils.ConnectReport(report)
+        UnsafeUtils.RecalculateTags([report])
+
+    @transaction.atomic
+    def __update_instances_cache(self, report, ancestors_ids):
+        for parent_id in ancestors_ids:
+            try:
+                comp_inst = ComponentInstances.objects.get(report_id=parent_id, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report_id=parent_id, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+
+        if self._is_fullweight or report.verification or report.parent is None:
+            # Create component instances for the new report
+            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+
+    @transaction.atomic
+    def __update_resources_cache(self, report, ancestors_ids):
+        # Otherwise report is deleted already or not saved yet
+        if report.pk:
+            # Create component resources cache for the new report
+            ComponentResource.objects.create(
+                report_id=report.pk, component=report.component,
+                memory=report.memory, cpu_time=report.cpu_time, wall_time=report.wall_time
+            )
+            if not report.verification:
+                # Create total resources cache for the new report
+                ComponentResource.objects.create(
+                    report_id=report.pk, memory=report.memory, cpu_time=report.cpu_time, wall_time=report.wall_time
+                )
+
+        # Update component resources cache for each parent
+        for parent_id in ancestors_ids:
+            try:
+                cr = ComponentResource.objects.get(report_id=parent_id, component=report.component)
+            except ComponentResource.DoesNotExist:
+                cr = ComponentResource(report_id=parent_id, component=report.component)
+            cr.memory = max(report.memory, cr.memory)
+            cr.cpu_time += report.cpu_time
+            cr.wall_time += report.wall_time
+            cr.save()
+
+        # Update total resources cache for each parent
+        for total_cr in ComponentResource.objects.filter(report_id__in=ancestors_ids, component=None):
+            total_cr.memory = max(total_cr.memory, report.memory)
+            total_cr.cpu_time += report.cpu_time
+            total_cr.wall_time += report.wall_time
+            total_cr.save()
+
+    def __upload_attrs_files(self, archive):
+        if not archive:
+            return {}
+        try:
+            files_dir = extract_archive(archive)
+        except Exception as e:
+            logger.exception("Archive extraction failed: %s" % e)
+            raise exceptions.ValidationError(detail={'attr_data': 'Archive "{}" is corrupted'.format(archive.name)})
+        db_files = {}
+        for dir_path, dir_names, file_names in os.walk(files_dir.name):
+            for file_name in file_names:
+                full_path = os.path.join(dir_path, file_name)
+                rel_path = os.path.relpath(full_path, files_dir.name).replace('\\', '/')
+                newfile = AttrFile(root=self.root)
+                with open(full_path, mode='rb') as fp:
+                    newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
+                db_files[rel_path] = newfile.pk
+        return db_files
 
 
-class CheckErrorTraces:
-    def __init__(self, traces, sources):
-        self._traces = traces
-        self._sources = sources
-        self.add_attrs = {}
-        self.__check_traces()
-        self.__exit()
-
-    def __check_traces(self):
-        manager = User.objects.filter(role=USER_ROLES[2][0]).first()
-        if not manager:
-            raise ValueError("Can't check error traces without manager in the system")
-
-        files = self.__get_list_of_sources()
-        for tr_name in self._traces:
-            res = GetETV(self.__read_trace(tr_name), manager)
-
-            if 'attrs' in res.data:
-                self.add_attrs[tr_name] = res.data['attrs']
-            if 'files' not in res.data:
-                raise ValueError('Wrong format of error trace')
-
-            trace_files = set(f[1:] if f.startswith('/') else f for f in res.data['files'])
-            if any(x not in files for x in trace_files):
-                raise ValueError("Sources doesn't have needed source for error trace")
-
-    def __read_trace(self, trace_name):
-        with zipfile.ZipFile(self._traces[trace_name], mode='r') as zfp:
-            return zfp.read('error trace.json').decode('utf8')
-
-    def __get_list_of_sources(self):
-        with zipfile.ZipFile(self._sources, mode='r') as zfp:
-            return zfp.namelist()
-
-    def __exit(self):
-        for arch in self._traces:
-            self._traces[arch].seek(0)
-        self._sources.seek(0)
+def collapse_reports(job):
+    if job.weight == JOB_WEIGHT[1][0]:
+        # The job is already lightweight
+        return
+    root = job.reportroot
+    if ReportComponent.objects.filter(root=root, component=SUBJOB_NAME).exists():
+        return
+    core = ReportComponent.objects.get(root=root, parent=None)
+    ReportComponent.objects.filter(root=root, verification=True).update(parent=core)
+    ReportUnknown.objects.filter(root=root, parent__verification=False).udpate(parent=core)
+    # Remove all non-verification reports except Core
+    ReportComponent.objects.filter(root=root).exclude(Q(verification=True) | Q(parent=None)).delete()
+    job.weight = JOB_WEIGHT[1][0]
+    job.save()

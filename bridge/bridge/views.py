@@ -15,48 +15,15 @@
 # limitations under the License.
 #
 
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
 from django.urls import reverse
-from django.utils.translation import ugettext as _, activate
 from django.views.defaults import bad_request, permission_denied, page_not_found, server_error
-
-from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR
-from bridge.utils import logger, BridgeErrorResponse, BridgeException
-from bridge.populate import Population
-
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown
-from reports.models import AttrName
 
 
 def index_page(request):
     if request.user.is_authenticated:
         return HttpResponseRedirect(reverse('jobs:tree'))
     return HttpResponseRedirect(reverse('users:login'))
-
-
-@unparallel_group(['Job', 'Scheduler', 'MarkUnsafeCompare', 'MarkUnsafeConvert',
-                   MarkSafe, MarkUnsafe, MarkUnknown, AttrName])
-@login_required
-def population(request):
-    try:
-        activate(request.user.language)
-    except ObjectDoesNotExist:
-        activate(request.LANGUAGE_CODE)
-    if request.user.role != USER_ROLES[2][0]:
-        return BridgeErrorResponse(_("You don't have an access to this page"))
-    if request.method == 'POST':
-        try:
-            return render(request, 'bridge/Population.html', {'changes': Population(user=request.user).changes})
-        except BridgeException as e:
-            return render(request, 'bridge/Population.html', {'error': str(e)})
-        except Exception as e:
-            logger.exception(e)
-            return render(request, 'bridge/Population.html', {'error': str(UNKNOWN_ERROR)})
-    return render(request, 'bridge/Population.html', {})
 
 
 def error_400_view(request, exception):

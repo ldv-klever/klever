@@ -33,7 +33,7 @@
             {% endif %}
         </div>
     </div>
-    <div id="etv-source"{% if include_assumptions %} style="height:70%;"{% endif %}>
+    <div id="etv-source"{% if etv.include_assumptions %} style="height:70%;"{% endif %}>
         <div style="margin: 10px;">
             <div class="ETVTitleBlock">
                 <h4 id="ETVSourceTitle" class="header" data-position="top right" style="padding-bottom: 7px;float: left;"></h4>
@@ -45,7 +45,7 @@
         </div>
     </div>
     <div id="etv-divider"></div>
-    {% if include_assumptions %}
+    {% if etv.include_assumptions %}
         <div id="etv-assumes">
             <div id="ETV_assumes">
             </div>
@@ -53,21 +53,4 @@
         <div id="etv-divider-2"></div>
     {% endif %}
 </div>
-
-{% if etv %}
-    {% if etv.attributes|length %}
-        <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
-            <div class="ui grid">
-                <div class="sixteen wide column left aligned">
-                    {% for attribute in etv.attributes %}
-                        <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    {% endif %}
-
-    <span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
-    <span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>
-    <span id="play_finished" hidden>{% trans 'Play of the error trace was completed' %}</span>
-{% endif %}
+<span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>

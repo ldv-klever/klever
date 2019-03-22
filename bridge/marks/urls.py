@@ -15,16 +15,41 @@
 # limitations under the License.
 #
 
-from django.urls import path, re_path
-from marks import views
+from django.urls import path, re_path, include
+from rest_framework import routers
+from marks import views, api
+
+router = routers.DefaultRouter()
+router.register('safe', api.MarkSafeViewSet, 'safe')
+router.register('unsafe', api.MarkUnsafeViewSet, 'unsafe')
+router.register('unknown', api.MarkUnknownViewSet, 'unknown')
+router.register('tags/safe', api.SafeTagViewSet, 'tags-safe')
+router.register('tags/unsafe', api.UnsafeTagViewSet, 'tags-unsafe')
 
 
 urlpatterns = [
+    path('api/', include(router.urls)),
+
+    # Safe mark
+    path('safe/', views.SafeMarksListView.as_view(), name='safe-list'),
+    path('safe/<int:pk>/', views.SafeMarkPage.as_view(), name='safe'),
+
+    # Tags
+    re_path(r'^api/tags-access/(?P<tag_type>safe|unsafe)/(?P<tag_id>[0-9]+)/$', api.TagAccessAPIView.as_view()),
+    re_path(r'^api/tags-upload/(?P<tag_type>safe|unsafe)/$', api.UploadTagsAPIView.as_view(), name='tags-upload'),
+    re_path(r'^tags-download/(?P<tag_type>unsafe|safe)/$', views.DownloadTagsView.as_view(), name='tags-download'),
+
+
     # Main marks pages
-    re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$', views.MarkPage.as_view(), name='mark'),
+
+    # path('unsafe/<int:pk>/', views.UnsafeMarkPage.as_view(), name='unsafe-mark'),
+    # path('unknown/<int:pk>/', views.UnknownMarkPage.as_view(), name='unknown-mark'),
+
+
     re_path(r'^(?P<type>unsafe|safe|unknown)/association_changes/(?P<association_id>.*)/$',
             views.AssociationChangesView.as_view()),
-    re_path(r'^(?P<type>unsafe|safe|unknown)/$', views.MarksListView.as_view(), name='list'),
+
+    re_path(r'^(?P<type>unsafe|unknown)/$', views.MarksListView.as_view(), name='list'),
 
     # Mark form
     re_path(r'^(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/(?P<action>create|edit)/$',
@@ -48,8 +73,7 @@ urlpatterns = [
     # Tags
     path('tags/save_tag/', views.SaveTagView.as_view()),
     re_path(r'^tags/(?P<type>unsafe|safe)/$', views.TagsTreeView.as_view(), name='tags'),
-    re_path(r'^tags/(?P<type>unsafe|safe)/download/$', views.DownloadTagsView.as_view(), name='download_tags'),
-    re_path(r'^tags/(?P<type>unsafe|safe)/upload/$', views.UploadTagsView.as_view()),
+
     re_path(r'^tags/(?P<type>unsafe|safe)/get_tag_data/$', views.TagDataView.as_view()),
     re_path(r'^tags/(?P<type>unsafe|safe)/delete/(?P<pk>[0-9]+)/$', views.RemoveTagView.as_view()),
     re_path(r'^(?P<type>unsafe|safe)/tags_data/$', views.MarkTagsView.as_view()),

@@ -22,6 +22,7 @@ import zipfile
 import tempfile
 from datetime import datetime
 from io import BytesIO
+from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -30,16 +31,18 @@ from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import pytz
 
+from rest_framework import exceptions
+
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
 from bridge.utils import logger, file_get_or_create, unique_id, BridgeException, OpenFiles
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
-from jobs.models import Job, RunHistory, JobFile
+from jobs.models import Job, RunHistory, JobFile, JobHistory
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile, ErrorTraceSource
+    Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile
 from service.models import Scheduler, Decision
-from jobs.utils import change_job_status, remove_jobs_by_id
-from reports.utils import AttrData
+from jobs.utils import change_job_status
+# from reports.utils import AttrData
 from service.utils import StartJobDecision
 from tools.utils import Recalculation
 
@@ -47,48 +50,28 @@ from jobs.configuration import GetConfiguration
 from jobs.jobForm import LoadFilesTree, JobForm
 from reports.UploadReport import UploadReport
 
+from jobs.serializers import JobFileSerializer, UploadJobSerializer, RunHistorySerializer, UploadJobVersionSerializer
+
 ARCHIVE_FORMAT = 12
 
 
 class KleverCoreArchiveGen:
     def __init__(self, job):
-        self.arcname = 'VJ__' + job.identifier + '.zip'
         self.job = job
+        self.arcname = 'VJ__{}.zip'.format(job.identifier)
         self.stream = ZipStream()
 
     def __iter__(self):
-        for f in self.__get_job_files():
-            for data in self.stream.compress_file(f['src'], f['path']):
+        last_version = self.job.versions.get(version=self.job.version)
+        for file_inst in last_version.files.all():
+            arch_name = '/'.join(['root', file_inst.name])
+            file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
+            for data in self.stream.compress_file(file_src, arch_name):
                 yield data
 
         for data in self.stream.compress_string('format', str(self.job.format)):
             yield data
-
         yield self.stream.close_stream()
-
-    def __get_job_files(self):
-        job_file_system = {}
-        files_to_add = set()
-        for f in self.job.versions.get(version=self.job.version).filesystem_set.all():
-            job_file_system[f.id] = {
-                'parent': f.parent_id,
-                'name': f.name,
-                'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name) if f.file is not None else None
-            }
-            if job_file_system[f.id]['src'] is not None:
-                files_to_add.add(f.id)
-        job_files = []
-        for f_id in files_to_add:
-            file_path = job_file_system[f_id]['name']
-            parent_id = job_file_system[f_id]['parent']
-            while parent_id is not None:
-                file_path = os.path.join(job_file_system[parent_id]['name'], file_path)
-                parent_id = job_file_system[parent_id]['parent']
-            job_files.append({
-                'path': os.path.join('root', file_path),
-                'src': job_file_system[f_id]['src']
-            })
-        return job_files
 
 
 class AttrDataArchive:
@@ -114,7 +97,7 @@ class AttrDataArchive:
 class JobArchiveGenerator:
     def __init__(self, job):
         self.job = job
-        self.arcname = 'Job-%s.zip' % self.job.identifier[:10]
+        self.name = 'Job-{}.zip'.format(self.job.identifier)
         self.files_to_add = []
         self.stream = ZipStream()
 
@@ -350,7 +333,6 @@ class ReportsData:
             'start_date': report.start_date.timestamp(),
             'finish_date': report.finish_date.timestamp() if report.finish_date is not None else None,
             'data': data,
-            'covnum': report.covnum,
             'attrs': []
         }
 
@@ -434,7 +416,7 @@ class UploadTree:
         try:
             self.__upload_tree()
         except Exception:
-            remove_jobs_by_id(self._user, list(j.id for j in Job.objects.filter(identifier__in=self._uploaded)))
+            Job.objects.filter(identifier__in=self._uploaded).delete()
             raise
 
     def __get_tree(self):
@@ -514,11 +496,19 @@ class UploadJob:
         self.job = None
         self._user = user
         self._jobdir = job_dir
+
         self._jobdata = self.__read_json_file('job.json')
+        self._jobdata['parent'] = None if parent_id == 'null' else parent_id
+
         self.__check_job_data()
         self.__upload_job_files()
-        self.__upload_job()
-        self.__upload_reports()
+        try:
+            self.__upload_job()
+            self.__upload_reports()
+        except Exception:
+            if self.job:
+                self.job.delete()
+            raise
 
     def __read_json_file(self, rel_path):
         full_path = os.path.join(self._jobdir, rel_path)
@@ -532,100 +522,71 @@ class UploadJob:
         # It'll be checked while files tree is uploading.
         for dir_path, dir_names, file_names in os.walk(os.path.join(self._jobdir, 'JobFiles')):
             for file_name in file_names:
-                try:
-                    file_get_or_create(open(os.path.join(dir_path, file_name), mode='rb'), file_name, JobFile, True)
-                except Exception as e:
-                    logger.exception("Can't save job files to DB: %s" % e)
-                    raise BridgeException(_("Creating job's file failed"))
+                with open(os.path.join(dir_path, file_name), mode='rb') as fp:
+                    serializer = JobFileSerializer(data={'file': File(fp)})
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
     def __check_job_data(self):
         if not isinstance(self._jobdata, dict):
             raise ValueError('job.json file was not found or contains wrong data')
         if self._jobdata.get('archive_format') != ARCHIVE_FORMAT:
             raise BridgeException(_("The job archive format is not supported"))
-        if any(x not in self._jobdata for x in ['name', 'status', 'run_history', 'weight', 'progress']):
+        if any(x not in self._jobdata for x in ['run_history', 'progress']):
             logger.error("The job data is not full")
             raise BridgeException(_("The job archive was corrupted"))
-        if self._jobdata.get('format') != FORMAT:
-            logger.error('Unsupported job format: %s' % self._jobdata['format'])
-            raise BridgeException(_("The job format is not supported"))
-        if self._jobdata['status'] not in list(x[0] for x in JOB_STATUS):
-            raise ValueError("The job status is wrong: %s" % self._jobdata['status'])
-        if self._jobdata['weight'] not in set(w[0] for w in JOB_WEIGHT):
-            raise ValueError('Wrong job weight: %s' % self._jobdata['weight'])
 
-        if 'identifier' in self._jobdata and (not isinstance(self._jobdata['identifier'], str)
-                                              or len(self._jobdata['identifier']) == 0):
-            del self._jobdata['identifier']
-
-    def __get_job_versions(self):
-        versions_data = {}
+    def __upload_job_versions(self):
+        versions_data = []
         for fname in os.listdir(self._jobdir):
             full_path = os.path.join(self._jobdir, fname)
-            if not os.path.isfile(full_path) or not fname.startswith('version-'):
+            if not os.path.isfile(full_path) or not re.match(r'version-\d+\.json', fname):
                 continue
-            m = re.match('version-(\d+)\.json', fname)
-            if m is None:
-                continue
-            version = int(m.group(1))
             with open(full_path, encoding='utf8') as fp:
-                versions_data[version] = json.load(fp)
-            if any(x not in versions_data[version] for x in ['description', 'comment', 'global_role', 'files']):
-                logger.error("The job version data is not full")
-                raise BridgeException(_("The job archive was corrupted"))
-
-        if len(versions_data) == 0:
+                versions_data.append(json.load(fp))
+        if not versions_data:
             raise ValueError("There are no job's versions in the archive")
-        return list(versions_data[v] for v in sorted(versions_data))
+        versions_data.sort(key=lambda x: x['version'])
+
+        serializer = UploadJobVersionSerializer(data=versions_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        try:
+            JobHistory.objects.get(job=self.job, version=self.job.version)
+        except JobHistory.DoesNotExist:
+            raise exceptions.ValidationError({'versions': _('Uploading job versions has failed')})
+
+    def __upload_runhistory(self):
+        last_conf = None
+        for rh in self._jobdata['run_history']:
+            # Upload configuration file first
+            run_conf = os.path.join(self._jobdir, 'Configurations', '{0}.json'.format(rh['id']))
+            if not os.path.exists(run_conf):
+                logger.error('Job decision configuration was not found')
+                raise BridgeException(_("The job archive was corrupted"))
+            with open(run_conf, mode='rb') as fp:
+                serializer = JobFileSerializer(data={'file': File(fp, name='config.json')})
+            serializer.is_valid(raise_exception=True)
+            last_conf = serializer.save()
+
+            # Create run history instance
+            serializer = RunHistorySerializer(data={'status': rh['status'], 'date': rh['date']})
+            serializer.is_valid(raise_exception=True)
+            serializer.save(job=self.job, configuration=last_conf)
+        return last_conf
 
     def __upload_job(self):
-        versions = self.__get_job_versions()
+        serializer = UploadJobSerializer(data=self._jobdata)
+        serializer.is_valid(raise_exception=True)
+        self.job = serializer.save(author=self._user)
 
-        # Upload 1st version of job (creating new job)
-        self.job = JobForm(self._user, None, 'copy').save({
-            'identifier': self._jobdata.get('identifier'), 'parent': self._parent_id,
-            'name': self._jobdata['name'], 'comment': versions[0]['comment'], 'description': versions[0]['description'],
-            'global_role': versions[0]['global_role'], 'file_data': versions[0]['files'],
-            'weight': self._jobdata['weight']
-        })
+        # Upload job's run history
+        last_conf = self.__upload_runhistory()
 
-        last_conf = None
-        # Uploading job's run history
-        try:
-            for rh in self._jobdata['run_history']:
-                if rh['status'] not in list(x[0] for x in JOB_STATUS):
-                    logger.error('Wrong status: %s' % rh['status'])
-                    raise BridgeException(_("The job archive is corrupted"))
-                run_conf = os.path.join(self._jobdir, 'Configurations', '{0}.json'.format(rh['id']))
-                if not os.path.exists(run_conf):
-                    logger.error('Job decision configuration was not found')
-                    raise BridgeException(_("The job archive was corrupted"))
-                with open(run_conf, mode='rb') as fp:
-                    conf_file = file_get_or_create(fp, 'config.json', JobFile)
-                RunHistory.objects.create(
-                    job=self.job, status=rh['status'], configuration=conf_file,
-                    date=datetime.fromtimestamp(rh['date'], pytz.timezone('UTC'))
-                )
-                last_conf = conf_file
-        except Exception as e:
-            self.job.delete()
-            raise ValueError("Run history data is corrupted: %s" % e)
+        # Upload job's versions
+        self.__upload_job_versions()
 
-        # Uploading job's versions
-        for version_data in versions[1:]:
-            try:
-                self.job = JobForm(self._user, self.job, 'edit').save({
-                    'last_version': self.job.version, 'parent': self._parent_id, 'name': self._jobdata['name'],
-                    'comment': version_data['comment'], 'description': version_data['description'],
-                    'global_role': version_data['global_role'], 'file_data': version_data['files']
-                })
-            except Exception as e:
-                logger.exception(e)
-                self.job.delete()
-                raise BridgeException(_('Uploading job version has failed'))
-
-        # Change job's status as it was in downloaded archive
-        change_job_status(self.job, self._jobdata['status'])
+        # Upload job progress
         self.__create_progress(self.job, self._jobdata['progress'], last_conf)
 
     def __get_reports_files(self):
@@ -792,7 +753,7 @@ class UploadReports:
         for identifier in self._tree[lvl]:
             i = self._indexes[identifier]
             report = ReportComponent(
-                identifier=identifier, root=self._job.reportroot, covnum=self.data[i]['covnum'],
+                identifier=identifier, root=self._job.reportroot,
                 parent_id=self._parents[self.data[i].get('parent')],
                 computer_id=self._computers[self.data[i]['computer']],
                 component_id=self.__get_component(self.data[i]['component']),
@@ -873,7 +834,7 @@ class UploadReports:
             )
             problem_id = (ReportUnknown.__name__, 'problem', self.data[i]['pk'])
             with open(self._files[problem_id], mode='rb') as fp:
-                report.add_problem_desc(REPORT_ARCHIVE['problem desc'], fp)
+                report.add_problem_desc(fp)
             report.save()
 
     def __get_component(self, name):
@@ -911,7 +872,7 @@ class UploadReports:
                 raise ValueError('Component report was not uploaded')
             carch = CoverageArchive(report_id=self._rc_id_map[coverage[i][0]], identifier=coverage[i][1])
             with open(archives[i], mode='rb') as fp:
-                carch.save_archive(REPORT_ARCHIVE['coverage'], fp)
+                carch.add_coverage(fp)
 
     def __upload_resources_cache(self, resources):
         if not isinstance(resources, list):
@@ -1031,3 +992,18 @@ class UploadReportsWithoutDecision:
             res = UploadReport(self._job, report, archives=archives)
         if res.error is not None:
             raise ValueError(res.error)
+
+
+class JobFileGenerator(FileWrapper):
+    def __init__(self, jobfile):
+        assert isinstance(jobfile, JobFile), 'Unknown error'
+        self.size = len(jobfile.file)
+        super().__init__(jobfile.file, 8192)
+
+
+class JobConfGenerator(FileWrapper):
+    def __init__(self, instance):
+        assert isinstance(instance, RunHistory), 'Unknown error'
+        self.name = "job-{}.conf".format(instance.job.identifier)
+        self.size = len(instance.configuration.file)
+        super().__init__(instance.configuration.file, 8192)

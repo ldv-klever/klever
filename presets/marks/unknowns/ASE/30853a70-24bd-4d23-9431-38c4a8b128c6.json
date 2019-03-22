@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "description": "EMG cannot generate a variable of suitable type to save callback return value.",
+  "function": "incompatible types when returning type",
+  "link": "http://forge.ispras.ru/issues/7247",
+  "problem_pattern": "Incomp ret",
+  "production": true
+}

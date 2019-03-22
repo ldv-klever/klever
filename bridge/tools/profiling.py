@@ -171,16 +171,17 @@ def unparallel_group(groups):
 class LoggedCallMixin:
     unparallel = []
 
+    def get_unparallel(self, request):
+        return self.unparallel
+
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(super(), 'dispatch'):
             # This mixin should be used together with View based class
             raise BridgeException()
 
-        get_unparallel = getattr(self, 'get_unparallel', None)
-        if callable(get_unparallel):
-            self.unparallel = get_unparallel()
+        unparallel = self.get_unparallel(request)
 
-        locker = ExecLocker(type(self).__name__, self.unparallel)
+        locker = ExecLocker(type(self).__name__, unparallel)
         locker.lock()
         try:
             locker.save_exec_time()

@@ -98,9 +98,9 @@ class JobHistory(models.Model):
 
 
 class FileSystem(models.Model):
-    job_version = models.ForeignKey(JobHistory, models.CASCADE)
-    file = models.ForeignKey(JobFile, models.CASCADE, null=True)
+    job_version = models.ForeignKey(JobHistory, models.CASCADE, related_name='files')
     name = models.CharField(max_length=1024)
+    file = models.ForeignKey(JobFile, models.CASCADE)
 
     def __str__(self):
         return self.name

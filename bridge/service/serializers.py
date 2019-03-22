@@ -73,8 +73,7 @@ class DecisionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# Read only
-class ProgressSerializer(serializers.ModelSerializer):
+class ProgressSerializerRO(serializers.ModelSerializer):
     total_ts = serializers.SerializerMethodField()
     total_sj = serializers.SerializerMethodField()
     progress_ts = serializers.SerializerMethodField()

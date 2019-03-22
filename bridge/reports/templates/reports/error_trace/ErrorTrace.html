@@ -1,0 +1,90 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+<div id="ETV_error_trace">
+    {% if etv.globals %}
+        <span>
+            <span class="ETV_LN"><span class="ETV_THREAD">{{ etv.globals.thread|safe }}</span>{{ etv.globals.line }}</span>
+            <span class="ETV_LC">{{ etv.globals.offset }}<a class="ETV_GlobalExpander"><i class="mini icon unhide"></i> {{ etv.globals.source }}</a></span>
+            <br>
+        </span>
+        {% for l in etv.globals.lines %}
+            {% if l.note %}
+                <span>
+                    <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line }}</span>
+                    <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</a></span>
+                    <br>
+                </span>
+            {% endif %}
+            <span class="scope-global{% if l.note %} commented{% endif %}" style="display:none">
+                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span><span class="ETV_LINE" data-file="{{ l.file }}">{{ l.line }}</span></span>
+                <span class="ETV_LC">{{ l.offset }}{% if l.display %}<i class="ETV_OpenEye link mini icon unhide"></i><span class="ETV_Display">{{ l.display }}</span><span class="ETV_Source" style="display:none">{{ l.source|safe }}</span>{% else %}{{ l.source|safe }}{% endif %}</span>
+                {% if l.old_assumptions %}<span class="ETV_OldAssumptions" hidden>{{ l.old_assumptions }}</span>{% endif %}
+                {% if l.new_assumptions %}<span class="ETV_NewAssumptions" hidden>{{ l.new_assumptions }}</span>{% endif %}
+                <br>
+            </span>
+        {% endfor %}
+    {% endif %}
+
+    {% for l in etv.html_trace %}
+        {% if l.note %}
+            <span class="scope-{{ l.scope }}" data-type="note"{% if l.scope not in etv.shown_scopes %} style="display: none"{% endif %}>
+                <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line }}</span>
+                <span class="ETV_LC">{{ l.offset }}<span class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</span></span><br>
+            </span>
+        {% endif %}
+        {% if l.warn %}
+            <span class="scope-{{ l.scope }}" data-type="warn">
+                <span class="ETV_LN ETV_LN_Warning"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line }}</span>
+                <span class="ETV_LC">{{ l.offset }}<span class="ETV_ShowCommentCode ETV_WarnText">{{ l.warn }}</span></span><br>
+            </span>
+        {% endif %}
+
+        {% if l.type == 'statement' %}
+            <span class="scope-{{ l.scope }}{% if l.note or l.warn %} commented{% endif %}" data-type="{{ l.type }}" style="display:none;">
+                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span><span class="ETV_LINE" data-file="{{ l.file }}">{{ l.line }}</span></span>
+                <span class="ETV_LC">{{ l.offset }}{% if l.display %}<i class="ETV_OpenEye link mini icon unhide"></i><span class="ETV_Display">{{ l.display }}</span><span class="ETV_Source" style="display: none">{{ l.source|safe }}</span>{% else %}{{ l.source|safe }}{% endif %}</span>
+                {% if l.old_assumptions %}<span class="ETV_OldAssumptions" hidden>{{ l.old_assumptions }}</span>{% endif %}
+                {% if l.new_assumptions %}<span class="ETV_NewAssumptions" hidden>{{ l.new_assumptions }}</span>{% endif %}
+                <br>
+            </span>
+        {% elif l.type == 'function call' %}
+            <span class="scope-{{ l.scope }}{% if l.note or l.warn %} commented{% endif %}{% if l.opened %} scope_opened{% endif %}"{% if l.scope not in etv.shown_scopes or l.note or l.warn %} style="display:none"{% endif %} data-type="{{ l.type }}" data-scope="{{ l.inner_scope }}">
+                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span><span class="ETV_LINE" data-file="{{ l.file }}">{{ l.line }}</span></span>
+                <span class="ETV_LC">{{ l.offset }}{% if not l.opened %}<i class="ETV_EnterLink link mini icon violet caret right"></i>{% endif %}<i class="ETV_OpenEye link mini icon unhide"></i><span class="ETV_Display">{{ l.display }}</span><span class="ETV_Source" style="display: none">{{ l.source|safe }}</span></span>
+                {% if l.old_assumptions %}<span class="ETV_OldAssumptions" hidden>{{ l.old_assumptions }}</span>{% endif %}
+                {% if l.new_assumptions %}<span class="ETV_NewAssumptions" hidden>{{ l.new_assumptions }}</span>{% endif %}
+                <br>
+            </span>
+        {% elif l.type == 'action' %}
+            <span class="scope-{{ l.scope }}{% if l.opened %} scope_opened{% endif %}"{% if l.scope not in etv.shown_scopes %} style="display:none"{% endif %} data-type="{{ l.type }}" data-scope="{{ l.inner_scope }}">
+                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span><span class="ETV_LINE" data-file="{{ l.file }}">{{ l.line }}</span></span>
+                <span class="ETV_LC">{{ l.offset }}{% if not l.opened %}<i class="ETV_EnterLink link mini icon violet caret right"></i>{% endif %}<span class="{% if l.callback %}ETV_CallbackAction{% else %}ETV_Action{% endif %}">{{ l.display }}</span></span>
+                <br>
+            </span>
+        {% elif l.type == 'exit' %}
+            <span class="scope-{{ l.scope }}" data-type="{{ l.type }}" data-scope="{{ l.scope }}"{% if l.scope not in etv.shown_scopes %} style="display:none"{% endif %}>
+                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span><span class="ETV_LINE">{{ l.line }}</span></span>
+                <span class="ETV_LC">{{ l.offset }}<i class="ui mini icon caret up{% if l.scope not in etv.shown_scopes %} violet link ETV_ExitLink{% else %} black{% endif %}"></i></span>
+                <br>
+            </span>
+        {% endif %}
+    {% endfor %}
+    {% for assumption, ass_id in etv.assumptions.items %}<span id="assumption_{{ ass_id }}" hidden>{{ assumption }}</span>{% endfor %}
+</div>

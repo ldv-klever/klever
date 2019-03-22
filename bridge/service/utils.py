@@ -295,20 +295,6 @@ class FinishJobDecision:
                     raise ServiceError("Subjobs solving progress is not finished")
 
 
-class KleverCoreStartDecision:
-    def __init__(self, job):
-        try:
-            progress = Decision.objects.get(job=job)
-        except ObjectDoesNotExist:
-            raise ValueError('job decision was not successfully started')
-        if progress.start_date is not None:
-            raise ValueError('the "start" report of Core was already uploaded')
-        elif progress.finish_date is not None:
-            raise ValueError('the job is not solving already')
-        progress.start_date = now()
-        progress.save()
-
-
 class StopDecision:
     def __init__(self, job):
         if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:

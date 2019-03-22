@@ -86,7 +86,7 @@ JOB_WEIGHT = (
     ('1', _('Lightweight'))
 )
 
-MARK_TYPE = (
+MARK_SOURCE = (
     ('0', _('Created')),
     ('1', _('Preset')),
     ('2', _('Uploaded')),
@@ -155,6 +155,53 @@ class SafeVerdicts:
         ('safe:inconclusive', _('Incompatible marks'), '#C70646'),  # red
         ('safe:unassociated', _('Without marks'), ''),
         ('safe:total', _('Total'), ''),
+    )
+
+    @cached_property
+    def _verdict_dict(self):
+        return dict(self.verdicts)
+
+    def translate(self, verdict):
+        return self._verdict_dict[verdict]
+
+    def column(self, verdict):
+        return self.column_map[verdict]
+
+    def columns(self, with_root=False):
+        pass
+
+    @property
+    def default(self):
+        return self.verdicts[4][0]
+
+
+class UnsafeVerdicts:
+    verdicts = (
+        ('0', _('Unknown')),
+        ('1', _('Bug')),
+        ('2', _('Target bug')),
+        ('3', _('False positive')),
+        ('4', _('Incompatible marks')),
+        ('5', _('Without marks')),
+    )
+    column_map = {
+        '0': 'unsafe:unknown',
+        '1': 'unsafe:bug',
+        '2': 'unsafe:target_bug',
+        '3': 'unsafe:false_positive',
+        '4': 'unsafe:inconclusive',
+        '5': 'unsafe:unassociated'
+    }
+    unassociated = '5'
+    columns_data = (
+        ('unsafe', _('Unsafes'), ''),
+        ('unsafe:unknown', _('Unknown'), '#930BBD'),  # purple
+        ('unsafe:bug', _('Bugs'), '#C70646'),  # red
+        ('unsafe:target_bug', _('Target bugs'), '#C70646'),  # red
+        ('unsafe:false_positive', _('False positives'), '#D05A00'),  # orange
+        ('unsafe:inconclusive', _('Incompatible marks'), '#C70646'),
+        ('unsafe:unassociated', _('Without marks'), ''),
+        ('unsafe:total', _('Total'), ''),
     )
 
     @cached_property
@@ -255,4 +302,4 @@ ASSOCIATION_TYPE = (
     ('2', _('Unconfirmed'))
 )
 
-MPTT_FIELDS = ('level', 'lft', 'rght', 'level', 'tree_id')
+MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')

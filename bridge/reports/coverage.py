@@ -526,9 +526,10 @@ class CreateCoverageFiles:
                     self._line_coverage[fname] = []
                     self._coverage_stat[fname] = [0, 0, 0, 0]
                 self._line_coverage[fname].append([data[0], data[1][fname]])
-                if data[0] > 0:
-                    self._coverage_stat[fname][0] += self.__num_of_lines(data[1][fname])
                 self._coverage_stat[fname][1] += self.__num_of_lines(data[1][fname])
+                if data[0] > 0:
+                    self._coverage_stat[fname][0] += self._coverage_stat[fname][1]
+
         for data in self._coverage['function coverage']['coverage']:
             for fname in data[1]:
                 if fname not in self._func_coverage:
@@ -536,9 +537,9 @@ class CreateCoverageFiles:
                 if fname not in self._coverage_stat:
                     self._coverage_stat[fname] = [0, 0, 0, 0]
                 self._func_coverage[fname].append([data[0], data[1][fname]])
-                if data[0] > 0:
-                    self._coverage_stat[fname][2] += self.__num_of_lines(data[1][fname])
                 self._coverage_stat[fname][3] += self.__num_of_lines(data[1][fname])
+                if data[0] > 0:
+                    self._coverage_stat[fname][2] += self._coverage_stat[fname][3]
 
     @transaction.atomic
     def __create_files(self):

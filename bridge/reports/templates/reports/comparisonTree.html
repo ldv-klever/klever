@@ -17,36 +17,35 @@
 
 {% load i18n %}
 
-{% for lvl in data %}
+{% for lvl in tree.levels %}
     {% for block in lvl %}
-        <div class="comparison-block" style="min-width: 200px;border-color: {% if block.type == 'c' %}#021cfc{% elif block.type == 'u' %}#fc902f{% elif block.type == 's' %}#42fc51{% elif block.type == 'f' %}#fc1c67{% elif block.type == 'm' %}#a73efc{% endif %}">
-            <input class="block_class" type="hidden" value="{{ block.block_class }}">
+        <div class="comparison-block comparison-block-{{ block.type }}"
+             data-blockclass="{{ block.block_class }}"
+             data-id="{{ block.id }}" {% if block.parent %}data-parent="{{ block.parent.id }}"{% endif %}>
+
             <div class="block-title">
                 <span>
                     {% if block.href %}
                         <a href="{{ block.href }}">{{ block.title }}</a>
                     {% else %}
-                        {{ block.title }}
+                        <span>{{ block.subtitle }}</span>
                     {% endif %}
-                {% if block.add_info %}
-                    (<span{% if block.add_info.color %} style="color: {{ block.add_info.color }}"{% endif %}>{{ block.add_info.value }}</span>)
+                {% if block.subtitle %}
+                    (<span{% if block.subtitle.color %} style="color: {{ block.subtitle.color }}"{% endif %}>{{ block.subtitle.text }}</span>)
                 {% endif %}
                 </span>
             </div>
-            {% if block.list|length %}
+            {% if block.attrs %}
                 <div>
                     <ul>
-                    {% for a in block.list %}
-                        <li {% if a.color %} style="color: {{ a.color }};"{% endif %}>{% if a.name %}<span style="font-weight: bold">{{ a.name }}</span> <i class="ui long arrow right icon"></i>{% endif %}{{ a.value }}</li>
+                    {% for attr in block.attrs %}
+                        <li class="comparison-attr-{{ attr.type }}"><span style="font-weight: bold">{{ attr.name }}</span><i class="ui long arrow right icon"></i>{{ attr.value }}</li>
                     {% endfor %}
                     </ul>
                 </div>
+            {% elif block.tags %}
+                <div><ul>{% for tag in block.tags %}<li>{{ tag }}</li>{% endfor %}</ul></div>
             {% endif %}
-
-            <input class="block-id" type="hidden" value="{{ block.id }}">
-            {% for p in block.parents %}
-                <input class="block-parent" type="hidden" value="{{ p }}">
-            {% endfor %}
         </div>
     {% endfor %}
     <br>

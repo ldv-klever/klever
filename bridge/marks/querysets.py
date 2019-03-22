@@ -7,7 +7,7 @@ from bridge.utils import logger
 from bridge.rawQuery import RawQuery, EmptyQuery
 
 from users.models import User
-from reports.models import Component, Attr, AttrName
+# from reports.models import Component, Attr, AttrName
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
     MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,\
     MarkSafeTag, MarkUnsafeTag, SafeTag, UnsafeTag, MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr

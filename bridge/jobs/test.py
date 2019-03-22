@@ -24,9 +24,8 @@ from django.urls import reverse
 
 from bridge.vars import JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase
-from bridge.populate import populate_users
 
-from users.models import User, View, PreferableView
+from users.models import User, PreferableView
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
 from jobs.jobForm import LoadFilesTree
 
@@ -289,7 +288,7 @@ class TestJobs(KleverTestCase):
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Remove job
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([newjob.parent_id])})
+        response = self.client.post('/jobs/api/%s/remove/' % newjob.parent_id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -377,7 +376,7 @@ class TestJobs(KleverTestCase):
                 fp.write(content)
 
         # We have to remove job before uploading new one with the same identifier
-        response = self.client.post('/jobs/remove/', {'jobs': json.dumps([newjob_pk])})
+        response = self.client.post('/jobs/api/%s/remove/' % newjob_pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -615,8 +614,8 @@ class TestJobs(KleverTestCase):
             for content in response.streaming_content:
                 fp.write(content)
 
-        # Remove jobs are currently downlaoded
-        self.client.post('/jobs/remove/', {'jobs': json.dumps([job1.id])})
+        # Remove jobs are currently downloaded
+        self.client.post('/jobs/api/%s/remove/' % job1.id)
 
         # Upload tree
         with open(os.path.join(settings.MEDIA_ROOT, self.test_archive), mode='rb') as fp:

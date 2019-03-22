@@ -22,21 +22,20 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 
-from bridge.populate import populate_users
 from bridge.utils import KleverTestCase, ArchiveFileContent
-from bridge.vars import JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, MARK_TYPE,\
+from bridge.vars import JOB_STATUS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS,\
     PROBLEM_DESC_FILE, ASSOCIATION_TYPE
 
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    SafeTag, UnsafeTag, ReportSafeTag, ReportUnsafeTag, MarkSafeTag, MarkUnsafeTag, SafeReportTag, UnsafeReportTag,\
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkUnsafeCompare, UnknownProblem, \
+    SafeTag, UnsafeTag, MarkSafeTag, MarkUnsafeTag,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, \
     SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 from reports.test import DecideJobs, SJC_1
-from marks.CompareTrace import DEFAULT_COMPARE
+from marks.UnsafeUtils import DEFAULT_COMPARE
 
 REPORT_ARCHIVES = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 

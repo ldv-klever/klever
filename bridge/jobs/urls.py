@@ -25,15 +25,15 @@ urlpatterns = [
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
     path('decision_results/<int:pk>/', views.DecisionResults.as_view()),
     path('progress/<int:pk>/', views.JobProgress.as_view()),
-    path('api/job-status/<int:pk>/', api.JobStatusView.as_view()),
+    path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),
 
     # Main actions with jobs
-    path('remove/', views.RemoveJobsView.as_view()),
-    path('api/duplicate/', api.DuplicateJobAPIView.as_view(), name='api-duplicate-job'),
-    path('api/duplicate/<int:pk>/', api.DuplicateJobAPIView.as_view(), name='api-duplicate-version'),
+    path('api/<int:pk>/remove/', api.RemoveJobView.as_view(), name='api-remove-job'),
+    path('api/duplicate/', api.DuplicateJobView.as_view(), name='api-duplicate-job'),
+    path('api/duplicate/<int:pk>/', api.DuplicateJobView.as_view(), name='api-duplicate-version'),
 
-    path('api/decision-results/<int:pk>/', api.DecisionResultsAPIView.as_view(), name='api-decision-results'),
+    path('api/decision-results/<int:pk>/', api.DecisionResultsView.as_view(), name='api-decision-results'),
 
     # Job form
     re_path(r'^form/(?P<pk>[0-9]+)/(?P<action>edit|copy)/$', views.JobFormPage.as_view(), name='form'),
@@ -43,7 +43,7 @@ urlpatterns = [
     # Actions with job files
     path('downloadfile/<slug:hash_sum>/', views.DownloadJobFileView.as_view(), name='download_file'),
     path('api/file/', api.CreateFileView.as_view()),
-    path('api/file/<slug:hashsum>/', api.FileContentView.as_view(), name='file-content'),
+    path('api/file/<slug:hash_sum>/', api.FileContentView.as_view(), name='file-content'),
 
     path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', api.GetFilesDiffView.as_view(), name='files-diff'),
     path('api/replace-job-file/', api.ReplaceJobFileView.as_view()),
@@ -63,16 +63,16 @@ urlpatterns = [
     # Actions with job solving
     path('prepare_run/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
     path('download_configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view()),
-    path('get_def_start_job_val/', views.GetDefStartJobValue.as_view()),
+    path('start_job_def_value/', api.StartJobDefValue.as_view()),
     path('run_decision/<int:job_id>/', views.StartDecision.as_view()),
     path('stop_decision/<int:pk>/', views.StopDecisionView.as_view()),
-    path('decide_job/', views.DecideJobServiceView.as_view()),
+    path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
 
     # "Utils"
     path('get_job_field/', views.GetJobFieldView.as_view()),
     path('do_job_has_children/<int:pk>/', views.DoJobHasChildrenView.as_view()),
-    path('check_download_access/', views.CheckDownloadAccessView.as_view()),
-    path('check_compare_access/', views.CheckCompareAccessView.as_view()),
+    path('api/can_download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
+    path('api/can_compare/<int:job1>/<int:job2>/', api.CheckCompareAccessView.as_view(), name='api-can-compare'),
     path('get_job_progress_json/<int:pk>/', views.JobProgressJson.as_view()),
 
     # Actions with reports

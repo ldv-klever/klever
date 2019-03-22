@@ -12,10 +12,11 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
-from bridge.vars import USER_ROLES, JOB_ROLES, MPTT_FIELDS
+from bridge.vars import USER_ROLES, JOB_ROLES, MPTT_FIELDS, FORMAT
 from bridge.utils import file_get_or_create, logger, file_checksum
+from bridge.serializers import TimeStampField
 from users.models import User
-from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole
+from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
 from jobs.utils import JobAccess
 
 FILE_SEP = '/'
@@ -159,8 +160,6 @@ class JobFileSerializer(serializers.ModelSerializer):
         'max_size': _('Please keep the file size under {max_size} (the current file size is {curr_size})')
     }
 
-    file = serializers.FileField(allow_empty_file=True)
-
     def validate_file(self, fp):
         file_size = fp.seek(0, os.SEEK_END)
         if file_size > settings.MAX_FILE_SIZE:
@@ -194,6 +193,7 @@ class JobFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobFile
         fields = ('file',)
+        extra_kwargs = {'file': {'allow_empty_file': True}}
 
 
 class UserRoleSerializer(serializers.ModelSerializer):
@@ -268,6 +268,28 @@ class CreateJobSerializer(serializers.ModelSerializer):
         exclude = ('status', 'author', *MPTT_FIELDS)
 
 
+class UploadJobSerializer(serializers.ModelSerializer):
+    def validate_format(self, value):
+        if value != FORMAT:
+            raise exceptions.ValidationError(_("The job format is not supported"))
+        return value
+
+    class Meta:
+        model = Job
+        exclude = ('author', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'write_only': True}}
+
+
+class UploadJobVersionSerializer(serializers.ModelSerializer):
+    change_date = TimeStampField()
+    files = JobFilesField()
+    user_roles = UserRoleSerializer(many=True, default=[])
+
+    class Meta:
+        model = JobHistory
+        exclude = ('job', 'change_author')
+
+
 class JVrolesSerializerRO(serializers.ModelSerializer):
     user_roles = serializers.ListField(child=UserRoleSerializer(), source='userrole_set.all')
     available_users = serializers.SerializerMethodField()
@@ -334,7 +356,7 @@ class JobFormSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
         fields = ('id', 'name', 'parent', 'versions', 'version')
 
 
-class JVformSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
+class JVformSerializerRO(serializers.ModelSerializer):
     files = JobFilesField(source='*')
     roles = JVrolesSerializerRO(source='*')
 
@@ -343,7 +365,7 @@ class JVformSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
         fields = ('name', 'description', 'files', 'roles')
 
 
-class ViewJobSerializerRO(ReadOnlyMixin, serializers.ModelSerializer):
+class ViewJobSerializerRO(serializers.ModelSerializer):
     last_version = serializers.SerializerMethodField()
     versions = JVlistSerializerRO(many=True)
     parents = serializers.SerializerMethodField()
@@ -391,7 +413,7 @@ class JobStatusSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         try:
             run_data = instance.runhistory_set.latest('date')
-            run_data.status = validated_data['status']
+            run_data.status = instance.status
             run_data.save()
         except ObjectDoesNotExist:
             pass
@@ -467,3 +489,11 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = ('parent', 'name')
+
+
+class RunHistorySerializer(serializers.ModelSerializer):
+    date = TimeStampField()
+
+    class Meta:
+        model = RunHistory
+        exclude = ('job', 'configuration')

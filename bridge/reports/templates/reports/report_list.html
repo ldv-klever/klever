@@ -42,29 +42,31 @@
         <div class="nine wide column">
             <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui tiny violet button" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
 
-            <div class="ui breadcrumb">
-                <a class="section parent-popup" href="{{ TableData.parents.0.href }}" data-variation="very wide">{{ TableData.parents.0.title }}</a>
-                <div class="ui special popup">
-                    <div class="header">{{ TableData.parents.0.title }}</div>
-                    <div class="content">
-                        {% for attr in TableData.parents.0.attrs %}
-                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% for parent in TableData.parents|slice:"1:" %}
-                    <i class="right arrow icon divider"></i>
-                    <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+            {% if TableData.parents %}
+                <div class="ui breadcrumb">
+                    <a class="section parent-popup" href="{{ TableData.parents.0.href }}" data-variation="very wide">{{ TableData.parents.0.title }}</a>
                     <div class="ui special popup">
-                        <div class="header">{{ parent.title }}</div>
+                        <div class="header">{{ TableData.parents.0.title }}</div>
                         <div class="content">
-                            {% for attr in parent.attrs %}
-                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                            {% for attr in TableData.parents.0.attrs %}
+                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
                             {% endfor %}
                         </div>
                     </div>
-                {% endfor %}
-            </div>
+                    {% for parent in TableData.parents|slice:"1:" %}
+                        <i class="right arrow icon divider"></i>
+                        <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                        <div class="ui special popup">
+                            <div class="header">{{ parent.title }}</div>
+                            <div class="content">
+                                {% for attr in parent.attrs %}
+                                    <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
     <br>
@@ -72,14 +74,14 @@
         {% include TableData.view.template with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
         <br>
     </div>
-    {% if TableData.table_data.values|length %}
+    {% if TableData.values|length %}
         {# Pagination #}
         {% if TableData.page %}
             <div>
                 {% if TableData.page.has_previous %}
                     <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.page.previous_page_number }}"></i>
                 {% endif %}
-                <span>{% blocktrans with n1=TableData.page.number n2=TableData.page.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                <span>{% blocktrans with n1=TableData.page.number n2=TableData.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
                 {% if TableData.page.has_next %}
                     <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.page.next_page_number }}"></i>
                 {% endif %}
@@ -88,7 +90,7 @@
         <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">
             <table class="ui compact celled selectable table alternate-color {% if TableData.view.type == '6' %}red{% elif TableData.view.type == '5' %}green{% elif TableData.view.type == '4' %}orange{% endif %} ">
                 <thead>
-                    {% for column_row in TableData.table_data.header %}
+                    {% for column_row in TableData.header %}
                         <tr class="info">
                         {% for coldata in column_row %}
                             <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -97,7 +99,7 @@
                     {% endfor %}
                 </thead>
                 <tbody>
-                    {% for row_data in TableData.table_data.values %}
+                    {% for row_data in TableData.values %}
                         <tr>
                             {% for v in row_data %}
                                 <td>

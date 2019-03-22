@@ -1,0 +1,6 @@
+{
+  "attrs": [],
+  "function": "ValueError: Cannot parse JSON configuration file 'base.json'",
+  "problem_pattern": "BadReqBase",
+  "production": true
+}

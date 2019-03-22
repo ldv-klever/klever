@@ -24,15 +24,17 @@ import tempfile
 import time
 import zipfile
 import json
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.core.files import File
-from django.db.models import Q
+from django.db.models import Q, FileField
 from django.http import HttpResponseBadRequest, JsonResponse, Http404
 from django.template import loader
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 from django.utils.timezone import now, activate as activate_timezone
 from django.utils.translation import ugettext_lazy as _, activate
 
@@ -79,7 +81,7 @@ def file_checksum(f):
     return md5.hexdigest()
 
 
-def file_get_or_create(fp, filename, model, check_size=False):
+def file_get_or_create(fp, filename, model, check_size=False, **kwargs):
     if isinstance(fp, str):
         fp = io.BytesIO(fp.encode('utf8'))
     elif isinstance(fp, bytes):
@@ -110,9 +112,26 @@ def file_get_or_create(fp, filename, model, check_size=False):
     try:
         return model.objects.get(hash_sum=hash_sum)
     except model.DoesNotExist:
-        db_file = model(hash_sum=hash_sum)
+        db_file = model(hash_sum=hash_sum, **kwargs)
         db_file.file.save(filename, File(fp), save=True)
         return db_file
+
+
+class WithFilesMixin:
+    def file_fields(self):
+        for field in getattr(self, '_meta').fields:
+            if isinstance(field, FileField):
+                yield field.name
+
+
+def remove_instance_files(**kwargs):
+    instance = kwargs['instance']
+    if not issubclass(instance.__class__, WithFilesMixin):
+        return
+    for name in instance.file_fields():
+        file = getattr(instance, name)
+        if file and os.path.isfile(file.path):
+            file.storage.delete(file.path)
 
 
 # archive - django.core.files.File object
@@ -307,6 +326,11 @@ class BridgeException(Exception):
         return str(self.message)
 
 
+class CheckArchiveError(Exception):
+    # Exception to return code 200 but include "ZIP error"
+    pass
+
+
 class BridgeErrorResponse(HttpResponseBadRequest):
     def __init__(self, response, *args, back=None, **kwargs):
         if isinstance(response, int):
@@ -343,3 +367,17 @@ class BridgeMiddlware:
         # return HttpResponseBadRequest(loader.get_template('bridge/error.html').render({
         #     'user': request.user, 'message': str(UNKNOWN_ERROR)
         # }))
+
+
+def construct_url(viewname, *args, **kwargs):
+    url = reverse(viewname, args=args)
+    params_quoted = []
+    for name, value in kwargs.values():
+        if isinstance(value, (list, tuple)):
+            for list_value in value:
+                params_quoted.append("{0}={1}".format(name, quote(str(list_value))))
+        else:
+            params_quoted.append("{0}={1}".format(name, quote(str(value))))
+    if params_quoted:
+        url = '{0}?{1}'.format(url, '&'.join(params_quoted))
+    return url

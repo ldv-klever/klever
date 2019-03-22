@@ -213,29 +213,6 @@
         </div>
         <div class="ui divider"></div>
 
-        {# Unknowns problem #}
-        <input id="view_data_{{ view.type }}__problem_problem" value="list_if_problem_problem" data-list="problem_problem_type__problem_problem_value" type="hidden">
-        <div class="ui checkbox">
-            <input type="checkbox" id="view_condition_{{ view.type }}__problem_problem"{% if 'problem_problem' in view %} checked{% endif %}>
-            <label for="view_condition_{{ view.type }}__problem_problem">{% trans 'Unknowns' %}/{% trans 'Problem name' %}</label>
-        </div>
-        <br><br>
-        <div class="inline fields">
-            <div class="field">
-                <label for="view_{{ view.type }}__problem_problem_type"></label>
-                <select id="view_{{ view.type }}__problem_problem_type" class="ui dropdown">
-                    <option value="iexact"{% if 'problem_problem' in view and view.problem_problem.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if 'problem_problem' in view and view.problem_problem.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if 'problem_problem' in view and view.problem_problem.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="view_{{ view.type }}__problem_problem_value"></label>
-                <input id="view_{{ view.type }}__problem_problem_value" type="text"{% if 'problem_problem' in view %} value="{{ view.problem_problem.1 }}"{% endif %} style="min-width: 300px;">
-            </div>
-        </div>
-        <div class="ui divider"></div>
-
         {# Format #}
         <input id="view_data_{{ view.type }}__format" value="list_if_format" data-list="format_type__format_value" type="hidden">
         <div class="ui checkbox">

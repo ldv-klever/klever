@@ -70,7 +70,7 @@
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
                         <a class="item" href="{% url 'marks:list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
                         <a class="item" href="{% url 'marks:list' 'unknown' %}">{% trans 'Unknowns' %}</a>
-                        <a class="item" href="{% url 'marks:list' 'safe' %}">{% trans 'Safes' %}</a>
+                        <a class="item" href="{% url 'marks:safe-list' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
@@ -84,7 +84,6 @@
                 <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
             {% endif %}
             {% if user.role == '2' %}
-                <a class="item" href="{% url 'population' %}">{% trans 'Population' %}</a>
                 <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>
             {% endif %}
         {% endif %}

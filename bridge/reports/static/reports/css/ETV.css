@@ -159,8 +159,17 @@
     font-style: italic;
 }
 
-.ETV_GlobalExpanderLink {
+.ETV_GlobalExpander {
     cursor: pointer;
+}
+
+.ETV_LINE {
+    cursor: pointer;
+    color: #8029bd;
+    font-weight: bold;
+}
+.ETV_LINE:hover {
+    color: #a22ff0;
 }
 
 .ETV_LN_Note {
@@ -218,6 +227,11 @@
     color: #5019af;
     font-weight: bold;
 }
+.ETV_Display {
+    color: #5019af;
+    font-weight: bold;
+}
+
 .ETV_THREAD {
     background-color: #fffff1;
 }
@@ -251,4 +265,8 @@
 }
 .ETV_ShowCode {
     cursor: pointer;
+}
+
+.ETV_NewAssumption {
+    color: red;
 }
