@@ -1,0 +1,106 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "1.2.dev598+g2a38a67e9.d20181019"
+    },
+    {
+      "is_compare": false,
+      "name": "Sub-job identifier",
+      "value": "0"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Version",
+      "value": "v3.14.23-161-gc0456439a336"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:alloc:irq"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/usb/serial/kobil_sct.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "kobil_port_probe": [
+          {
+            "ldv_kmalloc": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "kobil_open": [
+          {
+            "ldv_kzalloc": [
+              {
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "ldv_switch_to_interrupt_context": []
+      },
+      {
+        "kobil_write": [
+          {
+            "ldv_check_alloc_flags": [
+              {
+                "ldv_in_interrupt_context": []
+              },
+              {
+                "ldv_assert_linux_alloc_irq__wrong_flags": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [],
+  "verdict": "2"
+}

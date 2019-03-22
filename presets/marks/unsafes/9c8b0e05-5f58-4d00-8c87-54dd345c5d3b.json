@@ -1,0 +1,61 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "is_compare": false,
+      "name": "Name",
+      "value": "0/tests/1507053/test"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux kernel:Version",
+      "value": "3.14.0"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux kernel:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux kernel:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": false,
+      "name": "LKVOG strategy:Name",
+      "value": "separate modules"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/arrays/two-dimensional/safe.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_error": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "3"
+}

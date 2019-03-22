@@ -1,0 +1,51 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "9aaf9678ea3e/sound/pci/emu10k1/snd-emu10k1-synth.ko/linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.2.64"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "manual"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+    }
+  ],
+  "description": "Target function uncovered and to fix it it is necessary to support catching of structures initalized as local variables and then find a way to call function pointer hw-&gt;get_synth_voice.",
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [
+    "EMG"
+  ],
+  "verdict": "1"
+}

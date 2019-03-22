@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.1.dev147+g040570141"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "36"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.14.0"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:concurrency safety"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/linux/concurrency-safety/unsorted/LoopTest-safe.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "0"
+}

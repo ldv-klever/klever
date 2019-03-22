@@ -1,0 +1,49 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.2.dev479+g4cf7d194d.d20180919"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "4"
+    },
+    {
+      "attr": "Project:Kind",
+      "is_compare": false,
+      "value": "Linux"
+    },
+    {
+      "attr": "Project:Arch",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Project:Version",
+      "is_compare": false,
+      "value": "3.14.79"
+    },
+    {
+      "attr": "Project:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:test:environment model specifications with function pointer analysis"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/timer_v.1/del_timer.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "0"
+}

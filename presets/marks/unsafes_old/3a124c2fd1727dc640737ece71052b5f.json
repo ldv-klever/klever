@@ -1,0 +1,69 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev290+ge2ee704f"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "8/tests/linux/drivers/base/class/linux:drivers:base:class"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.14.0"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:drivers:base:class"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/linux/drivers/base/class/unregister-class.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "ldv_destroy_class": [
+              {
+                "ldv_unregister_class": [
+                  {
+                    "ldv_assert_linux_drivers_base_class__double_deregistration": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": true,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

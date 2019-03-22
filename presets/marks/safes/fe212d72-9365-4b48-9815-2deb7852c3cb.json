@@ -1,0 +1,39 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "1.2.dev674+gb743587c4"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Version",
+      "value": "v3.14.79"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/ata/pata_arasan_cf.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "verdict": "0"
+}

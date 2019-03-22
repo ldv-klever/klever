@@ -1,0 +1,46 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.1rc3.dev601+gd20e4b12e.d20181022"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "1"
+    },
+    {
+      "attr": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": false,
+      "value": "v3.15.2-7-g063579d4c3ed"
+    },
+    {
+      "attr": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:kernel:locking:mutex"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "drivers/w1/wire.ko"
+    }
+  ],
+  "description": "Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools.",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [
+    "KernelModel"
+  ],
+  "verdict": "1"
+}

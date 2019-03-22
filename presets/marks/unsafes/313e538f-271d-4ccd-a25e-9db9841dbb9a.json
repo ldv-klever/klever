@@ -1,0 +1,61 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "1.1rc3.dev488+g37f9c687d.d20180928"
+    },
+    {
+      "is_compare": false,
+      "name": "Sub-job identifier",
+      "value": "9"
+    },
+    {
+      "is_compare": false,
+      "name": "Project:Kind",
+      "value": "Linux"
+    },
+    {
+      "is_compare": false,
+      "name": "Project:Arch",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Project:Version",
+      "value": "3.14.79"
+    },
+    {
+      "is_compare": false,
+      "name": "Project:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:test:common"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "ext-modules/load_order/init.ko"
+    }
+  ],
+  "description": "",
+  "error_trace": [
+    [
+      {
+        "exit1": [
+          {
+            "ldv_error": []
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

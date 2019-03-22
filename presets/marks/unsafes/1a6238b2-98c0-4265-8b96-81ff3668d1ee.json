@@ -1,0 +1,59 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "1.2.dev674+gb743587c4"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Version",
+      "value": "v3.14.79"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/uwb/hwa-rc.ko"
+    }
+  ],
+  "description": "Memory leak. hwarc_probe() doesn't free hwarc on error path.",
+  "error_trace": [
+    [
+      {
+        "hwarc_probe": [
+          {
+            "ldv_kzalloc": [
+              {
+                "ldv_zalloc": [
+                  {
+                    "ldv_reference_zalloc": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "0",
+  "tags": [],
+  "verdict": "1"
+}

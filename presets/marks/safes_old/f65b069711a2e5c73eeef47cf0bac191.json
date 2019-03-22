@@ -1,0 +1,52 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "0.3.dev404+g27a398b9"
+    },
+    {
+      "attr": "Name",
+      "is_compare": false,
+      "value": "ae3f34854485/fs/nfs/nfs.ko/linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Linux kernel:Version",
+      "is_compare": false,
+      "value": "3.16.3"
+    },
+    {
+      "attr": "Linux kernel:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux kernel:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "LKVOG strategy:Name",
+      "is_compare": false,
+      "value": "separate modules"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:kernel:locking:spinlock"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "fs/nfs/nfs.ko"
+    }
+  ],
+  "description": "Function nfs_lock_and_join_requests is not covered. There is no required EMG specifications (for instance address_space_operations). However, it is a complex driver and environment model would be too complicated for a verification tool.",
+  "is_modifiable": true,
+  "status": "2",
+  "tags": [
+    "EMG",
+    "EnvSpec"
+  ],
+  "verdict": "1"
+}

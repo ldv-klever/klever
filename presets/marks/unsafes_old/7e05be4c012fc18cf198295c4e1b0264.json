@@ -1,0 +1,73 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "1.2.dev476+gae7d57e7d.d20180917"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "28"
+    },
+    {
+      "attr": "Project:Kind",
+      "is_compare": false,
+      "value": "Linux"
+    },
+    {
+      "attr": "Project:Arch",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Project:Version",
+      "is_compare": false,
+      "value": "3.14.79"
+    },
+    {
+      "attr": "Project:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:memory safety"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/linux/memory-safety/buffer_overread_safe.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_init": [
+          {
+            "kzalloc": [
+              {
+                "ldv_kzalloc": [
+                  {
+                    "ldv_zalloc": [
+                      {
+                        "ldv_reference_zalloc": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "3"
+}
