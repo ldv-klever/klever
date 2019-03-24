@@ -61,8 +61,8 @@
       "path": "addons/cif-1517e57.tar.xz"
     },
     "CIL": {
-      "version": "9c08d50",
-      "path": "https://forge.ispras.ru/attachments/download/6328/toplevel.opt.tar.gz",
+      "version": "460aed4",
+      "path": "https://forge.ispras.ru/attachments/download/6353/toplevel.opt.tar.xz",
       "executable path": "."
     },
     "Consul": {
