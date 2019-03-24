@@ -272,7 +272,7 @@ class OSKleverInstance(OSEntity):
             # To avoid warnings. This parameter is actually used in corresponding function in deploys/local/local.py.
             del allow_symlink
             self.logger.info('Install "{0}" to "{1}"'.format(src, dst))
-            ssh.sftp_put(src, dst, sudo=True, ignore=ignore)
+            ssh.sftp_put(src, dst, ignore=ignore)
 
         def dump_cur_deploy_info(cur_deploy_info):
             with tempfile.NamedTemporaryFile('w', encoding='utf8') as nested_fp:

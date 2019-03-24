@@ -93,6 +93,8 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
         logger.error('"{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
 
+    deploy_dir = os.path.normpath(deploy_dir)
+
     desc = deploy_conf[name]
 
     if 'version' not in desc:
@@ -168,6 +170,8 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
             logger.error('Path "{0}" does not exist'.format(path))
             sys.exit(errno.ENOENT)
 
+        instance_path = os.path.join(deploy_dir, os.path.basename(path))
+
         if is_git_repo:
             if version == 'CURRENT':
                 install_fn(path, deploy_dir, allow_symlink=True)
@@ -192,20 +196,18 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
                     # Directory .git can be quite large so ignore it during installing except one needs it.
                     install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
         elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
-            archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
-            install_fn(path, archive)
-            cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
+            install_fn(path, instance_path)
 
             if tarfile.is_tarfile(path):
-                cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', archive)
+                cmd_fn('tar', '--warning', 'no-unknown-keyword', '-C', '{0}'.format(deploy_dir), '-xf', instance_path)
             else:
-                cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), archive)
+                cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), instance_path)
 
-            cmd_fn('rm', '-rf', '{0}'.format(archive))
+            cmd_fn('rm', '-rf', instance_path)
         elif os.path.isfile(path):
-            install_fn(path, os.path.join(deploy_dir, os.path.basename(path)), allow_symlink=True)
+            install_fn(path, instance_path, allow_symlink=True)
         elif os.path.isdir(path):
-            install_fn(path, deploy_dir, allow_symlink=True)
+            install_fn(path, instance_path, allow_symlink=True)
         else:
             logger.error('Could not install "{0}" since it is provided in the unsupported format'.format(name))
             sys.exit(errno.ENOSYS)
