@@ -74,7 +74,7 @@
       "CPAchecker": {
         "name": "CPAchecker",
         "version": "trunk:30732",
-        "path": "https://forge.ispras.ru/attachments/download/6332/CPAchecker-1.8-svn 30732-unix.tar.bz2",
+        "path": "https://forge.ispras.ru/attachments/download/6351/CPAchecker-1.8-svn 30732-unix.tar.xz",
         "executable path": "scripts"
       }
     }
