@@ -1,0 +1,44 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "2.1.dev29+g9268dc1d3"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "10"
+    },
+    {
+      "attr": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.12.14-127-gd8e172f3c0a5"
+    },
+    {
+      "attr": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:drivers:clk1"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "drivers/spi/spi-imx.ko"
+    }
+  ],
+  "description": "https://gitlab.com/sosy-lab/software/cpachecker/issues/571",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}
