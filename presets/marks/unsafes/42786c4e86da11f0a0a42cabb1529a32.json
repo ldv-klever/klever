@@ -49,7 +49,11 @@
                   {
                     "tasklet_enable": [
                       {
-                        "ldv_atomic_dec": []
+                        "atomic_dec_0": [
+                          {
+                            "ldv_atomic_dec": []
+                          }
+                        ]
                       }
                     ]
                   }
@@ -64,7 +68,7 @@
                           {
                             "tipc_createport": [
                               {
-                                "ldv_spin_lock_bh_72___0": [
+                                "ldv_spin_lock_bh_72_1": [
                                   {
                                     "ldv_spin_lock_tipc_port_list_lock": [
                                       {
@@ -75,7 +79,7 @@
                                 ]
                               },
                               {
-                                "ldv_spin_unlock_bh_73___1": [
+                                "ldv_spin_unlock_bh_73_2": [
                                   {
                                     "ldv_spin_unlock_tipc_port_list_lock": [
                                       {
@@ -88,7 +92,7 @@
                             ]
                           },
                           {
-                            "ldv_spin_unlock_bh_71___0": [
+                            "ldv_spin_unlock_bh_87_1": [
                               {
                                 "ldv_spin_unlock_lock_of_tipc_port": [
                                   {

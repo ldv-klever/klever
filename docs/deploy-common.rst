@@ -74,7 +74,7 @@ CIF
 ^^^
 
 One can download `CIF <https://forge.ispras.ru/projects/cif/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/6352/cif-1517e57.tar.xz>`__.
 These binaries are compatible with various Linux distributions since CIF is based on `GCC <https://gcc.gnu.org/>`__
 that has few dependencies.
 Besides, one can clone `CIF Git repository <https://forge.ispras.ru/projects/cif/repository>`__ and build CIF from
@@ -82,13 +82,13 @@ source using corresponding instructions.
 
 .. _cil:
 
-CIL
-^^^
+Frama-C (CIL)
+^^^^^^^^^^^^^
 
-`CIL <https://people.eecs.berkeley.edu/~necula/cil/>`__ is a very legacy Klever addon.
-You can get its binaries from `here <https://forge.ispras.ru/attachments/download/5827/cil-1.5.1.tar.gz>`__.
+You can get `Frama-C (CIL) <https://frama-c.com/>`__ binaries from
+`here <https://forge.ispras.ru/attachments/download/6353/toplevel.opt.tar.xz>`__.
 As well, you can build it from
-`this source <https://forge.ispras.ru/projects/cil/repository/revisions/fdae07e10fcab22c59e30813d87aa5401ef1e7fc>`__
+`this source <https://forge.ispras.ru/projects/astraver/repository/framac>`__ (branch :file:`18.0`)
 which has several specific patches relatively to the mainline.
 
 .. _consul:
@@ -111,9 +111,9 @@ These tools are referred to as :ref:`verification_backends`.
 As verification backends Klever supports `CPAchecker <https://cpachecker.sosy-lab.org/>`__ well.
 Some other verification backends are supported experimentally and currently we do not recommend to use them.
 You can download binaries of CPAchecker suitable for checking most of requirements from
-`here <https://forge.ispras.ru/attachments/download/5828/CPAchecker-1.7-svn%2027946-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/6351/CPAchecker-1.8-svn 30732-unix.tar.xz>`__.
 For finding data races additionally download binaries of another custom version of CPAchecker from
-`here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn%2028916-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn  28916-unix.tar.gz>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
 and build other versions of CPAchecker from source referring corresponding instructions.
 

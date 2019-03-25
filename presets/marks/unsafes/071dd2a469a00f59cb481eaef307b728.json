@@ -3,42 +3,37 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "1.2.dev479+g4cf7d194d.d20180919"
+      "value": "2.1.dev20+g58738f206"
     },
     {
       "attr": "Sub-job identifier",
       "is_compare": false,
-      "value": "5"
+      "value": "29"
     },
     {
-      "attr": "Project:Kind",
-      "is_compare": false,
-      "value": "Linux"
-    },
-    {
-      "attr": "Project:Arch",
+      "attr": "Linux:Architecture",
       "is_compare": false,
       "value": "x86_64"
     },
     {
       "attr": "Linux:Version",
-      "is_compare": true,
-      "value": "v2.6.33.20"
+      "is_compare": false,
+      "value": "v3.14"
     },
     {
-      "attr": "Project:Configuration",
+      "attr": "Linux:Configuration",
       "is_compare": false,
       "value": "allmodconfig"
     },
     {
       "attr": "Requirement",
       "is_compare": true,
-      "value": "linux:test:environment model specifications with function pointer analysis"
+      "value": "linux:net:register"
     },
     {
       "attr": "Program fragment",
       "is_compare": true,
-      "value": "ext-modules/workqueue_v.1/queue_work_on_invoke.ko"
+      "value": "ext-modules/linux/net/register/netdev2.ko"
     }
   ],
   "comparison": "thread_call_forests",
@@ -46,27 +41,37 @@
   "error trace": [
     [
       {
-        "ldv_initialize": []
-      }
-    ],
-    [
+        "ldv_pre_probe": [
+          {
+            "ldv_reset_error_counter": []
+          }
+        ]
+      },
       {
-        "ldv_init": [
+        "ldv_usb_probe": [
           {
-            "ldv_invoke_test": []
-          },
-          {
-            "ldv_emg_queue_work_on": [
+            "ldv_emg_register_netdev": [
               {
-                "ldv_handler": [
+                "ldv_ndo_open": [
                   {
-                    "ldv_invoke_reached": [
+                    "ldv_emg_register_netdev": [
                       {
-                        "ldv_assert_linux_emg_test": []
+                        "ldv_failed_register_netdev": []
                       }
                     ]
                   }
                 ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ldv_post_probe": [
+          {
+            "ldv_check_return_value_probe": [
+              {
+                "ldv_assert_linux_net_register__wrong_return_value": []
               }
             ]
           }

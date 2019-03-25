@@ -413,12 +413,16 @@
                       {
                         "usb_start_wait_urb": [
                           {
-                            "ldv_check_alloc_flags": [
+                            "ldv_usb_submit_urb_102": [
                               {
-                                "ldv_exclusive_spin_is_locked": []
-                              },
-                              {
-                                "ldv_assert_linux_alloc_spinlock__wrong_flags": []
+                                "ldv_check_alloc_flags": [
+                                  {
+                                    "ldv_exclusive_spin_is_locked": []
+                                  },
+                                  {
+                                    "ldv_assert_linux_alloc_spinlock__wrong_flags": []
+                                  }
+                                ]
                               }
                             ]
                           }

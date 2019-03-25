@@ -133,7 +133,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
     if enforce_limitations:
         # todo: Get these limitations from some config
         timelimit = 450
-        memlimit = 300000000
+        memlimit = 1000000000
 
         soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
         soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)

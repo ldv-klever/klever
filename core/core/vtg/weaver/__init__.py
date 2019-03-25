@@ -44,6 +44,10 @@ class Weaver(core.vtg.plugins.Plugin):
                                                                 ('aspectator', '-print-file-name=include'),
                                                                 collect_all_stdout=True)[0]
 
+        env = dict(os.environ)
+        # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
+        env['LDV_INLINE_ASM_STUB'] = ''
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
@@ -117,6 +121,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
+                        env=env,
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
