@@ -3,7 +3,7 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "1.2.dev479+g4cf7d194d.d20180919"
+      "value": "2.1.dev29+g9268dc1d3"
     },
     {
       "attr": "Sub-job identifier",
@@ -11,22 +11,17 @@
       "value": "5"
     },
     {
-      "attr": "Project:Kind",
-      "is_compare": false,
-      "value": "Linux"
-    },
-    {
-      "attr": "Project:Arch",
+      "attr": "Linux:Architecture",
       "is_compare": false,
       "value": "x86_64"
     },
     {
       "attr": "Linux:Version",
       "is_compare": true,
-      "value": "v2.6.33.20"
+      "value": "v4.6.7"
     },
     {
-      "attr": "Project:Configuration",
+      "attr": "Linux:Configuration",
       "is_compare": false,
       "value": "allmodconfig"
     },
@@ -38,7 +33,7 @@
     {
       "attr": "Program fragment",
       "is_compare": true,
-      "value": "ext-modules/workqueue_v.1/queue_work_on_invoke.ko"
+      "value": "ext-modules/workqueue_v.1/queue_delayed_work_on_invoke.ko"
     }
   ],
   "comparison": "thread_call_forests",
@@ -56,13 +51,17 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_emg_queue_work_on": [
+            "ldv_queue_delayed_work_on_17": [
               {
-                "ldv_handler": [
+                "ldv_emg_queue_delayed_work_on": [
                   {
-                    "ldv_invoke_reached": [
+                    "ldv_handler": [
                       {
-                        "ldv_assert_linux_emg_test": []
+                        "ldv_invoke_reached": [
+                          {
+                            "ldv_assert_linux_emg_test": []
+                          }
+                        ]
                       }
                     ]
                   }
