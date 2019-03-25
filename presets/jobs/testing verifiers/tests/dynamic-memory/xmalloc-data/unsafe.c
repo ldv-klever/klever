@@ -23,12 +23,13 @@
 static int __init ldv_init(void)
 {
 	struct ldv_struct2 *var1;
-	int var2 = 2;
+	int *var2;
 
 	var1 = ldv_xmalloc(sizeof(*var1) + 4);
 
 	var1->field1 = 1;
-	var1->field2 = &var2;
+	var2 = (int *)var1->field2;
+	*var2 = 2;
 
 	if (var1->field1 == 1 &&
 	    *(int *)(var1->field2) == 2)
