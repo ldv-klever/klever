@@ -244,10 +244,11 @@ class FragmentationAlgorythm:
 
         :return: A list of paths.
         """
-        path = self.clade.get_storage_path('working source trees.json')
-        with open(path, 'r', encoding='utf8') as fp:
-            paths = ujson.load(fp)
-        return paths
+        clade_meta = self.clade.get_meta()
+        if 'working source trees' in clade_meta:
+            return clade_meta['working source trees']
+        else:
+            return clade_meta['build_dir']
 
     def __attributes(self):
         """
@@ -256,15 +257,13 @@ class FragmentationAlgorythm:
         :return: Attributes list.
         """
         attrs = []
-        path = self.clade.get_storage_path('project attrs.json')
-        if os.path.isfile(path):
-            with open(path, 'r', encoding='utf8') as fp:
-                build_attrs = ujson.load(fp)
-            if build_attrs:
-                self.common_attributes = build_attrs
-            attrs.extend(build_attrs)
+        clade_meta = self.clade.get_meta()
+
+        if 'project attrs' in clade_meta:
+            self.common_attributes = clade_meta['project attrs']
+            attrs.extend(self.common_attributes)
         else:
-            self.logger.warning("There is no source attributes description in build base")
+            self.logger.warning("There is no project attributes in build base")
 
         return attrs
 

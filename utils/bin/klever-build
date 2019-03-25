@@ -904,24 +904,15 @@ class CProgram:
         clade.parse_all()
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
-        attrs = [
+        clade.add_meta_by_key('project attrs', [
             {
                 'name': type(self).__name__,
                 'value': [{'name': name, 'value': getattr(self, name)}
                           for name in ('architecture', 'version', 'configuration')]
             }
-        ]
-
-        tmp_dir = tempfile.mkdtemp()
-        for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
-                           (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json')),
-                           (self.target_program_desc, os.path.join(tmp_dir, 'target program description.json'))):
-            with open(file, 'w', encoding='utf8') as fp:
-                json.dump(data, fp, sort_keys=True, indent=4)
-
-            clade.add_file_to_storage(file, os.path.basename(file))
-
-        shutil.rmtree(tmp_dir)
+        ])
+        clade.add_meta_by_key('working source trees', self.work_src_trees)
+        clade.add_meta_by_key('target program description', self.target_program_desc)
 
         self.logger.info('Remove temporary directories')
         for tmp_dir in self.tmp_dirs:
