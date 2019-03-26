@@ -54,11 +54,7 @@
                   {
                     "tasklet_enable": [
                       {
-                        "atomic_dec_1": [
-                          {
-                            "ldv_atomic_dec": []
-                          }
-                        ]
+                        "ldv_atomic_dec": []
                       }
                     ]
                   }
