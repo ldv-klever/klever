@@ -18,7 +18,6 @@
 
 from distutils.dir_util import copy_tree
 import hashlib
-import json
 import os
 import re
 import shutil
