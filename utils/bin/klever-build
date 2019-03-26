@@ -326,7 +326,6 @@ target_program_descs = [
     #         "ext-modules/dynamic-memory/xmalloc",
     #         "ext-modules/dynamic-memory/xmalloc-data",
     #         "ext-modules/dynamic-memory/xzalloc",
-    #         "ext-modules/dynamic-memory/xzalloc-data",
     #         "ext-modules/enumerations",
     #         "ext-modules/function-pointers",
     #         "ext-modules/gotos",
