@@ -643,7 +643,11 @@ target_program_descs = [
     #         'target/target_core_backend.h'
     #     ]
     # }
-    # TODO: Unsupported tests:
+]
+
+
+# TODO: Unsupported tests.
+unsupported_target_program_descs = [
     # {
     #     'build base': 'build bases/testing/57d7f5',
     #     'name': 'Linux',
