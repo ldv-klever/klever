@@ -132,7 +132,7 @@
             ]
           }
         },
-        "process": "<assign>.[callback].<success> | <fail>",
+        "process": "<assign>.[callback]",
         "actions": {
           "callback": {
             "comment": "Call the work callback.",
@@ -145,18 +145,6 @@
             "comment": "Register",
             "statements": [
               "%delayed_work% = $ARG1;"
-            ]
-          },
-          "success": {
-            "comment": "Successfully flushed the work.",
-            "statements": [
-              "return true;"
-            ]
-          },
-          "fail": {
-            "comment": "Failed to flush the work.",
-            "statements": [
-              "return false;"
             ]
           }
         }

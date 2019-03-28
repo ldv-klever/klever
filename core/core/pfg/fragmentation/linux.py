@@ -25,8 +25,8 @@ class Linux(FragmentationAlgorythm):
 
     CLADE_PRESET = 'linux_kernel'
 
-    def __init__(self, logger, conf, desc, clade, pf_dir):
-        super().__init__(logger, conf, desc, clade, pf_dir)
+    def __init__(self, logger, conf, desc, pf_dir):
+        super().__init__(logger, conf, desc, pf_dir)
         self._max_size = self.fragmentation_set_conf.get("maximum fragment size")
         self._separate_nested = self.fragmentation_set_conf.get("separate nested subsystems", True)
         self.kernel = self.fragmentation_set_conf.get("kernel", False)
@@ -38,7 +38,8 @@ class Linux(FragmentationAlgorythm):
 
         :param program: Program object.
         """
-        for identifier, desc in program.cmdg.LDs:
+        for desc in program.clade.get_all_cmds_by_type("LD"):
+            identifier = desc['id']
             # This shouldn't happen ever, but let's fail otherwise.
             if len(desc['out']) != 1:
                 self.logger.warning("LD commands with several out files are not supported, skip commands: {!r}".

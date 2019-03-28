@@ -18,7 +18,6 @@
 import os
 import json
 import importlib
-import clade.interface as clade_api
 
 import core.components
 import core.utils
@@ -53,7 +52,7 @@ class PFG(core.components.Component):
         strategy = self._get_fragmentation_strategy(program)
 
         # Fragmentation
-        strategy = strategy(self.logger, self.conf, desc, clade_api, self.PF_DIR)
+        strategy = strategy(self.logger, self.conf, desc, self.PF_DIR)
         attr_data, fragments_files = strategy.fragmentation()
 
         # Prepare attributes

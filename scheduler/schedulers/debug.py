@@ -45,6 +45,7 @@ class Debug(schedulers.native.Native):
         super(Debug, self)._prepare_solution(identifier, configuration, mode)
         if mode == 'job':
             self._process_starter = original_executor
+        self.logger.warning('You should start Klever Core yourself (most likely in the debug mode)')
 
     def _postprocess_solution(self, identifier, future, mode):
         """

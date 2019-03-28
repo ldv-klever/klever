@@ -133,7 +133,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.1, collect_all_stdout=Fa
     if enforce_limitations:
         # todo: Get these limitations from some config
         timelimit = 450
-        memlimit = 300000000
+        memlimit = 1000000000
 
         soft_time, hard_time = resource.getrlimit(resource.RLIMIT_CPU)
         soft_mem, hard_mem = resource.getrlimit(resource.RLIMIT_AS)
@@ -198,8 +198,8 @@ def reliable_rmtree(logger, directory):
 def get_search_dirs(main_work_dir, abs_paths=False):
     search_dirs = ['job/root', os.path.pardir]
 
-    if 'KLEVER_WORK_DIR' in os.environ:
-        search_dirs.append(os.environ['KLEVER_WORK_DIR'])
+    if 'KLEVER_DATA_DIR' in os.environ:
+        search_dirs.append(os.environ['KLEVER_DATA_DIR'])
 
     # All search directories are represented by either absolute paths (so, join does not have any effect) or paths
     # relatively to main working directory. Thus, after this operation all search directories become absolute.
@@ -217,6 +217,7 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = get_search_dirs(main_work_dir)
 
     for search_dir in search_dirs:
+        # TODO: there is an undocumented feature here. If file_or_dir will be absolute one os.path.join will return it. If it exists find_file_or_dir will assume that it is located in first search directory and return it.
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
         if os.path.isfile(found_file_or_dir):
             logger.debug('Find file "{0}" in directory "{1}"'.format(file_or_dir, search_dir))

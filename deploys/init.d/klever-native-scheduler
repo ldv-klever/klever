@@ -52,7 +52,7 @@ case "$1" in
         swapoff -a
         chmod -R o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
 
-        export KLEVER_BUILD_BASES="${KLEVER_BUILD_BASES}"
+        export KLEVER_DATA_DIR="${KLEVER_DATA_DIR}"
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
             --exec "${DAEMON}" -- "${CONFFILE}"
         then

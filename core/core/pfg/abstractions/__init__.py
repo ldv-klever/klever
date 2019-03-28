@@ -36,14 +36,13 @@ class Program:
         :param memory_efficient_mode:
         """
         self.logger = logger
-        self.build_base = clade
+        self.clade = clade
         self.source_paths = source_paths
-        self.cmdg = self.build_base.CommandGraph()
         self._files = dict()
         self._fragments = dict()
         self.__divide()
         if not memory_efficient_mode:
-            self.logger.info("Extract dependecnies between files from the program callgraph")
+            self.logger.info("Extract dependencies between files from the program callgraph")
             # This is very memory unefficient operation, so for Linux this is an optional step to prevent consuming
             # gigabytes of memory
             self.__establish_dependencies()
@@ -89,14 +88,13 @@ class Program:
         :param add: Add the fragment to the collection.
         :return: Fragment object.
         """
-        ccs = self.cmdg.get_ccs_for_ld(identifier)
+        ccs = self.clade.get_root_cmds_by_type(identifier, "CC")
 
         files = set()
-        for i, d in ccs:
+        for i in ccs:
+            d = self.clade.get_cmd(i)
             self.__check_cc(d)
             for in_file in d['in']:
-                in_file = self.__get_cmd_file(in_file, d)
-
                 if not in_file.endswith('.c'):
                     self.logger.warning("You should implement more strict filters to reject CC commands with such "
                                         "input files as {!r}".format(in_file))
@@ -206,8 +204,7 @@ class Program:
         # Found files
         suitable_files = set()
         # Optimizations: collect in advance absolute file paths
-        fs = self.build_base.FileStorage()
-        convert = fs.convert_path
+        convert = self.clade.get_storage_path
         reversed = {f.abs_path: f for f in self.files}
         all_abs_files = set(reversed.keys())
         all_abs_dirs = dict()
@@ -340,12 +337,10 @@ class Program:
         """Analyze CC commands and add all found .c files for further program decomposition."""
         # Out file is used just to get an identifier for the fragment, thus it is Ok to use a random first. Later we
         # check that all fragments have unique names
-        fs = self.build_base.FileStorage()
-        srcg = self.build_base.SourceGraph()
-        convert = fs.convert_path
-        for identifier, desc in ((i, d) for i, d in self.cmdg.CCs if d.get('out') and len(d.get('out')) > 0):
+        convert = self.clade.get_storage_path
+        for desc in (d for d in self.clade.compilation_cmds if d.get('out') and len(d.get('out')) > 0):
+            identifier = desc['id']
             for name in desc.get('in'):
-                name = self.__get_cmd_file(name, desc)
                 if name not in self._files:
                     file = File(name)
                     for path in self.source_paths:
@@ -362,25 +357,10 @@ class Program:
 
                     file.cc = str(identifier)
                     try:
-                        file.size = list(srcg.get_sizes([name]).values())[0]
+                        file.size = self.clade.get_file_size(name)
                     except (KeyError, IndexError):
                         file.size = 0
                     self._files[name] = file
-
-    def __get_cmd_file(self, path, desc):
-        """
-        Get path to the file given as an input or output file of the command. The path can be relative to CWD dir ot the
-        command or be absolute. The result path should be either relative to the source directory where source file are
-        stored or absolute.
-
-        :param path: Path string.
-        :param desc: Command description dict.
-        :return: New path string.
-        """
-        if not os.path.isabs(path):
-            path = os.path.join(desc['cwd'], path)
-            path = make_relative_path(self.source_paths, path)
-        return path
 
     def __check_cc(self, desc):
         """
@@ -395,11 +375,11 @@ class Program:
         """
         Analyze the callgraph of the program and add to each File object function names that are exported and function
         names that are imported with links to File objects that export these functions. This function requires an
-        extremly huge amount of memory if the program is very big. This is becouse the callgraph itself can be quite
+        extremely huge amount of memory if the program is very big. This is because the callgraph itself can be quite
         large.
         """
-        cg = self.build_base.CallGraph().graph
-        fs = self.build_base.FunctionsScopes().scope_to_funcs
+        cg = self.clade.callgraph
+        fs = self.clade.functions_by_file
 
         # Fulfil callgraph dependencies
         for path, functions in ((p, f) for p, f in cg.items() if p in self._files):

@@ -22,7 +22,7 @@ class File:
         """
         Represents a file of the program
 
-        :param name: Path to the file relatively to source firectory.
+        :param name: Path to the file relatively to source directory.
         """
         # Identifier
         self.name = name

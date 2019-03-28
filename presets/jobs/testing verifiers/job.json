@@ -38,7 +38,6 @@
         "ext-modules/dynamic-memory/xmalloc/unsafe.ko",
         "ext-modules/dynamic-memory/xmalloc-data/unsafe.ko",
         "ext-modules/dynamic-memory/xzalloc/unsafe.ko",
-        "ext-modules/dynamic-memory/xzalloc-data/unsafe.ko",
         "ext-modules/enumerations/unsafe.ko",
         "ext-modules/function-pointers/array.ko",
         "ext-modules/function-pointers/struct.ko",

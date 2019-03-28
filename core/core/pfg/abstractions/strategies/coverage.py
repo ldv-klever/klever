@@ -59,7 +59,7 @@ class Coverage(Abstract):
         a minimal set and only that fragments that have these calls in the covered  code.
         """
         # Get target fragments
-        cg = self.program.build_base.CallGraph().graph
+        cg = self.program.clade.callgraph
         for fragment in self.program.target_fragments:
             self.logger.info("Find fragments that call functions from the target fragment {!r}".format(fragment.name))
             # Search for export functions

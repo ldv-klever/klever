@@ -24,17 +24,18 @@
 static int __init ldv_init(void)
 {
 	struct ldv_struct2 *var1;
-	int var2 = ldv_undef_int(), var3 = ldv_undef_int();
+	int var2 = ldv_undef_int(), var3 = ldv_undef_int(), *var4;
 
-	var1 = ldv_xmalloc(sizeof(*var1) + 4);
+	var1 = ldv_xmalloc(sizeof(*var1) + sizeof(int));
 
-	var1->field1 = var3;
-	var1->field2 = &var2;
+	var1->field1 = var2;
+	var4 = (int *)var1->field2;
+	*var4 = var3;
 
-	if (var1->field1 != var3)
+	if (var1->field1 != var2)
 		ldv_error();
 
-	if (*(int *)(var1->field2) != var2)
+	if (*(int *)(var1->field2) != var3)
 		ldv_error();
 
 	ldv_free(var1);

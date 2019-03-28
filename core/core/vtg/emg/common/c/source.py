@@ -17,7 +17,7 @@
 
 import re
 import ujson
-import clade.interface as clade_api
+from clade import Clade
 
 from core.vtg.emg.common import get_conf_property
 from core.vtg.emg.common.c import Function, Variable, Macro
@@ -48,14 +48,13 @@ class Source:
         self.__function_calls_cache = dict()
 
         # Initialize Clade cient to make requests
-        self._clade = clade_api
-        self._clade.setup(self._conf['build base'])
+        self._clade = Clade(self._conf['build base'])
 
         # Ask for dependencies for each CC
         cfiles, files_map = self._collect_file_dependencies(abstract_task)
 
         # Read file with source analysis
-        self._import_code_analysis(self._clade, cfiles, files_map)
+        self._import_code_analysis(cfiles, files_map)
 
     @property
     def source_functions(self):
@@ -233,7 +232,7 @@ class Source:
         else:
             return None
 
-    def _import_code_analysis(self, clade_api, cfiles, dependencies):
+    def _import_code_analysis(self, cfiles, dependencies):
         """
         Read global variables, functions and macros to fill up the collection.
 
@@ -243,13 +242,13 @@ class Source:
         """
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
-        typedef = clade_api.TypeDefinitions(cfiles).graph
+        typedef = self._clade.get_typedefs(cfiles)
         if typedef:
             import_typedefs(typedef)
-        variables = clade_api.VariableInitializations(cfiles)
-        if variables.vars:
+        variables = self._clade.get_variables(cfiles)
+        if variables:
             self.logger.info("Import global variables initializations")
-            for path, vals in variables.vars.items():
+            for path, vals in variables.items():
                 for variable in vals:
                     variable_name = extract_name(variable['declaration'])
                     if not variable_name:
@@ -268,10 +267,10 @@ class Source:
 
         # Variables which are used in variables initalizations
         self.logger.info("Import source functions")
-        vfunctions = variables.used_vars_functions
+        vfunctions = self._clade.get_used_in_vars_functions()
 
         # Get functions defined in dependencies and in the main functions and have calls
-        cg = clade_api.CallGraph().partial_graph(set(dependencies.keys()))
+        cg = self._clade.get_callgraph(set(dependencies.keys()))
 
         # Function scope definitions
         # todo: maybe this should be fixed in Clade
@@ -282,7 +281,7 @@ class Source:
                 for dep in cg[scope][func].get('calls'):
                     dependencies.setdefault(dep, set())
                     dependencies[dep].add(scope)
-        fs = clade_api.FunctionsScopes(set(dependencies.keys()).union(cfiles)).scope_to_funcs
+        fs = self._clade.get_functions_by_file(set(dependencies.keys()).union(cfiles))
 
         # Add called functions
         for scope in cg:
@@ -348,7 +347,7 @@ class Source:
             with open(macros_file, 'r', encoding='utf8') as fp:
                 white_list = ujson.load(fp)
             if white_list:
-                macros = clade_api.MacroExpansions(white_list, cfiles).macros
+                macros = self._clade.get_macros_expansions(cfiles, white_list)
                 for path, macros in macros.items():
                     for macro, desc in macros.items():
                         obj = self.get_macro(macro)
@@ -419,10 +418,10 @@ class Source:
         # Read each CC description and import map of files to in files
         for group in abstract_task['grps']:
             for desc in group['Extra CCs']:
-                cc_desc = self._clade.get_cc(desc['CC'])
+                cc_desc = self._clade.get_cmd(desc['CC'])
                 c_file = cc_desc['in'][0]
                 # Now read deps
-                _collect_cc_deps(c_file, self._clade.get_cc_deps(desc['CC']))
+                _collect_cc_deps(c_file, self._clade.get_cmd_deps(desc['CC']))
                 c_files.add(c_file)
 
         return c_files, collection
