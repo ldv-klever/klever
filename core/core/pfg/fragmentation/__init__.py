@@ -248,7 +248,7 @@ class FragmentationAlgorythm:
         if 'working source trees' in clade_meta:
             return clade_meta['working source trees']
         else:
-            return clade_meta['build_dir']
+            return [clade_meta['build_dir']]
 
     def __attributes(self):
         """
