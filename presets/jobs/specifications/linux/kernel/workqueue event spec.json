@@ -81,7 +81,7 @@
           }
         }
       },
-      "flush_work": {
+      "flush_work, schedule_work": {
         "comment": "Flush work.",
         "labels": {
           "work_struct": {
@@ -121,7 +121,7 @@
           }
         }
       },
-      "flush_delayed_work": {
+      "schedule_delayed_work, flush_delayed_work": {
         "comment": "Flush work.",
         "labels": {
           "delayed_work": {
@@ -132,7 +132,7 @@
             ]
           }
         },
-        "process": "<assign>.[callback]",
+        "process": "<assign>.[callback].<success> | <fail>",
         "actions": {
           "callback": {
             "comment": "Call the work callback.",
@@ -146,10 +146,22 @@
             "statements": [
               "%delayed_work% = $ARG1;"
             ]
+          },
+          "success": {
+            "comment": "Successfully flushed the work.",
+            "statements": [
+              "return true;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to flush the work.",
+            "statements": [
+              "return false;"
+            ]
           }
         }
       },
-      "queue_delayed_work": {
+      "queue_delayed_work, schedule_delayed_work_on": {
         "comment": "Queue delayed work on.",
         "labels": {
           "delayed_work": {

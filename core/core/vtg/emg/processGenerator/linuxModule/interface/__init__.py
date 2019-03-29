@@ -147,7 +147,10 @@ class Implementation(Variable):
         self.initialization_file = file
         self.base_container = base_container
         self.base_value = base_value
-        self.sequence = sequence
+        if not sequence:
+            self.sequence = []
+        else:
+            self.sequence = sequence
 
     def adjusted_value(self, declaration):
         if self.declaration.compare(declaration):

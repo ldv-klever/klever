@@ -1,97 +1,110 @@
 {
   "Linux 3.14 (base)": {
-  	"functions models": {
-  		"usb_unlink_urb": {
-  			"comment": "Abort/cancel a transfer request for an endpoint.",
-	        "labels": {
-	          "urb": {
-	            "container": true,
-	            "parameter": true,
-	            "interface": "urb.urb"
-	          }
-	        },
-	        "process": "<assign>.[callback].<success> | <fail>",
-	        "actions": {
-	          "callback": {
-	            "comment": "Call the urb callback.",
-	            "callback": "%urb.complete%",
-	            "parameters": [
-	            	"%urb%"
-	            ]
-	          },
-	          "assign": {
-	            "comment": "Get the urb structure from arguments to unlink urb.",
-	            "statements": [
-	              "%urb% = $ARG1;"
-	            ]
-	          },
-	          "success": {
-	            "comment": "Successfully unlinked urb.",
-	            "statements": [
-	              "return 0;"
-	            ]
-	          },
-	          "fail": {
-	            "comment": "Failed to unlink urb.",
-	            "statements": [
-	              "return ldv_undef_int_negative();"
-	            ]
-	          }
-	        }
-  		},
-  		"usb_kill_urb": {
-  			"comment": "Cancel a transfer request and wait for it to finish.",
-	        "labels": {
-	          "urb": {
-	            "container": true,
-	            "parameter": true,
-	            "interface": "urb.urb"
-	          }
-	        },
-	        "process": "<assign>.[callback]",
-	        "actions": {
-	          "callback": {
-	            "comment": "Call the urb callback.",
-	            "callback": "%urb.complete%",
-	            "parameters": [
-	            	"%urb%"
-	            ]
-	          },
-	          "assign": {
-	            "comment": "Get the urb structure from arguments to kill urb.",
-	            "statements": [
-	              "%urb% = $ARG1;"
-	            ]
-	          }
-	        }
-  		},
-  		"usb_poison_urb": {
-  			"comment": "Reliably kill a transfer and prevent further use of an URB.",
-	        "labels": {
-	          "urb": {
-	            "container": true,
-	            "parameter": true,
-	            "interface": "urb.urb"
-	          }
-	        },
-	        "process": "<assign>.[callback]",
-	        "actions": {
-	          "callback": {
-	            "comment": "Call the urb callback.",
-	            "callback": "%urb.complete%",
-	            "parameters": [
-	            	"%urb%"
-	            ]
-	          },
-	          "assign": {
-	            "comment": "Get the urb structure from arguments to poison urb.",
-	            "statements": [
-	              "%urb% = $ARG1;"
-	            ]
-	          }
-	        }
-  		}
-  	},
-  	"environment processes": {}
+    "functions models": {
+      "usb_unlink_urb": {
+        "comment": "Abort/cancel a transfer request for an endpoint.",
+        "labels": {
+          "urb": {
+            "container": true,
+            "parameter": true,
+            "interface": "urb.urb"
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "actions": {
+          "callback": {
+            "comment": "Call the urb callback.",
+            "callback": "%urb.complete%",
+            "parameters": [
+              "%urb%"
+            ]
+          },
+          "assign": {
+            "comment": "Get the urb structure from arguments.",
+            "statements": [
+              "%urb% = $ARG1;"
+            ]
+          },
+          "success": {
+            "comment": "Success.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          }
+        }
+      },
+      "usb_poison_urb, usb_kill_urb": {
+        "comment": "Abort/cancel a transfer request for an endpoint.",
+        "labels": {
+          "urb": {
+            "container": true,
+            "parameter": true,
+            "interface": "urb.urb"
+          }
+        },
+        "process": "<assign>.[callback]",
+        "actions": {
+          "callback": {
+            "comment": "Call the urb callback.",
+            "callback": "%urb.complete%",
+            "parameters": [
+              "%urb%"
+            ]
+          },
+          "assign": {
+            "comment": "Get the urb structure from arguments.",
+            "statements": [
+              "%urb% = $ARG1;"
+            ]
+          }
+        }
+      },
+      "usb_submit_urb": {
+        "comment": "Submit urb.",
+        "labels": {
+          "urb": {
+            "container": true,
+            "parameter": true,
+            "interface": "urb.urb"
+          }
+        },
+        "process": "<assign>.[callback].<success> | <fail>",
+        "actions": {
+          "callback": {
+            "comment": "Call the urb callback.",
+            "callback": "%urb.complete%",
+            "parameters": [
+              "%urb%"
+            ]
+          },
+          "assign": {
+            "comment": "Get the urb structure from arguments.",
+            "statements": [
+              "%urb% = $ARG1;",
+              "ldv_check_alloc_flags($ARG2);"
+            ]
+          },
+          "success": {
+            "comment": "Success.",
+            "statements": [
+              "return (unsigned int) ldv_malloc_unknown_size();"
+            ]
+          },
+          "fail": {
+            "comment": "Failed.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {}
   }
 }

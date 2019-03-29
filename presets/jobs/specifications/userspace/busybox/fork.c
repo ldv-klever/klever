@@ -11,28 +11,24 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-#include <linux/module.h>
-#include <verifier/common.h>
-#include <verifier/memory.h>
-#include "structs.h"
+#include <verifier/nondet.h>
 
-static int __init ldv_init(void)
+int pid;
+int ldv_fork(void);
+
+/* MODEL_FUNC Fork the program */
+int ldv_fork(void)
 {
-	struct ldv_struct2 *var;
-
-	var = ldv_xzalloc(sizeof(*var) + 4);
-
-	if (var->field1)
-		ldv_error();
-
-	if (*(int *)(var->field2))
-		ldv_error();
-
-	return 0;
+    if (ldv_undef_int())
+        /* NOTE Execute as a parent */
+        pid = ldv_undef_int_positive();
+	else
+	    /* NOTE Execute as a child */
+	    pid = 0;
+	return pid;
 }
 
-module_init(ldv_init);

@@ -197,7 +197,7 @@ class RSG(core.vtg.plugins.Plugin):
         if not empty_cc:
             raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['opts file']))
         elif len(empty_cc) > 1:
-            self.logger.warning("There are more than one cc command for {!r}".format(self.conf['opts file']))
+            self.logger.warning("There are more than one cc command for {!r}".format(self.conf['project']['opts file']))
 
         empty_cc = empty_cc.pop()
         empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])

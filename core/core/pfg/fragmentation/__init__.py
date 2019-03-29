@@ -244,10 +244,11 @@ class FragmentationAlgorythm:
 
         :return: A list of paths.
         """
-        path = self.clade.get_storage_path('working source trees.json')
-        with open(path, 'r', encoding='utf8') as fp:
-            paths = ujson.load(fp)
-        return paths
+        clade_meta = self.clade.get_meta()
+        if 'working source trees' in clade_meta:
+            return clade_meta['working source trees']
+        else:
+            return [clade_meta['build_dir']]
 
     def __attributes(self):
         """
@@ -256,15 +257,13 @@ class FragmentationAlgorythm:
         :return: Attributes list.
         """
         attrs = []
-        path = self.clade.get_storage_path('project attrs.json')
-        if os.path.isfile(path):
-            with open(path, 'r', encoding='utf8') as fp:
-                build_attrs = ujson.load(fp)
-            if build_attrs:
-                self.common_attributes = build_attrs
-            attrs.extend(build_attrs)
+        clade_meta = self.clade.get_meta()
+
+        if 'project attrs' in clade_meta:
+            self.common_attributes = clade_meta['project attrs']
+            attrs.extend(self.common_attributes)
         else:
-            self.logger.warning("There is no source attributes description in build base")
+            self.logger.warning("There is no project attributes in build base")
 
         return attrs
 
@@ -303,11 +302,11 @@ class FragmentationAlgorythm:
                 'files': sorted(make_relative_path(self.source_paths, f.name) for f in frag.files)
             })
             pf_desc['deps'][frag.name] = [succ.name for succ in program.get_fragment_successors(frag) if succ in grp]
-        self.logger.debug('program fragment dependencies are {}'.format(pf_desc['deps']))
+        self.logger.debug('Program fragment dependencies are {}'.format(pf_desc['deps']))
 
         pf_desc_file = os.path.join(self.pf_dir, pf_desc['id'] + '.json')
         if os.path.isfile(pf_desc_file):
-            raise FileExistsError('program fragment description file {!r} already exists'.format(pf_desc_file))
+            raise FileExistsError('Program fragment description file {!r} already exists'.format(pf_desc_file))
         self.logger.debug('Dump program fragment description {!r} to file {!r}'.format(pf_desc['id'], pf_desc_file))
         dir_path = os.path.dirname(pf_desc_file).encode('utf8')
         if dir_path:

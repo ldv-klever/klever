@@ -39,7 +39,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "ldv-clade",
+      "clade==3.0.1",
       "jinja2",
       "graphviz",
       "ply",
@@ -57,17 +57,18 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "ca9075",
-      "path": "addons/cif-ca9075.tar.gz",
-      "executable path": "bin"
+      "version": "1517e57",
+      "path": "addons/cif-1517e57.tar.xz"
     },
     "CIL": {
-      "version": "9c08d50",
-      "path": "https://forge.ispras.ru/attachments/download/6328/toplevel.opt.tar.gz"
+      "version": "460aed4",
+      "path": "https://forge.ispras.ru/attachments/download/6353/toplevel.opt.tar.xz",
+      "executable path": "."
     },
     "Consul": {
       "version": "0.9.2",
-      "path": "addons/consul"
+      "path": "addons/consul",
+      "executable path": "consul"
     },
     "VerifierCloud Client": {
       "version": "trunk:27946",

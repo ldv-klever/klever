@@ -42,7 +42,7 @@ class Program:
         self._fragments = dict()
         self.__divide()
         if not memory_efficient_mode:
-            self.logger.info("Extract dependecnies between files from the program callgraph")
+            self.logger.info("Extract dependencies between files from the program callgraph")
             # This is very memory unefficient operation, so for Linux this is an optional step to prevent consuming
             # gigabytes of memory
             self.__establish_dependencies()
@@ -375,7 +375,7 @@ class Program:
         """
         Analyze the callgraph of the program and add to each File object function names that are exported and function
         names that are imported with links to File objects that export these functions. This function requires an
-        extremly huge amount of memory if the program is very big. This is becouse the callgraph itself can be quite
+        extremely huge amount of memory if the program is very big. This is because the callgraph itself can be quite
         large.
         """
         cg = self.clade.callgraph

@@ -461,7 +461,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
     f_code = []
     v_code = []
 
-    # Add artificial state if input copntains more than one state
+    # Add artificial state if input contains more than one state
     state_stack = [initial_state]
 
     # First calculate merge points
@@ -519,6 +519,6 @@ def __label_sequence(automaton, initial_state, ret_expression):
                 state_stack.append(next(iter(state.successors)))
 
     if len(conditional_stack) > 0:
-        raise RuntimeError('Cannot leave unclosed conditions')
+        raise RuntimeError('Cannot leave unclosed conditions: {}'.format(automaton.process.name))
 
     return [v_code, f_code]

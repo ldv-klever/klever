@@ -132,8 +132,12 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
             automaton.self_parallelism = False
 
     sp_categories = get_conf_property(conf["translation options"], "not self parallel processes from categories")
+    sp_scenarios = get_conf_property(conf["translation options"], "not self parallel processes from scenarios")
     if sp_categories and isinstance(sp_categories, list):
         for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.category in sp_categories):
+            automaton.self_parallelism = False
+    if sp_scenarios and isinstance(sp_scenarios, list):
+        for automaton in (a for a in model_fsa + main_fsa + [entry_fsa] if a.process.name in sp_scenarios):
             automaton.self_parallelism = False
 
     # Prepare code on each automaton

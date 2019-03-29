@@ -35,7 +35,8 @@
               "additional headers": [
                 "verifier/common.h",
                 "verifier/nondet.h",
-                "verifier/memory.h"
+                "verifier/memory.h",
+                "userspace/ldv.h"
               ]
             }
           }
@@ -52,11 +53,7 @@
               "userspace/ldv.c": {},
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
-              "userspace/stdio.c": {},
-              "userspace/busybox/libbb/appletlib.c": {},
-              "userspace/busybox/libbb/verror_msg.c": {},
-              "userspace/busybox/libbb/perror_msg.c": {},
-              "userspace/busybox/libbb/xfuncs_printf.c": {}
+              "userspace/stdio.c": {}
             }
           }
         },
@@ -145,6 +142,9 @@
                   ],
                   "kernel": false
                 }
+              },
+              {
+                "genericManual": {"enforce replacement": true}
               }
             ],
             "translation options": {
@@ -212,6 +212,7 @@
                     "linux/pagemap.h",
                     "linux/poll.h",
                     "linux/blkdev.h",
+                    "linux/parport.h",
                     "target/target_core_base.h",
                     "target/target_core_backend.h"
                   ],
@@ -251,7 +252,7 @@
         {
           "FVTP": {
             "merge source files": true,
-            "verifier profile": "reachability",
+            "verifier profile": "reachability with function pointers",
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:30732"
@@ -297,6 +298,8 @@
               "userspace/string.c": {},
               "userspace/stdlib.c": {},
               "userspace/stdio.c": {},
+              "userspace/busybox/globals.c": {},
+              "userspace/busybox/fork.c": {},
               "userspace/busybox/libbb/appletlib.c": {},
               "userspace/busybox/libbb/verror_msg.c": {},
               "userspace/busybox/libbb/perror_msg.c": {},
@@ -305,7 +308,20 @@
           }
         },
         "Weaver",
-        "FVTP"
+        {
+          "FVTP": {
+            "merge source files": false,
+            "verifier profile": "CPAchecker BAM BusyBox",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:30732"
+            },
+            "result processing": {
+              "coverage": "lightweight",
+              "collect function names": true
+            }
+          }
+        }
       ]
     },
     "Zephyr": {
@@ -508,14 +524,19 @@
                 ],
                 "kernel": false
               }
+            },
+            {
+              "genericManual": {"enforce replacement": true}
             }
           ],
           "translation options": {
             "debug output": false,
             "self parallel processes": true,
             "self parallel model": false,
+            "do not skip signals": true,
             "not self parallel processes": ["linux/initialization"],
             "not self parallel processes from categories": ["usb"],
+            "not self parallel processes from scenarios": ["usb_serial_scenario"],
             "direct control functions calls": false,
             "nested automata": true,
             "allocate with sizeof": true,
@@ -795,6 +816,9 @@
                 ],
                 "kernel": false
               }
+            },
+            {
+              "genericManual": {"enforce replacement": true}
             }
           ],
           "translation options": {
@@ -973,6 +997,19 @@
       "template": "Busybox",
       "empty": {
         "description": "..."
+      },
+      "open": {
+        "description": "...",
+        "RSG": {"models": {"userspace/busybox/file.c": {"bug kinds": [
+            "busybox::check inexisting FILE object",
+            "busybox::open file twice",
+            "busybox::close instead of fclose",
+            "busybox::missed fopen",
+            "busybox::unknown FILE",
+            "busybox::missed open",
+            "busybox::unknown fd",
+            "busybox::missed close"
+        ]}}}
       },
       "memory safety": {
         "description": "Busybox memory safety",

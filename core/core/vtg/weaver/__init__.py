@@ -104,7 +104,6 @@ class Weaver(core.vtg.plugins.Plugin):
                     storage_path = clade.get_storage_path(cc['in'][0])
                     if self.conf['use preprocessed files'] and 'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
-                    os.environ['LDV_INLINE_ASM_STUB'] = ''
                     core.utils.execute(
                         self.logger,
                         tuple([
@@ -124,6 +123,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
+                        env=env,
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())

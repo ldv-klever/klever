@@ -11,7 +11,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -23,12 +23,13 @@
 static int __init ldv_init(void)
 {
 	struct ldv_struct2 *var1;
-	int var2 = 2;
+	int *var2;
 
 	var1 = ldv_xmalloc(sizeof(*var1) + 4);
 
 	var1->field1 = 1;
-	var1->field2 = &var2;
+	var2 = (int *)var1->field2;
+	*var2 = 2;
 
 	if (var1->field1 == 1 &&
 	    *(int *)(var1->field2) == 2)

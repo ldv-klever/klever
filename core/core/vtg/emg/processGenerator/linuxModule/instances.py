@@ -24,7 +24,7 @@ import core.vtg.emg.common.c as c
 from core.vtg.emg.common.c.types import Structure, Primitive, Pointer, Array, Function
 from core.vtg.emg.common.process import Dispatch, Receive, Condition
 from core.vtg.emg.processGenerator.linuxModule.interface import Implementation, Resource, Container, Callback
-from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call
+from core.vtg.emg.processGenerator.linuxModule.process import get_common_parameter, CallRetval, Call, AbstractAccess
 _declarations = {'environment model': list()}
 _definitions = {'environment model': list()}
 _values_map = dict()
@@ -406,7 +406,8 @@ def _convert_calls_to_conds(conf, sa, interfaces, process, label_map, call, acti
                     break
                 invoke = sa.refined_name(implementation.value)
                 check = False
-            elif not isinstance(implementation, bool) and get_necessary_conf_property(conf, 'implicit callback calls'):
+            elif not isinstance(implementation, bool) and get_necessary_conf_property(conf, 'implicit callback calls')\
+                    and not (access.label.callback and len(access.label.interfaces) > 1):
                 # Call by pointer
                 invoke = access.access_with_label(label_map[access.label.name][access.list_interface[0].identifier])
                 check = True
@@ -548,7 +549,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     # Determine how many instances is required for a model
     for process in model.environment.values():
         base_list = _original_process_copies(logger, conf, interfaces, process, instances_left)
-        base_list = _fulfill_label_maps(logger, conf, interfaces, base_list, process, instance_maps, instances_left)
+        base_list = _fulfill_label_maps(logger, conf, sa, interfaces, base_list, process, instance_maps, instances_left)
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                     format(len(base_list), process.name, process.category))
 
@@ -561,7 +562,7 @@ def _yield_instances(logger, conf, sa, interfaces, model, instance_maps):
     logger.info("Generate automata for functions model processes")
     for process in model.models.values():
         logger.info("Generate FSA for functions model process {}".format(process.name))
-        processes = _fulfill_label_maps(logger, conf, interfaces, [process], process, instance_maps, instances_left)
+        processes = _fulfill_label_maps(logger, conf, sa, interfaces, [process], process, instance_maps, instances_left)
         for instance in processes:
             rename_process(instance)
             __set_pretty_id(instance)
@@ -633,13 +634,14 @@ def _original_process_copies(logger, conf, interfaces, process, instances_left):
     return base_list
 
 
-def _fulfill_label_maps(logger, conf, interfaces, instances, process, instance_maps, instances_left):
+def _fulfill_label_maps(logger, conf, sa, interfaces, instances, process, instance_maps, instances_left):
     """
     Generate instances and finally assign to each process its instance map which maps accesses to particular
     implementations of relevant interfaces.
 
     :param logger: logging initialized object.
     :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
+    :param sa: Source analysis.
     :param interfaces: InterfaceCollection object.
     :param instances: List of Process objects.
     :param process: Process object.
@@ -661,7 +663,7 @@ def _fulfill_label_maps(logger, conf, interfaces, instances, process, instance_m
         cached_map = instance_maps[process.category][process.name]
     else:
         cached_map = None
-    maps, cached_map = _split_into_instances(interfaces, process,
+    maps, cached_map = _split_into_instances(sa, interfaces, process,
                                              get_necessary_conf_property(conf, "instances per resource implementation"),
                                              cached_map)
     instance_maps[process.category][process.name] = cached_map
@@ -681,13 +683,32 @@ def _fulfill_label_maps(logger, conf, interfaces, instances, process, instance_m
             for access in access_map:
                 for i in access_map[access]:
                     try:
-                        interface = interfaces.get_intf(i)
-                        if interface and interface.header:
-                            for header in interface.header:
-                                if header not in header_list:
-                                    header_list.append(header)
+                        interface = interfaces.get_or_restore_intf(i)
+                        if interface:
+                            if interface.header:
+                                for header in interface.header:
+                                    if header not in header_list:
+                                        header_list.append(header)
+
+                            acc = newp.resolve_access(access, interface.identifier)
+                            if not acc:
+                                # TODO: I am not sure that this would guarantee all cases of adding new accesses
+                                prot = newp.resolve_access(access)[0]
+                                new = AbstractAccess(access)
+                                new.label = prot.label
+                                new.interface = interface
+                                new.list_interface = prot.list_interface
+                                if len(new.list_interface):
+                                    new.list_interface[-1] = interface
+                                else:
+                                    new.list_interface = [interface]
+                                new.list_access = prot.list_access
+                                if len(new.list_access) == 1 and new.label:
+                                    new.label.set_declaration(interface.identifier, access_map[access][i].declaration)
+
+                                newp.add_access(access, new)
                     except KeyError:
-                        pass
+                        logger.warning("There is no interface {!r} for process instance {!r}".format(i, process.name))
             newp.headers = header_list
 
             new_base_list.append(newp)
@@ -891,12 +912,10 @@ def _copy_process(process, instances_left):
 
     inst.allowed_implementations = dict(process.allowed_implementations)
 
-    # Check peers and remove previous processes with this copy process with this one
-
     return inst
 
 
-def _split_into_instances(interfaces, process, resource_new_insts, simplified_map=None):
+def _split_into_instances(sa, interfaces, process, resource_new_insts, simplified_map=None):
     """
     Get a process and calculate instances to get automata with exactly one implementation per interface.
 
@@ -910,6 +929,7 @@ def _split_into_instances(interfaces, process, resource_new_insts, simplified_ma
 
     Generated instance here is a just map from accesses and interfaces to particular implementations whish will be
     provided to a copy of the Process object later in modelTranslator.
+    :param sa: Source analysis.
     :param interfaces: InterfaceCollection object.
     :param process: Process object.
     :param resource_new_insts: Number of new instances allowed to generate for resources.
@@ -1038,7 +1058,13 @@ def _split_into_instances(interfaces, process, resource_new_insts, simplified_ma
 
                 for interface in smap[expression].keys():
                     if smap[expression][interface]:
-                        instance_map[expression][interface] = value_to_implementation[smap[expression][interface]]
+                        value = smap[expression][interface]
+                        if value in value_to_implementation:
+                            instance_map[expression][interface] = value_to_implementation[value]
+                        else:
+                            instance_map[expression][interface] = \
+                                interfaces.get_value_as_implementation(sa, value, interface)
+
                         used_values.add(smap[expression][interface])
                     elif complete_maps[index][0][expression][interface]:
                         # To avoid calls by pointer

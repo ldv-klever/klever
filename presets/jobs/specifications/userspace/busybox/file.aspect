@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// TODO:
+// FILE *freopen(const char *pathname, const char *mode, FILE *stream);
+
+before: file ("$this")
+{
+#include <stdio.h>
+extern int ldv_fileno(FILE *stream);
+extern FILE *ldv_fopen(void);
+extern FILE *ldv_fdopen(int fd);
+extern void ldv_faccess(FILE *stream);
+extern int ldv_fclose(FILE *fp);
+extern int ldv_open(void);
+extern void ldv_access(int fd);
+extern int ldv_close(int fd);
+extern int ldv_pipe(int pipefd[2]);
+}
+
+around: call(int fileno_unlocked(..))
+{
+	return ldv_fileno($arg1);
+}
+
+around: call(FILE *fopen(..))
+{
+	return ldv_fopen();
+}
+
+around: call(FILE *fdopen(..))
+{
+	return ldv_fdopen($arg1);
+}
+
+before: call(int fseek(..)) ||
+		call(long ftell(..)) ||
+		call(void rewind(..)) ||
+		call(int fgetpos(..)) ||
+		call(int fsetpos(..))        
+{
+	ldv_faccess($arg1);
+}
+
+before: call(size_t fread(..)) ||
+		call(size_t fwrite(..))        
+{
+	ldv_faccess($arg4);
+}
+
+around: call(int fclose(..))
+{
+	return ldv_fclose($arg1);
+}
+
+around: call(int open(..)) ||
+        call(int socket(..)) ||
+        call(int mkstemp(..)) ||
+        call(int mkostemp(..)) ||
+        call(int mkstemps(..)) ||
+        call(int mkostemps(..))
+{
+	return ldv_open();
+}
+
+before: call(off_t lseek(..)) ||
+		call(ssize_t read(..)) ||
+		call(ssize_t write(..)) ||
+		call(ssize_t readv(..)) ||
+		call(ssize_t writev(..)) ||
+		call(ssize_t preadv(..)) ||
+		call(ssize_t pwritev(..)) ||
+		call(ssize_t preadv2(..)) ||
+		call(ssize_t pwritev2(..)) ||
+		call(ssize_t pread(..)) ||
+		call(ssize_t pwrite(..)) ||
+		call(int ioctl(..))
+{
+	ldv_access($arg1);
+}
+
+around: call(int close(..))
+{
+	return ldv_close($arg1);
+}
+
+around: call(int pipe(int pipefd[2])) ||
+        call(int pipe2(int pipefd[2], int flags))
+{
+	return ldv_pipe($arg1);
+}
