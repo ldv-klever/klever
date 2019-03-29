@@ -167,8 +167,8 @@ class FragmentationAlgorythm:
             files, matched = program.get_files_for_expressions(frags_exprs)
             frags_exprs.difference_update(matched)
             if len(frags_exprs) > 0:
-                raise ValueError('Cannot find fragments, files or functions for the following expressions: {}'.
-                                 format(', '.join(frags_exprs)))
+                self.logger.warning('Cannot find fragments, files or functions for the following expressions: {}'.
+                                    format(', '.join(frags_exprs)))
 
             new[identifier] = files
 
