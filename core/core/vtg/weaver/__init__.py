@@ -124,8 +124,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
-                        env=env,
-                        cwd=storage.convert_path(cc['cwd']),
+                        cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))

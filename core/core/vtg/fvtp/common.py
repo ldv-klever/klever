@@ -21,6 +21,38 @@ import zipfile
 import json
 import core.utils
 
+CIL_WORKAROUND_REGEXES = [
+    [re.compile('#line 49 ".*include/uapi/linux/swab\.h"'),
+     re.compile('extern int .*__builtin_bswap16.*;'),
+     ''],
+    [re.compile('.*'),
+     re.compile('__builtin_va_arg'),
+     '__gnuc_va_arg']
+]
+
+
+def process_file(replacements, lines, fp):
+    triggers = []
+    # Each such expression occupies individual line, so just get rid of them.
+    for line in lines:
+
+        # Apply replacements
+        l = line
+        for target, replacement in (replacements[i][1:] for i in triggers):
+            l = target.sub(replacement, l)
+        triggers = []
+
+        # Match replacements for the next iteration
+        for index, element in enumerate(replacements):
+            line_match, target, replacement = element
+            if line_match:
+                if line_match.match(line):
+                    triggers.append(index)
+            else:
+                triggers.append(index)
+
+        fp.write(l)
+
 
 def merge_files(logger, conf, abstract_task_desc):
     """
@@ -59,10 +91,13 @@ def merge_files(logger, conf, abstract_task_desc):
                 if 'C file' in extra_c_file]
 
     core.utils.execute(logger, args=args, enforce_limitations=True)
-
     logger.debug('Merged source files was outputted to "cil.i"')
 
-    return 'cil.i'
+    with open('cil.i', encoding='utf8') as fp_in, open('cil.fixed.i', 'w', encoding='utf8') as fp_out:
+        # Specify original location to avoid references to *.trimmed.i files in error traces.
+        process_file(CIL_WORKAROUND_REGEXES, fp_in, fp_out)
+
+    return 'cil.fixed.i'
 
 
 def get_verifier_opts_and_safe_prps(logger, resource_limits, conf):
