@@ -42,9 +42,15 @@ void ldv_disconnect(struct usb_serial *serial)
 	ldv_invoke_callback();
 }
 
+int ldv_attach(struct usb_serial *serial)
+{
+	return 0;
+}
+
 static struct usb_serial_driver ldv_driver = {
 	.probe = ldv_probe,
 	.disconnect = ldv_disconnect,
+	.attach = ldv_attach
 };
 
 static struct usb_serial_driver * const ldv_drivers[] = {
