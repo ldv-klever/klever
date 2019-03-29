@@ -10,7 +10,7 @@
         "header": "linux/workqueue.h"
       },
       "flush_delayed_work": {
-        "declaration": "void flush_delayed_work(*%workqueue.delayed_work%)",
+        "declaration": "bool flush_delayed_work(*%workqueue.delayed_work%)",
         "header": "linux/workqueue.h"
       },
       "queue_delayed_work_on": {

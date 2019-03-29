@@ -1,7 +1,7 @@
 {
   "Linux 3.14 (base)": {
     "functions models": {
-      "usb_unlink_urb, usb_kill_urb, usb_poison_urb": {
+      "usb_unlink_urb": {
         "comment": "Abort/cancel a transfer request for an endpoint.",
         "labels": {
           "urb": {
@@ -35,6 +35,32 @@
             "comment": "Failed.",
             "statements": [
               "return ldv_undef_int_negative();"
+            ]
+          }
+        }
+      },
+      "usb_poison_urb, usb_kill_urb": {
+        "comment": "Abort/cancel a transfer request for an endpoint.",
+        "labels": {
+          "urb": {
+            "container": true,
+            "parameter": true,
+            "interface": "urb.urb"
+          }
+        },
+        "process": "<assign>.[callback]",
+        "actions": {
+          "callback": {
+            "comment": "Call the urb callback.",
+            "callback": "%urb.complete%",
+            "parameters": [
+              "%urb%"
+            ]
+          },
+          "assign": {
+            "comment": "Get the urb structure from arguments.",
+            "statements": [
+              "%urb% = $ARG1;"
             ]
           }
         }
