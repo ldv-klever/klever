@@ -79,8 +79,8 @@ class SSH:
                 return self
             except:
                 attempts -= 1
-                self.logger.warning('Could not open SSH session, wait for {0} seconds and try {1} times more'
-                                    .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
+                self.logger.info('Could not open SSH session, wait for {0} seconds and try {1} times more'
+                                 .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CONNECTION_RECOVERY_INTERVAL)
 
         self.logger.error('Could not open SSH session')
