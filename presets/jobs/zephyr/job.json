@@ -3,8 +3,10 @@
   "build base": "zephyr",
   "program": "Zephyr",
   "version": "1.13.0",
-  "fragmentation set": "Applets",
+  "fragmentation set": "zephr",
   "specifications set": "Linux 3.14 (base)",
   "requirements": ["zephyr:empty"],
-  "add targets": ["**"]
+  "add targets": ["**"],
+  "extra CIF opts": ["-m32", "-std=gnu99"],
+  "use preprocessed files": true
 }

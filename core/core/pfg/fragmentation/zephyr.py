@@ -34,7 +34,8 @@ class Zephyr(FragmentationAlgorythm):
         """
         zephyr = set()
         for file in program.files:
-            if file.name[-2:] == '.c' and 'configs.c' not in file.name and "/environmental_sensing/ap/build" not in file.name:
+            # TODO: This should be fixed using the decomposition strategy and presets
+            if file.name[-2:] == '.c' and 'configs.c' not in file.name:
                 zephyr.add(file)
 
         program.create_fragment('zephyr', zephyr, add=True)

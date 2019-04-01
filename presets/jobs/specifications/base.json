@@ -252,7 +252,7 @@
         {
           "FVTP": {
             "merge source files": true,
-            "verifier profile": "reachability with function pointers",
+            "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
               "version": "trunk:30732"
@@ -340,7 +340,7 @@
                 "genericFunctions": {
                   "infinite call": false,
                   "initialize strings as null terminated": false,
-                  "functions to call": ["\\w*_initialize"]
+                  "functions to call": ["usb_transfer_work","usb_composite_init","_sys_clock_driver_init","\\w.*main","malloc_prepare","_bt_uart_init","uart_console_init","_loapic_init","_ioapic_init","_arc_init","init_cache","init_stack_module","init_mutex_module","init_static_pools","init_alert_module","k_sys_work_q_init","init_queue_module","init_pipes_module","init_msgq_module","init_mem_slab_module","init_timer_module","init_mbox_module","init_sem_module","gpio_config","gpio_write","gpio_read","gpio_enable_callback","gpio_disable_callback","gpio_get_pending_int","k_object_access_grant","k_object_release","k_object_alloc","k_thread_create","k_sleep","k_yield","k_wakeup","k_current_get","k_thread_cancel","k_thread_abort","k_thread_start","k_thread_priority_get","k_thread_priority_set","k_thread_deadline_set","k_thread_suspend","k_thread_resume","k_is_preempt_thread","k_thread_custom_data_set","k_thread_custom_data_get","k_timer_start","k_timer_stop","k_timer_status_get","k_timer_status_sync","k_timer_remaining_get","k_timer_user_data_set","k_timer_user_data_get","k_uptime_get","k_uptime_get_32","k_queue_init","k_queue_cancel_wait","k_queue_alloc_append","k_queue_alloc_prepend","k_queue_get","k_queue_is_empty","k_queue_peek_head","k_queue_peek_tail","k_stack_alloc_init","k_stack_push","k_stack_pop","k_mutex_init","k_mutex_lock","k_mutex_unlock","k_sem_init","k_sem_take","k_sem_give","k_sem_reset","k_sem_count_get","k_alert_recv","k_alert_send","k_msgq_alloc_init","k_msgq_put","k_msgq_get","k_msgq_purge","k_msgq_num_free_get","k_msgq_get_attrs","k_msgq_num_used_get","k_pipe_alloc_init","k_pipe_put","k_pipe_get","k_poll","k_poll_signal_init","k_poll_signal_reset","k_poll_signal_check","k_poll_signal","k_str_out","rtc_read","rtc_enable","rtc_disable","rtc_set_alarm","rtc_get_pending_int","entropy_get_entropy","i2c_configure","i2c_transfer","i2c_slave_register","i2c_slave_unregister","i2c_slave_driver_register","i2c_slave_driver_unregister","ipm_send","ipm_max_data_size_get","ipm_max_id_val_get","ipm_set_enabled","pwm_pin_set_cycles","pwm_get_cycles_per_sec"]
                 }
               }
             ],
@@ -364,7 +364,7 @@
         {
           "RSG": {
             "common sets model": "counter",
-            "opts file": "applets/applets.c",
+            "opts file": "drivers/interrupt_controller/system_apic.c",
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
@@ -374,7 +374,20 @@
           }
         },
         "Weaver",
-        "FVTP"
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:30732"
+            },
+            "result processing": {
+              "coverage": "lightweight",
+              "collect function names": true
+            }
+          }
+        }
       ]
     }
   },
@@ -385,7 +398,8 @@
     },
     "zephyr": {
       "empty": {
-        "description": "..."
+        "description": "...",
+        "template": "Zephyr"
       }
     },
     "linux": {
