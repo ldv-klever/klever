@@ -1,4 +1,70 @@
 {
+  "Linux 2.6.33": {
+    "functions models": {
+      "queue_work": {
+        "declaration": "bool queue_work(struct workqueue_struct*, *%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_work_on": {
+        "declaration": "bool queue_work_on(int cpu, struct workqueue_struct *wq, *%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "flush_work": {
+        "declaration": "bool flush_work(*%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "flush_delayed_work": {
+        "declaration": "void flush_delayed_work(*%workqueue.delayed_work%)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_delayed_work_on": {
+        "declaration": "bool queue_delayed_work_on(int cpu, struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "queue_delayed_work": {
+        "declaration": "bool queue_delayed_work(struct workqueue_struct*, *%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "schedule_work": {
+        "declaration": "bool schedule_work(*%workqueue.work_struct%)",
+        "header": "linux/workqueue.h"
+      },
+      "schedule_delayed_work": {
+        "declaration": "bool schedule_delayed_work(*%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      },
+      "schedule_delayed_work_on": {
+        "declaration": "bool schedule_delayed_work_on(int cpu, *%workqueue.delayed_work%, unsigned long delay)",
+        "header": "linux/workqueue.h"
+      }
+    },
+    "categories": {
+      "workqueue": {
+        "containers": {
+          "work_struct": {
+            "declaration": "struct work_struct work",
+            "header": "linux/workqueue.h",
+            "fields": {
+              "func": "%workqueue.func%"
+            }
+          },
+          "delayed_work": {
+            "declaration": "struct delayed_work dwork",
+            "header": "linux/workqueue.h",
+            "fields": {
+              "work": "%workqueue.work_struct%"
+            }
+          }
+        },
+        "callbacks": {
+          "func": {
+            "declaration": "void (*func)(*%workqueue.work_struct%)",
+            "interrupt context": false
+          }
+        }
+      }
+    }
+  },
   "Linux 3.14 (base)": {
     "functions models": {
       "queue_work": {
