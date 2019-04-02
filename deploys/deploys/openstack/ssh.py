@@ -142,9 +142,9 @@ class SSH:
         if os.path.isfile(host_path) and (tarfile.is_tarfile(host_path) or zipfile.is_zipfile(host_path)):
             # Just copy archive as is. It will be decompressed later.
             self.sftp.put(host_path, os.path.basename(host_path))
-            self.execute_cmd(('sudo ' if sudo else '') + 'mkdir -p ' + os.path.dirname(instance_path))
-            self.execute_cmd(('sudo ' if sudo else '') + 'mv {0} {1}'.format(os.path.basename(host_path),
-                                                                             instance_path))
+            self.execute_cmd(('sudo ' if sudo else '') + 'mkdir -p "{0}"'.format(os.path.dirname(instance_path)))
+            self.execute_cmd(('sudo ' if sudo else '') + 'mv "{0}" "{1}"'.format(os.path.basename(host_path),
+                                                                                 instance_path))
         else:
             # Compress files and directories into temporary archives.
             with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
@@ -157,7 +157,7 @@ class SSH:
                 self.sftp.putfo(fp, instance_archive)
 
             # Use sudo to allow extracting archives outside home directory.
-            self.execute_cmd('{0} --warning=no-timestamp -xf {1}'
+            self.execute_cmd('{0} --warning=no-timestamp -xf "{1}"'
                              .format(('sudo ' if sudo else '') + 'tar' + (' -C ' + directory if directory else ''),
                                      instance_archive))
-            self.execute_cmd('rm ' + instance_archive)
+            self.execute_cmd('rm "{0}"'.format(instance_archive))
