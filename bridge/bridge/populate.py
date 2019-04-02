@@ -222,6 +222,10 @@ class Population:
                     logger.exception(e)
                     raise BridgeException('Settings file of preset job "{0}" is not valid JSON file'.format(dirpath))
 
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not job_settings.get('production'):
+                # Do not populate non-production jobs
+                continue
+
             if 'description' not in job_settings:
                 raise BridgeException('Preset job "{0}" does not have description'.format(dirpath))
 
