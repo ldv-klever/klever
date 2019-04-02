@@ -277,10 +277,33 @@ def install_klever_build_bases(logger, deploy_dir, deploy_conf, cmd_fn, install_
     if 'Klever Build Bases' in deploy_conf:
         for klever_build_base in deploy_conf['Klever Build Bases']:
             logger.info('Install Klever build base "{0}"'.format(klever_build_base))
-            klever_build_base = make_canonical_path(klever_build_base)
-            klever_build_base_deploy_dir = os.path.join(deploy_dir, 'build bases', os.path.basename(klever_build_base))
-            cmd_fn('rm', '-rf', klever_build_base_deploy_dir)
-            install_fn(klever_build_base, klever_build_base_deploy_dir, allow_symlink=True)
+
+            # Very simplified deploys.utils.install_entity.
+            tmp_file = None
+            try:
+                o = urllib.parse.urlparse(klever_build_base)
+                if not o[0]:
+                    klever_build_base = make_canonical_path(klever_build_base)
+
+                instance_klever_build_base = os.path.join(deploy_dir, 'build bases',
+                                                          os.path.basename(klever_build_base))
+
+                if o[0] in ('http', 'https', 'ftp'):
+                    _, tmp_file = tempfile.mkstemp()
+                    execute_cmd(logger, 'wget', '-O', tmp_file, '-q', klever_build_base)
+                    klever_build_base = tmp_file
+                elif o[0]:
+                    logger.error('Klever build base is provided in unsupported form "{1}"'.format(o[0]))
+                    sys.exit(errno.EINVAL)
+                elif not os.path.exists(klever_build_base):
+                    logger.error('Path "{0}" does not exist'.format(klever_build_base))
+                    sys.exit(errno.ENOENT)
+
+                cmd_fn('rm', '-rf', instance_klever_build_base)
+                install_fn(klever_build_base, instance_klever_build_base, allow_symlink=True)
+            finally:
+                if tmp_file:
+                    os.unlink(tmp_file)
 
 
 def make_canonical_path(path):
