@@ -374,7 +374,7 @@
             "comment": "Write a block of characters to the tty device in atomic context.",
             "callback": "%driver.write%",
             "parameters": [
-              "%resource%"
+              "%resource%", "%port%"
             ],
             "pre-call": [
               "ldv_switch_to_interrupt_context();"
@@ -387,7 +387,7 @@
             "comment": "Write a block of characters to the tty device in atomic context.",
             "callback": "%driver.write%",
             "parameters": [
-              "%resource%"
+              "%resource%", "%port%"
             ]
           },
           "throttle": {
