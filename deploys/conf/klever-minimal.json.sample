@@ -33,7 +33,7 @@
   },
   "Python3 Packages": {
     "For building and running Klever Bridge": [
-      "Django>=2",
+      "Django==2.1.7",
       "gunicorn",
       "psycopg2",
       "pytz"
@@ -78,5 +78,8 @@
         "executable path": "scripts"
       }
     }
-  }
+  },
+  "Klever Build Bases": [
+    "https://forge.ispras.ru/attachments/download/6365/linux-3.14.79.tar.xz"
+  ]
 }

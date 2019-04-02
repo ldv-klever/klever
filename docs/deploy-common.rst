@@ -136,7 +136,8 @@ Klever Build Bases
 
 In addition to :ref:`klever_addons` one can provide :ref:`klever_build_bases` obtained for software to be verified.
 :ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
-All :ref:`klever_build_bases` should be presented as directories.
+All :ref:`klever_build_bases` should be provided as directories or archives.
+They should contain :file:`meta.json` directly at the top level without any intermediate directories.
 The best place for :ref:`klever_build_bases` is directory :file:`build bases` within :term:`$KLEVER_SRC` (see
 :ref:`klever_git_repo_struct`).
 
