@@ -153,6 +153,8 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     tmp_file = None
     tmp_dir = None
     try:
+        instance_path = os.path.join(deploy_dir, os.path.basename(path))
+
         # Clone remote Git repository.
         if (o[0] == 'git' or is_git_repo) and not os.path.exists(path):
             tmp_dir = tempfile.mkdtemp()
@@ -169,8 +171,6 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
         elif not os.path.exists(path):
             logger.error('Path "{0}" does not exist'.format(path))
             sys.exit(errno.ENOENT)
-
-        instance_path = os.path.join(deploy_dir, os.path.basename(path))
 
         if is_git_repo:
             if version == 'CURRENT':
