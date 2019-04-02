@@ -1,6 +1,6 @@
 {
   "Class": "Verification of Linux kernel modules",
-  "build base": "linux-3.14.79",
+  "build base": "linux-3.14.79.tar.xz",
   "program": "Linux",
   "version": "3.14",
   "fragmentation set": "Modules",

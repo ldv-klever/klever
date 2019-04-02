@@ -78,5 +78,8 @@
         "executable path": "scripts"
       }
     }
-  }
+  },
+  "Klever Build Bases": [
+    "https://forge.ispras.ru/attachments/download/6365/linux-3.14.79.tar.xz"
+  ]
 }
