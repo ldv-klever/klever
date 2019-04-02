@@ -73,20 +73,20 @@
     "VerifierCloud Client": {
       "version": "trunk:27946",
       "path": "addons/CPAchecker-1.7-svn 27946-unix/scripts/",
-      "executable path": "benchmark"
+      "executable path": "scripts/benchmark"
     },
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
         "version": "trunk:30732",
         "path": "addons/CPAchecker-1.8-svn 30732-unix",
-        "executable path": "scripts"
+        "executable path": "CPAchecker-1.8-svn 30732-unix/scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
         "version": "CPALockator-combat-mode:28916",
         "path": "addons/CPAchecker-1.7-svn 28916-unix",
-        "executable path": "scripts"
+        "executable path": "CPAchecker-1.7-svn 28916-unix/scripts"
       }
     }
   },
