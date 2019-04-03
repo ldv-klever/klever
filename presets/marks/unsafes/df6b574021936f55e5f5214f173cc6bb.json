@@ -3,30 +3,25 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "1.2.dev479+g4cf7d194d.d20180919"
+      "value": "2.1.dev128+g23d8bb5fb"
     },
     {
       "attr": "Sub-job identifier",
       "is_compare": false,
-      "value": "3"
+      "value": "4"
     },
     {
-      "attr": "Project:Kind",
-      "is_compare": false,
-      "value": "Linux"
-    },
-    {
-      "attr": "Project:Arch",
+      "attr": "Linux:Architecture",
       "is_compare": false,
       "value": "x86_64"
     },
     {
       "attr": "Linux:Version",
       "is_compare": true,
-      "value": "v2.6.33.20"
+      "value": "v3.14"
     },
     {
-      "attr": "Project:Configuration",
+      "attr": "Linux:Configuration",
       "is_compare": false,
       "value": "allmodconfig"
     },
@@ -56,7 +51,7 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_tasklet_hi_schedule_first_19": [
+            "ldv_tasklet_hi_schedule_first_16": [
               {
                 "ldv_emg_tasklet_hi_schedule_first": [
                   {
