@@ -37,7 +37,7 @@ To deploy Klever one has to clone its Git repository (a path to a directory wher
 
 .. note:: Alternatively one can use https://github.com/ldv-klever/klever.git.
 
-Then one has to get :ref:`klever_addons` and perhaps :ref:`klever_build_bases`.
+Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
 .. note:: You can omit getting :ref:`klever_addons` if you will use
@@ -134,7 +134,7 @@ Most likely one can use the client from the :ref:`CPAchecker verification backen
 Klever Build Bases
 ------------------
 
-In addition to :ref:`klever_addons` one can provide :ref:`klever_build_bases` obtained for software to be verified.
+In addition to :ref:`klever_addons` one should provide :ref:`klever_build_bases` obtained for software to be verified.
 :ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
 All :ref:`klever_build_bases` should be provided as directories or archives.
 They should contain :file:`meta.json` directly at the top level without any intermediate directories.
