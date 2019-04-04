@@ -515,9 +515,15 @@ class Job(core.components.Component):
                 build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
                                                          self.common_components_conf['build base'])
             except FileNotFoundError:
-                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                         os.path.join('build bases',
-                                                                      self.common_components_conf['build base']))
+                try:
+                    build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                             os.path.join('build bases',
+                                                                          self.common_components_conf['build base']))
+                except FileNotFoundError:
+                    raise FileNotFoundError(
+                        'Specified build base "{0}" does not exist, please, fix "job.json" (attribute "build base")'
+                        ' or/and deployment configuration file (attribute "Klever Build Bases")'
+                        .format(self.common_components_conf['build base']))
 
             # We need to specify absolute path to build base since it will be used in different Klever components.
             build_base = os.path.realpath(build_base)
