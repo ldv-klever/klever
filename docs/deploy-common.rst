@@ -137,7 +137,9 @@ Klever Build Bases
 In addition to :ref:`klever_addons` one should provide :ref:`klever_build_bases` obtained for software to be verified.
 :ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
 All :ref:`klever_build_bases` should be provided as directories or archives.
-They should contain :file:`meta.json` directly at the top level without any intermediate directories.
+Any of these directories can contain multiple :ref:`klever_build_bases` placed within appropriate intermediate
+directories.
+Archives should contain :file:`meta.json` directly at the top level without any intermediate directories.
 The best place for :ref:`klever_build_bases` is directory :file:`build bases` within :term:`$KLEVER_SRC` (see
 :ref:`klever_git_repo_struct`).
 
@@ -201,6 +203,11 @@ versions straightforwardly without cloning them to temporary directories.
 .. warning:: Setting *allow use local Git repository* to *True* will result in removing all your uncommited changes!
              Besides, ignore rules from, say, :file:`.gitignore` will be ignored and corresponding files and directories
              will be removed!
+
+:ref:`klever_build_bases` should be specified either as directories with one or more :ref:`klever_build_bases` or as
+archives each of which should contain exactly one Klever build base.
+In :file:`job.json` you should specify basenames of these archives or paths to subdirectories with
+:file:`meta.json` of corresponding :ref:`klever_build_bases` relatively to directories including their names.
 
 .. note:: You can prepare multiple :ref:`deployment configuration files <deploy_conf_file>`, but be careful when using
           them to avoid unexpected results due to tricky intermixes.
