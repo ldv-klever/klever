@@ -17,6 +17,7 @@
 
 import errno
 import getpass
+import json
 import logging
 import os
 import pwd
@@ -64,6 +65,33 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
         return subprocess.check_output(args, **kwargs).decode('utf8')
     else:
         subprocess.check_call(args, **kwargs)
+
+
+def check_deployment_configuration_file(logger, deploy_conf_file):
+    if not os.path.isfile(deploy_conf_file):
+        logger.error('Deployment configuration file "{0}" does not exist'.format(deploy_conf_file))
+        sys.exit(errno.ENOENT)
+
+    with open(deploy_conf_file) as fp:
+        try:
+            deploy_conf = json.load(fp)
+        except json.decoder.JSONDecodeError as err:
+            logger.error('Deployment configuration file "{0}" is not a valid JSON file: "{1}"'
+                         .format(deploy_conf_file, err))
+            sys.exit(errno.ENOENT)
+
+    unspecified_attrs = [attr for attr in (
+        'Packages',
+        'Python3 Packages',
+        'Klever',
+        'Klever Addons',
+        'Klever Build Bases'
+    ) if attr not in deploy_conf]
+
+    if unspecified_attrs:
+        logger.error('Deployment configuration file "{0}" does not contain following attributes:\n  {1}'
+                     .format(deploy_conf_file, '\n  '.join(unspecified_attrs)))
+        sys.exit(errno.ENOENT)
 
 
 def get_logger(name):

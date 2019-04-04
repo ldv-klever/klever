@@ -22,7 +22,7 @@ import os
 import sys
 
 from deploys.openstack.openstack import OSKleverBaseImage, OSKleverDeveloperInstance, OSKleverExperimentalInstances
-from deploys.utils import get_logger, update_python_path
+from deploys.utils import check_deployment_configuration_file, get_logger, update_python_path
 
 
 def main():
@@ -72,6 +72,8 @@ def main():
     args = parser.parse_args()
 
     logger = get_logger(__name__)
+
+    check_deployment_configuration_file(logger, args.deployment_configuration_file)
 
     logger.info('Start execution of action "{0}" for "{1}"'.format(args.action, args.entity))
 
