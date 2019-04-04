@@ -227,11 +227,11 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
 
     :term:`$KLEVER_SRC`
     ├── addons
-    │   ├── cif-d95cdf0.tar.gz
-    │   ├── cil-1.5.1.tar.gz
+    │   ├── cif-1517e57.tar.xz
     │   ├── consul
     │   ├── CPAchecker-1.6.1-svn ea117e2ecf-unix.tar.gz
-    │   ├── CPAchecker-1.7-svn 27946-unix.tar.gz
+    │   ├── CPAchecker-1.8-svn 30732-unix.tar.xz
+    │   ├── toplevel.opt.tar.xz
     │   └── ...
     ├── deploys
     │   ├── bin
@@ -243,6 +243,6 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   │   └── klever-minimal.json.sample
     │   └── ...
     ├── build bases
-    │   ├── linux-3.14
+    │   ├── linux-3.14.79.tar.xz
     │   └── ...
     └── ...
