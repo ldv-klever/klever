@@ -51,16 +51,36 @@ def generate_processes(emg, source, processes, conf, specifications):
     # Read configuration in abstract task
     emg.logger.info("Determine functions to call in the environment model")
 
-    expressions = [re.compile(e) for e in get_conf_property(conf, "functions to call")]
-    strict = get_conf_property(conf, "prefer not called")
-    for func in source.source_functions:
-        obj = source.get_source_function(func)
-        if not obj.static and (not strict or strict and len(obj.called_at) == 0) and \
-                (not expressions or any(e.fullmatch(func) for e in expressions)):
-            emg.logger.info("Add function {!r} to call in the environment model".format(func))
-            functions_collection[func] = obj
+    # Allow setting file regex to filter functions with several definitions
+    expressions = []
+    for expr in get_conf_property(conf, "functions to call"):
+        if isinstance(expr, str):
+            obj = re.compile(expr)
+            expressions.append((None, obj))
+        elif isinstance(expr, list) and len(expr) == 2:
+            file_obj = re.compile(expr[0])
+            func_obj = re.compile(expr[1])
+            expressions.append((file_obj, func_obj))
         else:
-            continue
+            raise ValueError('Unknown element given instead of a file and function regular expressions pair: {!r}'.
+                             format(str(expr)))
+
+    strict = get_conf_property(conf, "prefer not called")
+    statics = get_conf_property(conf, "call static")
+    for func in source.source_functions:
+        objs = source.get_source_functions(func)
+        suits = []
+        for obj in objs:
+            if (not strict or strict and len(obj.called_at) == 0) and (obj.static and statics or not obj.static) and \
+                    obj.definition_file:
+                for file_expr, func_expr in expressions:
+                    if func_expr.fullmatch(func) and (not file_expr or file_expr.fullmatch(obj.definition_file)):
+                        emg.logger.debug('Add function {!r} from {!r}'.format(func, obj.definition_file))
+                        suits.append(obj)
+                        break
+
+        if suits:
+            functions_collection[func] = suits
 
     if len(functions_collection) == 0:
         raise ValueError("There is no suitable functions to call in the environment model")
@@ -94,10 +114,12 @@ def __generate_calls(logger, emg, conf, functions_collection):
 
     # Generate actions for all sequence
     expressions = []
+    identifier = 0
     for func in functions_collection:
-        logger.info("Call function {!r}".format(func))
-        expr = __generate_call(emg, conf, ep, func, functions_collection[func])
-        expressions.append(expr)
+        for obj in functions_collection[func]:
+            logger.info("Call function {!r} from {!r}".format(func, obj.definition_file))
+            expr = __generate_call(emg, conf, ep, func, obj, identifier)
+            expressions.append(expr)
 
     # Generate process description
     code = []
@@ -133,9 +155,9 @@ def __generate_calls(logger, emg, conf, functions_collection):
     return ep
 
 
-def __generate_call(emg, conf, ep, func, obj):
+def __generate_call(emg, conf, ep, func, obj, identifier):
     # Add declaration of caller
-    caller_func = Function("ldv_emg_{}_caller".format(func), "void a(void)")
+    caller_func = Function("ldv_emg_{}_caller_{}".format(func, identifier), "void a(void)")
     ep.add_declaration("environment model", caller_func.name, caller_func.declare(True)[0])
     expression = ""
     body = []
