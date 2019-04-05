@@ -328,7 +328,7 @@ def install_klever_build_bases(logger, deploy_dir, deploy_conf, cmd_fn, install_
                     sys.exit(errno.ENOENT)
 
                 cmd_fn('rm', '-rf', instance_klever_build_base)
-                install_fn(klever_build_base, instance_klever_build_base, allow_symlink=True)
+                install_fn(klever_build_base, instance_klever_build_base)
 
                 # Always grant to everybody (including user "klever" who does need that) at least read permissions for
                 # deployed Klever build base. Otherwise user "klever" will not be able to access them.
