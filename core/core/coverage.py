@@ -306,7 +306,7 @@ class LCOV:
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
     def __init__(self, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
-                 coverage_id, coverage_info_dir, collect_functions):
+                 coverage_id, coverage_info_dir, collect_functions, preprocessed_files=False):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
@@ -318,6 +318,7 @@ class LCOV:
         self.coverage_info_dir = coverage_info_dir
         self.arcnames = {}
         self.collect_functions = collect_functions
+        self.preprocessed_files = preprocessed_files
 
         # Sanity checks
         if self.completeness not in ('full', 'partial', 'lightweight', 'none', None):
@@ -409,10 +410,15 @@ class LCOV:
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
-                    real_file_name = line[len(self.FILENAME_PREFIX):]
-                    real_file_name = os.path.normpath(real_file_name)
-                    file_name = os.path.join(os.path.sep,
-                                             core.utils.make_relative_path([self.clade_dir], real_file_name))
+                    if self.preprocessed_files and not os.path.isfile(line[len(self.FILENAME_PREFIX):]):
+                        file_name = line[len(self.FILENAME_PREFIX):]
+                        # todo: maybe it is better to import clade there and do this properly
+                        real_file_name = os.path.normpath(self.clade_dir + os.path.sep + file_name)
+                    else:
+                        real_file_name = line[len(self.FILENAME_PREFIX):]
+                        real_file_name = os.path.normpath(real_file_name)
+                        file_name = os.path.join(os.path.sep,
+                                                 core.utils.make_relative_path([self.clade_dir], real_file_name))
                     if os.path.isfile(real_file_name) and \
                             all(os.path.commonpath((p, file_name)) != p for p in excluded_dirs):
                         for dest, srcs in dir_map:
