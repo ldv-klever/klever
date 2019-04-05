@@ -119,7 +119,7 @@ class ASE(core.vtg.plugins.Plugin):
                     else:
                         aspect = request_aspect
                     storage_path = clade.get_storage_path(cc['in'][0])
-                    if self.conf['use preprocessed files'] and 'klever-core-work-dir' not in storage_path:
+                    if self.conf.get('use preprocessed files') and 'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0]+'.i'
                     core.utils.execute(self.logger,
                                        tuple(['cif',
@@ -133,7 +133,7 @@ class ASE(core.vtg.plugins.Plugin):
                                              ['--'] +
                                              core.vtg.utils.prepare_cif_opts(
                                                  self.conf, cc['opts'], clade.storage_dir,
-                                                 preprocessed_files=self.conf['use preprocessed files']) +
+                                                 preprocessed_files=self.conf.get('use preprocessed files')) +
                                              [
                                                  # Besides header files specific for requirements will be
                                                  # searched for.
