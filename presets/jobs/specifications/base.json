@@ -323,12 +323,104 @@
           }
         }
       ]
+    },
+    "Zephyr": {
+      "description": "...",
+      "plugins": [
+        {
+          "EMG": {
+            "initialize requirements": true,
+            "check final state": true,
+            "source analysis": {
+              "callstack deep search": 3
+            },
+            "intermediate model options": [
+              {
+                "zephyrModel": {
+                  "infinite call": false,
+                  "initialization functions": [
+                    "init_cache",
+                    "init_queue_module",
+                    "init_mutex_module",
+                    "init_mem_slab_module",
+                    "init_msgq_module",
+                    "init_mbox_module",
+                    "uart_console_init",
+                    "init_alert_module",
+                    "init_timer_module",
+                    "init_pipes_module",
+                    "init_static_pools",
+                    "init_sem_module",
+                    "init_stack_module",
+                    "_ioapic_init",
+                    "_loapic_init",
+                    "_arc_init",
+                    "usb_composite_init",
+                    "malloc_prepare",
+                    "k_sys_work_q_init",
+                    "pinmux_initialize",
+                    "_bt_uart_init"
+                  ]
+                }
+              }
+            ],
+            "translation options": {
+              "entry point": "ldv_main",
+              "direct control functions calls": true,
+              "nested automata": true,
+              "allocate with sizeof": true,
+              "allocate external": true,
+              "environment model file": "environment_model.c",
+              "code additional aspects": [],
+              "propogate headers to instrumented files": true,
+              "additional headers": [
+                "verifier/common.h",
+                "verifier/nondet.h",
+                "verifier/memory.h"
+              ]
+            }
+          }
+        },
+        {
+          "RSG": {
+            "common sets model": "counter",
+            "opts file": "drivers/interrupt_controller/system_apic.c",
+            "common models": {
+              "verifier/common.c": {},
+              "verifier/gcc.c": {},
+              "verifier/nondet.c": {},
+              "verifier/reference memory.c": {}
+            }
+          }
+        },
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true,
+            "verifier profile": "reachability",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "trunk:30732"
+            },
+            "result processing": {
+              "coverage": "lightweight",
+              "collect function names": true
+            }
+          }
+        }
+      ]
     }
   },
   "requirements": {
     "empty": {
       "description": "...",
       "template": "Empty"
+    },
+    "zephyr": {
+      "empty": {
+        "description": "...",
+        "template": "Zephyr"
+      }
     },
     "linux": {
       "description": "Linux specifications",
