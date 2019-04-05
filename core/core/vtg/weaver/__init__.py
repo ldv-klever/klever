@@ -101,12 +101,14 @@ class Weaver(core.vtg.plugins.Plugin):
                         # Simulate resulting aspect.
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
-
+                    storage_path = clade.get_storage_path(cc['in'][0])
+                    if self.conf.get('use preprocessed files') and 'klever-core-work-dir' not in storage_path:
+                        storage_path = storage_path.split('.c')[0] + '.i'
                     core.utils.execute(
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', clade.get_storage_path(cc['in'][0]),
+                                  '--in', storage_path,
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts',
@@ -120,7 +122,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
                               core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir,
-                                                              preprocessed_files=self.conf['use preprocessed files']) +
+                                                              preprocessed_files=self.conf.get('use preprocessed files')) +
                               [aspectator_search_dir]
                               ),
                         env=env,
