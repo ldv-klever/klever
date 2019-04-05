@@ -129,7 +129,9 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
+                                             core.vtg.utils.prepare_cif_opts(
+                                                 self.conf, cc['opts'], clade.storage_dir,
+                                                 preprocessed_files=self.conf['use preprocessed files']) +
                                              [
                                                  # Besides header files specific for requirements will be
                                                  # searched for.

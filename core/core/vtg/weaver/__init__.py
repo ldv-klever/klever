@@ -109,8 +109,8 @@ class Weaver(core.vtg.plugins.Plugin):
                                   '--in', clade.get_storage_path(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
-                                  '--general-opts', '-I' + os.path.realpath(
-                                    os.path.dirname(self.conf['requirements DB'])),
+                                  '--general-opts',
+                                  '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
                                   '--out', os.path.realpath(cc['out'][0]),
@@ -119,8 +119,10 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
-                              [aspectator_search_dir]),
+                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir,
+                                                              preprocessed_files=self.conf['use preprocessed files']) +
+                              [aspectator_search_dir]
+                              ),
                         env=env,
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
