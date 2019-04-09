@@ -21,6 +21,7 @@ from core.vtg.emg.common import get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c import Function, Variable
 from core.vtg.emg.common.c.types import Pointer
 from core.vtg.emg.common.process import Process
+from collections import OrderedDict
 
 
 def get_specification_kinds(specifications):
@@ -40,7 +41,7 @@ def generate_processes(emg, source, processes, conf, specifications):
     :param specifications: Dictionary with required specifications of required kinds
     :return: None
     """
-    functions_collection = dict()
+    functions_collection = OrderedDict()
 
     # Import Specifications
     emg.logger.info("Generate an entry process on base of given funcitons list")
@@ -65,19 +66,19 @@ def generate_processes(emg, source, processes, conf, specifications):
             raise ValueError('Unknown element given instead of a file and function regular expressions pair: {!r}'.
                              format(str(expr)))
 
-    for func in source.source_functions:
-        objs = source.get_source_functions(func)
-        suits = []
-        for obj in objs:
-            if obj.definition_file:
-                for file_expr, func_expr in expressions:
+    for file_expr, func_expr in expressions:
+        for func in source.source_functions:
+            objs = source.get_source_functions(func)
+            suits = []
+            for obj in objs:
+                if obj.definition_file:
                     if func_expr.fullmatch(func) and (not file_expr or file_expr.fullmatch(obj.definition_file)):
                         emg.logger.debug('Add function {!r} from {!r}'.format(func, obj.definition_file))
                         suits.append(obj)
                         break
-
-        if suits:
-            functions_collection[func] = suits
+            if suits:
+                functions_collection[func] = suits
+                break
 
     if len(functions_collection) == 0:
         raise ValueError("There is no suitable functions to call in the environment model")
@@ -89,7 +90,7 @@ def generate_processes(emg, source, processes, conf, specifications):
     #     for func in (f for f in set(headers_map.keys).intersection(set(functions_list))):
     #         functions_collection[func].headers.extend(headers_map[func])
 
-    # Genrate scenario
+    # Generate scenario
     emg.logger.info('Generate main scenario')
     new = __generate_calls(emg.logger, emg, conf, functions_collection)
     processes.entry = new
@@ -138,8 +139,8 @@ def __generate_call(emg, conf, ep, func, obj, identifier):
     initializations = []
 
     # Check retval and cast to void call
-    if obj.declaration.return_value and obj.declaration.return_value.identifier != 'void':
-        expression += "(void) "
+    # if obj.declaration.return_value and obj.declaration.return_value.identifier != 'void':
+    #     expression += "(void) "
 
     # Get arguments and allocate memory for them
     args = []
@@ -182,10 +183,10 @@ def __generate_call(emg, conf, ep, func, obj, identifier):
                     initializations.append("{} = {}".format(argvar.name, value))
 
     # Generate call
-    expression += "{}({});".format(func, ", ".join(args))
+    expression += "int ret = {}({});".format(func, ", ".join(args))
 
     # Generate function body
-    body += initializations + [expression]
+    body += initializations + [expression] + ["ldv_assume(ret==0);"]
 
     # Free memory
     for arg in free_args:
