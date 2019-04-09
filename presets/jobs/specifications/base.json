@@ -340,18 +340,11 @@
                   "infinite call": false,
                   "initialization functions": [
                     "init_cache",
-                    "init_queue_module",
-                    "init_mutex_module",
                     "init_mem_slab_module",
-                    "init_msgq_module",
                     "init_mbox_module",
                     "uart_console_init",
-                    "init_alert_module",
-                    "init_timer_module",
                     "init_pipes_module",
                     "init_static_pools",
-                    "init_sem_module",
-                    "init_stack_module",
                     "_ioapic_init",
                     "_loapic_init",
                     "_arc_init",
@@ -359,7 +352,8 @@
                     "malloc_prepare",
                     "k_sys_work_q_init",
                     "pinmux_initialize",
-                    "_bt_uart_init"
+                    "_bt_uart_init",
+                    "mass_storage_init"
                   ]
                 }
               }
