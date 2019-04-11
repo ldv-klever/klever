@@ -47,7 +47,7 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
-      "LDV-BenchExec",
+      "BenchExec==1.18",
       "consulate"
     ]
   },
