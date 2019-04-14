@@ -132,7 +132,6 @@ def start_jobs(core_obj, vals):
             __solve_sub_jobs(core_obj, vals, common_components_conf, job_type,
                              subcomponents + [core_obj.uploading_reports_process])
         else:
-            # Klever Core working directory is used for the only sub-job that is job itcore.
             job = Job(
                 core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
                 vals,
@@ -198,7 +197,7 @@ def __solve_sub_jobs(core_obj, vals, components_common_conf, job_type, subcompon
         sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf,
                                                        components_common_conf['Sub-jobs'][number])
 
-        job = Subjob(
+        job = SubJob(
             core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs,
             vals,
             id=str(number),
@@ -500,7 +499,6 @@ class Job(core.components.Component):
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
 
-        self.sub_job_id = id
         self.components = []
         self.component_processes = []
 
@@ -561,18 +559,18 @@ class Job(core.components.Component):
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
 
-    def decide_job(self):
-        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+    def decide_job_or_sub_job(self):
+        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
 
         # This is required to associate verification results with particular sub-jobs.
-        self.common_components_conf['sub-job identifier'] = self.sub_job_id
+        self.common_components_conf['sub-job identifier'] = self.id
 
         if self.common_components_conf['keep intermediate files']:
             self.logger.debug('Create components configuration file "conf.json"')
             with open('conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        self.__get_sub_job_components()
+        self.__get_job_or_sub_job_components()
         self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                  self.common_components_conf)
         self.launch_sub_job_components()
@@ -585,9 +583,9 @@ class Job(core.components.Component):
                 time.sleep(1)
             self.logger.debug("Coverage collected")
 
-    main = decide_job
+    main = decide_job_or_sub_job
 
-    def __get_sub_job_components(self):
+    def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
                          format(self.job_type, self.id))
 
@@ -612,14 +610,14 @@ class Job(core.components.Component):
         core.components.launch_workers(self.logger, self.component_processes)
 
 
-class Subjob(Job):
+class SubJob(Job):
 
-    def decide_subjob(self):
+    def decide_sub_job(self):
         try:
-            self.decide_job()
+            self.decide_job_or_sub_job()
             self.vals['subjobs progress'][self.id] = 'finished'
         except Exception:
             self.vals['subjobs progress'][self.id] = 'failed'
             raise
 
-    main = decide_subjob
+    main = decide_sub_job
