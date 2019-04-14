@@ -508,45 +508,47 @@ class Job(core.components.Component):
         self.component_processes = []
 
     def __set_build_base(self):
-        if 'build base' in self.common_components_conf:
-            # Try to find specified build base either in normal way or additionally in directory "build bases" that is
-            # convenient to use when working with many build bases.
-            try:
-                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                         self.common_components_conf['build base'])
-            except FileNotFoundError:
-                try:
-                    build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
-                                                             os.path.join('build bases',
-                                                                          self.common_components_conf['build base']))
-                except FileNotFoundError:
-                    raise FileNotFoundError(
-                        'Specified build base "{0}" does not exist, please, fix "job.json" (attribute "build base")'
-                        ' or/and deployment configuration file (attribute "Klever Build Bases")'
-                        .format(self.common_components_conf['build base']))
-
-            # We need to specify absolute path to build base since it will be used in different Klever components.
-            build_base = os.path.realpath(build_base)
-
-            # Extract build base from archive. There should not be any intermediate directories in archives.
-            if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
-                if tarfile.is_tarfile(build_base):
-                    self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
-                    with tarfile.open(build_base) as TarFile:
-                        TarFile.extractall('build base')
-                else:
-                    self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
-                    with zipfile.ZipFile(build_base) as zfp:
-                        zfp.extractall('build base')
-
-                build_base = os.path.realpath('build base')
-
-            if not os.path.isdir(build_base):
-                raise FileExistsError('Build base "{0}" is neither a directory'.format(build_base))
-        else:
+        if 'build base' not in self.common_components_conf:
             raise KeyError("Provide 'build base' configuration option to start verification")
 
-        self.common_components_conf['build base'] = build_base
+        # Try to find specified build base either in normal way or additionally in directory "build bases" that is
+        # convenient to use when working with many build bases.
+        try:
+            build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                     self.common_components_conf['build base'])
+        except FileNotFoundError:
+            try:
+                build_base = core.utils.find_file_or_dir(self.logger, os.path.curdir,
+                                                         os.path.join('build bases',
+                                                                      self.common_components_conf['build base']))
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    'Specified build base "{0}" does not exist, please, fix "job.json" (attribute "build base")'
+                    ' or/and deployment configuration file (attribute "Klever Build Bases")'
+                    .format(self.common_components_conf['build base']))
+
+        # Extract build base from archive. There should not be any intermediate directories in archives.
+        if os.path.isfile(build_base) and (tarfile.is_tarfile(build_base) or zipfile.is_zipfile(build_base)):
+            if tarfile.is_tarfile(build_base):
+                self.logger.debug('Build base "{0}" is provided in form of TAR archive'.format(build_base))
+                with tarfile.open(build_base) as TarFile:
+                    TarFile.extractall('build base')
+            else:
+                self.logger.debug('Build base "{0}" is provided in form of ZIP archive'.format(build_base))
+                with zipfile.ZipFile(build_base) as zfp:
+                    zfp.extractall('build base')
+
+            # Directory contains extracted build base.
+            build_base = 'build base'
+
+        if not os.path.isdir(build_base):
+            raise FileExistsError('Build base "{0}" is not a directory'.format(build_base))
+
+        # We need to specify absolute path to build base since it will be used in different Klever components.
+        self.common_components_conf['build base'] = os.path.realpath(build_base)
+
+        self.logger.debug('Klever components will use build base "{0}"'
+                          .format(self.common_components_conf['build base']))
 
     def decide_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
