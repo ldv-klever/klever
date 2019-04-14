@@ -106,7 +106,7 @@ def start_jobs(core_obj, vals):
             def after_launch_sub_job_components(context):
                 context.logger.debug('Put "{0}" sub-job identifier for finish coverage'.format(context.id))
                 context.mqs['requirements and coverage info files'].put({
-                    'sub-job identifier': context.sub_job_id
+                    'sub-job identifier': context.common_components_conf['sub-job identifier']
                 })
 
             cr = JCR(core_obj.conf, core_obj.logger, core_obj.ID, core_obj.callbacks, core_obj.mqs, vals,
@@ -503,7 +503,8 @@ class Job(core.components.Component):
         self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
 
         # This is required to associate verification results with particular sub-jobs.
-        self.common_components_conf['sub-job identifier'] = self.id
+        # Skip leading "/" since this identifier is used in os.path.join() that returns absolute path otherwise.
+        self.common_components_conf['sub-job identifier'] = self.id[1:]
 
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
