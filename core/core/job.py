@@ -496,11 +496,37 @@ class Job(core.components.Component):
         self.job_type = job_type
         self.common_components_conf = components_common_conf
 
+        self.components = []
+        self.component_processes = []
+
+    def decide_job_or_sub_job(self):
+        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
+
+        # This is required to associate verification results with particular sub-jobs.
+        self.common_components_conf['sub-job identifier'] = self.id
+
         # Check and set build base here since many Core components need it.
         self.__set_build_base()
 
-        self.components = []
-        self.component_processes = []
+        if self.common_components_conf['keep intermediate files']:
+            self.logger.debug('Create components configuration file "conf.json"')
+            with open('conf.json', 'w', encoding='utf8') as fp:
+                json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        self.__get_job_or_sub_job_components()
+        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
+                                                                 self.common_components_conf)
+        self.launch_sub_job_components()
+
+        self.clean_dir = True
+        self.logger.info("All components finished")
+        if self.conf.get('collect total code coverage', None):
+            self.logger.debug('Waiting for a collecting coverage')
+            while not self.vals['coverage_finished'].get(self.id, True):
+                time.sleep(1)
+            self.logger.debug("Coverage collected")
+
+    main = decide_job_or_sub_job
 
     def __set_build_base(self):
         if 'build base' not in self.common_components_conf:
@@ -558,32 +584,6 @@ class Job(core.components.Component):
 
         self.logger.debug('Klever components will use build base "{0}"'
                           .format(self.common_components_conf['build base']))
-
-    def decide_job_or_sub_job(self):
-        self.logger.info('Decide job/sub-job of type "{0}" with identifier "{1}"'.format(self.job_type, self.id))
-
-        # This is required to associate verification results with particular sub-jobs.
-        self.common_components_conf['sub-job identifier'] = self.id
-
-        if self.common_components_conf['keep intermediate files']:
-            self.logger.debug('Create components configuration file "conf.json"')
-            with open('conf.json', 'w', encoding='utf8') as fp:
-                json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-        self.__get_job_or_sub_job_components()
-        self.callbacks = core.components.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                 self.common_components_conf)
-        self.launch_sub_job_components()
-
-        self.clean_dir = True
-        self.logger.info("All components finished")
-        if self.conf.get('collect total code coverage', None):
-            self.logger.debug('Waiting for a collecting coverage')
-            while not self.vals['coverage_finished'].get(self.common_components_conf['sub-job identifier'], True):
-                time.sleep(1)
-            self.logger.debug("Coverage collected")
-
-    main = decide_job_or_sub_job
 
     def __get_job_or_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.
