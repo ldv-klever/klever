@@ -523,7 +523,7 @@ class Job(core.components.Component):
         self.logger.info("All components finished")
         if self.conf.get('collect total code coverage', None):
             self.logger.debug('Waiting for a collecting coverage')
-            while not self.vals['coverage_finished'].get(self.id, True):
+            while not self.vals['coverage_finished'].get(self.common_components_conf['sub-job identifier'], True):
                 time.sleep(1)
             self.logger.debug("Coverage collected")
 
