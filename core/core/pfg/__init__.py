@@ -160,7 +160,8 @@ class PFG(core.components.Component):
         :return: Fragmentation strategy class.
         """
         self.logger.info('Import fragmentation strategy {!r}'.format(strategy_name))
-        module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower())
+        # Remove spaces that are nice for users but can not be used in Python module names.
+        module_path = '.pfg.fragmentation.{}'.format(strategy_name.lower().replace(' ', ''))
         project_package = importlib.import_module(module_path, 'core')
-        cls = getattr(project_package, strategy_name.capitalize())
+        cls = getattr(project_package, strategy_name.capitalize().replace(' ', ''))
         return cls
