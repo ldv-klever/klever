@@ -183,9 +183,6 @@ def __get_common_components_conf(logger, conf):
     components_common_conf.update(conf)
 
     if components_common_conf['keep intermediate files']:
-        if os.path.isfile('components common conf.json'):
-            raise FileExistsError(
-                'Components common configuration file "components common conf.json" already exists')
         logger.debug('Create components common configuration file "components common conf.json"')
         with open('components common conf.json', 'w', encoding='utf8') as fp:
             json.dump(components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -571,9 +568,6 @@ class Job(core.components.Component):
         self.common_components_conf['sub-job identifier'] = self.sub_job_id
 
         if self.common_components_conf['keep intermediate files']:
-            if os.path.isfile('conf.json'):
-                raise FileExistsError(
-                    'Components configuration file "conf.json" already exists')
             self.logger.debug('Create components configuration file "conf.json"')
             with open('conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.common_components_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
