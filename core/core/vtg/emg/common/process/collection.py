@@ -16,6 +16,8 @@
 #
 
 import ujson
+import os
+from clade import Clade
 
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition, generate_regex_set, Label, Process
@@ -61,6 +63,8 @@ class ProcessCollection:
         self.entry = None
         self.models = dict()
         self.environment = dict()
+
+        self._clade = Clade(self.conf['build base'])
 
     def parse_event_specification(self, raw):
         """
@@ -262,6 +266,23 @@ class ProcessCollection:
                     attname = att
                 setattr(process, attname, dic[att])
 
+        # TODO: change paths
+        # myfile = os.path.join(self.conf["source paths"][], key)
+        # self._clade.get_storage_path(myfile)
+        for def_file in dic['definitions']:
+            if def_file == 'environment model':
+                continue
+            for path in self.conf["source paths"]:
+                new_name = os.path.join(path, def_file)
+                if os.path.isfile(new_name):
+                    dic['definitions'][new_name] = dic['definitions'].pop(def_file)
+        for decl_file in dic['declarations']:
+            if decl_file == 'environment model':
+                continue
+            for path in self.conf["source paths"]:
+                new_name = os.path.join(path, decl_file)
+                if os.path.isfile(new_name):
+                    dic['declarations'][new_name] = dic['declarations'].pop(decl_file)
         unused_labels = process.unused_labels
         if len(unused_labels) > 0:
             raise RuntimeError("Found unused labels in process {!r}: {}".

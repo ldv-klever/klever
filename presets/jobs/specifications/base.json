@@ -353,9 +353,13 @@
                     "k_sys_work_q_init",
                     "pinmux_initialize",
                     "_bt_uart_init",
-                    "mass_storage_init"
+                    "mass_storage_init",
+                    "main"
                   ]
                 }
+              },
+              {
+                "genericManual": {"enforce replacement": true}
               }
             ],
             "translation options": {

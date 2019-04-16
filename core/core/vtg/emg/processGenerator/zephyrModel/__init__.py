@@ -105,8 +105,10 @@ def __generate_calls(logger, emg, conf, functions_collection):
     ep = Process("main")
     ep.category = 'generic'
     ep.comment = "Call exported functions."
-    ep.pretty_id = 'generic'
+    ep.pretty_id = 'zephyr/generic'
     ep.process = ''
+
+    caller_func = Function("ldv_emg_zephr", "void a(void)")
 
     # Generate actions for all sequence
     expressions = []
@@ -118,14 +120,15 @@ def __generate_calls(logger, emg, conf, functions_collection):
             expressions.append(expr)
 
     # Generate process description
-    code = []
     tab = 0
     cnt = 0
     for expr in expressions:
-        code.append(indented_line(tab, "{}".format(expr)))
+        caller_func.body.append(indented_line(tab, "{}".format(expr)))
         cnt += 1
-    ep.add_condition('function_calls', [], code, 'Call all functions in some order.')
+    ep.add_condition('function_calls', [], ["{}();".format(caller_func.name)], 'Call all initialization functions in asc order of level.')
     ep.process = "<function_calls>"
+
+    ep.add_definition("environment model", caller_func.name, caller_func.define() + ["\n"])
 
     return ep
 
@@ -183,10 +186,14 @@ def __generate_call(emg, conf, ep, func, obj, identifier):
                     initializations.append("{} = {}".format(argvar.name, value))
 
     # Generate call
-    expression += "int ret = {}({});".format(func, ", ".join(args))
+    if func != "main":
+        expression += "int ret = "
+    expression += "{}({});".format(func, ", ".join(args))
 
     # Generate function body
-    body += initializations + [expression] + ["ldv_assume(ret==0);"]
+    body += initializations + [expression]
+    if func != "main":
+        body += ["ldv_assume(ret==0);"]
 
     # Free memory
     for arg in free_args:
