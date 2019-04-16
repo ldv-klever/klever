@@ -58,7 +58,22 @@ def generate_processes(emg, source, processes, conf, specifications):
         # Decide on process replacements
         if manual_processes.entry:
             if (get_conf_property(conf, "enforce replacement") and or_entry) or not or_entry:
+                if get_conf_property(conf, "keep entry functions") and or_entry:
+                    for or_decl in or_entry.declarations:
+                        if or_decl in manual_processes.entry.declarations:
+                            manual_processes.entry.declarations[or_decl] = {**manual_processes.entry.declarations[or_decl],
+                                                                            **or_entry.declarations[or_decl]}
+                        else:
+                            manual_processes.entry.declarations[or_decl] = or_entry.declarations[or_decl]
+                    for or_def in or_entry.definitions:
+                        if or_def in manual_processes.entry.definitions:
+                            manual_processes.entry.definitions[or_def] = {**manual_processes.entry.definitions[or_def],
+                                                                          **or_entry.definitions[or_def]}
+                        else:
+                            manual_processes.entry.definitions[or_def] = or_entry.definitions[or_def]
+
                 or_entry = manual_processes.entry
+
 
         # Replace rest processes
         for collection, manual in ((or_models, manual_processes.models.values()),
