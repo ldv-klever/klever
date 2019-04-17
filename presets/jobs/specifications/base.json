@@ -418,6 +418,12 @@
       "empty": {
         "description": "...",
         "template": "Zephyr"
+      },
+      "locks": {
+        "RSG": {
+          "models": {"zephyr/locks.c": {"bug kinds": [
+            "zephyr::deadlock"
+          ]}}}
       }
     },
     "linux": {
