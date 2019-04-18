@@ -45,13 +45,16 @@ class Source:
         self._source_functions = dict()
         self._source_vars = dict()
         self._macros = dict()
+        self.dep_paths = set()
         self.__function_calls_cache = dict()
 
         # Initialize Clade cient to make requests
         self._clade = Clade(self._conf['build base'])
 
         # Ask for dependencies for each CC
-        cfiles, files_map = self._collect_file_dependencies(abstract_task)
+        cfiles, c_files, dep_paths, files_map = self._collect_file_dependencies(abstract_task)
+        self.cfiles = c_files
+        self.deps = dep_paths
 
         # Read file with source analysis
         self._import_code_analysis(cfiles, files_map)
@@ -424,4 +427,4 @@ class Source:
                 _collect_cc_deps(c_file, self._clade.get_cmd_deps(desc['CC']))
                 c_files.add(c_file)
 
-        return c_files, collection
+        return c_files, c_files, set(collection.keys()), collection

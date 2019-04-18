@@ -42,6 +42,7 @@ class ProcessCollection:
         'headers': None,
         'declarations': None,
         'definitions': None,
+        'source files': 'cfiles',
         'category': None,
         'identifier': 'pretty_id'
     }
@@ -87,7 +88,7 @@ class ProcessCollection:
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name in raw["environment processes"]:
-                self.logger.debug("Import environment process {}".format(name))
+                self.logger.debug("Import environment process {!r}".format(name))
                 process = self._import_process(name, raw["environment processes"][name])
                 env_processes[name] = process
         if "main process" in raw and isinstance(raw["main process"], dict):
@@ -225,6 +226,18 @@ class ProcessCollection:
     def _import_process(self, name, dic):
         process = self.PROCESS_CONSTRUCTOR(name)
 
+        def get_abspath(path):
+            if path == 'environment model' or os.path.isfile(path):
+                return path
+            for spath in self.conf["source paths"]:
+                abspath = os.path.join(spath, path)
+                abspath = self._clade.get_storage_path(abspath)
+                if os.path.isfile(abspath):
+                    return abspath
+            else:
+                raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
+                                        ' is not provided'.format(path))
+
         if 'labels' in dic:
             for label_name in dic['labels']:
                 label = self._import_label(label_name, dic['labels'][label_name])
@@ -266,23 +279,15 @@ class ProcessCollection:
                     attname = att
                 setattr(process, attname, dic[att])
 
-        # TODO: change paths
-        # myfile = os.path.join(self.conf["source paths"][], key)
-        # self._clade.get_storage_path(myfile)
-        for def_file in dic['definitions']:
-            if def_file == 'environment model':
-                continue
-            for path in self.conf["source paths"]:
-                new_name = os.path.join(path, def_file)
-                if os.path.isfile(new_name):
-                    dic['definitions'][new_name] = dic['definitions'].pop(def_file)
-        for decl_file in dic['declarations']:
-            if decl_file == 'environment model':
-                continue
-            for path in self.conf["source paths"]:
-                new_name = os.path.join(path, decl_file)
-                if os.path.isfile(new_name):
-                    dic['declarations'][new_name] = dic['declarations'].pop(decl_file)
+        # Fix paths in manual specification
+        for att in ('definitions', 'declarations'):
+            # Avoid iterating over the dictionary that can change its content
+            if att in dic:
+                for def_file in dic[att].keys():
+                    dic[att][get_abspath(def_file)] = dic[att].pop(def_file)
+                # Update object to be sure that changes are saved there
+                setattr(process, att, dic[att])
+
         unused_labels = process.unused_labels
         if len(unused_labels) > 0:
             raise RuntimeError("Found unused labels in process {!r}: {}".
