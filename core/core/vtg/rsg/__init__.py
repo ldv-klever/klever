@@ -64,6 +64,12 @@ class RSG(core.vtg.plugins.Plugin):
             rel_path = os.path.relpath(os.path.join(self.conf['main working directory'],
                                                     self.abstract_task_desc['environment model']), os.path.curdir)
             models[rel_path] = {}
+        if self.abstract_task_desc.get('extra C files'):
+            files = self.abstract_task_desc.get('extra C files')
+            self.abstract_task_desc['extra C files'] = []
+            for file in (f.get("C file") for f in files if "C file" in f):
+                rel_path = os.path.relpath(os.path.join(self.conf['main working directory'], file), os.path.curdir)
+                models[rel_path] = {}
 
         # Get common and requirement specific models.
         if 'common models' in self.conf and 'models' in self.conf:
