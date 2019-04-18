@@ -86,28 +86,28 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:30732": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:31020": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
       "CPAchecker": {
-        "trunk:30732": {"inherit": "CPAchecker BAM reachability FP"}
+        "trunk:31020": {"inherit": "CPAchecker BAM reachability FP"}
       }
     },
     "CPAchecker BAM BusyBox": {
       "CPAchecker": {
-        "trunk:30732": {"inherit": "CPAchecker BAM BusyBox"}
+        "trunk:31020": {"inherit": "CPAchecker BAM BusyBox"}
       }
     },
     "race checking": {
       "CPAchecker": {"CPALockator-combat-mode:28916": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
-      "CPAchecker": {"trunk:30732": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"trunk:31020": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking ARM": {
-      "CPAchecker": {"trunk:30732": {
+      "CPAchecker": {"trunk:31020": {
           "inherit": "CPAchecker SMG memory checking",
           "add options": [{"-setprop": "analysis.machineModel=ARM"}],
           "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]
