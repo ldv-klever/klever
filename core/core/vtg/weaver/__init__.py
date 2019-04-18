@@ -34,7 +34,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                      separate_from_parent, include_child_resources)
 
     def weave(self):
-        self.abstract_task_desc['extra C files'] = []
+        self.abstract_task_desc.setdefault('extra C files', dict())
 
         clade = Clade(self.conf['build base'])
 
