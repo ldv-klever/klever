@@ -421,9 +421,23 @@
       },
       "locks": {
         "RSG": {
-          "models": {"zephyr/locks.c": {"bug kinds": [
-            "zephyr::deadlock"
+          "models": {"zephyr/lock/locks.c": {"bug kinds": [
+            "zephyr::deadlock",
+            "zephyr::missed lock",
+            "zephyr::missed unlock",
+            "zephyr::wrong key"
           ]}}}
+      },
+      "memory safety": {
+        "description": "Zephyr memory safety",
+        "RSG": {"models": {"zephyr/memory safety/memory.c": {}}},
+        "FVTP": {
+          "verifier profile": "memory checking Linux64",
+          "verifier": {
+            "name": "CPAchecker",
+            "version": "trunk:30732"
+          }
+        }
       }
     },
     "linux": {
