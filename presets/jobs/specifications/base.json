@@ -415,11 +415,13 @@
       "template": "Empty"
     },
     "zephyr": {
+      "template": "Zephyr",
       "empty": {
         "description": "...",
         "template": "Zephyr"
       },
       "locks": {
+        "description": "Zephyr locking",
         "RSG": {
           "models": {"zephyr/lock/locks.c": {"bug kinds": [
             "zephyr::deadlock",
