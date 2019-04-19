@@ -375,7 +375,8 @@
               "additional headers": [
                 "verifier/common.h",
                 "verifier/nondet.h",
-                "verifier/memory.h"
+                "verifier/memory.h",
+                "zephyr/ldv.h"
               ]
             }
           }
