@@ -231,8 +231,8 @@ class ProcessCollection:
                 return path
             for spath in self.conf["source paths"]:
                 abspath = os.path.join(spath, path)
-                abspath = self._clade.get_storage_path(abspath)
-                if os.path.isfile(abspath):
+                storabspath = self._clade.get_storage_path(abspath)
+                if os.path.isfile(storabspath):
                     return abspath
             else:
                 raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'

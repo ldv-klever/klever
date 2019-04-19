@@ -81,25 +81,28 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     # First just merge all as is
     additional_code = dict()
     for process in list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]:
-        for file in process.declarations:
-            if file not in additional_code:
-                additional_code[file] = {'declarations': process.declarations[file], 'definitions': dict()}
-            else:
-                additional_code[file]['declarations'].update(process.declarations[file])
-        for file in process.definitions:
-            if file not in additional_code:
-                additional_code[file] = {'definitions': process.definitions[file], 'declarations': dict()}
-            else:
-                additional_code[file]['definitions'].update(process.definitions[file])
+        for att in ('declarations', 'definitions'):
+            for file in getattr(process, att):
+                additional_code.setdefault(file, {'declarations': dict(), 'definitions': dict()})
+                additional_code[file][att].update(getattr(process, att)[file])
 
     # Then convert into proper format
     for file in additional_code:
         additional_code[file]['declarations'] = list(additional_code[file]['declarations'].values())
 
-        defin = additional_code[file]['definitions']
+        val = additional_code[file]['definitions']
         additional_code[file]['definitions'] = list()
-        for block in defin.values():
-            additional_code[file]['definitions'].extend(block)
+        for item in val.values():
+            if isinstance(item, list):
+                additional_code[file]['definitions'].extend(item)
+            elif isinstance(item, str):
+                # Replace file contents
+                pth = find_file_or_dir(logger, conf['main working directory'], item)
+                with open(pth, 'r', encoding='utf8') as fp:
+                    additional_code[file]['definitions'].extend(fp.readlines())
+            else:
+                raise ValueError("Expect either a list of string as a definition in intermediate model specification of"
+                                 " a path name but got {!r}".format(item))
 
     # Rename main file
     if 'environment model' in additional_code:
@@ -107,8 +110,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
         del additional_code['environment model']
 
     # Initalize code representation
-    cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name,
-                    entry_file)
+    cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Add common headers provided by a user
     cmodel.add_headers(entry_file, get_necessary_conf_property(conf['translation options'], "additional headers"))
