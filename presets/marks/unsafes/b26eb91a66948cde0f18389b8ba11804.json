@@ -48,7 +48,7 @@
         ]
       },
       {
-        "ldv_usb_probe": [
+        "ldv_pci_probe": [
           {
             "ldv_emg_usb_register_driver": [
               {
