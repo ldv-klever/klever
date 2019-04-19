@@ -359,7 +359,8 @@
                 }
               },
               {
-                "genericManual": {"enforce replacement": true}
+                "genericManual": {"enforce replacement": true,
+                                  "keep entry functions": true}
               }
             ],
             "translation options": {
