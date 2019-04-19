@@ -387,7 +387,8 @@
               "verifier/common.c": {},
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/reference memory.c": {}
+              "verifier/reference memory.c": {},
+              "zephyr/ldv.c": {}
             }
           }
         },

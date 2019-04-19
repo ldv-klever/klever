@@ -88,24 +88,34 @@ void ldv_irq_unlock(int key)
     //проверки с конца (должно разблокировываться в обратном порядке, иначе дедлок)
     if (lock10 != -1) {
         ldv_assert("zephyr::deadlock", lock10 == key);
+        lock10 = -1;
     } else if (lock9 != -1) {
         ldv_assert("zephyr::deadlock", lock9 == key);
+        lock9 = -1;
     } else if (lock8 != -1) {
         ldv_assert("zephyr::deadlock", lock8 == key);
+        lock8 = -1;
     } else if (lock7 != -1) {
         ldv_assert("zephyr::deadlock", lock7 == key);
+        lock7 = -1;
     } else if (lock6 != -1) {
         ldv_assert("zephyr::deadlock", lock6 == key);
+        lock6 = -1;
     } else if (lock5 != -1) {
         ldv_assert("zephyr::deadlock", lock5 == key);
+        lock5 = -1;
     } else if (lock4 != -1) {
         ldv_assert("zephyr::deadlock", lock4 == key);
+        lock4 = -1;
     } else if (lock3 != -1) {
         ldv_assert("zephyr::deadlock", lock3 == key);
+        lock3 = -1;
     } else if (lock2 != -1) {
         ldv_assert("zephyr::deadlock", lock2 == key);
+        lock2 = -1;
     } else if (lock1 != -1) {
         ldv_assert("zephyr::deadlock", lock1 == key);
+        lock1 = -1;
     } else {
         ldv_assert("zephyr::missed lock", 0);
     }
@@ -115,23 +125,23 @@ void ldv_irq_unlock(int key)
 void ldv_check_final_state(void)
 {
     /* ASSERT Missed closing the first lock */
-	ldv_assert("zephyr::missed unlock", lock1 == 0);
+	ldv_assert("zephyr::missed unlock", lock1 == -1);
 	/* ASSERT Missed closing the second lock */
-	ldv_assert("zephyr::missed unlock", lock2 == 0);
+	ldv_assert("zephyr::missed unlock", lock2 == -1);
 	/* ASSERT Missed closing the third lock */
-	ldv_assert("zephyr::missed unlock", lock3 == 0);
+	ldv_assert("zephyr::missed unlock", lock3 == -1);
 	/* ASSERT Missed closing the fourth lock */
-	ldv_assert("zephyr::missed unlock", lock4 == 0);
+	ldv_assert("zephyr::missed unlock", lock4 == -1);
 	/* ASSERT Missed closing the fifth lock */
-	ldv_assert("zephyr::missed unlock", lock5 == 0);
+	ldv_assert("zephyr::missed unlock", lock5 == -1);
     /* ASSERT Missed closing the sixth lock */
-	ldv_assert("zephyr::missed unlock", lock6 == 0);
+	ldv_assert("zephyr::missed unlock", lock6 == -1);
 	/* ASSERT Missed closing the seventh lock */
-	ldv_assert("zephyr::missed unlock", lock7 == 0);
+	ldv_assert("zephyr::missed unlock", lock7 == -1);
 	/* ASSERT Missed closing the eighth lock */
-	ldv_assert("zephyr::missed unlock", lock8 == 0);
+	ldv_assert("zephyr::missed unlock", lock8 == -1);
 	/* ASSERT Missed closing the ninth lock */
-	ldv_assert("zephyr::missed unlock", lock9 == 0);
+	ldv_assert("zephyr::missed unlock", lock9 == -1);
 	/* ASSERT Missed closing the tenth lock */
-	ldv_assert("zephyr::missed unlock", lock10 == 0);
+	ldv_assert("zephyr::missed unlock", lock10 == -1);
 }
