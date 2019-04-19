@@ -30,13 +30,14 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         return core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))
 
 
-def prepare_cif_opts(conf, opts, clade_storage, preprocessed_files=False):
+def prepare_cif_opts(opts, clade):
     new_opts = []
+    meta = clade.get_meta()
 
     is_sysroot_search_dir = False
     is_include = False
 
-    if not preprocessed_files:
+    if not meta['conf'].get("Compiler.preprocess_cmds", False):
         for opt in opts:
             # Get rid of options unsupported by Aspectator.
             match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
@@ -63,7 +64,7 @@ def prepare_cif_opts(conf, opts, clade_storage, preprocessed_files=False):
             # Explicitly change absolute paths passed to --include since --sysroot does not help with it.
             if is_include:
                 if new_opt.startswith('/'):
-                    new_opt = clade_storage + new_opt
+                    new_opt = clade.storage_dir + new_opt
 
                 is_include = False
             else:
@@ -71,17 +72,16 @@ def prepare_cif_opts(conf, opts, clade_storage, preprocessed_files=False):
                 if match:
                     if match.group(1):
                         if match.group(1).startswith('/'):
-                            new_opt = '-include' + clade_storage + match.group(1)
+                            new_opt = '-include' + clade.storage_dir + match.group(1)
                     else:
                         is_include = True
 
             new_opts.append(new_opt.replace('"', '\\"'))
 
         # Aspectator will search for headers within Clade storage.
-        new_opts.append('-isysroot' + clade_storage)
+        new_opts.append('-isysroot' + clade.storage_dir)
 
-    # todo: Maybe there is a better place for this but this is the easiest one
-    extra_cc_opts = conf.get('extra CIF opts', list())
+    extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', list())
     new_opts.extend(extra_cc_opts)
 
     return new_opts

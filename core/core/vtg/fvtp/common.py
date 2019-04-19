@@ -34,29 +34,33 @@ def merge_files(logger, conf, abstract_task_desc):
     logger.info('Merge source files by means of CIL')
 
     args = [
-               'toplevel.opt',
-               # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
-               '-no-autoload-plugins', '-no-findlib',
-               # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
-               '-machdep', 'gcc_' + conf['architecture'],
-               # Compatibility with C11 (ISO/IEC 9899:2011).
-               '-c11',
-               # In our mode this is the only warning resulting to errors by default.
-               '-kernel-warn-key', 'CERT:MSC:38=active',
-               # Removing unused functions helps to reduce CPAchecker computational resources consumption very-very
-               # considerably.
-               '-remove-unused-inline-functions', '-remove-unused-static-functions',
-               # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
-               # sequentially.
-               '-no-annot',
-               # Rest options.
-               '-keep-logical-operators',
-               '-aggressive-merging',
-               '-print', '-print-lines', '-no-print-annot',
-               '-ocode', 'cil.i',
-           ] + [os.path.join(conf['main working directory'], extra_c_file['C file'])
-                for extra_c_file in abstract_task_desc['extra C files']
-                if 'C file' in extra_c_file]
+            'toplevel.opt',
+
+        ] + \
+        conf.get('CIL additional opts', []) + \
+        [
+            # This disables searching for add-ons enabled by default. One still is able to load plugins manually.
+            '-no-autoload-plugins', '-no-findlib',
+            # TODO: Indeed, we need to think more about everything related with architectures. This is not CIL specific issue.
+            '-machdep', 'gcc_' + conf['architecture'],
+            # Compatibility with C11 (ISO/IEC 9899:2011).
+            '-c11',
+            # In our mode this is the only warning resulting to errors by default.
+            '-kernel-warn-key', 'CERT:MSC:38=active',
+            # Removing unused functions helps to reduce CPAchecker computational resources consumption very-very
+            # considerably.
+            '-remove-unused-inline-functions', '-remove-unused-static-functions',
+            # This helps to reduce considerable memory consumption by CIL itself since input files are processed more
+            # sequentially.
+            '-no-annot',
+            # Rest options.
+            '-keep-logical-operators',
+            '-aggressive-merging',
+            '-print', '-print-lines', '-no-print-annot',
+            '-ocode', 'cil.i',
+        ] + [os.path.join(conf['main working directory'], extra_c_file['C file'])
+            for extra_c_file in abstract_task_desc['extra C files']
+            if 'C file' in extra_c_file]
 
     core.utils.execute(logger, args=args, enforce_limitations=True)
 
