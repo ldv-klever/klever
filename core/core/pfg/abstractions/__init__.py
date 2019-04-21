@@ -76,9 +76,10 @@ class Program:
             else:
                 raise ValueError("Cannot create a duplicate fragment {!r}".format(fragment.name))
 
-    def create_fragment_from_ld(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False):
+    def create_fragment_from_link(self, identifier, fragmentation_set_conf, name, sep_nestd=False, add=False,
+                                  cmd_type='LD'):
         """
-        Create a fragment from the LD command. It adds to the fragment all files from CC commands that finally provide
+        Create a fragment from the Link command. It adds to the fragment all files from CL commands that finally provide
         sources to this linking command.
 
         :param identifier: LD command identifier.
@@ -86,28 +87,31 @@ class Program:
         :param name: Name of the fragment.
         :param sep_nestd: Ignore files that placed in other directories than directory of the out file of the command.
         :param add: Add the fragment to the collection.
+        :param cmd_type: Type of the linking command.
         :return: Fragment object.
         """
-        ccs = self.clade.get_root_cmds_by_type(identifier, "CC")
+        cls = self.clade.get_root_cmds_by_type(identifier, cmd_type)
 
         files = set()
-        for i in ccs:
-            d = self.clade.get_cmd(i)
-            self.__check_cc(d)
-            for in_file in d['in']:
+        for cl in cls:
+            desc = self.clade.get_cmd(cl)
+
+            for in_file in desc['in']:
                 if not in_file.endswith('.c'):
-                    self.logger.warning("You should implement more strict filters to reject CC commands with such "
+                    self.logger.warning("You should implement more strict filters to reject CL commands with such "
                                         "input files as {!r}".format(in_file))
                     continue
+
                 if not sep_nestd or \
                         (sep_nestd and os.path.dirname(in_file) == os.path.dirname(fragmentation_set_conf['out'][0])):
                     file = self._files[in_file]
                     files.add(file)
 
         if len(files) == 0:
-            self.logger.warning('Cannot find C files for LD command {!r}'.format(name))
+            self.logger.warning('Cannot find C files for Link command {!r}'.format(name))
 
         fragment = self.create_fragment(name, files, add=add)
+
         return fragment
 
     def remove_fragment(self, fragment):
