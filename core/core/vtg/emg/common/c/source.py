@@ -344,7 +344,7 @@ class Source:
                                                 break
                                     caller_intf.call_in_function(obj, params)
 
-        macros_file = get_conf_property(self._conf['source analysis'], 'macros white list')
+        macros_file = get_conf_property(self._conf.get('source analysis', dict()), 'macros white list')
         if macros_file:
             macros_file = find_file_or_dir(self.logger, self._conf['main working directory'], macros_file)
             with open(macros_file, 'r', encoding='utf8') as fp:

@@ -379,7 +379,8 @@ class CModel:
 
         return body
 
-    def _collapse_headers_sets(self, sets):
+    @staticmethod
+    def _collapse_headers_sets(sets):
         final_list = []
         sortd = sorted(sets, key=lambda f: len(f))
         while len(sortd) > 0:
@@ -452,18 +453,17 @@ class FunctionModels:
                 else:
                     replacement = self._replace_free_call
 
-                accesses = automaton.process.resolve_access('%{}%'.format(access))
-                for access in accesses:
-                    signature = access.label.declaration
-                    if signature:
-                        var = automaton.determine_variable(access.label)
-                        if isinstance(var.declaration, Pointer):
-                            self.signature = var.declaration
-                            self.ualloc_flag = True
-                            new = self.mem_function_re.sub(replacement, statement)
-                            stms.append(new)
-                    else:
-                        self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
+                access = automaton.process.resolve_access('%{}%'.format(access))
+                signature = access.label.declaration
+                if signature:
+                    var = automaton.determine_variable(access.label)
+                    if isinstance(var.declaration, Pointer):
+                        self.signature = var.declaration
+                        self.ualloc_flag = True
+                        new = self.mem_function_re.sub(replacement, statement)
+                        stms.append(new)
+                else:
+                    self._logger.warning("Cannot get signature for the label {!r}".format(access.label.name))
             elif fn in self.irq_function_map:
                 statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
                 stms.append(statement)
@@ -484,11 +484,10 @@ class FunctionModels:
                 match = self.access_re.search(stm)
                 if match:
                     expression = match.group(1)
-                    accesses = automaton.process.resolve_access(expression)
-                    for access in accesses:
-                        var = automaton.determine_variable(access.label)
-                        stm = stm.replace(expression, var.name)
-                        stm_set.add(stm)
+                    access = automaton.process.resolve_access(expression)
+                    var = automaton.determine_variable(access.label)
+                    stm = stm.replace(expression, var.name)
+                    stm_set.add(stm)
                 else:
                     final.append(stm)
 

@@ -69,7 +69,7 @@ class StateTranslator(FSATranslator):
                     for index in range(len(function_parameters)):
                         # Determine exression
                         receiver_access = automata_peers[name]['automaton'].process.\
-                            resolve_access(r_state.action.parameters[index])[0]
+                            resolve_access(r_state.action.parameters[index])
 
                         # Determine var
                         var = automata_peers[name]['automaton'].determine_variable(receiver_access.label)

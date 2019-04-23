@@ -293,26 +293,26 @@ class Process:
                     if tp not in exclude:
                         if isinstance(action, Receive) or isinstance(action, Dispatch):
                             for index in range(len(action.parameters)):
-                                accss[action.parameters[index]] = []
+                                accss[action.parameters[index]] = None
                         if isinstance(action, Condition):
                             for statement in action.statements:
                                 for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
+                                    accss[match.group()] = None
                         if action.condition:
                             for statement in action.condition:
                                 for match in self.label_re.finditer(statement):
-                                    accss[match.group()] = []
+                                    accss[match.group()] = None
 
                 # Add labels with interfaces
                 if not no_labels:
                     for label in [self.labels[name] for name in self.labels.keys()]:
                         access = '%{}%'.format(label.name)
-                        if access not in accss or len(accss[access]) == 0:
+                        if not accss.get(access):
                             accss[access] = []
                             new = Access(access)
                             new.label = label
                             new.list_access = [label.name]
-                            accss[access] = [new]
+                            accss[access] = new
 
                 if not self._accesses and len(exclude) == 0 and not no_labels:
                     self._accesses = accss
@@ -322,6 +322,36 @@ class Process:
             return accss
         else:
             self._accesses = accesses
+
+    def establish_peers(self, process):
+        """
+        Peer these two processes if they can send signals to each other.
+
+        :param process: Process object
+        :return: None
+        """
+        # Find suitable peers
+        for action in (a for a in self.actions
+                       if isinstance(self.actions[a], Receive) or isinstance(self.actions[a], Dispatch)):
+            if action in process.actions and \
+                    (isinstance(process.actions[action], Receive) or isinstance(process.actions[action], Dispatch)) and\
+                    type(process.actions[action]) != type(self.actions[action]) and \
+                    len(process.actions[action].parameters) == len(self.actions[action].parameters) and \
+                    self.name not in (p['process'] for p in process.actions[action].peers):
+                # Compare signatures of parameters
+                for num, p in enumerate(self.actions[action].parameters):
+                    access1 = self.resolve_access(p)
+                    access2 = process.resolve_access(process.actions[action].parameters[num])
+                    if not access1.label or not access2.label:
+                        raise RuntimeError("Strange accesses {!r} and {!r} in {!r} and {!r}".
+                                           format(p, process.actions[action].parameters[num], process.identifier,
+                                                  process.identifier))
+                    if not access1.label.declaration.compare(access2.label.declaration):
+                        break
+                else:
+                    # All parameters match each other
+                    self.actions[action].peers.append({'process': process, 'subprocess': process.actions[action]})
+                    process.actions[action].peers.append({'process': self, 'subprocess': self.actions[action]})
 
     def resolve_access(self, access):
         """
@@ -399,7 +429,7 @@ class Process:
         acc = Access('%{}%'.format(name))
         acc.label = lb
         acc.list_access = [lb.name]
-        self._accesses[acc.expression] = [acc]
+        self._accesses[acc.expression] = acc
         return lb
 
     def add_condition(self, name, condition, statements, comment):

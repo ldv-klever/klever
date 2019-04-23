@@ -126,7 +126,7 @@ class ProcessCollection:
         :param strict: Raise exception if a peer process identifier is unknown (True) or just ignore it (False).
         :return: None
         """
-        # Then check peers. This is becouse in generated processes there no peers set for manually written processes
+        # Then check peers. This is because in generated processes there no peers set for manually written processes
         processes = list(self.models.values()) + list(self.environment.values()) + ([self.entry] if self.entry else [])
         process_map = {p.pretty_id: p for p in processes}
         for process in processes:

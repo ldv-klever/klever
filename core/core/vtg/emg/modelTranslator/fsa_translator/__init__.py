@@ -315,7 +315,7 @@ class FSATranslator:
             for index in range(len(state.action.parameters)):
                 # Determine dispatcher parameter
                 # We expect strictly one
-                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index])[0]
+                dispatcher_access = automaton.process.resolve_access(state.action.parameters[index])
                 variable = automaton.determine_variable(dispatcher_access.label)
                 function_parameters.append(variable.declaration)
                 df_parameters.append(variable.name)

@@ -147,7 +147,7 @@ class LabelTranslator(FSATranslator):
 
                 if len(state.action.parameters) > 0:
                     for index, param in enumerate(state.action.parameters):
-                        receiver_access = automaton.process.resolve_access(param)[0]
+                        receiver_access = automaton.process.resolve_access(param)
                         var = automaton.determine_variable(receiver_access.label)
                         param_declarations.append(var.declaration)
                         param_expressions.append(var.name)

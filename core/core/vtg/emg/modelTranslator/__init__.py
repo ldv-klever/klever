@@ -38,9 +38,6 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     :param processes: ProcessCollection object.
     :return: None.
     """
-    if not processes.entry:
-        raise RuntimeError("It is impossible to generate an environment model without main process")
-
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf['translation options'], 'entry point', default_value='main', expected_type=str)
@@ -53,6 +50,17 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                                expected_type=list)
     check_or_set_conf_property(conf['translation options'], "additional headers", default_value=list(),
                                expected_type=list)
+
+    if not processes.entry:
+        raise RuntimeError("It is impossible to generate an environment model without main process")
+
+    # If necessary match peers
+    if get_conf_property(conf['translation options'], "implicit signal peers"):
+        process_list = list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]
+        for i, first in enumerate(process_list):
+            if i + 1 < len(process_list):
+                for second in process_list[i+1:]:
+                    first.establish_peers(second)
 
     if get_conf_property(conf['translation options'], "debug output"):
         processes.save_collection('environment processes.json')
@@ -99,7 +107,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                 # Replace file contents
                 pth = find_file_or_dir(logger, conf['main working directory'], item)
                 with open(pth, 'r', encoding='utf8') as fp:
-                    additional_code[file]['definitions'].extend(fp.readlines())
+                    additional_code[file]['definitions'].extend(fp.readlines() + ["\n"])
             else:
                 raise ValueError("Expect either a list of string as a definition in intermediate model specification of"
                                  " a path name but got {!r}".format(item))
