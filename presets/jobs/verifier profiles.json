@@ -27,7 +27,7 @@
       "add options": [
         {"-ldv": ""},
         {"-setprop": "coverage.file=coverage.info"},
-        {"-setprop": "analysis.machineModel=LINUX64"}
+        {"-setprop": "analysis.machineModel=LINUX32"}
       ]
     },
     "CPAchecker BAM reachability": {
@@ -36,7 +36,7 @@
       "safety properties": ["CHECK( init({entry_point}()), LTL(G ! call(__VERIFIER_error())) )"],
       "add options": [
         {"-ldv-bam": ""},
-        {"-setprop": "analysis.machineModel=LINUX64"},
+        {"-setprop": "analysis.machineModel=LINUX32"},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },
@@ -66,7 +66,7 @@
       ],
       "add options": [
         {"-smg-ldv": ""},
-        {"-setprop": "analysis.machineModel=LINUX64"}
+        {"-setprop": "analysis.machineModel=LINUX32"}
       ]
     },
     "CPALockator": {
@@ -86,7 +86,7 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:30732": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:30732": {"inherit": "CPAchecker reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
