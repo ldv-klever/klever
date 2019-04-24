@@ -34,9 +34,10 @@ class Weaver(core.vtg.plugins.Plugin):
                                      separate_from_parent, include_child_resources)
 
     def weave(self):
-        self.abstract_task_desc['extra C files'] = []
+        self.abstract_task_desc.setdefault('extra C files', dict())
 
         clade = Clade(self.conf['build base'])
+        meta = clade.get_meta()
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
         # with "-nostdinc" option and system stdarg.h couldn't be used.
@@ -102,7 +103,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
                     storage_path = clade.get_storage_path(cc['in'][0])
-                    if self.conf.get('use preprocessed files') and 'klever-core-work-dir' not in storage_path:
+                    if meta['conf'].get('Compiler.preprocess_cmds', False) and 'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
                     core.utils.execute(
                         self.logger,
@@ -121,9 +122,9 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir,
-                                                              preprocessed_files=self.conf.get('use preprocessed files')) +
-                              [aspectator_search_dir]
+                              core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                              [aspectator_search_dir] +
+                              ['-I' + clade.get_storage_path(p) for p in self.conf['source paths']]
                               ),
                         env=env,
                         cwd=clade.get_storage_path(cc['cwd']),

@@ -63,6 +63,9 @@ def generate_processes(emg, source, processes, conf, specifications):
     interfaces.fill_up_collection(source, specifications["interface specification"]["specification"])
 
     emg.logger.info("Import event categories specification")
+    # This is required at parsing specifications
+    conf['source paths'] = emg.conf['source paths']
+    conf['build base'] = emg.conf['build base']
     abstract_processes = AbstractProcessImporter(emg.logger, conf)
     abstract_processes.parse_event_specification(specifications["event specification"]["specification"])
 
