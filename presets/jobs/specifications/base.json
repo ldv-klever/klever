@@ -384,7 +384,6 @@
         {
           "RSG": {
             "common sets model": "counter",
-            "opts file": "drivers/interrupt_controller/system_apic.c",
             "common models": {
               "verifier/common.c": {},
               "verifier/gcc.c": {},
