@@ -21,12 +21,12 @@ before: file ("$this")
     extern void ldv_irq_unlock(int key);
 }
 
-around: call(int irq_lock(..))
+around: call(unsigned int _arch_irq_lock(..))
 {
 	return ldv_irq_lock();
 }
 
-around: call(int irq_unlock(..))
+around: call(void _arch_irq_unlock(..))
 {
-	return ldv_irq_unlock($arg1);
+	ldv_irq_unlock($arg1);
 }
