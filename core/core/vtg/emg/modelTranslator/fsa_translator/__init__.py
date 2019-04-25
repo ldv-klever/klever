@@ -61,12 +61,8 @@ class FSATranslator:
         check_or_set_conf_property(conf, 'do not skip signals', default_value=False, expected_type=None)
 
         # Get from unused interfaces
-        header_sets = []
         for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
-            header_sets.append(process.headers)
-        header_sets = sorted(header_sets, key=len)
-        for hset in header_sets:
-            self._cmodel.add_headers(self._cmodel.entry_file, hset)
+            self._cmodel.add_headers(process.file, sorted(process.headers, key=len))
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
@@ -129,7 +125,10 @@ class FSATranslator:
         self._entry_point()
 
         # Add types
-        self._cmodel.types = sorted(set(self._structures.values()), key=lambda t: t.identifier)
+        for pair in self._structures.values():
+            file, decl = pair
+            self._cmodel.types.setdefault(file, list())
+            self._cmodel.types[file].append(decl)
 
         return
 
@@ -353,7 +352,7 @@ class FSATranslator:
                     df = Function(
                         "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                         "void f(void)")
-                df.definition_file = self._cmodel.entry_file
+                df.definition_file = automaton.process.file
                 body.extend(post)
                 body.append('return;')
                 df.body.extend(body)
@@ -458,9 +457,9 @@ class FSATranslator:
                 decl.fields['arg{}'.format(index)] = params[index]
             decl.fields['signal_pending'] = import_declaration('int a')
 
-            self._structures[cache_identifier] = decl
+            self._structures[cache_identifier] = [automaton.process.file, decl]
         else:
-            decl = self._structures[cache_identifier]
+            decl = self._structures[cache_identifier][1]
 
         return decl
     
@@ -472,7 +471,7 @@ class FSATranslator:
         :param parameter: String with argument of the control function.
         :return: String expression.
         """
-        self._cmodel.add_function_declaration(self._cmodel.entry_file, self._control_function(automaton), extern=True)
+        self._cmodel.add_function_declaration(automaton.process.file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
             return '{}({});'.format(self._control_function(automaton).name, parameter)
@@ -486,7 +485,7 @@ class FSATranslator:
         :param automaton: Automaton object.
         :return: String expression.
         """
-        self._cmodel.add_function_declaration(self._cmodel.entry_file, self._control_function(automaton), extern=True)
+        self._cmodel.add_function_declaration(automaton.process.file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
             return '/* Skip thread join call */'
@@ -536,13 +535,12 @@ class FSATranslator:
                 else:
                     declaration = 'void f(void *data)'
                 cf = Function(name, declaration)
-            cf.definition_file = self._cmodel.entry_file
+            cf.definition_file = automaton.process.file
 
             self._control_functions[automaton.identifier] = cf
 
         return self._control_functions[automaton.identifier]
 
-    @abc.abstractstaticmethod
     def _relevant_checks(self, relevent_automata):
         """
         This function allows to add your own additional conditions before function calls and dispatches. The
@@ -554,7 +552,6 @@ class FSATranslator:
         """
         raise NotImplementedError
     
-    @abc.abstractstaticmethod
     def _join_cf_code(self, automaton):
         """
         Generate statement to join control function thread if it is called in a separate thread. Depends on a
@@ -565,7 +562,6 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _call_cf_code(self, automaton, parameter='0'):
         """
         Generate statement with control function call. Depends on a modelTranslator implementation.
@@ -576,7 +572,6 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _dispatch_blocks(self, state, automaton, function_parameters, automata_peers,
                          replicative):
         """
@@ -613,7 +608,6 @@ class FSATranslator:
 
         return code, v_code, conditions, comments
 
-    @abc.abstractstaticmethod
     def _compose_control_function(self, automaton):
         """
         Generate body of a control function according to your modelTranslator implementation.
@@ -623,7 +617,6 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _entry_point(self):
         """
         Generate statements for entry point function body.
@@ -632,7 +625,6 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _normalize_model_fsa(self, automaton):
         """
         Normalize function model fsa graph and apply necessary transformations.
@@ -642,7 +634,6 @@ class FSATranslator:
         """
         raise NotImplementedError
 
-    @abc.abstractstaticmethod
     def _normalize_event_fsa(self, automaton):
         """
         Normalize event automaton fsa graph and apply necessary transformations.

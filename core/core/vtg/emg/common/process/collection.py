@@ -39,6 +39,7 @@ class ProcessCollection:
         'declaration': None
     }
     PROCESS_ATTRIBUTES = {
+        'file': None,
         'headers': None,
         'declarations': None,
         'definitions': None,
@@ -292,6 +293,9 @@ class ProcessCollection:
         if len(unused_labels) > 0:
             raise RuntimeError("Found unused labels in process {!r}: {}".
                                format(process.name, ', '.join(unused_labels)))
+        if process.file != 'entry point':
+            process.file = get_abspath(process.file)
+
         process.accesses()
         return process
 

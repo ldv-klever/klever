@@ -73,14 +73,14 @@ class StateTranslator(FSATranslator):
 
                         # Determine var
                         var = automata_peers[name]['automaton'].determine_variable(receiver_access.label)
-                        self._cmodel.add_global_variable(var, self._cmodel.entry_file, extern=True)
+                        self._cmodel.add_global_variable(var, automaton.process.file, extern=True)
                         block.append("{} = arg{};".format(var.name, index))
 
                 # Update state
                 block.extend(['', "/* Switch state of the reciever */"])
                 block.extend(self.__switch_state_code(automata_peers[name]['automaton'], r_state))
                 self._cmodel.add_global_variable(self.__state_variable(automata_peers[name]['automaton']),
-                                                 self._cmodel.entry_file, extern=True)
+                                                 automaton.process.file, extern=True)
 
                 blocks.append(block)
                         
@@ -99,7 +99,7 @@ class StateTranslator(FSATranslator):
 
         # Get function prototype
         cf = self._control_function(automaton)
-        cf.definition_file = self._cmodel.entry_file
+        cf.definition_file = automaton.process.file
 
         # Do process initialization
         model_flag = True
@@ -144,7 +144,7 @@ class StateTranslator(FSATranslator):
 
             # Add loop for nested case
             cf.body.extend(v_code + f_code)
-            self._cmodel.add_global_variable(self.__state_variable(automaton), self._cmodel.entry_file, extern=False,
+            self._cmodel.add_global_variable(self.__state_variable(automaton), automaton.process.file, extern=False,
                                              initialize=True)
         else:
             # Generate function body
@@ -157,7 +157,7 @@ class StateTranslator(FSATranslator):
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         else:
             for var in automaton.variables():
-                self._cmodel.add_global_variable(var, self._cmodel.entry_file, initialize=False)
+                self._cmodel.add_global_variable(var, automaton.process.file, initialize=False)
         return
 
     def _entry_point(self):
@@ -307,6 +307,7 @@ class StateTranslator(FSATranslator):
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
         func = Function(name, 'int f(void)')
+        # todo: Incorrect file
         func.definition_file = self._cmodel.entry_file
 
         # Generate switch body

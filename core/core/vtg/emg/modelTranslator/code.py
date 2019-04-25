@@ -70,7 +70,7 @@ class CModel:
         self.entry_file = entry_file
         self.entry_name = entry_point_name
         self.files = files
-        self.types = list()
+        self.types = dict()
         self._logger = logger
         self._conf = conf
         self._workdir = workdir
@@ -224,7 +224,7 @@ class CModel:
                                   self._collapse_headers_sets(self._headers[self.entry_file])])
                 lines.append("\n")
 
-                for tp in self.types:
+                for tp in self.types.get(file, list()):
                     lines.append(tp.to_string('') + " {\n")
                     for field in list(tp.fields.keys()):
                         lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
@@ -247,6 +247,14 @@ class CModel:
                 # Add model itself
                 lines.append('after: file ("$this")\n')
                 lines.append('{\n')
+
+            for tp in self.types.get(file, list()):
+                lines.append(tp.to_string('') + " {\n")
+                for field in list(tp.fields.keys()):
+                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
+                                                  scope={self.entry_file}))
+                lines.append("};\n")
+                lines.append("\n")
 
             if file in additional_lines and 'declarations' in additional_lines[file] and \
                     len(additional_lines[file]['declarations']) > 0:

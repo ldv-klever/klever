@@ -108,6 +108,7 @@ class Process:
 
     def __init__(self, name):
         self.name = name
+        self.file = 'environment model'
         self.category = None
         self.pretty_id = None
         self.comment = None

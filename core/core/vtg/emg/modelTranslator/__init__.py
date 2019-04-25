@@ -121,7 +121,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     cmodel = CModel(logger, conf, conf['main working directory'], files, entry_point_name, entry_file)
 
     # Add common headers provided by a user
-    cmodel.add_headers(entry_file, get_necessary_conf_property(conf['translation options'], "additional headers"))
+    for file in files:
+        cmodel.add_headers(file, get_necessary_conf_property(conf['translation options'], "additional headers"))
 
     logger.info("Generate finite state machine on each process")
     entry_fsa = Automaton(processes.entry, 1)
