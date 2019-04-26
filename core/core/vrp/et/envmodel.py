@@ -20,7 +20,7 @@ from core.vrp.et.error_trace import get_original_file, get_original_start_line
 
 def envmodel_simplifications(logger, error_trace, less_processing=False):
     logger.info('Start environment model driven error trace simplifications')
-    data, main_data, main = _collect_action_diaposons(error_trace)
+    data, main_data, main = _collect_action_diaposons(logger, error_trace)
     _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
 
@@ -37,7 +37,7 @@ def envmodel_simplifications(logger, error_trace, less_processing=False):
         _wrap_actions(data, error_trace)
 
 
-def _collect_action_diaposons(error_trace):
+def _collect_action_diaposons(logger, error_trace):
     main = None
     main_data = None
 
@@ -75,6 +75,10 @@ def _collect_action_diaposons(error_trace):
             for line in range(data[file][func]['begin'], data[file][func]['end']):
                 if not inside_action and line in error_trace.emg_comments[file] and \
                                 error_trace.emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
+                    if 'type' not in error_trace.emg_comments[file][line] or \
+                            'comment' not in error_trace.emg_comments[file][line]:
+                        logger.warning("Incomplete EMG comment at line {} of file {!r}".format(line, file))
+                        error_trace.emg_comments[file][line].setdefault('comment', 'EMG action')
                     data[file][func]['actions'].append({'begin': line,
                                                         'comment': error_trace.emg_comments[file][line]['comment'],
                                                         'type': error_trace.emg_comments[file][line]['type']})
