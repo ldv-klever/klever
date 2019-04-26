@@ -21,13 +21,13 @@
 
 {% load tz %}
 
-{% if job.runhistory_set.count %}
+{% if run_history|length %}
     <div class="ui orange segment">
         <div class="ui top left attached orange large label">{% trans 'History of decisions' %}</div>
         <div class="ui small action input">
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown">
-                {% for rh in job.runhistory_set.all|dictsortreversed:'date' %}
+                {% for rh in run_history %}
                     <option value="{{ rh.pk }}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.get_full_name }}){% endif %} -
                         {% if user.data_format == 'hum' %}
                             {{ rh.date|naturaltime }}
@@ -37,7 +37,7 @@
                     </option>
                 {% endfor %}
             </select>
-            <button id="download_configuration" class="ui violet icon button note-popup" data-content="{% trans 'Download configuration file' %}" data-position="top right"><i class="ui download icon"></i></button>
+            <button id="download_conf_btn" class="ui violet icon button note-popup" data-content="{% trans 'Download configuration file' %}" data-position="top right"><i class="ui download icon"></i></button>
         </div>
     </div>
 {% endif %}

@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "EMG does not check whether a callback declaration corresponds to the container member declaration.",
+  "function": "too many arguments to function",
+  "is_regexp": false,
+  "link": "http://forge.ispras.ru/issues/7117",
+  "problem_pattern": "Too many args",
+  "production": true
+}

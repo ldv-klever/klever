@@ -18,6 +18,7 @@ import copy
 import json
 import re
 
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import ASSOCIATION_TYPE, PROBLEM_DESC_FILE
@@ -31,11 +32,11 @@ from caches.utils import RecalculateUnknownCache, UpdateUnknownCachesOnMarkChang
 
 
 def perform_unknown_mark_create(user, report, serializer):
-    mark = serializer.save(job=report.root.job)
+    mark = serializer.save(job=report.root.job, component=report.component)
     res = ConnectUnknownMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateUnknownCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()
-    return cache_upd.save()
+    return mark, cache_upd.save()
 
 
 def perform_unknown_mark_update(user, serializer):
@@ -66,6 +67,8 @@ def perform_unknown_mark_update(user, serializer):
         if not autoconfirm:
             # Reset association type and remove likes
             mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
+            mark.cache_links = len(new_links)
+            mark.save()
             UnknownAssociationLike.objects.filter(association__mark=mark).delete()
             cache_upd.update_all()
 
@@ -98,6 +101,8 @@ def confirm_unknown_mark(user, mark_report):
     mark_report.type = ASSOCIATION_TYPE[1][0]
     mark_report.save()
     if was_unconfirmed:
+        mark_report.mark.cache_links += 1
+        mark_report.mark.save()
         RecalculateUnknownCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportUnknownCache.objects.get(report_id=mark_report.report_id)
@@ -111,6 +116,9 @@ def unconfirm_unknown_mark(user, mark_report):
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
     mark_report.save()
+    if mark_report.mark.cache_links > 0:
+        mark_report.mark.cache_links -= 1
+        mark_report.mark.save()
     RecalculateUnknownCache(reports=[mark_report.report_id])
 
 
@@ -195,6 +203,8 @@ class ConnectUnknownMark:
             ))
             new_links.add(report.id)
         MarkUnknownReport.objects.bulk_create(associations)
+        self._mark.cache_links = len(new_links)
+        self._mark.save()
         return new_links
 
 
@@ -221,10 +231,12 @@ class ConnectUnknownReport:
                 continue
             new_markreports.append(MarkUnknownReport(mark_id=mark.id, report=self._report, problem=problem))
         MarkUnknownReport.objects.bulk_create(new_markreports)
+        MarkUnknown.objects.filter(id__in=list(mr.mark_id for mr in new_markreports))\
+            .update(cache_links=F('cache_links') + 1)
         RecalculateUnknownCache(reports=[self._report.id])
 
 
-class CheckFunction:
+class CheckUnknownFunction:
     def __init__(self, report, mark_function, pattern, is_regexp):
         self._desc = self.__read_unknown_desc(report)
         self._func = mark_function

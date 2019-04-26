@@ -164,9 +164,17 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50,
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 'PAGE_SIZE': 50,
     'NON_FIELD_ERRORS_KEY': 'general'
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB
+
+
+RABBIT_MQ = {
+    'username': 'service',
+    'password': 'service',
+    'host': 'localhost',
+    'jobs_exchange': 'jobsX'
+}

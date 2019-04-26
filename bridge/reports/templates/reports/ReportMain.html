@@ -21,7 +21,7 @@
 {% load tz %}
 {% load staticfiles %}
 
-{% block title %}{{ report.component.name }}{% endblock %}
+{% block title %}{{ report.component }}{% endblock %}
 
 {% block head_block %}
     <link href="{% static 'reports/css/reports.css' %}" rel="stylesheet">
@@ -36,7 +36,7 @@
             <tbody>
                 <tr id="component_name_tr" data-variation="very wide">
                     <th colspan="2" class="center aligned header">
-                        <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component.name }}</h3>
+                        <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component }}</h3>
                     </th>
                 </tr>
             {% if report.root.user %}
@@ -153,7 +153,9 @@
     </div>
 
     <div class="ten wide column">
-        {% include 'reports/parents_breadcrumb.html' with parents=parents %}
+        {% if parents|length %}
+            {% include 'reports/parents_breadcrumb.html' with parents=parents %}
+        {% endif %}
 
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
@@ -182,15 +184,15 @@
                         <tbody>
                             {% for row in TableData.values %}
                                 <tr>
-                                    <td class="collapsing">
                                     {% for cell_data in row %}
+                                        <td class="collapsing">
                                         {% if cell_data.href %}
                                             <a href="{{ cell_data.href }}">{{ cell_data.value }}</a>
                                         {% else %}
                                             <span>{{ cell_data.value }}</span>
                                         {% endif %}
+                                        </td>
                                     {% endfor %}
-                                    </td>
                                 </tr>
                             {%  endfor %}
                         </tbody>

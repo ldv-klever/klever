@@ -1,6 +1,0 @@
-{
-  "attrs": [],
-  "function": "core.utils.CommandError: \"make\" failed",
-  "problem_pattern": "Build failure",
-  "production": true
-}

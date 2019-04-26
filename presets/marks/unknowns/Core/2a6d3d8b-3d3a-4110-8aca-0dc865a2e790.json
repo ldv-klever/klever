@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "ValueError: Cannot parse JSON configuration file 'job.json'",
+  "is_regexp": false,
+  "problem_pattern": "BadJob",
+  "production": true
+}

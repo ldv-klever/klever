@@ -19,6 +19,7 @@ import io
 import hashlib
 import logging
 import os
+import pika
 import shutil
 import tempfile
 import time
@@ -193,10 +194,11 @@ def has_references(obj):
 
 
 class ArchiveFileContent:
-    def __init__(self, report, field_name, file_name):
+    def __init__(self, report, field_name, file_name, not_exists_ok=False):
         self._report = report
         self._field = field_name
         self._name = file_name
+        self._not_exists_ok = not_exists_ok
         self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
@@ -204,6 +206,9 @@ class ArchiveFileContent:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
+                if self._not_exists_ok:
+                    if self._name not in zfp.namelist():
+                        return None
                 return zfp.read(self._name)
 
 
@@ -258,11 +263,11 @@ class RemoveFilesBeforeDelete:
         elif model_name == 'Solution':
             self.__remove_solution_files(obj)
 
-    def __remove_decision_files(self, progress):
+    def __remove_decision_files(self, decision):
         from service.models import Solution, Task
-        for files in Solution.objects.filter(task__progress=progress).values_list('archive'):
+        for files in Solution.objects.filter(task__decision=decision).values_list('archive'):
             self.__remove(files)
-        for files in Task.objects.filter(progress=progress).values_list('archive'):
+        for files in Task.objects.filter(decision=decision).values_list('archive'):
             self.__remove(files)
 
     def __remove_reports_files(self, root):
@@ -372,7 +377,7 @@ class BridgeMiddlware:
 def construct_url(viewname, *args, **kwargs):
     url = reverse(viewname, args=args)
     params_quoted = []
-    for name, value in kwargs.values():
+    for name, value in kwargs.items():
         if isinstance(value, (list, tuple)):
             for list_value in value:
                 params_quoted.append("{0}={1}".format(name, quote(str(list_value))))
@@ -381,3 +386,20 @@ def construct_url(viewname, *args, **kwargs):
     if params_quoted:
         url = '{0}?{1}'.format(url, '&'.join(params_quoted))
     return url
+
+
+class RMQConnect:
+    def __init__(self):
+        self._credentials = pika.credentials.PlainCredentials(
+            settings.RABBIT_MQ['username'], settings.RABBIT_MQ['password']
+        )
+        self._connection = None
+
+    def __enter__(self):
+        self._connection = pika.BlockingConnection(pika.ConnectionParameters(
+            host=settings.RABBIT_MQ['host'], credentials=self._credentials
+        ))
+        return self._connection.channel()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._connection.close()

@@ -1,6 +1,0 @@
-{
-  "attrs": [],
-  "function": "FileNotFoundError: Could not find file or directory \"job.json\" in directories \"job/root, ..\"",
-  "problem_pattern": "Missed job",
-  "production": true
-}

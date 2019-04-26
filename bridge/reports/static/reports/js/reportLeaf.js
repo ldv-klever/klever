@@ -21,23 +21,26 @@ $(document).ready(function () {
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
 
-    $('#create_light_mark_btn').click(function () {
-        get_inline_mark_form($('#inline_mark_form'), $('#report_pk').val(), 'create');
-    });
-
-    $('button[id^="inline_edit_mark_"]').click(function () {
-        get_inline_mark_form($('#inline_mark_form'), $(this).attr('id').replace('inline_edit_mark_', ''), 'edit');
+    $('.mark-inline-form').click(function () {
+        get_inline_mark_form($(this).data('url'), $('#inline_mark_form'));
     });
 
     $('#show_leaf_attributes').click(function () {
-        var attr_table = $('#leaf_attributes');
+        let attr_table = $('#leaf_attributes');
         attr_table.is(':hidden') ? attr_table.show() : attr_table.hide();
     });
 
-    $('[id*="_association_"]').click(function () {
-        var id_arr = $(this).attr('id').split('_'),  // [action, 'association', mark_id]
-            url = ['/marks/association', $('#report_type').val(), $('#report_pk').val(), id_arr[2], id_arr[0], ''].join('/');
-        $.post(url, {}, function (data) { data.error ? err_notify(data.error) : window.location.replace('') });
+    $('.confirm-mark-btn').click(function () {
+        $.ajax({
+            url: $(this).data('url'), method: $(this).data('method'),
+            success: function () { window.location.replace('') }
+        })
+    });
+    $('.like-mark-btn').click(function () {
+        $.ajax({
+            url: $(this).data('url'), method: $(this).data('method'),
+            success: function () { window.location.replace('') }
+        })
     });
     $('.like-popup').popup({hoverable: true, position: 'top right'});
 

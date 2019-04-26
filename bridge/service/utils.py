@@ -19,6 +19,7 @@ import os
 import json
 import zipfile
 from io import BytesIO
+from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -32,11 +33,12 @@ from bridge.utils import file_get_or_create, logger, BridgeException
 
 from users.models import SchedulerUser
 from jobs.models import RunHistory, JobFile, FileSystem, Job
-from reports.models import ReportRoot, ReportUnknown, ReportComponent, ComponentInstances
+from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import Scheduler, Decision, Task, Solution, VerificationTool, Node, NodesConfiguration, Workload
 
 from users.utils import HumanizedValue
-from jobs.utils import JobAccess, change_job_status
+from jobs.utils import JobAccess
+from jobs.serializers import change_job_status
 
 
 class ServiceError(Exception):
@@ -162,39 +164,15 @@ class RemoveTask:
         self.task.delete()
 
 
-class CancelTask:
-    def __init__(self, task_id):
-        try:
-            self.task = Task.objects.get(id=task_id)
-        except ObjectDoesNotExist:
-            raise NotAnError("The task '%s' was not found" % task_id)
-        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
-            raise ServiceError('The job is not processing')
-
-        progress = Decision.objects.get(id=self.task.progress_id)
-        if self.task.status == TASK_STATUS[0][0]:
-            if progress.tasks_pending > 0:
-                progress.tasks_pending -= 1
-        elif self.task.status == TASK_STATUS[1][0]:
-            if progress.tasks_processing > 0:
-                progress.tasks_processing -= 1
-        else:
-            raise ServiceError('The task status is wrong')
-        progress.tasks_cancelled += 1
-        progress.save()
-
-        self.task.delete()
-
-
 class FinishJobDecision:
     def __init__(self, inst, status, error=None):
         if isinstance(inst, Decision):
-            self.progress = inst
-            self.job = self.progress.job
+            self.decision = inst
+            self.job = self.decision.job
         elif isinstance(inst, Job):
             self.job = inst
             try:
-                self.progress = Decision.objects.get(job=self.job)
+                self.decision = Decision.objects.get(job=self.job)
             except ObjectDoesNotExist:
                 logger.exception('The job does not have solving progress')
                 change_job_status(self.job, JOB_STATUS[5][0])
@@ -207,52 +185,55 @@ class FinishJobDecision:
             self.__remove_tasks()
         except ServiceError as e:
             logger.exception(e)
-            self.progress.error = str(e)
+            self.decision.error = str(e)
             self.status = JOB_STATUS[5][0]
         if self.error is not None:
             if len(self.error) > 1024:
                 logger.error("The job '%s' finished with large error: %s" % (self.job.identifier, self.error))
                 self.error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
                 self.status = JOB_STATUS[8][0]
-            self.progress.error = self.error
-        self.progress.finish_date = now()
-        self.progress.save()
+            self.decision.error = self.error
+        self.decision.finish_date = now()
+        self.decision.save()
         change_job_status(self.job, self.status)
 
     def __remove_tasks(self):
-        if self.progress.job.status == JOB_STATUS[1][0]:
+        if self.job.status == JOB_STATUS[1][0]:
             return
-        elif self.progress.job.status != JOB_STATUS[2][0]:
+        elif self.job.status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
-        elif self.progress.task_set.filter(status__in={TASK_STATUS[0][0], TASK_STATUS[0][1]}).count() > 0:
+        elif self.decision.tasks.filter(status__in={TASK_STATUS[0][0], TASK_STATUS[0][1]}).count() > 0:
             raise ServiceError('There are unfinished tasks')
-        elif self.progress.task_set.filter(status=TASK_STATUS[3][0], error=None).count() > 0:
+        elif self.decision.tasks.filter(status=TASK_STATUS[3][0], error=None).count() > 0:
             raise ServiceError('There are tasks finished with error and without error descriptions')
-        elif self.progress.task_set.filter(status=TASK_STATUS[2][0], solution=None).count() > 0:
+        elif self.decision.tasks.filter(status=TASK_STATUS[2][0], solution=None).count() > 0:
             raise ServiceError('There are finished tasks without solutions')
-        self.progress.task_set.all().delete()
+        self.decision.tasks.all().delete()
 
     def __get_status(self, status):
         if status not in set(x[0] for x in JOB_STATUS):
             raise ValueError('Unsupported status: %s' % status)
         if status == JOB_STATUS[3][0]:
-            unfinished_reports = list(identifier for identifier, in ReportComponent.objects.filter(
-                root=self.progress.job.reportroot, finish_date=None
-            ).values_list('identifier'))
+            if self.job.status != JOB_STATUS[2][0]:
+                self.error = "Only processing jobs can be finished"
+                return JOB_STATUS[5][0]
+            unfinished_reports = list(ReportComponent.objects.filter(root__job=self.job, finish_date=None)
+                                      .values_list('identifier', flat=True))
             if len(unfinished_reports) > 0:
                 self.error = 'There are unfinished reports (%s): %s' % (len(unfinished_reports), unfinished_reports)
                 logger.error(self.error)
                 if len(self.error) > 1024:
                     self.error = 'There are unfinished reports (%s)' % len(unfinished_reports)
                 return JOB_STATUS[5][0]
+
             try:
-                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+                core_r = ReportComponent.objects.get(parent=None, root__job=self.job)
             except ObjectDoesNotExist:
                 self.error = "The job doesn't have Core report"
                 return JOB_STATUS[5][0]
-            if ReportUnknown.objects\
-                    .filter(parent=core_r, component=core_r.component, root=self.progress.job.reportroot).count() > 0:
+            if ReportUnknown.objects.filter(parent=core_r, component=core_r.component, root__job=self.job).exists():
                 return JOB_STATUS[4][0]
+
             try:
                 self.__check_progress()
             except ServiceError as e:
@@ -264,60 +245,62 @@ class FinishJobDecision:
                 return JOB_STATUS[5][0]
         elif status == JOB_STATUS[4][0]:
             try:
-                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+                core_r = ReportComponent.objects.get(parent=None, root__job=self.job)
             except ObjectDoesNotExist:
                 pass
             else:
-                if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0 \
-                        or ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
-                                                        root=self.progress.job.reportroot).count() == 0:
+                unfinished_components = ReportComponent.objects.filter(root__job=self.job, finish_date=None)
+                core_unknowns = ReportUnknown.objects.filter(
+                    parent=core_r, component=core_r.component, root__job=self.job
+                )
+                if unfinished_components.exists() or not core_unknowns.exists():
                     status = JOB_STATUS[5][0]
             if self.error is None:
                 self.error = "The scheduler hasn't given an error description"
         return status
 
     def __check_progress(self):
-        try:
-            jp = Decision.objects.get(job=self.job)
-        except ObjectDoesNotExist:
-            return
-        if jp.start_ts is not None:
-            if any(x is None for x in [jp.solved_ts, jp.failed_ts, jp.total_ts, jp.start_ts, jp.finish_ts]):
+        if self.decision.start_ts is not None:
+            tasks_progress = [
+                self.decision.solved_ts, self.decision.failed_ts, self.decision.total_ts,
+                self.decision.start_ts, self.decision.finish_ts
+            ]
+            if any(x is None for x in tasks_progress):
                 raise ServiceError("The job didn't got full tasks progress data")
-            else:
-                if jp.solved_ts + jp.failed_ts != jp.total_ts or jp.finish_ts is None:
-                    raise ServiceError("Tasks solving progress is not finished")
-        if jp.start_sj is not None:
-            if any(x is None for x in [jp.solved_sj, jp.failed_sj, jp.total_sj, jp.start_sj, jp.finish_sj]):
+            elif self.decision.solved_ts + self.decision.failed_ts != self.decision.total_ts:
+                raise ServiceError("Tasks solving progress is incorrect")
+        if self.decision.start_sj is not None:
+            sj_progress = [
+                self.decision.solved_sj, self.decision.failed_sj, self.decision.total_sj, self.decision.finish_sj
+            ]
+            if any(x is None for x in sj_progress):
                 raise ServiceError("The job didn't got full subjobs progress data")
-            else:
-                if jp.solved_sj + jp.failed_sj != jp.total_sj or jp.finish_sj is None:
-                    raise ServiceError("Subjobs solving progress is not finished")
+            elif self.decision.solved_sj + self.decision.failed_sj != self.decision.total_sj:
+                raise ServiceError("Subjobs solving progress is not finished")
 
 
 class StopDecision:
     def __init__(self, job):
-        if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
             raise BridgeException(_("Only pending and processing jobs can be stopped"))
         try:
-            self.progress = Decision.objects.get(job=job)
+            self.decision = Decision.objects.get(job=job)
         except ObjectDoesNotExist:
-            raise BridgeException(_('The job solving progress does not exist'))
+            raise BridgeException(_('The job decision does not exist'))
 
         change_job_status(job, JOB_STATUS[6][0])
         self.__clear_tasks()
 
     def __clear_tasks(self):
-        pending_num = self.progress.task_set.filter(status=TASK_STATUS[0][0]).count()
-        processing_num = self.progress.task_set.filter(status=TASK_STATUS[1][0]).count()
-        self.progress.tasks_processing = self.progress.tasks_pending = 0
-        self.progress.tasks_cancelled += processing_num + pending_num
-        self.progress.finish_date = now()
-        self.progress.error = "The job was cancelled"
-        self.progress.save()
+        in_progress_num = self.decision.tasks.filter(status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]).count()
+        self.decision.tasks_processing = self.decision.tasks_pending = 0
+        self.decision.tasks_cancelled += in_progress_num
+        self.decision.finish_date = now()
+        self.decision.error = "The job was cancelled"
+        self.decision.save()
         # If there are a lot of tasks that are not still deleted it could be too long
         # as there is request to DB for each task here (pre_delete signal)
-        self.progress.task_set.all().delete()
+        self.decision.tasks.all().delete()
 
 
 class GetTasks:
@@ -608,7 +591,6 @@ class SetNodes:
                 self.__create_node(nodes_conf, hostname, config['nodes'][hostname])
 
     def __create_node(self, conf, hostname, data):
-        self.__is_not_used()
         workload = None
         if 'workload' in data:
             workload = Workload.objects.create(
@@ -621,9 +603,6 @@ class SetNodes:
                 for_tasks=data['workload']['available for tasks']
             )
         Node.objects.create(config=conf, hostname=hostname, status=data['status'], workload=workload)
-
-    def __is_not_used(self):
-        pass
 
 
 class SetSchedulersStatus:
@@ -681,158 +660,106 @@ def compare_priority(priority1, priority2):
     return priority1 > priority2
 
 
-class NodesData(object):
+class NodesData:
     def __init__(self):
-        self.conf_data = []
-        self.total_data = {
-            'cores': {0: 0, 1: 0},
-            'ram': {0: 0, 1: 0},
-            'memory': {0: 0, 1: 0},
-            'jobs': 0,
-            'tasks': 0
+        self.nodes = Node.objects.select_related('workload', 'config')
+        self.configs = []
+        self.totals = {
+            'cpu_number': [0, 0],
+            'ram_memory': [0, 0],
+            'disk_memory': [0, 0],
+            'jobs': 0, 'tasks': 0
         }
-        self.nodes = []
         self.__get_data()
 
     def __get_data(self):
         cnt = 0
         for conf in NodesConfiguration.objects.all():
             cnt += 1
+            conf_nodes = list(node for node in self.nodes if node.config_id == conf.id)
             conf_data = {
-                'id': conf.pk,
-                'conf': {
-                    'ram': int(conf.ram / 10**9),
-                    'cores': conf.cores,
-                    'memory': int(conf.memory / 10**9),
-                    'num_of_nodes': conf.node_set.count()
-                },
                 'cnt': cnt,
-                'cpu': conf.cpu,
-                'cores': {0: 0, 1: 0},
-                'ram': {0: 0, 1: 0},
-                'memory': {0: 0, 1: 0},
-                'jobs': 0,
-                'tasks': 0
+                'obj': conf,
+                'id': conf.id,
+                'nodes_number': len(conf_nodes),
+                'cpu_number': [0, 0],
+                'ram_memory': [0, 0],
+                'disk_memory': [0, 0],
+                'jobs': 0, 'tasks': 0
             }
-            for node in conf.node_set.all():
-                node_data = {
-                    'conf_id': conf.pk,
-                    'hostname': node.hostname,
-                    'status': node.get_status_display(),
-                    'cpu': conf.cpu,
-                    'cores': '-',
-                    'ram': '-',
-                    'memory': '-',
-                    'tasks': '-',
-                    'jobs': '-',
-                    'for_tasks': '-',
-                    'for_jobs': '-'
-                }
-                if node.workload is not None:
-                    conf_data['cores'][0] += node.workload.cores
-                    conf_data['cores'][1] += conf.cores
-                    conf_data['ram'][0] += node.workload.ram
-                    conf_data['ram'][1] += conf.ram
-                    conf_data['memory'][0] += node.workload.memory
-                    conf_data['memory'][1] += conf.memory
-                    node_data.update({
-                        'cores': "%s/%s" % (node.workload.cores, conf.cores),
-                        'ram': "%s/%s" % (int(node.workload.ram / 10**9),
-                                          int(conf.ram / 10**9)),
-                        'memory': "%s/%s" % (int(node.workload.memory / 10**9),
-                                             int(conf.memory / 10**9)),
-                        'tasks': node.workload.tasks,
-                        'jobs': node.workload.jobs,
-                        'for_jobs': node.workload.for_jobs,
-                        'for_tasks': node.workload.for_tasks,
-                    })
-                self.nodes.append(node_data)
-            self.total_data['cores'] = (self.total_data['cores'][0] + conf_data['cores'][0],
-                                        self.total_data['cores'][1] + conf_data['cores'][1])
-            self.total_data['ram'] = (self.total_data['ram'][0] + conf_data['ram'][0],
-                                      self.total_data['ram'][1] + conf_data['ram'][1])
-            self.total_data['memory'] = (self.total_data['memory'][0] + conf_data['memory'][0],
-                                         self.total_data['memory'][1] + conf_data['memory'][1])
-            conf_data['cores'] = "%s/%s" % (conf_data['cores'][0], conf_data['cores'][1])
-            conf_data['ram'] = "%s/%s" % (int(conf_data['ram'][0] / 10**9),
-                                          int(conf_data['ram'][1] / 10**9))
-            conf_data['memory'] = "%s/%s" % (int(conf_data['memory'][0] / 10**9),
-                                             int(conf_data['memory'][1] / 10**9))
-            self.conf_data.append(conf_data)
-        self.total_data['cores'] = "%s/%s" % (self.total_data['cores'][0], self.total_data['cores'][1])
-        self.total_data['ram'] = "%s/%s" % (int(self.total_data['ram'][0] / 10**9),
-                                            int(self.total_data['ram'][1] / 10**9))
-        self.total_data['memory'] = "%s/%s" % (int(self.total_data['memory'][0] / 10**9),
-                                               int(self.total_data['memory'][1] / 10**9))
+            for node in conf_nodes:
+                try:
+                    workload = node.workload
+                except Workload.DoesNotExist:
+                    continue
+                conf_data['cpu_number'][0] += workload.cpu_number
+                conf_data['cpu_number'][1] += conf.cpu_number
+                conf_data['ram_memory'][0] += workload.ram_memory
+                conf_data['ram_memory'][1] += conf.ram_memory
+                conf_data['disk_memory'][0] += workload.disk_memory
+                conf_data['disk_memory'][1] += conf.disk_memory
+                conf_data['jobs'] += workload.running_verification_jobs
+                conf_data['tasks'] += workload.running_verification_tasks
+
+            self.totals['cpu_number'][0] += conf_data['cpu_number'][0]
+            self.totals['cpu_number'][1] += conf_data['cpu_number'][1]
+            self.totals['ram_memory'][0] += conf_data['ram_memory'][0]
+            self.totals['ram_memory'][1] += conf_data['ram_memory'][1]
+            self.totals['disk_memory'][0] += conf_data['disk_memory'][0]
+            self.totals['disk_memory'][1] += conf_data['disk_memory'][1]
+            self.totals['jobs'] += conf_data['jobs']
+            self.totals['tasks'] += conf_data['tasks']
+            self.configs.append(conf_data)
 
 
 class StartJobDecision:
-    def __init__(self, user, job_id, configuration, fake=False):
+    def __init__(self, user, job, configuration, fake=False):
         self.operator = user
-        self._fake = fake
+        self._job = job
         self.configuration = configuration
-        self.job = self.__get_job(job_id)
-        self.job_scheduler = self.__get_scheduler()
+        self._fake = fake
 
-        self.__check_schedulers()
-        self.progress = self.__create_solving_progress()
-        try:
-            ReportRoot.objects.get(job=self.job).delete()
-        except ObjectDoesNotExist:
-            pass
-        ReportRoot.objects.create(user=self.operator, job=self.job)
-        self.job.status = JOB_STATUS[1][0]
-        self.job.weight = self.configuration.weight
-        self.job.save()
+        self._scheduler = self.__get_scheduler()
+        self.__create_decision()
+
+        # The job will be saved in change_job_status()
+        self._job.weight = self.configuration['weight']
+        change_job_status(self._job, JOB_STATUS[1][0])
 
     def __get_scheduler(self):
         try:
-            return Scheduler.objects.get(type=self.configuration.scheduler)
+            scheduler = Scheduler.objects.get(type=self.configuration['task scheduler'])
         except ObjectDoesNotExist:
-            raise BridgeException(_('The scheduler was not found'))
+            raise BridgeException(_('The task scheduler was not found'))
+        if scheduler.type == SCHEDULER_TYPE[1][0]:
+            if scheduler.status == SCHEDULER_STATUS[2][0]:
+                raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
+        else:
+            try:
+                klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
+            except ObjectDoesNotExist:
+                raise BridgeException(_("Schedulers weren't populated"))
+            if klever_sch.status == SCHEDULER_STATUS[2][0]:
+                raise BridgeException(_('The Klever scheduler is disconnected'))
+        return scheduler
 
-    def __get_job(self, job_id):
-        try:
-            job = Job.objects.get(pk=job_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_('The job was not found'))
-        if not JobAccess(self.operator, job).can_decide():
-            raise BridgeException(_("You don't have an access to start decision of this job"))
-        return job
-
-    def __create_solving_progress(self):
-        try:
-            self.job.solvingprogress.delete()
-            self.job.jobprogress.delete()
-        except ObjectDoesNotExist:
-            pass
-        return SolvingProgress.objects.create(
-            job=self.job, priority=self.configuration.priority, scheduler=self.job_scheduler,
-            fake=self._fake, configuration=self.__save_configuration()
+    def __create_decision(self):
+        ReportRoot.objects.filter(job=self._job).delete()
+        ReportRoot.objects.create(user=self.operator, job=self._job)
+        Decision.objects.filter(job=self._job).delete()
+        conf = self.__save_configuration()
+        Decision.objects.create(
+            job=self._job, fake=self._fake, scheduler=self._scheduler,
+            priority=self.configuration['priority'], configuration=conf
         )
+        RunHistory.objects.create(job=self._job, operator=self.operator, configuration=conf, date=now())
 
     def __save_configuration(self):
+        self.configuration['identifier'] = str(self._job.identifier)
         db_file = file_get_or_create(
-            self.configuration.as_json(self.job.identifier),
-            'job-%s.json' % self.job.identifier[:5], JobFile
-        )
-        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, date=now())
+            json.dumps(self.configuration, indent=2, sort_keys=True, ensure_ascii=False),
+            'job-{}.json'.format(self._job.identifier), JobFile)
         return db_file
-
-    def __check_schedulers(self):
-        try:
-            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-        except ObjectDoesNotExist:
-            raise BridgeException()
-        if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            raise BridgeException(_('The Klever scheduler is disconnected'))
-        if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
-            if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
-            try:
-                self.operator.scheduleruser
-            except ObjectDoesNotExist:
-                raise BridgeException(_("You didn't specify credentials for VerifierCloud"))
 
 
 class JobProgressData:
@@ -896,3 +823,19 @@ class JobProgressData:
             for dkey in self.dates_map:
                 data[dkey] = (getattr(progress, self.dates_map[dkey]) is not None)
         return data
+
+
+class TaskArchiveGenerator(FileWrapper):
+    def __init__(self, task: Task):
+        self._task = task
+        self.size = len(self._task.archive)
+        self.name = self._task.archname
+        super().__init__(self._task.archive, 8192)
+
+
+class SolutionArchiveGenerator(FileWrapper):
+    def __init__(self, solution: Solution):
+        self._solution = solution
+        self.size = len(self._solution.archive)
+        self.name = self._solution.archname
+        super().__init__(self._solution.archive, 8192)

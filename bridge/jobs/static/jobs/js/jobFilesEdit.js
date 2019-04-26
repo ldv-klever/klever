@@ -264,13 +264,11 @@ FilesTree.prototype.load_file_content = function(node) {
         }
         else {
             $.get(instance.get_file_url.format(node.data.hashsum), {}, function (resp) {
-                if (resp.error) { err_notify(resp.error) } else {
-                    instance.set_editor_value(node.text, resp.content);
-                    // Caching file content
-                    instance.editor_cache.append(
-                        $('<span>', {hidden: true}).data('hashsum', node.data.hashsum).text(resp.content)
-                    );
-                }
+                instance.set_editor_value(node.text, resp);
+                // Caching file content
+                instance.editor_cache.append(
+                    $('<span>', {hidden: true}).data('hashsum', node.data.hashsum).text(resp)
+                );
             });
         }
     }

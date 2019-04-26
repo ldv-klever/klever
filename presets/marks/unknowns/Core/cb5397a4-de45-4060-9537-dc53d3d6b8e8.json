@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "core\\.components\\.ComponentError: Component \"(.+)\" failed",
-  "is regexp": true,
-  "problem_pattern": "{0} failure",
-  "production": true
-}

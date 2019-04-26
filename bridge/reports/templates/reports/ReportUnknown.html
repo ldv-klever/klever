@@ -1,0 +1,143 @@
+{% extends 'bridge/base.html' %}
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{% trans 'Unknown' %}{% endblock %}
+
+{% block head_block %}
+    <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="five wide column">
+            <span class="purple-title">{% trans 'Job' %}: </span>
+            <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+        </div>
+        <div class="four wide column">
+            {% if report.root.user %}
+                <span class="purple-title">{% trans 'Author' %}: </span>
+                <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+            {% endif %}
+        </div>
+        <div class="six wide column">
+            {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}
+        </div>
+    </div>
+
+    {# Specific content of the report #}
+    <div class="ui red segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
+
+    <div class="ui grid">
+        <div class="seven wide column">
+            {% if resources %}
+                <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
+                <div class="ui special popup">
+                    <div class="header">{% trans 'Consumed resources' %}</div>
+                    <div class="content">
+                        <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
+                        <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
+                        <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="ui tiny buttons" style="float: right;">
+                {% with parents|last as parent %}
+                    {% if parent.has_coverage %}
+                        <a href="{% if user.coverage_data %}{% url 'reports:coverage' report.parent_id %}{% else %}{% url 'reports:coverage_light' report.parent_id %}{% endif %}" class="ui pink button">{% trans 'Coverage' %}</a>
+                    {% endif %}
+                {% endwith %}
+                <button id="show_leaf_attributes" class="ui violet button">{% trans 'Attributes' %}</button>
+            </div>
+
+            <br><br>
+            <div id="leaf_attributes" style="display: none">
+                <table class="ui celled compact purple table">
+                    <tbody>
+                        {% for a_id, a_name, a_value, a_data in SelfAttrsData %}
+                            <tr>
+                                <th class="collapsing">{{ a_name }}</th>
+                                <td class="collapsing">
+                                    {% if a_data %}
+                                        <a class="attr-data-href" href="#" data-attr-id="{{ a_id }}">{{ a_value }}</a>
+                                    {% else %}
+                                        <span>{{ a_value }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="ui grid bottom-attached">
+                <div class="eight wide column bottom aligned header-row">
+                    <span>{% trans 'Associated marks' %}</span>
+                    {% if MarkTable.can_mark %}
+                        <div class="ui dropdown">
+                            <i class="plus blue icon"></i>
+                            <div class="ui menu">
+                                <div class="header">{% trans 'Create mark' %}</div>
+                                <a class="item mark-inline-form" data-url="{% url 'marks:unknown-create-inl' report.id %}"><i class="empty star icon"></i> {% trans 'Lightweight' %}</a>
+                                <a href="{% url 'marks:unknown-create' report.pk %}" class="item"><i class="star icon"></i> {% trans 'Fullweight' %}</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet right labeled icon button">{{ MarkTable.view.viewtitle }}<i class="right chevron icon"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="nine wide column">
+            {% if MarkTable.can_mark %}
+                <div id="inline_mark_form" style="display: none"></div>
+            {% endif %}
+            <div id="view_form_segment_{{ MarkTable.view.type }}" class="ui form yellow segment" style="margin-top: 0;display:none;">
+                {% include MarkTable.view.template with view=MarkTable.view verdicts=MarkTable.verdicts statuses=MarkTable.statuses ass_types=MarkTable.ass_types selected_columns=MarkTable.selected_columns available_columns=MarkTable.available_columns %}
+            </div>
+        </div>
+    </div>
+    <input id="report_pk" type="hidden" value="{{ report.pk }}">
+    <input id="report_type" type="hidden" value="{{ report_type }}">
+    {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
+    <br>
+
+    <div id="file_content_modal" class="ui dinamic large modal">
+        <div class="content">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
+                </div>
+            </div>
+            <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
+        </div>
+    </div>
+    <script type="application/javascript">
+        window.activate_tags = function () {};
+    </script>
+{% endblock %}

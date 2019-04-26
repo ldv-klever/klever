@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "tree node 'indirect_ref' isn't supported",
-  "link": "https://forge.ispras.ru/issues/4399",
-  "problem_pattern": "UnsupIndirRef",
-  "production": true
-}

@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import uuid
 
 from django.conf import settings
@@ -151,13 +152,19 @@ class PopulateUnknownMarks:
                 if not isinstance(mark_data, dict):
                     raise BridgeException(_('Corrupted preset unknown mark: wrong format'))
 
+                # Use component from data if provided
+                component = mark_data.pop('component', component)
+
                 if settings.POPULATE_JUST_PRODUCTION_PRESETS and not mark_data.get('production'):
                     # Do not populate non-production marks
                     continue
 
                 serializer = UnknownMarkSerializer(data=mark_data)
                 serializer.is_valid(raise_exception=True)
-                mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
+                mark = serializer.save(
+                    identifier=identifier, author=self._author,
+                    source=MARK_SOURCE[1][0], component=component
+                )
                 res = ConnectUnknownMark(mark)
                 UpdateCachesOnMarkPopulate(mark, res.new_links).update()
                 self.created += 1
@@ -237,8 +244,6 @@ def get_new_attrs(attrs):
 
 
 def move_safe_marks():
-    import shutil
-
     presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
     new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes_old')
     changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes-changes.json')
@@ -266,8 +271,6 @@ def move_safe_marks():
 
 
 def move_unsafe_marks():
-    import shutil
-
     presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes')
     new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes_old')
     changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes-changes.json')
@@ -300,8 +303,6 @@ def move_unsafe_marks():
 
 
 def move_unknown_marks():
-    import shutil
-
     presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
     new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns_old')
     changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns-changes.json')
@@ -328,6 +329,7 @@ def move_unknown_marks():
 
             mark_data['function'] = mark_data.pop('pattern')
             mark_data['problem_pattern'] = mark_data.pop('problem')
+            mark_data['is_regexp'] = mark_data.pop('is regexp', False)
             mark_data['attrs'] = get_new_attrs(mark_data.get('attrs'))
             with open(mark_path, mode='w', encoding='utf-8') as fp:
                 json.dump(mark_data, fp, indent=2, sort_keys=True, ensure_ascii=False)

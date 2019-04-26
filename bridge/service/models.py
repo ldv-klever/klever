@@ -18,9 +18,11 @@
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from django.contrib.postgres.fields import JSONField
+from django.contrib.postgres.fields import JSONField, ArrayField
+from django.core.validators import RegexValidator
+from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE, JOB_WEIGHT
 from bridge.utils import RemoveFilesBeforeDelete
 from jobs.models import Job, JobFile
 from users.models import User
@@ -47,10 +49,10 @@ class VerificationTool(models.Model):
 
 
 class NodesConfiguration(models.Model):
-    cpu = models.CharField(verbose_name='CPU model', max_length=128)
-    cores = models.PositiveSmallIntegerField(verbose_name='CPU number')
-    ram = models.BigIntegerField(verbose_name='RAM memory')
-    memory = models.BigIntegerField(verbose_name='Disk memory')
+    cpu_model = models.CharField(verbose_name='CPU model', max_length=128)
+    cpu_number = models.PositiveSmallIntegerField(verbose_name='CPU number')
+    ram_memory = models.PositiveIntegerField(verbose_name='RAM memory')
+    disk_memory = models.PositiveIntegerField(verbose_name='Disk memory')
 
     class Meta:
         db_table = 'nodes_configuration'
@@ -67,16 +69,13 @@ class Node(models.Model):
 
 class Workload(models.Model):
     node = models.OneToOneField(Node, models.CASCADE, related_name='workload')
-
-    cores = models.PositiveSmallIntegerField(verbose_name='Reserved CPU number')
-    ram = models.BigIntegerField(verbose_name='Reserved RAM memory')
-    memory = models.BigIntegerField(verbose_name='Reserved disk memory')
-
-    jobs = models.PositiveIntegerField(verbose_name='Running verification jobs')
-    for_jobs = models.BooleanField(verbose_name='Available for jobs')
-
-    tasks = models.PositiveIntegerField(verbose_name='Running verification tasks')
-    for_tasks = models.BooleanField(verbose_name='Available for tasks')
+    reserved_cpu_number = models.PositiveSmallIntegerField(verbose_name='Reserved CPU number')
+    reserved_ram_memory = models.PositiveIntegerField(verbose_name='Reserved RAM memory')
+    reserved_disk_memory = models.PositiveIntegerField(verbose_name='Reserved disk memory')
+    running_verification_jobs = models.PositiveIntegerField(verbose_name='Running verification jobs')
+    running_verification_tasks = models.PositiveIntegerField(verbose_name='Running verification tasks')
+    available_for_jobs = models.BooleanField(verbose_name='Available for jobs')
+    available_for_tasks = models.BooleanField(verbose_name='Available for tasks')
 
     class Meta:
         db_table = 'workload'
@@ -124,7 +123,7 @@ class Decision(models.Model):
 
 class Task(models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='tasks')
-    status = models.CharField(max_length=10, choices=TASK_STATUS, default='PENDING')
+    status = models.CharField(max_length=10, choices=TASK_STATUS, default=TASK_STATUS[0][0])
     error = models.CharField(max_length=1024, null=True)
     archname = models.CharField(max_length=256)
     archive = models.FileField(upload_to=SERVICE_DIR)
@@ -145,9 +144,9 @@ class Solution(models.Model):
         db_table = 'solution'
 
 
-@receiver(pre_delete, sender=Decision)
-def progress_delete_signal(**kwargs):
-    RemoveFilesBeforeDelete(kwargs['instance'])
+# @receiver(pre_delete, sender=Decision)
+# def progress_delete_signal(**kwargs):
+#     RemoveFilesBeforeDelete(kwargs['instance'])
 
 
 @receiver(pre_delete, sender=Task)

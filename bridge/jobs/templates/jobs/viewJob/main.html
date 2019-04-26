@@ -34,285 +34,294 @@
 {% block title %}{% trans 'Job' %} ({{ object.get_status_display }}){% endblock %}
 
 {% block body_block %}
-    {% if job %}
-        <div class="ui grid">
-            <div class="eight wide column">
+    <div class="ui grid">
+        <div class="eight wide column">
 
-                {# Job menu #}
-                <div class="ui violet inverted menu top attached">
-                    <a class="browse item">{% trans 'Job' %}<i class="dropdown icon"></i></a>
-                    <div class="ui inverted popup bottom left transition hidden">
-                        <a id="download_job_btn" href="{% url 'jobs:download' object.id %}" class="item{% if not job_access.can_download %} disabled{% endif %}">{% trans 'Download' %}</a>
-                        <a href="{% url 'jobs:form' object.id 'edit' %}" class="menu-link item{% if not job_access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
-                        <a id="remove_job_btn" class="item{% if not job_access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
-                        <a href="{% url 'jobs:form' object.id 'copy' %}" class="menu-link item{% if not job_access.can_create %} disabled{% endif %}">{% trans 'Copy' %}</a>
-                    </div>
-                    <a class="browse item">{% trans 'Decision' %}<i class="dropdown icon"></i></a>
-                    <div class="ui inverted popup bottom left transition hidden">
-                        <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start' %}</a>
-                        <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with default values' %}</a>
-                        <a id="last_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with last configuration' %}</a>
-                        <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}">{% trans 'Stop' %}</a>
-                    </div>
-                    <a class="browse item">{% trans 'Reports' %}<i class="dropdown icon"></i></a>
-                    <div class="ui inverted popup bottom left transition hidden">
-                        <a id="upload_reports_btn" class="item{% if not job_access.can_upload_reports %} disabled{% endif %}">{% trans 'Upload' %}</a>
-                        <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}">{% trans 'Collapse' %}</a>
-                        <a id="dfc_modal_show" class="item{% if not job_access.can_dfc %} disabled{% endif %}">{% trans 'Download files for competition' %}</a>
-                        <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}">{% trans 'Clear verification files' %}</a>
-                    </div>
-                    <div class="right menu">
-                        <a id="job_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>
-                    </div>
+            {# Job menu #}
+            <div class="ui violet inverted menu top attached">
+                <a class="browse item">{% trans 'Job' %}<i class="dropdown icon"></i></a>
+                <div class="ui inverted popup bottom left transition hidden">
+                    <a id="download_job_btn" href="{% url 'jobs:download' object.id %}" class="item{% if not job_access.can_download %} disabled{% endif %}">{% trans 'Download' %}</a>
+                    <a href="{% url 'jobs:form' object.id 'edit' %}" class="menu-link item{% if not job_access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
+                    <a id="remove_job_btn" class="item{% if not job_access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
+                    <a href="{% url 'jobs:form' object.id 'copy' %}" class="menu-link item{% if not job_access.can_create %} disabled{% endif %}">{% trans 'Copy' %}</a>
                 </div>
+                <a class="browse item">{% trans 'Decision' %}<i class="dropdown icon"></i></a>
+                <div class="ui inverted popup bottom left transition hidden">
+                    <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start' %}</a>
+                    <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with default values' %}</a>
+                    <a id="last_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with last configuration' %}</a>
+                    <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}">{% trans 'Stop' %}</a>
+                </div>
+                <a class="browse item">{% trans 'Reports' %}<i class="dropdown icon"></i></a>
+                <div class="ui inverted popup bottom left transition hidden">
+                    <a id="upload_reports_btn" class="item{% if not job_access.can_upload_reports %} disabled{% endif %}">{% trans 'Upload' %}</a>
+                    <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}">{% trans 'Collapse' %}</a>
+                    <a id="dfc_modal_show" class="item{% if not job_access.can_dfc %} disabled{% endif %}">{% trans 'Download files for competition' %}</a>
+                    <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}">{% trans 'Clear verification files' %}</a>
+                </div>
+                <div class="right menu">
+                    <a id="job_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>
+                </div>
+            </div>
 
-                {# Job data table #}
-                <table class="ui selectable compact inverted violet table attached">
-                    <thead>
-                        <tr>
-                            <th class="center aligned" colspan="2">
-                                <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} ({{ object.get_weight_display|lower }}){% endif %}</span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><th class="right aligned">{% trans 'Format' %}</th><td>{{ object.format }}</td></tr>
-                        <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
-                        {% if object.parent %}
-                            <tr><th class="right aligned">{% trans 'Parent identifier' %}</th><td>{{ object.parent.identifier }}</td></tr>
-                        {% endif %}
-                        {% if author %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Created by' %}</th>
-                                <td><a class="violet-link" href="{% url 'users:show_profile' author.pk %}">{{ author.get_full_name }}</a></td>
-                            </tr>
-                        {% endif %}
-                        {% if parents %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Parents' %}</th>
-                                <td>
-                                    {% for parent in parents %}
-                                        <div class="ui bulleted list"><div class="item">
-                                        {% if parent.pk %}
-                                            <a class="violet-link" href="{% url 'jobs:job' parent.pk %}">{{ parent.name }}</a>
-                                        {% else %}
-                                            <ins>{{ parent.name }}</ins>
-                                        {% endif %}
-                                    {% endfor %}
-                                    {% for parent in parents %}
-                                        </div></div>
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% endif %}
-                        {% if children %}
-                            <tr>
-                                <th class="right aligned">{% trans 'Children' %}</th>
-                                <td>
-                                    <div class="ui bulleted list">
-                                        {% for child in children %}
-                                            <div class="item">
-                                                {% if child.pk %}
-                                                    <a class="violet-link" href="{% url 'jobs:job' child.pk %}">{{ child.name }}</a>
-                                                {% else %}
-                                                    <span><ins>{{ child.name }}</ins></span>
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endif %}
-                        <tr id="tr_before_progress">
-                            <th class="right aligned">{% trans 'Last change' %}</th>
-                            <td>
-                                {% if user.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
-                                {% if last_version.change_author %}
-                                    (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
-                                {% endif %}
-                                {% if last_version.comment|length %}
-                                    <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ last_version.comment }}"</small></p>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% include 'jobs/viewJob/progress.html' with user=user progress=progress %}
-
-                        <tr id="job_status_popup_activator">
-                            <th class="right aligned">{% trans 'Decision status' %}</th>
-                            <td>
-                                {% if reportdata.report %}
-                                    <a class="status-link status{{ object.status }}-link" href="{% url 'reports:component' reportdata.report.id %}">{{ object.get_status_display }}</a>
-                                {% else %}
-                                    <span style="color: #f1ffff">{{ object.get_status_display }}</span>
-                                {% endif %}
-                                <input id="job_status_value" type="hidden" value="{{ object.status }}">
-                            </td>
-                        </tr>
-                        {% if last_version.description|length %}
-                            <tr><th class="right aligned">{% trans 'Description' %}</th><td>{{ last_version.description|safe }}</td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-
-                {# Files tree #}
-                {% include 'jobs/viewJob/files.html' with data=files div_id='filestree_container' %}
-
-                {# Run history #}
-                {% include 'jobs/viewJob/runHistory.html' with job=object %}
-
-                {# User roles #}
-                <div class="ui violet segment">
-                    <div class="ui top left attached violet large label">{% trans 'Job access' %}</div>
-                    {% if user_roles.count %}
-                        <ul>
-                            {% for ur in user_roles %}
-                                {% if ur.user == user %}
-                                    <li>{% trans 'Your role for the job' %}: {{ ur.get_role_display }}</li>
-                                {% else %}
-                                    <li><a href="{% url 'users:show_profile' ur.user.id %}">{{ ur.user.get_full_name }}</a>: {{ ur.get_role_display }}</li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
+            {# Job data table #}
+            <table class="ui selectable compact inverted violet table attached">
+                <thead>
+                    <tr>
+                        <th class="center aligned" colspan="2">
+                            <span class="ui olive header">{{ object.name }}{% if object.weight == '1' %} ({{ object.get_weight_display|lower }}){% endif %}</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th class="right aligned">{% trans 'Format' %}</th><td>{{ object.format }}</td></tr>
+                    <tr><th class="right aligned">{% trans 'Identifier' %}</th><td>{{ object.identifier }}</td></tr>
+                    {% if object.parent %}
+                        <tr><th class="right aligned">{% trans 'Parent identifier' %}</th><td>{{ object.parent.identifier }}</td></tr>
                     {% endif %}
-                    <p>{% blocktrans with global_role=last_version.get_global_role_display %}Other users have role "{{ global_role }}" for this job{% endblocktrans %}</p>
-                </div>
+                    {% if author %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Created by' %}</th>
+                            <td><a class="violet-link" href="{% url 'users:show_profile' author.pk %}">{{ author.get_full_name }}</a></td>
+                        </tr>
+                    {% endif %}
+                    {% if parents %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Parents' %}</th>
+                            <td>
+                                {% for parent in parents %}
+                                    <div class="ui bulleted list"><div class="item">
+                                    {% if parent.pk %}
+                                        <a class="violet-link" href="{% url 'jobs:job' parent.pk %}">{{ parent.name }}</a>
+                                    {% else %}
+                                        <ins>{{ parent.name }}</ins>
+                                    {% endif %}
+                                {% endfor %}
+                                {% for parent in parents %}
+                                    </div></div>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if children %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Children' %}</th>
+                            <td>
+                                <div class="ui bulleted list">
+                                    {% for child in children %}
+                                        <div class="item">
+                                            {% if child.pk %}
+                                                <a class="violet-link" href="{% url 'jobs:job' child.pk %}">{{ child.name }}</a>
+                                            {% else %}
+                                                <span><ins>{{ child.name }}</ins></span>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr id="tr_before_progress">
+                        <th class="right aligned">{% trans 'Last change' %}</th>
+                        <td>
+                            {% if user.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
+                            {% if last_version.change_author %}
+                                (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
+                            {% endif %}
+                            {% if last_version.comment|length %}
+                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ last_version.comment }}"</small></p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% include 'jobs/viewJob/progress.html' with user=user progress=progress %}
 
-            </div>
+                    <tr id="job_status_popup_activator">
+                        <th class="right aligned">{% trans 'Decision status' %}</th>
+                        <td>
+                            {% if reportdata.core_link %}
+                                <a class="status-link status{{ object.status }}-link" href="{{ reportdata.core_link }}">{{ object.get_status_display }}</a>
+                            {% else %}
+                                <span>{{ object.get_status_display }}</span>
+                            {% endif %}
+                            <input id="job_status_value" type="hidden" value="{{ object.status }}">
+                        </td>
+                    </tr>
+                    {% if last_version.description|length %}
+                        <tr><th class="right aligned">{% trans 'Description' %}</th><td>{{ last_version.description|safe }}</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
 
-            <div class="eight wide column">
-                {# Job versions list #}
-                {% if job_access.can_edit %}
-                    {% include 'jobs/viewJob/versions.html' with versions=versions %}
-                    <br>
+            {# Files tree #}
+            {% include 'jobs/viewJob/files.html' with data=files div_id='filestree_container' %}
+
+            {# Run history #}
+            {% include 'jobs/viewJob/runHistory.html' with run_history=run_history %}
+
+            {# User roles #}
+            <div class="ui violet segment">
+                <div class="ui top left attached violet large label">{% trans 'Job access' %}</div>
+                {% if user_roles.count %}
+                    <ul>
+                        {% for ur in user_roles %}
+                            {% if ur.user == user %}
+                                <li>{% trans 'Your role for the job' %}: {{ ur.get_role_display }}</li>
+                            {% else %}
+                                <li><a href="{% url 'users:show_profile' ur.user.id %}">{{ ur.user.get_full_name }}</a>: {{ ur.get_role_display }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
                 {% endif %}
+                <p>{% blocktrans with global_role=last_version.get_global_role_display %}Other users have role "{{ global_role }}" for this job{% endblocktrans %}</p>
+            </div>
 
-                {# Data with verification results #}
-                {% include reportdata.view.template with view=reportdata.view %}
+        </div>
+
+        <div class="eight wide column">
+            {# Job versions list #}
+            {% if job_access.can_edit %}
+                {% include 'jobs/viewJob/versions.html' with versions=versions %}
                 <br>
-                <div id="job_data_div">{% include 'jobs/DecisionResults.html' %}</div>
+            {% endif %}
+
+            {# Data with verification results #}
+            {% include reportdata.view.template with view=reportdata.view %}
+            <br>
+            <div id="job_data_div">{% include 'jobs/DecisionResults.html' %}</div>
+        </div>
+    </div>
+
+    {# Data for javascript #}
+    <input type="hidden" id="job_id" value="{{ object.id }}">
+    <input type="hidden" id="job_version" value="{{ object.version }}">
+    <input type="hidden" id="job_identifier" value="{{ object.identifier }}">
+
+    <div hidden>
+        <span id="jstree_view_label">{% trans 'View' %}</span>
+        <span id="jstree_download_label">{% trans 'Download' %}</span>
+
+        <span id="warn__decide_job">{% trans 'All existing reports of this job will be deleted' %}!</span>
+        <span id="warn__remove_job">{% trans 'All versions and all data of this job will be deleted' %}!</span>
+        <span id="warn__collapse">{% trans 'There is no reverse of this action' %}!</span>
+        <span id="warn__has_children">{% trans 'The job has children, and all of them will be deleted' %}!</span>
+        <span id="warn__clear_files">{% trans 'Files of verification reports will be deleted' %}!</span>
+        <span id="warn__stop_decision">{% trans 'The job decision will be cancelled' %}!</span>
+    </div>
+
+    {# Popups #}
+    {% if object.decision.error %}
+        <div id="job_status_popup" class="ui inverted popup wide hidden">
+            <div class="ui red header">{{ object.decision.error }}</div>
+        </div>
+    {% endif %}
+
+    {# Warning modal for job actions #}
+    <div id="warn_modal" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid"><p id="warn_text"></p></div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button id="warn_close_btn" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                <button id="warn_confirm_btn" type="button" class="ui red basic inverted button">{% trans 'Confirm' %}</button>
             </div>
         </div>
+    </div>
 
-        {# Data for javascript #}
-        <input type="hidden" id="job_id" value="{{ object.id }}">
-        <input type="hidden" id="job_version" value="{{ object.version }}">
-        <input type="hidden" id="job_identifier" value="{{ object.identifier }}">
-
-        <div hidden>
-            <span id="jstree_view_label">{% trans 'View' %}</span>
-            <span id="jstree_download_label">{% trans 'Download' %}</span>
-
-            <span id="warn__decide_job">{% trans 'All existing reports of this job will be deleted' %}!</span>
-            <span id="warn__remove_job">{% trans 'All versions and all data of this job will be deleted' %}!</span>
-            <span id="warn__collapse">{% trans 'There is no reverse of this action' %}!</span>
-            <span id="warn__has_children">{% trans 'The job has children, and all of them will be deleted' %}!</span>
-            <span id="warn__clear_files">{% trans 'Files of verification reports will be deleted' %}!</span>
-            <span id="warn__stop_decision">{% trans 'The job decision will be cancelled' %}!</span>
-        </div>
-
-        {# Popups #}
-        {% if object.solvingprogress.error %}
-            <div id="job_status_popup" class="ui inverted popup wide hidden">
-                <div class="ui red header">{{ object.solvingprogress.error }}</div>
-            </div>
-        {% endif %}
-
-        {# Warning modal for job actions #}
-        <div id="warn_modal" class="ui basic modal">
-            <div class="ui icon header">
-                <i class="warning sign icon"></i>
-                {% trans 'Are you sure' %}?
-            </div>
+    {# Upload reports modal #}
+    {% if job_access.can_upload_reports %}
+        <div id="upload_reports_popup" class="ui modal">
+            <div class="header">{% trans 'Upload reports' %}</div>
             <div class="content">
-                <div class="ui center aligned grid"><p id="warn_text"></p></div>
+                <p>{% trans "Choose reprots archive. Format of this archive is described in documentation. Old reports will be replaced." %}</p>
+                <div class="ui grid">
+                    <div class="three wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_reports_file_input" type="file"></span>
+                    </div>
+                    <div class="eight wide column">
+                        <br>
+                        <span id="upload_reports_filename" class="italic" style="color: #7b7b7b">&nbsp;</span>
+                    </div>
+                </div>
             </div>
             <div class="actions">
-                <div class="ui center aligned grid">
-                    <button id="warn_close_btn" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                    <button id="warn_confirm_btn" type="button" class="ui red basic inverted button">{% trans 'Confirm' %}</button>
+                <button id="upload_reports_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
+                <button id="upload_reports_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Download files for competition modal #}
+    {% if job_access.can_dfc %}
+        <div id="dfc_modal" class="ui small dinamic modal">
+            <div class="ui header">{% trans 'Choose filters' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="six wide column">
+                        {% if reportdata.totals and reportdata.totals.unsafes > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_unsafes">{% trans 'Unsafes' %}</label>
+                                <input id="dfc_unsafes" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                        {% if reportdata.totals and reportdata.totals.safes > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_safes">{% trans 'Safes' %}</label>
+                                <input id="dfc_safes" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                        {% if reportdata.totals and reportdata.totals.unknowns > 0 %}
+                            <div class="ui checkbox">
+                                <label for="dfc_unknowns">{% trans 'Unknowns' %}</label>
+                                <input id="dfc_unknowns" type="checkbox">
+                            </div>
+                            <br>
+                        {% endif %}
+                    </div>
+                    <div id="dfc_problems" class="ten wide column" style="display: none">
+                        {% if reportdata.problems|length %}
+                            <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
+                        {% endif %}
+                        {% for p in reportdata.problems %}
+                            <div class="ui checkbox">
+                                <label for="dfc_p_{{ p.id }}">{{ p.component }}/{{ p.problem }}</label>
+                                <input id="dfc_p_{{ p.id }}" class="dfc-problem" type="checkbox" data-component="{{ p.component }}" data-problem="{{ p.problem }}">
+                            </div>
+                            <br>
+                        {% endfor %}
+                        <div class="ui checkbox">
+                            <label for="dfc_p_null">{% trans 'Without marks' %}</label>
+                            <input id="dfc_p_null" class="dfc-problem" type="checkbox" data-component="null" data-problem="null">
+                        </div>
+                        <br>
+                    </div>
+                    <div class="sixteen wide column right aligned">
+                        <div class="ui buttons">
+                            <button class="ui green button modal-confirm" data-url="{% url 'jobs:svcomp-files' job.id %}">{% trans 'Download' %}</button>
+                            <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        {# Upload reports modal #}
-        {% if job_access.can_upload_reports %}
-            <div id="upload_reports_popup" class="ui modal">
-                <div class="header">{% trans 'Upload reports' %}</div>
-                <div class="content">
-                    <p>{% trans "Choose reprots archive. Format of this archive is described in documentation. Old reports will be replaced." %}</p>
-                    <div class="ui grid">
-                        <div class="three wide column right aligned">
-                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_reports_file_input" type="file"></span>
-                        </div>
-                        <div class="eight wide column">
-                            <br>
-                            <span id="upload_reports_filename" class="italic" style="color: #7b7b7b">&nbsp;</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="actions">
-                    <button id="upload_reports_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
-                    <button id="upload_reports_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
-                </div>
-            </div>
-        {% endif %}
-
-        {# Download files for competition modal #}
-        {% if job_access.can_dfc %}
-            <div id="dfc_modal" class="ui small dinamic modal">
-                <div class="ui header">{% trans 'Choose filters' %}</div>
-                <div class="content">
-                    <div class="ui grid">
-                        <div class="six wide column">
-                            {% if reportdata.totals.unsafes > 0 %}
-                                <div class="ui checkbox">
-                                    <label for="dfc__u">{% trans 'Unsafes' %}</label>
-                                    <input id="dfc__u" type="checkbox">
-                                </div>
-                                <br>
-                            {% endif %}
-                            {% if reportdata.totals.safes > 0 %}
-                                <div class="ui checkbox">
-                                    <label for="dfc__s">{% trans 'Safes' %}</label>
-                                    <input id="dfc__s" type="checkbox">
-                                </div>
-                                <br>
-                            {% endif %}
-                            {% if reportdata.totals.unknowns > 0 %}
-                                <div class="ui checkbox">
-                                    <label for="dfc__f">{% trans 'Unknowns' %}</label>
-                                    <input id="dfc__f" type="checkbox">
-                                </div>
-                                <br>
-                            {% endif %}
-                        </div>
-                        <div id="dfc_problems" class="ten wide column" style="display: none">
-                            {% if reportdata.problems|length %}
-                                <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
-                            {% endif %}
-                            {% for problem in reportdata.problems %}
-                                <div class="ui checkbox">
-                                    <label for="dfc__p__{{ problem.1 }}">{{ problem.0 }}</label>
-                                    <input id="dfc__p__{{ problem.1 }}" type="checkbox" value="{{ problem.1 }}">
-                                </div>
-                                <br>
-                            {% endfor %}
-                        </div>
-                        <div class="sixteen wide column right aligned">
-                            <div class="ui buttons">
-                                <button id="dfc__confirm" class="ui green button">{% trans 'Download' %}</button>
-                                <button id="dfc__cancel" class="ui blue button">{% trans 'Cancel' %}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
-        {% endif %}
-        <span id="stop_autorefresh" hidden>{% trans 'Stop page autorefresh' %}</span>
-        <span id="start_autorefresh" hidden>{% trans 'Start page autorefresh' %}</span>
-        <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off' %}</span>
+        <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
     {% endif %}
+    <span id="stop_autorefresh" hidden>{% trans 'Stop page autorefresh' %}</span>
+    <span id="start_autorefresh" hidden>{% trans 'Start page autorefresh' %}</span>
+    <span id="error__autoupdate_off" hidden>{% trans 'Page autoupdate is turned off' %}</span>
+
+    {% if job_access.can_collapse %}
+        <input id="collapse_url" type="hidden" value="{% url 'jobs:api-collapse-reports' job.id %}">
+    {% endif %}
+    <input id="decide_url" type="hidden" value="{% url 'jobs:api-decide' job.id %}">
+    <input id="cancel_decision_url" type="hidden" value="{% url 'jobs:api-cancel-decision' job.id %}">
 
     <script type="application/javascript">
     </script>

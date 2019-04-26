@@ -15,14 +15,13 @@
 # limitations under the License.
 #
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
-from bridge.vars import USER_ROLES
-from users.models import User
 from jobs.population import JobsPopulation
 from marks.population import (
     PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
 )
+from service.population import populuate_schedulers
 
 
 class Command(BaseCommand):
@@ -39,6 +38,7 @@ class Command(BaseCommand):
         parser.add_argument('--tags', dest='tags', action='store_true', help='Populate all tags?')
         parser.add_argument('--safe-tags', dest='tags_s', action='store_true', help='Populate safe tags?')
         parser.add_argument('--unsafe-tags', dest='tags_u', action='store_true', help='Populate unsafe tags?')
+        parser.add_argument('--schedulers', dest='schedulers', action='store_true', help='Populate schedulers?')
 
     def handle(self, *args, **options):
         # Jobs
@@ -106,5 +106,10 @@ class Command(BaseCommand):
                 raise
                 # raise CommandError('Unsafe tags population failed: %s' % e)
             self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
+
+        # Schedulers
+        if options['all'] or options['schedulers']:
+            populuate_schedulers()
+            self.stdout.write('Schedulers were populated!')
 
         self.stdout.write('Population was successfully finished!')

@@ -169,7 +169,7 @@ class TestJobs(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Job template shouldn't have children now
-        response = self.client.post('/jobs/do_job_has_children/%s/' % job_template.pk)
+        response = self.client.get('/jobs/do_job_has_children/%s/' % job_template.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))

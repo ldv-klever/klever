@@ -39,6 +39,7 @@ class Session:
         self.__parameters = {
             'username': bridge['user'],
             'password': bridge['password'],
+            # TODO: is not used in session, keep it for each request
             'job identifier': job_id
         }
         # Sign in.
@@ -51,28 +52,32 @@ class Session:
         self.__request('users/service_signin/')
 
         # Sign in.
-        self.__request('users/service_signin/', self.__parameters)
+        resp = self.__request('service/signin/', data=self.__parameters)
+        self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         self.logger.debug('Session was created')
 
-    def __request(self, path_url, data=None, **kwargs):
+    def __request(self, path_url, **kwargs):
         url = 'http://' + self.name + '/' + path_url
 
         # Presence of data implies POST request.
-        method = 'POST' if data else 'GET'
+        method = kwargs.pop('method', 'GET')
 
         self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
 
-        if data:
-            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+        # if data:
+        #     data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
 
         while True:
             try:
-                if data:
-                    resp = self.session.post(url, data, **kwargs)
-                else:
-                    resp = self.session.get(url, **kwargs)
+                resp = self.session.request(method, url, **kwargs)
 
                 if resp.status_code != 200:
+                    if resp.headers['content-type'] == 'application/json':
+                        # TODO: analize resp.json()
+                        self.error = resp.json()
+                        raise BridgeError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url)
+                        )
                     with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
                     status_code = resp.status_code
@@ -80,24 +85,12 @@ class Session:
                     raise UnexpectedStatusCode(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
                                                                                                    method, url))
-                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    self.error = resp.json()['error']
-                    resp.close()
-                    if self.error == 'You are not signing in':
-                        self.logger.debug("Session has expired, relogging in")
-                        self.__signin()
-                        if data:
-                            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-                    else:
-                        raise BridgeError(
-                            'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
-                else:
-                    return resp
+                return resp
             except requests.ConnectionError:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(0.2)
 
-    def start_job_decision(self, format, archive, start_report_file):
+    def start_job_decision(self, job_format, archive, start_report_file):
         with open(start_report_file, encoding='utf8') as fp:
             start_report = fp.read()
 
@@ -105,7 +98,7 @@ class Session:
         self.__download_archive('job', 'jobs/decide_job/',
                                 {
                                     'attempt': 0,
-                                    'job format': format,
+                                    'job format': job_format,
                                     'report': start_report
                                 },
                                 archive)
@@ -122,12 +115,12 @@ class Session:
         return resp.json()['task id']
 
     def get_tasks_statuses(self, task_ids):
-        resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps(task_ids)})
+        resp = self.__request('service/get_tasks_statuses/', data={'tasks': json.dumps(task_ids)})
         statuses = resp.json()['tasks statuses']
         return json.loads(statuses)
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/download_solution/', {'task id': task_id})
+        resp = self.__request('service/download_solution/', data={'task id': task_id})
         return resp.json()['task error']
 
     def download_decision(self, task_id):
@@ -135,7 +128,7 @@ class Session:
                                 'decision result files.zip')
 
     def remove_task(self, task_id):
-        self.__request('service/remove_task/', {'task id': task_id})
+        self.__request('service/remove_task/', data={'task id': task_id})
 
     def sign_out(self):
         self.logger.info('Finish session')
@@ -162,13 +155,14 @@ class Session:
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
-        self.__request('service/update_progress/', {'progress': json.dumps(progress)})
+        # TODO: PATCH request
+        self.__request('service/update_progress/', data=progress)
 
     def __download_archive(self, kind, path_url, data, archive):
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, stream=True)
+                resp = self.__request(path_url, data=data, stream=True)
 
                 self.logger.debug('Write {0} archive to "{1}"'.format(kind, archive))
                 with open(archive, 'wb') as fp:
@@ -190,8 +184,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files=[('file', open(archive, 'rb', buffering=0))
-                                                             for archive in archives], stream=True)
+                resp = self.__request(path_url, data=data, files=[('file', open(archive, 'rb', buffering=0))
+                                                                  for archive in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':

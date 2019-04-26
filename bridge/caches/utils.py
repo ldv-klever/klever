@@ -30,7 +30,7 @@ def update_cache_atomic(queryset, data):
     for rep_cache in queryset:
         if rep_cache.report_id not in data:
             continue
-        for field, value in data[rep_cache.report_id].values():
+        for field, value in data[rep_cache.report_id].items():
             setattr(rep_cache, field, value)
         rep_cache.save()
 
@@ -208,7 +208,7 @@ class UpdateUnsafeCachesOnMarkChange:
         result_sum = {}
         for mr in self._markreport_qs:
             result_sum.setdefault(mr.report_id, 0)
-            result_sum += mr.result
+            result_sum[mr.report_id] += mr.result
 
             self.__add_verdict(mr.report_id, mr.mark.verdict)
             self.__add_tags(mr.report_id, mr.mark.cache_tags)

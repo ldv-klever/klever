@@ -1,0 +1,10 @@
+{
+  "attrs": [],
+  "description": "",
+  "function": "tree node 'rdiv_expr' isn't supported",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "problem_pattern": "Unsup rdiv_expr",
+  "production": true,
+  "status": "0"
+}

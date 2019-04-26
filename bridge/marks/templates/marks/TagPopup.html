@@ -30,6 +30,6 @@
     {% if access.change_access %}<i class="ui small user blue icon change-access-tag-icon tag-icon"></i>{% endif %}
     <div class="content">{{ tag.description|safe }}</div>
     {% if tag.author %}
-        <p class="small-text">{% trans 'Author' %}: {% if tag.author.first_name or tag.author.last_name %}{{ tag.author.full_name }}{% else %}{{ tag.author.username }}{% endif %}</p>
+        <p class="small-text">{% trans 'Author' %}: {{ tag.author.full_name }}</p>
     {% endif %}
 </div>

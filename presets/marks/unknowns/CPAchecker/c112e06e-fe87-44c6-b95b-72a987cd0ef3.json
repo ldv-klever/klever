@@ -1,0 +1,40 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "1.2.dev674+gb743587c4"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Version",
+      "value": "v3.14.79"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:memory safety"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/idle/i7300_idle.ko"
+    }
+  ],
+  "description": "",
+  "function": "Exception in thread \"main\" java.lang.IllegalArgumentException",
+  "is_modifiable": false,
+  "is_regexp": false,
+  "problem_pattern": "IllegalArg Except",
+  "status": "0"
+}

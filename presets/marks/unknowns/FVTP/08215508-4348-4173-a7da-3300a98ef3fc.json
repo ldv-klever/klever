@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "FileNotFoundError: [Errno 2] No such file or directory: 'cilly.asm.exe'",
+  "is_regexp": false,
+  "problem_pattern": "Missed CIL",
+  "production": true
+}

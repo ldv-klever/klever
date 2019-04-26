@@ -1,0 +1,9 @@
+{
+  "attrs": [],
+  "description": "EMG tries to call an object which is not a function.",
+  "function": "is not a function",
+  "is_regexp": false,
+  "link": "http://forge.ispras.ru/issues/7562",
+  "problem_pattern": "Not a func",
+  "production": true
+}

@@ -39,9 +39,9 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile, JobHistory
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Computer, ReportAttr, ComponentResource, CoverageArchive, AttrFile
+    Computer, ReportAttr, CoverageArchive, AttrFile
 from service.models import Scheduler, Decision
-from jobs.utils import change_job_status
+from jobs.serializers import change_job_status
 # from reports.utils import AttrData
 from service.utils import StartJobDecision
 from tools.utils import Recalculation
@@ -241,6 +241,7 @@ class JobsArchivesGen:
     def __init__(self, jobs):
         self.jobs = jobs
         self.stream = ZipStream()
+        self.name = 'KleverJobs.zip'
 
     def __iter__(self):
         for job in self.jobs:
@@ -261,6 +262,7 @@ class JobsTreesGen:
         self._tree = {}
         self.jobs = self.__get_jobs(jobs_ids)
         self.stream = ZipStream()
+        self.name = 'KleverJobs.zip'
 
     def __iter__(self):
         for job in self.jobs:

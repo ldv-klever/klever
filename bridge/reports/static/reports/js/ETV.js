@@ -16,11 +16,11 @@
  */
 
 $(document).ready(function () {
-    var etv_window = $('#ETV_error_trace'), source_window = $('#ETV_source_code');
+    let etv_window = $('#ETV_error_trace'), source_window = $('#ETV_source_code');
     if (!etv_window.length) return false;
 
     function select_source_line(line) {
-        var selected_src_line = $('#ETVSrcL_' + line);
+        let selected_src_line = $('#ETVSrcL_' + line);
         if (selected_src_line.length) {
             source_window.scrollTop(source_window.scrollTop() + selected_src_line.position().top - source_window.height() * 3/10);
             selected_src_line.parent().addClass('ETVSelectedLine');
@@ -30,29 +30,22 @@ $(document).ready(function () {
 
     function get_source_code(line, filename) {
         if (filename === $('#ETVSourceTitleFull').text()) {
+            source_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
             select_source_line(line);
         }
         else {
             $.ajax({
-                url: '/reports/get_source/' + $('#report_pk').val() + '/',
-                type: 'POST',
-                data: {file_name: filename},
-                success: function (data) {
-                    // TODO
-                    if (data.error) {
-                        $('#ETVSourceTitle').empty();
-                        source_window.empty();
-                        err_notify(data.error);
-                    }
-                    else if (data.name && data.content) {
-                        var title_place = $('#ETVSourceTitle');
-                        title_place.text(data.name);
-                        $('#ETVSourceTitleFull').text(data.name);
+                url: $('#source_url').val(),
+                type: 'GET',
+                data: {file_name: encodeURIComponent(filename)},
+                success: function (resp) {
+                    source_window.html(resp);
+                    let title_place = $('#ETVSourceTitle');
+                        title_place.text(filename);
+                        $('#ETVSourceTitleFull').text(filename);
                         title_place.popup();
                         src_filename_trunc();
-                        source_window.html(data.content);
-                        select_source_line();
-                    }
+                        select_source_line(line);
                 }
             });
         }
@@ -60,14 +53,14 @@ $(document).ready(function () {
 
     $('.ETV_GlobalExpander').click(function (event) {
         event.preventDefault();
-        var global_icon = $(this).find('i').first();
+        let global_icon = $(this).find('i').first();
         if (global_icon.hasClass('unhide')) {
             global_icon.removeClass('unhide').addClass('hide');
-            etv_window.find('.global:not(.commented)').show();
+            etv_window.find('.scope-global:not(.commented)').show();
         }
         else {
             global_icon.removeClass('hide').addClass('unhide');
-            etv_window.find('.global:not([data-type="comment"])').hide();
+            etv_window.find('.scope-global:not([data-type="comment"])').hide();
         }
     });
 
@@ -76,14 +69,15 @@ $(document).ready(function () {
             node.addClass('scope_opened');
             node.find('.ETV_EnterLink').switchClass('right', 'down');
         }
+        let parent_display = node.find('.ETV_OpenEye').hasClass('hide');
         etv_window.find('.scope-' + node.data('scope')).each(function () {
-            var node_type = $(this).data('type');
+            let node_type = $(this).data('type');
 
             if (node_type === 'statement') {
-                if (!$(this).hasClass('commented')) $(this).show();
+                if (parent_display && !$(this).hasClass('commented')) $(this).show();
             }
             else if (node_type === 'function call' || node_type === 'action') {
-                var has_note = $(this).hasClass('commented'),
+                let has_note = $(this).hasClass('commented'),
                     was_opened = $(this).hasClass('scope_opened');
 
                 // Actions can't have notes so it is always shown here
@@ -103,7 +97,7 @@ $(document).ready(function () {
         }
         etv_window.find('.scope-' + node.data('scope')).each(function () {
             $(this).hide();
-            var node_type = $(this).data('type');
+            let node_type = $(this).data('type');
             if (node_type === 'function call' || node_type === 'action') {
                 hide_scope($(this), shift_pressed, shift_pressed);
             }
@@ -116,7 +110,7 @@ $(document).ready(function () {
             node.find('.ETV_EnterLink').switchClass('right', 'down');
         }
         etv_window.find('.scope-' + node.data('scope')).each(function () {
-            var node_type = $(this).data('type');
+            let node_type = $(this).data('type');
             if (node_type === 'statement') {
                 // Even on shift click statements with notes are not shown
                 if (!$(this).hasClass('commented')) $(this).show();
@@ -133,8 +127,10 @@ $(document).ready(function () {
         node.find('.ETV_Display').hide();
         node.find('.ETV_Source').show();
 
+        let node_type = node.data('type');
+
         // Show statements without comments if scope is shown
-        if (node.data('type') === 'function call' && node.hasClass('scope_opened')) {
+        if ((node_type === 'function call' || node_type === 'action') && node.hasClass('scope_opened')) {
             etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').show()
         }
     }
@@ -143,14 +139,15 @@ $(document).ready(function () {
         node.find('.ETV_Display').show();
         node.find('.ETV_Source').hide();
 
+        let node_type = node.data('type');
         // Hide statements without comments if scope is shown
-        if (node.data('type') === 'function call' && node.hasClass('scope_opened')) {
+        if ((node_type === 'function call' || node_type === 'action') && node.hasClass('scope_opened')) {
             etv_window.find('.scope-' + node.data('scope') + '[data-type="statement"]').not('.commented').hide()
         }
     }
 
     $('.ETV_EnterLink').click(function (event) {
-        var node = $(this).parent().parent();
+        let node = $(this).parent().parent();
         if (node.hasClass('scope_opened')) {
             hide_scope(node, event.shiftKey, true);
         }
@@ -171,7 +168,7 @@ $(document).ready(function () {
     });
 
     $('.ETV_LINE').click(function () {
-        var node = $(this).parent().parent();
+        let node = $(this).parent().parent();
 
         // Unselect everything first
         etv_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');

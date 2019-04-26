@@ -17,6 +17,8 @@
 
 import copy
 
+from django.db.models import F
+
 from bridge.vars import ASSOCIATION_TYPE
 from reports.models import ReportSafe
 from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport, SafeAssociationLike
@@ -32,7 +34,7 @@ def perform_safe_mark_create(user, report, serializer):
     res = ConnectSafeMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateSafeCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()
-    return cache_upd.save()
+    return mark, cache_upd.save()
 
 
 def perform_safe_mark_update(user, serializer):
@@ -62,6 +64,8 @@ def perform_safe_mark_update(user, serializer):
         if not autoconfirm:
             # Reset association type and remove likes
             mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
+            mark.cache_links = len(new_links)
+            mark.save()
             SafeAssociationLike.objects.filter(association__mark=mark).delete()
             cache_upd.update_all()
 
@@ -100,6 +104,8 @@ def confirm_safe_mark(user, mark_report):
     mark_report.type = ASSOCIATION_TYPE[1][0]
     mark_report.save()
     if was_unconfirmed:
+        mark_report.mark.cache_links += 1
+        mark_report.mark.save()
         RecalculateSafeCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportSafeCache.objects.get(report_id=mark_report.report_id)
@@ -113,6 +119,9 @@ def unconfirm_safe_mark(user, mark_report):
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
     mark_report.save()
+    if mark_report.mark.cache_links > 0:
+        mark_report.mark.cache_links -= 1
+        mark_report.mark.save()
     RecalculateSafeCache(reports=[mark_report.report_id])
 
 
@@ -136,6 +145,7 @@ class ConnectSafeMark:
         new_links = set()
         associations = []
         for report in ReportSafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs).only('id'):
+            print(report)
             association_type = ASSOCIATION_TYPE[0][0]
             if prime_id and report.id == prime_id:
                 association_type = ASSOCIATION_TYPE[1][0]
@@ -144,6 +154,8 @@ class ConnectSafeMark:
             ))
             new_links.add(report.id)
         MarkSafeReport.objects.bulk_create(associations)
+        self._mark.cache_links = len(new_links)
+        self._mark.save()
         return new_links
 
 
@@ -159,4 +171,5 @@ class ConnectSafeReport:
             MarkSafeReport(mark_id=m_id, report=self._report)
             for m_id in marks_qs.values_list('id', flat=True)
         ))
+        MarkSafe.objects.filter(id__in=list(m.id for m in marks_qs)).update(cache_links=F('cache_links') + 1)
         RecalculateSafeCache(reports=[self._report.id])

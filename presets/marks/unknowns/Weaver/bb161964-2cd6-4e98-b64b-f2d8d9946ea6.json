@@ -1,8 +1,0 @@
-{
-  "attrs": [],
-  "description": "EMG generates flexible array member not at the end of struct.",
-  "function": "flexible array member not at end of struct",
-  "link": "http://forge.ispras.ru/issues/7144",
-  "problem_pattern": "Flex member",
-  "production": true
-}

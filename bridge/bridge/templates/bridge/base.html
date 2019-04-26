@@ -34,9 +34,12 @@
         {% if include_jquery_ui %}<script type="text/javascript" src="{% static "js/jquery-ui.min.js" %}"></script>{% endif %}
         <script type="text/javascript" src="{% static 'js/notify.min.js' %}"></script>
         <script type="text/javascript" src="{% static 'semantic/semantic.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'semantic-range/range.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/bridge.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/treetable.js' %}"></script>
+
         <link href="{% static 'semantic/semantic.min.css' %}" rel="stylesheet">
+        <link href="{% static 'semantic-range/range.css' %}" rel="stylesheet">
         <link href="{% static 'css/bridge.css' %}" rel="stylesheet">
         {% block head_block %}{% endblock %}
     </head>
@@ -68,8 +71,8 @@
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
-                        <a class="item" href="{% url 'marks:list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
-                        <a class="item" href="{% url 'marks:list' 'unknown' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:unsafe-list' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:unknown-list' %}">{% trans 'Unknowns' %}</a>
                         <a class="item" href="{% url 'marks:safe-list' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
                     </div>

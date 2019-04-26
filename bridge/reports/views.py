@@ -33,12 +33,12 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
-from bridge.vars import JOB_STATUS, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
+from bridge.vars import USER_ROLES, VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from jobs.ViewJobData import ViewJobData
+from jobs.ViewJobData import ViewReportData
 from jobs.utils import JobAccess
 from jobs.models import Job
-from marks.tables import ReportMarkTable
+from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
 from service.models import Task
 from reports.models import ReportRoot, Report, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
     ReportAttr, CompareJobsInfo, CoverageArchive
@@ -150,16 +150,18 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMix
 
     def get_context_data(self, **kwargs):
         job = self.object.root.job
-        if not JobAccess(self.request.user, job).can_view() or job.weight == JOB_WEIGHT[1][0]:
+        if not JobAccess(self.request.user, job).can_view():
             raise BridgeException(code=400)
+        if job.weight == JOB_WEIGHT[1][0]:
+            raise BridgeException(_('Reports pages for lightweight jobs are closed'))
         return {
             'report': self.object,
             'status': reports.utils.ReportStatus(self.object),
             'data': reports.utils.ReportData(self.object),
-            'resources': reports.utils.report_resources(self.object, self.request.user),
+            'resources': reports.utils.report_resources(self.request.user, self.object),
             'SelfAttrsData': reports.utils.ReportAttrsTable(self.object),
             'parents': reports.utils.get_parents(self.object),
-            'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
+            'reportdata': ViewReportData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object),
             'TableData': reports.utils.ReportChildrenTable(
                 self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
                 page=self.request.GET.get('page', 1)
@@ -331,9 +333,8 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin,
         return self.render_to_response(context)
 
 
-@method_decorator(login_required, name='dispatch')
 class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
-    template_name = 'reports/reportLeaf.html'
+    template_name = 'reports/ReportSafe.html'
     model = ReportSafe
 
     def get_context_data(self, **kwargs):
@@ -343,39 +344,21 @@ class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         proof_content = None
         if self.object.proof:
             proof_content = ArchiveFileContent(self.object, 'proof', PROOF_FILE).content.decode('utf8')
-        return {
+        context = super().get_context_data(**kwargs)
+        if self.object.root.job.weight == JOB_WEIGHT[0][0]:
+            context['parents'] = reports.utils.get_parents(self.object)
+        context.update({
             'report': self.object, 'report_type': 'safe',
-            'parents': reports.utils.get_parents(self.object),
             'resources': reports.utils.report_resources(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': proof_content,
-            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
-        }
+            'MarkTable': SafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
+        })
+        return context
 
 
-@method_decorator(login_required, name='dispatch')
-class ReportUnknownView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
-    template_name = 'reports/reportLeaf.html'
-    model = ReportUnknown
-
-    def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object.root.job).can_view():
-            raise BridgeException(code=400)
-
-        return {
-            'report': self.object, 'report_type': 'unknown',
-            'parents': reports.utils.get_parents(self.object),
-            'resources': reports.utils.report_resources(self.request.user, self.object),
-            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
-            'main_content': ArchiveFileContent(
-                self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
-            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
-        }
-
-
-@method_decorator(login_required, name='dispatch')
-class ReportUnsafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
-    template_name = 'reports/reportLeaf.html'
+class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'reports/ReportUnsafe.html'
     model = ReportUnsafe
     slug_url_kwarg = 'trace_id'
     slug_field = 'trace_id'
@@ -389,13 +372,38 @@ class ReportUnsafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         except Exception as e:
             logger.exception(e, stack_info=True)
             etv = None
-        return {
-            'report': self.object, 'report_type': 'unsafe', 'parents': reports.utils.get_parents(self.object),
+        context = super().get_context_data(**kwargs)
+        if self.object.root.job.weight == JOB_WEIGHT[0][0]:
+            context['parents'] = reports.utils.get_parents(self.object)
+        context.update({
+            'report': self.object, 'report_type': 'unsafe',
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
-            'MarkTable': ReportMarkTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
+            'MarkTable': UnsafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
             'etv': etv, 'include_assumptions': self.request.user.assumptions, 'include_jquery_ui': True,
             'resources': reports.utils.report_resources(self.request.user, self.object)
-        }
+        })
+        return context
+
+
+class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+    template_name = 'reports/ReportUnknown.html'
+    model = ReportUnknown
+
+    def get_context_data(self, **kwargs):
+        if not JobAccess(self.request.user, self.object.root.job).can_view():
+            raise BridgeException(code=400)
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'report': self.object, 'report_type': 'unknown',
+            'resources': reports.utils.report_resources(self.request.user, self.object),
+            'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
+            'main_content': ArchiveFileContent(
+                self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
+            'MarkTable': UnknownReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
+        })
+        if self.object.root.job.weight == JOB_WEIGHT[0][0]:
+            context['parents'] = reports.utils.get_parents(self.object)
+        return context
 
 
 @method_decorator(login_required, name='dispatch')
@@ -519,46 +527,6 @@ class DownloadCoverageView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingRe
 
     def get_filename(self):
         return '%s coverage.zip' % self.object.report.component.name
-
-
-class UploadReportView(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = Job
-    unparallel = [ReportRoot, Task]
-
-    def dispatch(self, request, *args, **kwargs):
-        with override(settings.DEFAULT_LANGUAGE):
-            return super().dispatch(request, *args, **kwargs)
-
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-        try:
-            return queryset.get(id=int(self.request.session['job id']))
-        except ObjectDoesNotExist:
-            raise BridgeException(code=404)
-
-    def get_context_data(self, **kwargs):
-        if not JobAccess(self.request.user, self.object).klever_core_access():
-            raise BridgeException("User '%s' don't have access to upload report for job '%s'" %
-                                  (self.request.user.username, self.object.identifier))
-        if self.object.status != JOB_STATUS[2][0]:
-            raise BridgeException('Reports can be uploaded only for processing jobs')
-
-        archives = dict((f.name, f) for f in self.request.FILES.getlist('file'))
-
-        if 'report' in self.request.POST:
-            data = json.loads(self.request.POST['report'])
-            err = UploadReport(self.object, archives).upload_all([data])
-            if err is not None:
-                raise BridgeException(err)
-        elif 'reports' in self.request.POST:
-            data = json.loads(self.request.POST['reports'])
-            if not isinstance(data, list):
-                raise BridgeException('Wrong format of reports data')
-            UploadReport(self.object, archives).upload_all(data)
-        else:
-            raise BridgeException('Report json data is required')
-        return {}
 
 
 class ClearVerificationFiles(LoggedCallMixin, Bview.JsonDetailPostView):

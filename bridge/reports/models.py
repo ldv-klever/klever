@@ -38,12 +38,12 @@ MAX_COMPONENT_LEN = 20
 
 def get_component_path(instance, filename):
     curr_date = now()
-    return os.path.join('Reports', instance.component.name, str(curr_date.year), str(curr_date.month), filename)
+    return os.path.join('Reports', instance.component, str(curr_date.year), str(curr_date.month), filename)
 
 
 def get_coverage_arch_dir(instance, filename):
     curr_date = now()
-    return os.path.join('Reports', instance.report.component.name, str(curr_date.year), str(curr_date.month), filename)
+    return os.path.join('Reports', instance.report.component, str(curr_date.year), str(curr_date.month), filename)
 
 
 def get_coverage_dir(instance, filename):
@@ -57,6 +57,8 @@ def get_attr_data_path(instance, filename):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     job = models.OneToOneField(Job, models.CASCADE)
+    resources = JSONField(default=dict)
+    instances = JSONField(default=dict)
 
     class Meta:
         db_table = 'report_root'
@@ -150,7 +152,7 @@ class ReportComponent(WithFilesMixin, Report):
     log = models.FileField(upload_to=get_component_path, null=True)
     verifier_input = models.FileField(upload_to=get_component_path, null=True)
 
-    # Sources for Subjobs/Verification reports
+    # Sources for Verification reports
     original = models.ForeignKey(OriginalSources, models.PROTECT, null=True)
     additional = models.ForeignKey(AdditionalSources, models.CASCADE, null=True)
 
@@ -231,17 +233,6 @@ class ReportUnknown(WithFilesMixin, Report):
         db_table = 'report_unknown'
 
 
-class ComponentResource(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='resources_cache')
-    component = models.CharField(max_length=MAX_COMPONENT_LEN, null=True)
-    cpu_time = models.BigIntegerField(default=0)
-    wall_time = models.BigIntegerField(default=0)
-    memory = models.BigIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_resource'
-
-
 class CompareJobsInfo(models.Model):
     user = models.ForeignKey(User, models.CASCADE)
     root1 = models.ForeignKey(ReportRoot, models.CASCADE, related_name='+')
@@ -284,16 +275,6 @@ class ComparisonLink(models.Model):
 #     class Meta:
 #         db_table = 'cache_report_jobs_compare'
 #         index_together = ["info", "verdict1", "verdict2"]
-
-
-class ComponentInstances(models.Model):
-    report = models.ForeignKey(ReportComponent, models.CASCADE)
-    component = models.CharField(max_length=MAX_COMPONENT_LEN)
-    in_progress = models.PositiveIntegerField(default=0)
-    total = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_instances'
 
 
 class CoverageFile(WithFilesMixin, models.Model):

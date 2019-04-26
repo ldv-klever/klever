@@ -16,48 +16,52 @@
  */
 
 $(document).ready(function () {
-    $('a[id^="show_tools_"]').click(function (event) {
+    $('.show-sch-tools').click(function (event) {
         event.preventDefault();
-        var tool_type = $(this).attr('id').replace('show_tools_', '');
+        let sch_type = $(this).data('type');
         $('tr[class="active-tr"]').removeClass('active-tr');
-        $('i[id^="tools_arrow_"]').hide();
-        $('div[id^="tools_"]').hide();
+        $('.tools-arrow').hide();
+        $('.tools-list').hide();
 
-        $(this).parent().parent().parent().addClass('active-tr');
-        $('#tools_' + tool_type).show();
-        $('#tools_arrow_' + tool_type).show();
+        $(this).closest('tr').addClass('active-tr');
+        $(`.tools-list[data-type="${sch_type}"]`).show();
+        $(`.tools-arrow[data-type="${sch_type}"]`).show();
     });
     $('.close-tools').click(function (event) {
         event.preventDefault();
         $('tr[class="active-tr"]').removeClass('active-tr');
-        $('i[id^="tools_arrow_"]').hide();
-        $('div[id^="tools_"]').hide();
+        $('.tools-arrow').hide();
+        $('.tools-list').hide();
     });
 
-    $('a[id^="show_nodes_"]').click(function (event) {
+    $('.show-nodes').click(function (event) {
         event.preventDefault();
-        var conf_id = $(this).attr('id').replace('show_nodes_', '');
-        $('[class^="node-of-conf-"]').removeClass('active-tr');
+        let conf_id = $(this).data('conf');
+
+        $('.node-of-conf').removeClass('active-tr');
         $('.nodes-configuration').removeClass('active-tr');
-        $('[id^="conf_info_"]').hide();
-        $(this).parent().parent().parent().addClass('active-tr');
-        $('.node-of-conf-' + conf_id).addClass('active-tr');
-        $('#conf_info_' + conf_id).show();
+        $('.conf-info').hide();
+
+        $(this).closest('tr').addClass('active-tr');
+        $(`.node-of-conf[data-conf="${conf_id}"]`).addClass('active-tr');
+        $(`.conf-info[data-conf="${conf_id}"]`).show();
     });
     $('.close-nodes-conf').click(function (event) {
         event.preventDefault();
-        $('[class^="node-of-conf-"]').removeClass('active-tr');
+        $('.node-of-conf').removeClass('active-tr');
         $('.nodes-configuration').removeClass('active-tr');
-        $('[id^="conf_info_"]').hide();
+        $('.conf-info').hide();
     });
 
-    $('a[id^="show_node_conf__"]').click(function (event) {
+    $('.show-node-conf').click(function (event) {
         event.preventDefault();
-        var conf_id = $(this).attr('id').replace('show_node_conf__', '');
-        $('[class^="node-of-conf-"]').removeClass('active-tr');
+        let conf_id = $(this).data('conf');
+
+        $('.node-of-conf').removeClass('active-tr');
         $('.nodes-configuration').removeClass('active-tr');
-        $('[id^="conf_info_"]').hide();
-        $(this).parent().parent().parent().addClass('active-tr');
-        $('#show_nodes_' + conf_id).parent().parent().parent().addClass('active-tr');
+        $('.conf-info').hide();
+
+        $(this).closest('tr').addClass('active-tr');
+        $(`.show-nodes[data-conf="${conf_id}"]`).closest('tr').addClass('active-tr');
     });
 });

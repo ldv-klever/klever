@@ -38,7 +38,7 @@ urlpatterns = [
     path('unknown/<int:pk>/', views.ReportUnknownView.as_view(), name='unknown'),
     path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
     path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
-    path('get_source/<int:unsafe_id>/', views.SourceCodeView.as_view()),
+    path('api/get_source/<int:unsafe_id>/', api.GetSourceCodeView.as_view(), name='api-get-source'),
     path('download-error-trace/<int:unsafe_id>/', views.DownloadErrorTrace.as_view(), name='download_error_trace'),
 
     # Reports comparison
@@ -54,6 +54,8 @@ urlpatterns = [
     path('download_coverage/<int:pk>/', views.DownloadCoverageView.as_view(), name='download_coverage'),
 
     # Utils
-    path('upload/', views.UploadReportView.as_view()),
+    path('api/has-sources/', api.HasOriginalSources.as_view()),
+    path('api/upload-sources/', api.UploadOriginalSourcesView.as_view()),
+    path('api/upload/<uuid:job_uuid>/', api.UploadReportView.as_view()),
     path('clear_verification_files/<int:job_id>/', views.ClearVerificationFiles.as_view())
 ]

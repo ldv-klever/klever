@@ -16,11 +16,9 @@
 #
 
 import os
-import json
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, Max, Case, When, F, CharField, Value
 from django.db.models.expressions import RawSQL
@@ -74,24 +72,25 @@ def get_column_title(column):
     return concated_title
 
 
-def get_parents(report):
-    parents_ids = list(r.pk for r in report.get_ancestors())
+def get_parents(report, include_self=False):
+    parents_ids = list(r.pk for r in report.get_ancestors(include_self=include_self).only('id'))
 
     parents_data = []
-    for report in ReportComponent.objects.filter(id__in=parents_ids).order_by('id'):
+    for report in ReportComponent.objects.filter(id__in=parents_ids).order_by('id').only('id', 'component'):
         parents_data.append({'id': report.id, 'component': report.component})
 
     # Get attributes for all parents
     attrs = {}
-    for attr in ReportAttr.objects.filter(report_id__in=parents_ids).order_by('name'):
+    for attr in ReportAttr.objects.filter(report_id__in=parents_ids)\
+            .order_by('name').only('report_id', 'name', 'value'):
         attrs.setdefault(attr.report_id, [])
-        attrs[attr.report_id].append((attr.name, attr.value))
+        attrs[attr.report_id].append({'name': attr.name, 'value': attr.value})
     for parent in parents_data:
         parent['attrs'] = attrs.get(parent['id'], [])
     return parents_data
 
 
-def report_resources(report, user):
+def report_resources(user, report):
     if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
         return {
             'wall_time': HumanizedValue(report.wall_time, user=user).timedelta,
@@ -116,6 +115,7 @@ class ReportAttrsTable:
 
 
 class SafesTable:
+    cache_table = 'cache_safe'
     columns_list = ['marks_number', 'report_verdict', 'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
@@ -124,7 +124,7 @@ class SafesTable:
         self.view = view
         self.paginator, self.page = self.__get_queryset(report, query_params)
 
-        if self.view['is_unsaved'] and self.paginator.count == 1:
+        if not self.view['is_unsaved'] and self.paginator.count == 1:
             self.redirect = reverse('reports:safe', args=[self.paginator.object_list.first().pk])
             # Do not collect reports' values if page will be redirected
             return
@@ -133,7 +133,7 @@ class SafesTable:
         self.title = self.__get_title(query_params)
         self.parents = None
         if report.root.job.weight == JOB_WEIGHT[0][0]:
-            self.parents = get_parents(report)
+            self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__safes_data()
 
@@ -216,14 +216,17 @@ class SafesTable:
                 qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
-        if 'attr' in query_params:
+        if 'attr_name' in query_params and 'attr_value' in query_params:
             attr_name = unquote(query_params['attr_name'])
             attr_value = unquote(query_params['attr_value'])
-            annotations['attr_value'] = RawSQL("\"marks_safe_cache\".\"attrs\"->>%s", (attr_name,))
+            annotations['attr_value'] = RawSQL(
+                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
+                (attr_name,)
+            )
             qs_filters['attr_value'] = attr_value
         elif 'attr' in self.view:
             annotations['attr_value'] = RawSQL(
-                "\"marks_safe_cache\".\"attrs\"->>%s",
+                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
                 (self.view['attr'][0],)
             )
             qs_filters['attr_value__{}'.format(self.view['attr'][1])] = self.view['attr'][2]
@@ -231,7 +234,7 @@ class SafesTable:
         # Sorting by attribute value
         if 'order' in self.view and self.view['order'][1] == 'attr':
             annotations['ordering_attr'] = RawSQL(
-                "\"marks_safe_cache\".\"attrs\"->>%s",
+                "\"{}\".\"attrs\"->>%s".format(self.cache_table),
                 (self.view['order'][2],)
             )
             ordering = 'ordering_attr'
@@ -243,7 +246,7 @@ class SafesTable:
         queryset = ReportSafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
         return self.__paginate_queryset(queryset, query_params.get('page', 1))
 
     def __paginate_queryset(self, queryset, page):
@@ -371,7 +374,7 @@ class SafesTable:
 
 
 class UnsafesTable:
-    cache_table = 'marks_unsafe_cache'
+    cache_table = 'cache_unsafe'
     columns_list = ['marks_number', 'report_verdict', 'total_similarity',
                     'tags', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
@@ -381,8 +384,8 @@ class UnsafesTable:
         self.view = view
         self.paginator, self.page = self.__get_queryset(report, query_params)
 
-        if self.view['is_unsaved'] and self.paginator.count == 1:
-            self.redirect = reverse('reports:unsafe', args=[self.paginator.object_list.first().pk])
+        if not self.view['is_unsaved'] and self.paginator.count == 1:
+            self.redirect = reverse('reports:unsafe', args=[self.paginator.object_list.first().trace_id])
             # Do not collect reports' values if page will be redirected
             return
 
@@ -391,7 +394,7 @@ class UnsafesTable:
         self.title = self.__get_title(query_params)
         self.parents = None
         if report.root.job.weight == JOB_WEIGHT[0][0]:
-            self.parents = get_parents(report)
+            self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unsafes_data()
 
@@ -405,9 +408,6 @@ class UnsafesTable:
         return value
 
     def __get_queryset(self, report, query_params):
-        if ReportUnsafe.objects.filter(leaves__report=report, cache__valid=False).exists():
-            UpdateUnsafeReportCache().update_for_root(report.root)
-
         qs_filters = {'leaves__report': report}
         annotations = {}
         ordering = 'id'
@@ -472,7 +472,7 @@ class UnsafesTable:
                 qs_filters['cache__tags__has_any_keys'] = list(view_tags)
 
         # Filter by attribute(s)
-        if 'attr' in query_params:
+        if 'attr_name' in query_params and 'attr_value' in query_params:
             annotations['attr_value'] = RawSQL(
                 "\"{}\".\"attrs\"->>%s".format(self.cache_table),
                 (unquote(query_params['attr_name']),)
@@ -504,7 +504,7 @@ class UnsafesTable:
         queryset = ReportUnsafe.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
         return self.__paginate_queryset(queryset, query_params.get('page', 1))
 
     def __paginate_queryset(self, queryset, page):
@@ -600,7 +600,7 @@ class UnsafesTable:
                     val = attributes[col].get(report.pk, '-')
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:unsafe', args=[report.pk])
+                    href = reverse('reports:unsafe', args=[report.trace_id])
                 elif col == 'marks_number':
                     if with_confirmed:
                         val = '{0} ({1})'.format(report.cache.marks_confirmed, report.cache.marks_total)
@@ -634,7 +634,7 @@ class UnsafesTable:
 
 
 class UnknownsTable:
-    cache_table = 'marks_unknown_cache'
+    cache_table = 'cache_unknown'
     columns_list = ['component', 'marks_number', 'problems', 'verifiers:cpu', 'verifiers:wall', 'verifiers:memory']
     columns_set = set(columns_list)
 
@@ -643,7 +643,8 @@ class UnknownsTable:
         self.view = view
         self.paginator, self.page = self.__get_queryset(report, query_params)
 
-        if self.view['is_unsaved'] and self.paginator.count == 1:
+        if not self.view['is_unsaved'] and self.paginator.count == 1:
+            print('Redirect')
             self.redirect = reverse('reports:unknown', args=[self.paginator.object_list.first().pk])
             # Do not collect reports' values if page will be redirected
             return
@@ -651,7 +652,7 @@ class UnknownsTable:
         self.title = self.__get_title(query_params)
         self.parents = None
         if report.root.job.weight == JOB_WEIGHT[0][0]:
-            self.parents = get_parents(report)
+            self.parents = get_parents(report, include_self=True)
 
         self.header, self.values = self.__unknowns_data()
 
@@ -665,9 +666,6 @@ class UnknownsTable:
         return value
 
     def __get_queryset(self, report, query_params):
-        if ReportUnknown.objects.filter(leaves__report=report, cache__valid=False).exists():
-            UpdateUnknownReportCache().update_for_root(report.root)
-
         qs_filters = {'leaves__report': report}
         annotations = {}
         ordering = 'id'
@@ -716,7 +714,7 @@ class UnknownsTable:
             qs_filters["{0}__{1}".format(field, self.view['marks_number'][1])] = int(self.view['marks_number'][2])
 
         # Filter by attribute(s)
-        if 'attr' in query_params:
+        if 'attr_name' in query_params and 'attr_value' in query_params:
             annotations['attr_value'] = RawSQL(
                 "\"{}\".\"attrs\"->>%s".format(self.cache_table),
                 (unquote(query_params['attr_name']),)
@@ -747,11 +745,11 @@ class UnknownsTable:
         if 'problem' in query_params:
             problem = unquote(query_params['problem'])
             if problem == 'null':
-                qs_filters['cache__problems__len'] = 0
+                qs_filters['cache__problems'] = {}
             else:
-                qs_filters['cache__problems__has_any_keys'] = problem
+                qs_filters['cache__problems__has_key'] = problem
         elif 'problem' in self.view:
-            qs_filters['cache__problems__has_any_keys'] = self.view['problem'][0].strip()
+            qs_filters['cache__problems__has_key'] = self.view['problem'][0].strip()
 
         # Order direction
         if 'order' in self.view and self.view['order'][0] == 'up':
@@ -760,7 +758,7 @@ class UnknownsTable:
         queryset = ReportUnknown.objects
         if annotations:
             queryset = queryset.annotate(**annotations)
-        queryset = queryset.filter(**qs_filters).order_by(ordering).select_related('cache')
+        queryset = queryset.filter(**qs_filters).exclude(cache=None).order_by(ordering).select_related('cache')
         return self.__paginate_queryset(queryset, query_params.get('page', 1))
 
     def __paginate_queryset(self, queryset, page):
@@ -991,14 +989,14 @@ class FilesForCompetitionArchive:
     def __init__(self, job, filters):
         try:
             self.root = ReportRoot.objects.get(job=job)
-        except ObjectDoesNotExist:
+        except ReportRoot.DoesNotExist:
             raise BridgeException(_('The job is not decided'))
         self._attrs = self.__get_attrs()
         self._archives = self.__get_archives()
-        self.filters = filters
         self._archives_to_upload = []
-        self.__get_archives_to_upload()
+        self.__get_archives_to_upload(filters)
         self.stream = ZipStream()
+        self.name = 'svcomp.zip'
 
     def __iter__(self):
         cnt = 0
@@ -1048,26 +1046,28 @@ class FilesForCompetitionArchive:
                 (self._archives[p_id], '{0}/{1}__{2}__{3}'.format(dirname, r_type, ver_requirement, ver_obj))
             )
 
-    def __get_archives_to_upload(self):
-        for f_t in self.filters:
-            if isinstance(f_t, list) and f_t:
-                for problem in f_t:
-                    comp_id, problem_id = problem.split('_')[0:2]
-                    if comp_id == problem_id == '0':
-                        queryset = ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
-                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None)\
-                            .values_list('id', 'parent_id')
-                    else:
-                        queryset = ReportUnknown.objects \
-                            .filter(root=self.root, markreport_set__problem_id=problem_id, component_id=comp_id)\
-                            .exclude(parent__parent=None).values_list('id', 'parent_id')
-                    for args in queryset:
-                        self.__add_archive('f', *args)
-            else:
-                model = ReportUnsafe if f_t == 'u' else ReportSafe if f_t == 's' else ReportUnknown
-                for args in model.objects.filter(root=self.root).exclude(parent__parent=None)\
-                        .values_list('id', 'parent_id'):
-                    self.__add_archive('f' if isinstance(f_t, list) else f_t, *args)
+    def __get_archives_to_upload(self, filters):
+        common_filters = {'root': self.root, 'parent__reportcomponent__verification': True}
+        if filters.get('safes'):
+            for r_id, p_id in ReportSafe.objects.filter(**common_filters).values_list('id', 'parent_id'):
+                self.__add_archive('s', r_id, p_id)
+        if filters.get('unsafes'):
+            for r_id, p_id in ReportUnsafe.objects.filter(**common_filters).values_list('id', 'parent_id'):
+                self.__add_archive('u', r_id, p_id)
+        if filters.get('problems'):
+            for problem_data in filters['problems']:
+                if problem_data.get('component') and problem_data.get('problem'):
+                    unknowns_qs = ReportUnknown.objects.filter(
+                        markreport_set__problem=problem_data['problem'],
+                        component=problem_data['component'], **common_filters
+                    )
+                else:
+                    unknowns_qs = ReportUnknown.objects.filter(cache__marks_total=0, **common_filters)
+                for r_id, p_id in unknowns_qs.values_list('id', 'parent_id'):
+                    self.__add_archive('f', r_id, p_id)
+        elif filters.get('unknowns'):
+            for r_id, p_id in ReportUnknown.objects.filter(**common_filters).values_list('id', 'parent_id'):
+                self.__add_archive('f', r_id, p_id)
 
 
 def report_attributes_with_parents(report):
@@ -1112,20 +1112,20 @@ class ReportStatus:
             ])
             self.name = _('Failed')
             self.color = None
-        except ObjectDoesNotExist:
+        except ReportUnknown.DoesNotExist:
             pass
-        except MultipleObjectsReturned:
+        except ReportUnknown.MultipleObjectsReturned:
             self.name = None
 
 
 class ReportData:
     def __init__(self, report):
         self._report = report
-        self.data = self.__get_data()
+        self.data = self._report.data
         self.type = self.__get_type()
 
     def __get_type(self):
-        component = self._report.component.name
+        component = self._report.component
         if component == 'Core' and isinstance(self.data, dict) \
                 and all(isinstance(res, dict) for res in self.data.values()):
             if all(x in res for x in ['ideal verdict', 'verdict'] for res in self.data.values()):
@@ -1138,12 +1138,6 @@ class ReportData:
         elif component == 'LKVOG' and isinstance(self.data, dict):
             return 'LKVOG:lines'
         return 'Unknown'
-
-    def __get_data(self):
-        if self._report.data:
-            with self._report.data.file as fp:
-                return json.loads(fp.read().decode('utf8'))
-        return None
 
 
 class ComponentLogGenerator(FileWrapper):

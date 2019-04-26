@@ -37,29 +37,7 @@
             <a href="{% url 'reports:component' coverage.report.id %}">{{ coverage.report.component.name }}</a>
         </div>
         <div class="six wide column">
-            <div class="ui breadcrumb">
-                <a class="section parent-popup" href="{{ coverage.parents.0.href }}" data-variation="very wide">{{ coverage.parents.0.title }}</a>
-                <div class="ui special popup">
-                    <div class="header">{{ coverage.parents.0.title }}</div>
-                    <div class="content">
-                        {% for attr in coverage.parents.0.attrs %}
-                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% for parent in coverage.parents|slice:"1:" %}
-                    <i class="right arrow icon divider"></i>
-                    <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
-                    <div class="ui special popup">
-                        <div class="header">{{ parent.title }}</div>
-                        <div class="content">
-                            {% for attr in parent.attrs %}
-                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
+            {% if coverage.parents %}{% include 'reports/parents_breadcrumb.html' with parents=coverage.parents %}{% endif %}
         </div>
         <div class="two wide column right aligned">
             <div class="ui buttons">

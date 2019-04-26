@@ -12,9 +12,9 @@ from bridge.utils import logger
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
     MAX_TAG_LEN, SafeTag, UnsafeTag,
-    MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag, ConvertedTrace,
-    MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, SafeTagAccess, UnsafeTagAccess
+    MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag, MarkSafeReport, SafeTagAccess,
+    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag, MarkUnsafeReport, ConvertedTrace, UnsafeTagAccess,
+    MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnknownReport
 )
 from marks.UnsafeUtils import save_converted_trace, CONVERT_FUNCTIONS, COMPARE_FUNCTIONS
 
@@ -46,6 +46,9 @@ def create_mark_version(mark, cache=True, **kwargs):
             mark.cache_attrs = dict((attr['name'], attr['value']) for attr in attrs if attr['is_compare'])
             mark.save()
     elif isinstance(mark, MarkUnsafe):
+        if 'error_trace' not in kwargs:
+            # Use old error trace if it wasn't provided (inline mark form)
+            kwargs['error_trace_id'] = mark.error_trace_id
         mark_version = MarkUnsafeHistory.objects.create(mark=mark, **kwargs)
         MarkUnsafeTag.objects.bulk_create(list(MarkUnsafeTag(tag_id=t, mark_version=mark_version) for t in tags))
         MarkUnsafeAttr.objects.bulk_create(list(MarkUnsafeAttr(mark_version=mark_version, **attr) for attr in attrs))
@@ -112,6 +115,10 @@ class WithTagsMixin:
         if not tags:
             # Empty list
             return tags
+        try:
+            tags = list(int(t) for t in tags)
+        except ValueError:
+            pass
 
         context = getattr(self, 'context')
         if 'tags_tree' in context:
@@ -126,9 +133,12 @@ class WithTagsMixin:
         # Collect tags with all ascendants
         mark_tags = set()
         for t_name in tags:
-            if t_name not in tags_names:
+            if isinstance(t_name, int):
+                parent = t_name
+            elif t_name in tags_names:
+                parent = tags_names[t_name]
+            else:
                 raise exceptions.ValidationError(_('One of tags was not found'))
-            parent = tags_names[t_name]
             while parent:
                 if parent in mark_tags:
                     break
@@ -206,6 +216,8 @@ class SafeMarkSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         assert isinstance(instance, MarkSafe)
         version_data = validated_data.pop('mark_version')
+        if 'request' in self.context:
+            version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
 
         instance = super().update(instance, validated_data)
@@ -225,6 +237,7 @@ class SafeMarkSerializer(serializers.ModelSerializer):
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
+    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True)
     autoconfirm = fields.BooleanField(default=False)
     attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True)
     error_trace = fields.CharField(write_only=True, required=False)
@@ -316,6 +329,8 @@ class UnsafeMarkSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         assert isinstance(instance, MarkUnsafe)
         version_data = validated_data.pop('mark_version')
+        if 'request' in self.context:
+            version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
 
         instance = super().update(instance, validated_data)
@@ -377,11 +392,15 @@ class UnknownMarkSerializer(serializers.ModelSerializer):
         # Save kwargs:
         # identifier - preset and upload
         # job - GUI creation
+        # component - GUI creation, preset, upload
         # format - upload
         # version - upload
         # author - upload (null for preset)
 
         version_data = validated_data.pop('mark_version')
+
+        if 'component' not in validated_data:
+            raise exceptions.ValidationError(detail={'component': 'Required'})
 
         if validated_data.get('job'):
             validated_data['format'] = validated_data['job'].format
@@ -395,8 +414,10 @@ class UnknownMarkSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        assert isinstance(instance, MarkUnsafe)
+        assert isinstance(instance, MarkUnknown)
         version_data = validated_data.pop('mark_version')
+        if 'request' in self.context:
+            version_data['author'] = self.context['request'].user
         validated_data['version'] = instance.version + 1
 
         instance = super().update(instance, validated_data)
@@ -415,8 +436,18 @@ class UnknownMarkSerializer(serializers.ModelSerializer):
         fields = ('is_modifiable', 'mark_version', 'function', 'is_regexp', 'problem_pattern', 'link')
 
 
-class SMVlistSerializerRO(serializers.ModelSerializer):
+class MVSerializerBase(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
+
+    def __new__(cls, *args, **kwargs):
+        if 'mark' in kwargs:
+            mark = kwargs.pop('mark')
+            kwargs['many'] = True
+            kwargs['instance'] = mark.versions.select_related('mark', 'author').only(
+                'version', 'comment', 'mark__version', 'change_date',
+                'author__first_name', 'author__last_name', 'author__username'
+            ).order_by('-version')
+        return super(MVSerializerBase, cls).__new__(cls, *args, **kwargs)
 
     def get_title(self, instance):
         if instance.mark.version == instance.version:
@@ -428,8 +459,22 @@ class SMVlistSerializerRO(serializers.ModelSerializer):
             title += ': {0}'.format(instance.comment)
         return title
 
+
+class SMVlistSerializerRO(MVSerializerBase):
     class Meta:
         model = MarkSafeHistory
+        fields = ('version', 'title')
+
+
+class UMVlistSerializerRO(MVSerializerBase):
+    class Meta:
+        model = MarkUnsafeHistory
+        fields = ('version', 'title')
+
+
+class FMVlistSerializerRO(MVSerializerBase):
+    class Meta:
+        model = MarkUnknownHistory
         fields = ('version', 'title')
 
 
@@ -443,11 +488,3 @@ class SMSerializerRO(serializers.ModelSerializer):
     class Meta:
         model = MarkSafe
         fields = ('version', 'title')
-
-
-def test_safe_mark():
-    with open('marks/presets/safes/a154f9cc-927d-4e8b-b095-3ee7391db667.json', mode='r') as fp:
-        data = json.load(fp)
-    s = SafeMarkSerializer(data=data)
-    s.is_valid(raise_exception=True)
-    return s

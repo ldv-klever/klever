@@ -22,6 +22,7 @@ import hashlib
 from collections import OrderedDict
 
 from django.core.files import File
+from django.db.models import F
 
 from bridge.vars import ASSOCIATION_TYPE, UNKNOWN_ERROR, ERROR_TRACE_FILE
 from bridge.utils import logger, BridgeException, ArchiveFileContent, file_checksum
@@ -81,7 +82,7 @@ def perform_unsafe_mark_create(user, report, serializer):
     res = ConnectUnsafeMark(mark, prime_id=report.id, author=user)
     cache_upd = UpdateUnsafeCachesOnMarkChange(mark, res.old_links, res.new_links)
     cache_upd.update_all()
-    return cache_upd.save()
+    return mark, cache_upd.save()
 
 
 def perform_unsafe_mark_update(user, serializer):
@@ -115,6 +116,8 @@ def perform_unsafe_mark_update(user, serializer):
         if not autoconfirm:
             # Reset association type and remove likes
             mark_report_qs.update(type=ASSOCIATION_TYPE[0][0])
+            mark.cache_links = len(new_links)
+            mark.save()
             UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
             cache_upd.update_all()
 
@@ -146,7 +149,7 @@ def get_report_trace(report):
 
 
 def save_converted_trace(forests, function):
-    fp = io.BytesIO(json.dumps(forests, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
+    fp = io.BytesIO(json.dumps(forests, ensure_ascii=False, sort_keys=True, indent=2).encode('utf8'))
     hash_sum = file_checksum(fp)
     try:
         return ConvertedTrace.objects.get(hash_sum=hash_sum, function=function)
@@ -200,6 +203,8 @@ def confirm_unsafe_mark(user, mark_report):
     mark_report.type = ASSOCIATION_TYPE[1][0]
     mark_report.save()
     if was_unconfirmed:
+        mark_report.mark.cache_links += 1
+        mark_report.mark.save()
         RecalculateUnsafeCache(reports=[mark_report.report_id])
     else:
         cache_obj = ReportUnsafeCache.objects.get(report_id=mark_report.report_id)
@@ -213,6 +218,9 @@ def unconfirm_unsafe_mark(user, mark_report):
     mark_report.author = user
     mark_report.type = ASSOCIATION_TYPE[2][0]
     mark_report.save()
+    if mark_report.mark.cache_links > 0:
+        mark_report.mark.cache_links -= 1
+        mark_report.mark.save()
     RecalculateUnsafeCache(reports=[mark_report.report_id])
 
 
@@ -249,6 +257,8 @@ class ConnectUnsafeMark:
             ))
             new_links.add(report.id)
         MarkUnsafeReport.objects.bulk_create(associations)
+        self._mark.cache_links = len(new_links)
+        self._mark.save()
         return new_links
 
 
@@ -266,6 +276,7 @@ class ConnectUnsafeReport:
         MarkUnsafeReport.objects.bulk_create(list(MarkUnsafeReport(
             mark_id=mark.id, report=self._report, **compare_results[mark.id]
         ) for mark in marks_qs))
+        MarkUnsafe.objects.filter(id__in=list(m.id for m in marks_qs)).update(cache_links=F('cache_links') + 1)
         RecalculateUnsafeCache(reports=[self._report.id])
 
 

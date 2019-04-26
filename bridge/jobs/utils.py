@@ -23,12 +23,13 @@ from django.db.models import Count, Case, When, IntegerField, F, BooleanField
 from django.urls import reverse
 from django.utils.text import format_lazy
 from django.utils.translation import ugettext_lazy as _
-from django.utils.timezone import now, pytz
+from django.utils.timezone import pytz
 from django.utils.functional import cached_property
 
-from bridge.vars import JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
-from bridge.utils import logger, BridgeException, file_get_or_create
-from users.notifications import Notify
+from bridge.vars import (
+    JOB_STATUS, USER_ROLES, JOB_ROLES, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE, SUBJOB_NAME
+)
+from bridge.utils import BridgeException, file_get_or_create
 
 from users.models import User
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
@@ -214,8 +215,8 @@ class JobAccess:
 
     def can_download_jobs(self, queryset):
         """Check if all jobs in queryset can be downloaded"""
-        finished_statues = {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
-        if any(job.status not in finished_statues for job in queryset):
+        unfinished_statues = {JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]}
+        if any(job.status in unfinished_statues for job in queryset):
             return False
         jobs_ids = self.can_view_jobs(queryset)
         return len(jobs_ids) == len(queryset)
@@ -260,7 +261,7 @@ class JobAccess:
     def can_collapse(self):
         return self._is_finished and (self._is_author or self._is_manager) \
                and self.job.weight == JOB_WEIGHT[0][0] \
-               and ReportComponent.objects.filter(component='Subjob').count() == 0
+               and ReportComponent.objects.filter(component=SUBJOB_NAME).count() == 0
 
     def can_clear_verifications(self):
         queryset = ReportComponent.objects\
@@ -268,7 +269,9 @@ class JobAccess:
         return self._is_finished and (self._is_author or self._is_manager) and queryset.count()
 
     def can_dfc(self):
-        return self.job is not None and self.job.status not in {JOB_STATUS[0][0], JOB_STATUS[1][0]}
+        return self.job is not None and self.job.status not in {
+            JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]
+        }
 
 
 def get_job_by_identifier(identifier):
@@ -279,19 +282,6 @@ def get_job_by_identifier(identifier):
         raise BridgeException(_('Several jobs match the specified identifier, '
                               'please increase the length of the job identifier'))
     return found_jobs[0]
-
-
-def get_job_by_name_or_id(name_or_id):
-    try:
-        return Job.objects.get(name=name_or_id)
-    except ObjectDoesNotExist:
-        found_jobs = Job.objects.filter(identifier__startswith=name_or_id)
-        if len(found_jobs) == 0:
-            raise BridgeException(_('The job with specified identifier or name was not found'))
-        elif len(found_jobs) > 1:
-            raise BridgeException(_('Several jobs match the specified identifier, '
-                                    'please increase the length of the job identifier'))
-        return found_jobs[0]
 
 
 class FileData:
@@ -562,20 +552,6 @@ class CompareFileSet:
             })
 
 
-# TODO: use serializer JobStatusSerializer
-def change_job_status(job, status):
-    if not isinstance(job, Job) or status not in set(x[0] for x in JOB_STATUS):
-        return
-    job.status = status
-    job.save()
-    try:
-        run_data = job.runhistory_set.latest('date')
-        run_data.status = status
-        run_data.save()
-    except ObjectDoesNotExist:
-        pass
-
-
 class CompareJobVersions:
     def __init__(self, v1, v2):
         self.v1 = v1
@@ -595,20 +571,9 @@ class CompareJobVersions:
         return None
 
     def __get_files(self, version):
-        self.__is_not_used()
-        tree = {}
-        for f in FileSystem.objects.filter(job_version=version).order_by('id').select_related('file'):
-            tree[f.id] = {'parent': f.parent_id, 'name': f.name, 'hashsum': f.file.hash_sum if f.file else None}
         files = {}
-        for f_id in tree:
-            if tree[f_id]['hashsum'] is None:
-                continue
-            parent = tree[f_id]['parent']
-            path_list = [tree[f_id]['name']]
-            while parent is not None:
-                path_list.insert(0, tree[parent]['name'])
-                parent = tree[parent]['parent']
-            files['/'.join(path_list)] = {'hashsum': tree[f_id]['hashsum'], 'name': tree[f_id]['name']}
+        for f in FileSystem.objects.filter(job_version=version).select_related('file'):
+            files[f.name] = {'hashsum': f.file.hash_sum, 'name': os.path.basename(f.name)}
         return files
 
     def __compare_files(self):
@@ -639,9 +604,6 @@ class CompareJobVersions:
         for fp2 in list(files2):
             changed_paths.append([None, files2[fp2]['hashsum'], None, fp2])
         return changed_paths, changed_files
-
-    def __is_not_used(self):
-        pass
 
 
 class GetJobDecisionResults:

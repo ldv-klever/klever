@@ -18,15 +18,17 @@
 import re
 import json
 from collections import OrderedDict
+from urllib.parse import quote, unquote
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.utils import ArchiveFileContent, BridgeException
 
-from reports.models import ReportUnsafe
+from reports.models import ReportUnsafe, ReportComponent, ReportComponentLeaf
 
 
 HIGHLIGHT_CLASSES = {
@@ -62,6 +64,42 @@ KEY2_WORDS = [
 THREAD_COLORS = [
     '#5f54cb', '#85ff47', '#69c8ff', '#ff5de5', '#dfa720', '#0b67bf', '#fa92ff', '#57bfa8', '#bf425a', '#7d909e'
 ]
+
+
+def fix_for_html(source):
+    return source.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+def highlight_source(source, highlights):
+    if not highlights:
+        return fix_for_html(source)
+
+    h_dict = OrderedDict()
+
+    # Validate highlights
+    source_len = len(source)
+    prev_end = 0
+    for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
+        assert isinstance(start, int) and isinstance(end, int)
+        assert prev_end <= start < end
+        assert h_name in HIGHLIGHT_CLASSES
+        if prev_end < start:
+            h_dict[(prev_end, start)] = None
+        h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
+        prev_end = end
+    if prev_end < source_len:
+        h_dict[(prev_end, source_len)] = None
+    elif prev_end > source_len:
+        raise ValueError
+
+    result = ''
+    for start, end in reversed(h_dict):
+        code = fix_for_html(source[start:end])
+        code_class = h_dict[(start, end)]
+        if code_class is not None:
+            code = '<span class="%s">%s</span>' % (code_class, code)
+        result = code + result
+    return result
 
 
 def get_error_trace_nodes(data):
@@ -556,7 +594,7 @@ class GetETV:
     def __init__(self, error_trace, user=None):
         self.include_assumptions = user.assumptions if user else settings.DEF_USER['assumptions']
         self.triangles = user.triangles if user else settings.DEF_USER['triangles']
-        self.trace = error_trace
+        self.trace = json.loads(error_trace)
         self._max_line_len = 0
         self._curr_scope = 0
         self.shown_scopes = set()
@@ -589,6 +627,10 @@ class GetETV:
         return threads
 
     def __get_global_vars(self):
+        # TODO: remove support of "global"
+        if 'global' in self.trace:
+            self.trace['global variable declarations'] = self.trace['global']
+
         if 'global variable declarations' not in self.trace:
             return None
         global_data = {
@@ -664,6 +706,9 @@ class GetETV:
                 self.shown_scopes.add(scope)
                 # Open function by default if its scope is shown
                 enter_data['opened'] = True
+
+            if not self.triangles:
+                return [enter_data] + children_trace
 
             # Closing triangle
             exit_data = self.__parse_exit(depth, thread, func_scope)
@@ -755,13 +800,13 @@ class GetETV:
 
     def __parse_source(self, node):
         source = node['source']
-        highlights = node.get('highlights', [])
+        highlights = node.get('highlight', [])
         h_dict = OrderedDict()
 
         # Validate highlights
         source_len = len(source)
         prev_end = 0
-        for start, end, h_name in sorted(highlights, key=lambda x: (x[1], x[2])):
+        for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
             assert isinstance(start, int) and isinstance(end, int)
             assert prev_end <= start < end
             assert h_name in HIGHLIGHT_CLASSES
@@ -829,123 +874,74 @@ class GetETV:
 
 
 class GetSource:
-    def __init__(self, report_id, file_name):
-        self.report = self.__get_report(report_id)
+    index_postfix = '.idx.json'
+
+    def __init__(self, unsafe, file_name):
+        self.report = unsafe
         self.is_comment = False
         self.is_text = False
         self.text_quote = None
-        self.data = self.__get_source(file_name)
+        self._file_name = self.__parse_file_name(file_name)
+        self.data = self.__get_source()
 
-    def __get_report(self, report_id):
-        self.__is_not_used()
-        try:
-            return ReportUnsafe.objects.get(pk=report_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_("Could not find the corresponding unsafe"))
+    def __parse_file_name(self, file_name):
+        name = unquote(file_name)
+        if name.startswith('/'):
+            name = name[1:]
+        return name
 
-    def __get_source(self, file_name):
-        data = ''
-        if file_name.startswith('/'):
-            file_name = file_name[1:]
+    def __extract_file(self, obj):
+        source_content = index_data = None
         try:
-            source_content = ArchiveFileContent(self.report.source, 'archive', file_name).content.decode('utf8')
+            res = ArchiveFileContent(obj, 'archive', self._file_name, not_exists_ok=True)
         except Exception as e:
-            raise BridgeException(_("Error while extracting source from archive: %(error)s") % {'error': str(e)})
+            raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+        if res.content is not None:
+            source_content = res.content.decode('utf8')
+
+            index_name = self._file_name + self.index_postfix
+            try:
+                index_res = ArchiveFileContent(obj, 'archive', index_name, not_exists_ok=True)
+            except Exception as e:
+                raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+            if index_res.content is not None:
+                index_data = json.loads(res.content.decode('utf8'))
+        return source_content, index_data
+
+    def __get_source(self):
+        ctype = ContentType.objects.get_for_model(ReportUnsafe)
+        leaves_qs = ReportComponentLeaf.objects\
+            .filter(content_type=ctype, object_id=self.report.id)\
+            .order_by('-report_id')\
+            .select_related('report__original', 'report__additional')\
+            .only('report__original_id', 'report__additional_id',
+                  'report__original__archive', 'report__additional__archive')
+
+        file_content = index_data = None
+        for leaf in leaves_qs:
+            if leaf.report.additional:
+                file_content, index_data = self.__extract_file(leaf.report.additional)
+            if file_content is None and leaf.report.original:
+                file_content, index_data = self.__extract_file(leaf.report.original)
+            if file_content is not None:
+                break
+        else:
+            raise BridgeException(_('The source file was not found'))
+
+        highlights = {}
+        if index_data and 'highlight' in index_data:
+            for h_name, line_num, start, end in index_data['highlight']:
+                highlights[line_num] = [h_name, start, end]
+
+        data = ''
         cnt = 1
-        lines = source_content.split('\n')
-        for line in lines:
-            line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
-            data += '<span>%s %s</span><br>' % (
-                self.__wrap_line(line_num, 'line', 'ETVSrcL_%s' % cnt), self.__parse_line(line)
+        lines = file_content.split('\n')
+        total_lines_len = len(str(len(lines)))
+        for code in lines:
+            data += '<span><span id="{line_id}" class="{line_class}">{prefix}{number}</span> {code}</span><br>'.format(
+                line_id='ETVSrcL_{}'.format(cnt), line_class=SOURCE_CLASSES['line'],
+                prefix=' ' * (total_lines_len - len(str(cnt))), number=cnt,
+                code=highlight_source(code, highlights.get(cnt))
             )
             cnt += 1
         return data
-
-    def __parse_line(self, line):
-        if self.is_comment:
-            m = re.match('(.*?)\*/(.*)', line)
-            if m is None:
-                return self.__wrap_line(line, 'comment')
-            self.is_comment = False
-            new_line = self.__wrap_line(m.group(1) + '*/', 'comment')
-            return new_line + self.__parse_line(m.group(2))
-
-        if self.is_text:
-            before, after = self.__parse_text(line)
-            if after is None:
-                return self.__wrap_line(before, 'text')
-            self.is_text = False
-            return self.__wrap_line(before, 'text') + self.__parse_line(after)
-
-        m = re.match('(.*?)/\*(.*)', line)
-        if m is not None and m.group(1).find('"') == -1 and m.group(1).find("'") == -1:
-            new_line = self.__parse_line(m.group(1))
-            self.is_comment = True
-            new_line += self.__parse_line('/*' + m.group(2))
-            return new_line
-        m = re.match('(.*?)//(.*)', line)
-        if m is not None and m.group(1).find('"') == -1 and m.group(1).find("'") == -1:
-            new_line = self.__parse_line(m.group(1))
-            new_line += self.__wrap_line('//' + m.group(2), 'comment')
-            return new_line
-
-        m = re.match('(.*?)([\'\"])(.*)', line)
-        if m is not None:
-            new_line = self.__parse_line(m.group(1))
-            self.text_quote = m.group(2)
-            before, after = self.__parse_text(m.group(3))
-            new_line += self.__wrap_line(self.text_quote + before, 'text')
-            if after is None:
-                self.is_text = True
-                return new_line
-            self.is_text = False
-            return new_line + self.__parse_line(after)
-
-        m = re.match("(.*\W)(\d+)(\W.*)", line)
-        if m is not None:
-            new_line = self.__parse_line(m.group(1))
-            new_line += self.__wrap_line(m.group(2), 'number')
-            new_line += self.__parse_line(m.group(3))
-            return new_line
-        words = re.split('([^a-zA-Z0-9-_#])', line)
-        new_words = []
-        for word in words:
-            if word in KEY1_WORDS:
-                new_words.append(self.__wrap_line(word, 'key1'))
-            elif word in KEY2_WORDS:
-                new_words.append(self.__wrap_line(word, 'key2'))
-            else:
-                new_words.append(word)
-        return ''.join(new_words)
-
-    def __parse_text(self, text):
-        escaped = False
-        before = ''
-        after = ''
-        end_found = False
-        for c in text:
-            if end_found:
-                after += c
-                continue
-            if not escaped and c == self.text_quote:
-                end_found = True
-            elif escaped:
-                escaped = False
-            elif c == '\\':
-                escaped = True
-            before += c
-        if end_found:
-            return before, after
-        return before, None
-
-    def __wrap_line(self, line, text_type, line_id=None):
-        self.__is_not_used()
-        if text_type not in SOURCE_CLASSES:
-            return line
-        if line_id is not None:
-            return '<span id="%s" class="%s">%s</span>' % (line_id, SOURCE_CLASSES[text_type], line)
-        return '<span class="%s">%s</span>' % (SOURCE_CLASSES[text_type], line)
-
-    def __is_not_used(self):
-        pass

@@ -38,10 +38,12 @@
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
                                 <div class="content">
-                                    <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                                    {% if v.href.0 %}<a href="{{ v.href.0 }}">{{ v.value.0 }}</a>{% else %}<span>{{ v.value.0 }}</span>{% endif %}
-                                    {% if v.value|length == 2 %}
-                                        ({% if v.href.1 %}<a href="{{ v.href.1 }}">{{ v.value.1 }}</a>{% else %}<span>{{ v.value.1 }}</span>{% endif %})
+                                    <span class="unsafe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
+                                    {% if 'confirmed' in v %}
+                                        {% if v.confirmed %}<a href="{{ v.url }}?verdict={{ v.verdict }}&confirmed=1">{{ v.confirmed }}</a>{% else %}<span>0</span>{% endif %}
+                                        (<a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>)
+                                    {% else %}
+                                        <a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>
                                     {% endif %}
                                 </div>
                             </div>
@@ -55,7 +57,7 @@
                         {% for uas in reportdata.data.unsafes_attr_stat %}
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
-                                <div class="content">{{ uas.0 }}: <a href="{{ uas.2 }}">{{ uas.1 }}</a></div>
+                                <div class="content">{{ uas.name }}: <a href="{{ uas.url }}">{{ uas.value }}</a></div>
                             </div>
                         {% endfor %}
                     </div>
@@ -82,10 +84,12 @@
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
                                 <div class="content">
-                                    <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                                    {% if v.href.0 %}<a href="{{ v.href.0 }}">{{ v.value.0 }}</a>{% else %}<span>{{ v.value.0 }}</span>{% endif %}
-                                    {% if v.value|length == 2 %}
-                                        ({% if v.href.1 %}<a href="{{ v.href.1 }}">{{ v.value.1 }}</a>{% else %}<span>{{ v.value.1 }}</span>{% endif %})
+                                    <span class="safe-verdict-{{ v.verdict }}">{{ v.title }}: </span>
+                                    {% if 'confirmed' in v %}
+                                        {% if v.confirmed %}<a href="{{ v.url }}?verdict={{ v.verdict }}&confirmed=1">{{ v.confirmed }}</a>{% else %}<span>0</span>{% endif %}
+                                        (<a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>)
+                                    {% else %}
+                                        <a href="{{ v.url }}?verdict={{ v.verdict }}">{{ v.total }}</a>
                                     {% endif %}
                                 </div>
                             </div>
@@ -99,7 +103,7 @@
                         {% for sas in reportdata.data.safes_attr_stat %}
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
-                                <div class="content">{{ sas.0 }}: <a href="{{ sas.2 }}">{{ sas.1 }}</a></div>
+                                <div class="content">{{ sas.name }}: <a href="{{ sas.url }}">{{ sas.value }}</a></div>
                             </div>
                         {% endfor %}
                     </div>
@@ -122,7 +126,7 @@
                             <div class="item">
                                 <i class="laptop mini icon"></i>
                                 <div class="content">
-                                    {% if reportdata.report.component.name == res_data.component %}
+                                    {% if reportdata.report.component == res_data.component %}
                                         <strong style="color: #86188c;">{{ res_data.component }}{{ res_data.instances }}:</strong>
                                     {% else %}
                                         {{ res_data.component }}{{ res_data.instances }}:
@@ -142,17 +146,15 @@
                         {% for comp in reportdata.data.unknowns %}
                             <div class="item">
                                 <i class="cube mini icon"></i>
-                                <div class="content">{{ comp.component }}{% for probl in comp.problems %}{% if probl.problem == 'total' %} (<a href="{{ probl.href }}">{{ probl.num }}</a>){% endif %}{% endfor %}</div>
+                                <div class="content">{{ comp.component }}{% if comp.total %} (<a href="{{ comp.total.href }}">{{ comp.total.num }}</a>){% endif %}</div>
                             </div>
                             <div class="item">
                                 <div class="ui list">
                                     {% for probl in comp.problems %}
-                                        {% if probl.problem != 'total' %}
-                                            <div class="item" style="margin-left: 20px;">
-                                                <i class="pointing right mini icon"></i>
-                                                <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
-                                            </div>
-                                        {% endif %}
+                                        <div class="item" style="margin-left: 20px;">
+                                            <i class="pointing right mini icon"></i>
+                                            <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
+                                        </div>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -165,7 +167,7 @@
                         {% for fas in reportdata.data.unknowns_attr_stat %}
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
-                                <div class="content">{{ fas.0 }}: <a href="{{ fas.2 }}">{{ fas.1 }}</a></div>
+                                <div class="content">{{ fas.name }}: <a href="{{ fas.url }}">{{ fas.value }}</a></div>
                             </div>
                         {% endfor %}
                     </div>

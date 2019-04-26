@@ -36,65 +36,6 @@
     color: #7665cf;
 }
 
-.mark-status-0 {
-    color: #e81919;
-    text-shadow: 1px 1px 1px black;
-}
-.mark-status-1 {
-    color: #FF8533;
-    text-shadow: 1px 1px 1px black;
-}
-.mark-status-2 {
-    color: #FF8533;
-    text-shadow: 1px 1px 1px black;
-}
-.mark-status-3 {
-    color: #00c600;
-    text-shadow: 1px 1px 1px black;
-}
-
-.safe-verdict-0 {
-    color: #cb58ec;
-    text-shadow: 1px 1px 1px black;
-}
-.safe-verdict-1 {
-    color: #FF8533;
-    text-shadow: 1px 1px 1px black;
-}
-.safe-verdict-2 {
-    color: #e81919;
-    text-shadow: 1px 1px 1px black;
-}
-.safe-verdict-3 {
-    color: #D11919;
-    text-shadow: 1px 1px 1px black;
-}
-.safe-verdict-4 {
-    color: #000000;
-    text-shadow: 1px 1px 1px black;
-}
-
-.unsafe-verdict-0 {
-    color: #cb58ec;
-    text-shadow: 1px 1px 1px black;
-}
-.unsafe-verdict-1 {
-    color: #e81919;
-    text-shadow: 1px 1px 1px black;
-}
-.unsafe-verdict-2 {
-    color: #e81919;
-    text-shadow: 1px 1px 1px black;
-}
-.unsafe-verdict-3 {
-    color: #FF8533;
-    text-shadow: 1px 1px 1px black;
-}
-.unsafe-verdict-4 {
-    color: #D11919;
-    text-shadow: 1px 1px 1px black;
-}
-.unsafe-verdict-4 {
-    color: #000000;
+.with-shadow {
     text-shadow: 1px 1px 1px black;
 }

@@ -1,6 +1,0 @@
-{
-  "attrs": [],
-  "function": "Error: Invalid configuration",
-  "problem_pattern": "InvalidConf",
-  "production": true
-}

@@ -18,12 +18,12 @@
 {% load i18n %}
 
 <div class="ui styled accordion fluid">
-    <div class="title"><i class="clock outline icon"></i>{{ versions_title }}</div>
+    <div class="title"><i class="clock outline icon"></i>{% trans 'Mark versions' %}</div>
     <div class="content">
         {% for version in versions %}
             <div class="version-line">
                 <div class="ui checkbox">
-                    <input id="checkbox_version__{{ version.version }}" type="checkbox">
+                    <input id="checkbox_version__{{ version.version }}" type="checkbox" value="{{ version.version }}">
                     <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
                 </div>
                 <br><br>
@@ -37,7 +37,7 @@
     </div>
 </div>
 
-<div id="remove_versions_popup" class="ui basic modal">
+<div id="remove_versions_modal" class="ui basic modal">
     <div class="ui icon header">
         <i class="warning sign icon"></i>
         {% trans 'Are you sure' %}?
@@ -49,14 +49,14 @@
     </div>
     <div class="actions">
         <div class="ui center aligned grid">
-            <button id="cancel_remove_versions" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-            <button id="delete_versions_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+            <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+            <button class="ui red basic inverted button modal-confirm">{% trans 'Delete' %}</button>
         </div>
     </div>
 </div>
 
 <div id="version_comparison_modal" class="ui dinamic modal">
-    <button id="close_comparison_view" class="ui icon red button" style="float:right;margin:10px;"><i class="remove icon"></i></button>
+    <button class="ui icon red button modal-cancel" style="float:right;margin:10px;"><i class="remove icon"></i></button>
     <div class="content"></div>
 </div>
 

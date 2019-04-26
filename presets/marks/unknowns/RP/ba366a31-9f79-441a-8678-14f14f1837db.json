@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "Killing process \\d+ due to wall time timeout",
-  "is regexp": true,
-  "problem_pattern": "WallTimeout",
-  "production": true
-}

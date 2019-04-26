@@ -1,0 +1,8 @@
+{
+  "attrs": [],
+  "function": "EMG tries to generate more instances than it is allowed by configuration",
+  "is_regexp": false,
+  "link": "http://forge.ispras.ru/issues/7110",
+  "problem_pattern": "TooManyInsts",
+  "production": true
+}

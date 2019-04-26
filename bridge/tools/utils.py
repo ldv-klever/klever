@@ -19,6 +19,7 @@ import os
 import json
 
 from django.conf import settings
+from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_WEIGHT
@@ -32,7 +33,7 @@ from jobs.models import JOBFILE_DIR, JobFile
 from service.models import SERVICE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ComponentResource, ComponentInstances, CoverageFile, CoverageDataStatistics
+    CoverageFile, CoverageDataStatistics
 
 from reports.coverage import FillCoverageCache
 
@@ -111,26 +112,26 @@ class RecalculateLeaves:
 
 class RecalculateComponentInstances:
     def __init__(self, roots):
-        self.roots = roots
+        self._roots = list(root for root in roots if root.job.weight == JOB_WEIGHT[0][0])
         self.__recalc()
 
     def __recalc(self):
-        report_parents = {}
         inst_cache = {}
-        for report in ReportComponent.objects.filter(root__in=self.roots).order_by('id'):
-            parent_id = report.parent_id
-            report_parents[report.id] = parent_id
-            cache_id = (report.id, report.component_id)
-            inst_cache[cache_id] = ComponentInstances(report=report, component=report.component, total=1)
-            while parent_id is not None:
-                cache_id = (parent_id, report.component_id)
-                if cache_id not in inst_cache:
-                    inst_cache[cache_id] = ComponentInstances(report_id=parent_id, component=report.component)
-                inst_cache[cache_id].total += 1
-                if parent_id not in report_parents:
-                    raise ValueError('Unknown parent found')
-                parent_id = report_parents[parent_id]
-        ComponentInstances.objects.bulk_create(list(inst_cache.values()))
+        for report in ReportComponent.objects.filter(root__in=self._roots)\
+                .order_by('id').only('component', 'finish_date'):
+            if report.root_id not in inst_cache:
+                inst_cache[report.root_id] = {}
+            if report.component not in inst_cache[report.root_id]:
+                inst_cache[report.root_id][report.component] = {'finished': 0, 'total': 0}
+
+            inst_cache[report.root_id][report.component]['total'] += 1
+            if report.finish_date:
+                inst_cache[report.root_id][report.component]['finished'] += 1
+
+        with transaction.atomic():
+            for root in self._roots:
+                root.instances = inst_cache.get(root.id, {})
+                root.save()
 
 
 class RecalculateCoverageCache:
@@ -208,88 +209,17 @@ class RecalculateResources:
         self.__recalc()
 
     def __recalc(self):
-        ComponentResource.objects.filter(report__root__in=self._roots).delete()
-        rd = ResourceData()
-        for rep in ReportComponent.objects.filter(root__in=self._roots).order_by('id'):
-            rd.add(rep)
-        ComponentResource.objects.bulk_create(rd.cache_for_db())
+        data = {}
+        for report in ReportComponent.objects.filter(root__in=self._roots):
+            data.setdefault(report.root_id, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
+            data[report.root_id]['cpu_time'] += report.cpu_time
+            data[report.root_id]['wall_time'] += report.wall_time
+            data[report.root_id]['memory'] = max(report.cpu_time, data[report.root_id]['memory'])
 
-
-class ResourceData(object):
-    def __init__(self):
-        self._data = {}
-        self._resources = self.ResourceCache()
-
-    class ResourceCache(object):
-        def __init__(self):
-            self._data = {}
-
-        def update(self, report_id, data):
-            if any(data[x] is None for x in ['ct', 'wt', 'm']):
-                return
-            self.__recalculate((report_id, data['component']), data)
-            self.__recalculate((report_id, 't'), data)
-
-        def get_all(self):
-            all_data = []
-            for d in self._data:
-                if d[1] == 't' and self._data[d][3]:
-                    continue
-                all_data.append({
-                    'report_id': d[0],
-                    'component_id': d[1] if d[1] != 't' else None,
-                    'cpu_time': self._data[d][0],
-                    'wall_time': self._data[d][1],
-                    'memory': self._data[d][2]
-                })
-            return all_data
-
-        def __recalculate(self, cache_id, data):
-            if cache_id not in self._data:
-                self._data[cache_id] = [data['ct'], data['wt'], data['m'], True]
-            else:
-                if self._data[cache_id][0] is None:
-                    self._data[cache_id][0] = data['ct']
-                else:
-                    self._data[cache_id][0] += data['ct'] if data['ct'] is not None else 0
-                if self._data[cache_id][1] is None:
-                    self._data[cache_id][1] = data['wt']
-                else:
-                    self._data[cache_id][1] += data['wt'] if data['wt'] is not None else 0
-                if data['m'] is not None:
-                    if self._data[cache_id][2] is not None:
-                        self._data[cache_id][2] = max(data['m'], self._data[cache_id][2])
-                    else:
-                        self._data[cache_id][2] = data['m']
-                self._data[cache_id][3] = False
-
-    def add(self, report):
-        if not isinstance(report, ReportComponent):
-            raise ValueError('Value must be ReportComponent object')
-        self._data[report.pk] = {'id': report.pk, 'parent': report.parent_id}
-        self.__update_resources({
-            'id': report.pk,
-            'parent': report.parent_id,
-            'component': report.component_id,
-            'wt': report.wall_time,
-            'ct': report.cpu_time,
-            'm': report.memory
-        })
-
-    def __update_resources(self, newdata):
-        d = newdata
-        while d is not None:
-            if d['parent'] is not None and d['parent'] not in self._data:
-                logger.error('Updating resources failed', stack_info=True)
-                return
-            self._resources.update(d['id'], newdata)
-            if d['parent'] is not None:
-                d = self._data[d['parent']]
-            else:
-                d = None
-
-    def cache_for_db(self):
-        return list(ComponentResource(**d) for d in self._resources.get_all())
+        with transaction.atomic():
+            for root in self._roots:
+                root.resources = data.get(root.id, {})
+                root.save()
 
 
 class LeavesData(object):

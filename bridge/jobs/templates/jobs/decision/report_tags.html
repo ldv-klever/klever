@@ -4,15 +4,11 @@
     <h5 class="ui {% if tags_type == 'safe' %}green{% else %}orange{% endif %} header">{% trans 'Tags' %}</h5>
     <div class="ui list">
         {% for rt in report_tags %}
-            <div class="item" style="padding-left: {{ rt.padding }}px;">
+            <div class="item">
                 <i class="tag tiny {% if tags_type == 'safe' %}green{% else %}orange{% endif %} icon"></i>
                 <div class="content">
-                    <span{% if rt.tag.description != '' %} id="tag_description_id_{{ color }}_{{ rt.tag.id }}" class="tag-description-popup" data-variation="very wide" data-content="{{ rt.tag.description }}"{% endif %}>{{ rt.tag.tag }}: </span>
-                    {% if tags_type == 'safe' %}
-                        <a href="{% url 'reports:safes' rt.report %}?tag={{ rt.tag.id }}">{{ rt.number }}</a>
-                    {% else %}
-                        <a href="{% url 'reports:unsafes' rt.report %}?tag={{ rt.tag.id }}">{{ rt.number }}</a>
-                    {% endif %}
+                    <span{% if rt.description %} class="tag-description-popup" data-variation="very wide" data-content="{{ rt.description }}"{% endif %}>{{ rt.name }}: </span>
+                    <a href="{{ rt.url }}">{{ rt.value }}</a>
                 </div>
             </div>
         {% endfor %}

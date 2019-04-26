@@ -101,7 +101,7 @@ $(document).ready(function () {
         if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
         let job_ids_json = JSON.stringify(job_ids);
         $.post('/jobs/api/can_download/', {jobs: job_ids_json}, function () {
-            $.redirectPost('/jobs/downloadtrees/', {job_ids: job_ids_json});
+            window.location.href = '/jobs/downloadjobs/' + '?jobs=' + encodeURIComponent(job_ids_json);
         });
     });
 
@@ -112,7 +112,7 @@ $(document).ready(function () {
         let job_ids = [];
         $('.job-checkbox:checked').each(function () { job_ids.push($(this).data('row')) });
         if (!job_ids.length) return err_notify($('#error__no_jobs_to_download').text());
-        $.redirectPost('/jobs/downloadtrees/', {job_ids: JSON.stringify(job_ids)});
+        window.location.href = '/jobs/downloadtrees/' + '?jobs=' + encodeURIComponent(JSON.stringify(job_ids));
     });
 
     $('#compare_reports_btn').click(compare_reports);

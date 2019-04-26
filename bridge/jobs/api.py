@@ -23,6 +23,7 @@ from difflib import unified_diff
 
 from django.db.models import F
 from django.http.response import HttpResponse, StreamingHttpResponse
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from rest_framework import exceptions
@@ -37,21 +38,23 @@ from rest_framework.permissions import IsAuthenticated
 
 from bridge.access import WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission
 from bridge.vars import JOB_STATUS
-from bridge.utils import logger
+from bridge.utils import logger, BridgeException, extract_archive
 from tools.profiling import LoggedCallMixin
 
-from jobs.models import Job, JobHistory, JobFile, FileSystem
+from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
 from jobs.serializers import (
     JobFilesField, CreateJobSerializer, JVformSerializerRO, JobFileSerializer, JobStatusSerializer,
-    DuplicateJobSerializer
+    DuplicateJobSerializer, change_job_status
 )
-from jobs.configuration import get_configuration_value
-from jobs.Download import KleverCoreArchiveGen
-from jobs.utils import JobAccess
+from jobs.configuration import get_configuration_value, GetConfiguration
+from jobs.Download import KleverCoreArchiveGen, UploadReportsWithoutDecision
+from jobs.utils import JobAccess, CompareJobVersions
 from reports.serializers import DecisionResultsSerializerRO
+from reports.UploadReport import collapse_reports
+from service.utils import StartJobDecision, StopDecision
 
 
-class JobStatusView(LoggedCallMixin, RetrieveAPIView):
+class JobStatusView(RetrieveAPIView):
     queryset = Job.objects.all()
     serializer_class = JobStatusSerializer
     permission_classes = (IsAuthenticated,)
@@ -111,7 +114,7 @@ class FileContentView(LoggedCallMixin, RetrieveAPIView):
 class GetFilesDiffView(LoggedCallMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, hashsum1=None, hashsum2=None):
+    def get(self, request, hashsum1, hashsum2):
         try:
             f1 = JobFile.objects.get(hash_sum=hashsum1)
             f2 = JobFile.objects.get(hash_sum=hashsum2)
@@ -214,9 +217,7 @@ class CoreJobArchiveView(LoggedCallMixin, RetrieveAPIView):
 
         if instance.status == JOB_STATUS[1][0]:
             # Update pending job
-            serializer = JobStatusSerializer(instance=instance, data={'status': JOB_STATUS[2][0]})
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+            change_job_status(instance, JOB_STATUS[2][0])
         elif instance.status != JOB_STATUS[2][0]:
             raise exceptions.APIException('The job is not solving')
 
@@ -227,13 +228,9 @@ class CoreJobArchiveView(LoggedCallMixin, RetrieveAPIView):
         return response
 
 
-class StartJobDefValue(LoggedCallMixin, APIView):
+class StartJobDefValueView(LoggedCallMixin, APIView):
     def post(self, request):
-        try:
-            return get_configuration_value(request.data['name'], request.data['value'])
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.APIException()
+        return Response(get_configuration_value(request.data['name'], request.data['value']))
 
 
 class CheckDownloadAccessView(LoggedCallMixin, APIView):
@@ -257,4 +254,137 @@ class CheckCompareAccessView(LoggedCallMixin, APIView):
             raise exceptions.APIException(_('One of the selected jobs was not found'))
         if not JobAccess(self.request.user, job=j1).can_view() or not JobAccess(self.request.user, job=j2).can_view():
             raise exceptions.APIException(_("You don't have an access to one of the selected jobs"))
+        return Response({})
+
+
+class RemoveJobVersions(LoggedCallMixin, APIView):
+    unparallel = ['Job', JobHistory]
+
+    def delete(self, request, job_id):
+        job = get_object_or_404(Job, pk=job_id)
+        if not JobAccess(request.user, job).can_edit():
+            raise exceptions.PermissionDenied(_("You don't have an access to remove job versions"))
+        versions = list(int(v) for v in json.loads(request.data.get('versions', '[]')))
+        if job.version in versions:
+            raise exceptions.PermissionDenied(_("You don't have an access to remove one of the selected version"))
+        job.versions.filter(version__in=versions).delete()
+        return Response({'message': _('Selected versions were successfully deleted')})
+
+
+class GetConfigurationView(LoggedCallMixin, APIView):
+    def post(self, request):
+        if 'name' not in request.data:
+            raise exceptions.APIException('Configuration name was not provided')
+
+        if request.data['name'] == 'file':
+            conf_args = {'file_conf': request.FILES['file']}
+        else:
+            conf_args = {'conf_name': request.data['name']}
+        return Response(GetConfiguration(**conf_args).configuration)
+
+
+class StartDecisionView(LoggedCallMixin, APIView):
+    def post(self, request, job_id):
+        getconf_kwargs = {}
+        job = get_object_or_404(Job, id=job_id)
+        if not JobAccess(request.user, job).can_decide():
+            raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
+
+        # If self.request.POST['mode'] == 'fast' or any other then default configuration is used
+        if request.data['mode'] == 'data':
+            getconf_kwargs['user_conf'] = json.loads(request.data['data'])
+        elif request.data['mode'] == 'file_conf':
+            getconf_kwargs['file_conf'] = request.FILES['file_conf']
+        elif request.data['mode'] == 'lastconf':
+            last_run = RunHistory.objects.filter(job_id=job.id).order_by('-date').first()
+            if last_run is None:
+                raise exceptions.APIException(_('The job was not decided before'))
+            getconf_kwargs['last_run'] = last_run
+        elif request.data['mode'] == 'default':
+            getconf_kwargs['conf_name'] = request.data['conf_name']
+
+        try:
+            StartJobDecision(request.user, job, GetConfiguration(**getconf_kwargs).for_json())
+        except BridgeException as e:
+            raise exceptions.APIException(str(e))
+        return Response({'url': reverse('jobs:job', args=[job.id])})
+
+
+class StopDecisionView(LoggedCallMixin, APIView):
+    model = Job
+    unparallel = [Job]
+
+    def post(self, request, job_id):
+        job = get_object_or_404(Job, pk=job_id)
+        if not JobAccess(request.user, job).can_stop():
+            raise exceptions.PermissionDenied(_("You don't have an access to stop decision of this job"))
+        try:
+            StopDecision(job)
+        except BridgeException as e:
+            raise exceptions.APIException(str(e))
+        return Response({})
+
+
+class GetJobFieldView(LoggedCallMixin, APIView):
+    def post(self, request):
+        if 'job' not in request.data:
+            raise exceptions.APIException(_('The job was not provided'))
+        if 'field' not in request.data:
+            raise exceptions.APIException(_('The job field name was not provided'))
+        name_or_id = request.data['job']
+        try:
+            job = Job.objects.only('id').get(name=name_or_id)
+        except Job.DoesNotExist:
+            found_jobs = Job.objects.only('id').filter(identifier__startswith=name_or_id)
+            if len(found_jobs) == 0:
+                raise exceptions.ValidationError(_('The job with specified identifier or name was not found'))
+            elif len(found_jobs) > 1:
+                raise exceptions.ValidationError(
+                    _('Several jobs match the specified identifier, please increase the length of the job identifier')
+                )
+            job = found_jobs[0]
+        if not hasattr(job, request.data['field']):
+            raise exceptions.ValidationError(_('The job does not have attribute %(field)s') % {
+                'field': request.data['field']
+            })
+        return {request.data['field']: getattr(job, request.data['field'])}
+
+
+class DoJobHasChildrenView(LoggedCallMixin, RetrieveAPIView):
+    def get_queryset(self):
+        return Job.objects.only('id')
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return Response({'children': (instance.children.count() > 0)})
+
+
+class UploadReportsView(LoggedCallMixin, APIView):
+    model = Job
+    unparallel = [Job]
+
+    def post(self, request, pk):
+        instance = get_object_or_404(Job, pk=pk)
+        if not JobAccess(request.user, instance).can_decide():
+            raise exceptions.ValidationError(_("You don't have an access to upload reports for this job"))
+
+        try:
+            reports_dir = extract_archive(request.FILES['archive'])
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException(_('Extraction of the archive has failed'))
+
+        UploadReportsWithoutDecision(instance, request.user, reports_dir.name)
+        return Response({})
+
+
+class CollapseReportsView(LoggedCallMixin, APIView):
+    model = Job
+    unparallel = [Job]
+
+    def post(self, request, pk):
+        job = get_object_or_404(Job, pk=pk)
+        if not JobAccess(self.request.user, job).can_collapse():
+            raise exceptions.PermissionDenied(_("You don't have an access to collapse reports"))
+        collapse_reports(job)
         return Response({})

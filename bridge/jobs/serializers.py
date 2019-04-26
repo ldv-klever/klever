@@ -12,9 +12,10 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
-from bridge.vars import USER_ROLES, JOB_ROLES, MPTT_FIELDS, FORMAT
-from bridge.utils import file_get_or_create, logger, file_checksum
+from bridge.vars import USER_ROLES, JOB_ROLES, MPTT_FIELDS, FORMAT, JOB_STATUS
+from bridge.utils import file_get_or_create, logger, file_checksum, RMQConnect
 from bridge.serializers import TimeStampField
+
 from users.models import User
 from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
 from jobs.utils import JobAccess
@@ -248,6 +249,7 @@ class CreateJobSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+        assert isinstance(instance, Job)
         job_files = validated_data.pop('files')
         version_data = validated_data.pop('job_version')
         user_roles = validated_data.pop('user_roles')
@@ -298,7 +300,7 @@ class JVrolesSerializerRO(serializers.ModelSerializer):
         users_qs = User.objects.exclude(role__in=[USER_ROLES[2][0], USER_ROLES[4][0]])
 
         # Return all users in the system except service and manager users, exclude the job author also
-        users = dict((u.id, u.get_full_name() or u.username) for u in users_qs)
+        users = dict((u.id, u.get_full_name()) for u in users_qs)
         users.pop(instance.job.author_id, None)
         return users
 
@@ -365,49 +367,6 @@ class JVformSerializerRO(serializers.ModelSerializer):
         fields = ('name', 'description', 'files', 'roles')
 
 
-class ViewJobSerializerRO(serializers.ModelSerializer):
-    last_version = serializers.SerializerMethodField()
-    versions = JVlistSerializerRO(many=True)
-    parents = serializers.SerializerMethodField()
-    children = serializers.SerializerMethodField()
-
-    def get_last_version(self, instance):
-        return instance.versions.first()
-
-    def get_parents(self, instance):
-        parents = []
-        parents_qs = instance.get_ancestors()
-        with_access = JobAccess(self.context['request'].user).can_view_jobs(parents_qs)
-        for parent in parents_qs:
-            parents.append({
-                'name': parent.name,
-                'pk': parent.pk if parent.pk in with_access else None
-            })
-        return parents
-
-    def get_children(self, instance):
-        children = []
-        children_qs = instance.get_children()
-        with_access = JobAccess(self.context['request'].user).can_view_jobs(children_qs)
-        for child in children_qs:
-            if child.pk in with_access:
-                children.append({'pk': child.pk, 'name': child.name})
-        return children
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data.update({
-            'user_roles': data['last_version'].userrole_set.select_related('user').order_by(
-                'user__first_name', 'user__last_name', 'user__username'
-            ), 'files': json.dumps(JobFilesField().to_representation(data['last_version']))
-        })
-        return data
-
-    class Meta:
-        model = Job
-        fields = ('last_version', 'versions', 'parents', 'children', 'author')
-
-
 class JobStatusSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
@@ -417,6 +376,15 @@ class JobStatusSerializer(serializers.ModelSerializer):
             run_data.save()
         except ObjectDoesNotExist:
             pass
+
+        if instance.status != JOB_STATUS[0][0]:
+            # In real life the job status can't be changed to "not solved"
+            with RMQConnect() as channel:
+                channel.basic_publish(
+                    exchange=settings.RABBIT_MQ['jobs_exchange'],
+                    routing_key=instance.status,
+                    body=str(instance.identifier)
+                )
         return instance
 
     class Meta:
@@ -467,6 +435,7 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+        assert isinstance(instance, Job)
         last_version = instance.versions.order_by('-version').first()
         instance.version += 1
 
@@ -497,3 +466,42 @@ class RunHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = RunHistory
         exclude = ('job', 'configuration')
+
+
+def change_job_status(job, status):
+    serializer = JobStatusSerializer(instance=job, data={'status': status})
+    serializer.is_valid(raise_exception=True)
+    return serializer.save()
+
+
+def get_view_job_data(user, job: Job):
+    # Get parents list
+    parents = []
+    parents_qs = job.get_ancestors()
+    with_access = JobAccess(user).can_view_jobs(parents_qs)
+    for parent in parents_qs:
+        parents.append({
+            'name': parent.name,
+            'pk': parent.pk if parent.pk in with_access else None
+        })
+
+    # Get children list
+    children = []
+    children_qs = job.get_children()
+    with_access = JobAccess(user).can_view_jobs(children_qs)
+    for child in children_qs:
+        if child.pk in with_access:
+            children.append({'pk': child.pk, 'name': child.name})
+
+    # Versions queryset
+    versions_qs = job.versions.all()
+
+    return {
+        'author': job.author, 'parents': parents, 'children': children, 'last_version': versions_qs[0],
+        'versions': JVlistSerializerRO(instance=versions_qs, many=True).data,
+        'files': json.dumps(JobFilesField().to_representation(versions_qs[0])),
+        'run_history': RunHistory.objects.filter(job=job).order_by('-date').select_related('operator'),
+        'user_roles': versions_qs[0].userrole_set.select_related('user').order_by(
+            'user__first_name', 'user__last_name', 'user__username'
+        )
+    }

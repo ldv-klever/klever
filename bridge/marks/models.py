@@ -61,9 +61,10 @@ class Mark(models.Model):
 
     # Only with compare=True
     cache_attrs = JSONField(default=dict)
+    cache_links = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.identifier
+        return str(self.identifier)
 
     class Meta:
         abstract = True
@@ -104,6 +105,7 @@ class MarkSafeAttr(AttrBase):
 
     class Meta:
         db_table = 'mark_safe_attr'
+        ordering = ('id',)
 
 
 class MarkSafeReport(models.Model):
@@ -152,6 +154,7 @@ class MarkUnsafeAttr(AttrBase):
 
     class Meta:
         db_table = 'mark_unsafe_attr'
+        ordering = ('id',)
 
 
 class MarkUnsafeReport(models.Model):
@@ -232,7 +235,7 @@ class MarkUnknown(Mark):
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=MAX_PROBLEM_LEN)
-    link = models.URLField(null=True)
+    link = models.URLField(null=True, blank=True)
 
     class Meta:
         db_table = 'mark_unknown'
@@ -244,7 +247,7 @@ class MarkUnknownHistory(MarkHistory):
     function = models.TextField()
     is_regexp = models.BooleanField(default=True)
     problem_pattern = models.CharField(max_length=MAX_PROBLEM_LEN)
-    link = models.URLField(null=True)
+    link = models.URLField(null=True, blank=True)
 
     class Meta:
         db_table = 'mark_unknown_history'

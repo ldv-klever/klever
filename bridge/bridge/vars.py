@@ -168,7 +168,12 @@ class SafeVerdicts:
         return self.column_map[verdict]
 
     def columns(self, with_root=False):
-        pass
+        columns = []
+        if with_root:
+            columns.append(self.columns_data[0][0])
+        for col_data in self.columns_data[1:]:
+            columns.append(col_data[0])
+        return columns
 
     @property
     def default(self):
@@ -214,8 +219,20 @@ class UnsafeVerdicts:
     def column(self, verdict):
         return self.column_map[verdict]
 
+    def color(self, verdict):
+        column = self.column(verdict)
+        for col, __, color in self.columns_data:
+            if col == column:
+                return color or None
+        return None
+
     def columns(self, with_root=False):
-        pass
+        columns = []
+        if with_root:
+            columns.append(self.columns_data[0][0])
+        for col_data in self.columns_data[1:]:
+            columns.append(col_data[0])
+        return columns
 
     @property
     def default(self):
@@ -303,3 +320,5 @@ ASSOCIATION_TYPE = (
 )
 
 MPTT_FIELDS = ('level', 'lft', 'rght', 'tree_id')
+
+SUBJOB_NAME = 'Subjob'

@@ -26,7 +26,7 @@
                 </div>
             </div>
             {% if etv %}
-                {% include 'reports/ErrorTrace.html' with etv=etv %}
+                {% include 'reports/error_trace/ErrorTrace.html' with etv=etv %}
             {% else %}
                 <div class="ui divider"></div>
                 <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>

@@ -1,7 +1,0 @@
-{
-  "attrs": [],
-  "function": "fatal error: tree node type 'vector_type' isn't supported",
-  "link": "http://forge.ispras.ru/issues/4398",
-  "problem_pattern": "UnsupVectorType",
-  "production": true
-}

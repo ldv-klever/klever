@@ -1,0 +1,216 @@
+
+struct device;
+
+void *ldv_dev_get_drvdata(const struct device *dev);
+int ldv_dev_set_drvdata(struct device *dev, void *data);
+
+struct spi_master;
+struct device;
+struct spi_master *ldv_spi_alloc_master(struct device *host, unsigned size);
+
+#include <linux/ldv/err.h>
+
+#include <verifier/nondet.h>
+
+extern void ldv_check_for_read_section(void);
+
+#include <verifier/nondet.h>
+
+extern void ldv_srcu_read_lock(void);
+extern void ldv_srcu_read_unlock(void);
+
+#include <linux/types.h>
+void *ldv_kzalloc(size_t size, gfp_t flags);
+
+#include <linux/ldv/common.h>
+#include <linux/ldv/irq.h>
+#include <linux/ldv/err.h>
+#include <verifier/common.h>
+#include <verifier/gcc.h>
+#include <verifier/nondet.h>
+#include <verifier/memory.h>
+#include <verifier/thread.h>
+
+
+
+struct ldv_struct_main_3 {
+ int signal_pending;
+};
+
+/* EMG Function declarations */
+void ldv_dispatch_insmod_deregister_3_2(void);
+void ldv_dispatch_insmod_register_3_3(void);
+void ldv_insmod_2(void *);
+int ldv_insmod_my_init_2_5(int (*)(void));
+void ldv_main_3(void *);
+int main(void);
+
+/* EMG variable declarations */
+struct ldv_thread ldv_thread_2;
+struct ldv_thread ldv_thread_3;
+
+/* EMG variable initialization */
+
+/* EMG function definitions */
+/* AUX_FUNC ldv_dispatch_insmod_deregister_3_2 */
+void ldv_dispatch_insmod_deregister_3_2() {
+ struct ldv_struct_main_3 *cf_arg_2;
+ /* Skip thread join call */
+ return;
+}
+
+/* AUX_FUNC ldv_dispatch_insmod_register_3_3 */
+void ldv_dispatch_insmod_register_3_3() {
+ struct ldv_struct_main_3 *cf_arg_2;
+ cf_arg_2 = ldv_xmalloc(sizeof(struct ldv_struct_main_3));
+ ldv_insmod_2(cf_arg_2);
+ return;
+}
+
+/* AUX_FUNC ldv_insmod_2 */
+void ldv_insmod_2(void *arg0) {
+ /* LDV {"thread": 2, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Control function 'insmod(insmod)'", "function": "ldv_insmod_2"} */
+ /* LDV {"type": "CONTROL_FUNCTION_INIT_BEGIN", "comment": "Declare auxiliary variables."} */
+ void (*ldv_2_exit_default)(void);
+ int (*ldv_2_my_init_default)(void);
+ int ldv_2_ret_default;
+ /* LDV {"type": "CONTROL_FUNCTION_INIT_END", "comment": "Declare auxiliary variables."} */
+ /* LDV {"action": "INSMOD_REGISTER", "type": "RECEIVE_BEGIN", "comment": "Trigger module initialization."} */
+ ldv_free(arg0);
+ /* LDV {"action": "INSMOD_REGISTER", "type": "RECEIVE_END"} */
+
+ /* LDV {"action": "MY_INIT", "type": "CALL_BEGIN", "callback": true, "comment": "Initialize the module after insmod with 'my_init' function. Invoke callback my_init from INSMOD."} */
+ /* LDV {"type": "CALLBACK", "call": "ldv_2_ret_default = (my_init)();", "comment": "my_init"} */
+ ldv_2_ret_default = ldv_insmod_my_init_2_5(ldv_2_my_init_default);
+ /* Callback post-call */
+ ldv_2_ret_default = ldv_post_init(ldv_2_ret_default);
+ /* LDV {"action": "MY_INIT", "type": "CALL_END"} */
+
+ if (ldv_undef_int()) {
+  /* LDV {"action": "INIT_FAILED", "type": "CONDITION_BEGIN", "comment": "Failed to initialize the module."} */
+  ldv_assume(ldv_2_ret_default != 0);
+  /* LDV {"action": "INIT_FAILED", "type": "CONDITION_END"} */
+
+  /* LDV {"action": "INSMOD_DEREGISTER", "type": "RECEIVE_BEGIN", "comment": "Trigger module exit."} */
+  /* Skip a non-replicative signal receiving */
+  /* LDV {"action": "INSMOD_DEREGISTER", "type": "RECEIVE_END"} */
+
+  /* Exit function at a terminal state */
+  return;
+ }
+ else {
+  /* LDV {"action": "INIT_SUCCESS", "type": "CONDITION_BEGIN", "comment": "Module has been initialized."} */
+  ldv_assume(ldv_2_ret_default == 0);
+  /* LDV {"action": "INIT_SUCCESS", "type": "CONDITION_END"} */
+
+  /* LDV {"action": "INSMOD_DEREGISTER", "type": "RECEIVE_BEGIN", "comment": "Trigger module exit."} */
+  /* Skip a non-replicative signal receiving */
+  /* LDV {"action": "INSMOD_DEREGISTER", "type": "RECEIVE_END"} */
+
+  /* Exit function at a terminal state */
+  return;
+ }
+ /* End of the process */
+ return;
+ /* LDV {"comment": "End of control function based on process 'insmod(insmod)'", "type": "CONTROL_FUNCTION_END", "function": "ldv_insmod_2"} */
+}
+
+/* AUX_FUNC_CALLBACK ldv_insmod_my_init_2_5 */
+int ldv_insmod_my_init_2_5(int (*arg0)(void)) {
+ return (my_init)();
+}
+
+/* AUX_FUNC ldv_main_3 */
+void ldv_main_3(void *arg0) {
+ /* LDV {"thread": 3, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Control function 'main(main)'", "function": "ldv_main_3"} */
+ /* LDV {"type": "CONTROL_FUNCTION_INIT_BEGIN", "comment": "Declare auxiliary variables."} */
+ /* LDV {"type": "CONTROL_FUNCTION_INIT_END", "comment": "Declare auxiliary variables."} */
+ /* LDV {"action": "INIT", "type": "CONDITION_BEGIN", "comment": "Initialize rule models."} */
+ ldv_initialize();
+ /* LDV {"action": "INIT", "type": "CONDITION_END"} */
+
+ /* LDV {"action": "INSMOD_REGISTER", "type": "DISPATCH_BEGIN", "comment": "Start environment model scenarios."} */
+ ldv_dispatch_insmod_register_3_3();
+ /* LDV {"action": "INSMOD_REGISTER", "type": "DISPATCH_END"} */
+
+ /* LDV {"action": "INSMOD_DEREGISTER", "type": "DISPATCH_BEGIN", "comment": "Stop environment model scenarios."} */
+ ldv_dispatch_insmod_deregister_3_2();
+ /* LDV {"action": "INSMOD_DEREGISTER", "type": "DISPATCH_END"} */
+
+ /* LDV {"action": "FINAL", "type": "CONDITION_BEGIN", "comment": "Check rule model state at the exit."} */
+ ldv_check_final_state();
+ ldv_assume(0);
+ /* LDV {"action": "FINAL", "type": "CONDITION_END"} */
+
+ /* Exit function at a terminal state */
+ return;
+ /* End of the process */
+ return;
+ /* LDV {"comment": "End of control function based on process 'main(main)'", "type": "CONTROL_FUNCTION_END", "function": "ldv_main_3"} */
+}
+
+/* AUX_FUNC main */
+int main() {
+ /* LDV {"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point 'main'", "function": "main"} */
+ ldv_main_3(0);
+ return 0;
+ /* LDV {"comment": "Exit entry point 'main'", "type": "CONTROL_FUNCTION_END", "function": "main"} */
+}
+
+
+/* AUX_FUNC  ERR_PTR */
+static inline void *ERR_PTR (long int error)
+{
+
+ return ldv_err_ptr(error);
+}
+
+/* AUX_FUNC  PTR_ERR */
+static inline long int PTR_ERR (void const *ptr)
+{
+
+ return ldv_ptr_err(ptr);
+}
+
+/* AUX_FUNC  IS_ERR */
+static inline long int IS_ERR (void const *ptr)
+{
+
+ return ldv_is_err(ptr);
+}
+
+/* AUX_FUNC  IS_ERR_OR_NULL */
+static inline long int IS_ERR_OR_NULL (void const *ptr)
+{
+
+ return ldv_is_err_or_null(ptr);
+}
+
+/* AUX_FUNC  ldv_synchronize_sched_5 */
+void ldv_synchronize_sched_5 (void)
+{
+
+ ldv_check_for_read_section();
+}
+
+/* AUX_FUNC  srcu_read_lock */
+static inline int srcu_read_lock (struct srcu_struct *sp)
+{
+
+ ldv_srcu_read_lock();
+ return ldv_undef_int();
+}
+
+/* AUX_FUNC  srcu_read_unlock */
+static inline void srcu_read_unlock (struct srcu_struct *sp, int idx)
+{
+
+ ldv_srcu_read_unlock();
+}
+
+/* AUX_FUNC  ldv_synchronize_sched_8 */
+void ldv_synchronize_sched_8 (void)
+{
+
+ ldv_check_for_read_section();
+}

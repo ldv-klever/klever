@@ -1,8 +1,0 @@
-{
-  "attrs": [],
-  "description": "EMG generates a parameter of incompatible type for a callback.",
-  "function": "incompatible type for argument",
-  "link": "http://forge.ispras.ru/issues/7043",
-  "problem_pattern": "Incompat arg",
-  "production": true
-}

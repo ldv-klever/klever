@@ -15,25 +15,44 @@
  * limitations under the License.
  */
 
+function collect_attrs_data() {
+    let attrs = [];
+    $('#inline_mark_attrs').find('span').each(function () {
+        attrs.push({
+            name: $(this).data('name'),
+            value: $(this).data('value'),
+            is_compare: $(this).data('compare')
+        })
+    });
+    return attrs;
+}
+
 function get_description() {
-    var tmp_div = $('<div>').html($('#mark_description').val());
+    let tmp_div = $('<div>').html($('#mark_description').val());
     tmp_div.find('script').remove();
     tmp_div.find('*').each(function () {
-        var element_in_div = $(this);
-        $.each($(this)[0].attributes, function (i, attr) { if (attr.name.match("^on")) element_in_div.removeAttr(attr.name) });
+        let element_in_div = $(this);
+        $.each($(this)[0].attributes, function (i, attr) {
+            if (attr.name.match("^on")) element_in_div.removeAttr(attr.name)
+        });
     });
     return tmp_div.html();
 }
 
-function collect_markdata() {
-    var obj_type = $('#obj_type').val(), mark_data = {
-        description: get_description(), is_modifiable: true,
+function collect_markdata(action, mark_type) {
+    let mark_data = {
+        is_modifiable: true,
+        description: get_description(),
+        attrs: collect_attrs_data(),
         status: $("input[name='selected_status']:checked").val(),
         comment: $('#inline_mark_comment').val()
     };
 
-    if (obj_type === 'unknown') {
-        mark_data['problem'] = $('#unknown_problem_pattern').val();
+    if (action === 'edit') mark_data['autoconfirm'] = true;
+    else mark_data['report_id'] = $('#report_id').val();
+
+    if (mark_type === 'unknown') {
+        mark_data['problem_pattern'] = $('#unknown_problem_pattern').val();
         mark_data['function'] = $('#unknown_function').val();
         mark_data['is_regexp'] = $('#is_regexp').is(':checked');
         mark_data['link'] = $('#unknown_link').val();
@@ -41,42 +60,37 @@ function collect_markdata() {
     else {
         mark_data['verdict'] = $("input[name='selected_verdict']:checked").val();
         mark_data['tags'] = get_tags_values();
-        if (obj_type === 'unsafe') mark_data['compare_id'] = $("#compare_function").val();
+        if (mark_type === 'unsafe') mark_data['function'] = $("#compare_function").val();
     }
-    return JSON.stringify(mark_data);
+    return mark_data;
 }
 
-function save_inline_mark() {
-    $('#dimmer_of_page').addClass('active');
-    $.post(
-        '/marks/' + $('#obj_type').val() + '/' + $('#obj_id').val() + '/' + $('#inline_action').val() + '/',
-        {data: collect_markdata()},
-        function (data) {
-            if (data.error) {
-                $('#dimmer_of_page').removeClass('active');
-                err_notify(data.error);
-            }
-            else if ('cache_id' in data) {
-                window.location.href = '/marks/' + $('#obj_type').val() + '/association_changes/' + data['cache_id'] + '/';
-            }
-        }
-    );
-}
-
-window.get_inline_mark_form = function(container, obj_id, action) {
-    var report_type = $('#report_type').val(), url = '/marks/' + report_type + '/' + obj_id + '/' + action + '/inline/';
-    $.get(url, {}, function (data) {
-        if (data.error) err_notify(data.error);
-        else {
-            container.html(data);
-            if (report_type !== 'unknown') {
-                activate_tags();
-            }
-            container.find('.ui.checkbox').checkbox();
-            container.show();
-            $('#close_inline_mark_form').click(function () { $('#inline_mark_form').hide().empty() });
-            $('#save_inline_mark_btn').click(save_inline_mark);
-        }
+window.get_inline_mark_form = function(url, container) {
+    $.get(url, {}, function (resp) {
+        container.html(resp);
+        activate_tags();
+        container.find('.ui.checkbox').checkbox();
+        container.show();
+        $('#close_inline_mark_form').click(function () {
+            container.hide().empty()
+        });
+        $('#save_inline_mark_btn').click(function () {
+            $('#dimmer_of_page').addClass('active');
+            $.ajax({
+                url: $(this).data('url'),
+                method: $(this).data('method'),
+                data: JSON.stringify(collect_markdata($(this).data('action'), $(this).data('type'))),
+                dataType: "json",
+                contentType: 'application/json; charset=utf-8',
+                traditional: true,
+                success: function (resp) {
+                    window.location.replace(resp['url']);
+                },
+                error: function () {
+                    $('#dimmer_of_page').removeClass('active');
+                }
+            });
+        });
     });
 };
 

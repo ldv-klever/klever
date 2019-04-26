@@ -39,26 +39,25 @@
                 <div class="ui divider"></div>
 
                 {# Similarity #}
-                <input id="view_data_{{ view.type }}__similarity" value="checkboxes_if_similarity" type="hidden">
+                <input id="view_data_{{ view.type }}__similarity" value="list_if_similarity" data-list="similarity_type__similarity_value" type="hidden">
                 <div class="ui checkbox">
                     <input type="checkbox" id="view_condition_{{ view.type }}__similarity"{% if 'similarity' in view %} checked{% endif %}>
                     <label for="view_condition_{{ view.type }}__similarity">{% trans 'Similarity' %}</label>
                 </div>
                 <br><br>
                 <div style="margin-left: 15px;">
-                    <div class="ui checkbox">
-                        <input id="view_{{ view.type }}__similarity__0" type="checkbox" value="0"{% if 'similarity' in view and '0' in view.similarity %} checked{% endif %}>
-                        <label for="view_{{ view.type }}__similarity__0">{% trans 'Similarity' %} = 0%</label>
+                    <div class="field">
+                        <label for="view_{{ view.type }}__similarity_type"></label>
+                        <select id="view_{{ view.type }}__similarity_type" class="ui dropdown">
+                            <option value="exact"{% if 'similarity' in view and view.similarity.0 == 'exact' %} selected{% endif %}>{% trans 'equals to' %}</option>
+                            <option value="lt"{% if 'similarity' in view and view.similarity.0 == 'lt' %} selected{% endif %}>{% trans 'less than' %}</option>
+                            <option value="gt"{% if 'similarity' in view and view.similarity.0 == 'gt' %} selected{% endif %}>{% trans 'greater than' %}</option>
+                        </select>
                     </div>
                     <br>
-                    <div class="ui checkbox">
-                        <input id="view_{{ view.type }}__similarity__50" type="checkbox" value="50"{% if 'similarity' in view and '50' in view.similarity %} checked{% endif %}>
-                        <label for="view_{{ view.type }}__similarity__50">0% &lt; {% trans 'Similarity' %} &lt; 100%</label>
-                    </div>
-                    <br>
-                    <div class="ui checkbox">
-                        <input id="view_{{ view.type }}__similarity__100" type="checkbox" value="100"{% if 'similarity' in view and '100' in view.similarity %} checked{% endif %}>
-                        <label for="view_{{ view.type }}__similarity__100">{% trans 'Similarity' %} = 100%</label>
+                    <div class="field">
+                        <label for="view_{{ view.type }}__similarity_value"></label>
+                        <input id="view_{{ view.type }}__similarity_value" type="number"{% if 'similarity' in view %} value="{{ view.similarity.1 }}"{% endif %}>
                     </div>
                 </div>
                 <div class="ui divider"></div>

@@ -18,9 +18,10 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.static import serve
 
 from bridge import views
-from django.views.static import serve
+from jobs.population import JobsRMQPopulation
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
@@ -39,3 +40,4 @@ handler400 = 'bridge.views.error_400_view'
 handler403 = 'bridge.views.error_403_view'
 handler404 = 'bridge.views.error_404_view'
 handler500 = 'bridge.views.error_500_view'
+JobsRMQPopulation()

@@ -22,11 +22,11 @@
 {% if progress %}
     <tr>
         <th class="right aligned">{% trans 'Start decision date' %}</th>
-        <td>{{ progress.start_decision }}</td>
+        <td>{{ progress.start_date }}</td>
     </tr>
     <tr>
         <th class="right aligned">{% trans 'Finish decision date' %}</th>
-        <td>{{ progress.finish_decision }}</td>
+        <td>{{ progress.finish_date }}</td>
     </tr>
     {% if progress.total_ts %}
         <tr>

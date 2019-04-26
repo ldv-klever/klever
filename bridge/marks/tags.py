@@ -30,7 +30,7 @@ from bridge.vars import USER_ROLES
 from bridge.utils import logger, BridgeException
 
 from users.models import User
-from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess
+from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess, MarkSafeHistory, MarkUnsafeHistory
 from marks.serializers import SafeTagSerializer, UnsafeTagSerializer
 from caches.utils import UpdateSafeMarksTags, UpdateUnsafeMarksTags
 
@@ -59,6 +59,24 @@ class TagsTree:
             table_rows.append(row_list)
         return table_rows
 
+    @cached_property
+    def selected_tags(self):
+        if not self._tags_ids:
+            return []
+        return list(t['object'].id for t in self._tree.values())
+
+    @cached_property
+    def available_tags(self):
+        if self.type == 'safe':
+            tags_qs = SafeTag.objects
+        elif self.type == 'unsafe':
+            tags_qs = UnsafeTag.objects
+        else:
+            raise BridgeException()
+        if self.selected_tags:
+            tags_qs = tags_qs.exclude(id__in=self.selected_tags)
+        return list({'id': t.id, 'name': t.name} for t in tags_qs.only('id', 'name'))
+
     def tag_data(self, tag):
         return {'type': 'tag', 'value': tag}
 
@@ -75,6 +93,7 @@ class TagsTree:
         data = {}
         for tag in tags_qs.select_related('author').order_by('id'):
             if tag.parent_id and tag.parent_id not in data:
+                print(tag.name, 'does not have parent')
                 continue
             data[tag.pk] = {
                 'object': tag,
@@ -179,10 +198,33 @@ class AllTagsTree(TagsTree):
 
 
 class MarkTagsTree(TagsTree):
-    def __init__(self, user, mark_version, tags_type, view_only):
-        super().__init__(tags_type)
-        self.user = user
-        self.view_only = view_only
+    def __init__(self, mark_version):
+        if isinstance(mark_version, MarkSafeHistory):
+            tags_type = 'safe'
+        elif isinstance(mark_version, MarkUnsafeHistory):
+            tags_type = 'unsafe'
+        else:
+            raise ValueError('Wrong mark version type')
+        super().__init__(tags_type, tags_ids=list(mark_version.tags.values_list('tag_id', flat=True)))
+
+
+class SelectedTagsTree(TagsTree):
+    def __init__(self, tags_type, selected, deleted, added):
+        super().__init__(tags_type, tags_ids=self.__get_ids(tags_type, selected, deleted, added))
+
+    def __get_ids(self, tags_type, selected, deleted, added):
+        selected_tags = set(int(x) for x in selected)
+
+        if tags_type == 'safe':
+            tag_qs = SafeTag.objects
+        else:
+            tag_qs = UnsafeTag.objects
+
+        if deleted:
+            selected_tags -= set(tag_qs.get(id=deleted).get_descendants(include_self=True).values_list('id', flat=True))
+        elif added:
+            selected_tags |= set(tag_qs.get(id=added).get_ancestors(include_self=True).values_list('id', flat=True))
+        return selected_tags
 
 
 class TagAccess:
@@ -279,7 +321,7 @@ class ChangeTagsAccess:
         for user in User.objects.exclude(role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
             all_users.append({
                 'id': user.id,
-                'name': user.get_full_name() or user.username,
+                'name': user.get_full_name(),
                 'can_edit': user.id in can_edit,
                 'can_create': user.id in can_create
             })
@@ -722,8 +764,8 @@ class TagsInfo:
                 tag = tag.parent
 
     def __get_available(self):
-        for tag in self.tag_table[self.tag_type].objects.filter(~Q(id__in=self.selected)).order_by('tag'):
-            self.available.append([tag.pk, tag.tag])
+        for tag in self.tag_table[self.tag_type].objects.filter(~Q(id__in=self.selected)).order_by('name'):
+            self.available.append([tag.pk, tag.name])
 
 
 class CreateTagsFromFile:

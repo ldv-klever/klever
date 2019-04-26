@@ -49,12 +49,22 @@ $.ajaxSetup({
         }
     }
 });
-$(document).ajaxError(function () {
-    // err_notify($('#error__ajax_error').text());
+$(document).ajaxError(function (xhr, err) {
+    if (err.responseJSON) {
+        if (err.responseJSON.error) err_notify(err.responseJSON.error);
+        else if (err.responseJSON.detail) err_notify(err.responseJSON.detail);
+        else {
+            let errors = flatten_api_errors(err.responseJSON);
+            if (errors.length) {
+                $.each(errors, function (i, value) { err_notify(value) });
+            }
+            else err_notify($('#error__ajax_error').text());
+        }
+    }
 });
 
 window.flatten_api_errors = function(data, labels) {
-    var errors_arr = [];
+    let errors_arr = [];
 
     function get_label(key) {
         return (key && labels && labels[key]) ? labels[key] : null;
@@ -72,7 +82,7 @@ window.flatten_api_errors = function(data, labels) {
             });
         }
         else {
-            var error_text = obj + '', label = get_label(err_key);
+            let error_text = obj + '', label = get_label(err_key);
             if (label) error_text = '{0}: {1}'.format(label, error_text);
             if (errors_arr.indexOf(error_text) < 0) errors_arr.push(error_text);
         }
@@ -107,7 +117,7 @@ jQuery.expr[':'].regex = function(elem, index, match) {
 };
 
 window.err_notify = function (message, duration) {
-    var notify_opts = {autoHide: false, style: 'bootstrap', className: 'error'};
+    let notify_opts = {autoHide: false, style: 'bootstrap', className: 'error'};
     if (!isNaN(duration)) {
         notify_opts['autoHide'] = true;
         notify_opts['autoHideDelay'] = duration;
@@ -472,7 +482,7 @@ window.isFileReadable = function(name) {
 
 window.get_url_with_get_parameter = function (url, key, value) {
     if (url.indexOf(key + '=') > -1) {
-        var url_regex = new RegExp('(' + key + "=).*?(&|$)");
+        let url_regex = new RegExp('(' + key + "=).*?(&|$)");
         return url.replace(url_regex, '$1' + value + '$2');
     }
     else if (url.indexOf('?') > -1) {
@@ -504,6 +514,22 @@ $(document).ready(function () {
     $('.note-popup').each(function () {
         var position = $(this).data('position');
         position ? $(this).popup({position: position}) : $(this).popup();
+    });
+    $('.ui.range').each(function () {
+        let range_preview = $('#' + $(this).data('preview')),
+            range_input = $('#' + $(this).data('input')),
+            range_min = parseInt($(this).data('min')),
+            range_max = parseInt($(this).data('max')),
+            range_step = parseInt($(this).data('step')),
+            range_start = parseInt(range_input.val());
+        range_preview.text(range_start);
+        $(this).range({
+            min: range_min, max: range_max, step: range_step, start: range_start,
+            onChange: function (value) {
+                range_input.val(value);
+                range_preview.text(value);
+            }
+        });
     });
 
     $('.page-link-icon').click(function () {

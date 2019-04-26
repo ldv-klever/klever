@@ -16,35 +16,11 @@
  */
 
 function checked_versions() {
-    var versions = [];
+    let versions = [];
     $('input[id^="checkbox_version__"]:checked').each(function () {
-        versions.push(parseInt($(this).attr('id').replace('checkbox_version__', ''), 10));
+        versions.push($(this).val());
     });
     return versions;
-}
-
-function remove_versions() {
-    $('#remove_versions_popup').modal('hide');
-    var versions = checked_versions();
-    $.post(
-        '/jobs/remove_versions/' + $('#job_id').val() + '/',
-        {
-            versions: JSON.stringify(versions)
-        },
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-            }
-            else {
-                success_notify(data.message);
-                $.each(versions, function (i, val) {
-                    var version_line = $("#checkbox_version__" + val).closest('.version-line');
-                    if (version_line.length) version_line.remove();
-                });
-            }
-        },
-        'json'
-    );
 }
 
 function init_file_actions() {
@@ -58,85 +34,82 @@ function init_file_actions() {
         comparison_modal.modal('show');
     });
     comparison_modal.find('.version-file').each(function () {
-        var file_name = $(this).text(), new_href = $(this).attr('href') + '?name=' + encodeURIComponent(file_name.substring(file_name.lastIndexOf('/') + 1));
-        $(this).attr('href', new_href);
+        let file_name = $(this).text(),
+            download_link = $(this).data('download') + '?name=' + encodeURIComponent(file_name.substring(file_name.lastIndexOf('/') + 1));
+        $(this).attr('href', download_link);
     });
     comparison_modal.find('.version-file').click(function(event) {
-        var file_name = $(this).text(), href = $(this).attr('href');
+        let file_name = $(this).text(), href = $(this).attr('href');
         if (isFileReadable(file_name)) {
             event.preventDefault();
-            $.get('/jobs/api/file/{0}/'.format($(this).data('hashsum')), {}, function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else {
-                    $('#file_download_btn').attr('href', href).show();
-                    $('#version_file_name').text(file_name);
-                    $('#version_file_content').text(data.content);
-                    $('#version_file_modal').modal('show');
-                }
+            $.get($(this).data('content'), {}, function (resp) {
+                $('#file_download_btn').attr('href', href).show();
+                $('#version_file_name').text(file_name);
+                $('#version_file_content').text(resp);
+                $('#version_file_modal').modal('show');
             });
         }
     });
     comparison_modal.find('.version-diff-files').click(function(event) {
         event.preventDefault();
-        var file_name = $(this).closest('li').find('.version-file').first().text();
-        $.post('/jobs/get_files_diff/' + $(this).data('hashsum1') + '/' + $(this).data('hashsum2') + '/', {}, function (data) {
-            if (data.error) {
-                err_notify(data.error)
-            }
-            else {
-                $('#file_download_btn').attr('href', '#').hide();
-                $('#version_file_name').text(file_name);
-                $('#version_file_content').text(data.content);
-                $('#version_file_modal').modal('show');
-            }
+        let file_name = $(this).closest('li').find('.version-file').first().text();
+        $.get($(this).data('url'), {}, function (resp) {
+            $('#file_download_btn').attr('href', '#').hide();
+            $('#version_file_name').text(file_name);
+            $('#version_file_content').text(resp);
+            $('#version_file_modal').modal('show');
         });
     });
     return true;
 }
 
-function get_versions_comparison(v1, v2, versions_modal) {
-    $.post('/jobs/compare_versions/' + $('#job_id').val() + '/', {v1: v1, v2: v2}, function (data) {
-        if (data.error) {
-            err_notify(data.error);
-        }
-        else {
-            versions_modal.find('.content').html(data);
-            versions_modal.modal('show');
-            init_file_actions();
-        }
-    });
-}
-
 window.init_versions_list = function() {
-    $('#edit_job_div').find('.ui.checkbox').checkbox();
-
+    // Remove job versions modal
+    let rm_versions_modal = $('#remove_versions_modal');
+    rm_versions_modal.modal({transition: 'fly up', autofocus: false, closable: false});
+    rm_versions_modal.find('.modal-cancel').click(function () {
+        rm_versions_modal.modal('hide');
+    });
+    rm_versions_modal.find('.modal-confirm').click(function () {
+        rm_versions_modal.modal('hide');
+        let versions = checked_versions();
+        $.ajax({
+            url: '/jobs/api/remove-versions/' + $('#job_id').val() + '/',
+            method: 'DELETE',
+            data: {versions: JSON.stringify(versions)},
+            success: function (data) {
+                success_notify(data['message']);
+                $.each(versions, function (i, val) {
+                    let version_line = $("#checkbox_version__" + val).closest('.version-line');
+                    if (version_line.length) version_line.remove();
+                });
+            }
+        });
+    });
     $('#show_remove_versions_modal')
-        .unbind()
         .hover(function () { $('#cant_remove_vers').show() }, function () { $('#cant_remove_vers').hide() })
-        .click(function () { checked_versions().length === 0 ? err_notify($('#error__no_vers_selected').text()) : $('#remove_versions_popup').modal('show') });
+        .click(function () {
+            let versions = checked_versions();
+            if (versions.length) rm_versions_modal.modal('show');
+            else  err_notify($('#error__no_vers_selected').text());
+        });
 
-    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false});
-    $('#cancel_remove_versions').unbind().click(function () {
-        $('#remove_versions_popup').modal('hide');
-    });
-
-    $('#delete_versions_btn').unbind().click(remove_versions);
-
-    var comparison_modal = $('#version_comparison_modal');
+    // Job versions comparison modal
+    let comparison_modal = $('#version_comparison_modal');
     comparison_modal.modal();
-    $('#compare_versions').unbind().click(function () {
-        var versions = checked_versions();
-        if (versions.length !== 2) {
-            err_notify($('#error__select_two_vers').text());
-        }
-        else {
-            get_versions_comparison(versions[0], versions[1], comparison_modal);
-        }
-    });
-    $('#close_comparison_view').unbind().click(function () {
+    comparison_modal.find('.modal-cancel').click(function () {
         comparison_modal.find('.content').empty();
         comparison_modal.modal('hide');
+    });
+    $('#compare_versions').click(function () {
+        let versions = checked_versions();
+        if (versions.length !== 2) err_notify($('#error__select_two_vers').text());
+        else {
+            $.post(`/jobs/compare-versions/${$('#job_id').val()}/${versions[0]}/${versions[1]}/`, {}, function (resp) {
+                comparison_modal.find('.content').html(resp);
+                comparison_modal.modal('show');
+                init_file_actions();
+            });
+        }
     });
 };

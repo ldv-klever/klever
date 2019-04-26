@@ -47,7 +47,7 @@ urlpatterns = [
 
     path('get_files_diff/<slug:hashsum1>/<slug:hashsum2>/', api.GetFilesDiffView.as_view(), name='files-diff'),
     path('api/replace-job-file/', api.ReplaceJobFileView.as_view()),
-    path('downloadcompetfile/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='download_file_for_compet'),
+    path('svcomp-files/<int:pk>/', views.DownloadFilesForCompetition.as_view(), name='svcomp-files'),
 
     # Download/upload actions
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
@@ -57,25 +57,25 @@ urlpatterns = [
     path('upload_jobs_tree/', views.UploadJobsTreeView.as_view()),
 
     # Actions with job versions
-    path('remove_versions/<int:pk>/', views.RemoveJobVersions.as_view()),
-    path('compare_versions/<int:pk>/', views.CompareJobVersionsView.as_view()),
+    path('api/remove-versions/<int:job_id>/', api.RemoveJobVersions.as_view(), name='api-remove-versions'),
+    path('compare-versions/<int:pk>/<int:version1>/<int:version2>/', views.CompareJobVersionsView.as_view()),
 
     # Actions with job solving
     path('prepare_run/<int:pk>/', views.PrepareDecisionView.as_view(), name='prepare_run'),
-    path('download_configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view()),
-    path('start_job_def_value/', api.StartJobDefValue.as_view()),
-    path('run_decision/<int:job_id>/', views.StartDecision.as_view()),
-    path('stop_decision/<int:pk>/', views.StopDecisionView.as_view()),
+    path('download-configuration/<int:pk>/', views.DownloadRunConfigurationView.as_view(), name='download-conf'),
+    path('api/configuration/', api.GetConfigurationView.as_view(), name='api-configuration'),
+    path('api/conf-def-value/', api.StartJobDefValueView.as_view(), name='api-def-start-value'),
+    path('api/decide/<int:job_id>/', api.StartDecisionView.as_view(), name='api-decide'),
+    path('api/stop/<int:job_id>/', api.StopDecisionView.as_view(), name='api-cancel-decision'),
     path('api/download-files/<uuid:identifier>/', api.CoreJobArchiveView.as_view()),
 
     # "Utils"
-    path('get_job_field/', views.GetJobFieldView.as_view()),
-    path('do_job_has_children/<int:pk>/', views.DoJobHasChildrenView.as_view()),
+    path('get_job_field/', api.GetJobFieldView.as_view()),
+    path('do_job_has_children/<int:pk>/', api.DoJobHasChildrenView.as_view()),
     path('api/can_download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
     path('api/can_compare/<int:job1>/<int:job2>/', api.CheckCompareAccessView.as_view(), name='api-can-compare'),
-    path('get_job_progress_json/<int:pk>/', views.JobProgressJson.as_view()),
 
     # Actions with reports
-    path('upload_reports/<int:pk>/', views.UploadReportsView.as_view()),
-    path('collapse_reports/<int:pk>/', views.CollapseReportsView.as_view()),
+    path('api/upload-reports/<int:pk>/', api.UploadReportsView.as_view(), name='api-upload-reports'),
+    path('api/collapse/<int:pk>/', api.CollapseReportsView.as_view(), name='api-collapse-reports'),
 ]

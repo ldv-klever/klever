@@ -144,25 +144,25 @@ UNSAFE_MARKS_VIEW = {
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from MARK_UNSAFE>]
+    # status: [<ids from MARK_STATUS>]
+    # verdict: [<ids from MARK_UNSAFE>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_SOURCE>]
+    # source: [<ids from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'verdict': ['is', '0'],
+    # 'status': ['0'],
+    # 'verdict': ['0'],
     # 'author': [1]
-    # 'source': ['is', '2'],
+    # 'source': ['2'],
     # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 SAFE_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [up|down, change_date|attr, <any text, empty if not attr>]
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -175,33 +175,33 @@ SAFE_MARKS_VIEW = {
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'verdict': ['is', '0'],
+    # 'status': ['0'],
+    # 'verdict': ['0'],
     # 'author': [1]
-    # 'source': ['is', '2'],
+    # 'source': ['2'],
     # 'attr': ['Requirement', 'iexact', 'linux:mutex'],
 }
 
 UNKNOWN_MARKS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
+    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'problem_pattern'],
     # order: [up|down, change_date|num_of_links|attr|component, <any text, empty if not attr>]
     'order': ['up', 'change_date'],
 
     # FILTERS:
     # identifier: [<mark identifier>]
-    # status: [is|isnot, <id from MARK_STATUS>]
-    # component: [is|startswith, <any text>]
+    # status: [<ids from MARK_STATUS>]
+    # component: [iexact|istartswith, <any text>]
     # author: [<author id>]
-    # source: [is|isnot, <id from MARK_SOURCE>]
+    # source: [<ids from MARK_SOURCE>]
     # attr: [<Attr name>, iexact|istartswith|iendswith|icontains, <Attr value>]
     # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
-    # 'status': ['is', '0'],
-    # 'component': ['startswith', '0'],
+    # 'status': ['0', '2'],
+    # 'component': ['istartswith', 'Com'],
     # 'author': [1]
-    # 'source': ['is', '2'],
+    # 'source': ['2'],
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
@@ -209,13 +209,13 @@ UNSAFE_ASS_MARKS_VIEW = {
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
-    # similarity: <sublist from ['0', '50', '100']>
+    # similarity: [exact|lt|gt, "<integer>"]
     # status: <list of identifiers from MARK_STATUS>
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
 
     # EXAMPLES:
     # 'verdict': ['0', '2'],
-    'similarity': ['50', '100'],
+    'similarity': ['30'],
     # 'status': ['1'],
     # 'ass_type': ['0', '1'],
 }
@@ -251,11 +251,11 @@ UNSAFE_MARK_ASS_REPORTS_VIEW = {
     'columns': ['job', 'similarity', 'ass_type', 'ass_author', 'likes'],
 
     # FILTERS:
-    # similarity: <sublist from ['0', '50', '100']>
+    # similarity: [exact|lt|gt, "<integer>"]
     # ass_type: <list of identifiers from ASSOCIATION_TYPE>
 
     # EXAMPLES:
-    'similarity': ['50', '100'],
+    'similarity': ['gt', '30'],
     # 'ass_type': ['0', '1'],
 }
 

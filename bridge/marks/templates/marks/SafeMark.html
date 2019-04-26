@@ -39,8 +39,8 @@
                 <div class="ui inverted popup bottom left transition hidden">
                     <a href="{% url 'marks:download_mark' 'safe' mark.pk %}" class="item">{% trans 'Download' %}</a>
                     <a href="{% url 'marks:download_preset_mark' 'safe' mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
-                    <a href="{% url 'marks:mark_form' 'safe' mark.pk 'edit' %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
-                    <a id="show_remove_mark_popup" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
+                    <a href="{% url 'marks:safe-edit' mark.pk %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
+                    <a id="remove_mark_modal_show" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
                 </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
@@ -55,7 +55,7 @@
                     </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Source' %}</th>
-                        <td>{{ mark.get_type_display }}</td>
+                        <td>{{ mark.get_source_display }}</td>
                     </tr>
                     {% if mark.author %}
                         <tr>
@@ -78,16 +78,16 @@
                     </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Status' %}</th>
-                        <td><span class="mark-status-{{ mark.status }}">{{ mark.get_status_display }}</span></td>
+                        <td><span class="with-shadow mark-status-{{ mark_version.status }}">{{ mark_version.get_status_display }}</span></td>
                     </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Verdict' %}</th>
-                        <td><span class="safe-verdict-{{ mark.verdict }}">{{ mark.get_verdict_display }}</span></td>
+                        <td><span class="with-shadow safe-verdict-{{ mark_version.verdict }}">{{ mark_version.get_verdict_display }}</span></td>
                     </tr>
-                    {% if mark.description %}
+                    {% if mark_version.description %}
                         <tr>
                             <th class="right aligned">{% trans 'Description' %}</th>
-                            <td>{{ mark.description|safe }}</td>
+                            <td>{{ mark_version.description|safe }}</td>
                         </tr>
                     {% endif %}
                 </tbody>
@@ -96,7 +96,9 @@
             <div class="ui horizontal segments" style="margin-top: 0">
                 <div class="ui pink segment">
                     <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    <div id="tags_tree" class="tagsmap">
+                        {% include 'marks/MarkTagsTree.html' with tags=tags view_only=True %}
+                    </div>
                 </div>
             </div>
 
@@ -131,24 +133,23 @@
         <div class="nine wide column">
             {# Mark versions list #}
             {% if access.can_edit %}
-                {% trans 'Mark versions' as versions_title %}
-                {% include 'marks/versions.html' with versions=versions title=versions_title %}
+                {% include 'marks/versions.html' with versions=versions %}
             {% endif %}
 
             <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
             {# View for associated reports #}
-            {% include reports.view.template with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+            {% include reports.view.template with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns ass_types=reports.ass_types %}
 
             {# Associated reports table #}
             {% if reports.values|length %}
                 <br>
                 <div>
-                    {% if reports.values.has_previous %}
-                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ reports.values.previous_page_number }}"></i>
+                    {% if reports.page.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ reports.page.previous_page_number }}"></i>
                     {% endif %}
-                    <span>{% blocktrans with n1=reports.values.number n2=reports.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
-                    {% if reports.values.has_next %}
-                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ reports.values.next_page_number }}"></i>
+                    <span>{% blocktrans with n1=reports.page.number n2=reports.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if reports.page.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ reports.page.next_page_number }}"></i>
                     {% endif %}
                 </div>
                 <div style="overflow-x: auto;">
@@ -186,7 +187,7 @@
     </div>
 
     {% if access.can_delete %}
-        <div id="remove_mark_popup" class="ui basic modal">
+        <div id="remove_mark_modal" class="ui basic modal">
             <div class="ui icon header">
                 <i class="warning sign icon"></i>
                 {% trans 'Are you sure' %}?
@@ -198,15 +199,14 @@
             </div>
             <div class="actions">
                 <div class="ui center aligned grid">
-                    <button id="cancel_remove_mark" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                    <button id="confirm_remove_mark" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                    <button class="ui blue basic inverted button modal-cancel">{% trans 'Cancel' %}</button>
+                    <button class="ui red basic inverted button modal-confirm"
+                            data-url="{% url 'marks:api-safe-detail' mark.pk %}" data-redirect="{% url 'marks:safe-list' %}"
+                    >{% trans 'Delete' %}</button>
                 </div>
             </div>
         </div>
     {% endif %}
     <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
     <input id="mark_type" type="hidden" value="safe">
-    {% if report_id %}
-        <input id="report_id" type="hidden" value="{{ report_id }}">
-    {% endif %}
 {% endblock %}

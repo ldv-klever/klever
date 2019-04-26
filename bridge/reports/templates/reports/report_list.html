@@ -41,32 +41,7 @@
         </div>
         <div class="nine wide column">
             <button id="view_show_form_btn_{{ TableData.view.type }}" class="ui tiny violet button" style="float:right;margin-right: 10px;">{{ TableData.view.viewtitle }}</button>
-
-            {% if TableData.parents %}
-                <div class="ui breadcrumb">
-                    <a class="section parent-popup" href="{{ TableData.parents.0.href }}" data-variation="very wide">{{ TableData.parents.0.title }}</a>
-                    <div class="ui special popup">
-                        <div class="header">{{ TableData.parents.0.title }}</div>
-                        <div class="content">
-                            {% for attr in TableData.parents.0.attrs %}
-                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% for parent in TableData.parents|slice:"1:" %}
-                        <i class="right arrow icon divider"></i>
-                        <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
-                        <div class="ui special popup">
-                            <div class="header">{{ parent.title }}</div>
-                            <div class="content">
-                                {% for attr in parent.attrs %}
-                                    <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            {% if TableData.parents %}{% include 'reports/parents_breadcrumb.html' with parents=TableData.parents %}{% endif %}
         </div>
     </div>
     <br>

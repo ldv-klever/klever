@@ -21,33 +21,28 @@ import uuid
 import zipfile
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-from django.db import transaction
-from django.db.models import Q, F
+from django.db.models import Q
 from django.utils.timezone import now
 from django.utils.functional import cached_property
 
 from rest_framework import exceptions, fields, serializers
 
-from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE
+from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME
 from bridge.utils import logger, extract_archive, CheckArchiveError
 
-import marks.SafeUtils as SafeUtils
-import marks.UnsafeUtils as UnsafeUtils
-import marks.UnknownUtils as UnknownUtils
-
 from reports.models import (
-    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ComponentResource, ReportAttr,
-    ReportComponentLeaf, ComponentInstances, CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources
+    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr,
+    ReportComponentLeaf, CoverageArchive, AttrFile, Computer, OriginalSources, AdditionalSources
 )
+from marks.SafeUtils import ConnectSafeReport
+from marks.UnsafeUtils import ConnectUnsafeReport
+from marks.UnknownUtils import ConnectUnknownReport
 from service.models import Task, Decision
 from service.utils import FinishJobDecision
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
 
 from reports.serializers import ReportAttrSerializer, ComputerSerializer
-
-SUBJOB_NAME = 'Subjob'
 
 
 class ReportParentField(serializers.SlugRelatedField):
@@ -58,7 +53,7 @@ class ReportParentField(serializers.SlugRelatedField):
         super(ReportParentField, self).__init__(*args, **kwargs)
 
     def get_queryset(self):
-        return super().get_queryset().filter(root=self.root.reportroot)
+        return super().get_queryset().filter(root=getattr(self.root, 'reportroot'))
 
 
 class ReportAttrsField(fields.ListField):
@@ -154,7 +149,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
             return parent.computer
         raise exceptions.ValidationError(detail={'computer': "Required"})
 
-    def __parent_attributes(self, parent, select_fields=None):
+    def parent_attributes(self, parent, select_fields=None):
         if not select_fields:
             select_fields = ['name', 'value', 'compare', 'associate', 'data_id']
         parents_ids = parent.get_ancestors(include_self=True).values_list('id', flat=True)
@@ -177,7 +172,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
                 raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine attributes'})
 
         if parent:
-            ancestors_attrs = self.__parent_attributes(parent, select_fields=['name'])
+            ancestors_attrs = self.parent_attributes(parent, select_fields=['name'])
             ancestors_attrs_set = set(p_attr['name'] for p_attr in ancestors_attrs)
             if ancestors_attrs_set & new_attrs_set:
                 raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine parent attributes'})
@@ -213,16 +208,17 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 
 class ReportComponentSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
+    parent = ReportParentField(allow_null=True)  # Allow null parent for Core
 
-    def validate(self, value):
+    def create(self, validated_data):
         # Validate report parent
-        if not value.get('parent'):
+        if not validated_data.get('parent'):
             if ReportComponent.objects.filter(root=self.reportroot, parent=None).exists():
                 raise exceptions.ValidationError(detail={'parent': "The report parent is required"})
-        elif value['parent'].parent is not None and value['component'] == SUBJOB_NAME:
+        elif validated_data['parent'].parent is not None \
+                and validated_data['component'] == SUBJOB_NAME:
             raise exceptions.ValidationError(detail={'parent': "Subjob parent is not Core"})
-
-        return super().validate(value)
+        return super().create(validated_data)
 
     class Meta:
         model = ReportComponent
@@ -256,7 +252,7 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original'
+            'cpu_time', 'wall_time', 'memory', 'log', 'verifier_input', 'original', 'task'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
@@ -268,7 +264,7 @@ class ReportVerificationSerializer(UploadBaseSerializer):
 class ReportUnknownSerializer(UploadBaseSerializer):
     def create(self, validated_data):
         cache_obj = ReportUnknownCache(job_id=validated_data['root'].job_id)
-        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['component'] = validated_data['parent'].component
         if validated_data['parent'].verification:
@@ -293,7 +289,7 @@ class ReportSafeSerializer(UploadBaseSerializer):
 
     def create(self, validated_data):
         cache_obj = ReportSafeCache(job_id=validated_data['root'].job_id)
-        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
         validated_data['wall_time'] = validated_data['parent'].wall_time
@@ -327,7 +323,7 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
         else:
             required_fields = ['thread']
         for field_name in required_fields:
-            if field_name not in node or node[required_fields] is None:
+            if field_name not in node or node[field_name] is None:
                 self.fail('wrong_format')
         if node.get('children'):
             for child in node['children']:
@@ -353,7 +349,7 @@ class ReportUnsafeSerializer(UploadBaseSerializer):
         cache_obj = ReportUnsafeCache(job_id=validated_data['root'].job_id)
         # Random unique identifier
         validated_data['identifier'] = '{0}/unsafe/{1}'.format(validated_data['parent'].identifier, uuid.uuid4())[:255]
-        validated_data['attrs'] = self.__parent_attributes(validated_data['parent']) + validated_data['attrs']
+        validated_data['attrs'] = self.parent_attributes(validated_data['parent']) + validated_data['attrs']
         cache_obj.attrs = dict((attr['name'], attr['value']) for attr in validated_data['attrs'])
         validated_data['cpu_time'] = validated_data['parent'].cpu_time
         validated_data['wall_time'] = validated_data['parent'].wall_time
@@ -388,13 +384,22 @@ class UploadReport:
         if isinstance(exc, exceptions.ValidationError):
             err_detail = exc.detail
         else:
-            err_detail = {settings.NON_FIELD_ERRORS_KEY: 'Unknown error: {}'.format(exc)}
+            logger.exception(exc)
+            err_detail = {settings.REST_FRAMEWORK['NON_FIELD_ERRORS_KEY']: 'Unknown error: {}'.format(exc)}
         # TODO: process exceptions in FinishJobDecision
         FinishJobDecision(self.job, JOB_STATUS[5][0], self.__collapse_detail(err_detail))
         raise exceptions.ValidationError(detail=err_detail)
 
     def __collapse_detail(self, value):
         # TODO: collapse error structure to string
+        print(type(value))
+        if isinstance(value, dict):
+            error_list = []
+            for name, val in value.items():
+                error_list.append('{}: {}'.format(name, self.__collapse_detail(val)))
+            return '<br>'.join(error_list)
+        elif isinstance(value, list):
+            return '<br>'.join(value)
         return str(value)
 
     def __upload(self, data):
@@ -460,12 +465,12 @@ class UploadReport:
     def _is_fullweight(self):
         return self.job.weight == JOB_WEIGHT[0][0]
 
-    def __get_report(self, identifier, model=ReportComponent):
+    def __get_report(self, identifier):
         if not identifier:
             raise exceptions.ValidationError(detail={'identifier': "Required"})
         try:
-            return model.objects.get(root=self.root, identifier=identifier)
-        except model.DoesNotExist:
+            return ReportComponent.objects.get(root=self.root, identifier=identifier)
+        except ReportComponent.DoesNotExist:
             raise exceptions.ValidationError(detail={'identifier': "The report wasn't found"})
 
     def __ancestors_for_cache(self, report):
@@ -483,7 +488,8 @@ class UploadReport:
         )
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
-        self.__update_instances_cache(report, self.__ancestors_for_cache(report))
+
+        self.__update_root_cache(report.component, started=True)
 
         if report.parent is None:
             self.__start_decision()
@@ -502,9 +508,10 @@ class UploadReport:
             carch = CoverageArchive(report=report)
             carch.add_coverage(self.__get_archive(data['coverage']), save=True)
 
-        ancestrors_ids = self.__ancestors_for_cache(report)
-        self.__update_resources_cache(report, ancestrors_ids)
-        self.__update_instances_cache(report, ancestrors_ids)
+        self.__update_root_cache(
+            report.component, started=True,
+            cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
+        )
 
     def __upload_coverage(self, data):
         # Uploads global coverage
@@ -553,48 +560,39 @@ class UploadReport:
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
 
+        self.__update_root_cache(
+            report.component, finished=True,
+            cpu_time=report.cpu_time, wall_time=report.wall_time, memory=report.memory
+        )
+
         # Get report ancestors before report might be deleted
-        parents_ids = self.__ancestors_for_cache(report)
         if report.parent and not self._is_fullweight:
             # WARNING: If report has children it will be deleted!
             # It means verification reports (children) are not finished yet.
             report.delete()
-        self.__update_resources_cache(report, parents_ids)
-
-        if report.pk:
-            # Include self for updating component instances cache
-            parents_ids.append(report.pk)
-        ComponentInstances.objects.filter(report_id__in=parents_ids, component=report.component, in_progress__gt=0)\
-            .update(in_progress=(F('in_progress') - 1))
 
     def __finish_verification_report(self, data):
         report = self.__get_report(data.get('identifier'))
         if not report.verification:
             raise exceptions.ValidationError(detail={'identifier': "The report is not verification"})
 
-        # Get report ancestors before report might be deleted
-        ancestors_ids = self.__ancestors_for_cache(report)
+        self.__update_root_cache(report.component, finished=True)
+
         if not self._is_fullweight:
-            # Set parent to Core for lightweight jobs
-            report.parent_id = ancestors_ids[0]
+            if report.is_leaf_node():
+                # Remove verification report if it doesn't have children for lightweight jobs
+                report.delete()
+                return
+            # Set parent to Core for lightweight jobs that will be preserved
+            report.parent = ReportComponent.objects.get(root=self.root, parent=None)
 
-        if not self._is_fullweight and report.is_leaf_node():
-            # Remove verification report if it doesn't have children for lightweight jobs
-            report.delete()
-        else:
-            # Save report with new data
-            report.finish_date = now()
-            report.save()
-            # Update instances cache also for self
-            ancestors_ids.append(report.pk)
-
-        # Update instances cache
-        ComponentInstances.objects.filter(report_id__in=ancestors_ids, component=report.component, in_progress__gt=0)\
-            .update(in_progress=(F('in_progress') - 1))
+        # Save report with new data
+        report.finish_date = now()
+        report.save()
 
     def __create_report_unknown(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
-        data['problem_description'] = self.__get_archive(data['problem desc'])
+        data['problem_description'] = self.__get_archive(data['problem_description'])
         serializer = ReportUnknownSerializer(data=data, reportroot=self.root)
         serializer.is_valid(raise_exception=True)
         report = serializer.save()
@@ -609,11 +607,11 @@ class UploadReport:
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
-            ReportComponentLeaf(report_id=parent_id, unknown=report) for parent_id in ancestors_ids
+            ReportComponentLeaf(report_id=parent_id, content_object=report) for parent_id in ancestors_ids
         ))
 
         # Connect report with marks
-        UnknownUtils.ConnectReport(report)
+        ConnectUnknownReport(report)
 
     def __create_report_safe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -624,12 +622,12 @@ class UploadReport:
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
-            ReportComponentLeaf(report_id=parent_id, safe=report)
+            ReportComponentLeaf(report_id=parent_id, content_object=report)
             for parent_id in self.__ancestors_for_cache(report)
         ))
 
         # Connect report with marks
-        SafeUtils.ConnectReport(report)
+        ConnectSafeReport(report)
 
     def __create_report_unsafe(self, data):
         data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
@@ -640,61 +638,36 @@ class UploadReport:
 
         # Caching leaves for each tree branch node
         ReportComponentLeaf.objects.bulk_create(list(
-            ReportComponentLeaf(report_id=parent_id, safe=report)
+            ReportComponentLeaf(report_id=parent_id, content_object=report)
             for parent_id in self.__ancestors_for_cache(report)
         ))
 
         # Connect new unsafe with marks
-        UnsafeUtils.ConnectReport(report)
-        UnsafeUtils.RecalculateTags([report])
+        ConnectUnsafeReport(report)
 
-    @transaction.atomic
-    def __update_instances_cache(self, report, ancestors_ids):
-        for parent_id in ancestors_ids:
-            try:
-                comp_inst = ComponentInstances.objects.get(report_id=parent_id, component=report.component)
-            except ObjectDoesNotExist:
-                comp_inst = ComponentInstances(report_id=parent_id, component=report.component)
-            comp_inst.in_progress += 1
-            comp_inst.total += 1
-            comp_inst.save()
+    def __update_root_cache(self, component, **kwargs):
+        # Update resources cache
+        self.root.resources.setdefault(component, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
+        self.root.resources.setdefault('total', {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
+        if kwargs.get('cpu_time'):
+            self.root.resources[component]['cpu_time'] += kwargs['cpu_time']
+            self.root.resources['total']['cpu_time'] += kwargs['cpu_time']
+        if kwargs.get('wall_time'):
+            self.root.resources[component]['wall_time'] += kwargs['cpu_time']
+            self.root.resources['total']['wall_time'] += kwargs['cpu_time']
+        if kwargs.get('memory'):
+            self.root.resources[component]['memory'] = max(kwargs['memory'], self.root.resources[component]['memory'])
+            self.root.resources['total']['memory'] = max(kwargs['memory'], self.root.resources['total']['memory'])
 
-        if self._is_fullweight or report.verification or report.parent is None:
-            # Create component instances for the new report
-            ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
+        # Update instances cache
+        self.root.instances.setdefault(component, {'finished': 0, 'total': 0})
+        if kwargs.get('started'):
+            self.root.instances[component]['total'] += 1
+        if kwargs.get('finished'):
+            self.root.instances[component]['finished'] += 1
 
-    @transaction.atomic
-    def __update_resources_cache(self, report, ancestors_ids):
-        # Otherwise report is deleted already or not saved yet
-        if report.pk:
-            # Create component resources cache for the new report
-            ComponentResource.objects.create(
-                report_id=report.pk, component=report.component,
-                memory=report.memory, cpu_time=report.cpu_time, wall_time=report.wall_time
-            )
-            if not report.verification:
-                # Create total resources cache for the new report
-                ComponentResource.objects.create(
-                    report_id=report.pk, memory=report.memory, cpu_time=report.cpu_time, wall_time=report.wall_time
-                )
-
-        # Update component resources cache for each parent
-        for parent_id in ancestors_ids:
-            try:
-                cr = ComponentResource.objects.get(report_id=parent_id, component=report.component)
-            except ComponentResource.DoesNotExist:
-                cr = ComponentResource(report_id=parent_id, component=report.component)
-            cr.memory = max(report.memory, cr.memory)
-            cr.cpu_time += report.cpu_time
-            cr.wall_time += report.wall_time
-            cr.save()
-
-        # Update total resources cache for each parent
-        for total_cr in ComponentResource.objects.filter(report_id__in=ancestors_ids, component=None):
-            total_cr.memory = max(total_cr.memory, report.memory)
-            total_cr.cpu_time += report.cpu_time
-            total_cr.wall_time += report.wall_time
-            total_cr.save()
+        # Save
+        self.root.save()
 
     def __upload_attrs_files(self, archive):
         if not archive:
@@ -725,7 +698,7 @@ def collapse_reports(job):
         return
     core = ReportComponent.objects.get(root=root, parent=None)
     ReportComponent.objects.filter(root=root, verification=True).update(parent=core)
-    ReportUnknown.objects.filter(root=root, parent__verification=False).udpate(parent=core)
+    ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core)
     # Remove all non-verification reports except Core
     ReportComponent.objects.filter(root=root).exclude(Q(verification=True) | Q(parent=None)).delete()
     job.weight = JOB_WEIGHT[1][0]

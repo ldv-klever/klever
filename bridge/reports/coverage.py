@@ -27,7 +27,7 @@ from django.core.files import File as NewFile
 from django.db import transaction
 from django.template import loader
 
-from bridge.vars import COVERAGE_FILE
+from bridge.vars import COVERAGE_FILE, JOB_WEIGHT
 
 from reports.models import CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics, CoverageArchive
 
@@ -151,7 +151,10 @@ class GetCoverage:
         self.coverage_archives = self.report.coverages.order_by('identifier').values_list('id', 'identifier')
         self.job = self.report.root.job
 
-        self.parents = get_parents(self.report)
+        self.parents = None
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.parents = get_parents(self.report)
+
         self._statistic = CoverageStatistics(self.cov_arch)
         self.statistic_table = self._statistic.table_data
         if self._statistic.first_file:

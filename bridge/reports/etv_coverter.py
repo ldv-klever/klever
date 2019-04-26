@@ -1,7 +1,62 @@
+import re
 import argparse
 import json
 
 from django.utils.functional import cached_property
+
+KEY1_WORDS = {
+    '#ifndef', '#elif', '#undef', '#ifdef', '#include', '#else', '#define',
+    '#if', '#pragma', '#error', '#endif', '#line'
+}
+
+KEY2_WORDS = {
+    'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'break', 'inline', 'for', 'default', 'else', 'const',
+    'switch', 'continue', 'do', 'union', 'extern', 'int', 'void', 'case', 'enum', 'short', 'float', 'struct', 'auto',
+    'long', 'goto', 'volatile', 'return', 'signed', 'register', 'while', 'char'
+}
+
+
+def parse_code(code, offset=0):
+    m = re.match(r'^(.*?)(/\*.*?\*/)(.*)$', code)
+    if m is not None:
+        pos1 = offset + len(m.group(1))
+        pos2 = pos1 + len(m.group(2))
+        curr_h = ['comment', pos1, pos2]
+        data = parse_code(m.group(1), offset=offset)
+        data.append(curr_h)
+        data.extend(parse_code(m.group(3), offset=pos2))
+        return data
+    m = re.match(r'^(.*?)([\'\"])(.*)$', code)
+    if m is not None:
+        m2 = re.match(r'^(.*?)(?<!\\)(?:\\\\)*%s(.*)$' % m.group(2), m.group(3))
+        if m2 is not None:
+            pos1 = offset + len(m.group(1))
+            pos2 = pos1 + len(m.group(2) + m2.group(1) + m.group(2))
+            curr_h = ['text', pos1, pos2]
+            data = parse_code(m.group(1), offset=offset)
+            data.append(curr_h)
+            data.extend(parse_code(m2.group(2), offset=pos2))
+            return data
+    m = re.match(r'^(.*?\W)(\d+)(\W.*)$', code)
+    if m is not None:
+        pos1 = offset + len(m.group(1))
+        pos2 = pos1 + len(m.group(2))
+        curr_h = ['number', pos1, pos2]
+        data = parse_code(m.group(1), offset=offset)
+        data.append(curr_h)
+        data.extend(parse_code(m.group(3), offset=pos2))
+        return data
+
+    data = []
+    curr_offset = offset
+    for word in re.split('([^a-zA-Z0-9-_#])', code):
+        pos2 = curr_offset + len(word)
+        if word in KEY1_WORDS:
+            data.append(['key1', curr_offset, pos2])
+        elif word in KEY2_WORDS:
+            data.append(['key2', curr_offset, pos2])
+        curr_offset = pos2
+    return data
 
 
 def get_error_trace_nodes(data):
@@ -54,7 +109,7 @@ class ConvertTrace:
         return self.edges[self.nodes[0]]['thread']
 
     def __fill_globals(self):
-        self._data['global'] = []
+        self._data['global variable declarations'] = []
 
         if not self.has_global:
             return
@@ -65,6 +120,9 @@ class ConvertTrace:
             if not self.edge.get('source'):
                 continue
             line_data = {'line': self.line, 'file': self.file, 'source': self.edge['source']}
+            highlight = parse_code(self.edge['source'])
+            if highlight:
+                line_data['highlight'] = highlight
             if self.edge.get('assumption'):
                 line_data['assumption'] = self.edge['assumption']
             if self.edge.get('warn'):
@@ -119,7 +177,7 @@ class ConvertTrace:
 
     def __enter_function(self):
         self.__enter_node(NodeObject(
-            'function', line=self.line, file=self.file, source=self.edge.get('source'),
+            'function call', line=self.line or 1, file=self.file, source=self.edge.get('source'),
             display=self.edge.get('entry_point') or self.functions[self.edge['enter']],
             condition=self.edge.get('condition'), assumption=self.edge.get('assumption'),
             note=self.edge.get('warn') or self.edge.get('note'), violation=bool(self.edge.get('warn'))
@@ -129,7 +187,7 @@ class ConvertTrace:
         parent = self.pointer
         # Exit thread and action if we are inside
         while parent:
-            if parent.type == 'function':
+            if parent.type == 'function call':
                 self.pointer = parent.parent
                 if parent.double_return:
                     # If we need double return, then return from the current pointer also
@@ -252,8 +310,12 @@ class NodeObject:
         if self.type == 'action' and self._callback:
             data['callback'] = True
 
-        if self.type == 'function' or self.type == 'statement':
+        if self.type in {'statement', 'function call'}:
             data['source'] = self._source
+            if self._source:
+                hl = parse_code(self._source)
+                if hl:
+                    data['highlight'] = hl
             if self._condition:
                 data['condition'] = self._condition
             if self._assumption:
@@ -314,6 +376,27 @@ def test_repl():
     ]))
 
 
+def check_node(node):
+    if not isinstance(node, dict):
+        raise ValueError('Not a dict')
+    if node.get('type') not in {'function call', 'statement', 'action', 'thread'}:
+        raise ValueError('Wrong type: {}'.format(node.get('type')))
+    if node['type'] == 'function call':
+        required_fields = ['line', 'file', 'source', 'children', 'display']
+    elif node['type'] == 'statement':
+        required_fields = ['line', 'file', 'source']
+    elif node['type'] == 'action':
+        required_fields = ['line', 'file', 'display']
+    else:
+        required_fields = ['thread']
+    for field_name in required_fields:
+        if field_name not in node or node[field_name] is None:
+            raise ValueError('Node with type {} requires {}'.format(node['type'], field_name))
+    if node.get('children'):
+        for child in node['children']:
+            check_node(child)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('trace', type=str, help='Path to the error trace json')
@@ -322,5 +405,7 @@ if __name__ == '__main__':
     with open(args.trace, mode='r', encoding='utf-8') as fp:
         converter = ConvertTrace(json.load(fp))
     filename = args.out or 'new_et.json'
+    error_trace_data = converter.data
+    check_node(error_trace_data['trace'])
     with open(filename, mode='w', encoding='utf-8') as fp:
-        json.dump(converter.data, fp, indent=2, sort_keys=True, ensure_ascii=False)
+        json.dump(error_trace_data, fp, indent=2, sort_keys=True, ensure_ascii=False)

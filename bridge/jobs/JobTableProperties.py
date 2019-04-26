@@ -29,7 +29,7 @@ from bridge.utils import construct_url
 from bridge.tableHead import ComplexHeaderMixin
 
 from jobs.models import Job, JobHistory, UserRole
-from reports.models import ReportRoot, ReportComponent, ComponentResource
+from reports.models import ReportRoot, ReportComponent
 
 from users.utils import HumanizedValue
 from jobs.utils import SAFES, UNSAFES, TITLES, JobAccess
@@ -263,21 +263,29 @@ class TableTree(ComplexHeaderMixin):
             columns.append('tag:unsafe:{}'.format(self.slugify(tag)))
         return columns
 
-    def __resource_columns(self):
-        # Get filters
-        filters = {'report__root_id__in': self._roots}
-        if 'resource_component' in self.view:
-            filters['component__' + self.view['resource_component'][0]] = self.view['resource_component'][1]
+    def __filter_component(self, component):
+        if component == 'total':
+            return False
+        if 'resource_component' not in self.view:
+            return True
+        if self.view['resource_component'][0] == 'iexact':
+            return self.view['resource_component'][1].lower() == component.lower()
+        if self.view['resource_component'][0] == 'istartswith':
+            return component.lower().startswith(self.view['resource_component'][1].lower())
+        if self.view['resource_component'][0] == 'icontains':
+            return self.view['resource_component'][1].lower() in component.lower()
+        return True
 
-        # Get resource columns and fill its titles (components' names)
-        resource_qs = ComponentResource.objects.filter(**filters).exclude(component=None)
+    def __resource_columns(self):
+        components = set()
+        for root in ReportRoot.objects.filter(id__in=self._roots).only('resources'):
+            components |= set(root.resources)
         resource_columns = []
-        for c_name in list(sorted(set(resource_qs.values_list('component', flat=True)))):
+        for c_name in sorted(list(c for c in components if self.__filter_component(c))):
             column = 'resource:{}'.format(self.slugify(c_name))
             self._titles[column] = c_name
             resource_columns.append(column)
         resource_columns.append('resource:total')
-
         return resource_columns
 
     def __unknowns_columns(self):
@@ -390,7 +398,7 @@ class TableTree(ComplexHeaderMixin):
                 'date': self.__get_cell(HumanizedValue(job_version.change_date, user=self._user).date),
                 'author': self.__get_cell(author_val, url=author_url),
                 'status': self.__get_cell(job_version.job.get_status_display(), url=status_url),
-
+                'version': self.__get_cell(job_version.version)
             })
 
     def __get_safes_without_confirmed(self):
@@ -472,7 +480,7 @@ class TableTree(ComplexHeaderMixin):
             self._values_data[j_id][verdicts.column(v)] = {'html': html_value, 'number': html_number}
 
         # Add numbers of total safes of the job
-        for j_id, total_data in total_safes.values():
+        for j_id, total_data in total_safes.items():
             total, confirmed = total_data['total'], total_data['confirmed']
             html_number = total
             if total > 0:
@@ -514,7 +522,7 @@ class TableTree(ComplexHeaderMixin):
             self._values_data[j_id][verdicts.column(v)] = {'html': html_value, 'number': html_number}
 
         # Add numbers of total safes of the job
-        for j_id, total_data in total_unsafes.values():
+        for j_id, total_data in total_unsafes.items():
             total, confirmed = total_data['total'], total_data['confirmed']
             html_number = total
             if total > 0:
@@ -557,7 +565,7 @@ class TableTree(ComplexHeaderMixin):
                 unmarked[j_id][component] += 1
 
             totals.setdefault(j_id, {})
-            totals[j_id].setdeault(component, 0)
+            totals[j_id].setdefault(component, 0)
             totals[j_id][component] += 1
 
         # Get numbers of problems
@@ -621,18 +629,15 @@ class TableTree(ComplexHeaderMixin):
                 self._values_data[j_id][column] = self.__get_cell(num, url=url, number=num)
 
     def __collect_resourses(self):
-        for cr in ComponentResource.objects.filter(report__root_id__in=self._roots, report__parent=None)\
-                .annotate(root_id=F('report__root_id')):
-            if cr.component is None:
-                column = 'resource:total'
-            else:
-                column = 'resource:{}'.format(self.slugify(cr.component))
-            resource_value = "{} {} {}".format(
-                HumanizedValue(cr.wall_time, user=self._user).timedelta,
-                HumanizedValue(cr.cpu_time, user=self._user).timedelta,
-                HumanizedValue(cr.memory, user=self._user).memory,
-            )
-            self._values_data[self._roots[cr.root_id]][column] = self.__get_cell(resource_value)
+        for root in ReportRoot.objects.filter(id__in=self._roots).only('resources', 'job_id'):
+            for component in root.resources:
+                column = 'resource:{}'.format(self.slugify(component))
+                value = "{} {} {}".format(
+                    HumanizedValue(root.resources[component]['wall_time'], user=self._user).timedelta,
+                    HumanizedValue(root.resources[component]['cpu_time'], user=self._user).timedelta,
+                    HumanizedValue(root.resources[component]['memory'], user=self._user).memory,
+                )
+                self._values_data[root.job_id][column] = self.__get_cell(value)
 
     def __collect_roles(self):
         author_of = set(Job.objects.filter(id__in=self._job_ids, author=self._user).values_list('id', flat=True))
@@ -665,7 +670,7 @@ class TableTree(ComplexHeaderMixin):
     def __collect_progress_data(self):
         decisions_qs = Decision.objects.filter(job_id__in=self._job_ids)
 
-        for progress in ProgressSerializerRO(instance=decisions_qs, many=True).data:
+        for progress in ProgressSerializerRO(instance=decisions_qs, many=True, context={'user': self._user}).data:
             if 'total_ts' in progress:
                 self._values_data[progress['job']]['tasks:total_ts'] = self.__get_cell(
                     progress['total_ts'], number=progress['total_ts']

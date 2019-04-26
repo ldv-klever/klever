@@ -23,6 +23,9 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.generic.base import View, ContextMixin
 from django.views.generic.detail import SingleObjectMixin, SingleObjectTemplateResponseMixin
 
+from rest_framework.views import APIView
+from rest_framework.exceptions import APIException
+
 from bridge.vars import UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
@@ -129,6 +132,57 @@ class StreamingResponseView(View):
             raise
         if generator is None:
             raise BridgeException()
+
+        file_name = getattr(generator, 'name', None) or self.get_filename()
+        if not isinstance(file_name, str) or len(file_name) == 0:
+            raise BridgeException()
+
+        file_size = getattr(generator, 'size', None)
+
+        mimetype = mimetypes.guess_type(os.path.basename(file_name))[0]
+        response = StreamingHttpResponse(generator, content_type=mimetype)
+        if file_size is not None:
+            response['Content-Length'] = file_size
+        response['Content-Disposition'] = 'attachment; filename="{}"'.format(file_name)
+        return response
+
+    def get(self, *args, **kwargs):
+        if self.http_method != 'get':
+            return HttpResponseNotAllowed(['get'])
+        return self.__get_response(*args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        if self.http_method != 'post':
+            return HttpResponseNotAllowed(['post'])
+        return self.__get_response(*args, **kwargs)
+
+    def __is_not_used(self, *args, **kwargs):
+        pass
+
+
+class StreamingResponseAPIView(APIView):
+    file_name = None
+    http_method = 'get'
+
+    def get_generator(self):
+        raise NotImplementedError('The method is not implemented')
+
+    def get_filename(self):
+        return self.file_name
+
+    def __get_response(self, *args, **kwargs):
+        self.__is_not_used(*args, **kwargs)
+
+        try:
+            generator = self.get_generator()
+        except Exception as e:
+            if isinstance(e, BridgeException):
+                raise APIException(str(e))
+            logger.exception(e)
+            raise APIException()
+
+        if generator is None:
+            raise APIException()
 
         file_name = getattr(generator, 'name', None) or self.get_filename()
         if not isinstance(file_name, str) or len(file_name) == 0:
