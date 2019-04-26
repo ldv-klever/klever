@@ -101,7 +101,7 @@ def __merge_spec_versions(collection, user_tag):
         if user_tag in entry:
             # Find provided by a user tag
             import_specification(entry[user_tag], final_specification)
-        else:
+        elif not regex.search(user_tag):
             # Search for a default tag
             dt = match_default_tag(entry)
             if dt:

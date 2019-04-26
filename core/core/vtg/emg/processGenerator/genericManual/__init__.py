@@ -51,7 +51,8 @@ def generate_processes(emg, source, processes, conf, specifications):
             descriptions = imap.get("model", None)
 
     # Import manual process
-    if descriptions and ("functions models" in descriptions or "environment processes" in descriptions):
+    if descriptions and ("functions models" in descriptions or "environment processes" in descriptions or
+                         "main process" in descriptions):
         manual_processes = ProcessCollection(emg.logger, emg.conf)
         manual_processes.parse_event_specification(descriptions)
 
@@ -73,7 +74,6 @@ def generate_processes(emg, source, processes, conf, specifications):
                             manual_processes.entry.definitions[or_def] = or_entry.definitions[or_def]
 
                 or_entry = manual_processes.entry
-
 
         # Replace rest processes
         for collection, manual in ((or_models, manual_processes.models.values()),

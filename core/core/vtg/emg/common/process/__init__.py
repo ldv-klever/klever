@@ -105,8 +105,12 @@ class Process:
     """
 
     label_re = re.compile('%(\w+)((?:\.\w*)*)%')
+    _name_re = re.compile('\w+')
 
     def __init__(self, name):
+        if not self._name_re.fullmatch(name):
+            raise ValueError("Process identifier {!r} should be just a simple name string".format(name))
+
         self.name = name
         self.file = 'environment model'
         self.category = None

@@ -96,7 +96,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
 
     # Then convert into proper format
     for file in additional_code:
-        additional_code[file]['declarations'] = list(additional_code[file]['declarations'].values())
+        additional_code[file]['declarations'] = [val if val.endswith('\n') else val + '\n'
+                                                 for val in additional_code[file]['declarations'].values()]
 
         val = additional_code[file]['definitions']
         additional_code[file]['definitions'] = list()

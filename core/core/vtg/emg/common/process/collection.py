@@ -86,15 +86,38 @@ class ProcessCollection:
                 for name in names:
                     self.logger.debug("Import process which models {!r}".format(name))
                     models[name] = self._import_process(name, raw["functions models"][name_list])
+
+                    # Set some default values
+                    models[name].category = "functions models"
+                    models[name].pretty_id = "functions models/{}".format(name)
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name in raw["environment processes"]:
                 self.logger.debug("Import environment process {!r}".format(name))
-                process = self._import_process(name, raw["environment processes"][name])
-                env_processes[name] = process
+
+                tokens = name.split('/', maxsplit=1)
+                if len(tokens) == 1:
+                    category = None
+                    pname = tokens[0]
+                elif len(tokens) == 2:
+                    category = tokens[0]
+                    pname = tokens[1]
+                else:
+                    ValueError('Cannot use string {!r} as a process name'.format(name))
+                process = self._import_process(pname, raw["environment processes"][name])
+                if not process.category:
+                    process.category = category
+                if pname in env_processes:
+                    raise ValueError
+                env_processes[pname] = process
+                process.pretty_id = "{}/{}".format(process.category, process.name)
         if "main process" in raw and isinstance(raw["main process"], dict):
             self.logger.info("Import main process")
             entry_process = self._import_process("entry", raw["main process"])
+            if not entry_process.category:
+                entry_process.category = 'entry process'
+            if not entry_process.pretty_id:
+                entry_process.pretty_id = "{}/entry".format(entry_process.category)
         else:
             entry_process = None
 
@@ -155,9 +178,9 @@ class ProcessCollection:
                 action.peers = new_peers
 
             # Set names
-            tokens = process.pretty_id.split('/')
+            tokens = process.pretty_id.split('/', maxsplit=1)
             if len(tokens) < 2:
-                raise ValueError('Cannot extract category/name/ prefix from process identifier {!r}'.
+                raise ValueError('Cannot extract category/name prefix from process identifier {!r}'.
                                  format(process.pretty_id))
             else:
                 process.category = tokens[0]
@@ -194,7 +217,7 @@ class ProcessCollection:
                         d['peers'].append(p['process'].pretty_id)
                         if not p['process'].pretty_id:
                             raise ValueError('Any peer must have an external identifier')
-                    # Remove dublicates
+                    # Remove duplicates
                     d['peers'] = list(set(d['peers']))
 
                 if isinstance(action, Dispatch) and action.broadcast:
