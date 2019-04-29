@@ -311,7 +311,8 @@ class LCOV:
         self.logger = logger
         self.coverage_file = coverage_file
         self.clade = clade
-        self.source_dirs = [os.path.normpath(p) for p in self.clade.get_meta().get('working source trees')]
+        self.source_dirs = [os.path.normpath(p) for p in
+                            self.clade.get_meta().get('working source trees', [self.clade.get_meta().get('build_dir')])]
         self.search_dirs = [os.path.normpath(p) for p in search_dirs]
         self.main_work_dir = main_work_dir
         self.completeness = completeness
