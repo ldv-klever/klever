@@ -1,22 +1,22 @@
 import zipfile
 
-from collections import OrderedDict
-
-from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 from django.utils.functional import cached_property
 from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import serializers, exceptions, fields
 
-from bridge.utils import logger
-from bridge.vars import JOB_STATUS, DATAFORMAT, PRIORITY, SCHEDULER_TYPE, JOB_WEIGHT, SCHEDULER_STATUS, TASK_STATUS
-from jobs.models import Job
-from jobs.serializers import change_job_status
-from service.models import Task, Solution, Decision, VerificationTool, Scheduler, NodesConfiguration, Node, Workload
+from bridge.utils import logger, RMQConnect
+from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
+from bridge.serializers import TimeStampField
 
+from jobs.models import Job
+from service.models import Task, Solution, Decision, VerificationTool, Scheduler, NodesConfiguration, Node, Workload
 from users.models import User, SchedulerUser
+
 from users.utils import HumanizedValue
-from service.utils import NotAnError
+from jobs.serializers import change_job_status
 
 
 class VerificationToolSerializer(serializers.ModelSerializer):
@@ -68,27 +68,29 @@ class TaskSerializer(serializers.ModelSerializer):
     default_error_messages = {
         'status_change': 'Status change from "{old_status}" to "{new_status}" is not supported!'
     }
-    job = serializers.SlugRelatedField(
-        slug_field='identifier', write_only=True, queryset=Job.objects.only('id', 'identifier', 'name')
-    )
+    job = serializers.SlugRelatedField(slug_field='identifier', write_only=True, queryset=Job.objects.all())
 
     def __init__(self, *args, **kwargs):
+        serializer_fields = kwargs.pop('fields', None)
         super(TaskSerializer, self).__init__(*args, **kwargs)
-        if self.context['request'].method == 'GET':
-            fields_to_repr = self.context['request'].query_params.getlist('fields')
-            if fields_to_repr:
-                # Drop any fields that are not specified in the `fields` argument.
-                allowed = set(fields_to_repr)
-                existing = set(self.fields.keys())
-                for field_name in existing - allowed:
-                    self.fields.pop(field_name)
+
+        if serializer_fields:
+            # Drop any fields that are not specified in the `fields`
+            for field_name in set(self.fields.keys()) - set(serializer_fields):
+                self.fields.pop(field_name)
 
     def validate_job(self, instance):
+        try:
+            decision = Decision.objects.select_related('scheduler').get(job=instance)
+        except Decision.DoesNotExist:
+            raise serializers.ValidationError('The job was not started properly')
         if instance.status == JOB_STATUS[6][0]:
-            raise serializers.ValidationError('Is cancelling')
+            raise serializers.ValidationError('The job is cancelling')
         if instance.status != JOB_STATUS[2][0]:
-            raise serializers.ValidationError('Is not processing')
-        return instance
+            raise serializers.ValidationError('The job is not processing')
+        if decision.scheduler.status == SCHEDULER_STATUS[2][0]:
+            raise exceptions.ValidationError('The tasks scheduler is disconnected')
+        return decision
 
     def validate_archive(self, archive):
         if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
@@ -106,34 +108,44 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def validate_status(self, new_status):
         if not self.instance:
-            return new_status
+            raise exceptions.APIException('The status can be provided only for changing the task')
         old_status = self.instance.status
 
+        # Finished (with error or not) task can't be finished again
         if old_status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
-            # Finished (with error or not) task can't be finished again
             self.fail('status_change', old_status=old_status, new_status=new_status)
+
+        # Status is changed already
         if old_status == new_status:
-            # If you don't want to change status, don't provide it
             self.fail('status_change', old_status=old_status, new_status=new_status)
+
+        # Processing task can't become pending again
         if old_status == TASK_STATUS[1][0] and new_status == TASK_STATUS[0][0]:
-            # Processing task can't become pending again
             self.fail('status_change', old_status=old_status, new_status=new_status)
+
         if new_status == TASK_STATUS[2][0]:
             if not Solution.objects.filter(task=self.instance).exists():
-                logger.error("Task was finished without solutions")
-                # raise exceptions.ValidationError("Task can't be finished without solutions")
+                # logger.error("Task was finished without solutions")
+                raise exceptions.ValidationError("Task can't be finished without solutions")
         return new_status
 
-    def get_decision(self, job):
-        try:
-            decision = Decision.objects.select_related('scheduler').get(job=job)
-        except Decision.DoesNotExist:
-            raise exceptions.ValidationError({'job': 'The job was not started properly'})
-        if decision.scheduler.status == SCHEDULER_STATUS[2][0]:
-            raise exceptions.ValidationError({'scheduler': 'The tasks scheduler is disconnected'})
-        return decision
+    def validate(self, attrs):
+        if 'status' in attrs:
+            if attrs['status'] != TASK_STATUS[3][0]:
+                attrs.pop('error', None)
+            elif 'error' not in attrs:
+                attrs['error'] = "The scheduler hasn't given error description"
 
-    def update_decision(self, decision, new_status=None, old_status=None, error=None):
+        if 'description' in attrs and 'decision' in attrs:
+            # Validate task priority
+            job_priority = attrs['decision'].priority
+            task_priority = attrs['description']['priority']
+            priority_list = list(pr[0] for pr in PRIORITY)
+            if priority_list.index(job_priority) > priority_list.index(task_priority):
+                raise exceptions.ValidationError({'priority': 'Task priority is too big'})
+        return attrs
+
+    def update_decision(self, decision, new_status, old_status=None):
         status_map = {
             TASK_STATUS[0][0]: 'tasks_pending',
             TASK_STATUS[1][0]: 'tasks_processing',
@@ -155,60 +167,40 @@ class TaskSerializer(serializers.ModelSerializer):
             # Task was created
             decision.tasks_total += 1
 
-        if new_status:
-            # Increment counter for new status
-            incr_field = status_map[new_status]
-            new_num = getattr(decision, incr_field)
-            setattr(decision, incr_field, new_num + 1)
-
-            # Set error for ERROR tasks
-            if new_status == TASK_STATUS[3][0]:
-                if not error:
-                    error = "The scheduler hasn't given error description"
-                if len(error) > 1024:
-                    error = "Length of error for task with must be less than 1024 characters"
-                decision.error = error
-
+        # Increment counter for new status
+        incr_field = status_map[new_status]
+        new_num = getattr(decision, incr_field)
+        setattr(decision, incr_field, new_num + 1)
         decision.save()
 
-    def compare_priority(self, job_priority, task_priority):
-        priority_list = list(pr[0] for pr in PRIORITY)
-        if priority_list.index(job_priority) > priority_list.index(task_priority):
-            raise exceptions.ValidationError({'priority': 'Task priority is too big'})
-
     def create(self, validated_data):
-        # Do not allow to fill error or status on creation
-        validated_data.pop('error', None)
-        validated_data.pop('status', None)
-
-        # Set archive name
         validated_data['archname'] = validated_data['archive'].name[:256]
-
-        # Get and validate decision
-        decision = self.get_decision(validated_data.pop('job'))
-
-        # Validate task priority
-        self.compare_priority(decision.priority, validated_data['description']['priority'])
-        validated_data['decision'] = decision
-
-        # Create the task and update decision
+        validated_data['decision'] = validated_data.pop('job')
         instance = super().create(validated_data)
-        self.update_decision(decision, new_status=instance.status)
+        self.update_decision(validated_data['decision'], instance.status)
+        on_task_change(instance.id, instance.status)
         return instance
 
     def update(self, instance, validated_data):
         assert isinstance(instance, Task)
+        if 'status' not in validated_data:
+            raise exceptions.ValidationError({'status': 'Required'})
+
         # Only status and error can be changed
-        validated_data = dict((k, v) for k, v in validated_data.items() if k in {'status', 'error'})
-        job = Job.objects.get(decision=instance.decision)
+        job = Job.objects.only('status').get(decision=instance.decision)
         if job.status != JOB_STATUS[2][0]:
             raise serializers.ValidationError({'job': 'Is not processing'})
 
-        self.update_decision(
-            instance.decision, new_status=validated_data.get('status'),
-            old_status=instance.status, error=validated_data.get('error')
-        )
-        return super().update(instance, validated_data)
+        old_status = instance.status
+        instance = super().update(instance, validated_data)
+        self.update_decision(instance.decision, instance.status, old_status=old_status)
+        on_task_change(instance.id, instance.status)
+        return instance
+
+    def to_representation(self, instance):
+        if isinstance(instance, Task) and 'request' in self.context and self.context['request'].method != 'GET':
+            return {'id': instance.id}
+        return super().to_representation(instance)
 
     class Meta:
         model = Task
@@ -218,15 +210,13 @@ class TaskSerializer(serializers.ModelSerializer):
 
 class SolutionSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
+        serializer_fields = kwargs.pop('fields', None)
         super().__init__(*args, **kwargs)
-        if self.context['request'].method == 'GET':
-            fields_to_repr = self.context['request'].query_params.getlist('fields')
-            if fields_to_repr:
-                # Drop any fields that are not specified in the `fields` argument.
-                allowed = set(fields_to_repr)
-                existing = set(self.fields.keys())
-                for field_name in existing - allowed:
-                    self.fields.pop(field_name)
+
+        if serializer_fields:
+            # Drop any fields that are not specified in the `fields`
+            for field_name in set(self.fields.keys()) - set(serializer_fields):
+                self.fields.pop(field_name)
 
     def validate_archive(self, archive):
         if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
@@ -252,7 +242,7 @@ class SolutionSerializer(serializers.ModelSerializer):
         decision = self.get_decision(validated_data['task'])
         validated_data['decision'] = decision
 
-        # Create the task and update decision
+        # Create the solution and update decision
         instance = super().create(validated_data)
         decision.solutions += 1
         decision.save()
@@ -261,30 +251,43 @@ class SolutionSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         raise NotImplementedError('The solution update is prohibited')
 
+    def to_representation(self, instance):
+        if isinstance(instance, Solution) and 'request' in self.context and self.context['request'].method != 'GET':
+            return {}
+        return super().to_representation(instance)
+
     class Meta:
         model = Solution
-        exclude = ('decision', 'archname')
+        exclude = ('id', 'decision', 'archname')
         extra_kwargs = {'archive': {'write_only': True}}
 
 
 class DecisionSerializer(serializers.ModelSerializer):
-    start_tasks_solution = fields.BooleanField(default=False, write_only=True)
-    finish_tasks_solution = fields.BooleanField(default=False, write_only=True)
-    start_subjobs_solution = fields.BooleanField(default=False, write_only=True)
-    finish_subjobs_solution = fields.BooleanField(default=False, write_only=True)
+    tasks_started = fields.BooleanField(default=False, write_only=True)
+    tasks_finished = fields.BooleanField(default=False, write_only=True)
+    subjobs_started = fields.BooleanField(default=False, write_only=True)
+    subjobs_finished = fields.BooleanField(default=False, write_only=True)
+
+    start_ts = TimeStampField(read_only=True)
+    finish_ts = TimeStampField(read_only=True)
+    start_sj = TimeStampField(read_only=True)
+    finish_sj = TimeStampField(read_only=True)
+    start_date = TimeStampField(read_only=True)
+    finish_date = TimeStampField(read_only=True)
+    status = fields.CharField(source='job.status', read_only=True)
 
     def update(self, instance, validated_data):
         assert isinstance(instance, Decision)
 
         # Set current date
         current_date = now()
-        if validated_data.pop('start_tasks_solution', False) and not instance.start_ts:
+        if validated_data.pop('tasks_started', False) and not instance.start_ts:
             validated_data['start_ts'] = current_date
-        if validated_data.pop('finish_tasks_solution', False) and not instance.finish_ts:
+        if validated_data.pop('tasks_finished', False) and not instance.finish_ts:
             validated_data['finish_ts'] = current_date
-        if validated_data.pop('start_subjobs_solution', False) and not instance.start_sj:
+        if validated_data.pop('subjobs_started', False) and not instance.start_sj:
             validated_data['start_sj'] = current_date
-        if validated_data.pop('finish_subjobs_solution', False) and not instance.finish_sj:
+        if validated_data.pop('subjobs_finished', False) and not instance.finish_sj:
             validated_data['finish_sj'] = current_date
 
         # Both time and gag can't exist
@@ -304,12 +307,10 @@ class DecisionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Decision
         fields = (
-            'total_sj', 'failed_sj', 'solved_sj',
-            'total_ts', 'failed_ts', 'solved_ts',
-            'start_tasks_solution', 'finish_tasks_solution',
-            'start_subjobs_solution', 'finish_subjobs_solution',
-            'expected_time_sj', 'gag_text_sj',
-            'expected_time_ts', 'gag_text_ts'
+            'total_sj', 'failed_sj', 'solved_sj', 'total_ts', 'failed_ts', 'solved_ts',
+            'tasks_started', 'tasks_finished', 'subjobs_started', 'subjobs_finished',
+            'expected_time_sj', 'gag_text_sj', 'expected_time_ts', 'gag_text_ts',
+            'start_ts', 'finish_ts', 'start_sj', 'finish_sj', 'start_date', 'finish_date', 'status'
         )
 
 
@@ -471,3 +472,8 @@ class NodeConfSerializer(serializers.ModelSerializer):
     class Meta:
         model = NodesConfiguration
         fields = '__all__'
+
+
+def on_task_change(task_id, task_status):
+    with RMQConnect() as channel:
+        channel.basic_publish(exchange=settings.RABBIT_MQ['tasks_exchange'], routing_key=task_status, body=str(task_id))

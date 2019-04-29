@@ -226,7 +226,7 @@ class ReportMarksTableBase:
         dislikes = {}
         for ass_like in queryset:
             author_data = {
-                'href': reverse('users:show_profile', args=[ass_like.author_id]),
+                'href': reverse('users:show-profile', args=[ass_like.author_id]),
                 'value': ass_like.author.get_full_name()
             }
             if ass_like.dislike:
@@ -367,7 +367,7 @@ class ReportMarksTableBase:
                 elif col == 'ass_author':
                     if mark_data['ass_author'] and mark_data['ass_author'] in self.authors:
                         val = self.authors[mark_data['ass_author']].get_full_name()
-                        href = reverse('users:show_profile', args=[mark_data['ass_author']])
+                        href = reverse('users:show-profile', args=[mark_data['ass_author']])
                 elif col == 'description':
                     if len(mark_data['description']):
                         val = mark_data['description']
@@ -388,7 +388,7 @@ class ReportMarksTableBase:
                 elif col == 'author':
                     if mark_data['author'] and mark_data['author'] in self.authors:
                         val = self.authors[mark_data['author']].get_full_name()
-                        href = reverse('users:show_profile', args=[mark_data['author']])
+                        href = reverse('users:show-profile', args=[mark_data['author']])
                 row_data.append({'value': val, 'color': color, 'column': col, 'href': href})
             cnt += 1
             value_data.append(row_data)
@@ -586,7 +586,7 @@ class ReportMarkTable:
                     color = ASSOCIATION_TYPE_COLOR[mark_rep.type]
                 elif col == 'ass_author' and mark_rep.author is not None:
                     val = mark_rep.author.get_full_name()
-                    href = reverse('users:show_profile', args=[mark_rep.author_id])
+                    href = reverse('users:show-profile', args=[mark_rep.author_id])
                 elif col == 'description' and len(mark_rep.mark.description) > 0:
                     val = mark_rep.mark.description
                 elif col == 'likes':
@@ -602,7 +602,7 @@ class ReportMarkTable:
                 elif col == 'author':
                     val = mark_rep.mark.author.get_full_name()
                     if mark_rep.mark.author:
-                        href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
+                        href = reverse('users:show-profile', args=[mark_rep.mark.author_id])
                 row_data.append({'value': val, 'color': color, 'column': col, 'href': href})
             cnt += 1
             value_data.append(row_data)
@@ -823,7 +823,7 @@ class MarksTableBase:
                     color = STATUS_COLOR[mark_version.status]
                 elif col == 'author' and mark_version.author:
                     val = mark_version.author.get_full_name()
-                    href = reverse('users:show_profile', args=[mark_version.author_id])
+                    href = reverse('users:show-profile', args=[mark_version.author_id])
                 elif col == 'change_date':
                     val = mark_version.change_date
                     if self.user.data_format == 'hum':
@@ -1083,7 +1083,7 @@ class MarkAssociationsBase:
                 elif col == 'ass_author':
                     if mark_report.author:
                         val = mark_report.author.get_full_name()
-                        href = reverse('users:show_profile', args=[mark_report.author_id])
+                        href = reverse('users:show-profile', args=[mark_report.author_id])
                 elif col == 'likes' and mark_report.id in self.likes_data:
                     val = '{} / {}'.format(
                         self.likes_data[mark_report.id]['likes'],

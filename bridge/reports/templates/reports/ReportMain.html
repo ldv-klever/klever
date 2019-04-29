@@ -42,7 +42,7 @@
             {% if report.root.user %}
                 <tr>
                     <th class="right aligned">{% trans 'Author' %}</th>
-                    <td><a class="violet-link" href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a></td>
+                    <td><a class="violet-link" href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a></td>
                 </tr>
             {% endif %}
                 <tr>

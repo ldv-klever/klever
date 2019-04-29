@@ -235,7 +235,7 @@ class ViewJobData:
         unmarked = {}
         totals = {}
         skipped_problems = set()
-        for unknown in ReportUnknown.objects.filter(**qs_filters).only(*select_only):
+        for unknown in ReportUnknown.objects.select_related('cache').filter(**qs_filters).only(*select_only):
             cache_data.setdefault(unknown.component, {})
             if not total_hidden:
                 totals.setdefault(unknown.component, 0)

@@ -109,7 +109,7 @@ class TestLoggedInUser(KleverTestCase):
         self.client.post(reverse('users:login'), {'username': 'user', 'password': 'top_secret'})
 
     def test_show_profile(self):
-        response = self.client.get(reverse('users:show_profile', args=[self.user.pk]))
+        response = self.client.get(reverse('users:show-profile', args=[self.user.pk]))
         self.assertEqual(response.status_code, 200)
 
     def test_save_notifications(self):

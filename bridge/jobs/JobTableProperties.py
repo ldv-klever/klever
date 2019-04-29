@@ -389,7 +389,7 @@ class TableTree(ComplexHeaderMixin):
             author_val = author_url = None
             if job_version.change_author:
                 author_val = job_version.change_author.get_full_name()
-                author_url = reverse('users:show_profile', args=[job_version.change_author_id])
+                author_url = reverse('users:show-profile', args=[job_version.change_author_id])
 
             self._values_data[job_version.job_id].update({
                 'name': self.__get_cell(job_version.job.name, url=job_url),
@@ -719,7 +719,7 @@ class TableTree(ComplexHeaderMixin):
 
         for root in ReportRoot.objects.filter(job_id__in=self._job_ids).exclude(user=None).select_related('user'):
             self._values_data[root.job_id]['operator'] = self.__get_cell(
-                root.user.get_full_name(), url=reverse('users:show_profile', args=[root.user_id])
+                root.user.get_full_name(), url=reverse('users:show-profile', args=[root.user_id])
             )
 
     @cached_property

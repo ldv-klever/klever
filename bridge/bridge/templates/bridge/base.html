@@ -92,8 +92,8 @@
         {% endif %}
             <div class="right menu">
             {% if user.is_authenticated %}
-                <a class="item" href="{% url 'users:show_profile' user.pk %}">{{ user.username }}</a>
-                <a class="item" href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a>
+                <a class="item" href="{% url 'users:show-profile' user.pk %}">{{ user.username }}</a>
+                <a class="item" href="{% url 'users:edit-profile' %}">{% trans 'Settings' %}</a>
                 <a class="item" href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a>
             {% else %}
                 <a class="item" href="{% url 'users:register' %}">{% trans 'Register' %}</a>

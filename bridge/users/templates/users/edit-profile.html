@@ -23,7 +23,7 @@
 {% block body_block %}
     <div class="ui olive segment">
         <h3 class="ui header">{% trans 'Settings' %}</h3>
-        <form id="user_form" method="post" action="{% url 'users:edit_profile' %}">
+        <form id="user_form" method="post" action="{% url 'users:edit-profile' %}">
             {% csrf_token %}
             <div class="ui grid form">
                 <div class="five wide column">

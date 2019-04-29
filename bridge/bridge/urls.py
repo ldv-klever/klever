@@ -22,6 +22,7 @@ from django.views.static import serve
 
 from bridge import views
 from jobs.population import JobsRMQPopulation
+from service.population import TasksRMQPopulation
 
 urlpatterns = [
     path('i18n/', include('django.conf.urls.i18n')),
@@ -41,3 +42,4 @@ handler403 = 'bridge.views.error_403_view'
 handler404 = 'bridge.views.error_404_view'
 handler500 = 'bridge.views.error_500_view'
 JobsRMQPopulation()
+TasksRMQPopulation()

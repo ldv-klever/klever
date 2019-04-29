@@ -60,7 +60,7 @@
                     {% if mark.author %}
                         <tr>
                             <th class="right aligned">{% trans 'Author' %}</th>
-                            <td><a class="violet-link" href="{% url 'users:show_profile' mark.author.pk %}">{{ mark.author.get_full_name }}</a></td>
+                            <td><a class="violet-link" href="{% url 'users:show-profile' mark.author.pk %}">{{ mark.author.get_full_name }}</a></td>
                         </tr>
                     {% endif %}
                     <tr>
@@ -69,7 +69,7 @@
                             {# TODO #}
                             {% if user.data_format == 'hum' %}{{ mark_version.change_date|naturaltime }}{% else %}{{ mark_version.change_date }}{% endif %}
                             {% if mark_version.author %}
-                                (<a class="violet-link" href="{% url 'users:show_profile' mark_version.author_id %}">{{ mark_version.author.get_full_name }}</a>)
+                                (<a class="violet-link" href="{% url 'users:show-profile' mark_version.author_id %}">{{ mark_version.author.get_full_name }}</a>)
                             {% endif %}
                             {% if mark_version.comment|length %}
                                 <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ mark_version.comment }}"</small></p>

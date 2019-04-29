@@ -63,7 +63,7 @@ class KleverCoreArchiveGen:
 
     def __iter__(self):
         last_version = self.job.versions.get(version=self.job.version)
-        for file_inst in last_version.files.all():
+        for file_inst in last_version.files.select_related('file').all():
             arch_name = '/'.join(['root', file_inst.name])
             file_src = '/'.join([settings.MEDIA_ROOT, file_inst.file.file.name])
             for data in self.stream.compress_file(file_src, arch_name):

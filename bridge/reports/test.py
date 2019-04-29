@@ -1091,7 +1091,7 @@ class DecideJob:
         self._job_uuid = job_uuid
         self.session = self.__login(username, password)
 
-        self._progress_url = '/service/update-progress/{}/'.format(self._job_uuid)
+        self._progress_url = '/service/progress/{}/'.format(self._job_uuid)
         self._upload_url = '/reports/api/upload/{}/'.format(self._job_uuid)
         self._original = 'test-original-sources-id'
 
@@ -1262,7 +1262,7 @@ class DecideJob:
                 'total_ts': self._progress_data['tasks']['total'],
                 'failed_ts': 0, 'solved_ts': 0,
                 'gag_text_ts': 'Calculating time',
-                'start_tasks_solution': True
+                'tasks_started': True
             }
             if 'subjobs' not in self._progress_data:
                 return data
@@ -1271,7 +1271,7 @@ class DecideJob:
                 'total_sj': self._progress_data['subjobs']['total'],
                 'failed_sj': 0, 'solved_sj': 0,
                 'gag_text_sj': 'Calculating time',
-                'start_subjobs_solution': True
+                'subjobs_started': True
             })
             return data
 
@@ -1287,7 +1287,7 @@ class DecideJob:
                     'failed_ts': self._progress_data['tasks']['failed'],
                     'solved_ts': self._progress_data['tasks']['solved'],
                     'expected_time_ts': 0,
-                    'finish_tasks_solution': True
+                    'tasks_finished': True
                 })
             else:
                 data.update({
@@ -1307,7 +1307,7 @@ class DecideJob:
                 'failed_sj': self._progress_data['subjobs']['failed'],
                 'solved_sj': self._progress_data['subjobs']['solved'],
                 'expected_time_sj': 0,
-                'finish_subjobs_solution': True
+                'subjobs_finished': True
             })
         else:
             data.update({

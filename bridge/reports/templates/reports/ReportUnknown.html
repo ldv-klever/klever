@@ -37,7 +37,7 @@
         <div class="four wide column">
             {% if report.root.user %}
                 <span class="purple-title">{% trans 'Author' %}: </span>
-                <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+                <a href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
             {% endif %}
         </div>
         <div class="six wide column">

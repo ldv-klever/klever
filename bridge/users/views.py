@@ -30,11 +30,11 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from django.views.generic import CreateView, UpdateView
+from django.views.generic import CreateView, UpdateView, TemplateView
 
 from rest_framework.generics import ListAPIView
 
-from tools.profiling import unparallel_group
+from tools.profiling import unparallel_group, LoggedCallMixin
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR, VIEW_TYPES
 from bridge.utils import logger
 
@@ -66,7 +66,7 @@ class UserRegisterView(CreateView):
 class EditProfileView(LoginRequiredMixin, UpdateView):
     form_class = EditProfileForm
     template_name = 'users/edit-profile.html'
-    success_url = reverse_lazy('users:edit_profile')
+    success_url = reverse_lazy('users:edit-profile')
 
     def get_object(self, queryset=None):
         return self.request.user
@@ -100,9 +100,12 @@ class EditProfileView(LoginRequiredMixin, UpdateView):
             return self.render_to_response(self.get_context_data(form=form, sch_form=sch_form))
 
 
-class JobChangesView(ListAPIView):
-    def get_queryset(self):
-        return JobHistory.objects.filter(change_author_id=self.kwargs['user_id']).select_related('job')
+class UserProfileView(LoginRequiredMixin, TemplateView):
+    template_name = 'users/showProfile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 @login_required
@@ -202,52 +205,6 @@ def show_profile(request, user_id):
         'target': target,
         'activity': list(reversed(sorted(activity, key=lambda x: x['date'])))[:50],
     })
-
-
-@unparallel_group(['User'])
-def service_signin(request):
-    if request.method != 'POST':
-        get_token(request)
-        return HttpResponse('')
-    username = request.POST.get('username')
-    password = request.POST.get('password')
-    for p in request.POST:
-        if p == 'job identifier':
-            try:
-                request.session['job id'] = Job.objects.get(identifier__startswith=request.POST[p]).pk
-            except ObjectDoesNotExist:
-                return JsonResponse({
-                    'error': 'The job with specified identifier "%s" was not found' % request.POST[p]
-                })
-            except MultipleObjectsReturned:
-                return JsonResponse({'error': 'The specified job identifier is not unique'})
-        elif p == 'scheduler':
-            for s in SCHEDULER_TYPE:
-                if s[1] == request.POST[p]:
-                    request.session['scheduler'] = s[0]
-                    break
-            else:
-                return JsonResponse({
-                    'error': 'The specified scheduler "%s" is not supported' % request.POST[p]
-                })
-
-    user = authenticate(username=username, password=password)
-    if user is None:
-        return JsonResponse({'error': 'Incorrect username or password'})
-    if not user.is_active:
-        return JsonResponse({'error': 'Account has been disabled'})
-    try:
-        Extended.objects.get(user=user)
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': 'User does not have extended data'})
-    login(request, user)
-    return HttpResponse('')
-
-
-@unparallel_group([])
-def service_signout(request):
-    logout(request)
-    return HttpResponse('')
 
 
 @unparallel_group([PreferableView, 'View'])

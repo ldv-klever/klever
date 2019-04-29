@@ -55,7 +55,7 @@ def get_attr_data_path(instance, filename):
 
 
 class ReportRoot(models.Model):
-    user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
+    user = models.ForeignKey(User, models.SET_NULL, null=True, related_name='roots')
     job = models.OneToOneField(Job, models.CASCADE)
     resources = JSONField(default=dict)
     instances = JSONField(default=dict)

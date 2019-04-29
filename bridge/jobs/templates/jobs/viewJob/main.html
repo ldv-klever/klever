@@ -83,7 +83,7 @@
                     {% if author %}
                         <tr>
                             <th class="right aligned">{% trans 'Created by' %}</th>
-                            <td><a class="violet-link" href="{% url 'users:show_profile' author.pk %}">{{ author.get_full_name }}</a></td>
+                            <td><a class="violet-link" href="{% url 'users:show-profile' author.pk %}">{{ author.get_full_name }}</a></td>
                         </tr>
                     {% endif %}
                     {% if parents %}
@@ -127,7 +127,7 @@
                         <td>
                             {% if user.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
                             {% if last_version.change_author %}
-                                (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
+                                (<a class="violet-link" href="{% url 'users:show-profile' last_version.change_author.pk %}">{{ last_version.change_author.get_full_name }}</a>)
                             {% endif %}
                             {% if last_version.comment|length %}
                                 <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ last_version.comment }}"</small></p>
@@ -168,7 +168,7 @@
                             {% if ur.user == user %}
                                 <li>{% trans 'Your role for the job' %}: {{ ur.get_role_display }}</li>
                             {% else %}
-                                <li><a href="{% url 'users:show_profile' ur.user.id %}">{{ ur.user.get_full_name }}</a>: {{ ur.get_role_display }}</li>
+                                <li><a href="{% url 'users:show-profile' ur.user.id %}">{{ ur.user.get_full_name }}</a>: {{ ur.get_role_display }}</li>
                             {% endif %}
                         {% endfor %}
                     </ul>

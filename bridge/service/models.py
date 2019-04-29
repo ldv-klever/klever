@@ -18,11 +18,9 @@
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from django.contrib.postgres.fields import JSONField, ArrayField
-from django.core.validators import RegexValidator
-from django.utils.translation import ugettext_lazy as _
+from django.contrib.postgres.fields import JSONField
 
-from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE, JOB_WEIGHT
+from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from bridge.utils import RemoveFilesBeforeDelete
 from jobs.models import Job, JobFile
 from users.models import User

@@ -139,6 +139,12 @@ LOGGING = {
             'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
             'formatter': 'with_separator'
         },
+        'db-file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'db.log'),
+            'formatter': 'simple'
+        },
         'errors': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -155,7 +161,7 @@ LOGGING = {
     'loggers': {
         'django.request': {'handlers': ['console', 'file'], 'level': 'DEBUG', 'propagate': True},
         'bridge': {'handlers': ['errors', 'console', 'other'], 'level': 'INFO', 'propagate': True},
-        'django.db': {'handlers': ['console'], 'level': 'DEBUG', 'propagate': True},
+        # 'django.db': {'handlers': ['db-file'], 'level': 'DEBUG', 'propagate': True},
     }
 }
 
@@ -176,5 +182,6 @@ RABBIT_MQ = {
     'username': 'service',
     'password': 'service',
     'host': 'localhost',
-    'jobs_exchange': 'jobsX'
+    'jobs_exchange': 'jobsX',
+    'tasks_exchange': 'tasksX',
 }

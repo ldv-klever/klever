@@ -25,8 +25,8 @@ urlpatterns = [
     path('signout/', views.BridgeLogoutView.as_view(), name='logout'),
 
     path('register/', views.UserRegisterView.as_view(), name='register'),
-    path('edit/', views.EditProfileView.as_view(), name='edit_profile'),
-    path('profile/<int:user_id>', views.show_profile, name='show_profile'),
+    path('edit/', views.EditProfileView.as_view(), name='edit-profile'),
+    path('profile/<int:user_id>/', views.UserProfileView.as_view(), name='show-profile'),
 
     # View actions
     path('ajax/save_view/', views.save_view),

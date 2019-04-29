@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-
 import json
 import mimetypes
 
@@ -48,10 +47,10 @@ from jobs.serializers import (
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
 from jobs.Download import KleverCoreArchiveGen, UploadReportsWithoutDecision
-from jobs.utils import JobAccess, CompareJobVersions
+from jobs.utils import JobAccess
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
-from service.utils import StartJobDecision, StopDecision
+from service.utils import StartJobDecision, CancelDecision
 
 
 class JobStatusView(RetrieveAPIView):
@@ -319,7 +318,7 @@ class StopDecisionView(LoggedCallMixin, APIView):
         if not JobAccess(request.user, job).can_stop():
             raise exceptions.PermissionDenied(_("You don't have an access to stop decision of this job"))
         try:
-            StopDecision(job)
+            CancelDecision(job)
         except BridgeException as e:
             raise exceptions.APIException(str(e))
         return Response({})

@@ -1,30 +1,44 @@
-import mimetypes
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
-from rest_framework.views import APIView
+from rest_framework import exceptions
 from rest_framework.generics import (
-    CreateAPIView, UpdateAPIView, RetrieveAPIView, DestroyAPIView,
-    RetrieveDestroyAPIView, RetrieveUpdateAPIView,
-    get_object_or_404
+    RetrieveAPIView, CreateAPIView, RetrieveDestroyAPIView, RetrieveUpdateAPIView, get_object_or_404
 )
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import exceptions
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
 from bridge.vars import JOB_STATUS, TASK_STATUS
 from bridge.access import ServicePermission
 from bridge.CustomViews import StreamingResponseAPIView
+from tools.profiling import LoggedCallMixin
+
 from users.models import SchedulerUser
 from jobs.models import Job
-from jobs.serializers import change_job_status
-from jobs.utils import JobAccess
-from tools.profiling import LoggedCallMixin
 from service.models import Decision, Task, Solution, VerificationTool, Scheduler, NodesConfiguration
+
+from jobs.serializers import change_job_status
+from service.utils import FinishJobDecision, TaskArchiveGenerator, SolutionArchiveGenerator, ReadJobConfiguration
 from service.serializers import (
     TaskSerializer, SolutionSerializer, SchedulerUserSerializer, DecisionSerializer,
     UpdateToolsSerializer, SchedulerSerializer, NodeConfSerializer
 )
-from service.utils import FinishJobDecision, TaskArchiveGenerator, SolutionArchiveGenerator
 
 
 class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
@@ -37,21 +51,15 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
             return [Decision]
         return []
 
-    def create(self, request, *args, **kwargs):
-        response = super(TaskAPIViewset, self).create(request, *args, **kwargs)
-        # Return only id
-        response.data = {'id': response.data['id']}
-        return response
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        if instance.status == TASK_STATUS[4][0]:
-            instance.delete()
-
-    def update(self, request, *args, **kwargs):
-        response = super().update(request, *args, **kwargs)
-        response.data = {}
-        return response
+    def get_serializer(self, *args, **kwargs):
+        fields = None
+        if self.request.method == 'GET':
+            fields = self.request.query_params.getlist('fields')
+        elif self.request.method == 'POST':
+            fields = {'job', 'archive', 'description'}
+        elif self.request.method in {'PUT', 'PATCH'}:
+            fields = {'status', 'error'}
+        return super().get_serializer(*args, fields=fields, **kwargs)
 
     def filter_queryset(self, queryset):
         if 'job' in self.request.query_params:
@@ -63,11 +71,11 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
         job = Job.objects.only('status').get(decision=instance.decision)
         if job.status != JOB_STATUS[2][0]:
             raise exceptions.ValidationError({'job': 'The job is not processing'})
-        if instance.status not in {TASK_STATUS[2][0], TASK_STATUS[3][0]}:
+        if instance.status not in {TASK_STATUS[2][0], TASK_STATUS[3][0], TASK_STATUS[4][0]}:
             raise exceptions.ValidationError({'status': 'The task is not finished'})
         if instance.status == TASK_STATUS[2][0]:
             if not Solution.objects.filter(task=instance).exists():
-                raise exceptions.ValidationError({'solution': 'The task solution was not uplaoded'})
+                raise exceptions.ValidationError({'solution': 'The task solution was not uploaded'})
         instance.delete()
 
 
@@ -88,11 +96,6 @@ class SolutionCreateView(LoggedCallMixin, CreateAPIView):
     serializer_class = SolutionSerializer
     permission_classes = (ServicePermission,)
 
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        response.data = {}
-        return response
-
 
 class SolutionDetailView(LoggedCallMixin, RetrieveDestroyAPIView):
     serializer_class = SolutionSerializer
@@ -100,6 +103,9 @@ class SolutionDetailView(LoggedCallMixin, RetrieveDestroyAPIView):
     queryset = Solution.objects.all()
     lookup_url_kwarg = 'task_id'
     lookup_field = 'task_id'
+
+    def get_serializer(self, *args, **kwargs):
+        return super().get_serializer(*args, fields=self.request.query_params.getlist('fields'), **kwargs)
 
 
 class SolutionDownloadView(LoggedCallMixin, StreamingResponseAPIView):
@@ -113,12 +119,19 @@ class SolutionDownloadView(LoggedCallMixin, StreamingResponseAPIView):
 
 
 class AddSchedulerUserView(LoggedCallMixin, CreateAPIView):
-    # queryset = SchedulerUser.objects.all()
     serializer_class = SchedulerUserSerializer
     permission_classes = (IsAuthenticated,)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SchedulerUserView(LoggedCallMixin, RetrieveAPIView):
+    serializer_class = SchedulerUserSerializer
+    permission_classes = (ServicePermission,)
+
+    def get_object(self):
+        return SchedulerUser.objects.filter(user__roots__job__identifier=self.kwargs['job_uuid']).first()
 
 
 class ChangeJobStatusView(LoggedCallMixin, APIView):
@@ -164,26 +177,12 @@ class JobProgressAPIView(LoggedCallMixin, RetrieveUpdateAPIView):
             raise exceptions.ValidationError('The job is not solving')
         serializer.save()
 
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
 
-        return Response({
-            'status': instance.job.status,
-            'subjobs': {
-                'total': instance.total_sj, 'failed': instance.failed_sj, 'solved': instance.solved_sj,
-                'expected_time': instance.expected_time_sj, 'gag_text': instance.gag_text_sj,
-                'start': instance.start_sj.timestamp() if instance.start_sj else None,
-                'finish': instance.finish_sj.timestamp() if instance.finish_sj else None
-            },
-            'tasks': {
-                'total': instance.total_ts, 'failed': instance.failed_ts, 'solved': instance.solved_ts,
-                'expected_time': instance.expected_time_ts, 'gag_text': instance.gag_text_ts,
-                'start': instance.start_ts.timestamp() if instance.start_ts else None,
-                'finish': instance.finish_ts.timestamp() if instance.finish_ts else None
-            },
-            'start_date': instance.start_date.timestamp() if instance.start_date else None,
-            'finish_date': instance.finish_date.timestamp() if instance.finish_date else None
-        })
+class JobConfigurationsAPIView(LoggedCallMixin, APIView):
+    def get(self, request, job_uuid):
+        job = get_object_or_404(Job, identifier=job_uuid)
+        res = ReadJobConfiguration(job)
+        return Response(res.data)
 
 
 class UpdateToolsAPIView(LoggedCallMixin, CreateAPIView):
