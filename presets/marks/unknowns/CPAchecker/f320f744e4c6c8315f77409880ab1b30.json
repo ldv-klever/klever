@@ -3,7 +3,7 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "2.1.dev29+g9268dc1d3"
+      "value": "2.1.dev153+gae21c2c13"
     },
     {
       "attr": "Sub-job identifier",
@@ -36,9 +36,11 @@
       "value": "drivers/spi/spi-imx.ko"
     }
   ],
-  "description": "https://gitlab.com/sosy-lab/software/cpachecker/issues/571",
+  "description": "",
+  "is regexp": false,
   "is_modifiable": false,
-  "status": "1",
-  "tags": [],
-  "verdict": "2"
+  "link": "https://gitlab.com/sosy-lab/software/cpachecker/issues/579",
+  "pattern": "IndexError: list index out of range",
+  "problem": "BAMBadWitness",
+  "status": "1"
 }
