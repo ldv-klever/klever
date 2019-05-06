@@ -306,7 +306,7 @@ class LCOV:
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
     def __init__(self, logger, coverage_file, clade, search_dirs, main_work_dir, completeness,
-                 coverage_id, coverage_info_dir, collect_functions, preprocessed_files=False):
+                 coverage_id, coverage_info_dir, collect_functions):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
