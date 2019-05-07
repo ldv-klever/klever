@@ -493,6 +493,9 @@ class FunctionModels:
                 if match:
                     expression = match.group(1)
                     access = automaton.process.resolve_access(expression)
+                    if not access:
+                        raise ValueError("Cannot resolve access in statement {!r} and expression {!r}".
+                                         format(stm, expression))
                     var = automaton.determine_variable(access.label)
                     stm = stm.replace(expression, var.name)
                     stm_set.add(stm)
