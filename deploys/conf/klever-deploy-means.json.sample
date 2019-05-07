@@ -78,9 +78,9 @@
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:31020",
-        "path": "addons/CPAchecker-1.8-svn 31020-unix",
-        "executable path": "CPAchecker-1.8-svn 31020-unix/scripts"
+        "version": "trunk:31140",
+        "path": "addons/CPAchecker-1.8-svn 31140-unix",
+        "executable path": "CPAchecker-1.8-svn 31140-unix/scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",

@@ -111,7 +111,7 @@ These tools are referred to as :ref:`verification_backends`.
 As verification backends Klever supports `CPAchecker <https://cpachecker.sosy-lab.org/>`__ well.
 Some other verification backends are supported experimentally and currently we do not recommend to use them.
 You can download binaries of CPAchecker suitable for checking most of requirements from
-`here https://forge.ispras.ru/attachments/download/6388/CPAchecker-1.8-svn 31020-unix.tar.xz>`__.
+`here https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz>`__.
 For finding data races additionally download binaries of another custom version of CPAchecker from
 `here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn  28916-unix.tar.gz>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
@@ -230,7 +230,7 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   ├── cif-1517e57.tar.xz
     │   ├── consul
     │   ├── CPAchecker-1.6.1-svn ea117e2ecf-unix.tar.gz
-    │   ├── CPAchecker-1.8-svn 31020-unix.tar.xz
+    │   ├── CPAchecker-1.8-svn 31140-unix.tar.xz
     │   ├── toplevel.opt.tar.xz
     │   └── ...
     ├── deploys
