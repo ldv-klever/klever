@@ -20,9 +20,11 @@ import ujson
 from clade import Clade
 
 from core.vtg.emg.common import get_conf_property
-from core.vtg.emg.common.c import Function, Variable, Macro
+from core.vtg.emg.common.c import Function, Variable, Macro, import_declaration
 from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
 from core.vtg.utils import find_file_or_dir
+
+
 
 
 class Source:
@@ -30,6 +32,7 @@ class Source:
     Representation of a collection with the data collected by a source code analysis. The collection contains
     information about functions, variable initializations, a functions call graph, macros.
     """
+    __REGEX_TYPE = type(re.compile(''))
 
     def __init__(self, logger, conf, abstract_task):
         """
@@ -68,40 +71,50 @@ class Source:
         """
         return list(self._source_functions.keys())
 
-    def get_source_function(self, name, path=None, declaration=None):
+    def get_source_function(self, name=None, paths=None, declaration=None):
         """
         Provides the function by a given name from the collection.
 
         :param name: Function name.
-        :param path: File where the function should be declared or defined.
+        :param paths: Possible file with a definition or declaration.
         :param declaration: Declaration object representing the function of interest.
         :return: Function object or None.
         """
-        name = self.refined_name(name)
-        if name and name in self._source_functions:
-            if path and path in self._source_functions[name]:
-                return self._source_functions[name][path]
-            else:
-                functions = self.get_source_functions(name, declaration=declaration)
-                if len(functions) == 1:
-                    return functions[0]
-                elif len(functions) > 1:
-                    raise ValueError("There are several definitions of function {!r} in provided code you must specify "
-                                     "scope".format(name))
+        if isinstance(paths, str):
+            # This is for convenience
+            paths = [paths]
+
+        functions = self.get_source_functions(name=name, paths=paths, declaration=declaration)
+        if len(functions) == 1:
+            return functions[0]
+        elif len(functions) > 1:
+            raise ValueError("There are several definitions of function {!r} in provided code you must specify "
+                             "scope".format(name))
         return None
 
-    def get_source_functions(self, name, declaration=None):
+    def get_source_functions(self, name=None, paths=None, declaration=None):
         """
         Provides all functions found by a given name from the collection.
 
         :param name: Function name.
+        :param path: possible paths with definitions or declarations.
         :param declaration: Declaration object representing the function of interest.
         :return: List with Function objects.
         """
-        name = self.refined_name(name)
         result = []
-        if name and name in self._source_functions:
-            for func in self._source_functions[name].values():
+        if declaration and isinstance(declaration, str):
+            declaration = import_declaration(declaration)
+        if name and isinstance(name, self.__REGEX_TYPE):
+            names = (f for f in self.source_functions if name.fullmatch(f))
+        elif name and self.refined_name(name) in self.source_functions:
+            names = (self.refined_name(name),)
+        elif name:
+            return []
+        else:
+            names = self.source_functions
+
+        for name in names:
+            for path, func in ((p, f) for p, f in self._source_functions[name].items() if not paths or p in paths):
                 if func not in result and (not declaration or (declaration and declaration.compare(func.declaration))):
                     result.append(func)
         return result
