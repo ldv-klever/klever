@@ -481,7 +481,7 @@ class Function(Declaration):
             else:
                 return typedef
 
-        if typedef == 'complex_and_params':
+        if typedef == 'complex_and_params' and not scope:
             scope = {'common'}
 
         if len(self.parameters) == 0:

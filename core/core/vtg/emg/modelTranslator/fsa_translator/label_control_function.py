@@ -40,7 +40,8 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     # Initialize variables
     f_code.extend(initialize_automaton_variables(conf, automaton))
     for var in automaton.variables(only_used=True):
-        v_code.append(var.declare_with_init() + ';')
+        scope = {automaton.process.file} if automaton.process.file else None
+        v_code.append(var.declare_with_init(scope=scope) + ';')
 
     main_v_code, main_f_code = __label_sequence(automaton, list(automaton.fsa.initial_states)[0], ret_expression)
     v_code.extend(main_v_code)

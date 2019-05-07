@@ -45,14 +45,14 @@ class Variable:
         else:
             raise ValueError("Attempt to add variable {!r} without signature".format(name))
 
-    def declare_with_init(self):
+    def declare_with_init(self, scope=None):
         """
         Return a string with the variable initialization.
 
         :return: String.
         """
         # Get declaration
-        declaration = self.declare(extern=False)
+        declaration = self.declare(extern=False, scope=scope)
 
         # Add memory allocation
         if self.value:
@@ -60,7 +60,7 @@ class Variable:
 
         return declaration
 
-    def declare(self, extern=False):
+    def declare(self, extern=False, scope=None):
         """
         Returns a string with the variable declaration.
 
@@ -69,7 +69,7 @@ class Variable:
         """
 
         # Generate declaration
-        expr = self.declaration.to_string(self.name, typedef='complex_and_params')
+        expr = self.declaration.to_string(self.name, typedef='complex_and_params', scope=scope)
 
         # Add extern prefix
         if extern:
