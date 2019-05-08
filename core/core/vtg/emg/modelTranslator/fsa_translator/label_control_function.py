@@ -277,50 +277,49 @@ def __merge_points(initial_states):
                 len({s for s in st.predecessors if s.identifier not in processed}) > 0:
             merge_queue.append(st)
         else:
-            if st not in initial_states:
-                if len(st.predecessors) > 1:
-                    # Try to collect all branches first
-                    for predecessor in st.predecessors:
-                        for split in graph[predecessor.identifier][st.identifier]:
-                            if split not in out_value:
-                                out_value[split] = set()
-                            out_value[split].update(graph[predecessor.identifier][st.identifier][split])
+            if st not in initial_states and len(st.predecessors) > 1:
+                # Try to collect all branches first
+                for predecessor in st.predecessors:
+                    for split in graph[predecessor.identifier][st.identifier]:
+                        if split not in out_value:
+                            out_value[split] = set()
+                        out_value[split].update(graph[predecessor.identifier][st.identifier][split])
 
-                            for node in graph[predecessor.identifier][st.identifier][split]:
-                                split_points[split]['branch liveness'][node] -= 1
-
-                    # Remove completely merged branches
-                    for split in list(out_value.keys()):
-                        for predecessor in (p for p in st.predecessors
-                                            if split in graph[p.identifier][st.identifier]):
-                            if len(out_value[split].symmetric_difference(
-                                    graph[predecessor.identifier][st.identifier][split])) > 0 or \
-                               len(split_points[split]['merge branches'].
-                                    symmetric_difference(graph[predecessor.identifier][st.identifier][split])) == 0:
-                                # Add terminal states for each branch
-                                if st.identifier not in merge_points:
-                                    merge_points[st.identifier] = dict()
-                                merge_points[st.identifier][split] = \
-                                    {p.identifier for p in st.predecessors
-                                     if split in graph[p.identifier][st.identifier]}
-
-                                # Add particular set of merged branches
-                                split_points[split]['split sets'][st.identifier] = out_value[split]
-
-                                # Remove, since all branches are merged
-                                if len(split_points[split]['merge branches'].
-                                               difference(out_value[split])) == 0 and \
-                                   len({s for s in split_points[split]['total branches']
-                                        if split_points[split]['branch liveness'][s] > 0}) == 0:
-                                    # Merge these branches
-                                    del out_value[split]
-                                break
-                elif len(st.predecessors) == 1:
-                    # Just copy meta info from the previous predecessor
-                    out_value = dict(graph[list(st.predecessors)[0].identifier][st.identifier])
-                    for split in out_value:
-                        for node in out_value[split]:
+                        for node in graph[predecessor.identifier][st.identifier][split]:
                             split_points[split]['branch liveness'][node] -= 1
+
+                # Remove completely merged branches
+                for split in list(out_value.keys()):
+                    for predecessor in (p for p in st.predecessors
+                                        if split in graph[p.identifier][st.identifier]):
+                        if len(out_value[split].symmetric_difference(
+                                graph[predecessor.identifier][st.identifier][split])) > 0 or \
+                           len(split_points[split]['merge branches'].
+                                symmetric_difference(graph[predecessor.identifier][st.identifier][split])) == 0:
+                            # Add terminal states for each branch
+                            if st.identifier not in merge_points:
+                                merge_points[st.identifier] = dict()
+                            merge_points[st.identifier][split] = \
+                                {p.identifier for p in st.predecessors
+                                 if split in graph[p.identifier][st.identifier]}
+
+                            # Add particular set of merged branches
+                            split_points[split]['split sets'][st.identifier] = out_value[split]
+
+                            # Remove, since all branches are merged
+                            if len(split_points[split]['merge branches'].
+                                           difference(out_value[split])) == 0 and \
+                               len({s for s in split_points[split]['total branches']
+                                    if split_points[split]['branch liveness'][s] > 0}) == 0:
+                                # Merge these branches
+                                del out_value[split]
+                            break
+            elif st not in initial_states and len(st.predecessors) == 1:
+                # Just copy meta info from the previous predecessor
+                out_value = dict(graph[list(st.predecessors)[0].identifier][st.identifier])
+                for split in out_value:
+                    for node in out_value[split]:
+                        split_points[split]['branch liveness'][node] -= 1
 
             # If it is a split point, create meta information on it and start tracking its branches
             if len(st.successors) > 1:
@@ -344,7 +343,10 @@ def __merge_points(initial_states):
 
                 # Branches with subprocesses has no merge point
                 if isinstance(successor.action, Subprocess):
-                    add_terminal(successor.identifier, out_value, split_points, subprocess=True)
+                    new_out_value = dict(out_value)
+                    if st.identifier in split_points and st.identifier not in new_out_value:
+                        new_out_value[st.identifier] = {successor.identifier}
+                    add_terminal(successor.identifier, new_out_value, split_points, subprocess=True)
                 else:
                     if st.identifier in split_points:
                         # Mark new branch
