@@ -65,17 +65,11 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     if get_conf_property(conf['translation options'], "debug output"):
         processes.save_collection('environment processes.json')
 
-    # Collect files
-    files = set()
-    for grp in avt['grps']:
-        files.update([f['in file'] for f in grp['Extra CCs'] if 'in file' in f])
-    files = sorted(files)
-    logger.info("Files found: {}".format(len(files)))
-
     # Determine entry point file and function
     logger.info("Determine entry point file and function name")
     entry_file = get_necessary_conf_property(conf['translation options'], "environment model file")
     entry_point_name = get_necessary_conf_property(conf['translation options'], 'entry point')
+    files = source.c_full_paths
     if entry_file not in files:
         files.append(entry_file)
         try:
@@ -171,6 +165,7 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     else:
         additional_aspects = []
     for grp in avt['grps']:
+        # Todo maybe this will not work with ccs with multiple ins
         logger.info('Add aspects to C files of group {!r}'.format(grp['id']))
         for cc_extra_full_desc_file in [f for f in grp['Extra CCs'] if 'in file' in f]:
             if cc_extra_full_desc_file["in file"] in addictions:

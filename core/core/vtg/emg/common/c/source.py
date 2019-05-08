@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import os
 import re
 import ujson
 from clade import Clade
@@ -25,14 +26,12 @@ from core.vtg.emg.common.c.types import import_typedefs, extract_name, is_static
 from core.vtg.utils import find_file_or_dir
 
 
-
-
 class Source:
     """
     Representation of a collection with the data collected by a source code analysis. The collection contains
     information about functions, variable initializations, a functions call graph, macros.
     """
-    __REGEX_TYPE = type(re.compile(''))
+    __REGEX_TYPE = type(re.compile('a'))
 
     def __init__(self, logger, conf, abstract_task):
         """
@@ -55,8 +54,8 @@ class Source:
         self._clade = Clade(self._conf['build base'])
 
         # Ask for dependencies for each CC
-        cfiles, c_files, dep_paths, files_map = self._collect_file_dependencies(abstract_task)
-        self.cfiles = c_files
+        cfiles, dep_paths, files_map = self._collect_file_dependencies(abstract_task)
+        self.cfiles = cfiles
         self.deps = dep_paths
 
         # Read file with source analysis
@@ -71,6 +70,21 @@ class Source:
         """
         return list(self._source_functions.keys())
 
+    @property
+    def c_full_paths(self):
+        full_paths = list()
+        for path in self.cfiles:
+            for spath in self._conf["source paths"]:
+                abspath = os.path.join(spath, path)
+                storabspath = self._clade.get_storage_path(abspath)
+                if os.path.isfile(storabspath):
+                    full_paths.append(abspath)
+                    break
+            else:
+                raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
+                                        ' is not provided'.format(path))
+        return full_paths
+
     def get_source_function(self, name=None, paths=None, declaration=None):
         """
         Provides the function by a given name from the collection.
@@ -84,7 +98,7 @@ class Source:
             # This is for convenience
             paths = [paths]
 
-        functions = self.get_source_functions(name=name, paths=paths, declaration=declaration)
+        functions = self.get_source_functions(name, paths, declaration)
         if len(functions) == 1:
             return functions[0]
         elif len(functions) > 1:
@@ -105,7 +119,7 @@ class Source:
         if declaration and isinstance(declaration, str):
             declaration = import_declaration(declaration)
         if name and isinstance(name, self.__REGEX_TYPE):
-            names = (f for f in self.source_functions if name.fullmatch(f))
+            names = [f for f in self.source_functions if name.fullmatch(f)]
         elif name and self.refined_name(name) in self.source_functions:
             names = (self.refined_name(name),)
         elif name:
@@ -113,8 +127,8 @@ class Source:
         else:
             names = self.source_functions
 
-        for name in names:
-            for path, func in ((p, f) for p, f in self._source_functions[name].items() if not paths or p in paths):
+        for func_name in names:
+            for path, func in ((p, f) for p, f in self._source_functions[func_name].items() if not paths or p in paths):
                 if func not in result and (not declaration or (declaration and declaration.compare(func.declaration))):
                     result.append(func)
         return result
@@ -435,9 +449,11 @@ class Source:
         for group in abstract_task['grps']:
             for desc in group['Extra CCs']:
                 cc_desc = self._clade.get_cmd(desc['CC'])
-                c_file = cc_desc['in'][0]
-                # Now read deps
-                _collect_cc_deps(c_file, self._clade.get_cmd_deps(desc['CC']))
-                c_files.add(c_file)
+                cc_c_files = set(cc_desc['in'])
+                deps = self._clade.get_cmd_deps(desc['CC'])
+                for c_file in cc_c_files:
+                    # Now read deps
+                    _collect_cc_deps(c_file, deps)
+                    c_files.add(c_file)
 
-        return c_files, c_files, set(collection.keys()), collection
+        return c_files, set(collection.keys()), collection
