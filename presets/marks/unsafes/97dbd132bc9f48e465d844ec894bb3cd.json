@@ -3,7 +3,7 @@
     {
       "attr": "Klever Core version",
       "is_compare": false,
-      "value": "2.1.dev153+gae21c2c13"
+      "value": "2.1.dev156+ge76a472b5"
     },
     {
       "attr": "Sub-job identifier",
@@ -17,7 +17,7 @@
     },
     {
       "attr": "Linux:Version",
-      "is_compare": true,
+      "is_compare": false,
       "value": "v3.12.14-127-gd8e172f3c0a5"
     },
     {
@@ -36,11 +36,36 @@
       "value": "drivers/spi/spi-imx.ko"
     }
   ],
+  "comparison": "thread_call_forests",
   "description": "",
-  "is regexp": false,
+  "error trace": [
+    [
+      {
+        "ldv_check_final_state": [
+          {
+            "ldv_assert_linux_drivers_clk1__more_at_exit": []
+          },
+          {
+            "ldv_assert_linux_drivers_clk1__more_at_exit": []
+          }
+        ]
+      }
+    ],
+    [
+      {
+        "spi_imx_probe": [
+          {
+            "ldv_clk_enable_clk_per_of_spi_imx_data": []
+          },
+          {
+            "ldv_clk_enable_clk_ipg_of_spi_imx_data": []
+          }
+        ]
+      }
+    ]
+  ],
   "is_modifiable": false,
-  "link": "https://gitlab.com/sosy-lab/software/cpachecker/issues/579",
-  "pattern": "IndexError: list index out of range",
-  "problem": "BAMBadWitness",
-  "status": "1"
+  "status": "2",
+  "tags": [],
+  "verdict": "2"
 }
