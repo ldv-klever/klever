@@ -177,11 +177,6 @@ REST_FRAMEWORK = {
 
 MAX_FILE_SIZE = 104857600  # 100MB
 
-
-RABBIT_MQ = {
-    'username': 'service',
-    'password': 'service',
-    'host': 'localhost',
-    'jobs_exchange': 'jobsX',
-    'tasks_exchange': 'tasksX',
-}
+# username, password, host, jobs_exchange, tasks_exchange are requried
+with open(os.path.join(BASE_DIR, 'bridge', 'rmq.json'), encoding='utf8') as fp:
+    RABBIT_MQ = json.load(fp)

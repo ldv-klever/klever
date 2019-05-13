@@ -1,0 +1,7 @@
+{
+  "username": "service",
+  "password": "service",
+  "host": "localhost",
+  "jobs_exchange": "jobsX",
+  "tasks_exchange": "tasksX"
+}
