@@ -92,10 +92,9 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
         return context
 
 
-class DecisionResults(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, Bview.DetailPostView):
+class DecisionResults(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
     model = Job
     template_name = 'jobs/DecisionResults.html'
-    raise_exception = True
 
     def get_context_data(self, **kwargs):
         return {'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)}
@@ -108,9 +107,9 @@ class JobProgress(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, 
 
     def get_context_data(self, **kwargs):
         try:
-            return {
-                'progress': ProgressSerializerRO(instance=self.object.decision, context={'request': self.request}).data
-            }
+            return {'progress': ProgressSerializerRO(
+                instance=self.object.decision, context={'request': self.request}
+            ).data}
         except ObjectDoesNotExist:
             return {}
 

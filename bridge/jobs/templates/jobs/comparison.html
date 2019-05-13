@@ -42,7 +42,7 @@
                         {% for f in data.same %}
                             <li>
                                 {% if f.href %}
-                                    <a class="file-content-link" href="{{ f.href }}">{{ f.name }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{{ f.href }}">{{ f.name }}</a>
                                 {% else %}
                                     <span>{{ f.name }}</span>
                                 {% endif %}
@@ -60,7 +60,7 @@
                         {% for f in data.diff %}
                             <li>
                                 {% if f.href %}
-                                    <a class="file-content-link" href="{{ f.href }}">{{ f.name }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{{ f.href }}">{{ f.name }}</a>
                                 {% else %}
                                     <span>{{ f.name }}</span>
                                 {% endif %}
@@ -78,7 +78,7 @@
                         {% for f in data.unmatched1 %}
                             <li>
                                 {% if f.href %}
-                                    <a class="file-content-link" href="{{ f.href }}">{{ f.name }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{{ f.href }}">{{ f.name }}</a>
                                 {% else %}
                                     <span>{{ f.name }}</span>
                                 {% endif %}
@@ -91,7 +91,7 @@
                                 <i class="ui ban red icon"></i>
                                 <i class="ui arrow right icon"></i>
                                 {% if f.href %}
-                                    <a class="file-content-link" href="{{ f.href }}">{{ f.name }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{{ f.href }}">{{ f.name }}</a>
                                 {% else %}
                                     <span>{{ f.name }}</span>
                                 {% endif %}
@@ -105,46 +105,4 @@
     {% if data.same|length == 0 and data.unmatched1|length == 0 and data.unmatched2|length == 0 and data.diff|length == 0 %}
         <h1 class="ui red header">{% trans "Jobs don't have files" %}</h1>
     {% endif %}
-    <div id="file_content_modal" class="ui dinamic large modal">
-        <div class="content">
-            <div class="ui grid">
-                <div class="two wide column right aligned"></div>
-                <div class="twelve wide column ui header center aligned" id="file_content_name"></div>
-                <div class="two wide column right aligned">
-                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
-                </div>
-            </div>
-            <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
-        </div>
-    </div>
-    <input id="job1_name" type="hidden" value="{{ job1.name }}">
-    <input id="job2_name" type="hidden" value="{{ job2.name }}">
-    <script type="application/javascript">
-        jQuery(function () {
-            $('.file-content-link').click(function (event) {
-                event.preventDefault();
-
-                $('#file_content_modal').modal('setting', 'transition', 'fade');
-
-                $('#close_file_view').click(function () {
-                    $('#file_content_modal').modal('hide');
-                    $('#file_content').empty();
-                });
-
-                $.get(
-                    $(this).attr('href'),
-                    {name1: $('#job1_name').val(), name2: $('#job2_name').val()},
-                    function (data) {
-                        if (data.error) {
-                            err_notify(data.error)
-                        }
-                        else {
-                            $('#file_content').text(data);
-                            $('#file_content_modal').modal('show');
-                        }
-                    }
-                );
-            })
-        });
-    </script>
 {% endblock %}

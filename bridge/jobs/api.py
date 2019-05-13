@@ -240,8 +240,7 @@ class CheckDownloadAccessView(LoggedCallMixin, APIView):
             raise exceptions.APIException(_('One of the selected jobs was not found'))
         if not JobAccess(self.request.user).can_download_jobs(jobs_qs):
             raise exceptions.APIException(_("You don't have an access to one of the selected jobs"))
-        # TODO: check if None data is allowed
-        return Response()
+        return Response({})
 
 
 class CheckCompareAccessView(LoggedCallMixin, APIView):

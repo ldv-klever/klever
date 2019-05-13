@@ -1,9 +1,29 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from django.urls import reverse
 
 from rest_framework import serializers, exceptions
 
-from users.models import User
+from bridge.serializers import DynamicFieldsModelSerializer
+
+from users.models import User, DataView, PreferableView
 from jobs.models import JobHistory
 from jobs.utils import JobAccess
 
@@ -46,3 +66,41 @@ class JobsChangesSerializer(serializers.ModelSerializer):
         model = JobHistory
         depth = 1
         fields = ('version', 'change_date', 'comment', 'job.name')
+
+
+class DataViewSerializer(DynamicFieldsModelSerializer):
+    default_error_messages = {
+        'wrong_name': _('Please choose another view name')
+    }
+
+    def validate_name(self, value):
+        if value == str(_('Default')):
+            self.fail('wrong_name')
+        return value
+
+    @cached_property
+    def user(self):
+        return self.context['request'].user if 'request' in self.context else None
+
+    def validate(self, attrs):
+        if 'name' in attrs and 'type' in attrs:
+            if self.user.views.filter(name=attrs['name'], type=attrs['type']).exists():
+                self.fail('wrong_name')
+        attrs['author'] = self.user
+        return attrs
+
+    def to_representation(self, instance):
+        if 'request' in self.context and self.context['request'].method != 'GET' and isinstance(instance, DataView):
+            return {'id': instance.id, 'name': instance.name}
+        return super().to_representation(instance)
+
+    def update(self, instance, validated_data):
+        assert isinstance(instance, DataView)
+        if 'shared' in validated_data and validated_data['shared'] != instance.shared and instance.shared:
+            # Remove preferable view for users if view has become hidden
+            PreferableView.objects.filter(view=instance).exclude(user=self.user).delete()
+        return super().update(instance, validated_data)
+
+    class Meta:
+        model = DataView
+        exclude = ('author',)

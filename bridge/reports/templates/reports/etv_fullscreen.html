@@ -29,13 +29,11 @@
 
 {% block body_block %}
     <div class="ui grid">
-        <div class="fifteen wide column">
-
-        </div>
+        <div class="fifteen wide column"></div>
         <div class="one wide column right aligned">
             <a class="ui icon basic tiny button" href="{% url 'reports:unsafe' report.trace_id %}"><i class="remove icon"></i></a>
         </div>
     </div>
     {% include 'reports/UnsafeContent.html' with fullscreen=True %}
-    <input type="hidden" id="report_pk" value="{{ report.pk }}">
+    <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' report.id %}">
 {% endblock %}

@@ -19,6 +19,7 @@
 
 <div class="ui grid">
     <div class="ten wide column">
+        <label for="view_name_input__{{ view.type }}"></label>
         <div class="ui small action input fluid">
             <input id="view_name_input__{{ view.type }}" type="text" placeholder="{% trans 'New view name' %}">
             <button id="view_save_btn__{{ view.type }}" type="button" class="ui olive button">{% trans 'Save' %}</button>
@@ -27,4 +28,12 @@
     <div class="six wide column right aligned">
         <button id="view_show_unsaved_btn__{{ view.type }}" type="button" class="ui violet button">{% trans 'Show' %}</button>
     </div>
+</div>
+<div>
+    <span id="view_save_message__{{ view.type }}" hidden>{% trans 'The view was successfully saved' %}</span>
+    <span id="view_default_error__{{ view.type }}" hidden>{% trans "You can't edit the default view" %}</span>
+    <span id="view_deleted_message__{{ view.type }}" hidden>{% trans "The view was successfully removed" %}</span>
+    <span id="view_shared_message__{{ view.type }}" hidden>{% trans "The view was successfully shared" %}</span>
+    <span id="view_hidden_message__{{ view.type }}" hidden>{% trans "The view was hidden from other users" %}</span>
+    <span id="view_preferred_message__{{ view.type }}" hidden>{% trans "The preferred view was successfully changed" %}</span>
 </div>

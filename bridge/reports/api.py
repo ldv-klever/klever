@@ -1,9 +1,11 @@
 import json
 
 from django.http import HttpResponse
+from django.utils.translation import ugettext as _
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView
+from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView
 from rest_framework.exceptions import NotFound, PermissionDenied, APIException
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
@@ -15,11 +17,12 @@ from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job
 from jobs.utils import JobAccess
-from reports.models import ReportRoot, CompareJobsInfo, ReportComponent, OriginalSources, ReportUnsafe
+from reports.models import Report, ReportRoot, CompareJobsInfo, ReportComponent, OriginalSources, ReportUnsafe
 from reports.comparison import FillComparisonCache
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.etv import GetSource
+from reports.utils import remove_verification_files
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -62,10 +65,6 @@ class UploadReportView(LoggedCallMixin, APIView):
     unparallel = [ReportRoot]
     permission_classes = (ServicePermission,)
 
-    # def dispatch(self, request, *args, **kwargs):
-    #     with override(settings.DEFAULT_LANGUAGE):
-    #         return super().dispatch(request, *args, **kwargs)
-
     def post(self, request, job_uuid):
         job = get_object_or_404(Job, identifier=job_uuid)
         if job.status != JOB_STATUS[2][0]:
@@ -95,3 +94,18 @@ class GetSourceCodeView(LoggedCallMixin, APIView):
             return HttpResponse(GetSource(unsafe, request.GET['file_name']).data)
         except BridgeException as e:
             raise APIException(str(e))
+
+
+class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
+    unparallel = [Report]
+    permission_classes = (IsAuthenticated,)
+    queryset = Job.objects.all()
+    lookup_url_kwarg = 'job_id'
+
+    def check_object_permissions(self, request, obj):
+        super().check_object_permissions(request, obj)
+        if not JobAccess(request.user, obj).can_clear_verifications():
+            self.permission_denied(request, message=_("You can't remove verification files of this job"))
+
+    def perform_destroy(self, instance):
+        remove_verification_files(instance)

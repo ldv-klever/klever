@@ -44,3 +44,8 @@ class ManagerPermission(IsAuthenticated):
     def has_permission(self, request, view):
         # Authenticated and (manager or service) user
         return super().has_permission(request, view) and request.user.role == USER_ROLES[2][0]
+
+
+class DataViewPermission(IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        return super().has_object_permission(request, view, obj) and request.user == obj.author

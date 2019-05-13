@@ -15,10 +15,12 @@
 # limitations under the License.
 #
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from users import views, api
 
-from users import views
-
+router = DefaultRouter()
+router.register('views', api.DataViewAPIViewSet, 'views')
 
 urlpatterns = [
     path('signin/', views.BridgeLoginView.as_view(), name='login'),
@@ -28,10 +30,8 @@ urlpatterns = [
     path('edit/', views.EditProfileView.as_view(), name='edit-profile'),
     path('profile/<int:user_id>/', views.UserProfileView.as_view(), name='show-profile'),
 
-    # View actions
-    path('ajax/save_view/', views.save_view),
-    path('ajax/remove_view/', views.remove_view),
-    path('ajax/share_view/', views.share_view),
-    path('ajax/preferable_view/', views.preferable_view),
-    path('ajax/check_view_name/', views.check_view_name),
+    # Views
+    path('', include(router.urls)),
+    path('views/<int:view_id>/prefer/', api.PreferViewAPIView.as_view()),
+    path('views/prefer-default/<slug:view_type>/', api.PreferViewAPIView.as_view()),
 ]

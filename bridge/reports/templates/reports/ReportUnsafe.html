@@ -22,14 +22,14 @@
 {% block title %}{% trans 'Unsafe' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
-    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
     <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -87,7 +87,7 @@
                                 <th class="collapsing">{{ a_name }}</th>
                                 <td class="collapsing">
                                     {% if a_data %}
-                                        <a class="attr-data-href" href="#" data-attr-id="{{ a_id }}">{{ a_value }}</a>
+                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' a_id %}" data-download="{% url 'reports:attr-data' a_id %}">{{ a_value }}</a>
                                     {% else %}
                                         <span>{{ a_value }}</span>
                                     {% endif %}
@@ -127,22 +127,6 @@
         </div>
     </div>
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' report.id %}">
-    <input id="report_pk" type="hidden" value="{{ report.pk }}">
-    <input id="report_type" type="hidden" value="{{ report_type }}">
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
-
-    <div id="file_content_modal" class="ui dinamic large modal">
-        <div class="content">
-            <div class="ui grid">
-                <div class="eight wide column">
-                    <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
-                </div>
-                <div class="eight wide column right aligned">
-                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
-                </div>
-            </div>
-            <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
-        </div>
-    </div>
 {% endblock %}

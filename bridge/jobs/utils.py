@@ -266,7 +266,7 @@ class JobAccess:
     def can_clear_verifications(self):
         queryset = ReportComponent.objects\
             .filter(root=self.job.reportroot, verification=True).exclude(verifier_input='')
-        return self._is_finished and (self._is_author or self._is_manager) and queryset.count()
+        return self._is_finished and (self._is_author or self._is_manager) and queryset.exists()
 
     def can_dfc(self):
         return self.job is not None and self.job.status not in {
@@ -522,9 +522,9 @@ class CompareFileSet:
 
     def __get_comparison(self):
         files1 = dict(self.j1.versions.order_by('-version').first()
-                      .filesystem_set.order_by('name').values_list('name', 'file__hash_sum'))
+                      .files.order_by('name').values_list('name', 'file__hash_sum'))
         files2 = dict(self.j2.versions.order_by('-version').first()
-                      .filesystem_set.order_by('name').values_list('name', 'file__hash_sum'))
+                      .files.order_by('name').values_list('name', 'file__hash_sum'))
 
         for name, f1_hash in files1.items():
             readable = is_readable(name)

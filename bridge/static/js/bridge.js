@@ -50,6 +50,7 @@ $.ajaxSetup({
     }
 });
 $(document).ajaxError(function (xhr, err) {
+    $('#dimmer_of_page').removeClass('active');
     if (err.responseJSON) {
         if (err.responseJSON.error) err_notify(err.responseJSON.error);
         else if (err.responseJSON.detail) err_notify(err.responseJSON.detail);
@@ -146,9 +147,9 @@ window.encodeQueryData = function(data) {
 };
 
 window.collect_view_data = function(view_type) {
-    var data = {};
+    let data = {};
     $('input[id^="view_data_' + view_type + '__"]').each(function () {
-        var data_name = $(this).attr('id').replace('view_data_' + view_type + '__', ''), data_type = $(this).val();
+        let data_name = $(this).attr('id').replace('view_data_' + view_type + '__', ''), data_type = $(this).val();
 
         if (data_type === 'checkboxes') {
             data[data_name] = [];
@@ -165,7 +166,7 @@ window.collect_view_data = function(view_type) {
                     data[data_name].push($('input[name="view_' + view_type + '__' + val + '"]:checked').val());
                 }
                 else {
-                    var element_value = $('#view_' + view_type + '__' + val).val();
+                    let element_value = $('#view_' + view_type + '__' + val).val();
                     if (!element_value.length) {
                         delete data[data_name];
                         return false;
@@ -196,15 +197,14 @@ window.collect_view_data = function(view_type) {
             }
         }
         else if (data_type.startsWith('list_if_')) {
-            var condition = data_type.replace('list_if_', '');
-            if ($('#view_condition_' + view_type + '__' + condition).is(':checked')) {
+            if ($('#view_condition_' + view_type + '__' + data_type.replace('list_if_', '')).is(':checked')) {
                data[data_name] = [];
                 $.each($(this).data('list').split('__'), function (i, val) {
                     if (val.startsWith('radio_')) {
                         data[data_name].push($('input[name="view_' + view_type + '__' + val + '"]:checked').val());
                     }
                     else {
-                        var element_value = $('#view_' + view_type + '__' + val).val();
+                        let element_value = $('#view_' + view_type + '__' + val).val();
                         if (!element_value.length) {
                             delete data[data_name];
                             return false;
@@ -225,191 +225,130 @@ window.collect_view_data = function(view_type) {
 };
 
 window.set_actions_for_views = function(view_type) {
-    var get_params_to_delete = ['page', 'view', 'view_id', 'view_type'];
 
-    $('#view_show_unsaved_btn__' + view_type).click(function () {
-        var current_url = window.location.href;
-        $.each(get_params_to_delete, function (i, get_param) {
-            var re = new RegExp('(' + get_param + '=).*?(&|$)');
-            if (current_url.indexOf(get_param + "=") > -1) {
-                current_url = current_url.replace(re, '');
+    function clear_query_params(url) {
+        $.each(['page', 'view', 'view_id', 'view_type'], function (i, get_param) {
+            let re = new RegExp('(' + get_param + '=).*?(&|$)');
+            if (url.indexOf(get_param + "=") > -1) {
+                console.log(url);
+                url = url.replace(re, '');
+                console.log(url);
             }
         });
-        if (current_url.indexOf('?') > -1) {
-            if (current_url.slice(-1) !== '&') {
-                current_url = current_url + '&';
-            }
-            current_url = current_url + encodeQueryData(collect_view_data(view_type));
+        if (url.indexOf('?') > -1) {
+            let last_char = url.slice(-1);
+            if (last_char !== '&' && last_char !== '?') url += '&';
         }
-        else {
-            current_url = current_url + '?' + encodeQueryData(collect_view_data(view_type));
-        }
-        window.location.href = current_url;
+        else url += '?';
+        return url;
+    }
+
+    $('#view_show_unsaved_btn__' + view_type).click(function () {
+        window.location.href = clear_query_params(window.location.href) + encodeQueryData(collect_view_data(view_type));
     });
 
     $('#view_save_btn__' + view_type).click(function () {
-        var view_title = $('#view_name_input__' + view_type).val();
+        let view_data = collect_view_data(view_type);
         $.ajax({
-            method: 'post',
-            url: '/users/ajax/check_view_name/',
-            dataType: 'json',
+            method: 'POST',
+            url: '/users/views/',
+            // dataType: 'json',
             data: {
-                view_title: view_title,
-                view_type: view_type
+                view: view_data['view'], type: view_data['view_type'],
+                name: $('#view_name_input__' + view_type).val()
             },
-            success: function(data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else {
-                    var request_data = collect_view_data(view_type);
-                    request_data['title'] = view_title;
-                    request_data['view_type'] = view_type;
-                    $.ajax({
-                        method: 'post',
-                        url: '/users/ajax/save_view/',
-                        dataType: 'json',
-                        data: request_data,
-                        success: function(save_data) {
-                            if (save_data.error) {
-                                err_notify(data.error);
-                            }
-                            else {
-                                $('#view_list__' + view_type).append($('<option>', {
-                                    text: save_data['view_name'],
-                                    value: save_data['view_id']
-                                }));
-                                $('#view_name_input__' + view_type).val('');
-                                success_notify(save_data.message);
-                            }
-                        }
-                    });
-                }
+            success: function (resp) {
+                $('#view_list__' + view_type).append($('<option>', {text: resp['name'], value: resp['id']}));
+                $('#view_name_input__' + view_type).val('');
+                success_notify($('#view_save_message__' + view_type).text());
             }
         });
     });
 
     $('#view_update_btn__' + view_type).click(function () {
-        var request_data = collect_view_data(view_type);
-        request_data['view_id'] = $('#view_list__' + view_type).children('option:selected').val();
-        request_data['view_type'] = view_type;
+        let view_id = $('#view_list__' + view_type).val();
+        if (view_id === 'default') return err_notify($('#view_default_error__' + view_type).text());
+        let view_data = collect_view_data(view_type);
+
         $.ajax({
-            method: 'post',
-            url: '/users/ajax/save_view/',
-            dataType: 'json',
-            data: request_data,
-            success: function(save_data) {
-                save_data.error ? err_notify(save_data.error) : success_notify(save_data.message);
+            url: `/users/views/${view_id}/`,
+            method: 'PATCH',
+            data: {view: view_data['view']},
+            success: function() {
+                success_notify($('#view_save_message__' + view_type).text())
             }
         });
     });
 
     $('#view_show_btn__' + view_type).click(function () {
-        var current_url = window.location.href, get_data = {
-            view_id: $('#view_list__' + view_type).children('option:selected').val(),
-            view_type: view_type
-        };
-        $.each(get_params_to_delete, function (i, get_param) {
-            var re = new RegExp('(' + get_param + '=).*?(&|$)');
-            if (current_url.indexOf(get_param + "=") > -1) {
-                current_url = current_url.replace(re, '');
-            }
-        });
-        if (current_url.indexOf('?') > -1) {
-            if (current_url.slice(-1) !== '&') {
-                current_url = current_url + '&';
-            }
-            current_url = current_url + encodeQueryData(get_data);
-        }
-        else {
-            current_url = current_url + '?' + encodeQueryData(get_data);
-        }
-        window.location.href = current_url;
+        let query_params = {view_id: $('#view_list__' + view_type).val(), view_type: view_type};
+        window.location.href = clear_query_params(window.location.href) + encodeQueryData(query_params);
     });
 
     $('#view_remove_btn__' + view_type).click(function () {
         $.ajax({
-            method: 'post',
-            url: '/users/ajax/remove_view/',
-            dataType: 'json',
-            data: {
-                view_id: $('#view_list__' + view_type).children('option:selected').val(),
-                view_type: view_type
-            },
-            success: function(data) {
-                if (data.error) {
-                    err_notify(data.error)
-                }
-                else {
-                    $('#view_list__' + view_type).children('option:selected').remove();
-                    success_notify(data.message)
-                }
+            url: `/users/views/${$('#view_list__' + view_type).val()}/`,
+            method: 'DELETE',
+            success: function() {
+                $('#view_list__' + view_type).children('option:selected').remove();
+                success_notify($('#view_deleted_message__' + view_type).text())
             }
         });
     });
     $('#view_share_btn__' + view_type).click(function () {
+        let selected_view = $('#view_list__' + view_type).children('option:selected'),
+            view_id = selected_view.val(), shared = selected_view.data('shared');
+        if (view_id === 'default') return err_notify($('#view_default_error__' + view_type).text());
         $.ajax({
-            method: 'post',
-            url: '/users/ajax/share_view/',
-            dataType: 'json',
-            data: {
-                view_id: $('#view_list__' + view_type).children('option:selected').val(),
-                view_type: view_type
-            },
-            success: function(data) {
-                if (data.error) {
-                    err_notify(data.error)
-                }
-                else {
-                    success_notify(data.message)
-                }
+            url: `/users/views/${view_id}/`,
+            method: 'PATCH',
+            data: {shared: !shared},
+            success: function() {
+                selected_view.data('shared', !shared);
+                success_notify(
+                    shared ?
+                        $('#view_hidden_message__' + view_type).text() :
+                        $('#view_shared_message__' + view_type).text()
+                );
             }
         });
     });
 
     $('#view_prefer_btn__' + view_type).click(function () {
+        let view_id = $('#view_list__' + view_type).val(), method, url;
+        if (view_id === 'default') {
+            method = 'DELETE';
+            url = `/users/views/prefer-default/${view_type}/`;
+        }
+        else {
+            method = 'POST';
+            url = `/users/views/${view_id}/prefer/`;
+        }
         $.ajax({
-            method: 'post',
-            url: '/users/ajax/preferable_view/',
-            dataType: 'json',
-            data: {
-                view_id: $('#view_list__' + view_type).children('option:selected').val(),
-                view_type: view_type
-            },
-            success: function(data) {
-                data.error ? err_notify(data.error) : success_notify(data.message);
+            url: url,
+            method: method,
+            // dataType: 'json',
+            success: function() {
+                success_notify($('#view_preferred_message__' + view_type).text());
             }
         });
     });
 
     $('#view_show_default_btn__' + view_type).click(function () {
-        var current_url = window.location.href;
-        $.each(get_params_to_delete, function (i, get_param) {
-            var re = new RegExp('(' + get_param + '=).*?(&|$)');
-            if (current_url.indexOf(get_param + "=") > -1) {
-                current_url = current_url.replace(re, '');
-            }
-        });
-        if (current_url.slice(-1) === '&') {
-            current_url = current_url.substring(0, current_url.length - 1);
-        }
-        if (current_url.slice(-1) === '?') {
-            current_url = current_url.substring(0, current_url.length - 1);
-        }
-        window.location.href = current_url;
+        window.location.href = clear_query_params(window.location.href).slice(0, -1);
     });
 
-    var show_viewform_btn = $('#view_show_form_btn_' + view_type);
+    let show_viewform_btn = $('#view_show_form_btn_' + view_type);
     show_viewform_btn.popup();
     show_viewform_btn.click(function () {
         show_viewform_btn.popup('hide');
-        var view_segment = $('#view_form_segment_' + view_type);
+        let view_segment = $('#view_form_segment_' + view_type);
         view_segment.is(':visible') ? view_segment.hide() : view_segment.show();
         return false;
     });
 
     $('#view_add_column_btn_' + view_type).click(function () {
-        var selected_column = $('#view_available_columns_' + view_type).children('option:selected');
+        let selected_column = $('#view_available_columns_' + view_type).children('option:selected');
         $('<option>', {
             value: selected_column.val(),
             text: selected_column.text(),
@@ -424,21 +363,17 @@ window.set_actions_for_views = function(view_type) {
     });
 
     $('#view_move_columns_up_' + view_type).click(function () {
-        var $op = $('#view_' + view_type + '__columns').children('option:selected');
-        if ($op.length) {
-            $op.first().prev().before($op);
-        }
+        let $op = $('#view_' + view_type + '__columns').children('option:selected');
+        if ($op.length) $op.first().prev().before($op);
     });
 
     $('#view_move_columns_down_' + view_type).click(function () {
-        var $op = $('#view_' + view_type + '__columns').children('option:selected');
-        if ($op.length) {
-            $op.last().next().after($op);
-        }
+        let $op = $('#view_' + view_type + '__columns').children('option:selected');
+        if ($op.length) $op.last().next().after($op);
     });
 
     $('#order_by_attr__' + view_type).parent().checkbox({
-        onChecked: function() {$('#order_attr_value_div__' + view_type).show()}
+        onChecked: function() { $('#order_attr_value_div__' + view_type).show() }
     });
     $('[id^="order_by_"]').each(function () {
         if ($(this).attr('id').startsWith('order_by_attr__') || $(this).attr('id').split('__')[1] !== view_type) {
@@ -456,7 +391,7 @@ window.update_colors = function (table) {
     if (!table.hasClass('alternate-color')) {
         return false;
     }
-    var is_dark = false;
+    let is_dark = false;
     table.find('tbody').first().find('tr:visible').each(function () {
         if (is_dark) {
             $(this).css('background', '#f0fcfe');
@@ -732,4 +667,23 @@ $(document).ready(function () {
     $('.alternate-color').each(function () {
         update_colors($(this));
     });
+
+    // Activate file content modal with ability to download it
+    let file_content_modal = $('#file_content_modal');
+    file_content_modal.modal({transition: 'fade'});
+    $('.file-content-activator').click(function (event) {
+        event.preventDefault();
+        let download_url = $(this).data('download');
+        $.get($(this).data('url'), {}, function (resp) {
+            file_content_modal.find('.filecontent').text(resp);
+            if (download_url) file_content_modal.find('.download-url').attr('href', download_url).show();
+            else file_content_modal.find('.download-url').hide();
+            file_content_modal.modal('show');
+        });
+    });
+    file_content_modal.find('.modal-cancel').click(function () {
+        file_content_modal.modal('hide');
+        file_content_modal.find('.filecontent').empty();
+        file_content_modal.find('.download-url').attr('href', '#');
+    })
 });

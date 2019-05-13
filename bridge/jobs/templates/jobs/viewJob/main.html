@@ -58,7 +58,7 @@
                     <a id="upload_reports_btn" class="item{% if not job_access.can_upload_reports %} disabled{% endif %}">{% trans 'Upload' %}</a>
                     <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}">{% trans 'Collapse' %}</a>
                     <a id="dfc_modal_show" class="item{% if not job_access.can_dfc %} disabled{% endif %}">{% trans 'Download files for competition' %}</a>
-                    <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}">{% trans 'Clear verification files' %}</a>
+                    <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}">{% trans 'Clear verification files' %}</a>
                 </div>
                 <div class="right menu">
                     <a id="job_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>

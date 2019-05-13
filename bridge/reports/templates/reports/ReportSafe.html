@@ -19,7 +19,7 @@
 {% load i18n %}
 {% load staticfiles %}
 
-{% block title %}{% if report_type == 'safe' %}{% trans 'Safe' %}{% elif report_type == 'unsafe' %}{% trans 'Unsafe' %}{% else %}{% trans 'Unknown' %}{% endif %}{% endblock %}
+{% block title %}{% trans 'Safe' %}{% endblock %}
 
 {% block head_block %}
     <link href="{% static 'marks/css/mark.css' %}" rel="stylesheet">
@@ -45,24 +45,13 @@
         <div class="six wide column">
             {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}
         </div>
-        {% if report_type == 'unsafe' %}
-            <div class="one wide column right aligned">
-                <a class="ui icon basic mini button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="maximize icon"></i></a>
-            </div>
-        {% endif %}
     </div>
 
     {# Specific content of the report #}
-    {% if report_type == 'safe' %}
-        {% if main_content %}
-            <div class="ui green segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
-        {% else %}
-            <h3 class="ui red header">{% trans 'There is no proof description for this safe' %}</h3>
-        {% endif %}
-    {% elif report_type == 'unsafe' %}
-        {% include 'reports/UnsafeContent.html' %}
+    {% if main_content %}
+        <div class="ui green segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
     {% else %}
-        <div class="ui red segment filecontent" style="min-height:300px;max-height: 70vh;">{{ main_content }}</div>
+        <h3 class="ui red header">{% trans 'There is no proof description for this safe' %}</h3>
     {% endif %}
 
     <div class="ui grid">
@@ -97,7 +86,7 @@
                                 <th class="collapsing">{{ a_name }}</th>
                                 <td class="collapsing">
                                     {% if a_data %}
-                                        <a class="attr-data-href" href="#" data-attr-id="{{ a_id }}">{{ a_value }}</a>
+                                        <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' a_id %}" data-download="{% url 'reports:attr-data' a_id %}">{{ a_value }}</a>
                                     {% else %}
                                         <span>{{ a_value }}</span>
                                     {% endif %}
@@ -136,22 +125,6 @@
             </div>
         </div>
     </div>
-    <input id="report_pk" type="hidden" value="{{ report.pk }}">
-    <input id="report_type" type="hidden" value="{{ report_type }}">
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
-
-    <div id="file_content_modal" class="ui dinamic large modal">
-        <div class="content">
-            <div class="ui grid">
-                <div class="eight wide column">
-                    <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
-                </div>
-                <div class="eight wide column right aligned">
-                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
-                </div>
-            </div>
-            <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
-        </div>
-    </div>
 {% endblock %}

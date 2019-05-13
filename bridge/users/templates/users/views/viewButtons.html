@@ -22,7 +22,7 @@
     <select id="view_list__{{ view.type }}" class="ui dropdown">
         <option value="default">{% trans 'Default' %}</option>
         {% for v in view.views %}
-            <option title="{{ v.name }}" value="{{ v.id }}"{% if view.view_id == v.id %} selected{% endif %}>{{ v.name }}
+            <option title="{{ v.name }}" data-shared="{% if v.shared %}true{% else %}false{% endif %}" value="{{ v.id }}"{% if view.view_id == v.id %} selected{% endif %}>{{ v.name }}
                 {% if v.shared %} ({% if v.author_id == user.id %}{% trans 'shared' %}{% else %}{{ v.author.get_full_name }}{% endif %}){% endif %}
             </option>
         {% endfor %}

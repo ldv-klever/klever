@@ -662,25 +662,13 @@ class ViewReportData:
         return unsafes_data
 
     def __safes_attrs_statistic(self):
-        try:
-            return self.__attr_statistic('safe')
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException()
+        return self.__attr_statistic('safe')
 
     def __unsafes_attrs_statistic(self):
-        try:
-            return self.__attr_statistic('unsafe')
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException()
+        return self.__attr_statistic('unsafe')
 
     def __unknowns_attrs_statistic(self):
-        try:
-            return self.__attr_statistic('unknown')
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException()
+        return self.__attr_statistic('unknown')
 
     def __attr_statistic(self, report_type):
         if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:

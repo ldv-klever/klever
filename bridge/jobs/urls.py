@@ -23,7 +23,7 @@ urlpatterns = [
     # Main pages
     path('', views.JobsTree.as_view(), name='tree'),
     path('<int:pk>/', views.JobPage.as_view(), name='job'),
-    path('decision_results/<int:pk>/', views.DecisionResults.as_view()),
+    path('decision-results/<int:pk>/', views.DecisionResults.as_view()),
     path('progress/<int:pk>/', views.JobProgress.as_view()),
     path('api/job-status/<int:pk>/', api.JobStatusView.as_view(), name='api-job-status'),
     path('comparison/<int:job1_id>/<int:job2_id>/', views.JobsFilesComparison.as_view(), name='comparison'),

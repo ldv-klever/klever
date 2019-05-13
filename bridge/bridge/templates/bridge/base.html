@@ -167,6 +167,19 @@
                 <button id="upload_jobstree_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
             </div>
         </div>
+        <div id="file_content_modal" class="ui dinamic large modal">
+            <div class="content">
+                <div class="ui grid">
+                    <div class="eight wide column">
+                        <a class="ui icon olive button download-url" href=""><i class="download icon"></i></a>
+                    </div>
+                    <div class="eight wide column right aligned">
+                        <button class="ui icon red button modal-cancel"><i class="remove icon"></i></button>
+                    </div>
+                </div>
+                <div class="filecontent ui olive segment" style="height:75vh;"></div>
+            </div>
+        </div>
         <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
         <span id="error__ajax_error" hidden>{% trans 'Ajax request error. Maybe connection refused.' %}</span>
     </body>

@@ -7,20 +7,18 @@ from rest_framework import status, exceptions
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.generics import get_object_or_404, RetrieveAPIView, GenericAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
-from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin
+from rest_framework.generics import get_object_or_404, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from bridge.vars import USER_ROLES, ASSOCIATION_TYPE
+from bridge.vars import USER_ROLES
 from bridge.access import ManagerPermission
 from tools.profiling import LoggedCallMixin
 
-from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
     MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
-    SafeTagAccess, UnsafeTagAccess, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
+    SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 )
 from marks.utils import MarkAccess
 from marks.tags import TagAccess, ChangeTagsAccess, UploadTags

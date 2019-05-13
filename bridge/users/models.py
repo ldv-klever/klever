@@ -74,8 +74,8 @@ def create_auth_token(sender, instance=None, **kwargs):
 
 
 class DataView(models.Model):
-    author = models.ForeignKey(User, models.CASCADE)
-    type = models.CharField(max_length=2, choices=VIEW_TYPES, default=VIEW_TYPES[1][0])
+    author = models.ForeignKey(User, models.CASCADE, related_name='views')
+    type = models.CharField(max_length=2, choices=VIEW_TYPES)
     shared = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
     view = JSONField()

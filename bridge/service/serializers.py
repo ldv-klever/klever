@@ -9,7 +9,7 @@ from rest_framework import serializers, exceptions, fields
 
 from bridge.utils import logger, RMQConnect
 from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_TYPE, SCHEDULER_STATUS, TASK_STATUS
-from bridge.serializers import TimeStampField
+from bridge.serializers import TimeStampField, DynamicFieldsModelSerializer
 
 from jobs.models import Job
 from service.models import Task, Solution, Decision, VerificationTool, Scheduler, NodesConfiguration, Node, Workload
@@ -64,20 +64,11 @@ class UpdateToolsSerializer(serializers.Serializer):
         raise NotImplementedError('Update() is not supported')
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class TaskSerializer(DynamicFieldsModelSerializer):
     default_error_messages = {
         'status_change': 'Status change from "{old_status}" to "{new_status}" is not supported!'
     }
     job = serializers.SlugRelatedField(slug_field='identifier', write_only=True, queryset=Job.objects.all())
-
-    def __init__(self, *args, **kwargs):
-        serializer_fields = kwargs.pop('fields', None)
-        super(TaskSerializer, self).__init__(*args, **kwargs)
-
-        if serializer_fields:
-            # Drop any fields that are not specified in the `fields`
-            for field_name in set(self.fields.keys()) - set(serializer_fields):
-                self.fields.pop(field_name)
 
     def validate_job(self, instance):
         try:
@@ -208,16 +199,7 @@ class TaskSerializer(serializers.ModelSerializer):
         extra_kwargs = {'archive': {'write_only': True}}
 
 
-class SolutionSerializer(serializers.ModelSerializer):
-    def __init__(self, *args, **kwargs):
-        serializer_fields = kwargs.pop('fields', None)
-        super().__init__(*args, **kwargs)
-
-        if serializer_fields:
-            # Drop any fields that are not specified in the `fields`
-            for field_name in set(self.fields.keys()) - set(serializer_fields):
-                self.fields.pop(field_name)
-
+class SolutionSerializer(DynamicFieldsModelSerializer):
     def validate_archive(self, archive):
         if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
             raise exceptions.ValidationError('The task archive "%s" is not a ZIP file' % archive)

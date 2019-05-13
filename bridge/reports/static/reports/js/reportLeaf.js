@@ -43,19 +43,4 @@ $(document).ready(function () {
         })
     });
     $('.like-popup').popup({hoverable: true, position: 'top right'});
-
-    $('.attr-data-href').click(function (event) {
-        event.preventDefault();
-        var attr_id = $(this).data('attr-id');
-        $.get('/reports/attrdata-content/' + attr_id + '/', {}, function (data) {
-            $('#file_content').text(data);
-            $('#download_file_href').attr('href', '/reports/attrdata/' + attr_id + '/');
-            $('#file_content_modal').modal('show');
-            $('#close_file_view').click(function () {
-                $('#file_content_modal').modal('hide');
-                $('#file_content').empty();
-                $('#download_file_href').attr('href', '#');
-            });
-        });
-    });
 });

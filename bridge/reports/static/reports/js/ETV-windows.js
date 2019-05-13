@@ -16,26 +16,23 @@
  */
 
 window.src_filename_trunc = function() {
-    var text_container = $('#ETVSourceTitle'),
+    let text_container = $('#ETVSourceTitle'),
         text_width = text_container.width(),
         window_width = $('#ETV_source_code').width();
-    if (text_width > window_width * 0.95) {
-        text_container.css('float', 'right');
-    }
-    else {
-        text_container.css('float', 'left');
-    }
+    if (text_width > window_width * 0.95) text_container.css('float', 'right');
+    else text_container.css('float', 'left');
 };
 
 $(document).ready(function () {
-    var D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
+    let D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
         S = $('#etv-source'), T = $('#etv-trace'),
         A = $('#etv-assumes'), etv = $('#etv'),
         include_assumptions = (A.length > 0),
         Tw = parseInt(T.width(), 10),
         Sw = parseInt(S.width(), 10),
         D1w = parseInt(D1.width(), 10),
-        minw = parseInt((Tw + Sw + D1w) * 15 / 100, 10);
+        minw = Math.round((Tw + Sw + D1w) * 15 / 100);
+
     D1.draggable({
         axis: 'x',
         containment: [
@@ -45,7 +42,7 @@ $(document).ready(function () {
             etv.offset().top + etv.height()
         ],
         drag: function (event, ui) {
-            var aw = parseInt(ui.position.left),
+            let aw = parseInt(ui.position.left),
                 bw = Tw + Sw - aw;
             if (ui.position.top < 0) {
                 ui.position.top = 0;
@@ -61,10 +58,10 @@ $(document).ready(function () {
         distance: 10
     });
     if (include_assumptions) {
-        var Sh = parseInt(S.height(), 10),
+        let Sh = parseInt(S.height(), 10),
             Ah = parseInt(A.height(), 10),
             D2h = parseInt(D2.width(), 10),
-            minh = parseInt((Sh + Ah + D2h) * 2 / 100, 10);
+            minh = Math.round((Sh + Ah + D2h) * 2 / 100);
         D2.draggable({
             axis: 'y',
             containment: [
@@ -74,7 +71,7 @@ $(document).ready(function () {
                 etv.offset().top + Ah + Sh - minh
             ],
             drag: function (event, ui) {
-                var ah = parseInt(ui.position.top),
+                let ah = parseInt(ui.position.top),
                     bh = Sh + Ah - ah;
                 if (ui.position.right < 0) {
                     ui.position.right = 0;

@@ -386,6 +386,12 @@ class TagsTreeView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         return context
 
 
+class DownloadTagsView(LoginRequiredMixin, Bview.StreamingResponseView):
+    def get_generator(self):
+        return DownloadTags(self.kwargs['tag_type'])
+
+
+# TODO
 @method_decorator(login_required, name='dispatch')
 class DownloadMarkView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
@@ -402,6 +408,7 @@ class DownloadMarkView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingRespon
         return generator
 
 
+# TODO
 @method_decorator(login_required, name='dispatch')
 class DownloadPresetMarkView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
     model_map = {'safe': MarkSafe, 'unsafe': MarkUnsafe, 'unknown': MarkUnknown}
@@ -418,6 +425,7 @@ class DownloadPresetMarkView(LoggedCallMixin, SingleObjectMixin, Bview.Streaming
         return generator
 
 
+# TODO
 class UploadMarksView(LoggedCallMixin, Bview.JsonView):
     unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
 
@@ -435,6 +443,7 @@ class UploadMarksView(LoggedCallMixin, Bview.JsonView):
         return {'success': _('Number of created marks: %(number)s') % {'number': len(new_marks)}}
 
 
+# TODO
 class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.StreamingResponseView):
     unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
 
@@ -450,6 +459,7 @@ class DownloadAllMarksView(LoggedCallMixin, Bview.JSONResponseMixin, Bview.Strea
         return generator
 
 
+# TODO
 class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
     unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
 
@@ -462,36 +472,3 @@ class UploadAllMarksView(LoggedCallMixin, Bview.JsonView):
             raise BridgeException("You don't have an access to upload marks")
         marks_dir = extract_archive(self.request.FILES['file'])
         return UploadAllMarks(self.request.user, marks_dir.name, bool(int(self.request.POST.get('delete', 0)))).numbers
-
-
-class DownloadTagsView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
-    def get_generator(self):
-        return DownloadTags(self.kwargs['type'])
-
-
-class LikeAssociation(LoggedCallMixin, Bview.JsonDetailPostView):
-    model_map = {
-        'safe': (MarkSafeReport, SafeAssociationLike),
-        'unsafe': (MarkUnsafeReport, UnsafeAssociationLike),
-        'unknown': (MarkUnknownReport, UnknownAssociationLike)
-    }
-    unparallel = [MarkSafeReport, MarkUnsafeReport, MarkUnknownReport]
-
-    def get_queryset(self):
-        return self.model_map[self.kwargs['type']][0].objects.all()
-
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.get_queryset()
-        try:
-            obj = queryset.get(report_id=self.kwargs['rid'], mark_id=self.kwargs['mid'])
-        except queryset.model.DoesNotExist:
-            raise Http404(_("The accosiation was not found"))
-        return obj
-
-    def get_context_data(self, **kwargs):
-        self.model_map[self.kwargs['type']][1].objects\
-            .filter(association=self.object, author=self.request.user).delete()
-        self.model_map[self.kwargs['type']][1].objects\
-            .create(association=self.object, author=self.request.user, dislike=(self.kwargs['act'] == 'dislike'))
-        return {}

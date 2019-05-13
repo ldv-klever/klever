@@ -16,6 +16,7 @@
 #
 
 import os
+from io import BytesIO
 from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
@@ -26,9 +27,9 @@ from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, ERROR_TRACE_FILE
 from bridge.tableHead import Header
-from bridge.utils import BridgeException
+from bridge.utils import BridgeException, ArchiveFileContent
 from bridge.ZipGenerator import ZipStream
 
 from reports.models import ReportComponent, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot
@@ -644,7 +645,6 @@ class UnknownsTable:
         self.paginator, self.page = self.__get_queryset(report, query_params)
 
         if not self.view['is_unsaved'] and self.paginator.count == 1:
-            print('Redirect')
             self.redirect = reverse('reports:unknown', args=[self.paginator.object_list.first().pk])
             # Do not collect reports' values if page will be redirected
             return
@@ -1165,3 +1165,11 @@ class VerifierFilesGenerator(FileWrapper):
         self.name = '%s files.zip' % instance.component
         self.size = instance.verifier_input.file.size
         super().__init__(instance.verifier_input.file, 8192)
+
+
+class ErrorTraceFileGenerator(FileWrapper):
+    def __init__(self, report):
+        content = ArchiveFileContent(report, 'error_trace', ERROR_TRACE_FILE).content
+        self.name = 'error trace.json'
+        self.size = len(content)
+        super().__init__(BytesIO(content), 8192)

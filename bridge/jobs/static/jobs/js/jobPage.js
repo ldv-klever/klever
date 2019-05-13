@@ -15,11 +15,6 @@
  * limitations under the License.
  */
 
-function error_or_reload(data) {
-    $('#dimmer_of_page').removeClass('active');
-    data.error ? err_notify(data.error) : window.location.replace('')
-}
-
 function reload_page() {
     window.location.replace('')
 }
@@ -55,23 +50,14 @@ function update_decision_results(interval) {
             if (tag_descr.length) tag_descr.popup('show');
         }
     }
-    $.post(
-        '/jobs/decision_results/' + $('#job_id').val() + '/',
-        collect_view_data('2'),  // VIEW_TYPES[2]
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-                clearInterval(interval);
-                return false;
-            }
-
-            var note_hidden = hide_resource_note(),
-                shown_tag_id = hide_tag_popup();
-            $('#job_data_div').html(data);
-            activate_resource_note(note_hidden);
-            activate_tags(shown_tag_id);
-        }
-    ).fail(function () {
+    let decision_results_url = `/jobs/decision-results/${$('#job_id').val()}/?` + encodeQueryData(collect_view_data('2'));
+    $.get(decision_results_url, {}, function (resp) {
+        let note_hidden = hide_resource_note(),
+            shown_tag_id = hide_tag_popup();
+        $('#job_data_div').html(resp);
+        activate_resource_note(note_hidden);
+        activate_tags(shown_tag_id);
+    }).fail(function () {
         clearInterval(interval);
     });
 }
@@ -185,7 +171,7 @@ function show_warn_modal(btn, warn_text_id, action_func, disabled) {
     warn_confirm_btn.unbind();
     warn_confirm_btn.click(function () {
         $('#warn_modal').modal('hide');
-        action_func();
+        action_func(btn);
     });
     $('#warn_modal').modal('show');
 }
@@ -227,9 +213,9 @@ function collapse_reports() {
     $.post($('#collapse_url').val(), {}, reload_page);
 }
 
-function clear_verification_files() {
+function clear_verification_files(btn) {
     $('#dimmer_of_page').addClass('active');
-    $.post('/reports/clear_verification_files/' + $('#job_id').val() + '/', {}, error_or_reload);
+    $.ajax({url: btn.data('url'), success: reload_page});
 }
 
 $(document).ready(function () {
@@ -257,7 +243,7 @@ $(document).ready(function () {
     $('#last_decide_job_btn').click(function () { show_warn_modal($(this), 'warn__decide_job', lastconf_run_decision) });
     $('#stop_job_btn').click(function () { show_warn_modal($(this), 'warn__stop_decision', stop_job_decision) });
     $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
-    $('#clear_verifications_modal').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
+    $('#clear_verifications_modal_show').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
 
     var job_status_popup = $('#job_status_popup');
     if (job_status_popup.length) $('#job_status_popup_activator').popup({popup: job_status_popup, position: 'bottom center'});

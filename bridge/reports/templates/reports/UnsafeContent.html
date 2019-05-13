@@ -22,7 +22,7 @@
         <div style="margin: 10px;">
             <div class="ui grid">
                 <div class="sixteen wide column center aligned">
-                    <h3><a id="error_trace_options" href="{% url 'reports:download_error_trace' report.pk %}">{% trans 'Error trace' %}</a></h3>
+                    <h3><a id="error_trace_options" href="{% url 'reports:unsafe-download' report.pk %}">{% trans 'Error trace' %}</a></h3>
                 </div>
             </div>
             {% if etv %}

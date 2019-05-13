@@ -67,8 +67,8 @@ urlpatterns = [
     # Tags
     re_path(r'^api/tags-access/(?P<tag_type>safe|unsafe)/(?P<tag_id>[0-9]+)/$', api.TagAccessView.as_view()),
     re_path(r'^api/tags-upload/(?P<tag_type>safe|unsafe)/$', api.UploadTagsView.as_view(), name='tags-upload'),
-    re_path(r'^tags-download/(?P<tag_type>unsafe|safe)/$', views.DownloadTagsView.as_view(), name='tags-download'),
     re_path(r'^api/tags-data/(?P<tag_type>unsafe|safe)/$', views.MarkTagsView.as_view(), name='api-tags-data'),
+    re_path(r'^tags-download/(?P<tag_type>unsafe|safe)/$', views.DownloadTagsView.as_view(), name='tags-download'),
 
     # Mark versions views
     path('safe/<int:pk>/compare-versions/<int:v1>/<int:v2>/', views.SafeCompareVersionsView.as_view()),

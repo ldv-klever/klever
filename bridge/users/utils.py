@@ -20,12 +20,14 @@ from datetime import date
 
 from django.db.models import Q
 from django.template import Template, Context
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.vars import DATAFORMAT
 
-from users.models import DataView, User
+from users.models import DataView, PreferableView, User
+from jobs.models import JobHistory
 
 
 DEF_NUMBER_OF_ELEMENTS = 18
@@ -339,13 +341,9 @@ class ViewData:
         self.user = user
         self._type = view_type[0]
         self._template = self.__get_template(view_type[1])
-        self._title = ''
-        self._views = self.__views()
-        self._view = None
-        self._view_id = None
+        self._title = _('View')
         self._unsaved = False
-        self.__get_args(request_args)
-        self.__get_view()
+        self._view, self._view_id = self.__get_view(request_args)
 
     def __contains__(self, item):
         return item in self._view
@@ -368,39 +366,37 @@ class ViewData:
     def __get_template(self, view_name):
         return 'users/views/{0}.html'.format(view_name)
 
-    def __get_args(self, request_args):
-        if request_args.get('view_type') == self._type:
-            self._view = request_args.get('view')
-            self._view_id = request_args.get('view_id')
+    @cached_property
+    def _views(self):
+        qs_filters = Q(type=self._type) & (Q(author=self.user) | Q(shared=True))
+        return DataView.objects.filter(qs_filters).select_related('author').order_by('name')
 
-    def __views(self):
-        return DataView.objects.filter(Q(type=self._type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __get_view(self):
-        if self._view is not None:
-            self._title = '{0} ({1})'.format(_('View'), _('unsaved'))
-            self._view = json.loads(self._view)
-            self._unsaved = True
-            return
-        if self._view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self._type).first()
+    def __get_view(self, request_args):
+        if request_args.get('view_type') != self._type:
+            # Try to get preferable view
+            pref_view = PreferableView.objects.filter(view__type=self._type, user=self.user) \
+                .select_related('view').first()
             if pref_view:
-                self._title = '{0} ({1})'.format(_('View'), pref_view.view.name)
-                self._view_id = pref_view.view_id
-                self._view = json.loads(pref_view.view.view)
-                return
-        elif self._view_id != 'default':
-            user_view = DataView.objects.filter(
-                Q(id=self._view_id, type=self._type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                self._title = '{0} ({1})'.format(_('View'), user_view.name)
-                self._view_id = user_view.id
-                self._view = json.loads(user_view.view)
-                return
-        self._title = '{0} ({1})'.format(_('View'), _('Default'))
-        self._view_id = 'default'
-        self._view = DEFAULT_VIEW[self._type]
+                self._title = '{0} ({1})'.format(self._title, pref_view.view.name)
+                return pref_view.view.view, pref_view.view_id
+        elif request_args.get('view'):
+            # Try to get view from query params
+            self._title = '{0} ({1})'.format(self._title, _('unsaved'))
+            self._unsaved = True
+            return json.loads(request_args['view']), None
+        elif request_args.get('view_id'):
+            # If view_id is provided and it is not the default
+            if request_args['view_id'] != 'default':
+                user_view = DataView.objects.filter(
+                    Q(id=int(request_args['view_id']), type=self._type) & (Q(shared=True) | Q(author=self.user))
+                ).first()
+                if user_view:
+                    self._title = '{0} ({1})'.format(self._title, user_view.name)
+                    return user_view.view, user_view.id
+
+        # Return default view
+        self._title = '{0} ({1})'.format(self._title, _('Default'))
+        return DEFAULT_VIEW[self._type], 'default'
 
 
 class HumanizedValue:
@@ -501,3 +497,119 @@ class HumanizedValue:
     @classmethod
     def get_templated_text(cls, template, **kwargs):
         return Template(template).render(Context(kwargs))
+
+
+class UserActionsHistory:
+    def __init__(self, user, author):
+        self.user = user
+        self.author = author
+        self.activity = self.get_activity()
+        print(self.activity)
+
+    def get_activity(self):
+        activity = self.get_jobs_activity()
+        activity.extend(self.get_safe_marks_activity())
+        activity.extend(self.get_unsafe_marks_activity())
+        activity.extend(self.get_unknowns_marks_activity())
+        activity = sorted(activity, key=lambda x: x['date'], reverse=True)
+        return activity[:50]
+
+    def get_jobs_activity(self):
+        from jobs.models import Job, JobHistory
+        from jobs.utils import JobAccess
+
+        jobs_activity = []
+        jobs_ids = set()
+        for act in JobHistory.objects.filter(change_author=self.author)\
+                .select_related('job').order_by('-change_date')[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            jobs_ids.add(act.job_id)
+            new_act = {
+                'id': act.job_id,
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Job'),
+                'name': act.job.name
+            }
+            jobs_activity.append(new_act)
+        jobs_with_access = JobAccess(self.user).can_view_jobs(
+            Job.objects.filter(id__in=set(act['id'] for act in jobs_activity))
+        )
+        if jobs_with_access:
+            for i in range(len(jobs_activity)):
+                if jobs_activity[i]['id'] in jobs_with_access:
+                    jobs_activity[i]['href'] = reverse('jobs:job', args=[jobs_activity[i]['id']])
+        return jobs_activity
+
+    def get_safe_marks_activity(self):
+        from marks.models import MarkSafeHistory
+
+        versions_qs = MarkSafeHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Safes mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:safe', args=[act.mark_id]),
+            })
+        return marks_activity
+
+    def get_unsafe_marks_activity(self):
+        from marks.models import MarkUnsafeHistory
+
+        versions_qs = MarkUnsafeHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Unsafes mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:unsafe', args=[act.mark_id]),
+            })
+        return marks_activity
+
+    def get_unknowns_marks_activity(self):
+        from marks.models import MarkUnknownHistory
+
+        versions_qs = MarkUnknownHistory.objects.filter(author=self.author)\
+            .select_related('mark').order_by('-change_date')\
+            .only('id', 'change_date', 'comment', 'mark__identifier', 'version', 'mark_id')
+
+        marks_activity = []
+        for act in versions_qs[:30]:
+            comment_display = act.comment
+            if len(comment_display) > 50:
+                comment_display = comment_display[:47] + '...'
+            marks_activity.append({
+                'date': act.change_date,
+                'comment': act.comment,
+                'comment_display': comment_display,
+                'action': 'create' if act.version == 1 else 'change',
+                'type': _('Unknowns mark'),
+                'name': str(act.mark.identifier),
+                'href': reverse('marks:unknown', args=[act.mark_id]),
+            })
+        return marks_activity

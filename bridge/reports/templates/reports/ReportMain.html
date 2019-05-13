@@ -85,7 +85,7 @@
                         {% for v, attr_id in SelfAttrsData.values %}
                             <td class="collapsing">
                                 {% if attr_id %}
-                                    <a class="attr-data-href" href="#" data-attr-id="{{ attr_id }}">{{ v }}</a>
+                                    <a class="file-content-activator" href="#" data-url="{% url 'reports:attr-data-content' attr_id %}" data-download="{% url 'reports:attr-data' attr_id %}">{{ v }}</a>
                                 {% else %}
                                     <span>{{ v }}</span>
                                 {% endif %}
@@ -130,7 +130,6 @@
                 {% endfor %}
             </div>
         </div>
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
 
         {% if data.data %}
             <h4 class="header ui violet">{% trans 'Data' %}</h4>
@@ -141,7 +140,7 @@
         <br>
         <div class="ui buttons">
             {% if report.log %}
-                <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
+                <button class="ui violet button file-content-activator" data-url="{% url 'reports:log-content' report.pk %}" data-download="{% url 'reports:log' report.pk %}">{% trans 'Log' %}</button>
             {% endif %}
             {% if report.verifier_input %}
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download input files of static verifiers' %}</a>
@@ -208,20 +207,6 @@
             <br>
             {% include 'jobs/DecisionResults.html' %}
         </div>
-    </div>
-</div>
-
-<div id="file_content_modal" class="ui dinamic large modal">
-    <div class="content">
-        <div class="ui grid">
-            <div class="eight wide column">
-                <a id="download_file_href" class="ui icon olive button" href=""><i class="download icon"></i></a>
-            </div>
-            <div class="eight wide column right aligned">
-                <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
-            </div>
-        </div>
-        <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
     </div>
 </div>
 
