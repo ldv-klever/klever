@@ -90,22 +90,14 @@ class Klever:
                      self.args.update_packages, self.args.update_python3_packages)
         self._dump_cur_deploy_info(self.prev_deploy_info)
 
-    def _read_deploy_conf_file(self):
-        if not os.path.isfile(self.args.deployment_configuration_file):
-            self.logger.error('Deployment configuration file "{0}" does not exist'
-                              .format(self.args.deployment_configuration_file))
-            sys.exit(errno.ENOENT)
-
-        with open(self.args.deployment_configuration_file) as fp:
-            self.deploy_conf = json.load(fp)
-
     def _pre_install(self):
         if self.prev_deploy_info:
             self.logger.error(
                 'There is information on previous deployment (perhaps you try to install Klever second time)')
             sys.exit(errno.EINVAL)
 
-        self._read_deploy_conf_file()
+        with open(self.args.deployment_configuration_file) as fp:
+            self.deploy_conf = json.load(fp)
 
         self.logger.info('Create deployment directory')
         os.makedirs(self.args.deployment_directory, exist_ok=True)
@@ -119,7 +111,7 @@ class Klever:
 
         with open('/etc/default/klever', 'w') as fp:
             fp.write('KLEVER_DEPLOYMENT_DIRECTORY="{0}"\n'.format(os.path.realpath(self.args.deployment_directory)))
-            fp.write('KLEVER_BUILD_BASES="{0}"\n'
+            fp.write('KLEVER_DATA_DIR="{0}"\n'
                      .format(os.path.join(os.path.realpath(self.args.deployment_directory), 'klever', 'build bases')))
 
         self._install_or_update_deps()
@@ -132,7 +124,9 @@ class Klever:
                               .format('perhaps you try to update Klever without previous installation'))
             sys.exit(errno.EINVAL)
 
-        self._read_deploy_conf_file()
+        with open(self.args.deployment_configuration_file) as fp:
+            self.deploy_conf = json.load(fp)
+
         self._install_or_update_deps()
         self._pre_install_or_update()
 

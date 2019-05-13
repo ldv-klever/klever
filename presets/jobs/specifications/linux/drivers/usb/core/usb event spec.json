@@ -116,7 +116,7 @@
         "actions": {
           "manage_interface": {
             "comment": "Manage particular interface on a device.",
-            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].[resume] | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
+            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].([resume] | [reset_resume]) | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
           },
           "register": {
             "comment": "Begin USB callbacks invocation scenario.",
@@ -184,6 +184,13 @@
           "resume": {
             "comment": "Device is about to be resumed.",
             "callback": "%container.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "reset_resume": {
+            "comment": "Device is about to be resumed.",
+            "callback": "%container.reset_resume%",
             "parameters": [
               "%resource%"
             ]

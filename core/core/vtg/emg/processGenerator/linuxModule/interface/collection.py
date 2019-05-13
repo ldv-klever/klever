@@ -117,12 +117,12 @@ class InterfaceCollection:
 
             # Restore resources
             if isinstance(self._interfaces[identifier], Callback):
-                for pi in self._interfaces[identifier].param_interfaces:
-                    self.get_or_restore_intf(pi)
+                for pi in (pi for pi in self._interfaces[identifier].param_interfaces if pi):
+                    self.get_or_restore_intf(pi.identifier)
 
             return self._interfaces[identifier]
         else:
-            raise KeyError("Unknown interface '{}'".format(identifier))
+            raise KeyError("Unknown interface {!r}".format(identifier))
 
     def del_intf(self, identifier):
         """
@@ -251,6 +251,25 @@ class InterfaceCollection:
         elif not intf and not isinstance(signature, Pointer):
             intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
+
+    def get_value_as_implementation(self, sa, value, interface_name):
+        name = sa.refined_name(value)
+        interface = self.get_or_restore_intf(interface_name)
+        if not interface:
+            raise ValueError("Unknown specified interface {!r}".format(interface_name))
+
+        global_obj = sa.get_source_function(name)
+        if value:
+            file = global_obj.definition_file
+        else:
+            global_obj = sa.get_source_variable(name)
+            if global_obj:
+                file = global_obj.initialization_file
+            else:
+                raise KeyError("There is no either a function nor global variable {!r}".format(name))
+
+        implementation = interface.add_implementation(name, global_obj.declaration, file)
+        return implementation
 
     def __resolve_containers(self, target, category):
         return {container.identifier: container.contains(target) for container in self.containers(category)

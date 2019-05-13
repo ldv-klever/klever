@@ -11,7 +11,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -149,5 +149,10 @@ extern void ldv_add_disk(void);
  * ldv_add_disk() - remove partitioning information from kernel list.
  */
 extern void ldv_del_gendisk(void);
+
+/**
+ * ldv_check_alloc_flags() - check flags of a memory allocating function.
+ */
+extern void ldv_check_alloc_flags(gfp_t flags);
 
 #endif /* __LINUX_LDV_H */

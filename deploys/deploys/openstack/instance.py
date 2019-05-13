@@ -138,8 +138,8 @@ class OSInstance:
                 raise OSCreationTimeout
             except OSCreationTimeout:
                 attempts -= 1
-                self.logger.warning('Could not create instance, wait for {0} seconds and try {1} times more'
-                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
+                self.logger.info('Could not create instance, wait for {0} seconds and try {1} times more'
+                                 .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CREATION_RECOVERY_INTERVAL)
                 self._remove_instance(instance)
             except Exception:
@@ -230,8 +230,8 @@ class OSInstance:
                 raise OSCreationTimeout
             except OSCreationTimeout:
                 attempts -= 1
-                self.logger.warning('Could not create image, wait for {0} seconds and try {1} times more'
-                                    .format(self.CREATION_RECOVERY_INTERVAL, attempts))
+                self.logger.info('Could not create image, wait for {0} seconds and try {1} times more'
+                                 .format(self.CREATION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
             except Exception:
                 attempts -= 1

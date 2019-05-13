@@ -55,7 +55,7 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_emg___tasklet_schedule": [
+            "ldv_emg_tasklet_schedule": [
               {
                 "ldv_handler": [
                   {

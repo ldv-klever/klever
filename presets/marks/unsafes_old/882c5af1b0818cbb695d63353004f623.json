@@ -56,13 +56,17 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_emg_alloc_netdev_mqs": [
+            "ldv_alloc_netdev_mqs_19": [
               {
-                "ldv_setup": [
+                "ldv_emg_alloc_netdev_mqs": [
                   {
-                    "ldv_invoke_reached": [
+                    "ldv_setup": [
                       {
-                        "ldv_assert_linux_emg_test": []
+                        "ldv_invoke_reached": [
+                          {
+                            "ldv_assert_linux_emg_test": []
+                          }
+                        ]
                       }
                     ]
                   }

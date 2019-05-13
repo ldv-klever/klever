@@ -39,14 +39,24 @@
               "close": "%usb_serial.close%",
               "write" : "%usb_serial.write%",
               "hangup" : "%usb_serial.hangup%",
-
+              "throttle" : "%usb_serial.throttle%",
+              "unthrottle" : "%usb_serial.unthrottle%",
               "flush_buffer" : "%usb_serial.flush_buffer%",
-              "chars_in_buffer" : "%usb_serial.chars_in_buffer%",
               "set_termios" : "%usb_serial.set_termios%",
               "read" : "%usb_serial.read%",
               "poll" : "%usb_serial.poll%",
               "ioctl" : "%usb_serial.ioctl%",
-              "compat_ioctl" : "%usb_serial.compat_ioctl%"
+              "compat_ioctl" : "%usb_serial.compat_ioctl%",
+              "tiocmget" : "%usb_serial.tiocmget%",
+              "tiocmset" : "%usb_serial.tiocmset%",
+              "tiocmiwait" : "%usb_serial.tiocmiwait%",
+              "get_icount": "%usb_serial.get_icount%",
+              "prepare_write_buffer": "%usb_serial.prepare_write_buffer%",
+              "chars_in_buffer": "%usb_serial.chars_in_buffer%",
+              "wait_until_sent": "%usb_serial.wait_until_sent%",
+              "write_room": "%usb_serial.write_room%",
+              "read_bulk_callback": "%usb_serial.read_bulk_callback%",
+              "write_bulk_callback": "%usb_serial.write_bulk_callback%"
             }
           }
         },
@@ -93,9 +103,6 @@
           "flush_buffer": {
             "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
           },
-          "chars_in_buffer": {
-            "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
-          },
           "set_termios": {
             "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
           },
@@ -110,6 +117,42 @@
           },
           "compat_ioctl": {
             "declaration": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "throttle": {
+            "declaration": "void (*throttle)(%usb_serial.tty_struct%)"
+          },
+          "unthrottle": {
+            "declaration": "void (*unthrottle)(%usb_serial.tty_struct%)"
+          },
+          "tiocmget": {
+            "declaration": "int  (*tiocmget)(%usb_serial.tty_struct%)"
+          },
+          "tiocmiwait": {
+            "declaration": "int  (*tiocmiwait)(%usb_serial.tty_struct%, long unsigned int arg)"
+          },
+          "tiocmset": {
+            "declaration": "int  (*tiocmset)(%usb_serial.tty_struct%, unsigned int set, unsigned int clear)"
+          },
+          "get_icount": {
+            "declaration": "int  (*get_icount)(%usb_serial.tty_struct%, struct serial_icounter_struct *icount)"
+          },
+          "prepare_write_buffer": {
+            "declaration": "int (*prepare_write_buffer)(struct usb_serial_port *port, void *dest, size_t size)"
+          },
+          "chars_in_buffer": {
+            "declaration": "int  (*chars_in_buffer)(%usb_serial.tty_struct%)"
+          },
+          "wait_until_sent": {
+            "declaration": "void (*wait_until_sent)(%usb_serial.tty_struct%, long int timeout)"
+          },
+          "write_room": {
+            "declaration": "int  (*write_room)(%usb_serial.tty_struct%)"
+          },
+          "read_bulk_callback": {
+            "declaration": "void (*read_bulk_callback)(struct urb *urb)"
+          },
+          "write_bulk_callback": {
+            "declaration": "void (*write_bulk_callback)(struct urb *urb)"
           }
         },
         "resources": {

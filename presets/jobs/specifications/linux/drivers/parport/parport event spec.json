@@ -1,0 +1,154 @@
+{
+  "Linux 3.14 (base)": {
+    "functions models": {
+      "parport_register_port": {
+        "comment": "Register a parallel port.",
+        "labels": {
+          "parport": {
+            "parameter": true,
+            "interface": [
+              "parport.parport"
+            ]
+          },
+          "parport_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "parport.parport_operations"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%parport_operations%", "%parport%"
+            ]
+          },
+          "assign": {
+            "comment": "Get callbacks.",
+            "statements": [
+              "%parport_operations% = $ARG4;",
+              "%parport% = $ALLOC(%parport%);"
+            ]
+          },
+          "fail": {
+            "comment": "Fail registration.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "success": {
+            "comment": "Registration successfull.",
+            "statements": [
+              "return %parport%;"
+            ]
+          }
+        }
+      },
+      "parport_remove_port": {
+        "comment": "Deregister a parallel port.",
+        "labels": {
+          "parport": {
+            "parameter": true,
+            "interface": [
+              "parport.parport"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "assign": {
+            "comment": "Get port.",
+            "statements": [
+              "%parport% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "parport_scenario": {
+        "comment": "Invoke parallel port callbacks.",
+        "labels": {
+          "parport": {
+            "parameter": true,
+            "resource": true,
+            "interface": [
+              "parport.parport"
+            ]
+          },
+          "parport_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "parport.parport_operations"
+            ]
+          },
+          "callback": {
+            "callback": true
+          }
+        },
+        "process": "(!register).([init_state].{callbacks} | (deregister))",
+        "actions": {
+          "callbacks": {
+            "comment": "Manage particular interface on a device.",
+            "process": "([save_state].[restore_state] | [enable_irq].[disable_irq] | [callback]).{callbacks} | (deregister)"
+          },
+          "register": {
+            "parameters": [
+              "%parport_operations%", "%parport%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%parport% == $ARG1"
+            ],
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "init_state": {
+            "callback": "%parport_operations.init_state%",
+            "parameters": []
+          },
+          "save_state": {
+            "callback": "%parport_operations.save_state%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "restore_state": {
+            "callback": "%parport_operations.restore_state%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "enable_irq": {
+            "callback": "%parport_operations.enable_irq%",
+            "parameters": [
+              "%parport%"
+            ]
+          },
+          "disable_irq": {
+            "callback": "%parport_operations.disable_irq%",
+            "parameters": [
+              "%parport%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

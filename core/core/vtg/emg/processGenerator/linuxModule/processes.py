@@ -568,6 +568,16 @@ class ProcessModel:
                                   format(process.name, process.category, candidate.name, candidate.category))
                 new = self.__add_process(interfaces, candidate, process.category, model=False, label_map=None,
                                          peer=process)
+
+                # Check if the category has uncalled callbacks and the process has unmatched labels
+                uncalled_callbacks = interfaces.uncalled_callbacks(process.category)
+                callback_labels = [l for l in new.labels.values() if l.callback and len(l.interfaces) == 0 and
+                                   not l.declaration]
+                if uncalled_callbacks and len(callback_labels) > 0:
+                    # Match unmatched callbacks
+                    for intf in uncalled_callbacks:
+                        self.__assign_label_interface(callback_labels[-1], intf)
+
                 if new and (len(new.unmatched_receives) > 0 or len(new.unmatched_dispatches) > 0):
                     self.__establish_signal_peers(interfaces, new)
 

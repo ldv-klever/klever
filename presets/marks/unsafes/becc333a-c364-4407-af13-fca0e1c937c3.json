@@ -21,9 +21,9 @@
       "value": "x86_64"
     },
     {
-      "is_compare": false,
-      "name": "Project:Version",
-      "value": "3.14.79"
+      "is_compare": true,
+      "name": "Linux:Version",
+      "value": "v2.6.33.20"
     },
     {
       "is_compare": false,

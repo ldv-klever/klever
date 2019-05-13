@@ -11,7 +11,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -25,13 +25,13 @@ long ldv_is_err(const void *ptr)
 
 void *ldv_err_ptr(long error)
 {
-	ldv_assume(error <= 0);
+	ldv_assume(error < 0);
 	return (void *)(LDV_PTR_MAX - error);
 }
 
 long ldv_ptr_err(const void *ptr)
 {
-	ldv_assume((unsigned long) ptr >= LDV_PTR_MAX);
+	ldv_assume((unsigned long) ptr > LDV_PTR_MAX);
 	return (long)(LDV_PTR_MAX - (unsigned long)ptr);
 }
 

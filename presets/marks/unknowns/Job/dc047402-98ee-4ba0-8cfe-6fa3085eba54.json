@@ -1,0 +1,7 @@
+{
+  "attrs": [],
+  "function": "FileNotFoundError: Specified build base \".*\" does not exist|FileExistsError: Build base \"[^\"]*\".* is not a directory|FileExistsError: Directory \"[^\"]*\".* is not a build base since it does not contain file \"meta.json\"",
+  "is_regexp": true,
+  "problem_pattern": "InvalidBuildBase",
+  "production": true
+}

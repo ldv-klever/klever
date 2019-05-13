@@ -17,6 +17,7 @@
 
 import errno
 import getpass
+import json
 import logging
 import os
 import pwd
@@ -66,6 +67,33 @@ def execute_cmd(logger, *args, stdin=None, stderr=None, get_output=False, userna
         subprocess.check_call(args, **kwargs)
 
 
+def check_deployment_configuration_file(logger, deploy_conf_file):
+    if not os.path.isfile(deploy_conf_file):
+        logger.error('Deployment configuration file "{0}" does not exist'.format(deploy_conf_file))
+        sys.exit(errno.ENOENT)
+
+    with open(deploy_conf_file) as fp:
+        try:
+            deploy_conf = json.load(fp)
+        except json.decoder.JSONDecodeError as err:
+            logger.error('Deployment configuration file "{0}" is not a valid JSON file: "{1}"'
+                         .format(deploy_conf_file, err))
+            sys.exit(errno.ENOENT)
+
+    unspecified_attrs = [attr for attr in (
+        'Packages',
+        'Python3 Packages',
+        'Klever',
+        'Klever Addons',
+        'Klever Build Bases'
+    ) if attr not in deploy_conf]
+
+    if unspecified_attrs:
+        logger.error('Deployment configuration file "{0}" does not contain following attributes:\n  {1}'
+                     .format(deploy_conf_file, '\n  '.join(unspecified_attrs)))
+        sys.exit(errno.ENOENT)
+
+
 def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -92,6 +120,8 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     if name not in deploy_conf:
         logger.error('"{0}" is not described'.format(name))
         sys.exit(errno.EINVAL)
+
+    deploy_dir = os.path.normpath(deploy_dir)
 
     desc = deploy_conf[name]
 
@@ -151,6 +181,8 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
     tmp_file = None
     tmp_dir = None
     try:
+        instance_path = os.path.join(deploy_dir, os.path.basename(path))
+
         # Clone remote Git repository.
         if (o[0] == 'git' or is_git_repo) and not os.path.exists(path):
             tmp_dir = tempfile.mkdtemp()
@@ -192,18 +224,18 @@ def install_entity(logger, name, deploy_dir, deploy_conf, prev_deploy_info, cmd_
                     # Directory .git can be quite large so ignore it during installing except one needs it.
                     install_fn(tmp_path, deploy_dir, ignore=None if desc.get('copy .git directory') else ['.git'])
         elif os.path.isfile(path) and (tarfile.is_tarfile(path) or zipfile.is_zipfile(path)):
-            archive = os.path.normpath(os.path.join(deploy_dir, os.pardir, os.path.basename(path)))
-            install_fn(path, archive)
-            cmd_fn('mkdir', '-p', '{0}'.format(deploy_dir))
+            install_fn(path, instance_path)
 
             if tarfile.is_tarfile(path):
-                cmd_fn('tar', '-C', '{0}'.format(deploy_dir), '-xf', archive)
+                cmd_fn('tar', '--warning', 'no-unknown-keyword', '-C', '{0}'.format(deploy_dir), '-xf', instance_path)
             else:
-                cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), archive)
+                cmd_fn('unzip', '-d', '{0}'.format(deploy_dir), instance_path)
 
-            cmd_fn('rm', '-rf', '{0}'.format(archive))
-        elif os.path.isfile(path) or os.path.isdir(path):
-            install_fn(path, deploy_dir, allow_symlink=True)
+            cmd_fn('rm', '-rf', instance_path)
+        elif os.path.isfile(path):
+            install_fn(path, instance_path, allow_symlink=True)
+        elif os.path.isdir(path):
+            install_fn(path, instance_path, allow_symlink=True)
         else:
             logger.error('Could not install "{0}" since it is provided in the unsupported format'.format(name))
             sys.exit(errno.ENOSYS)
@@ -273,10 +305,37 @@ def install_klever_build_bases(logger, deploy_dir, deploy_conf, cmd_fn, install_
     if 'Klever Build Bases' in deploy_conf:
         for klever_build_base in deploy_conf['Klever Build Bases']:
             logger.info('Install Klever build base "{0}"'.format(klever_build_base))
-            klever_build_base = make_canonical_path(klever_build_base)
-            klever_build_base_deploy_dir = os.path.join(deploy_dir, 'build bases', os.path.basename(klever_build_base))
-            cmd_fn('rm', '-rf', klever_build_base_deploy_dir)
-            install_fn(klever_build_base, klever_build_base_deploy_dir, allow_symlink=True)
+
+            # Very simplified deploys.utils.install_entity.
+            tmp_file = None
+            try:
+                o = urllib.parse.urlparse(klever_build_base)
+                if not o[0]:
+                    klever_build_base = make_canonical_path(klever_build_base)
+
+                instance_klever_build_base = os.path.join(deploy_dir, 'build bases',
+                                                          os.path.basename(klever_build_base))
+
+                if o[0] in ('http', 'https', 'ftp'):
+                    _, tmp_file = tempfile.mkstemp()
+                    execute_cmd(logger, 'wget', '-O', tmp_file, '-q', klever_build_base)
+                    klever_build_base = tmp_file
+                elif o[0]:
+                    logger.error('Klever build base is provided in unsupported form "{1}"'.format(o[0]))
+                    sys.exit(errno.EINVAL)
+                elif not os.path.exists(klever_build_base):
+                    logger.error('Path "{0}" does not exist'.format(klever_build_base))
+                    sys.exit(errno.ENOENT)
+
+                cmd_fn('rm', '-rf', instance_klever_build_base)
+                install_fn(klever_build_base, instance_klever_build_base)
+
+                # Always grant to everybody (including user "klever" who does need that) at least read permissions for
+                # deployed Klever build base. Otherwise user "klever" will not be able to access them.
+                cmd_fn('chmod', '-R', '+r', instance_klever_build_base)
+            finally:
+                if tmp_file:
+                    os.unlink(tmp_file)
 
 
 def make_canonical_path(path):

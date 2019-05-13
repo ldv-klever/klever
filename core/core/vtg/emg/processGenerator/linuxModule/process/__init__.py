@@ -132,27 +132,27 @@ class AbstractLabel(Label):
         self.retval = False
         self.pointer = False
         self.parameters = []
-        self.__signature_map = {}
+        self._signature_map = {}
 
     @property
     def interfaces(self):
-        return list(self.__signature_map.keys())
+        return list(self._signature_map.keys())
 
     @property
     def declarations(self):
         if self.declaration:
             return [self.declaration]
         else:
-            return list(self.__signature_map.values())
+            return list(self._signature_map.values())
 
     def get_declaration(self, identifier):
-        if identifier in self.__signature_map:
-            return self.__signature_map[identifier]
+        if identifier in self._signature_map:
+            return self._signature_map[identifier]
         else:
             return None
 
     def set_declaration(self, identifier, declaration):
-        self.__signature_map[identifier] = declaration
+        self._signature_map[identifier] = declaration
 
     def compare_with(self, label):
         if len(self.interfaces) > 0 and len(label.interfaces) > 0:
@@ -231,6 +231,11 @@ class AbstractProcess(Process):
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
         return name
+
+    def add_access(self, expression, obj):
+        self._accesses.setdefault(expression, [])
+        if obj not in self._accesses[expression]:
+            self._accesses[expression].append(obj)
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -347,16 +352,21 @@ class AbstractProcess(Process):
         elif isinstance(access, str):
             string = access
         else:
-            raise TypeError('Unsupported access token')
+            return None
 
         if not interface:
             return self._accesses[string]
         else:
-            return [acc for acc in self._accesses[string] if acc.interface and acc.interface.identifier == interface][0]
+            cnds = [acc for acc in self._accesses[string] if acc.interface and acc.interface.identifier == interface]
+            if cnds:
+                return cnds[0]
+            else:
+                return None
 
     def get_implementation(self, access):
         if access.interface:
-            if self.allowed_implementations[access.expression][access.interface.identifier] != '':
+            if access.interface.identifier in self.allowed_implementations[access.expression] and \
+                    self.allowed_implementations[access.expression][access.interface.identifier] != '':
                 return self.allowed_implementations[access.expression][access.interface.identifier]
             else:
                 return False

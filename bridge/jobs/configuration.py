@@ -30,33 +30,26 @@ from users.models import SchedulerUser
 from service.models import Scheduler
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
-#   scheduling and decision weight:
-#     job priority - see bridge.vars.PRIORITY for available values,
-#     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
-#     max solving tasks per sub-job - positive number,
-#     weight of decision - see vars.JOB_WEIGHT for available values,
-#   parallelism:
-#     pack - the identifier of default parallelism (see Parallelism.parallelism_packs for available values)
-#       or parallelism values,
-#     Example: ['slow'] or [1, 1, 1]
-#   limits:
-#     memory size - in GB,
-#     number of CPU cores - if number <= 0 then any,
-#     disk memory size - in GB,
-#     CPU model,
-#   logging:
-#     console log level - see documentation for Python 3 and ConfigurationLogging.logging_levels
-#       for available values,
-#     console log formatter - one of formatters' identifiers from ConfigurationLogging.default_formatters,
-#     file log level - like console log level,
-#     file log formatter - like console log formatter,
-#   various boolean values:
-#     keep intermediate files,
-#     upload input files of static verifiers,
-#     upload other intermediate files,
-#     ignore other instances,
-#     ignore failed sub-jobs,
-#     collect total code coverage,
+#   priority - see bridge.vars.PRIORITY for available values (job priority),
+#   scheduler - see bridge.vars.SCHEDULER_TYPE for available values (task scheduler),
+#   max_tasks - positive number (max solving tasks per sub-job),
+#   job_weight - see vars.JOB_WEIGHT for available values (weight of decision),
+#   parallelism: [Sub-jobs processing, Tasks generation, Results processing]
+#   memory - memory size in GB,
+#   cpu_num - number of CPU cores; if number is None then any,
+#   disk_size - disk memory size in GB,
+#   cpu_model - CPU model,
+#   console_level - console log level; see documentation for Python 3 and
+#     ConfigurationLogging.logging_levels for available values,
+#   console_formatter - console log formatter,
+#   file_level - file log level; like console_level,
+#   file_formatter - file log formatter,
+#   keep_intermediate_files - keep intermediate files (bool),
+#   upload_verifiers_files - upload input files of static verifiers (bool),
+#   upload_other_files - upload other intermediate files (bool),
+#   ignore_instances - ignore other instances (bool),
+#   ignore_subjobs - ignore failed sub-jobs (bool),
+#   total_coverage - collect total code coverage (bool).
 # id 'file_conf' is reserved
 
 LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
@@ -81,7 +74,7 @@ KLEVER_CORE_DEF_MODES = [
             'max_tasks': 100,
             'job_weight': JOB_WEIGHT[1][0],
             'parallelism': ['1', '1', '1'],
-            'memory': 1,
+            'memory': 3,
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
@@ -105,7 +98,7 @@ KLEVER_CORE_DEF_MODES = [
             'max_tasks': 100,
             'job_weight': JOB_WEIGHT[0][0],
             'parallelism': ['1', '2', '1'],
-            'memory': 1,
+            'memory': 5,
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
@@ -129,7 +122,7 @@ KLEVER_CORE_DEF_MODES = [
             'max_tasks': 100,
             'job_weight': JOB_WEIGHT[0][0],
             'parallelism': ['1', '2', '1'],
-            'memory': 1,
+            'memory': 5,
             'cpu_num': None,
             'disk_size': 100,
             'cpu_model': None,
@@ -144,7 +137,7 @@ KLEVER_CORE_DEF_MODES = [
             'ignore_subjobs': True,
             'total_coverage': True
         }
-    },
+    }
 ]
 
 

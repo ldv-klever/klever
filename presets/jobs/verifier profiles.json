@@ -48,6 +48,14 @@
         {"-setprop": "cpa.value.ignoreFunctionValue=false"}
       ]
     },
+    "CPAchecker BAM BusyBox": {
+      "description": "CPAchecker with BAM for reachability checking and FPA",
+      "inherit": "CPAchecker BAM reachability FP",
+      "add options": [
+        {"-setprop": "cpa.predicate.defaultArrayLength=5"},
+        {"-setprop": "cpa.predicate.maxArrayLength=5"}
+      ]
+    },
     "CPAchecker SMG memory checking": {
       "description": "CPAchecker with SMG for memory errors checking",
       "inherit": "CPAchecker common",
@@ -58,7 +66,6 @@
       ],
       "add options": [
         {"-smg-ldv": ""},
-        {"-setprop": "analysis.traversal.order=dfs"},
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
     },
@@ -79,23 +86,28 @@
   "profiles": {
     "reachability": {
       "CPAchecker": {
-        "trunk:27946": {"inherit": "CPAchecker BAM reachability"}
+        "trunk:31140": {"inherit": "CPAchecker BAM reachability"}
       },
       "UltimateAutomizer": {"v0.1.20": {"inherit": "Ultimate common"}}
     },
     "reachability with function pointers": {
       "CPAchecker": {
-        "trunk:27946": {"inherit": "CPAchecker BAM reachability FP"}
+        "trunk:31140": {"inherit": "CPAchecker BAM reachability FP"}
+      }
+    },
+    "CPAchecker BAM BusyBox": {
+      "CPAchecker": {
+        "trunk:31140": {"inherit": "CPAchecker BAM BusyBox"}
       }
     },
     "race checking": {
       "CPAchecker": {"CPALockator-combat-mode:28916": {"inherit": "CPALockator"}}
     },
     "memory checking Linux64": {
-      "CPAchecker": {"trunk:27946": {"inherit": "CPAchecker SMG memory checking"}}
+      "CPAchecker": {"trunk:31140": {"inherit": "CPAchecker SMG memory checking"}}
     },
     "memory checking ARM": {
-      "CPAchecker": {"trunk:27946": {
+      "CPAchecker": {"trunk:31140": {
           "inherit": "CPAchecker SMG memory checking",
           "add options": [{"-setprop": "analysis.machineModel=ARM"}],
           "exclude options": [{"-setprop": "analysis.machineModel=LINUX64"}]

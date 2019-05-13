@@ -49,6 +49,11 @@ class JobsPopulation:
             dirnames[:] = []
 
             data = self.__get_settings_data(job_settings_file)
+
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+                # Do not populate non-production jobs
+                continue
+
             data.update({
                 'global_role': JOB_ROLES[1][0], 'parent': None,
                 'files': [{

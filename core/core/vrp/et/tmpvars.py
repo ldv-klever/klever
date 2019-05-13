@@ -228,10 +228,11 @@ def _parse_func_call_actual_args(actual_args_str):
             # Skip all nested "(...)".
             open_paren_num = 0
             while True:
+                stop_iter = False
                 try:
                     c_next = next(actual_args_str_iter)
                 except StopIteration:
-                    pass
+                    stop_iter = True
 
                 actual_arg += c_next
                 if c_next == '(':
@@ -241,6 +242,9 @@ def _parse_func_call_actual_args(actual_args_str):
                         open_paren_num -= 1
                     else:
                         break
+
+                if stop_iter:
+                    raise ValueError('Cannot parse function call {!r}'.format(actual_args_str))
         elif c == ',':
             actual_args.append(actual_arg.strip())
             actual_arg = ''
@@ -289,16 +293,12 @@ def _remove_aux_functions(logger, error_trace):
         func_call_edge = next_edge
 
         # Get lhs and actual arguments of called auxiliary function if so.
-        m = re.search(r'^(.*){0}\s*\((.*)\)(.*)$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
+        m1 = re.search(r'^(.*){0}\s*\((.*)\)(.*)$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
                       aux_func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
-        if not m:
+        if not m1:
             continue
-
-        lhs = m.group(1)
-        aux_actual_args = _parse_func_call_actual_args(m.group(2))
-        rel_expr = m.group(3)
 
         func_name = error_trace.resolve_function(func_call_edge['enter'])
 
@@ -308,6 +308,13 @@ def _remove_aux_functions(logger, error_trace):
         # Do not proceed if meet unexpected format of function call.
         if not m:
             continue
+
+        lhs = m1.group(1)
+        try:
+            aux_actual_args = _parse_func_call_actual_args(m1.group(2))
+        except ValueError:
+            continue
+        rel_expr = m1.group(3)
 
         actual_args = _parse_func_call_actual_args(m.group(1))
 

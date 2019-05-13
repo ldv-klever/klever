@@ -1,0 +1,44 @@
+{
+  "attrs": [
+    {
+      "name": "Klever Core version",
+      "is_compare": false,
+      "value": "2.1.dev0+gf90b3835a.d20181220"
+    },
+    {
+      "name": "Sub-job identifier",
+      "is_compare": false,
+      "value": "0"
+    },
+    {
+      "name": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "name": "Linux:Version",
+      "is_compare": false,
+      "value": "v3.14"
+    },
+    {
+      "name": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "name": "Requirement",
+      "is_compare": true,
+      "value": "linux:memory safety"
+    },
+    {
+      "name": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/linux/memory-safety/buffer_overread_safe.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "0"
+}

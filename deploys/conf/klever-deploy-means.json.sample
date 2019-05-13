@@ -43,7 +43,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "ldv-clade",
+      "clade==3.0.2",
       "jinja2",
       "graphviz",
       "ply",
@@ -51,7 +51,7 @@
       "setuptools_scm"
     ],
     "For running Klever Scheduler": [
-      "LDV-BenchExec",
+      "BenchExec==1.18",
       "consulate"
     ]
   },
@@ -61,36 +61,36 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "ca9075",
-      "path": "addons/cif-ca9075.tar.gz",
-      "executable path": "bin"
+      "version": "1517e57",
+      "path": "addons/cif-1517e57.tar.xz"
     },
     "CIL": {
-      "version": "1.5.1-ldv",
-      "path": "addons/cil-1.5.1",
-      "executable path": "obj/x86_LINUX"
+      "version": "460aed4",
+      "path": "https://forge.ispras.ru/attachments/download/6353/toplevel.opt.tar.xz",
+      "executable path": "."
     },
     "Consul": {
       "version": "0.9.2",
-      "path": "addons/consul"
+      "path": "addons/consul",
+      "executable path": "consul"
     },
     "VerifierCloud Client": {
       "version": "trunk:27946",
       "path": "addons/CPAchecker-1.7-svn 27946-unix/scripts/",
-      "executable path": "benchmark"
+      "executable path": "scripts/benchmark"
     },
     "Verification Backends": {
       "CPAchecker": {
         "name": "CPAchecker",
-        "version": "trunk:27946",
-        "path": "addons/CPAchecker-1.7-svn 27946-unix",
-        "executable path": "scripts"
+        "version": "trunk:31140",
+        "path": "addons/CPAchecker-1.8-svn 31140-unix",
+        "executable path": "CPAchecker-1.8-svn 31140-unix/scripts"
       },
       "CPALockator": {
         "name": "CPAchecker",
         "version": "CPALockator-combat-mode:28916",
         "path": "addons/CPAchecker-1.7-svn 28916-unix",
-        "executable path": "scripts"
+        "executable path": "CPAchecker-1.7-svn 28916-unix/scripts"
       }
     }
   },

@@ -68,7 +68,7 @@
                           {
                             "tipc_createport": [
                               {
-                                "ldv_spin_lock_bh_72": [
+                                "ldv_spin_lock_bh_72_1": [
                                   {
                                     "ldv_spin_lock_tipc_port_list_lock": [
                                       {
@@ -79,7 +79,7 @@
                                 ]
                               },
                               {
-                                "ldv_spin_unlock_bh_73": [
+                                "ldv_spin_unlock_bh_73_2": [
                                   {
                                     "ldv_spin_unlock_tipc_port_list_lock": [
                                       {
@@ -92,9 +92,13 @@
                             ]
                           },
                           {
-                            "ldv_spin_unlock_lock_of_tipc_port": [
+                            "ldv_spin_unlock_bh_87_1": [
                               {
-                                "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                "ldv_spin_unlock_lock_of_tipc_port": [
+                                  {
+                                    "ldv_assert_linux_kernel_locking_spinlock__one_thread_double_unlock": []
+                                  }
+                                ]
                               }
                             ]
                           }

@@ -23,7 +23,12 @@ from core.vtg.emg.common.c.types import Pointer
 from core.vtg.emg.common.process import Process
 
 
-def generate_processes(emg, source, processes, conf):
+def get_specification_kinds(specifications):
+    """Required by the framework function"""
+    return []
+
+
+def generate_processes(emg, source, processes, conf, specifications):
     """
     This generator generates processes for verifying Linux kernel modules. It generates the main process which calls
     module and kernel initialization functions and then modules exit functions.
@@ -32,6 +37,7 @@ def generate_processes(emg, source, processes, conf):
     :param source: Source collection object.
     :param processes: ProcessCollection object.
     :param conf: Configuration dictionary of this generator.
+    :param specifications: Dictionary with required specifications of required kinds
     :return: None
     """
     functions_collection = dict()
@@ -104,14 +110,11 @@ def __generate_calls(logger, emg, conf, functions_collection):
     tab += 1
     cnt = 0
     for expr in expressions:
-        if loop:
-            # Add a break after a function call
-            code.append(indented_line(tab, "case {}: ".format(cnt) + '{'))
-            code.append(indented_line(tab + 1, "{}".format(expr)))
-            code.append(indented_line(tab + 1, "break;"))
-            code.append(indented_line(tab, "}"))
-        else:
-            code.append(indented_line(tab, "case {}: {}".format(cnt, expr)))
+        # Add a break after a function call
+        code.append(indented_line(tab, "case {}: ".format(cnt) + '{'))
+        code.append(indented_line(tab + 1, "{}".format(expr)))
+        code.append(indented_line(tab + 1, "break;"))
+        code.append(indented_line(tab, "}"))
         cnt += 1
     if loop:
         code.append(indented_line(tab, "default: break;"))

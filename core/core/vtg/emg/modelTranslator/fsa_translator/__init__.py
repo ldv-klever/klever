@@ -20,7 +20,8 @@ from operator import attrgetter
 
 import graphviz
 
-from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment
+from core.vtg.emg.common import get_conf_property, get_necessary_conf_property, model_comment, \
+    check_or_set_conf_property
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Condition, Subprocess
 from core.vtg.emg.common.c import Function
@@ -57,6 +58,7 @@ class FSATranslator:
         self._structures = dict()
         self._control_functions = dict()
         self._logger.info("Include extra header files if necessary")
+        check_or_set_conf_property(conf, 'do not skip signals', default_value=False, expected_type=None)
 
         # Get from unused interfaces
         header_sets = []
@@ -336,6 +338,8 @@ class FSATranslator:
                         body.extend(['\t\t' + stm for stm in blocks[index]])
                         body.append('\t\tbreak;')
                         body.append('\t};')
+                    if get_conf_property(self._conf, 'do not skip signals'):
+                        body.append('\tdefault: ldv_assume(0);')
                     body.append('};')
 
                 if len(function_parameters) > 0:

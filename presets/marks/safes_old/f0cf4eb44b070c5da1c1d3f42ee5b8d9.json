@@ -11,9 +11,9 @@
       "value": "d8e172f3c0a5~/drivers/spi/spi-imx.ko/linux:drivers:clk1"
     },
     {
-      "attr": "Linux kernel:Version",
-      "is_compare": false,
-      "value": "3.12.14"
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v3.12.14-126-gc9381cae8a20"
     },
     {
       "attr": "Linux kernel:Architecture",

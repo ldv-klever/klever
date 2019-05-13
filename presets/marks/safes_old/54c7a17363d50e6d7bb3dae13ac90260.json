@@ -1,0 +1,39 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "2.1.dev29+g9268dc1d3"
+    },
+    {
+      "attr": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": false,
+      "value": "v3.14"
+    },
+    {
+      "attr": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:test:common"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/arrays/two-dimensional/safe.ko"
+    }
+  ],
+  "description": "",
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "0"
+}

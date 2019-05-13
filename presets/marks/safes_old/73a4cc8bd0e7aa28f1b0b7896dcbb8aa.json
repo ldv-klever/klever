@@ -35,5 +35,6 @@
   "is_modifiable": false,
   "status": "0",
   "tags": [],
-  "verdict": "0"
+  "verdict": "0",
+  "production": true
 }

@@ -37,7 +37,7 @@ To deploy Klever one has to clone its Git repository (a path to a directory wher
 
 .. note:: Alternatively one can use https://github.com/ldv-klever/klever.git.
 
-Then one has to get :ref:`klever_addons` and perhaps :ref:`klever_build_bases`.
+Then one has to get :ref:`klever_addons` and :ref:`klever_build_bases`.
 Both of them should be described appropriately within :ref:`deploy_conf_file`.
 
 .. note:: You can omit getting :ref:`klever_addons` if you will use
@@ -74,7 +74,7 @@ CIF
 ^^^
 
 One can download `CIF <https://forge.ispras.ru/projects/cif/>`__ binaries from
-`here <https://forge.ispras.ru/attachments/download/5826/cif-d95cdf0.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/6352/cif-1517e57.tar.xz>`__.
 These binaries are compatible with various Linux distributions since CIF is based on `GCC <https://gcc.gnu.org/>`__
 that has few dependencies.
 Besides, one can clone `CIF Git repository <https://forge.ispras.ru/projects/cif/repository>`__ and build CIF from
@@ -82,13 +82,13 @@ source using corresponding instructions.
 
 .. _cil:
 
-CIL
-^^^
+Frama-C (CIL)
+^^^^^^^^^^^^^
 
-`CIL <https://people.eecs.berkeley.edu/~necula/cil/>`__ is a very legacy Klever addon.
-You can get its binaries from `here <https://forge.ispras.ru/attachments/download/5827/cil-1.5.1.tar.gz>`__.
+You can get `Frama-C (CIL) <https://frama-c.com/>`__ binaries from
+`here <https://forge.ispras.ru/attachments/download/6353/toplevel.opt.tar.xz>`__.
 As well, you can build it from
-`this source <https://forge.ispras.ru/projects/cil/repository/revisions/fdae07e10fcab22c59e30813d87aa5401ef1e7fc>`__
+`this source <https://forge.ispras.ru/projects/astraver/repository/framac>`__ (branch :file:`18.0`)
 which has several specific patches relatively to the mainline.
 
 .. _consul:
@@ -111,9 +111,9 @@ These tools are referred to as :ref:`verification_backends`.
 As verification backends Klever supports `CPAchecker <https://cpachecker.sosy-lab.org/>`__ well.
 Some other verification backends are supported experimentally and currently we do not recommend to use them.
 You can download binaries of CPAchecker suitable for checking most of requirements from
-`here <https://forge.ispras.ru/attachments/download/5828/CPAchecker-1.7-svn%2027946-unix.tar.gz>`__.
+`here https://forge.ispras.ru/attachments/download/6427/CPAchecker-1.8-svn 31140-unix.tar.xz>`__.
 For finding data races additionally download binaries of another custom version of CPAchecker from
-`here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn%2028916-unix.tar.gz>`__.
+`here <https://forge.ispras.ru/attachments/download/5871/CPAchecker-1.7-svn  28916-unix.tar.gz>`__.
 In addition, you can clone `CPAchecker Git or Subversion repository <https://cpachecker.sosy-lab.org/download.php>`__
 and build other versions of CPAchecker from source referring corresponding instructions.
 
@@ -134,9 +134,12 @@ Most likely one can use the client from the :ref:`CPAchecker verification backen
 Klever Build Bases
 ------------------
 
-In addition to :ref:`klever_addons` one can provide :ref:`klever_build_bases` obtained for software to be verified.
+In addition to :ref:`klever_addons` one should provide :ref:`klever_build_bases` obtained for software to be verified.
 :ref:`klever_build_bases` should be obtained using `Clade <https://forge.ispras.ru/projects/clade>`__.
-All :ref:`klever_build_bases` should be presented as directories.
+All :ref:`klever_build_bases` should be provided as directories or archives.
+Any of these directories can contain multiple :ref:`klever_build_bases` placed within appropriate intermediate
+directories.
+Archives should contain :file:`meta.json` directly at the top level without any intermediate directories.
 The best place for :ref:`klever_build_bases` is directory :file:`build bases` within :term:`$KLEVER_SRC` (see
 :ref:`klever_git_repo_struct`).
 
@@ -201,6 +204,11 @@ versions straightforwardly without cloning them to temporary directories.
              Besides, ignore rules from, say, :file:`.gitignore` will be ignored and corresponding files and directories
              will be removed!
 
+:ref:`klever_build_bases` should be specified either as directories with one or more :ref:`klever_build_bases` or as
+archives each of which should contain exactly one Klever build base.
+In :file:`job.json` you should specify basenames of these archives or paths to subdirectories with
+:file:`meta.json` of corresponding :ref:`klever_build_bases` relatively to directories including their names.
+
 .. note:: You can prepare multiple :ref:`deployment configuration files <deploy_conf_file>`, but be careful when using
           them to avoid unexpected results due to tricky intermixes.
 
@@ -219,11 +227,11 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
 
     :term:`$KLEVER_SRC`
     ├── addons
-    │   ├── cif-d95cdf0.tar.gz
-    │   ├── cil-1.5.1.tar.gz
+    │   ├── cif-1517e57.tar.xz
     │   ├── consul
     │   ├── CPAchecker-1.6.1-svn ea117e2ecf-unix.tar.gz
-    │   ├── CPAchecker-1.7-svn 27946-unix.tar.gz
+    │   ├── CPAchecker-1.8-svn 31140-unix.tar.xz
+    │   ├── toplevel.opt.tar.xz
     │   └── ...
     ├── deploys
     │   ├── bin
@@ -235,6 +243,6 @@ After :ref:`deploy_common` the Klever Git repository can look as follows:
     │   │   └── klever-minimal.json.sample
     │   └── ...
     ├── build bases
-    │   ├── linux-3.14
+    │   ├── linux-3.14.79.tar.xz
     │   └── ...
     └── ...

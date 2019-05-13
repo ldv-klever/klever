@@ -11,16 +11,16 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
 #include <linux/module.h>
+#include <linux/pci.h>
 #include <linux/usb.h>
 #include <verifier/common.h>
 
-static int ldv_usb_probe(struct usb_interface *intf,
-                         const struct usb_device_id *id)
+static int ldv_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
 	struct usb_driver driver;
 
@@ -29,14 +29,14 @@ static int ldv_usb_probe(struct usb_interface *intf,
 	return 0;
 }
 
-static struct usb_driver ldv_usb_driver = {
-	.probe = ldv_usb_probe
+static struct pci_driver ldv_pci_driver = {
+	.probe = ldv_pci_probe
 };
 
 static int __init ldv_init(void)
 {
-	ldv_assume(!usb_register(&ldv_usb_driver));
-	usb_deregister(&ldv_usb_driver);
+	ldv_assume(!pci_register_driver(&ldv_pci_driver));
+	pci_unregister_driver(&ldv_pci_driver);
 
 	return 0;
 }

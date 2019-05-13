@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import re
 import importlib
 import json
 import multiprocessing
@@ -28,12 +27,13 @@ import core.utils
 import core.session
 
 from core.vtg.scheduling import Balancer
-import clade.interface as clade_api
+from clade import Clade
 
 
 @core.components.before_callback
 def __launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
+    context.mqs['VTG source paths'] = multiprocessing.Queue()
     context.mqs['pending tasks'] = multiprocessing.Queue()
     context.mqs['processed tasks'] = multiprocessing.Queue()
     context.mqs['prepared verification tasks'] = multiprocessing.Queue()
@@ -51,6 +51,7 @@ def __prepare_descriptions_file(context):
 @core.components.after_callback
 def __submit_project_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+    context.mqs['VTG source paths'].put(context.source_paths)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -316,6 +317,10 @@ class VTG(core.components.Component):
                           self.vals['report id'],
                           self.conf['main working directory'])
 
+        source_paths = self.mqs['VTG source paths'].get()
+        self.mqs['VTG source paths'].close()
+        self.conf['source paths'] = source_paths
+
         # Start plugins
         if not self.conf['keep intermediate files']:
             self.mqs['delete dir'] = multiprocessing.Queue()
@@ -477,7 +482,7 @@ class VTG(core.components.Component):
                             if attempt:
                                 self.logger.info("Submit task {}:{} to solve it again".
                                                  format(prog_fragment, requirement['id']))
-                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement, 
+                                submit_task(pf_descriptions[prog_fragment], requirement_class, requirement,
                                             rescheduling=attempt)
                                 active_tasks += 1
                             elif not balancer.need_rescheduling(prog_fragment, requirement_class, requirement['id']):
@@ -587,8 +592,7 @@ class VTGW(core.components.Component):
         self.override_limits = resource_limits
         self.rerun = rerun
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-        self.clade = clade_api
-        self.clade.setup(self.conf['build base'])
+        self.clade = Clade(self.conf['build base'])
 
     def tasks_generator_worker(self):
         files_list_file = 'files list.txt'
@@ -641,12 +645,13 @@ class VTGW(core.components.Component):
         # Initial abstract verification task looks like corresponding program fragment.
         initial_abstract_task_desc = copy.deepcopy(program_fragment_desc)
         initial_abstract_task_desc['id'] = '{0}/{1}'.format(program_fragment, self.requirement)
+        initial_abstract_task_desc['fragment'] = program_fragment
         initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['Extra CCs'] = []
 
             for cc in grp['CCs']:
-                in_file = self.clade.get_cc(cc)['in'][0]
+                in_file = self.clade.get_cmd(cc)['in'][0]
                 grp['Extra CCs'].append({
                     'CC': cc,
                     'in file': in_file

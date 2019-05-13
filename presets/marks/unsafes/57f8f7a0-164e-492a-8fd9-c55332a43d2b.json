@@ -54,9 +54,6 @@
           {
             "ldv_find_next_bit": [
               {
-                "ldv_undef_ulong": []
-              },
-              {
                 "ldv_assert_linux_lib_find_bit__offset_out_of_range": []
               }
             ]

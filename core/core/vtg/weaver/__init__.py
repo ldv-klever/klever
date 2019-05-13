@@ -19,7 +19,7 @@ import fileinput
 import json
 import os
 import re
-import clade.interface as clade_api
+from clade import Clade
 
 import core.utils
 import core.vtg.utils
@@ -36,8 +36,7 @@ class Weaver(core.vtg.plugins.Plugin):
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 
-        clade_api.setup(self.conf['build base'])
-        storage = clade_api.FileStorage()
+        clade = Clade(self.conf['build base'])
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
         # with "-nostdinc" option and system stdarg.h couldn't be used.
@@ -45,18 +44,30 @@ class Weaver(core.vtg.plugins.Plugin):
                                                                 ('aspectator', '-print-file-name=include'),
                                                                 collect_all_stdout=True)[0]
 
+        env = dict(os.environ)
+        # Print stubs instead of inline Assembler since verifiers do not interpret it and even can fail.
+        env['LDV_INLINE_ASM_STUB'] = ''
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for extra_cc in grp['Extra CCs']:
                 if 'CC' in extra_cc:
                     if extra_cc['CC'].isdigit():
-                        cc = clade_api.get_cc(extra_cc['CC'])
-                        cc['opts'] = clade_api.get_cc_opts(extra_cc['CC'])
+                        cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
                     else:
                         with open(os.path.join(self.conf['main working directory'], extra_cc['CC']),
                                   encoding='utf8') as fp:
                             cc = json.load(fp)
+
+                        # extra_cc is a cc command that is not from Clade
+                        # Thus paths in it need to be converted to be absolute
+                        # like in other Clade commands
+                        if "cwd" in cc and "in" in cc:
+                            cc["in"] = [os.path.join(cc["cwd"], cc_in) for cc_in in cc["in"]]
+
+                        if "cwd" in cc and "out" in cc:
+                            cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
 
                     self.logger.info('Weave in C file "{0}"'.format(cc['in'][0]))
 
@@ -95,7 +106,7 @@ class Weaver(core.vtg.plugins.Plugin):
                         self.logger,
                         tuple([
                                   'cif',
-                                  '--in', storage.normal_path(cc['in'][0]),
+                                  '--in', clade.get_storage_path(cc['in'][0]),
                                   '--aspect', os.path.realpath(aspect),
                                   # Besides header files specific for requirements specifications will be searched for.
                                   '--general-opts', '-I' + os.path.realpath(
@@ -108,9 +119,10 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], storage.storage_dir) +
+                              core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
                               [aspectator_search_dir]),
-                        cwd=storage.convert_path(cc['cwd']),
+                        env=env,
+                        cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
                     self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
@@ -147,7 +159,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(os.path.join(os.path.realpath(storage.storage_dir) + cc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'], file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)

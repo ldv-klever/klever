@@ -18,7 +18,6 @@
 
 from distutils.dir_util import copy_tree
 import hashlib
-import json
 import os
 import re
 import shutil
@@ -28,7 +27,7 @@ import tarfile
 import tempfile
 import urllib.parse
 
-import clade.interface as clade_api
+from clade import Clade
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
@@ -82,7 +81,7 @@ common_target_program_descs = {
             'linux/spi/spi.h',
             'linux/fb.h'
         ],
-        'extra Clade options': {'Info.extra CIF opts': [
+        'extra Clade options': {'Info.extra_CIF_opts': [
             '-D__GNUC__=4',
             '-D__GNUC_MINOR__=6'
         ]}
@@ -91,6 +90,17 @@ common_target_program_descs = {
 
 target_program_descs = [
     # # Testing on loadable Linux kernel modules.
+    # {
+    #     'build base': 'build bases/linux-3.14.79',
+    #     'name': 'Linux',
+    #     'Git repository version': 'v3.14.79',
+    #     'loadable kernel modules': [
+    #         'drivers/ata/pata_arasan_cf.ko',
+    #         'drivers/idle/i7300_idle.ko',
+    #         'drivers/uwb/hwa-rc.ko'
+    #     ]
+    # },
+    # # Testing on artificial loadable Linux kernel modules.
     # {
     #     'build base': 'build bases/testing/5b3d50',
     #     'name': 'Linux',
@@ -315,7 +325,6 @@ target_program_descs = [
     #         "ext-modules/dynamic-memory/xmalloc",
     #         "ext-modules/dynamic-memory/xmalloc-data",
     #         "ext-modules/dynamic-memory/xzalloc",
-    #         "ext-modules/dynamic-memory/xzalloc-data",
     #         "ext-modules/enumerations",
     #         "ext-modules/function-pointers",
     #         "ext-modules/gotos",
@@ -385,7 +394,7 @@ target_program_descs = [
     #         "ext-modules/variables/remainder-assignment",
     #         "ext-modules/variables/right-shift-assignment"
     #     ]
-    # }
+    # },
     # # Validation on commits in Linux kernel Git repositories.
     # {
     #     'build base': 'build bases/validation/7ce77510c9c7~',
@@ -633,7 +642,11 @@ target_program_descs = [
     #         'target/target_core_backend.h'
     #     ]
     # }
-    # TODO: Unsupported tests:
+]
+
+
+# TODO: Unsupported tests.
+unsupported_target_program_descs = [
     # {
     #     'build base': 'build bases/testing/57d7f5',
     #     'name': 'Linux',
@@ -886,30 +899,22 @@ class CProgram:
         else:
             clade_conf = self._CLADE_CONF
 
-        clade_api.initialize_extensions(self.target_program_desc['build base'],
-                                        os.path.join(self.work_src_tree, 'cmds.txt'),
-                                        clade_conf, self._CLADE_PRESET)
+        clade = Clade(work_dir=self.target_program_desc['build base'],
+                      cmds_file=os.path.join(self.work_src_tree, 'cmds.txt'),
+                      conf=clade_conf,
+                      preset=self._CLADE_PRESET)
+        clade.parse_all()
 
         self.logger.info('Save project attributes, working source trees and target program description to build base')
-        attrs = [
+        clade.add_meta_by_key('project attrs', [
             {
                 'name': type(self).__name__,
                 'value': [{'name': name, 'value': getattr(self, name)}
                           for name in ('architecture', 'version', 'configuration')]
             }
-        ]
-
-        storage = clade_api.FileStorage()
-        tmp_dir = tempfile.mkdtemp()
-        for data, file in ((attrs, os.path.join(tmp_dir, 'project attrs.json')),
-                           (self.work_src_trees, os.path.join(tmp_dir, 'working source trees.json')),
-                           (self.target_program_desc, os.path.join(tmp_dir, 'target program description.json'))):
-            with open(file, 'w', encoding='utf8') as fp:
-                json.dump(data, fp, sort_keys=True, indent=4)
-
-            storage.save_file(file, os.path.basename(file))
-
-        shutil.rmtree(tmp_dir)
+        ])
+        clade.add_meta_by_key('working source trees', self.work_src_trees)
+        clade.add_meta_by_key('target program description', self.target_program_desc)
 
         self.logger.info('Remove temporary directories')
         for tmp_dir in self.tmp_dirs:

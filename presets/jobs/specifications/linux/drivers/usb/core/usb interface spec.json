@@ -30,7 +30,8 @@
               "post_reset": "%usb.post%",
               "disconnect": "%usb.release%",
               "suspend": "%usb.suspend%",
-              "resume": "%usb.resume%"
+              "resume": "%usb.resume%",
+              "reset_resume": "%usb.reset_resume%"
             }
           }
         },
@@ -52,6 +53,9 @@
           },
           "resume": {
             "declaration": "int (*resume) (%usb.usb_interface%)"
+          },
+          "reset_resume": {
+            "declaration": "int (*reset_resume)(%usb.usb_interface%)"
           }
         },
         "resources": {

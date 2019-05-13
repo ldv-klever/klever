@@ -55,7 +55,7 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_emg_usb_unlink_urb": [
+            "ldv_emg_usb_submit_urb": [
               {
                 "ldv_handler": [
                   {

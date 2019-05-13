@@ -11,7 +11,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * ee the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -42,9 +42,15 @@ void ldv_disconnect(struct usb_serial *serial)
 	ldv_invoke_callback();
 }
 
+int ldv_attach(struct usb_serial *serial)
+{
+	return 0;
+}
+
 static struct usb_serial_driver ldv_driver = {
 	.probe = ldv_probe,
 	.disconnect = ldv_disconnect,
+	.attach = ldv_attach
 };
 
 static struct usb_serial_driver * const ldv_drivers[] = {

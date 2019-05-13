@@ -1,0 +1,78 @@
+{
+  "attrs": [
+    {
+      "attr": "Klever Core version",
+      "is_compare": false,
+      "value": "2.1.dev20+g58738f206"
+    },
+    {
+      "attr": "Sub-job identifier",
+      "is_compare": false,
+      "value": "35"
+    },
+    {
+      "attr": "Linux:Architecture",
+      "is_compare": false,
+      "value": "x86_64"
+    },
+    {
+      "attr": "Linux:Version",
+      "is_compare": false,
+      "value": "v3.14"
+    },
+    {
+      "attr": "Linux:Configuration",
+      "is_compare": false,
+      "value": "allmodconfig"
+    },
+    {
+      "attr": "Requirement",
+      "is_compare": true,
+      "value": "linux:usb:register"
+    },
+    {
+      "attr": "Program fragment",
+      "is_compare": true,
+      "value": "ext-modules/linux/usb/register/register.ko"
+    }
+  ],
+  "comparison": "thread_call_forests",
+  "description": "",
+  "error trace": [
+    [
+      {
+        "ldv_pre_probe": [
+          {
+            "ldv_reset_error_counter": []
+          }
+        ]
+      },
+      {
+        "ldv_pci_probe": [
+          {
+            "ldv_emg_usb_register_driver": [
+              {
+                "ldv_failed_usb_register_driver": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ldv_post_probe": [
+          {
+            "ldv_check_return_value_probe": [
+              {
+                "ldv_assert_linux_usb_register__wrong_return_value": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "is_modifiable": false,
+  "status": "1",
+  "tags": [],
+  "verdict": "2"
+}

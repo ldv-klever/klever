@@ -40,7 +40,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     # Initialize variables
     f_code.extend(initialize_automaton_variables(conf, automaton))
     for var in automaton.variables(only_used=True):
-        v_code.append(var.declare() + ';')
+        v_code.append(var.declare_with_init() + ';')
 
     main_v_code, main_f_code = __label_sequence(automaton, list(automaton.fsa.initial_states)[0], ret_expression)
     v_code.extend(main_v_code)
@@ -461,7 +461,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
     f_code = []
     v_code = []
 
-    # Add artificial state if input copntains more than one state
+    # Add artificial state if input contains more than one state
     state_stack = [initial_state]
 
     # First calculate merge points
@@ -519,6 +519,6 @@ def __label_sequence(automaton, initial_state, ret_expression):
                 state_stack.append(next(iter(state.successors)))
 
     if len(conditional_stack) > 0:
-        raise RuntimeError('Cannot leave unclosed conditions')
+        raise RuntimeError('Cannot leave unclosed conditions: {}'.format(automaton.process.name))
 
     return [v_code, f_code]

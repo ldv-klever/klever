@@ -21,9 +21,9 @@
       "value": "x86_64"
     },
     {
-      "attr": "Project:Version",
-      "is_compare": false,
-      "value": "2.6.33.20"
+      "attr": "Linux:Version",
+      "is_compare": true,
+      "value": "v2.6.33.20"
     },
     {
       "attr": "Project:Configuration",
@@ -56,13 +56,17 @@
             "ldv_invoke_test": []
           },
           {
-            "ldv_emg___tasklet_hi_schedule": [
+            "ldv_tasklet_hi_schedule_19": [
               {
-                "ldv_handler": [
+                "ldv_emg_tasklet_hi_schedule": [
                   {
-                    "ldv_invoke_reached": [
+                    "ldv_handler": [
                       {
-                        "ldv_assert_linux_emg_test": []
+                        "ldv_invoke_reached": [
+                          {
+                            "ldv_assert_linux_emg_test": []
+                          }
+                        ]
                       }
                     ]
                   }

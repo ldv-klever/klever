@@ -40,6 +40,7 @@
           "success": {
             "comment": "Registration of USB serial callbacks has been successful.",
             "statements": [
+              "ldv_assume(!usb_serial_register_drivers($ARG1, $ARG2, $ARG3));",
               "return 0;"
             ]
           }
@@ -60,12 +61,18 @@
             ]
           }
         },
-        "process": "<assign>.[@deregister]",
+        "process": "<assign>.[@deregister].<call>",
         "actions": {
           "deregister": {
             "comment": "Deregister USB serial callbacks.",
             "parameters": [
               "%usb_device_id%"
+            ]
+          },
+          "call": {
+            "comment": "Call the function itself",
+            "statements": [
+              "usb_serial_deregister_drivers($ARG1);"
             ]
           },
           "assign": {
@@ -95,14 +102,17 @@
           "resource": {
             "resource": true
           },
+          "port": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ]
+          },
           "driver": {
             "container": true,
             "interface": [
               "usb_serial.usb_serial_driver"
             ]
-          },
-          "rest_line_attached_callbacks": {
-            "callback": true
           },
           "ret": {
             "declaration": "int a",
@@ -113,15 +123,11 @@
         "actions": {
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.{tty_layer} | <not_opened>.[port_remove]) | <not_port_probed>)).{main_workflow} | [disconnect].[release].{insert_device}"
-          },
-          "tty_layer": {
-            "comment": "Call the rest callbacks from tty layer.",
-            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | [close].{main_workflow}"
+            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[open].(<opened>.[register_tty_layer].[deregister_tty_layer].[close] | <not_opened>).[port_remove]) | <not_port_probed>).{main_workflow} | [disconnect].[release].{insert_device}"
           },
           "register": {
             "comment": "Begin USB serial callbacks invocation scenario.",
@@ -137,16 +143,32 @@
               "%usb_device_id%"
             ]
           },
+          "register_tty_layer": {
+            "comment": "Now register tty callbacks.",
+            "parameters": [
+              "%driver%",
+              "%port%",
+              "%resource%"
+            ]
+          },
+          "deregister_tty_layer": {
+            "comment": "Deregister tty callbacks.",
+            "parameters": [
+              "%driver%"
+            ]
+          },
           "init": {
             "comment": "Alloc memory and initialize an usb_serial structure that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%port% = $ALLOC(%port%);"
             ]
           },
           "free": {
             "comment": "Free usb_serial memory.",
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%resource%);",
+              "$FREE(%port%);"
             ]
           },
           "probed": {
@@ -274,7 +296,7 @@
             "comment": "Initialize serial port data.",
             "callback": "%driver.port_probe%",
             "parameters": [
-              "%resource%"
+              "%port%"
             ],
             "callback return value": "%ret%",
             "post-call": [
@@ -285,28 +307,74 @@
             "comment": "Free serial port data.",
             "callback": "%driver.port_remove%",
             "parameters": [
-              "%resource%"
+              "%port%"
             ]
           },
           "open": {
             "comment": "Line discipline is attached to the terminal.",
             "callback": "%driver.open%",
+            "callback return value": "%ret%",
             "parameters": [
-              "%resource%"
+              "%resource%", "%port%"
             ]
           },
           "close": {
             "comment": "Line discipline is being unplugged from the terminal.",
             "callback": "%driver.close%",
             "parameters": [
-              "%resource%"
+              "%port%"
+            ]
+          }
+        }
+      },
+      "tty_layer": {
+        "comment": "Invoke USB serial tty layer callbacks.",
+        "labels": {
+          "driver": {
+            "container": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "port": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_serial_port"
+            ]
+          },
+          "rest_line_attached_callbacks": {
+            "callback": true
+          }
+        },
+        "process": "(!register_tty_layer).{tty_layer}",
+        "actions": {
+          "tty_layer": {
+            "comment": "Call the rest callbacks from tty layer.",
+            "process": "([throttle].[unthrottle] | [irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | (deregister_tty_layer)"
+          },
+          "register_tty_layer": {
+            "comment": "Begin USB serial tty layer callbacks invocation scenario.",
+            "parameters": [
+              "%driver%", "%port%", "%resource%"
+            ]
+          },
+          "deregister_tty_layer": {
+            "comment": "End up with USB serial tty layer callbacks invocation scenario.",
+            "condition": [
+              "%driver% == $ARG1"
+            ],
+            "parameters": [
+              "%driver%"
             ]
           },
           "irq_write": {
             "comment": "Write a block of characters to the tty device in atomic context.",
             "callback": "%driver.write%",
             "parameters": [
-              "%resource%"
+              "%resource%", "%port%"
             ],
             "pre-call": [
               "ldv_switch_to_interrupt_context();"
@@ -318,6 +386,20 @@
           "write": {
             "comment": "Write a block of characters to the tty device in atomic context.",
             "callback": "%driver.write%",
+            "parameters": [
+              "%resource%", "%port%"
+            ]
+          },
+          "throttle": {
+            "comment": "Notify the tty driver that input buffers for the line discipline are close to full.",
+            "callback": "%driver.throttle%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "unthrottle": {
+            "comment": "Notify the tty drivers that it should signals that characters can now be sent.",
+            "callback": "%driver.unthrottle%",
             "parameters": [
               "%resource%"
             ]

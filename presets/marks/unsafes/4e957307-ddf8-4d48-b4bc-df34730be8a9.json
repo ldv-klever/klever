@@ -1,0 +1,63 @@
+{
+  "attrs": [
+    {
+      "is_compare": false,
+      "name": "Klever Core version",
+      "value": "2.1.dev29+g9268dc1d3"
+    },
+    {
+      "is_compare": false,
+      "name": "Sub-job identifier",
+      "value": "17"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Architecture",
+      "value": "x86_64"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Version",
+      "value": "v3.10.59-92-gc822fb57ba12"
+    },
+    {
+      "is_compare": false,
+      "name": "Linux:Configuration",
+      "value": "allmodconfig"
+    },
+    {
+      "is_compare": true,
+      "name": "Requirement",
+      "value": "linux:drivers:clk2"
+    },
+    {
+      "is_compare": true,
+      "name": "Program fragment",
+      "value": "drivers/spi/spi-pxa2xx-platform.ko"
+    }
+  ],
+  "description": "Non-target bug. ",
+  "error_trace": [
+    [
+      {
+        "pxa2xx_spi_probe": [
+          {
+            "ldv_clk_enable_clk_of_ssp_device": []
+          },
+          {
+            "ldv_clk_disable_clk_of_ssp_device": [
+              {
+                "ldv_assert_linux_drivers_clk2__less_initial_decrement": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  ],
+  "function": "thread_call_forests",
+  "is_modifiable": false,
+  "status": "2",
+  "tags": [],
+  "verdict": "1"
+}

@@ -18,7 +18,7 @@
           }
         }
       },
-      "__tasklet_schedule": {
+      "tasklet_schedule": {
         "comment": "Schedule a tasklet.",
         "headers": [
           "linux/interrupt.h"
@@ -50,7 +50,7 @@
           }
         }
       },
-      "__tasklet_hi_schedule": {
+      "tasklet_hi_schedule": {
         "comment": "Schedule a high priority tasklet.",
         "headers": [
           "linux/interrupt.h"
@@ -82,7 +82,7 @@
           }
         }
       },
-      "__tasklet_hi_schedule_first": {
+      "tasklet_hi_schedule_first": {
         "comment": "Schedule a high priority tasklet.",
         "headers": [
           "linux/interrupt.h"

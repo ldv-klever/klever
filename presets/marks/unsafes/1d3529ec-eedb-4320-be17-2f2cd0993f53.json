@@ -85,12 +85,16 @@
       {
         "kobil_write": [
           {
-            "ldv_check_alloc_flags": [
+            "ldv_usb_submit_urb_34": [
               {
-                "ldv_in_interrupt_context": []
-              },
-              {
-                "ldv_assert_linux_alloc_irq__wrong_flags": []
+                "ldv_check_alloc_flags": [
+                  {
+                    "ldv_in_interrupt_context": []
+                  },
+                  {
+                    "ldv_assert_linux_alloc_irq__wrong_flags": []
+                  }
+                ]
               }
             ]
           }
