@@ -12,7 +12,8 @@
     "For building and running Klever Bridge": [
       "gettext",
       "nginx",
-      "postgresql"
+      "postgresql",
+      "rabbitmq-server"
     ],
     "For running Klever Core": [
       "bc",
