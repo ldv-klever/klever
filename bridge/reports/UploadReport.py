@@ -392,7 +392,6 @@ class UploadReport:
 
     def __collapse_detail(self, value):
         # TODO: collapse error structure to string
-        print(type(value))
         if isinstance(value, dict):
             error_list = []
             for name, val in value.items():

@@ -504,7 +504,6 @@ class UserActionsHistory:
         self.user = user
         self.author = author
         self.activity = self.get_activity()
-        print(self.activity)
 
     def get_activity(self):
         activity = self.get_jobs_activity()

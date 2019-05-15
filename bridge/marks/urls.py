@@ -79,13 +79,15 @@ urlpatterns = [
     path('api/unknown/<int:pk>/remove-versions/', api.UnknownRmVersionsView.as_view(), name='api-rm-vers-unknown'),
 
     # Download/Upload marks
-    re_path(r'^download/(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$',
-            views.DownloadMarkView.as_view(), name='download_mark'),
-    re_path(r'^download-preset/(?P<type>unsafe|safe|unknown)/(?P<pk>[0-9]+)/$',
-            views.DownloadPresetMarkView.as_view(), name='download_preset_mark'),
-    path('upload/', views.UploadMarksView.as_view()),
-    path('download-all/', views.DownloadAllMarksView.as_view(), name='download_all'),
-    path('upload-all/', views.UploadAllMarksView.as_view()),
+    path('safe/<int:pk>/download/', views.DownloadSafeMarkView.as_view(), name='safe-download'),
+    path('unsafe/<int:pk>/download/', views.DownloadUnsafeMarkView.as_view(), name='unsafe-download'),
+    path('unknown/<int:pk>/download/', views.DownloadUnknownMarkView.as_view(), name='unknown-download'),
+    path('safe/<int:pk>/download-preset/', views.PresetSafeMarkView.as_view(), name='safe-download-preset'),
+    path('unsafe/<int:pk>/download-preset/', views.PresetUnsafeMarkView.as_view(), name='unsafe-download-preset'),
+    path('unknown/<int:pk>/download-preset/', views.PresetUnknownMarkView.as_view(), name='unknown-download-preset'),
+    path('api/download-all/', api.DownloadAllMarksView.as_view(), name='api-download-all'),
+    path('upload/', api.UploadMarksView.as_view(), name='upload'),
+    path('upload-all/', api.UploadAllMarksView.as_view(), name='upload-all'),
 
     # Tags
     re_path(r'^tags/(?P<type>unsafe|safe)/$', views.TagsTreeView.as_view(), name='tags'),
@@ -97,6 +99,4 @@ urlpatterns = [
     path('api/ass-like/safe/<int:pk>/', api.LikeSafeMark.as_view(), name='api-like-safe'),
     path('api/ass-like/unsafe/<int:pk>/', api.LikeUnsafeMark.as_view(), name='api-like-unsafe'),
     path('api/ass-like/unknown/<int:pk>/', api.LikeUnknownMark.as_view(), name='api-like-unknown'),
-
-    # Utils
 ]

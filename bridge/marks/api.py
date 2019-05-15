@@ -1,24 +1,43 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import status, exceptions
-from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.generics import get_object_or_404, DestroyAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
 from bridge.vars import USER_ROLES
-from bridge.access import ManagerPermission
+from bridge.utils import BridgeAPIPagination, extract_archive
+from bridge.access import ManagerPermission, ServicePermission
+from bridge.CustomViews import StreamingResponseAPIView
 from tools.profiling import LoggedCallMixin
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
-    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
-    SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
+    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkSafeReport, MarkUnsafeReport,
+    MarkUnknownReport, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 )
 from marks.utils import MarkAccess
 from marks.tags import TagAccess, ChangeTagsAccess, UploadTags
@@ -37,6 +56,7 @@ from marks.UnknownUtils import (
     perform_unknown_mark_create, perform_unknown_mark_update, CheckUnknownFunction, remove_unknown_marks,
     confirm_unknown_mark, unconfirm_unknown_mark
 )
+from marks.Download import AllMarksGenerator, MarksUploader, UploadAllMarks
 
 from caches.utils import UpdateSafeMarksTags, UpdateUnsafeMarksTags
 
@@ -46,6 +66,7 @@ class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = MarkSafe.objects.all()
     serializer_class = SafeMarkSerializer
+    pagination_class = BridgeAPIPagination
 
     def get_unparallel(self, request):
         return [MarkSafe] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
@@ -55,7 +76,9 @@ class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, report=report).can_create:
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version')
+        )
         serializer.is_valid(raise_exception=True)
         mark, cache_id = perform_safe_mark_create(self.request.user, report, serializer)
         changes_url = '{}?mark_id={}'.format(reverse('marks:safe-ass-changes', args=[cache_id]), mark.id)
@@ -67,7 +90,9 @@ class MarkSafeViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, mark=instance).can_edit:
             raise exceptions.PermissionDenied(_("You don't have an access to edit this mark"))
 
-        serializer = self.get_serializer(instance, data=request.data)
+        serializer = self.get_serializer(
+            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version')
+        )
         serializer.is_valid(raise_exception=True)
         cache_id = perform_safe_mark_update(self.request.user, serializer)
 
@@ -87,6 +112,7 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = MarkUnsafe.objects.all()
     serializer_class = UnsafeMarkSerializer
+    pagination_class = BridgeAPIPagination
 
     def get_unparallel(self, request):
         return [MarkUnsafe] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
@@ -96,7 +122,9 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, report=report).can_create:
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(
+            data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+        )
         serializer.is_valid(raise_exception=True)
         mark, cache_id = perform_unsafe_mark_create(self.request.user, report, serializer)
         changes_url = '{}?mark_id={}'.format(reverse('marks:unsafe-ass-changes', args=[cache_id]), mark.id)
@@ -108,7 +136,9 @@ class MarkUnsafeViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, mark=instance).can_edit:
             raise exceptions.PermissionDenied(_("You don't have an access to edit this mark"))
 
-        serializer = self.get_serializer(instance, data=request.data)
+        serializer = self.get_serializer(
+            instance, data=request.data, fields=('is_modifiable', 'verdict', 'mark_version', 'function')
+        )
         serializer.is_valid(raise_exception=True)
         cache_id = perform_unsafe_mark_update(self.request.user, serializer)
 
@@ -128,6 +158,7 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
     permission_classes = (IsAuthenticated,)
     queryset = MarkUnknown.objects.all()
     serializer_class = UnknownMarkSerializer
+    pagination_class = BridgeAPIPagination
 
     def get_unparallel(self, request):
         return [MarkUnknown] if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} else []
@@ -137,7 +168,9 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, report=report).can_create:
             raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, fields=(
+            'is_modifiable', 'mark_version', 'function', 'is_regexp', 'problem_pattern', 'link'
+        ))
         serializer.is_valid(raise_exception=True)
         mark, cache_id = perform_unknown_mark_create(self.request.user, report, serializer)
         changes_url = '{}?mark_id={}'.format(reverse('marks:unknown-ass-changes', args=[cache_id]), mark.id)
@@ -149,7 +182,9 @@ class MarkUnknownViewSet(LoggedCallMixin, ModelViewSet):
         if not MarkAccess(request.user, mark=instance).can_edit:
             raise exceptions.PermissionDenied(_("You don't have an access to edit this mark"))
 
-        serializer = self.get_serializer(instance, data=request.data)
+        serializer = self.get_serializer(instance, data=request.data, fields=(
+            'is_modifiable', 'mark_version', 'function', 'is_regexp', 'problem_pattern', 'link'
+        ))
         serializer.is_valid(raise_exception=True)
         cache_id = perform_unknown_mark_update(self.request.user, serializer)
 
@@ -380,3 +415,38 @@ class LikeUnsafeMark(LikeMarkBase):
 class LikeUnknownMark(LikeMarkBase):
     association_model = MarkUnknownReport
     like_model = UnknownAssociationLike
+
+
+class DownloadAllMarksView(LoggedCallMixin, StreamingResponseAPIView):
+    unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
+    permission_classes = (ServicePermission,)
+
+    def get_generator(self):
+        return AllMarksGenerator()
+
+
+class UploadMarksView(LoggedCallMixin, APIView):
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+
+    def post(self, request):
+        if not MarkAccess(request.user).can_upload:
+            raise exceptions.PermissionDenied(_("You don't have an access to create new marks"))
+
+        marks_links = []
+        marks_uploader = MarksUploader(request.user)
+        for f in self.request.FILES.getlist('file'):
+            marks_links.append(marks_uploader.upload_mark(f)[1])
+
+        if len(marks_links) == 1:
+            return Response({'url': marks_links[0]})
+        return Response({'message': _('Number of created marks: %(number)s') % {'number': len(marks_links)}})
+
+
+class UploadAllMarksView(LoggedCallMixin, APIView):
+    unparallel = [MarkSafe, MarkUnsafe, MarkUnknown]
+    permission_classes = (ServicePermission,)
+
+    def post(self, request):
+        marks_dir = extract_archive(self.request.FILES['file'])
+        res = UploadAllMarks(request.user, marks_dir.name, bool(int(request.POST.get('delete', 0))))
+        return Response(res.numbers)

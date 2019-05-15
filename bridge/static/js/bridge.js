@@ -501,33 +501,30 @@ $(document).ready(function () {
     }
 
     $('#upload_marks_start').click(function () {
-        var files = $('#upload_marks_file_input')[0].files,
+        let files = $('#upload_marks_file_input')[0].files,
             data = new FormData();
         if (files.length <= 0) {
             err_notify($('#error__no_file_chosen').text());
             return false;
         }
-        for (var i = 0; i < files.length; i++) {
+        for (let i = 0; i < files.length; i++) {
             data.append('file', files[i]);
         }
         $('#upload_marks_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: '/marks/upload/',
+            url: $(this).data('url'),
             type: 'POST',
             data: data,
             dataType: 'json',
             contentType: false,
             processData: false,
             mimeType: 'multipart/form-data',
-            xhr: function() {
-                return $.ajaxSettings.xhr();
-            },
+            xhr: function() { return $.ajaxSettings.xhr() },
             success: function (data) {
                 $('#dimmer_of_page').removeClass('active');
-                if ('error' in data) err_notify(data['error']);
-                else if ('id' in data && 'type' in data) window.location.href = "/marks/" + data['type'] + "/" + data['id'] + "/";
-                else success_notify(data.success);
+                if ('url' in data) window.location.href = data['url'];
+                else success_notify(data['message']);
             }
         });
     });

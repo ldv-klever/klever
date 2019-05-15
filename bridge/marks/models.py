@@ -20,6 +20,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.contrib.postgres.fields import ArrayField, JSONField
 from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.vars import (
@@ -89,6 +90,7 @@ class MarkSafe(Mark):
 
     class Meta:
         db_table = 'mark_safe'
+        verbose_name = _('Safes mark')
 
 
 class MarkSafeHistory(MarkHistory):
@@ -97,6 +99,7 @@ class MarkSafeHistory(MarkHistory):
 
     class Meta:
         db_table = 'mark_safe_history'
+        verbose_name = _('Safes mark version')
 
 
 class MarkSafeAttr(AttrBase):
@@ -136,6 +139,7 @@ class MarkUnsafe(Mark):
 
     class Meta:
         db_table = 'mark_unsafe'
+        verbose_name = _('Unsafes mark')
 
 
 class MarkUnsafeHistory(MarkHistory):
@@ -146,6 +150,7 @@ class MarkUnsafeHistory(MarkHistory):
 
     class Meta:
         db_table = 'mark_unsafe_history'
+        verbose_name = _('Unsafes mark version')
 
 
 class MarkUnsafeAttr(AttrBase):
@@ -240,6 +245,7 @@ class MarkUnknown(Mark):
     class Meta:
         db_table = 'mark_unknown'
         index_together = ['component', 'problem_pattern']
+        verbose_name = _('Unknowns mark')
 
 
 class MarkUnknownHistory(MarkHistory):
@@ -251,6 +257,7 @@ class MarkUnknownHistory(MarkHistory):
 
     class Meta:
         db_table = 'mark_unknown_history'
+        verbose_name = _('Unknowns mark version')
 
 
 class MarkUnknownAttr(AttrBase):

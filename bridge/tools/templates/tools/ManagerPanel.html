@@ -74,7 +74,7 @@
                 <a class="ui violet button fluid" href="{% url 'service:test' %}">Test service requests</a>
                 <div class="ui divider"></div>
                 <div class="ui vertical fluid buttons">
-                    <a href="{% url 'marks:download_all' %}" class="ui teal button">{% trans 'Download all marks' %}</a>
+                    <a href="{% url 'marks:api-download-all' %}" class="ui teal button">{% trans 'Download all marks' %}</a>
                     <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                 </div>
                 <div class="ui divider"></div>
@@ -137,7 +137,7 @@
                 <button id="recalc_all" class="ui red button">{% trans 'All caches' %}</button>
             </div>
         </div>
-        <div id="upload_all_marks_popup" class="ui modal">
+        <div id="upload_all_marks_modal" class="ui modal">
             <div class="header">{% trans 'Upload marks' %}</div>
             <div class="content">
                 <div class="ui checkbox">
@@ -155,8 +155,8 @@
                 </div>
             </div>
             <div class="actions">
-                <button id="upload_all_marks_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
-                <button id="upload_all_marks_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                <button class="ui positive left button modal-confirm" data-url="{% url 'marks:upload-all' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
             </div>
         </div>
         <div id="uploaded_marks_modal" class="ui modal">
@@ -168,7 +168,7 @@
                 <h5 class="ui purple header">{% trans 'Failed' %}: <span id="num_uploaded_fail_marks"></span></h5>
             </div>
             <div class="actions">
-                <button id="uploaded_marks_close" type="button" class="ui blue button">{% trans 'OK' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'OK' %}</button>
             </div>
         </div>
     {% endif %}

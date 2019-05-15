@@ -1,6 +1,22 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import json
-import shutil
 import uuid
 
 from django.conf import settings
@@ -10,8 +26,11 @@ from bridge.vars import MARK_SOURCE
 from bridge.utils import BridgeException
 
 from marks.models import SafeTag, MarkSafe, UnsafeTag, MarkUnsafe, MarkUnknown
-from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,\
+from marks.serializers import (
+    SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer,
     SafeTagSerializer, UnsafeTagSerializer
+)
+
 from marks.SafeUtils import ConnectSafeMark
 from marks.UnsafeUtils import ConnectUnsafeMark
 from marks.UnknownUtils import ConnectUnknownMark
@@ -37,6 +56,7 @@ class PopulateSafeMarks:
 
     def __populate(self):
         presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
+        serializer_fields = ('is_modifiable', 'verdict', 'mark_version')
 
         for mark_filename in os.listdir(presets_dir):
             mark_path = os.path.join(presets_dir, mark_filename)
@@ -61,7 +81,7 @@ class PopulateSafeMarks:
 
             serializer = SafeMarkSerializer(data=mark_data, context={
                 'tags_names': self._tags_names, 'tags_tree': self._tags_tree
-            })
+            }, fields=serializer_fields)
             serializer.is_valid(raise_exception=True)
             mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
             res = ConnectSafeMark(mark)
@@ -87,6 +107,7 @@ class PopulateUnsafeMarks:
 
     def __populate(self):
         presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes')
+        serializer_fields = ('is_modifiable', 'verdict', 'mark_version', 'function')
 
         for mark_filename in os.listdir(presets_dir):
             mark_path = os.path.join(presets_dir, mark_filename)
@@ -114,7 +135,7 @@ class PopulateUnsafeMarks:
 
             serializer = UnsafeMarkSerializer(data=mark_data, context={
                 'tags_names': self._tags_names, 'tags_tree': self._tags_tree
-            })
+            }, fields=serializer_fields)
             serializer.is_valid(raise_exception=True)
             mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
             res = ConnectUnsafeMark(mark)
@@ -131,6 +152,11 @@ class PopulateUnknownMarks:
 
     def __populate(self):
         presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
+        serializer_fields = (
+            'component', 'is_modifiable', 'mark_version',
+            'function', 'is_regexp', 'problem_pattern', 'link'
+        )
+
         for component in os.listdir(presets_dir):
             component_dir = os.path.join(presets_dir, component)
             if not os.path.isdir(component_dir):
@@ -152,19 +178,16 @@ class PopulateUnknownMarks:
                 if not isinstance(mark_data, dict):
                     raise BridgeException(_('Corrupted preset unknown mark: wrong format'))
 
-                # Use component from data if provided
-                component = mark_data.pop('component', component)
-
                 if settings.POPULATE_JUST_PRODUCTION_PRESETS and not mark_data.get('production'):
                     # Do not populate non-production marks
                     continue
 
-                serializer = UnknownMarkSerializer(data=mark_data)
+                # Use component from data if provided
+                mark_data['component'] = mark_data.pop('component', component)
+
+                serializer = UnknownMarkSerializer(data=mark_data, fields=serializer_fields)
                 serializer.is_valid(raise_exception=True)
-                mark = serializer.save(
-                    identifier=identifier, author=self._author,
-                    source=MARK_SOURCE[1][0], component=component
-                )
+                mark = serializer.save(identifier=identifier, author=self._author, source=MARK_SOURCE[1][0])
                 res = ConnectUnknownMark(mark)
                 UpdateCachesOnMarkPopulate(mark, res.new_links).update()
                 self.created += 1
@@ -232,133 +255,3 @@ class PopulateUnsafeTags:
                 new_tag = serializer.save(parent=parent, author=self.user, populated=True)
                 db_tags[serializer.validated_data['name']] = new_tag
                 self.created += 1
-
-
-def get_new_attrs(attrs):
-    new_attrs = []
-    if attrs is None:
-        return new_attrs
-    for old_a in attrs:
-        new_attrs.append({'name': old_a['attr'], 'value': old_a['value'], 'is_compare': old_a['is_compare']})
-    return new_attrs
-
-
-def move_safe_marks():
-    presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
-    new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes_old')
-    changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes-changes.json')
-    os.mkdir(new_dir)
-
-    changes = {}
-    for mark_filename in os.listdir(presets_dir):
-        mark_path = os.path.join(presets_dir, mark_filename)
-        if not os.path.isfile(mark_path):
-            continue
-
-        old_identifier = os.path.splitext(mark_filename)[0]
-        new_identifier = str(uuid.uuid4())
-        changes[old_identifier] = new_identifier
-
-        shutil.copy2(mark_path, os.path.join(new_dir, mark_filename))
-        with open(mark_path, mode='r', encoding='utf-8') as fp:
-            mark_data = json.load(fp)
-        mark_data['attrs'] = get_new_attrs(mark_data.get('attrs'))
-        with open(mark_path, mode='w', encoding='utf-8') as fp:
-            json.dump(mark_data, fp, indent=2, sort_keys=True, ensure_ascii=False)
-        shutil.move(mark_path, os.path.join(presets_dir, "{}.json".format(new_identifier)))
-    with open(changes_file, mode='w', encoding='utf-8') as fp:
-        json.dump(changes, fp, indent=2, sort_keys=True, ensure_ascii=False)
-
-
-def move_unsafe_marks():
-    presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes')
-    new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes_old')
-    changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unsafes-changes.json')
-    os.mkdir(new_dir)
-
-    changes = {}
-    for mark_filename in os.listdir(presets_dir):
-        mark_path = os.path.join(presets_dir, mark_filename)
-        if not os.path.isfile(mark_path):
-            continue
-
-        old_identifier = os.path.splitext(mark_filename)[0]
-        new_identifier = str(uuid.uuid4())
-        changes[old_identifier] = new_identifier
-
-        shutil.copy2(mark_path, os.path.join(new_dir, mark_filename))
-        with open(mark_path, mode='r', encoding='utf-8') as fp:
-            mark_data = json.load(fp)
-
-        mark_data['function'] = mark_data.pop('comparison')
-        mark_data['error_trace'] = mark_data.pop('error trace')
-        mark_data['attrs'] = get_new_attrs(mark_data.get('attrs'))
-        with open(mark_path, mode='w', encoding='utf-8') as fp:
-            json.dump(mark_data, fp, indent=2, sort_keys=True, ensure_ascii=False)
-
-        shutil.move(mark_path, os.path.join(presets_dir, "{}.json".format(new_identifier)))
-
-    with open(changes_file, mode='w', encoding='utf-8') as fp:
-        json.dump(changes, fp, indent=2, sort_keys=True, ensure_ascii=False)
-
-
-def move_unknown_marks():
-    presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
-    new_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns_old')
-    changes_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns-changes.json')
-    os.mkdir(new_dir)
-
-    changes = {}
-    for component in os.listdir(presets_dir):
-        component_dir = os.path.join(presets_dir, component)
-        if not os.path.isdir(component_dir):
-            continue
-        os.mkdir(os.path.join(new_dir, component))
-        changes[component] = {}
-        for mark_filename in os.listdir(component_dir):
-            mark_path = os.path.join(component_dir, mark_filename)
-            if not os.path.isfile(mark_path):
-                continue
-            old_identifier = os.path.splitext(mark_filename)[0]
-            new_identifier = str(uuid.uuid4())
-            changes[component][old_identifier] = new_identifier
-
-            shutil.copy2(mark_path, os.path.join(new_dir, component, mark_filename))
-            with open(mark_path, mode='r', encoding='utf-8') as fp:
-                mark_data = json.load(fp)
-
-            mark_data['function'] = mark_data.pop('pattern')
-            mark_data['problem_pattern'] = mark_data.pop('problem')
-            mark_data['is_regexp'] = mark_data.pop('is regexp', False)
-            mark_data['attrs'] = get_new_attrs(mark_data.get('attrs'))
-            with open(mark_path, mode='w', encoding='utf-8') as fp:
-                json.dump(mark_data, fp, indent=2, sort_keys=True, ensure_ascii=False)
-
-            shutil.move(mark_path, os.path.join(presets_dir, component, "{}.json".format(new_identifier)))
-
-    with open(changes_file, mode='w', encoding='utf-8') as fp:
-        json.dump(changes, fp, indent=2, sort_keys=True, ensure_ascii=False)
-
-
-def check_unknown_marks():
-    presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
-
-    for component in os.listdir(presets_dir):
-        component_dir = os.path.join(presets_dir, component)
-        if not os.path.isdir(component_dir):
-            continue
-        for mark_filename in os.listdir(component_dir):
-            mark_path = os.path.join(component_dir, mark_filename)
-            if not os.path.isfile(mark_path):
-                continue
-
-            with open(mark_path, mode='r', encoding='utf-8') as fp:
-                mark_data = json.load(fp)
-
-            mark_data['function'] = mark_data.pop('pattern', None)
-            mark_data['problem_pattern'] = mark_data.pop('problem', None)
-            mark_data['attrs'] = get_new_attrs(mark_data.get('attrs'))
-            s = UnknownMarkSerializer(data=mark_data)
-            if not s.is_valid():
-                print(s.errors)
-                print(mark_path)

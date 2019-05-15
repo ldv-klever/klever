@@ -16,167 +16,348 @@
 #
 
 import os
+import io
 import json
 import zipfile
+from wsgiref.util import FileWrapper
 
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
+from bridge.vars import MARK_SOURCE
 from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag
+from marks.models import (
+    MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag,
+    MarkSafeAttr, MarkUnsafeAttr, MarkUnknownAttr, MarkSafeTag, MarkUnsafeTag
+)
+from marks.serializers import SafeMarkSerializer, UnsafeMarkSerializer, UnknownMarkSerializer
 
-import marks.SafeUtils as SafeUtils
-import marks.UnsafeUtils as UnsafeUtils
-import marks.UnknownUtils as UnknownUtils
+from marks.SafeUtils import ConnectSafeMark, remove_safe_marks
+from marks.UnsafeUtils import ConnectUnsafeMark, remove_unsafe_marks
+from marks.UnknownUtils import ConnectUnknownMark, remove_unknown_marks
+
+from caches.utils import UpdateCachesOnMarkPopulate
 
 
-class MarkArchiveGenerator:
+class MarkGeneratorBase:
+    type = None
+    attrs_model = None
+    tags_model = None
+
     def __init__(self, mark):
+        assert self.type is not None, 'Wrong usage'
         self.mark = mark
-        if isinstance(self.mark, MarkUnsafe):
-            self.type = 'unsafe'
-        elif isinstance(self.mark, MarkSafe):
-            self.type = 'safe'
-        elif isinstance(self.mark, MarkUnknown):
-            self.type = 'unknown'
-        else:
-            return
-        self.name = 'Mark-%s-%s.zip' % (self.type, self.mark.identifier[:10])
+        self.name = 'Mark-{}-{}.zip'.format(self.type, self.mark.identifier)
         self.stream = ZipStream()
 
-    def __iter__(self):
-        for markversion in self.mark.versions.all():
-            version_data = {
-                'status': markversion.status,
-                'comment': markversion.comment,
-                'description': markversion.description
-            }
-            if self.type == 'unknown':
-                version_data['function'] = markversion.function
-                version_data['problem'] = markversion.problem_pattern
-                version_data['is_regexp'] = markversion.is_regexp
-                if markversion.link is not None:
-                    version_data['link'] = markversion.link
-            else:
-                version_data['attrs'] = []
-                for aname, aval, compare in markversion.attrs.order_by('id')\
-                        .values_list('attr__name__name', 'attr__value', 'is_compare'):
-                    version_data['attrs'].append({'attr': aname, 'value': aval, 'is_compare': compare})
-
-                version_data['tags'] = list(tag for tag, in markversion.tags.values_list('tag__tag'))
-                version_data['verdict'] = markversion.verdict
-
-                if self.type == 'unsafe':
-                    version_data['function'] = markversion.function.name
-                    with markversion.error_trace.file.file as fp:
-                        version_data['error_trace'] = fp.read().decode('utf8')
-
-            content = json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4)
-            for data in self.stream.compress_string('version-%s' % markversion.version, content):
-                yield data
-        common_data = {
-            'is_modifiable': self.mark.is_modifiable,
-            'mark_type': self.type,
-            'format': self.mark.format,
-            'identifier': self.mark.identifier
+    def common_data(self):
+        return {
+            'type': self.type, 'format': self.mark.format,
+            'identifier': str(self.mark.identifier),
+            'is_modifiable': self.mark.is_modifiable
         }
-        if self.type == 'unknown':
-            common_data['component'] = self.mark.component.name
-        content = json.dumps(common_data, ensure_ascii=False, sort_keys=True, indent=4)
-        for data in self.stream.compress_string('markdata', content):
+
+    def version_data(self, version):
+        data = {
+            'status': version.status,
+            'comment': version.comment,
+            'description': version.description,
+            'attrs': self.attrs[version.id],
+        }
+        if self.tags:
+            data['tags'] = self.tags.get(version.id, [])
+        return data
+
+    @cached_property
+    def attrs(self):
+        assert self.attrs_model is not None, 'Wrong usage'
+        mark_attrs = {}
+        for mattr in self.attrs_model.objects.filter(mark_version__mark=self.mark).order_by('id'):
+            mark_attrs.setdefault(mattr.mark_version_id, [])
+            mark_attrs[mattr.mark_version_id].append({
+                'name': mattr.name, 'value': mattr.value, 'is_compare': mattr.is_compare
+            })
+        return mark_attrs
+
+    @cached_property
+    def tags(self):
+        if not self.tags_model:
+            return None
+        all_tags = {}
+        for version_id, tag_name in self.tags_model.objects.filter(mark_version__mark=self.mark) \
+                .values_list('mark_version_id', 'tag__name'):
+            all_tags.setdefault(version_id, [])
+            all_tags[version_id].append(tag_name)
+        return all_tags
+
+    def versions_queryset(self):
+        return self.mark.versions.all()
+
+    def __iter__(self):
+        # Add main mark data
+        content = json.dumps(self.common_data(), ensure_ascii=False, sort_keys=True, indent=4)
+        for data in self.stream.compress_string('mark.json', content):
             yield data
+
+        # Add versions data
+        for markversion in self.versions_queryset():
+            content = json.dumps(self.version_data(markversion), ensure_ascii=False, sort_keys=True, indent=4)
+            for data in self.stream.compress_string('version-{}.json'.format(markversion.version), content):
+                yield data
+
         yield self.stream.close_stream()
 
 
-class PresetMarkFile:
-    def __init__(self, mark):
-        self._mark = mark
-        self.data = json.dumps(self.__get_mark_data(), indent=2, sort_keys=True).encode('utf8')
-        self.filename = "%s.json" % self._mark.identifier
+class SafeMarkGenerator(MarkGeneratorBase):
+    type = 'safe'
+    attrs_model = MarkSafeAttr
+    tags_model = MarkSafeTag
 
-    def __iter__(self):
-        yield self.data
-
-    def __get_mark_data(self):
-        data = {
-            'status': self._mark.status, 'is_modifiable': self._mark.is_modifiable,
-            'description': self._mark.description, 'attrs': []
-        }
-        last_version = self._mark.versions.get(version=self._mark.version)
-        for a_name, a_val, is_compare in last_version.attrs.order_by('id')\
-                .values_list('attr__name__name', 'attr__value', 'is_compare'):
-            data['attrs'].append({'attr': a_name, 'value': a_val, 'is_compare': is_compare})
-
-        if isinstance(self._mark, MarkUnknown):
-            data.update({
-                'pattern': self._mark.function,
-                'problem': self._mark.problem_pattern,
-                'is regexp': self._mark.is_regexp
-            })
-            if self._mark.link:
-                data['link'] = self._mark.link
-        else:
-            data.update({'verdict': self._mark.verdict, 'tags': []})
-            for t, in last_version.tags.order_by('id').values_list('tag__tag'):
-                data['tags'].append(t)
-
-        if isinstance(self._mark, MarkUnsafe):
-            data['comparison'] = last_version.function.name
-            with last_version.error_trace.file.file as fp:
-                data['error trace'] = json.loads(fp.read().decode('utf8'))
+    def version_data(self, version):
+        data = super().version_data(version)
+        data['verdict'] = version.verdict
         return data
 
 
-class AllMarksGen(object):
+class UnsafeMarkGenerator(MarkGeneratorBase):
+    type = 'unsafe'
+    attrs_model = MarkUnsafeAttr
+    tags_model = MarkUnsafeTag
+
+    def versions_queryset(self):
+        return self.mark.versions.select_related('error_trace')
+
+    def version_data(self, version):
+        data = super().version_data(version)
+        with version.error_trace.file.file as fp:
+            error_trace = fp.read().decode('utf8')
+        data.update({
+            'verdict': version.verdict,
+            'function': version.function,
+            'error_trace': error_trace
+        })
+        return data
+
+
+class UnknownMarkGenerator(MarkGeneratorBase):
+    type = 'unknown'
+    attrs_model = MarkUnknownAttr
+
+    def common_data(self):
+        data = super().common_data()
+        data['component'] = self.mark.component
+        return data
+
+    def version_data(self, version):
+        data = super().version_data(version)
+        data.update({
+            'function': version.function,
+            'problem_pattern': version.problem_pattern,
+            'is_regexp': version.is_regexp,
+            'link': version.link
+        })
+        return data
+
+
+class PresetMarkFile(FileWrapper):
+    attrs_model = None
+
+    def __init__(self, mark):
+        self.mark = mark
+        self.name = '{}.json'.format(self.mark.identifier)
+        content = json.dumps(self.get_data(), indent=2, sort_keys=True).encode('utf8')
+        self.size = len(content)
+        super().__init__(io.BytesIO(content), 8192)
+
+    def get_data(self):
+        return {
+            'status': self.mark.status, 'is_modifiable': self.mark.is_modifiable,
+            'description': self.mark.description,
+            'attrs': list(self.attrs_model.objects.filter(
+                mark_version__mark=self.mark, mark_version__version=self.mark.version
+            ).order_by('id').values('name', 'value', 'is_compare'))
+        }
+
+
+class SafePresetFile(PresetMarkFile):
+    attrs_model = MarkSafeAttr
+
+    def get_data(self):
+        data = super().get_data()
+        data.update({
+            'verdict': self.mark.verdict,
+            'tags': list(MarkSafeTag.objects.filter(
+                mark_version__mark=self.mark, mark_version__version=self.mark.version
+            ).values_list('tag__name', flat=True))
+        })
+        return data
+
+
+class UnsafePresetFile(PresetMarkFile):
+    attrs_model = MarkUnsafeAttr
+
+    def get_data(self):
+        data = super().get_data()
+        data.update({
+            'verdict': self.mark.verdict,
+            'function': self.mark.function,
+            'tags': list(MarkUnsafeTag.objects.filter(
+                mark_version__mark=self.mark, mark_version__version=self.mark.version
+            ).values_list('tag__name', flat=True))
+        })
+        with self.mark.error_trace.file.file as fp:
+            data['error_trace'] = json.loads(fp.read().decode('utf8'))
+        return data
+
+
+class UnknownPresetFile(PresetMarkFile):
+    attrs_model = MarkUnknownAttr
+
+    def get_data(self):
+        data = super().get_data()
+        data.update({
+            'function': self.mark.function,
+            'problem_pattern': self.mark.problem_pattern,
+            'is_regexp': self.mark.is_regexp,
+            'link': self.mark.link
+        })
+        return data
+
+
+class AllMarksGenerator:
     def __init__(self):
         curr_time = now()
         self.name = 'Marks--%s-%s-%s.zip' % (curr_time.day, curr_time.month, curr_time.year)
         self.stream = ZipStream()
 
+    def generators(self):
+        for mark in MarkSafe.objects.all():
+            yield SafeMarkGenerator(mark)
+        for mark in MarkUnsafe.objects.all():
+            yield UnsafeMarkGenerator(mark)
+        for mark in MarkUnknown.objects.all():
+            yield UnknownMarkGenerator(mark)
+
     def __iter__(self):
-        for table in [MarkSafe, MarkUnsafe, MarkUnknown]:
-            for mark in table.objects.filter(~Q(version=0)):
-                markgen = MarkArchiveGenerator(mark)
-                buf = b''
-                for data in self.stream.compress_stream(markgen.name, markgen):
-                    buf += data
-                    if len(buf) > CHUNK_SIZE:
-                        yield buf
-                        buf = b''
-                if len(buf) > 0:
+        for markgen in self.generators():
+            buf = b''
+            for data in self.stream.compress_stream(markgen.name, markgen):
+                buf += data
+                if len(buf) > CHUNK_SIZE:
                     yield buf
+                    buf = b''
+            if len(buf) > 0:
+                yield buf
         yield self.stream.close_stream()
 
 
-class UploadMark:
-    def __init__(self, user, archive):
-        self.type = None
+class MarksUploader:
+    def __init__(self, user):
         self._user = user
-        self.mark = self.__upload_mark(archive)
+        self._safe_tags_names = self._safe_tags_tree = None
+        self._unsafe_tags_names = self._unsafe_tags_tree = None
 
-    def __upload_mark(self, archive):
+    def get_tags(self, tags_model):
+        tags_tree = {}
+        tags_names = {}
+        for t_id, parent_id, t_name in tags_model.objects.values_list('id', 'parent_id', 'name'):
+            tags_tree[t_id] = parent_id
+            tags_names[t_name] = t_id
+        return tags_tree, tags_names
 
-        def get_func_id(func_name):
-            try:
-                return MarkUnsafeCompare.objects.get(name=func_name).pk
-            except ObjectDoesNotExist:
-                raise BridgeException(
-                    _('The mark comparison function "%(fname)s" is not supported anymore') % {'fname': func_name}
+    def __create_safe_mark(self, mark_data, versions_data):
+        if self._safe_tags_names is None or self._safe_tags_tree is None:
+            self._safe_tags_tree, self._safe_tags_names = self.get_tags(SafeTag)
+
+        mark = None
+        for version_number in sorted(versions_data):
+            mark_version = versions_data[version_number]
+            if mark is None:
+                # Get identifier, format and is_modifiable from mark_data
+                mark_version.update(mark_data)
+                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
+                save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
+            else:
+                serializer_fields = ('verdict', 'mark_version')
+                save_kwargs = {}
+
+            serializer = SafeMarkSerializer(instance=mark, data=mark_version, context={
+                'tags_names': self._safe_tags_names, 'tags_tree': self._safe_tags_tree
+            }, fields=serializer_fields)
+            serializer.is_valid(raise_exception=True)
+            mark = serializer.save(**save_kwargs)
+
+        # Calculate mark caches
+        res = ConnectSafeMark(mark)
+        UpdateCachesOnMarkPopulate(mark, res.new_links).update()
+        return reverse('marks:safe', args=[mark.id])
+
+    def __create_unsafe_mark(self, mark_data, versions_data):
+        if self._unsafe_tags_names is None or self._unsafe_tags_tree is None:
+            self._unsafe_tags_tree, self._unsafe_tags_names = self.get_tags(UnsafeTag)
+
+        mark = None
+        for version_number in sorted(versions_data):
+            mark_version = versions_data[version_number]
+            if mark is None:
+                # Get identifier, format and is_modifiable from mark_data
+                mark_version.update(mark_data)
+                serializer_fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
+                save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
+            else:
+                serializer_fields = ('verdict', 'mark_version', 'function')
+                save_kwargs = {}
+
+            serializer = UnsafeMarkSerializer(instance=mark, data=mark_version, context={
+                'tags_names': self._unsafe_tags_names, 'tags_tree': self._unsafe_tags_tree
+            }, fields=serializer_fields)
+            serializer.is_valid(raise_exception=True)
+            mark = serializer.save(**save_kwargs)
+
+        # Calculate mark caches
+        res = ConnectUnsafeMark(mark)
+        UpdateCachesOnMarkPopulate(mark, res.new_links).update()
+        return reverse('marks:unsafe', args=[mark.id])
+
+    def __create_unknown_mark(self, mark_data, versions_data):
+        mark = None
+        for version_number in sorted(versions_data):
+            mark_version = versions_data[version_number]
+            if mark is None:
+                # Get identifier, format, component and is_modifiable from mark_data
+                mark_version.update(mark_data)
+                serializer_fields = (
+                    'identifier', 'component', 'format', 'is_modifiable', 'mark_version',
+                    'function', 'is_regexp', 'problem_pattern', 'link'
                 )
+                save_kwargs = {'source': MARK_SOURCE[2][0], 'author': self._user}
+            else:
+                serializer_fields = ('mark_version', 'function', 'is_regexp', 'problem_pattern', 'link')
+                save_kwargs = {}
 
+            serializer = UnknownMarkSerializer(instance=mark, data=mark_version, fields=serializer_fields)
+            serializer.is_valid(raise_exception=True)
+            mark = serializer.save(**save_kwargs)
+
+        # Calculate mark caches
+        res = ConnectUnknownMark(mark)
+        UpdateCachesOnMarkPopulate(mark, res.new_links).update()
+        return reverse('marks:unknown', args=[mark.id])
+
+    def upload_mark(self, archive):
         mark_data = None
         versions_data = {}
         with zipfile.ZipFile(archive, 'r') as zfp:
             for file_name in zfp.namelist():
-                if file_name == 'markdata':
+                if file_name == 'mark.json':
                     mark_data = json.loads(zfp.read(file_name).decode('utf8'))
                 elif file_name.startswith('version-'):
                     try:
-                        version_id = int(file_name.replace('version-', ''))
+                        version_id = int(os.path.splitext(file_name)[0].replace('version-', ''))
                         versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
                         raise BridgeException(_("The mark archive is corrupted"))
@@ -185,70 +366,41 @@ class UploadMark:
             raise BridgeException(_("The mark archive is corrupted: it doesn't contain necessary data"))
         if not isinstance(mark_data, dict):
             raise ValueError('Unsupported mark data type: %s' % type(mark_data))
-        self.type = mark_data.get('mark_type')
-        if self.type == 'unsafe':
-            for v_id in versions_data:
-                if 'function' not in versions_data[v_id]:
-                    raise BridgeException(_('The mark archive is corrupted'))
 
-        version_list = list(versions_data[v] for v in sorted(versions_data))
-
-        if self.type == 'safe':
-            tags_in_db = dict(SafeTag.objects.values_list('tag', 'id'))
-            for version in version_list:
-                version['tags'] = list(tags_in_db[tname] for tname in version['tags'])
-        elif self.type == 'unsafe':
-            tags_in_db = dict(UnsafeTag.objects.values_list('tag', 'id'))
-            for version in version_list:
-                version['tags'] = list(tags_in_db[tname] for tname in version['tags'])
-                version['compare_id'] = get_func_id(version['function'])
-                del version['function']
-        return self.__create_mark(mark_data, version_list)
-
-    def __create_mark(self, mark_data, versions):
-        mark_utils = {'safe': SafeUtils, 'unsafe': UnsafeUtils, 'unknown': UnknownUtils}
-        versions[0].update(mark_data)
-        res = mark_utils[self.type].NewMark(self._user, versions[0])
-        mark = res.upload_mark()
-        for version_data in versions[1:]:
-            version_data.update(mark_data)
-            try:
-                mark_utils[self.type].NewMark(self._user, version_data).change_mark(mark, False)
-            except Exception:
-                mark.delete()
-                raise
-        if self.type == 'safe':
-            SafeUtils.RecalculateTags(list(SafeUtils.ConnectMarks([mark]).changes.get(mark.id, {})))
-        elif self.type == 'unsafe':
-            UnsafeUtils.RecalculateTags(list(UnsafeUtils.ConnectMarks([mark]).changes.get(mark.id, {})))
-        elif self.type == 'unknown':
-            UnknownUtils.ConnectMark(mark)
-        return mark
-
-    def __is_not_used(self):
-        pass
+        mark_type = mark_data.pop('type', None)
+        if mark_type == 'safe':
+            return mark_type, self.__create_safe_mark(mark_data, versions_data)
+        elif mark_type == 'unsafe':
+            return mark_type, self.__create_unsafe_mark(mark_data, versions_data)
+        elif mark_type == 'unknown':
+            return mark_type, self.__create_unknown_mark(mark_data, versions_data)
+        raise ValueError('Unsupported mark type: %s' % mark_type)
 
 
 class UploadAllMarks:
     def __init__(self, user, marks_dir, delete_all_marks):
-        self.user = user
-        self.numbers = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}
-        self.delete_all = delete_all_marks
-        self.__upload_all(marks_dir)
+        self._uploader = MarksUploader(user)
+        if delete_all_marks:
+            self.__clear_old_marks()
+        self.numbers = self.__upload_all(marks_dir)
+
+    def __clear_old_marks(self):
+        remove_safe_marks()
+        remove_unsafe_marks()
+        remove_unknown_marks()
 
     def __upload_all(self, marks_dir):
-        if self.delete_all:
-            SafeUtils.delete_marks(MarkSafe.objects.all())
-            UnsafeUtils.delete_marks(MarkUnsafe.objects.all())
-            UnknownUtils.delete_marks(MarkUnknown.objects.all())
+        upload_result = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}
+
         for file_name in os.listdir(marks_dir):
             mark_path = os.path.join(marks_dir, file_name)
             if os.path.isfile(mark_path):
                 with open(mark_path, mode='rb') as fp:
                     try:
-                        mark_type = UploadMark(self.user, fp).type
-                        if mark_type in self.numbers:
-                            self.numbers[mark_type] += 1
+                        mark_type = self._uploader.upload_mark(fp)[0]
                     except Exception as e:
                         logger.exception(e)
-                        self.numbers['fail'] += 1
+                        mark_type = 'fail'
+                    upload_result.setdefault(mark_type, 0)
+                    upload_result[mark_type] += 1
+        return upload_result

@@ -145,7 +145,6 @@ class ConnectSafeMark:
         new_links = set()
         associations = []
         for report in ReportSafe.objects.filter(cache__attrs__contains=self._mark.cache_attrs).only('id'):
-            print(report)
             association_type = ASSOCIATION_TYPE[0][0]
             if prime_id and report.id == prime_id:
                 association_type = ASSOCIATION_TYPE[1][0]

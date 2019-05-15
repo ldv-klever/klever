@@ -15,25 +15,18 @@
 # limitations under the License.
 #
 
-import json
 from difflib import unified_diff
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import USER_ROLES, JOB_ROLES, MARK_SAFE, MARK_UNSAFE, MARK_STATUS
-from bridge.utils import BridgeException
-
-import marks.SafeUtils as SafeUtils
-import marks.UnsafeUtils as UnsafeUtils
-import marks.UnknownUtils as UnknownUtils
 
 from users.models import User
 from jobs.models import Job
 from reports.models import ReportUnsafe, ReportSafe, ReportUnknown
-from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory,\
-    SafeTag, UnsafeTag, ConvertedTrace, MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, ConvertedTrace
+
 from marks.UnsafeUtils import DEFAULT_COMPARE, COMPARE_FUNCTIONS, CONVERT_FUNCTIONS
 from marks.tags import TagsTree, MarkTagsTree
 
@@ -145,6 +138,11 @@ class MarkAccess:
         return self._job_expert
 
     @cached_property
+    def can_upload(self):
+        # Only managers and experts can upload marks
+        return self._is_manager or self._is_expert
+
+    @cached_property
     def can_delete(self):
         if not self._user_valid:
             return False
@@ -180,57 +178,6 @@ class MarkAccess:
             return True
         # Otherwise only author of mark version can remove it
         return mark_version.author == self.user
-
-
-class TagsInfo:
-    def __init__(self, mark_type, mark=None):
-        self.mark = mark
-        self.type = mark_type
-        self.tags_old = []
-        self.tags_available = []
-        self.__get_tags()
-
-    def __get_tags(self):
-        if self.type not in ['unsafe', 'safe']:
-            return
-        if isinstance(self.mark, (MarkUnsafe, MarkSafe)):
-            last_v = self.mark.versions.get(version=self.mark.version)
-            self.tags_old = list(t['tag__tag'] for t in last_v.tags.order_by('tag__tag').values('tag__tag'))
-        elif isinstance(self.mark, (MarkUnsafeHistory, MarkSafeHistory)):
-            self.tags_old = list(t['tag__tag'] for t in self.mark.tags.order_by('tag__tag').values('tag__tag'))
-        if self.type == 'unsafe':
-            table = UnsafeTag
-        else:
-            table = SafeTag
-        self.tags_available = list(t['tag'] for t in table.objects.values('tag') if t['tag'] not in self.tags_old)
-
-
-class NewMark:
-    def __init__(self, user, inst, data):
-        self._user = user
-        self._data = data
-        self._inst = inst
-        self._handler = self.__get_handler()
-        self.changes = {}
-        self.mark = None
-
-    def __get_handler(self):
-        if isinstance(self._inst, (ReportSafe, MarkSafe)):
-            return SafeUtils.NewMark(self._user, self._data)
-        elif isinstance(self._inst, (ReportUnsafe, MarkUnsafe)):
-            return UnsafeUtils.NewMark(self._user, self._data)
-        elif isinstance(self._inst, (ReportUnknown, MarkUnknown)):
-            return UnknownUtils.NewMark(self._user, self._data)
-        else:
-            raise ValueError('Unsupported type: %s' % type(self._inst))
-
-    def create_mark(self):
-        self.mark = self._handler.create_mark(self._inst)
-        self.changes = self._handler.changes
-
-    def change_mark(self):
-        self.mark = self._handler.change_mark(self._inst)
-        self.changes = self._handler.changes
 
 
 class CompareMarkVersions:
@@ -328,62 +275,6 @@ class CompareMarkVersions:
             return None
         return [{'pattern': self.v1.problem_pattern, 'link': self.v1.link},
                 {'pattern': self.v2.problem_pattern, 'link': self.v2.link}]
-
-
-def delete_marks(user, marks_type, mark_ids, report_id=None):
-    if marks_type == 'safe':
-        marks = MarkSafe.objects.filter(id__in=mark_ids)
-    elif marks_type == 'unsafe':
-        marks = MarkUnsafe.objects.filter(id__in=mark_ids)
-    elif marks_type == 'unknown':
-        marks = MarkUnknown.objects.filter(id__in=mark_ids)
-    else:
-        raise ValueError('Unsupported marks type: %s' % marks_type)
-    if not all(MarkAccess(user, mark=mark).can_delete for mark in marks):
-        if len(marks) > 1:
-            raise BridgeException(_("You can't delete one of the selected marks"))
-        elif len(marks) == 1:
-            raise BridgeException(_("You don't have an access to delete this mark"))
-        else:
-            raise BridgeException(_('Nothing to delete'))
-    if marks_type == 'safe':
-        SafeUtils.delete_marks(marks)
-        reports_model = ReportSafe
-    elif marks_type == 'unsafe':
-        UnsafeUtils.delete_marks(marks)
-        reports_model = ReportUnsafe
-    else:
-        UnknownUtils.delete_marks(marks)
-        reports_model = ReportUnknown
-    if report_id:
-        try:
-            report = reports_model.objects.get(id=report_id)
-        except ObjectDoesNotExist:
-            return None
-        return report.id if not isinstance(report, ReportUnsafe) else report.trace_id
-
-
-class UpdateAssociationCache:
-    def __init__(self, association, recalc):
-        self._association = association
-        self._recalc = recalc
-        self.__update()
-
-    def __update(self):
-        if isinstance(self._association, MarkSafeReport):
-            self.__update_cache(SafeUtils)
-        elif isinstance(self._association, MarkUnsafeReport):
-            self.__update_cache(UnsafeUtils)
-        elif isinstance(self._association, MarkUnknownReport) and self._recalc:
-            UnknownUtils.update_unknowns_cache([self._association.report])
-
-    def __update_cache(self, leaf_lib):
-        if self._recalc:
-            changes = leaf_lib.UpdateVerdicts({self._association.mark_id: {
-                self._association.report: {'kind': '=', 'verdict1': self._association.report.verdict}
-            }}).changes.get(self._association.mark_id, {})
-            leaf_lib.RecalculateTags(list(changes))
-        leaf_lib.update_confirmed_cache([self._association.report])
 
 
 class MarkVersionFormData:

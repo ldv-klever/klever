@@ -39,6 +39,8 @@ from django.urls import reverse
 from django.utils.timezone import now, activate as activate_timezone
 from django.utils.translation import ugettext_lazy as _, activate
 
+from rest_framework.pagination import PageNumberPagination
+
 from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
 
 BLOCKER = {}
@@ -104,7 +106,6 @@ def file_get_or_create(fp, filename, model, check_size=False, **kwargs):
         try:
             json.loads(file_content)
         except Exception as e:
-            print(file_content)
             logger.exception(e)
             raise BridgeException(_('The file is wrong json'))
 
@@ -403,3 +404,8 @@ class RMQConnect:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._connection.close()
+
+
+class BridgeAPIPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'

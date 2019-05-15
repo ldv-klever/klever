@@ -1,20 +1,35 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import re
 import json
 
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import fields, serializers, exceptions
-from rest_framework.serializers import PrimaryKeyRelatedField
 
 from bridge.vars import MPTT_FIELDS
 from bridge.utils import logger
+from bridge.serializers import DynamicFieldsModelSerializer
 
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import (
-    MAX_TAG_LEN, SafeTag, UnsafeTag,
-    MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag, MarkSafeReport, SafeTagAccess,
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag, MarkUnsafeReport, ConvertedTrace, UnsafeTagAccess,
-    MarkUnknown, MarkUnknownHistory, MarkUnknownAttr, MarkUnknownReport
+    MAX_TAG_LEN, SafeTag, MarkSafe, MarkSafeHistory, MarkSafeAttr, MarkSafeTag,
+    UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr, MarkUnsafeTag,
+    ConvertedTrace, MarkUnknown, MarkUnknownHistory, MarkUnknownAttr
 )
 from marks.UnsafeUtils import save_converted_trace, CONVERT_FUNCTIONS, COMPARE_FUNCTIONS
 
@@ -166,9 +181,9 @@ class UnknownMarkAttrSerializer(serializers.ModelSerializer):
 
 
 class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
-    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True)
+    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
     autoconfirm = fields.BooleanField(default=False)
-    attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True)
+    attrs = fields.ListField(child=SafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate_tags(self, tags):
         return self.get_tags_ids(tags, SafeTag.objects.all())
@@ -184,21 +199,26 @@ class SafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
     def update(self, instance, validated_data):
         raise RuntimeError('Update of mark version object is not allowed')
 
+    def to_representation(self, instance):
+        value = super().to_representation(instance)
+        if isinstance(instance, MarkSafeHistory):
+            value['attrs'] = SafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
+            value['tags'] = list(instance.tags.values_list('tag__name', flat=True))
+        return value
+
     class Meta:
         model = MarkSafeHistory
         fields = ('status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'autoconfirm', 'attrs')
 
 
-class SafeMarkSerializer(serializers.ModelSerializer):
+class SafeMarkSerializer(DynamicFieldsModelSerializer):
     mark_version = SafeMarkVersionSerializer(write_only=True)
 
     def create(self, validated_data):
         # Save kwargs:
-        # identifier - preset and upload
+        # identifier - preset
         # job - GUI creation
-        # format - upload
-        # version - upload
-        # author - upload (null for preset)
+        # author - upload and preset
 
         version_data = validated_data.pop('mark_version')
 
@@ -233,34 +253,36 @@ class SafeMarkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MarkSafe
-        fields = ('is_modifiable', 'verdict', 'mark_version')
+        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version')
 
 
 class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
-    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True)
+    tags = fields.ListField(child=fields.CharField(max_length=MAX_TAG_LEN), allow_empty=True, write_only=True)
     autoconfirm = fields.BooleanField(default=False)
-    attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True)
+    attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
     error_trace = fields.CharField(write_only=True, required=False)
 
     def validate_tags(self, tags):
         return self.get_tags_ids(tags, UnsafeTag.objects.all())
 
     def __validate_error_trace(self, err_trace_str, compare_func):
-        try:
-            convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
-            assert convert_func in CONVERT_FUNCTIONS
-            forests = json.loads(err_trace_str)
-            # TODO: is it enough? Or we need deeper check of forests format?
-            assert isinstance(forests, list)
-            return save_converted_trace(forests, convert_func)
-        except Exception as e:
-            logger.exception(e)
-            raise exceptions.ValidationError(detail={'error_trace': _('Wrong error trace json provided')})
+        convert_func = COMPARE_FUNCTIONS[compare_func]['convert']
+        assert convert_func in CONVERT_FUNCTIONS
+        forests = json.loads(err_trace_str)
+        # TODO: is it enough? Or we need deeper check of forests format?
+        assert isinstance(forests, list)
+        return save_converted_trace(forests, convert_func)
 
     def validate(self, attrs):
         res = super().validate(attrs)
         if 'error_trace' in res:
-            res['error_trace'] = self.__validate_error_trace(res.pop('error_trace'), res['function'])
+            try:
+                res['error_trace'] = self.__validate_error_trace(res.pop('error_trace'), res['function'])
+            except Exception as e:
+                logger.exception(e)
+                raise exceptions.ValidationError(detail={
+                    'error_trace': _('Wrong error trace json provided')
+                })
         return res
 
     def get_value(self, dictionary):
@@ -281,33 +303,33 @@ class UnsafeMarkVersionSerializer(WithTagsMixin, serializers.ModelSerializer):
         if isinstance(instance, MarkUnsafeHistory):
             conv = ConvertedTrace.objects.get(id=instance.error_trace_id)
             with conv.file.file as fp:
-                res['error_trace'] = fp.read().decode('utf-8')
+                res['error_trace'] = json.loads(fp.read().decode('utf-8'))
+            res['attrs'] = UnsafeMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
+            res['tags'] = list(instance.tags.values_list('tag__name', flat=True))
         return res
 
     class Meta:
         model = MarkUnsafeHistory
         fields = (
-            'status', 'change_date', 'comment', 'description', 'verdict', 'tags', 'autoconfirm', 'attrs',
-            'function', 'error_trace'
+            'status', 'change_date', 'comment', 'description', 'verdict', 'tags',
+            'autoconfirm', 'attrs', 'function', 'error_trace'
         )
 
 
-class UnsafeMarkSerializer(serializers.ModelSerializer):
+class UnsafeMarkSerializer(DynamicFieldsModelSerializer):
     mark_version = UnsafeMarkVersionSerializer(write_only=True)
 
     def create(self, validated_data):
         # Save kwargs:
-        # identifier - preset and upload
+        # identifier - preset
         # job - GUI creation
-        # format - upload
-        # version - upload
-        # author - upload (null for preset)
-        # error_trace - always (ConvertedTrace instance)
+        # author - upload and preset
+        # error_trace - GUI creation (ConvertedTrace instance)
 
         version_data = validated_data.pop('mark_version')
 
         if 'error_trace' in validated_data:
-            # ConvertedTrace instance from save kwargs
+            # ConvertedTrace instance from save kwargs, used on GUI creation (on report base)
             version_data['error_trace'] = validated_data['error_trace']
         elif 'error_trace' in version_data:
             # ConvertedTrace object from version serializer, used in population and upload
@@ -346,12 +368,12 @@ class UnsafeMarkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MarkUnsafe
-        fields = ('is_modifiable', 'verdict', 'mark_version', 'function')
+        fields = ('identifier', 'format', 'is_modifiable', 'verdict', 'mark_version', 'function')
 
 
 class UnknownMarkVersionSerializer(serializers.ModelSerializer):
     autoconfirm = fields.BooleanField(default=False)
-    attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True)
+    attrs = fields.ListField(child=UnsafeMarkAttrSerializer(), allow_empty=True, write_only=True)
 
     def validate(self, attrs):
         res = super().validate(attrs)
@@ -377,6 +399,12 @@ class UnknownMarkVersionSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         raise RuntimeError('Update of mark version object is not allowed')
 
+    def to_representation(self, instance):
+        res = super().to_representation(instance)
+        if isinstance(instance, MarkUnknownHistory):
+            res['attrs'] = UnknownMarkAttrSerializer(instance=instance.attrs.order_by('id'), many=True).data
+        return res
+
     class Meta:
         model = MarkUnknownHistory
         fields = (
@@ -385,22 +413,20 @@ class UnknownMarkVersionSerializer(serializers.ModelSerializer):
         )
 
 
-class UnknownMarkSerializer(serializers.ModelSerializer):
+class UnknownMarkSerializer(DynamicFieldsModelSerializer):
     mark_version = UnknownMarkVersionSerializer(write_only=True)
 
     def create(self, validated_data):
         # Save kwargs:
         # identifier - preset and upload
         # job - GUI creation
-        # component - GUI creation, preset, upload
-        # format - upload
-        # version - upload
-        # author - upload (null for preset)
+        # component - GUI creation
+        # author - upload and preset
 
         version_data = validated_data.pop('mark_version')
 
-        if 'component' not in validated_data:
-            raise exceptions.ValidationError(detail={'component': 'Required'})
+        # Can be raised only on wrong serializer usage on GUI creation
+        assert 'component' in validated_data, 'Component is requred'
 
         if validated_data.get('job'):
             validated_data['format'] = validated_data['job'].format
@@ -433,7 +459,11 @@ class UnknownMarkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MarkUnknown
-        fields = ('is_modifiable', 'mark_version', 'function', 'is_regexp', 'problem_pattern', 'link')
+        fields = (
+            'id', 'identifier', 'component', 'format',
+            'is_modifiable', 'mark_version',
+            'function', 'is_regexp', 'problem_pattern', 'link'
+        )
 
 
 class MVSerializerBase(serializers.ModelSerializer):
@@ -475,16 +505,4 @@ class UMVlistSerializerRO(MVSerializerBase):
 class FMVlistSerializerRO(MVSerializerBase):
     class Meta:
         model = MarkUnknownHistory
-        fields = ('version', 'title')
-
-
-class SMSerializerRO(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
-
-    def get_author(self, instance):
-        if not instance.author:
-            return None
-
-    class Meta:
-        model = MarkSafe
         fields = ('version', 'title')

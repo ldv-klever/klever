@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from jobs.population import JobsPopulation
 from marks.population import (
@@ -47,10 +47,30 @@ class Command(BaseCommand):
             try:
                 res = JobsPopulation().populate()
             except Exception as e:
+                raise CommandError('Jobs population failed: %s' % e)
+            self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % len(res))
+
+        # Safe tags
+        if options['all'] or options['tags'] or options['tags_s']:
+            self.stdout.write('Safe tags population started')
+            try:
+                res = PopulateSafeTags()
+            except Exception as e:
                 # TODO
                 raise
-                # raise CommandError('Jobs population failed: %s' % e)
-            self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % len(res))
+                # raise CommandError('Safe tags population failed: %s' % e)
+            self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
+
+        # Unsafe tags
+        if options['all'] or options['tags'] or options['tags_u']:
+            self.stdout.write('Unsafe tags population started')
+            try:
+                res = PopulateUnsafeTags()
+            except Exception as e:
+                # TODO
+                raise
+                # raise CommandError('Unsafe tags population failed: %s' % e)
+            self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
 
         # Safe marks
         if options['all'] or options['marks'] or options['marks_s']:
@@ -84,28 +104,6 @@ class Command(BaseCommand):
                 raise
                 # raise CommandError('Unknown marks population failed: %s' % e)
             self.stdout.write("{} of {} unknown marks were populated".format(res.created, res.total))
-
-        # Safe tags
-        if options['all'] or options['tags'] or options['tags_s']:
-            self.stdout.write('Safe tags population started')
-            try:
-                res = PopulateSafeTags()
-            except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Safe tags population failed: %s' % e)
-            self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
-
-        # Unsafe tags
-        if options['all'] or options['tags'] or options['tags_u']:
-            self.stdout.write('Unsafe tags population started')
-            try:
-                res = PopulateUnsafeTags()
-            except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Unsafe tags population failed: %s' % e)
-            self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
 
         # Schedulers
         if options['all'] or options['schedulers']:

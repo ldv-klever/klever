@@ -68,7 +68,6 @@ class UploadReportView(LoggedCallMixin, APIView):
     def post(self, request, job_uuid):
         job = get_object_or_404(Job, identifier=job_uuid)
         if job.status != JOB_STATUS[2][0]:
-            print(job.get_status_display())
             raise APIException('Reports can be uploaded only for processing jobs')
         archives = dict((f.name, f) for f in request.FILES.getlist('file'))
 

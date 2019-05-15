@@ -37,8 +37,8 @@
             <div class="ui violet inverted menu top attached">
                 <a class="browse item">{% trans 'Mark' %}<i class="dropdown icon"></i></a>
                 <div class="ui inverted popup bottom left transition hidden">
-                    <a href="{% url 'marks:download_mark' 'safe' mark.pk %}" class="item">{% trans 'Download' %}</a>
-                    <a href="{% url 'marks:download_preset_mark' 'safe' mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
+                    <a href="{% url 'marks:safe-download' mark.pk %}" class="item">{% trans 'Download' %}</a>
+                    <a href="{% url 'marks:safe-download-preset' mark.pk %}" class="item">{% trans 'Download in preset format' %}</a>
                     <a href="{% url 'marks:safe-edit' mark.pk %}" class="item{% if not access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
                     <a id="remove_mark_modal_show" class="item{% if not access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
                 </div>

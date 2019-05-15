@@ -179,7 +179,7 @@ class Session:
             self.__request('/jobs/run_decision/{0}/'.format(job_id), 'POST', data={'mode': 'fast'})
 
     def download_all_marks(self, archive):
-        return self.__download_archive('/marks/download-all/', archive)
+        return self.__download_archive('/marks/api/download-all/', archive)
 
     def __is_not_used(self):
         pass
