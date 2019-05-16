@@ -30,10 +30,10 @@ import utils.bridge as bridge
 def set_status(logger, st):
     session = bridge.Session(logger, conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
                              conf["Klever Bridge"]["password"])
-    data = {
-        "statuses": json.dumps(st, ensure_ascii=False, sort_keys=True, indent=4)
-    }
-    session.json_exchange("service/set_schedulers_status/", data)
+
+    for scheduler, status in st.items():
+        session.json_exchange("service/scheduler/{0}/".format(scheduler), data={'status': status}, method='PATCH')
+
     session.sign_out()
 
 

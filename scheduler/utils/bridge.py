@@ -171,16 +171,17 @@ class Session:
 
         return ret
 
-    def json_exchange(self, endpoint, data, looping=True):
+    def json_exchange(self, endpoint, data, method='POST', looping=True):
         """
         Exchange with JSON the
 
         :param endpoint: URL endpoint.
         :param data: Data.
+        :param method: HTTP method.
         :param looping: Do the request until it finishes successfully.
         :return: JSON string response from the server.
         """
-        response = self.__request(endpoint, 'POST', looping=looping, json=data)
+        response = self.__request(endpoint, method, looping=looping, json=data)
 
         if response:
             return response.json()
