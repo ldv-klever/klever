@@ -1,24 +1,26 @@
 import json
 
 from django.http import HttpResponse
+from django.template import loader
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView
-from rest_framework.exceptions import NotFound, PermissionDenied, APIException
+from rest_framework.exceptions import PermissionDenied, APIException
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
 
 from bridge.vars import JOB_STATUS
 from bridge.utils import BridgeException
-from bridge.access import ViewJobPermission, ServicePermission
+from bridge.access import ServicePermission
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job
 from jobs.utils import JobAccess
-from reports.models import Report, ReportRoot, CompareJobsInfo, ReportComponent, OriginalSources, ReportUnsafe
-from reports.comparison import FillComparisonCache
+from reports.models import Report, ReportRoot, CompareJobsInfo, OriginalSources, ReportUnsafe
+from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.etv import GetSource
@@ -29,11 +31,12 @@ class FillComparisonView(LoggedCallMixin, APIView):
     unparallel = ['Job', 'ReportRoot', CompareJobsInfo]
     permission_classes = (IsAuthenticated,)
 
-    def post(self, *args, **kwargs):
-        r1 = get_object_or_404(ReportRoot, job_id=self.kwargs['job1_id'])
-        r2 = get_object_or_404(ReportRoot, job_id=self.kwargs['job2_id'])
-        if not JobAccess(self.request.user, job=r1.job) or not JobAccess(self.request.user, job=r2.job):
-            raise PermissionDenied()
+    def post(self, request, job1_id, job2_id):
+        r1 = get_object_or_404(ReportRoot, job_id=job1_id)
+        r2 = get_object_or_404(ReportRoot, job_id=job2_id)
+        if not JobAccess(self.request.user, job=r1.job).can_view() \
+                or not JobAccess(self.request.user, job=r2.job).can_view():
+            raise PermissionDenied(_("You don't have an access to one of the selected jobs"))
         try:
             CompareJobsInfo.objects.get(user=self.request.user, root1=r1, root2=r2)
         except CompareJobsInfo.DoesNotExist:
@@ -41,7 +44,26 @@ class FillComparisonView(LoggedCallMixin, APIView):
                 FillComparisonCache(self.request.user, r1, r2)
             except BridgeException as e:
                 raise APIException(e.message)
-        return Response({})
+        return Response({'url': reverse('reports:comparison', args=[r1.job_id, r2.job_id])})
+
+
+class ReportsComparisonDataView(LoggedCallMixin, RetrieveAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = CompareJobsInfo.objects.all()
+    lookup_url_kwarg = 'info_id'
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            res = ComparisonData(
+                instance, int(self.request.GET.get('page', 1)),
+                self.request.GET.get('hide_attrs', 0), self.request.GET.get('hide_components', 0),
+                self.request.GET.get('verdict'), self.request.GET.get('attrs')
+            )
+        except BridgeException as e:
+            raise APIException(e.message)
+        template = loader.get_template('reports/comparisonData.html')
+        return HttpResponse(template.render({'data': res}, request))
 
 
 class HasOriginalSources(LoggedCallMixin, APIView):

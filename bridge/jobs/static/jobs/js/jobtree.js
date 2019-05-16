@@ -39,18 +39,15 @@ $(document).ready(function () {
         });
     }
 
-
     function compare_reports() {
         let sel_jobs = [];
         $('.job-checkbox:checked').each(function () { sel_jobs.push($(this).data('row')) });
         if (sel_jobs.length !== 2) return err_notify($('#error__no_jobs_to_compare').text());
 
         $('#dimmer_of_page').addClass('active');
-        $.post('/jobs/api/can_compare/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function () {
-            $.post('/reports/fill_compare_cache/' + sel_jobs[0] + '/' + sel_jobs[1] + '/', {}, function () {
-                $('#dimmer_of_page').removeClass('active');
-                window.location.href = '/reports/comparison/' + sel_jobs[0] + '/' + sel_jobs[1] + '/';
-            }, 'json');
+        $.post(`/reports/api/fill-comparison/${sel_jobs[0]}/${sel_jobs[1]}/`, {}, function (resp) {
+            $('#dimmer_of_page').removeClass('active');
+            window.location.href = resp.url;
         }, 'json');
     }
 

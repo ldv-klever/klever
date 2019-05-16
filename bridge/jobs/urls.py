@@ -73,7 +73,6 @@ urlpatterns = [
     path('get_job_field/', api.GetJobFieldView.as_view()),
     path('do_job_has_children/<int:pk>/', api.DoJobHasChildrenView.as_view()),
     path('api/can_download/', api.CheckDownloadAccessView.as_view(), name='api-can-download'),
-    path('api/can_compare/<int:job1>/<int:job2>/', api.CheckCompareAccessView.as_view(), name='api-can-compare'),
 
     # Actions with reports
     path('api/upload-reports/<int:pk>/', api.UploadReportsView.as_view(), name='api-upload-reports'),

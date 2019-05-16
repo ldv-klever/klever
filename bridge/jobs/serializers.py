@@ -1,5 +1,6 @@
 import json
 import os
+import pika
 
 from io import BytesIO
 
@@ -377,13 +378,12 @@ class JobStatusSerializer(serializers.ModelSerializer):
         except ObjectDoesNotExist:
             pass
 
-        if instance.status != JOB_STATUS[0][0]:
-            # In real life the job status can't be changed to "not solved"
+        if instance.status in {JOB_STATUS[1][0], JOB_STATUS[5][0], JOB_STATUS[6][0]}:
             with RMQConnect() as channel:
                 channel.basic_publish(
-                    exchange=settings.RABBIT_MQ['jobs_exchange'],
-                    routing_key=instance.status,
-                    body=str(instance.identifier)
+                    exchange='', routing_key=settings.RABBIT_MQ['jobs_queue'],
+                    properties=pika.BasicProperties(delivery_mode=2),
+                    body="{},{}".format(instance.identifier, instance.status)
                 )
         return instance
 

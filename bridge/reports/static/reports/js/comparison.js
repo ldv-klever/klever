@@ -97,7 +97,7 @@ function get_comparison(page) {
         hide_components: $('#show_all_components').is(':checked') ? 0 : 1,
         hide_attrs: $('#show_all_attrs').is(':checked') ? 0 : 1
     };
-    $.get('/reports/get_compare_jobs_data/' + $('#compare_info').val() + '/', data, function (data) {
+    $.get($('#compare_data_url').val(), data, function (data) {
         $('#compare_data').html(data);
         $('.comparison-block').hover(block_hover_on, block_hover_off);
         draw_connections();
@@ -113,7 +113,7 @@ function setup_buttons() {
         get_comparison($('#total_pages').text());
     });
     $('#backward_btn').click(function () {
-        var curr_page = parseInt($('#current_page').val());
+        let curr_page = parseInt($('#current_page').text());
         if (curr_page > 1) curr_page--;
         get_comparison(curr_page);
     });
@@ -126,7 +126,8 @@ function setup_buttons() {
 }
 
 function reload_comparison() {
-    get_comparison($('#current_page').text());
+    let curr_page = $('#current_page').text();
+    if (curr_page) get_comparison(curr_page);
 }
 
 $(document).ready(function () {
@@ -140,9 +141,9 @@ $(document).ready(function () {
     $('#show_all_components').parent().checkbox({onChange: reload_comparison});
     $('#show_all_attrs').parent().checkbox({onChange: reload_comparison});
     $('#search_by_attrs').click(function () {
-        var attrs = [];
+        let attrs = [];
         $('select[id^="attr_value__"]').each(function () { attrs.push($(this).val()) });
-        if (attrs.length) return;
+        if (!attrs.length) return;
         $('#search_verdict').val('');
         $('#search_attrs').val(JSON.stringify(attrs));
         get_comparison(1);

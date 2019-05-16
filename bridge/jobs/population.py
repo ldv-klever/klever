@@ -6,7 +6,7 @@ from django.conf import settings
 from django.utils.functional import cached_property
 
 from bridge.utils import logger, BridgeException, file_get_or_create, RMQConnect
-from bridge.vars import JOB_ROLES, JOB_STATUS
+from bridge.vars import JOB_ROLES
 
 from jobs.models import JobFile, Job
 from jobs.serializers import CreateJobSerializer
@@ -133,24 +133,6 @@ class JobsPopulation:
 
 
 class JobsRMQPopulation:
-    JOB_RMQ_QUEUES = {
-        JOB_STATUS[1][0]: 'jobs_pending',
-        JOB_STATUS[2][0]: 'jobs_solving',
-        JOB_STATUS[3][0]: 'jobs_solved',
-        JOB_STATUS[4][0]: 'jobs_failed',
-        JOB_STATUS[5][0]: 'jobs_corrupted',
-        JOB_STATUS[6][0]: 'jobs_cancelling',
-        JOB_STATUS[7][0]: 'jobs_cancelled',
-        JOB_STATUS[8][0]: 'jobs_terminated'
-    }
-
     def __init__(self):
-        self._exchange = settings.RABBIT_MQ['jobs_exchange']
-        self.__populate()
-
-    def __populate(self):
         with RMQConnect() as channel:
-            channel.exchange_declare(exchange=self._exchange, exchange_type='direct')
-            for job_status, queue_name in self.JOB_RMQ_QUEUES.items():
-                channel.queue_declare(queue=queue_name, durable=True)
-                channel.queue_bind(exchange=self._exchange, queue=queue_name, routing_key=job_status)
+            channel.queue_declare(queue=settings.RABBIT_MQ['jobs_queue'], durable=True)

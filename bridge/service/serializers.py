@@ -1,3 +1,4 @@
+import pika
 import zipfile
 
 from django.conf import settings
@@ -458,4 +459,8 @@ class NodeConfSerializer(serializers.ModelSerializer):
 
 def on_task_change(task_id, task_status):
     with RMQConnect() as channel:
-        channel.basic_publish(exchange=settings.RABBIT_MQ['tasks_exchange'], routing_key=task_status, body=str(task_id))
+        channel.basic_publish(
+            exchange='', routing_key=settings.RABBIT_MQ['tasks_queue'],
+            properties=pika.BasicProperties(delivery_mode=2),
+            body="{},{}".format(task_id, task_status)
+        )

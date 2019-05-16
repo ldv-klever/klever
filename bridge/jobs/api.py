@@ -243,18 +243,6 @@ class CheckDownloadAccessView(LoggedCallMixin, APIView):
         return Response({})
 
 
-class CheckCompareAccessView(LoggedCallMixin, APIView):
-    def post(self, request):
-        try:
-            j1 = Job.objects.get(id=self.kwargs['job1'])
-            j2 = Job.objects.get(id=self.kwargs['job2'])
-        except Job.DoesNotExist:
-            raise exceptions.APIException(_('One of the selected jobs was not found'))
-        if not JobAccess(self.request.user, job=j1).can_view() or not JobAccess(self.request.user, job=j2).can_view():
-            raise exceptions.APIException(_("You don't have an access to one of the selected jobs"))
-        return Response({})
-
-
 class RemoveJobVersions(LoggedCallMixin, APIView):
     unparallel = ['Job', JobHistory]
 

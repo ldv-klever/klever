@@ -39,8 +39,8 @@
                 {% for tbl_row in data.table_rows %}
                     <tr>
                     {% for tbl_cell in tbl_row %}
-                        {% if tbl_row.class %}
-                            <th class="{{ tbl_row.class }}">{{ tbl_row.value }}</th>
+                        {% if tbl_cell.class %}
+                            <th class="{{ tbl_cell.class }}">{{ tbl_cell.value }}</th>
                         {% else %}
                             <td>
                             {% if tbl_cell.value == '-' %}
@@ -87,7 +87,7 @@
             </div>
         </div>
     </div>
-    <input id="compare_info" type="hidden" value="{{ data.info.pk }}">
+    <input id="compare_data_url" type="hidden" value="{% url 'reports:api-comparison-data' data.info.id %}">
     <input id="search_verdict" type="hidden">
     <input id="search_attrs" type="hidden">
     <div id="compare_data"></div>

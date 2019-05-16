@@ -99,7 +99,7 @@ class FillComparisonCache:
         data2 = GetComparisonObjects(self._root2, self._names).get_leaf_values()
 
         # Calculate total verdicts for each batch of attributes values
-        verdicts_data = OrderedDict()
+        verdicts_data = {}
         for values_tuple in data1:
             verdicts_data[values_tuple] = {
                 'verdict1': self.__calc_verdict(data1[values_tuple]),
@@ -117,7 +117,7 @@ class FillComparisonCache:
             info=self._info, values=list(values_tuple),
             verdict1=verdicts_data[values_tuple]['verdict1'],
             verdict2=verdicts_data[values_tuple]['verdict2']
-        ) for values_tuple in verdicts_data))
+        ) for values_tuple in sorted(verdicts_data)))
         for new_obj in res:
             verdicts_data[tuple(new_obj.values)]['pk'] = new_obj.pk
 
@@ -168,7 +168,7 @@ class ComparisonTableData:
     def __get_table_data(self):
         numbers = {}
         for v1, v2, num in ComparisonObject.objects.filter(info=self.info)\
-                .values('verdict1', 'verdict2').annotate(number=Count('links', distinct=True))\
+                .values('verdict1', 'verdict2').annotate(number=Count('id'))\
                 .values_list('verdict1', 'verdict2', 'number'):
             numbers[(v1, v2)] = num
 
@@ -251,7 +251,7 @@ class ComparisonData:
 
         # Get needed page and pages info
         self.pages['total'] = queryset.count()
-        if self.pages['total'] < self.pages['num']:
+        if self.pages['total'] < self.pages['page']:
             raise BridgeException(_('Required reports were not found'))
         self.pages['backward'] = (self.pages['page'] > 1)
         self.pages['forward'] = (self.pages['page'] < self.pages['total'])
@@ -317,14 +317,14 @@ class CompareBlock:
         self.children.append(child)
         child.parent = self
 
-    def __get_attrs(self, report):
+    def get_attrs(self, report):
         attrs_list = list(ReportAttr.objects.filter(report=report).order_by('name').values('name', 'value', 'compare'))
         for attr in attrs_list:
             attr['type'] = 'compared' if attr['compare'] else 'normal'
         return attrs_list
 
-    def __get_tags(self, mark):
-        return list(mark.versions.order_by('-version').first().tags.values_list('tag__tag', flat=True))
+    def get_tags(self, mark):
+        return list(mark.versions.order_by('-version').first().tags.values_list('tag__name', flat=True))
 
     @property
     def ascendants(self):
@@ -346,7 +346,7 @@ class UnknownMarkBlock(CompareBlock):
         super().__init__("fm_{}".format(mark_report.mark_id))
         self.type = 'mark'
         self.title = _('Unknowns mark')
-        self.href = reverse('marks:mark', args=['unknown', mark_report.mark_id])
+        self.href = reverse('marks:unknown', args=[mark_report.mark_id])
         self.subtitle = {'text': mark_report.problem}
 
 
@@ -355,12 +355,12 @@ class SafeMarkBlock(CompareBlock):
         super().__init__("sm_{}".format(mark_report.mark_id))
         self.type = 'mark'
         self.title = _('Safes mark')
-        self.href = reverse('marks:mark', args=['safe', mark_report.mark_id])
+        self.href = reverse('marks:safe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
             'color': SAFE_COLOR[mark_report.mark.verdict]
         }
-        self.tags = self.__get_tags(mark_report.mark)
+        self.tags = self.get_tags(mark_report.mark)
 
 
 class UnsafeMarkBlock(CompareBlock):
@@ -368,12 +368,12 @@ class UnsafeMarkBlock(CompareBlock):
         super().__init__("um_{}".format(mark_report.mark_id))
         self.type = 'mark'
         self.title = _('Unsafes mark')
-        self.href = reverse('marks:mark', args=['unsafe', mark_report.mark_id])
+        self.href = reverse('marks:unsafe', args=[mark_report.mark_id])
         self.subtitle = {
             'text': mark_report.mark.get_verdict_display(),
             'color': UNSAFE_COLOR[mark_report.mark.verdict]
         }
-        self.tags = self.__get_tags(mark_report.mark)
+        self.tags = self.get_tags(mark_report.mark)
 
 
 class UnknownBlock(CompareBlock):
@@ -383,7 +383,7 @@ class UnknownBlock(CompareBlock):
         self.title = _('Unknown')
         self.href = reverse('reports:unknown', args=[report.pk])
         self.subtitle = {'text': report.component}
-        self.attrs = self.__get_attrs(report)
+        self.attrs = self.get_attrs(report)
 
 
 class UnsafeBlock(CompareBlock):
@@ -393,10 +393,10 @@ class UnsafeBlock(CompareBlock):
         self.title = _('Unsafe')
         self.href = reverse('reports:unsafe', args=[report.pk])
         self.subtitle = {
-            'text': report.get_verdict_display(),
-            'color': UNSAFE_COLOR[report.verdict]
+            'text': report.cache.get_verdict_display(),
+            'color': UNSAFE_COLOR[report.cache.verdict]
         }
-        self.attrs = self.__get_attrs(report)
+        self.attrs = self.get_attrs(report)
 
 
 class SafeBlock(CompareBlock):
@@ -406,10 +406,10 @@ class SafeBlock(CompareBlock):
         self.title = _('Safe')
         self.href = reverse('reports:safe', args=[report.pk])
         self.subtitle = {
-            'text': report.get_verdict_display(),
-            'color': SAFE_COLOR[report.verdict]
+            'text': report.cache.get_verdict_display(),
+            'color': SAFE_COLOR[report.cache.verdict]
         }
-        self.attrs = self.__get_attrs(report)
+        self.attrs = self.get_attrs(report)
 
 
 class ComponentBlock(CompareBlock):
@@ -418,7 +418,7 @@ class ComponentBlock(CompareBlock):
         self.type = 'component'
         self.title = report.component
         self.href = reverse('reports:component', args=[report.pk])
-        self.attrs = self.__get_attrs(report)
+        self.attrs = self.get_attrs(report)
 
 
 class ComparisonTree:

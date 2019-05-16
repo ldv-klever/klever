@@ -19,7 +19,6 @@ from wsgiref.util import FileWrapper
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
@@ -33,18 +32,17 @@ from bridge.vars import VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROB
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewReportData
 from jobs.utils import JobAccess
-from jobs.models import Job
 from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
-from reports.models import ReportRoot, Report, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
-    ReportAttr, CompareJobsInfo, CoverageArchive
+from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
+    ReportAttr, CoverageArchive
 
 from reports.utils import (
-    report_resources, get_parents, report_attributes_with_parents, remove_verification_files,
+    report_resources, get_parents, report_attributes_with_parents,
     ReportStatus, ReportData, ReportAttrsTable, ReportChildrenTable, SafesTable, UnsafesTable, UnknownsTable,
     ComponentLogGenerator, AttrDataGenerator, VerifierFilesGenerator, ErrorTraceFileGenerator
 )
-from reports.etv import GetSource, GetETV
-from reports.comparison import ComparisonTableData, ComparisonData
+from reports.etv import GetETV
+from reports.comparison import ComparisonTableData
 from reports.coverage import GetCoverage, GetCoverageSrcHTML
 
 
@@ -424,8 +422,6 @@ class DownloadErrorTraceView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMi
         return ErrorTraceFileGenerator(self.get_object())
 
 
-# ========
-# TODO
 class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
     template_name = 'reports/comparison.html'
 
@@ -433,9 +429,10 @@ class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         try:
             root1 = ReportRoot.objects.get(job_id=self.kwargs['job1_id'])
             root2 = ReportRoot.objects.get(job_id=self.kwargs['job2_id'])
-        except ObjectDoesNotExist:
+        except ReportRoot.DoesNotExist:
             raise BridgeException(code=406)
-        if not JobAccess(self.request.user, job=root1.job) or not JobAccess(self.request.user, job=root2.job):
+        if not JobAccess(self.request.user, job=root1.job).can_view()\
+                or not JobAccess(self.request.user, job=root2.job).can_view():
             raise BridgeException(code=401)
         return {
             'job1': root1.job, 'job2': root2.job,
@@ -443,21 +440,8 @@ class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         }
 
 
-class ReportsComparisonDataView(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
-    template_name = 'reports/comparisonData.html'
-    model = CompareJobsInfo
-    pk_url_kwarg = 'info_id'
-
-    def get_context_data(self, **kwargs):
-        return {
-            'data': ComparisonData(
-                self.object, int(self.request.GET.get('page', 1)),
-                self.request.GET.get('hide_attrs', 0), self.request.GET.get('hide_components', 0),
-                self.request.GET.get('verdict'), self.request.GET.get('attrs')
-            )
-        }
-
-
+# ========
+# TODO
 @method_decorator(login_required, name='dispatch')
 class CoverageView(LoggedCallMixin, DetailView):
     template_name = 'reports/coverage/coverage.html'

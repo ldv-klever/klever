@@ -990,34 +990,18 @@ class DecideJobs:
         self.__start()
 
     def __start(self):
-        conn_pend_producer, conn_pend_consumer = Pipe()
-        conn_solv_producer, conn_solv_consumer = Pipe()
-        conn_canc_producer, conn_canc_consumer = Pipe()
+        conn_producer, conn_consumer = Pipe()
+        rmq_reader = Process(target=self.__read_queue, args=(conn_producer,))
+        msg_processor = Process(target=self.__process_message, args=(conn_consumer,))
 
-        processes = [
-            Process(target=self.__read_queue, args=('jobs_pending', conn_pend_producer)),
-            Process(target=self.__download_job, args=(conn_pend_consumer,)),
-            Process(target=self.__read_queue, args=('jobs_solving', conn_solv_producer)),
-            Process(target=self.__decide, args=(conn_solv_consumer,)),
-            Process(target=self.__read_queue, args=('jobs_cancelling', conn_canc_producer)),
-            Process(target=self.__cancel_job, args=(conn_canc_consumer,)),
-
-            # Just empty these queues
-            Process(target=self.__read_queue, args=('jobs_cancelled',)),
-            Process(target=self.__read_queue, args=('jobs_corrupted',)),
-            Process(target=self.__read_queue, args=('jobs_failed',)),
-            Process(target=self.__read_queue, args=('jobs_terminated',)),
-            Process(target=self.__read_queue, args=('jobs_solved',)),
-        ]
-
-        for p in processes:
-            p.start()
+        rmq_reader.start()
+        msg_processor.start()
         try:
-            for p in processes:
-                p.join()
+            rmq_reader.join()
+            msg_processor.join()
         except KeyboardInterrupt:
-            for p in processes:
-                p.terminate()
+            rmq_reader.terminate()
+            msg_processor.terminate()
 
     def __login(self):
         session = requests.Session()
@@ -1044,45 +1028,48 @@ class DecideJobs:
             return None
         return resp
 
-    def __read_queue(self, queue_name, conn=None):
+    def __read_queue(self, conn):
         def callback(ch, method, properties, body):
             ch.basic_ack(delivery_tag=method.delivery_tag)
             res = body.decode('utf-8')
-            logger.info('Read {} from {}'.format(res, queue_name))
-            if conn:
-                conn.send(res)
+            logger.info('Read: {}'.format(res))
+            conn.send(res)
 
         with RMQConnect() as channel:
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(queue_name, callback)
+            channel.basic_consume(settings.RABBIT_MQ['jobs_queue'], callback)
             channel.start_consuming()
 
-    def __cancel_job(self, conn):
-        while True:
-            job_id = conn.recv()
-            logger.info('Cancel the job: {}'.format(job_id))
-            try:
-                self.__request('/service/job-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
-            except Exception as e:
-                logger.exception(e)
+    def __decide(self, job_uuid):
+        try:
+            logger.info('Downloading the job {}'.format(job_uuid))
+            self.__request('/jobs/api/download-files/{}/'.format(job_uuid), method='GET')
 
-    def __download_job(self, conn):
-        while True:
-            job_id = conn.recv()
-            logger.info('Downloading the job {}'.format(job_id))
-            self.__request('/jobs/api/download-files/{}/'.format(job_id), method='GET')
+            DecideJob(
+                job_uuid, self._username, self._password, self._data,
+                with_full_coverage=self._full_coverage,
+                with_progress=self._progress
+            )
+        except Exception as e:
+            logger.exception(e)
 
-    def __decide(self, conn):
+    def __cancel_job(self, job_id):
+        logger.info('Cancelling the job: {}'.format(job_id))
+        try:
+            self.__request('/service/job-status/{}/'.format(job_id), method='PATCH', data={'status': '7'})
+        except Exception as e:
+            logger.exception(e)
+
+    def __process_message(self, conn):
         while True:
-            job_id = conn.recv()
-            try:
-                DecideJob(
-                    job_id, self._username, self._password, self._data,
-                    with_full_coverage=self._full_coverage,
-                    with_progress=self._progress
-                )
-            except Exception as e:
-                logger.exception(e)
+            msg = conn.recv()
+            job_uuid, job_status = msg.split(',')
+            if job_status == '1':
+                self.__decide(job_uuid)
+            elif job_status == '5':
+                logger.info('The job "{}" is corrupted'.format(job_uuid))
+            elif job_status == '6':
+                self.__cancel_job(job_uuid)
 
 
 class DecideJob:
