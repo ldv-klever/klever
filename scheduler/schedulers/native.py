@@ -191,7 +191,7 @@ class Native(runners.Speculative):
             verification_tools = data['client']['verification tools']
 
             # Submit tools
-            self.server.submit_tools(self.scheduler_type(), verification_tools)
+            self.server.submit_tools(verification_tools)
 
     def _prepare_task(self, identifier, description):
         """
