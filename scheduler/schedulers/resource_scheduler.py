@@ -175,24 +175,23 @@ class ResourceManager:
 
             # Add configuration
             conf = {
-                "CPU model": self.__system_status[primer]["CPU model"],
-                "CPU number": self.__system_status[primer]["available CPU number"],
-                "RAM memory": self.__system_status[primer]["available RAM memory"],
-                "disk memory": self.__system_status[primer]["available disk memory"],
-                "nodes": {
-                    n: {
-                        "status": self.__system_status[n]["status"],
-                        "workload": {
-                            "reserved CPU number": self.__system_status[n]["reserved CPU number"],
-                            "reserved RAM memory": self.__system_status[n]["reserved RAM memory"],
-                            "reserved disk memory": self.__system_status[n]["reserved disk memory"],
-                            "running verification jobs": len(self.__system_status[n]["running verification jobs"]),
-                            "running verification tasks": len(self.__system_status[n]["running verification tasks"]),
-                            "available for jobs": self.__system_status[n]["available for jobs"],
-                            "available for tasks": self.__system_status[n]["available for tasks"]
-                        }
-                    } for n in nodes
-                }
+                "cpu_model": self.__system_status[primer]["CPU model"],
+                "cpu_number": self.__system_status[primer]["available CPU number"],
+                "ram_memory": int(self.__system_status[primer]["available RAM memory"] / 10**9),
+                "disk_memory": int(self.__system_status[primer]["available disk memory"] / 10**9),
+                "nodes": [{
+                    "hostname": n,
+                    "status": self.__system_status[n]["status"],
+                    "workload": {
+                        "reserved_cpu_number": self.__system_status[n]["reserved CPU number"],
+                        "reserved_ram_memory": int(self.__system_status[n]["reserved RAM memory"] / 10**9),
+                        "reserved_disk_memory": int(self.__system_status[n]["reserved disk memory"] / 10**9),
+                        "running_verification_jobs": len(self.__system_status[n]["running verification jobs"]),
+                        "running_verification_tasks": len(self.__system_status[n]["running verification tasks"]),
+                        "available_for_jobs": self.__system_status[n]["available for jobs"],
+                        "available_for_tasks": self.__system_status[n]["available for tasks"]
+                    }
+                } for n in nodes]
             }
             configurations.append(conf)
 
