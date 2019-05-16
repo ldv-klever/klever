@@ -80,8 +80,37 @@ class Server(server.AbstractServer):
         :param nodes: String with JSON nodes description.
         :param looping: Flag that indicates that this request should be attempted until it is successful.
         """
-        data = {"nodes data": json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)}
-        self.session.json_exchange("service/update_nodes/", data, looping=looping)
+        # Convert node descriptions to format required by Bridge. In principle, this can be done automatically
+        # by magical transformation rules but that can fail one day if formats will change again.
+        submitted_nodes = []
+
+        for node in nodes:
+            raw_nodes = []
+
+            for raw_node_name, raw_node_desc in node['nodes'].items():
+                raw_nodes.append({
+                    'hostname': raw_node_name,
+                    'status': raw_node_desc['status'],
+                    'workload': {
+                        'reserved_cpu_number': raw_node_desc['workload']['reserved CPU number'],
+                        'reserved_ram_memory': int(raw_node_desc['workload']['reserved RAM memory'] / 10**9),
+                        'reserved_disk_memory': int(raw_node_desc['workload']['reserved disk memory'] / 10**9),
+                        'running_verification_jobs': raw_node_desc['workload']['running verification jobs'],
+                        'running_verification_tasks': raw_node_desc['workload']['running verification tasks'],
+                        'available_for_jobs': raw_node_desc['workload']['available for jobs'],
+                        'available_for_tasks': raw_node_desc['workload']['available for tasks']
+                    }
+                })
+
+            submitted_nodes.append({
+                'cpu_model': node['CPU model'],
+                'cpu_number': node['CPU number'],
+                'ram_memory': int(node['RAM memory'] / 10**9),
+                'disk_memory': int(node['disk memory'] / 10**9),
+                'nodes': raw_nodes
+            })
+
+        self.session.json_exchange("service/update-nodes/", submitted_nodes, looping=looping)
 
     def submit_tools(self, tools):
         """
@@ -95,7 +124,7 @@ class Server(server.AbstractServer):
                 tools_list.append({'name': tool, 'version': version})
 
         data = {'scheduler': self.scheduler_type, 'tools': tools_list}
-        self.session.json_exchange("service/update_tools/", data)
+        self.session.json_exchange("service/update-tools/", data)
 
     def stop(self):
         """

@@ -210,11 +210,11 @@ class NodesData:
                     workload = node.workload
                 except Workload.DoesNotExist:
                     continue
-                conf_data['cpu_number'][0] += workload.cpu_number
+                conf_data['cpu_number'][0] += workload.reserved_cpu_number
                 conf_data['cpu_number'][1] += conf.cpu_number
-                conf_data['ram_memory'][0] += workload.ram_memory
+                conf_data['ram_memory'][0] += workload.reserved_ram_memory
                 conf_data['ram_memory'][1] += conf.ram_memory
-                conf_data['disk_memory'][0] += workload.disk_memory
+                conf_data['disk_memory'][0] += workload.reserved_disk_memory
                 conf_data['disk_memory'][1] += conf.disk_memory
                 conf_data['jobs'] += workload.running_verification_jobs
                 conf_data['tasks'] += workload.running_verification_tasks
