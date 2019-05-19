@@ -29,12 +29,6 @@ import schedulers.native as native
 from schedulers import Scheduler
 
 conf, logger = utils.common_initialization("Klever scheduler")
-
-if "scheduler" not in conf:
-    raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
-if "Klever Bridge" not in conf:
-    raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
-
 scheduler_impl = Scheduler(conf, logger, "scheduler/", native.Native)
 scheduler_impl.launch()
 
