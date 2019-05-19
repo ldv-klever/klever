@@ -5,7 +5,7 @@ import uuid
 from django.conf import settings
 from django.utils.functional import cached_property
 
-from bridge.utils import logger, BridgeException, file_get_or_create, RMQConnect
+from bridge.utils import logger, BridgeException, file_get_or_create
 from bridge.vars import JOB_ROLES
 
 from jobs.models import JobFile, Job
@@ -130,9 +130,3 @@ class JobsPopulation:
             elif os.path.isdir(path):
                 children.append(self.__get_dir(path, fname))
         return children
-
-
-class JobsRMQPopulation:
-    def __init__(self):
-        with RMQConnect() as channel:
-            channel.queue_declare(queue=settings.RABBIT_MQ['jobs_queue'], durable=True)

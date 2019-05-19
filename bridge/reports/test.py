@@ -1037,7 +1037,7 @@ class DecideJobs:
 
         with RMQConnect() as channel:
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(settings.RABBIT_MQ['jobs_queue'], callback)
+            channel.basic_consume(settings.RABBIT_MQ['name'], callback)
             channel.start_consuming()
 
     def __decide(self, job_uuid):
