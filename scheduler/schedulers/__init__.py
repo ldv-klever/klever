@@ -19,6 +19,7 @@ import os
 import time
 import traceback
 import json
+import pika
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
@@ -82,6 +83,15 @@ class Scheduler:
         else:
             self.server = bridge.Server(self.logger, self.conf["Klever Bridge"],
                                         os.path.join(self.work_dir, "requests"))
+            self.channel = pika.BlockingConnection(pika.ConnectionParameters(
+                host=self.conf["Klever jobs and tasks queue"]["host"],
+                credentials=pika.credentials.PlainCredentials(
+                    self.conf["Klever jobs and tasks queue"]["username"],
+                    self.conf["Klever jobs and tasks queue"]["password"]
+                )
+            )).channel()
+            self.channel.queue_declare(queue=self.conf["Klever jobs and tasks queue"]["name"], durable=True)
+
         _old_tasks_status = None
         _old_jobs_status = None
 
@@ -123,6 +133,15 @@ class Scheduler:
         self.logger.info("Start scheduler loop")
         to_cancel = set()
         while True:
+            def callback(ch, method, properties, body):
+                # TODO: here should be all processing of information on jobs and tasks from Bridge.
+                self.logger.info('Read: {0}'.format(body.decode('utf-8')))
+
+            self.channel.basic_consume(queue=self.conf["Klever jobs and tasks queue"]["name"],
+                                       on_message_callback=callback,
+                                       auto_ack=True)
+            self.channel.start_consuming()
+
             try:
                 sch_ste = {
                     "tasks": {

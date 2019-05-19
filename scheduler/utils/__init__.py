@@ -109,6 +109,9 @@ def common_initialization(tool, conf=None):
     if "Klever Bridge" not in conf:
         raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
 
+    if "Klever jobs and tasks queue" not in conf:
+        raise KeyError("Provide configuration property 'Klever jobs and tasks queue' as an JSON-object")
+
     # Check common configuration
     if "common" not in conf:
         raise KeyError("Provide configuration property 'common' as an JSON-object")
