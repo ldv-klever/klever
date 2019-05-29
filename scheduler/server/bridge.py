@@ -48,6 +48,14 @@ class Server(server.AbstractServer):
         ret = self.session.json_exchange("service/get_jobs_and_tasks/", data)
         return json.loads(ret["jobs and tasks status"])
 
+    def pull_job_conf(self, job_identifier):
+        ret = self.session.json_exchange("service/configuration/{}".format(job_identifier), method='GET')
+        return ret
+
+    def cancel_job(self, job_identifier):
+        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                   data={"status": "7"})
+
     def pull_task(self, identifier, archive):
         """
         Download verification task data from the verification gateway.

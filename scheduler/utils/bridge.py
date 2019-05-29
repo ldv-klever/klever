@@ -171,7 +171,7 @@ class Session:
 
         return ret
 
-    def json_exchange(self, endpoint, data, method='POST', looping=True):
+    def json_exchange(self, endpoint, data=None, method='POST', looping=True):
         """
         Exchange with JSON the
 
