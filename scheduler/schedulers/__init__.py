@@ -44,6 +44,7 @@ class Scheduler:
         :param work_dir: Path to the working directory.
         :param runner_class: Runner class to work with hardware or cloud.
         """
+        # todo: remove useless data
         self.conf = conf
         self.logger = logger
         self.work_dir = work_dir
@@ -78,6 +79,7 @@ class Scheduler:
             "long": 20
         }
         self.__last_exchange = None
+        # todo: remove test generator at all finally
         if "debug with testgenerator" in self.conf["scheduler"] and self.conf["scheduler"]["debug with testgenerator"]:
             self.server = testgenerator.Server(self.logger, self.conf["testgenerator"],
                                                os.path.join(self.work_dir, "requests"))
@@ -102,7 +104,7 @@ class Scheduler:
         # Initialize interaction
         self.server.register(self.runner_class.scheduler_type())
 
-        # Timeout
+        # todo: remove
         if "iteration timeout" in self.conf["scheduler"]:
             for tag in (t for t in self.__iteration_period.keys() if t in self.conf["scheduler"]["iteration timeout"]):
                 self.__iteration_period[tag] = self.conf["scheduler"]["iteration timeout"][tag]
@@ -134,6 +136,7 @@ class Scheduler:
         self.logger.info("Start scheduler loop")
         to_cancel = set()
         while True:
+            # todo: implement this not in one function but in corresponding methods. Here implement just the switch
             def callback(ch, method, properties, body):
                 # TODO: here should be all processing of information on jobs and tasks from Bridge.
                 self.logger.info('Read: {0}'.format(body.decode('utf-8')))
@@ -184,6 +187,10 @@ class Scheduler:
                     else:
                         raise NotImplementedError
 
+            # todo: We have the following problems here:
+            # todo: Move sending tools and node data to controller - here now we cannot do periodical tasks
+            # todo: Rethink how to check that a job or a task is finised. Who will check future object status?
+            # todo: Rescheduling actions? How it should be done?
             self.channel.basic_consume(queue=self.conf["Klever jobs and tasks queue"]["name"],
                                        on_message_callback=callback,
                                        auto_ack=True)
@@ -501,6 +508,7 @@ class Scheduler:
                 else:
                     self.logger.info("Do not wait besause of statuses changing")
                     time.sleep(1)
+                # todo: Add termination of all jobs and statuses and sending the update to Bridge
             except KeyboardInterrupt:
                 self.logger.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
@@ -518,85 +526,6 @@ class Scheduler:
                 else:
                     self.server.stop()
                     exit(1)
-
-    @property
-    def __need_exchange(self):
-        """
-        Calculate how many seconds passed since the last data exchange. If that value is more than chosen currently
-        exchange period then do exchange, otherwise skip it.
-
-        :return: True if we should send data to Bridge now and False otherwise.
-        """
-        if not self.__last_exchange:
-            return True
-        elif int(time.time() - self.__last_exchange) > self.__current_period:
-            return True
-        else:
-            self.logger.debug("Skip the next data exchange iteration with Bridge")
-            return False
-
-    def __update_iteration_period(self):
-        """
-        Calculates the period of data exchange between Bridge and this scheduler. It tries dynamically adjust the value
-        to not repeatedly send the same information but increasing the period if new tasks or jobs are expected.
-        """
-        def new_period(new):
-            if self.__current_period < new:
-                self.logger.info("Increase data exchange period from {}s to {}s".format(self.__current_period, new))
-                self.__current_period = new
-            elif self.__current_period > new:
-                self.logger.info("Reduce data exchange period from {}s to {}s".format(self.__current_period, new))
-                self.__current_period = new
-
-        processing_jobs = [i for i in self.__jobs if self.__jobs[i]["status"] == 'PROCESSING' and
-                           self.__jobs[i]["configuration"]["task scheduler"] == "Klever"]
-        if len(processing_jobs) > 0:
-            # Calculate pending resources of running tasks
-            pairs = []
-            for job in processing_jobs:
-                pending = [t for t in self.__tasks if self.__tasks[t]["status"] == "PENDING" and
-                           self.__tasks[t]["description"]["job id"] == job]
-                processing = [t for t in self.__tasks if self.__tasks[t]["status"] in ["PROCESSING", "FINISHED"] and
-                              self.__tasks[t]["description"]["job id"] == job]
-                pair = [len(pending), len(processing)]
-                pairs.append(pair)
-
-            # Detect fast solving jobs
-            for pair in pairs:
-                # No tasks available
-                if pair[0] == 0 and pair[1] == 0:
-                    new_period(self.__iteration_period['short'])
-                    return
-
-            for pair in pairs:
-                # Check wether we have free resources
-                if pair[0] > 0 and pair[1] > 0:
-                    new_period(self.__iteration_period['long'])
-                    return
-
-        new_period(self.__iteration_period['medium'])
-
-    @staticmethod
-    def __report_error_server_state(server_state, message):
-        """
-        If an inconsistent server state json has been received from Bridge the method saves it to the disk with
-        necessary additional information.
-
-        :param server_state: Dictionary obtained from Bridge.
-        :param message: String with a message intended for the log.
-        :raise RuntimeError: At the end always rises the exception since the scheduler should not proceed with broken
-                             Bridge.
-        :return:
-        """
-        # Save server state file
-        state_file_name = time.strftime("%d-%m-%Y %H:%M:%S server state.json")
-        error_file = os.path.join(os.path.curdir, state_file_name)
-        with open(error_file, 'w') as outfile:
-            json.dump(server_state, outfile, ensure_ascii=False, sort_keys=True, indent=4)
-
-        # Raise an exception
-        raise RuntimeError("Received invalid server state (printed at {!r}): {!r}".
-                           format(os.path.abspath(error_file), message))
 
     @staticmethod
     def __add_missing_restrictions(collection):
@@ -626,6 +555,7 @@ class Scheduler:
             raise SchedulerException('Cannot interprete {} resource limitations: {!r}'.format(tag, collection[tag]))
 
     def terminate(self):
+        # TODO: Need refactoring! Send requests to Bridge
         """Abort solution of all running tasks and any other actions before termination."""
         # stop jobs
         for job_id, item in [(job_id, self.__jobs[job_id]) for job_id in self.__jobs
