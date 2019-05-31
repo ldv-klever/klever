@@ -141,8 +141,7 @@ class Session:
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
-        # TODO: PATCH request
-        self.__request('service/update_progress/', data=progress)
+        self.__request('service/progress/{0}/'.format(self.job_id), 'PATCH', data=progress)
 
     def __download_archive(self, kind, path_url, data, archive):
         while True:
