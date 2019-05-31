@@ -160,13 +160,15 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
     elif child_resources:
         for child in child_resources:
             # CPU time is sum of utime and stime, so add it just one time.
-            utime += child_resources[child]['CPU time'] / 1000
-            maxrss = max(maxrss, child_resources[child]['memory size'] / 1000)
+            utime += child_resources[child]['cpu_time'] / 1000
+            maxrss = max(maxrss, child_resources[child]['memory'] / 1000)
             # Wall time of children is included in wall time of their parent.
 
-    resources = {'wall time': round(1000 * (time.time() - start_time)),
-                 'CPU time': round(1000 * (utime + stime)),
-                 'memory size': 1000 * maxrss}
+    resources = {
+        'wall_time': round(1000 * (time.time() - start_time)),
+        'cpu_time': round(1000 * (utime + stime)),
+        'memory': 1000 * maxrss
+    }
 
     logger.debug('Consumed the following resources:\n%s',
                  '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
@@ -456,11 +458,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
                                       self.conf['main working directory'])
 
                 child_resources = all_child_resources()
-                report = {
-                    'identifier': self.id,
-                    'resources': count_consumed_resources(self.logger, self.tasks_start_time,
-                                                          self.include_child_resources, child_resources)
-                }
+                report = {'identifier': self.id}
+                report.update(count_consumed_resources(self.logger,self.tasks_start_time, self.include_child_resources,
+                                                       child_resources))
                 # todo: this is embarassing
                 if self.coverage:
                     report['coverage'] = self.coverage

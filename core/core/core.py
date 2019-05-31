@@ -132,11 +132,9 @@ class Core(core.components.CallbacksCaller):
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
                     child_resources = core.components.all_child_resources()
-                    report = {
-                        'identifier': self.ID,
-                        'resources': core.components.count_consumed_resources(self.logger, self.start_time,
-                                                                              child_resources=child_resources)
-                    }
+                    report = {'identifier': self.ID}
+                    report.update(core.components.count_consumed_resources(self.logger, self.start_time,
+                                                                           child_resources=child_resources))
 
                     if os.path.isfile('log.txt'):
                         report['log'] = core.utils.ReportFiles(['log.txt'])
