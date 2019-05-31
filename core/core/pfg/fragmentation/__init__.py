@@ -290,7 +290,7 @@ class FragmentationAlgorythm:
         :return: The name of the created file.
         """
         # Determine fragment name
-        self.logger.info('Generate fragment description {!r}'.format(name))
+        self.logger.debug('Generate fragment description {!r}'.format(name))
         pf_desc = dict()
         pf_desc['id'] = name
         pf_desc['grps'] = list()

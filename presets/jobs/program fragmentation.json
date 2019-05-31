@@ -21,6 +21,9 @@
     "Applets": {
       "program": "Busybox",
       "include dependencies from libbb to applets fragments": true
+    },
+    "Userspace": {
+      "program": "Userspace"
     }
   },
   "fragmentation sets": {
@@ -46,6 +49,9 @@
       "Subsystems": {},
       "Modules with callgraph": {},
       "Subsystems with modules found by coverage": {}
+    },
+    "Userspace": {
+      "Userspace": {}
     },
     "Busybox": {
       "Applets": {
