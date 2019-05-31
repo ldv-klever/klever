@@ -83,11 +83,7 @@ class Session:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(0.2)
 
-    def start_job_decision(self, job_format, archive, start_report_file):
-        with open(start_report_file, encoding='utf8') as fp:
-            start_report = fp.read()
-
-        # TODO: report is likely should be compressed.
+    def start_job_decision(self, job_format, archive):
         self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
                                 {'job format': job_format},
                                 archive)
@@ -134,7 +130,9 @@ class Session:
                 batch_report_file_archives.extend(report_file_archives)
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'reports': json.dumps(batch_reports)}, batch_report_file_archives)
+        self.__upload_archive('reports/api/upload/{0}/'.format(self.job_id),
+                              {'reports': json.dumps(batch_reports)},
+                              batch_report_file_archives)
 
         # We can safely remove task and its files after uploading report referencing task files.
         for report in batch_reports:
@@ -169,8 +167,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data=data, files=[('file', open(archive, 'rb', buffering=0))
-                                                                  for archive in archives], stream=True)
+                resp = self.__request(path_url, 'POST', data=data, files=[('file', open(archive, 'rb', buffering=0))
+                                                                          for archive in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':
