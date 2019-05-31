@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, Mapping
 from django.db.models import F, Count, Case, When, BooleanField
 from django.utils.translation import ugettext_lazy as _
 
@@ -9,7 +9,7 @@ from bridge.vars import ASSOCIATION_TYPE, SAFE_VERDICTS, UNSAFE_VERDICTS
 from jobs.models import Job
 from reports.models import (
     ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr, ReportComponent, Computer,
-    OriginalSources, AdditionalSources
+    OriginalSources
 )
 from marks.models import MarkSafeReport, MarkSafeTag, MarkUnsafeReport, MarkUnsafeTag, MarkUnknownReport
 
@@ -228,7 +228,7 @@ class ComputerDataField(fields.Field):
     def to_internal_value(self, data):
         if fields.html.is_html_input(data):
             data = fields.html.parse_html_list(data, default=[])
-        if isinstance(data, type('')) or isinstance(data, fields.collections.Mapping) or not hasattr(data, '__iter__'):
+        if isinstance(data, str) or isinstance(data, Mapping) or not hasattr(data, '__iter__'):
             self.fail('not_a_list', input_type=type(data).__name__)
         return self.run_child_validation(data)
 

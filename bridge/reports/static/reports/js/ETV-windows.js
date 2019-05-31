@@ -15,14 +15,6 @@
  * limitations under the License.
  */
 
-window.src_filename_trunc = function() {
-    let text_container = $('#ETVSourceTitle'),
-        text_width = text_container.width(),
-        window_width = $('#ETV_source_code').width();
-    if (text_width > window_width * 0.95) text_container.css('float', 'right');
-    else text_container.css('float', 'left');
-};
-
 $(document).ready(function () {
     let D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
         S = $('#etv-source'), T = $('#etv-trace'),
@@ -53,7 +45,6 @@ $(document).ready(function () {
                 A.css({width: bw});
                 D2.css({left: aw + D1w, width: bw});
             }
-            src_filename_trunc();
         },
         distance: 10
     });

@@ -178,13 +178,13 @@ function show_warn_modal(btn, warn_text_id, action_func, disabled) {
 
 function remove_job() {
     $('#dimmer_of_page').addClass('active');
-    $.delete(
-        '/jobs/api/' + $('#job_id').val() + '/remove/', {},
-        function (data) {
+    $.ajax({
+        url: `/jobs/api/${$('#job_id').val()}/remove/`, method: "DELETE", data: {},
+        success: function () {
             $('#dimmer_of_page').removeClass('active');
             window.location.replace('/jobs/');
-        }, 'json'
-    );
+        }
+    });
 }
 
 function check_children() {
