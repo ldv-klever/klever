@@ -112,7 +112,7 @@ class Core(core.components.CallbacksCaller):
                                       {
                                           'identifier': self.ID + '/unknown',
                                           'parent': self.ID,
-                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
+                                          'problem_description': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.report_id,

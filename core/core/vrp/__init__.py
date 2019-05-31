@@ -462,9 +462,10 @@ class RP(core.components.Component):
                                       'identifier': "{}/verification/unknown".format(self.id),
                                       'parent': "{}/verification".format(self.id),
                                       'attrs': [],
-                                      'problem desc': core.utils.ReportFiles(
+                                      'problem_description': core.utils.ReportFiles(
                                           [verification_problem_desc],
-                                          {verification_problem_desc: 'problem desc.txt'})
+                                          {verification_problem_desc: 'problem desc.txt'}
+                                      )
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
