@@ -170,3 +170,12 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
                         "aspects": [addictions[cc_extra_full_desc_file["in file"]]] + additional_aspects
                     }
                 )
+
+    extra_c_files = {f for p in list(processes.models.values()) + list(processes.environment.values()) +
+                     [processes.entry] for f in p.cfiles}
+    avt.setdefault('extra C files', list())
+    avt['extra C files'].extend([
+        {"C file": os.path.realpath(find_file_or_dir(logger,
+                                                     get_necessary_conf_property(conf, "main working directory"), f))}
+        for f in extra_c_files])
+

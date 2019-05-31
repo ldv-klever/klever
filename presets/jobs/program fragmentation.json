@@ -1,5 +1,8 @@
 {
   "templates": {
+    "zephr": {
+      "program": "Zephyr"
+    },
     "Modules": {
       "program": "Linux",
       "kernel": false,
@@ -66,6 +69,13 @@
             "libbb/wfopen.c",
             "libbb/wfopen_input.c"
           ]
+        }
+      }
+    },
+    "Zephyr": {
+      "zephr": {
+        "1.13.0": {
+          "exclude from all fragments": []
         }
       }
     }

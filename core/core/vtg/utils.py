@@ -30,57 +30,58 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         return core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))
 
 
-def prepare_cif_opts(conf, opts, clade_storage):
+def prepare_cif_opts(opts, clade):
     new_opts = []
+    meta = clade.get_meta()
 
     is_sysroot_search_dir = False
     is_include = False
 
-    for opt in opts:
-        # Get rid of options unsupported by Aspectator.
-        match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
-        if match:
-            continue
-
-        new_opt = opt
-
-        # --sysroot has effect just if search directories specified with help of absolute paths start with "=".
-        if is_sysroot_search_dir:
-            if new_opt.startswith('/'):
-                new_opt = '=' + new_opt
-
-            is_sysroot_search_dir = False
-        else:
-            match = re.match('-(I|iquote|isystem|idirafter)(.*)', new_opt)
+    if not meta['conf'].get("Compiler.preprocess_cmds", False):
+        for opt in opts:
+            # Get rid of options unsupported by Aspectator.
+            match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
             if match:
-                if match.group(2):
-                    if match.group(2).startswith('/'):
-                        new_opt = '-{0}={1}'.format(match.group(1), match.group(2))
-                else:
-                    is_sysroot_search_dir = True
+                continue
 
-        # Explicitly change absolute paths passed to --include since --sysroot does not help with it.
-        if is_include:
-            if new_opt.startswith('/'):
-                new_opt = clade_storage + new_opt
+            new_opt = opt
 
-            is_include = False
-        else:
-            match = re.match('-include(.*)', new_opt)
-            if match:
-                if match.group(1):
-                    if match.group(1).startswith('/'):
-                        new_opt = '-include' + clade_storage + match.group(1)
-                else:
-                    is_include = True
+            # --sysroot has effect just if search directories specified with help of absolute paths start with "=".
+            if is_sysroot_search_dir:
+                if new_opt.startswith('/'):
+                    new_opt = '=' + new_opt
 
-        new_opts.append(new_opt.replace('"', '\\"'))
+                is_sysroot_search_dir = False
+            else:
+                match = re.match('-(I|iquote|isystem|idirafter)(.*)', new_opt)
+                if match:
+                    if match.group(2):
+                        if match.group(2).startswith('/'):
+                            new_opt = '-{0}={1}'.format(match.group(1), match.group(2))
+                    else:
+                        is_sysroot_search_dir = True
 
-    # Aspectator will search for headers within Clade storage.
-    new_opts.append('-isysroot' + clade_storage)
+            # Explicitly change absolute paths passed to --include since --sysroot does not help with it.
+            if is_include:
+                if new_opt.startswith('/'):
+                    new_opt = clade.storage_dir + new_opt
 
-    # todo: Maybe there is a better place for this but this is the easiest one
-    extra_cc_opts = conf.get('extra CIF opts', list())
+                is_include = False
+            else:
+                match = re.match('-include(.*)', new_opt)
+                if match:
+                    if match.group(1):
+                        if match.group(1).startswith('/'):
+                            new_opt = '-include' + clade.storage_dir + match.group(1)
+                    else:
+                        is_include = True
+
+            new_opts.append(new_opt.replace('"', '\\"'))
+
+        # Aspectator will search for headers within Clade storage.
+        new_opts.append('-isysroot' + clade.storage_dir)
+
+    extra_cc_opts = meta['conf'].get('Info.extra_CIF_opts', list())
     new_opts.extend(extra_cc_opts)
 
     return new_opts

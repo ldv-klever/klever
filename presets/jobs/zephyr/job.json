@@ -1,0 +1,10 @@
+{
+  "Class": "Verification of userspace programs",
+  "build base": "zephyr",
+  "program": "Zephyr",
+  "version": "1.13.0",
+  "fragmentation set": "zephr",
+  "specifications set": "Linux 3.14 (base)",
+  "requirements": ["zephyr:locks"],
+  "add targets": ["**"]
+}

@@ -70,6 +70,7 @@ class ASE(core.vtg.plugins.Plugin):
         self.logger.info('Request argument signatures')
 
         clade = Clade(work_dir=self.conf['build base'])
+        meta = clade.get_meta()
 
         for request_aspect in self.conf['request aspects']:
             request_aspect = core.vtg.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -118,10 +119,12 @@ class ASE(core.vtg.plugins.Plugin):
                                 fout.write(line)
                     else:
                         aspect = request_aspect
-
+                    storage_path = clade.get_storage_path(cc['in'][0])
+                    if meta['conf'].get('Compiler.preprocess_cmds', False) and 'klever-core-work-dir' not in storage_path:
+                        storage_path = storage_path.split('.c')[0]+'.i'
                     core.utils.execute(self.logger,
                                        tuple(['cif',
-                                              '--in', clade.get_storage_path(cc['in'][0]),
+                                              '--in', storage_path,
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
@@ -129,7 +132,7 @@ class ASE(core.vtg.plugins.Plugin):
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
-                                             core.vtg.utils.prepare_cif_opts(self.conf, cc['opts'], clade.storage_dir) +
+                                             core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
                                              [
                                                  # Besides header files specific for requirements will be
                                                  # searched for.

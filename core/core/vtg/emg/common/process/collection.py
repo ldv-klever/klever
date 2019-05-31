@@ -16,6 +16,8 @@
 #
 
 import ujson
+import os
+from clade import Clade
 
 from core.vtg.emg.common.c.types import import_declaration
 from core.vtg.emg.common.process import Receive, Dispatch, Subprocess, Condition, generate_regex_set, Label, Process
@@ -40,6 +42,7 @@ class ProcessCollection:
         'headers': None,
         'declarations': None,
         'definitions': None,
+        'source files': 'cfiles',
         'category': None,
         'identifier': 'pretty_id'
     }
@@ -62,6 +65,8 @@ class ProcessCollection:
         self.models = dict()
         self.environment = dict()
 
+        self._clade = Clade(self.conf['build base'])
+
     def parse_event_specification(self, raw):
         """
         Parse process descriptions and create corresponding objects to populate the collection.
@@ -83,7 +88,7 @@ class ProcessCollection:
         if "environment processes" in raw:
             self.logger.info("Import processes from 'environment processes'")
             for name in raw["environment processes"]:
-                self.logger.debug("Import environment process {}".format(name))
+                self.logger.debug("Import environment process {!r}".format(name))
                 process = self._import_process(name, raw["environment processes"][name])
                 env_processes[name] = process
         if "main process" in raw and isinstance(raw["main process"], dict):
@@ -221,6 +226,18 @@ class ProcessCollection:
     def _import_process(self, name, dic):
         process = self.PROCESS_CONSTRUCTOR(name)
 
+        def get_abspath(path):
+            if path == 'environment model' or os.path.isfile(path):
+                return path
+            for spath in self.conf["source paths"]:
+                abspath = os.path.join(spath, path)
+                storabspath = self._clade.get_storage_path(abspath)
+                if os.path.isfile(storabspath):
+                    return abspath
+            else:
+                raise FileNotFoundError('There is no file {!r} in the build base or the correct path to source files'
+                                        ' is not provided'.format(path))
+
         if 'labels' in dic:
             for label_name in dic['labels']:
                 label = self._import_label(label_name, dic['labels'][label_name])
@@ -261,6 +278,15 @@ class ProcessCollection:
                 else:
                     attname = att
                 setattr(process, attname, dic[att])
+
+        # Fix paths in manual specification
+        for att in ('definitions', 'declarations'):
+            # Avoid iterating over the dictionary that can change its content
+            if att in dic:
+                for def_file in dic[att].keys():
+                    dic[att][get_abspath(def_file)] = dic[att].pop(def_file)
+                # Update object to be sure that changes are saved there
+                setattr(process, att, dic[att])
 
         unused_labels = process.unused_labels
         if len(unused_labels) > 0:

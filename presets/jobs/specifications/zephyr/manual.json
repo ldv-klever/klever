@@ -1,0 +1,71 @@
+{
+  "Linux 3.14 (base)": {
+    "manual event models": [
+      {
+        "fragments": [
+          "zephyr"
+        ],
+        "model": {
+          "functions models": {},
+          "environment processes": {},
+          "main process": {
+              "actions": {
+                "usb_transfer": {
+                  "comment": "Call init functions, invoke usb_transfer_work callback",
+                  "statements": [
+                    "ldv_emg_zephr();\n",
+                    "for (int i = 0; i < 4; i++) {\n",
+		              "\tldv_emg_wrapper_usb_transfer_work(i);\n",
+	                "}\n",
+                    "\n"
+                  ]
+                },
+                "h4_open": {
+                  "comment": "Invoke h4_open callback",
+                  "statements": [
+                    "ldv_emg_zephr();\n",
+                    "ldv_emg_wrapper_h4_open();\n",
+                    "ldv_emg_wrapper_bt_uart_isr();\n"
+                  ]
+                }
+              },
+              "category": "zephyr",
+              "comment": "Invoke usb_transfer callback.",
+              "declarations": {
+                "environment model": {
+                  "usb_transfer_work": "extern void ldv_emg_wrapper_usb_transfer_work(int);\n",
+                  "h4_open": "extern void ldv_emg_wrapper_h4_open(void);\n",
+                  "bt_uart_isr": "extern void ldv_emg_wrapper_bt_uart_isr(void);\n"
+                }
+              },
+              "definitions": {
+                "subsys/usb/usb_device.c": {
+                  "usb_transfer_work": [
+                    "void ldv_emg_wrapper_usb_transfer_work(int i) {\n",
+                    "\t usb_transfer_work(&usb_dev.transfer[i].work);\n",
+                    "}\n"
+                  ]
+                },
+                "drivers/bluetooth/hci/h4.c": {
+                  "h4_open": [
+                    "void ldv_emg_wrapper_h4_open(void) {\n",
+                    "\t h4_open();\n",
+                    "}\n"
+                  ],
+                  "bt_uart_isr": [
+                    "void ldv_emg_wrapper_bt_uart_isr(void) {\n",
+                    "\t bt_uart_isr(0);\n",
+                    "}\n"
+                  ]
+                }
+              },
+              "headers": [],
+              "identifier": "zephyr/usb_transfer",
+              "labels": {},
+              "process": "<usb_transfer>|<h4_open>"
+            }
+        }
+      }
+    ]
+  }
+}

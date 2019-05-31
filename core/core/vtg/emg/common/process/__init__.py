@@ -115,6 +115,7 @@ class Process:
         self.actions = {}
         self.process = None
         self.headers = list()
+        self.cfiles = list()
         self.declarations = dict()
         self.definitions = dict()
         self.identifier = None

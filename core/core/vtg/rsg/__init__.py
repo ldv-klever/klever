@@ -64,6 +64,12 @@ class RSG(core.vtg.plugins.Plugin):
             rel_path = os.path.relpath(os.path.join(self.conf['main working directory'],
                                                     self.abstract_task_desc['environment model']), os.path.curdir)
             models[rel_path] = {}
+        if self.abstract_task_desc.get('extra C files'):
+            files = self.abstract_task_desc.get('extra C files')
+            self.abstract_task_desc['extra C files'] = []
+            for file in (f.get("C file") for f in files if "C file" in f):
+                rel_path = os.path.relpath(os.path.join(self.conf['main working directory'], file), os.path.curdir)
+                models[rel_path] = {}
 
         # Get common and requirement specific models.
         if 'common models' in self.conf and 'models' in self.conf:
@@ -183,23 +189,28 @@ class RSG(core.vtg.plugins.Plugin):
         # Generate CC full description file per each model and add it to abstract task description.
         # First of all obtain CC options to be used to compile models.
         clade = Clade(self.conf['build base'])
+        meta = clade.get_meta()
 
         # Relative path to source file which CC options to be used is specified in configuration. Clade needs absolute
         # path. The former is relative to one of source paths.
-        for path in self.conf['source paths']:
-            opts_file = os.path.join(path, self.conf['opts file'])
-            try:
-                empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
-            except KeyError:
-                pass
+        if not meta['conf'].get('Compiler.preprocess_cmds', False):
+            for path in self.conf['source paths']:
+                opts_file = os.path.join(path, self.conf['opts file'])
+                try:
+                    empty_cc = list(clade.get_compilation_cmds_by_file(opts_file))
+                except KeyError:
+                    pass
 
-        if not empty_cc:
-            raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
-        elif len(empty_cc) > 1:
-            self.logger.warning("There are more than one cc command for {!r}".format(self.conf['project']['opts file']))
+            if not empty_cc:
+                raise RuntimeError("There is not of cc commands for {!r}".format(self.conf['project']['opts file']))
+            elif len(empty_cc) > 1:
+                self.logger.warning("There are more than one cc command for {!r}".
+                                    format(self.conf['project']['opts file']))
 
-        empty_cc = empty_cc.pop()
-        empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])
+            empty_cc = empty_cc.pop()
+            empty_cc['opts'] = clade.get_cmd_opts(empty_cc['id'])
+        else:
+            empty_cc = {'opts': [], 'cwd': self.conf['source paths'][-1]}
 
         model_grp = {'id': 'models', 'Extra CCs': []}
         for model_c_file in sorted(models):

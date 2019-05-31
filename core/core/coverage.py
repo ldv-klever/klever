@@ -305,13 +305,14 @@ class LCOV:
     FUNCTION_NAME_PREFIX = "FN:"
     PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-    def __init__(self, logger, coverage_file, clade, source_dirs, search_dirs, main_work_dir, completeness,
+    def __init__(self, logger, coverage_file, clade, search_dirs, main_work_dir, completeness,
                  coverage_id, coverage_info_dir, collect_functions):
         # Public
         self.logger = logger
         self.coverage_file = coverage_file
-        self.clade_dir = os.path.normpath(clade.storage_dir)
-        self.source_dirs = [os.path.normpath(p) for p in source_dirs]
+        self.clade = clade
+        self.source_dirs = [os.path.normpath(p) for p in
+                            self.clade.get_meta().get('working source trees', [self.clade.get_meta().get('build_dir')])]
         self.search_dirs = [os.path.normpath(p) for p in search_dirs]
         self.main_work_dir = main_work_dir
         self.completeness = completeness
@@ -372,7 +373,8 @@ class LCOV:
                         if os.path.isfile(file_name):
                             path, file = os.path.split(file_name)
                             # All pathes should be absolute, otherwise we cannot match source dirs later
-                            path = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade_dir], path))
+                            path = os.path.join(os.path.sep, core.utils.make_relative_path([self.clade.storage_dir],
+                                                                                           path))
                             all_files.setdefault(path, [])
                             all_files[path].append(file)
 
@@ -409,10 +411,16 @@ class LCOV:
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
-                    real_file_name = line[len(self.FILENAME_PREFIX):]
-                    real_file_name = os.path.normpath(real_file_name)
-                    file_name = os.path.join(os.path.sep,
-                                             core.utils.make_relative_path([self.clade_dir], real_file_name))
+                    if self.clade.get_meta()['conf'].get('Compiler.preprocess_cmds') and \
+                            not os.path.isfile(line[len(self.FILENAME_PREFIX):]):
+                        file_name = line[len(self.FILENAME_PREFIX):]
+                        # todo: maybe it is better to import clade there and do this properly
+                        real_file_name = os.path.normpath(self.clade.get_storage_path(file_name))
+                    else:
+                        real_file_name = line[len(self.FILENAME_PREFIX):]
+                        real_file_name = os.path.normpath(real_file_name)
+                        file_name = os.path.join(os.path.sep,
+                                                 core.utils.make_relative_path([self.clade.storage_dir], real_file_name))
                     if os.path.isfile(real_file_name) and \
                             all(os.path.commonpath((p, file_name)) != p for p in excluded_dirs):
                         for dest, srcs in dir_map:
