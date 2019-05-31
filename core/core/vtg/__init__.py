@@ -310,7 +310,7 @@ class VTG(core.components.Component):
         core.utils.report(self.logger,
                           'attrs',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
@@ -601,7 +601,7 @@ class VTGW(core.components.Component):
         core.utils.report(self.logger,
                           'attrs',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': [
                                   {
                                       "name": "Program fragment",

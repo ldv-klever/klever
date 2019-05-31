@@ -411,9 +411,9 @@ class Component(multiprocessing.Process, CallbacksCaller):
                 os.makedirs('child resources'.encode('utf8'))
 
                 report = {
-                    'id': self.id,
-                    'parent id': self.parent_id,
-                    'name': self.name
+                    'identifier': self.id,
+                    'parent': self.parent_id,
+                    'component': self.name
                 }
                 if self.attrs:
                     report.update({'attrs': self.attrs})
@@ -447,8 +447,8 @@ class Component(multiprocessing.Process, CallbacksCaller):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': self.id + '/unknown',
-                                          'parent id': self.id,
+                                          'identifier': self.id + '/unknown',
+                                          'parent': self.id,
                                           'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
@@ -457,7 +457,7 @@ class Component(multiprocessing.Process, CallbacksCaller):
 
                 child_resources = all_child_resources()
                 report = {
-                    'id': self.id,
+                    'identifier': self.id,
                     'resources': count_consumed_resources(self.logger, self.tasks_start_time,
                                                           self.include_child_resources, child_resources)
                 }

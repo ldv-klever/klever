@@ -80,7 +80,7 @@ class PFG(core.components.Component):
         core.utils.report(self.logger,
                           'attrs',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': attrs
                           },
                           self.mqs['report files'],

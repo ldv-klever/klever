@@ -110,8 +110,8 @@ class Core(core.components.CallbacksCaller):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': self.ID + '/unknown',
-                                          'parent id': self.ID,
+                                          'identifier': self.ID + '/unknown',
+                                          'parent': self.ID,
                                           'problem desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
@@ -133,7 +133,7 @@ class Core(core.components.CallbacksCaller):
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
                     child_resources = core.components.all_child_resources()
                     report = {
-                        'id': self.ID,
+                        'identifier': self.ID,
                         'resources': core.components.count_consumed_resources(self.logger, self.start_time,
                                                                               child_resources=child_resources)
                     }
