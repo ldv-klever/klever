@@ -1006,7 +1006,7 @@ class DecideJobs:
 
     def __login(self):
         session = requests.Session()
-        resp = session.post(self._base_url + '/service/signin/', data={
+        resp = session.post(self._base_url + '/service/get_token/', data={
             'username': self._username, 'password': self._password
         })
         if resp.status_code != 200:
@@ -1102,7 +1102,7 @@ class DecideJob:
 
     def __login(self, username, password):
         session = requests.Session()
-        resp = session.post(self.base_url + '/service/signin/', data={'username': username, 'password': password})
+        resp = session.post(self.base_url + '/service/get_token/', data={'username': username, 'password': password})
         if resp.status_code != 200:
             raise ResponseError(resp.json())
         session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})

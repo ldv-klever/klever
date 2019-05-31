@@ -27,7 +27,7 @@ router.register('tasks', api.TaskAPIViewset, 'tasks')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('signin/', obtain_auth_token),
+    path('get_token/', obtain_auth_token),
     path('tasks/<int:task_id>/download/', api.DownloadTaskArchiveView.as_view()),
 
     path('solution/', api.SolutionCreateView.as_view()),
