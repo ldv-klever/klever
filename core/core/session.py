@@ -47,25 +47,16 @@ class Session:
 
     def __signin(self):
         self.session = requests.Session()
-        # TODO: try to autentificate like with httplib2.Http().add_credentials().
-        # Get initial value of CSRF token via useless GET request.
-        self.__request('users/service_signin/')
-
-        # Sign in.
-        resp = self.__request('service/signin/', data=self.__parameters)
+        resp = self.__request('service/signin/', 'POST', data=self.__parameters)
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         self.logger.debug('Session was created')
 
-    def __request(self, path_url, **kwargs):
+    def __request(self, path_url, method, **kwargs):
         url = 'http://' + self.name + '/' + path_url
 
-        # Presence of data implies POST request.
-        method = kwargs.pop('method', 'GET')
+        kwargs.setdefault('allow_redirects', True)
 
         self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
-
-        # if data:
-        #     data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
 
         while True:
             try:
@@ -132,7 +123,6 @@ class Session:
 
     def sign_out(self):
         self.logger.info('Finish session')
-        self.__request('users/service_signout/')
 
     def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
         batch_reports = []
