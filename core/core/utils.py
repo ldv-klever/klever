@@ -498,7 +498,7 @@ def report(logger, kind, report_data, mq, report_id, main_work_dir, report_dir='
                     for df in data_files:
                         zfp.write(df)
                     os.fsync(zfp.fp)
-            report_data['attr data'] = archive_name
+            report_data['attr_data'] = archive_name
             archives.append(data_zip)
 
             # Create symlink to report file in current working directory.
