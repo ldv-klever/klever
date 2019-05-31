@@ -35,13 +35,15 @@ class Session:
 
         self.logger = logger
         self.name = bridge['name']
+        self.job_id = job_id
+
         self.error = None
+
         self.__parameters = {
             'username': bridge['user'],
-            'password': bridge['password'],
-            # TODO: is not used in session, keep it for each request
-            'job identifier': job_id
+            'password': bridge['password']
         }
+
         # Sign in.
         self.__signin()
 
@@ -86,12 +88,8 @@ class Session:
             start_report = fp.read()
 
         # TODO: report is likely should be compressed.
-        self.__download_archive('job', 'jobs/decide_job/',
-                                {
-                                    'attempt': 0,
-                                    'job format': job_format,
-                                    'report': start_report
-                                },
+        self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
+                                {'job format': job_format},
                                 archive)
 
     def schedule_task(self, task_file, archive):
@@ -152,7 +150,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data=data, stream=True)
+                resp = self.__request(path_url, 'GET', data=data, stream=True)
 
                 self.logger.debug('Write {0} archive to "{1}"'.format(kind, archive))
                 with open(archive, 'wb') as fp:
@@ -164,9 +162,6 @@ class Session:
                 else:
                     break
             finally:
-                if 'attempt' in data:
-                    data['attempt'] += 1
-
                 if resp:
                     resp.close()
 
