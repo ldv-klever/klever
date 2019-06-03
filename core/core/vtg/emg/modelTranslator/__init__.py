@@ -54,6 +54,13 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
     if not processes.entry:
         raise RuntimeError("It is impossible to generate an environment model without main process")
 
+    if get_conf_property(conf['translation options'], "ignore missing function models"):
+        for name in list(processes.models.keys()):
+            fs = source.get_source_functions(name)
+            if len(fs) == 0:
+                logger.info("Ignore function model {!r} since there is no such function in the code".format(name))
+                del processes.models[name]
+
     # If necessary match peers
     if get_conf_property(conf['translation options'], "implicit signal peers"):
         process_list = list(processes.models.values()) + list(processes.environment.values()) + [processes.entry]
