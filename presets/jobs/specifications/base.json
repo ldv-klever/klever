@@ -501,6 +501,7 @@
         },
         "FVTP": {
           "verifier profile": "race checking",
+          "no safety property": true,
           "verifier": {
             "name": "CPAchecker",
             "version": "CPALockator-combat-mode:28916"

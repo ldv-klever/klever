@@ -86,8 +86,9 @@ class Basic:
         files = self._prepare_task_files(benchmark)
 
         # Safety properties specification
-        self._prepare_safe_prps_spec(benchmark, safe_prps)
-        files.append("safe-prps.prp")
+        if not self.conf.get('no safety property', None):
+            self._prepare_safe_prps_spec(benchmark, safe_prps)
+            files.append("safe-prps.prp")
 
         # Save the benchmark definition
         with open("benchmark.xml", "w", encoding="utf8") as fp:
