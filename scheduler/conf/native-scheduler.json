@@ -23,7 +23,8 @@
     },
     "ignore BenchExec warnings": [
       "CPU throttled itself during benchmarking due to overheating",
-      "Cputime measured by wait was"
+      "Cputime measured by wait was",
+      "No propertyfile specified"
     ]
   },
   "common": {
