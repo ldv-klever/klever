@@ -87,6 +87,8 @@ def translate_intermediate_model(logger, conf, avt, source, processes):
             for file in getattr(process, att):
                 additional_code.setdefault(file, {'declarations': dict(), 'definitions': dict()})
                 additional_code[file][att].update(getattr(process, att)[file])
+        if process.file == 'environment model':
+            process.file = entry_file
 
     # Then convert into proper format
     for file in additional_code:

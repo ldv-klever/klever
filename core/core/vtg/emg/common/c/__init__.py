@@ -141,27 +141,27 @@ class Function:
         else:
             self.called_at[path].add(func)
 
-    def declare(self, extern=False):
+    def declare(self, extern=False, scope=None):
         """
         Provide a string with the declaration of this function.
 
         :param extern: Add the 'extern' prefix.
         :return: Declaration string.
         """
-        declaration = self.declaration.to_string(self.name, typedef='complex_and_params')
+        declaration = self.declaration.to_string(self.name, typedef='complex_and_params', scope=scope)
         declaration += ';'
 
         if extern:
             declaration = "extern " + declaration
         return [declaration + "\n"]
 
-    def define(self):
+    def define(self, scope=None):
         """
         Provide a list of strings with the definition of the function.
 
         :return: List of strings.
         """
-        declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params')
+        declaration = self.declaration.define_with_args(self.name, typedef='complex_and_params', scope=scope)
         prefix = '/* AUX_FUNC {} */\n'.format(self.name)
         lines = [prefix]
         lines.append(declaration + " {\n")

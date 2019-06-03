@@ -196,7 +196,6 @@ class LabelTranslator(FSATranslator):
 
         # Get function prototype
         cf = self._control_function(automaton)
-        cf.definition_file = automaton.process.file
 
         # Do process initialization
         model_flag = True

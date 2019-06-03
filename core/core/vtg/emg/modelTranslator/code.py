@@ -111,7 +111,7 @@ class CModel:
         if self.entry_file not in self._function_definitions:
             self._function_definitions[self.entry_file] = dict()
 
-        self._function_definitions[func.definition_file][func.name] = func.define()
+        self._function_definitions[func.definition_file][func.name] = func.define(scope={func.definition_file})
         self.add_function_declaration(func.definition_file, func, extern=False)
 
     def add_function_declaration(self, file, func, extern=False):
@@ -128,7 +128,7 @@ class CModel:
 
         if extern and func.name in self._function_declarations[file]:
             return
-        self._function_declarations[file][func.name] = func.declare(extern=extern)
+        self._function_declarations[file][func.name] = func.declare(extern=extern, scope={file})
 
     def add_global_variable(self, variable, file, extern=False, initialize=True):
         """
