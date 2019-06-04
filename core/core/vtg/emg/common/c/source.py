@@ -287,9 +287,10 @@ class Source:
         """
         # Import typedefs if there are provided
         self.logger.info("Extract complete types definitions")
-        typedef = self._clade.get_typedefs(cfiles)
+        typedef = self._clade.get_typedefs(set(dependencies.keys()).union(cfiles))
         if typedef:
-            import_typedefs(typedef)
+            import_typedefs(typedef, dependencies)
+
         variables = self._clade.get_variables(cfiles)
         if variables:
             self.logger.info("Import global variables initializations")
