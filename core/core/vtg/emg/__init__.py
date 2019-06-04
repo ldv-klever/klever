@@ -15,11 +15,7 @@
 # limitations under the License.
 #
 
-import os
-
 import core.vtg.plugins
-
-import core.utils
 from core.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property
 from core.vtg.emg.common.c.source import Source
 from core.vtg.emg.processGenerator import generate_processes
@@ -47,7 +43,10 @@ class EMG(core.vtg.plugins.Plugin):
         # Initialization of EMG
         # Todo: refactor this
         self.logger.info("Import results of source analysis")
-        sa = Source(self.logger, self.conf, self.abstract_task_desc)
+        if not get_conf_property(self.conf.get("source analysis", dict()), "skip"):
+            sa = Source(self.logger, self.conf, self.abstract_task_desc)
+        else:
+            sa = None
 
         # Generate processes
         self.logger.info("Generate processes of an environment model")
