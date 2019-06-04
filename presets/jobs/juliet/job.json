@@ -1,0 +1,13 @@
+{
+  "Class": "Verification of userspace programs",
+  "build base": "juliet",
+  "program": "Juliet",
+  "version": "1.3",
+  "fragmentation set": "Juliet",
+  "requirements": ["Juliet:empty"],
+  "add targets": ["**"],
+  "exclude targets": [
+    "testcasesupport/io.c",
+    "testcasesupport/std_thread.c"
+  ]
+}

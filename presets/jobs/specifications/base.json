@@ -64,7 +64,7 @@
         "Weaver",
         {
           "FVTP": {
-            "merge source files": false,
+            "merge source files": true,
             "verifier profile": "reachability",
             "verifier": {
               "name": "CPAchecker",
@@ -76,6 +76,28 @@
             }
           }
         }
+      ]
+    },
+    "Juliet": {
+      "description": "...",
+      "template": "Userspace",
+      "plugins": [
+        {
+          "EMG": {
+            "source analysis": {"skip": true},
+            "intermediate model options": [],
+            "translation options": {
+              "entry point": "main"
+            }
+          }
+        },
+        {
+          "RSG": {
+            "opts file": "testcasesupport/io.c"
+          }
+        },
+        "Weaver",
+        "FVTP"
       ]
     },
     "Linux kernel modules": {
@@ -1372,6 +1394,28 @@
       },
       "memory safety": {
         "description": "Userspace memory safety",
+        "RSG": {
+          "models": {
+            "userspace/memory safety/memory.c": {}
+          }
+        },
+        "FVTP": {
+          "verifier profile": "memory checking Linux64",
+          "verifier": {
+            "name": "CPAchecker",
+            "version": "trunk:31140"
+          }
+        }
+      }
+    },
+    "juliet": {
+      "description": "Juliet specifications",
+      "template": "Juliet",
+      "empty": {
+        "description": "..."
+      },
+      "memory safety": {
+        "description": "Juliet memory safety",
         "RSG": {
           "models": {
             "userspace/memory safety/memory.c": {}
