@@ -85,6 +85,21 @@ class Source:
                                         ' is not provided'.format(path))
         return full_paths
 
+    def called_in_source_code(self, func):
+        """
+        Provides information about function calls in C source files of the program fragment.
+
+        :param func: Function object.
+        :return: Dictinary {'C file name': {Set of function caller names}}.
+        """
+        result = dict()
+        for file in (f for f in func.called_at if f in self.cfiles):
+            result[file] = set(func.called_at[file])
+        if not result:
+            return None
+        else:
+            return result
+
     def get_source_function(self, name=None, paths=None, declaration=None):
         """
         Provides the function by a given name from the collection.
@@ -370,6 +385,13 @@ class Source:
                                                 params = None
                                                 break
                                     caller_intf.call_in_function(obj, params)
+                if obj.definition_file and obj.definition_file in scopes and obj.definition_file in cg and \
+                        func in cg[obj.definition_file]:
+                    for called_def_scope in cg[obj.definition_file][func].get('calls', dict()):
+                        for called_func in cg[obj.definition_file][func]['calls'][called_def_scope]:
+                            called_obj = self.get_source_function(called_func, paths={obj.definition_file})
+                            if called_obj:
+                                called_obj.add_call(func, obj.definition_file)
 
         macros_file = get_conf_property(self._conf.get('source analysis', dict()), 'macros white list')
         if macros_file:
