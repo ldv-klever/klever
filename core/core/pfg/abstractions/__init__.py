@@ -47,6 +47,15 @@ class Program:
             # gigabytes of memory
             self.__establish_dependencies()
 
+    def get_file(self, name):
+        """
+        Return File object.
+
+        :param name: Name string.
+        :return: File object.
+        """
+        return self._files[name]
+
     def create_fragment(self, name, files, add=False):
         """
         Create a fragment and if necessary add it to the extracted program fragments collection.
