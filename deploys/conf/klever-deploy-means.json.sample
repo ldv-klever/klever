@@ -39,7 +39,7 @@
       "pytz"
     ],
     "For running Klever Core": [
-      "clade==3.0.2",
+      "clade==3.0.5",
       "jinja2",
       "graphviz",
       "ply",
@@ -57,8 +57,8 @@
   },
   "Klever Addons": {
     "CIF": {
-      "version": "1517e57",
-      "path": "addons/cif-1517e57.tar.xz"
+      "version": "79a0019",
+      "path": "addons/cif-79a0019.tar.xz"
     },
     "CIL": {
       "version": "460aed4",
