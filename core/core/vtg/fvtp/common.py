@@ -21,6 +21,14 @@ import zipfile
 import json
 import core.utils
 
+TRIMMED_WORKAROUND_REGEXES = [
+    [re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4\.6\.0/include/stdarg\.h"'),
+     re.compile('typedef __va_list __gnuc_va_list;'),
+     'typedef __builtin_va_list __gnuc_va_list;'],
+    [None,
+     re.compile('asm volatile goto.*;'),
+     '']
+]
 CIL_WORKAROUND_REGEXES = [
     [re.compile('#line 49 ".*include/uapi/linux/swab\.h"'),
      re.compile('extern int .*__builtin_bswap16.*;'),
@@ -52,6 +60,29 @@ def process_file(replacements, lines, fp):
                 triggers.append(index)
 
         fp.write(l)
+
+
+def trimmed_files(logger, conf, abstract_task_desc):
+    c_files = []
+
+    # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
+    logger.debug('Ignore asm goto expressions')
+    for extra_c_file in abstract_task_desc['extra C files']:
+        if 'C file' not in extra_c_file:
+            continue
+
+        trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
+
+        with open(os.path.join(conf['main working directory'], extra_c_file['C file']),
+                  encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
+            # Specify original location to avoid references to *.trimmed.i files in error traces.
+            fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
+            process_file(TRIMMED_WORKAROUND_REGEXES, fp_in, fp_out)
+
+        extra_c_file['new C file'] = trimmed_c_file
+        c_files.append(trimmed_c_file)
+
+    return c_files
 
 
 def merge_files(logger, conf, abstract_task_desc):
