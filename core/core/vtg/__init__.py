@@ -651,11 +651,12 @@ class VTGW(core.components.Component):
             grp['Extra CCs'] = []
 
             for cc in grp['CCs']:
-                in_file = self.clade.get_cmd(cc)['in'][0]
-                grp['Extra CCs'].append({
-                    'CC': cc,
-                    'in file': in_file
-                })
+                for in_file in (f for f in self.clade.get_cmd(cc)['in'] if f.endswith('.c')):
+                    # Need to add description for each file!
+                    grp['Extra CCs'].append({
+                        'CC': cc,
+                        'in file': in_file
+                    })
 
             del (grp['CCs'])
         initial_abstract_task_desc_file = 'initial abstract task.json'

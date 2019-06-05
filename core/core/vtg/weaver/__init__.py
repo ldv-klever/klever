@@ -70,10 +70,14 @@ class Weaver(core.vtg.plugins.Plugin):
                         if "cwd" in cc and "out" in cc:
                             cc["out"] = [os.path.join(cc["cwd"], cc_out) for cc_out in cc["out"]]
 
-                    self.logger.info('Weave in C file "{0}"'.format(cc['in'][0]))
-
-                    cc['out'][0] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
-                        os.path.basename(cc['out'][0]))[0], '.abs-paths.i'))
+                    if "in file" in extra_cc:
+                        # This is for CC commands with several input files
+                        infile = extra_cc["in file"]
+                    else:
+                        infile = cc["in"][0]
+                    outfile = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(os.path.basename(
+                        infile))[0], '.abs-paths.i'))
+                    self.logger.info('Weave in C file "{0}"'.format(infile))
 
                     # Produce aspect to be weaved in.
                     if 'plugin aspects' in extra_cc:
@@ -102,8 +106,9 @@ class Weaver(core.vtg.plugins.Plugin):
                         # Simulate resulting aspect.
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
-                    storage_path = clade.get_storage_path(cc['in'][0])
-                    if meta['conf'].get('Compiler.preprocess_cmds', False) and 'klever-core-work-dir' not in storage_path:
+                    storage_path = clade.get_storage_path(infile)
+                    if meta['conf'].get('Compiler.preprocess_cmds', False) and \
+                            'klever-core-work-dir' not in storage_path:
                         storage_path = storage_path.split('.c')[0] + '.i'
                     core.utils.execute(
                         self.logger,
@@ -116,7 +121,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                   '-I' + os.path.realpath(os.path.dirname(self.conf['requirements DB'])),
                                   '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
                                                                  if 'aspect preprocessing options' in self.conf else '',
-                                  '--out', os.path.realpath(cc['out'][0]),
+                                  '--out', os.path.realpath(outfile),
                                   '--back-end', 'src',
                                   '--debug', 'DEBUG'
                               ] +
@@ -130,23 +135,23 @@ class Weaver(core.vtg.plugins.Plugin):
                         cwd=clade.get_storage_path(cc['cwd']),
                         timeout=0.01,
                         filter_func=core.vtg.utils.CIFErrorFilter())
-                    self.logger.debug('C file "{0}" was weaved in'.format(cc['in'][0]))
+                    self.logger.debug('C file "{0}" was weaved in'.format(infile))
 
                     # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
-                    preprocessed_c_file = '{}.i'.format(os.path.splitext(cc['out'][0])[0])
+                    preprocessed_c_file = '{}.i'.format(os.path.splitext(outfile)[0])
                     core.utils.execute(self.logger,
                                        (
                                            'aspectator',
                                            '-E',
-                                           '-x', 'c', cc['out'][0],
+                                           '-x', 'c', outfile,
                                            '-o', preprocessed_c_file
                                        ),
                                        timeout=0.01)
                     if not self.conf['keep intermediate files']:
-                        os.remove(cc['out'][0])
+                        os.remove(outfile)
                     self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
-                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc['out'][0])[0])
+                    abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(outfile)[0])
                     with open(preprocessed_c_file, encoding='utf8') as fp_in, open(abs_paths_c_file, 'w',
                                                                                    encoding='utf8') as fp_out:
                         # Print preprocessor header as is.
@@ -164,7 +169,8 @@ class Weaver(core.vtg.plugins.Plugin):
                                 file = match.group(2)
                                 if not os.path.isabs(file):
                                     # All relative file paths are relative to CC working directory.
-                                    file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'], file))
+                                    file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'],
+                                                                        file))
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)
