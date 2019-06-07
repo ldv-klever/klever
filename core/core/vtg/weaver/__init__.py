@@ -127,7 +127,7 @@ class Weaver(core.vtg.plugins.Plugin):
                               ] +
                               (['--keep'] if self.conf['keep intermediate files'] else []) +
                               ['--'] +
-                              core.vtg.utils.prepare_cif_opts(cc['opts'], clade) +
+                              core.vtg.utils.prepare_cif_opts(cc['opts'], clade, grp['id'] == 'models') +
                               [aspectator_search_dir] +
                               ['-I' + clade.get_storage_path(p) for p in self.conf['source paths']]
                               ),

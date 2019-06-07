@@ -30,14 +30,15 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
         return core.utils.find_file_or_dir(logger, main_work_dir, os.path.join('specifications', file_or_dir))
 
 
-def prepare_cif_opts(opts, clade):
+def prepare_cif_opts(opts, clade, model_opts=False):
     new_opts = []
     meta = clade.get_meta()
 
     is_sysroot_search_dir = False
     is_include = False
 
-    if not meta['conf'].get("Compiler.preprocess_cmds", False):
+    # Keep model options as well as build options when input files were not preprocessed.
+    if model_opts or not meta['conf'].get("Compiler.preprocess_cmds", False):
         for opt in opts:
             # Get rid of options unsupported by Aspectator.
             match = re.match('(-Werror=date-time|-mpreferred-stack-boundary|.*?-MD).*', opt)
