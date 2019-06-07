@@ -383,7 +383,7 @@ class JobStatusSerializer(serializers.ModelSerializer):
                 channel.basic_publish(
                     exchange='', routing_key=settings.RABBIT_MQ['name'],
                     properties=pika.BasicProperties(delivery_mode=2),
-                    body="job {}: {}".format(instance.identifier, instance.status)
+                    body="job {} {}".format(instance.identifier, instance.status)
                 )
         return instance
 

@@ -462,5 +462,5 @@ def on_task_change(task_id, task_status):
         channel.basic_publish(
             exchange='', routing_key=settings.RABBIT_MQ['name'],
             properties=pika.BasicProperties(delivery_mode=2),
-            body="task {}: {}".format(task_id, task_status)
+            body="task {} {}".format(task_id, task_status)
         )

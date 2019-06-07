@@ -15,7 +15,10 @@ class Command(BaseCommand):
         role_choices = list(x[0] for x in USER_ROLES)
         parser.add_argument('--username', dest='username', help='Specifies the username.')
         parser.add_argument('--password', dest='password', help='Specifies the password.')
-        parser.add_argument('--role', choices=role_choices, default=role_choices[0])
+        parser.add_argument(
+            '--role', choices=role_choices, default=role_choices[0],
+            help="The user role (0 - no access, 1 - producer, 2 - manager, 3 - expert, 4 - service)"
+        )
         parser.add_argument('--staff', dest='is_staff', action='store_true', help='Is user a staff?')
         parser.add_argument('--superuser', dest='is_superuser', action='store_true', help='Is user a superuser?')
 

@@ -16,8 +16,54 @@
  */
 
 $(document).ready(function () {
-    let etv_window = $('#ETV_error_trace'), source_window = $('#ETV_source_code');
+    let etv_window = $('#ETV_error_trace'),
+        source_window = $('#ETV_source_code'),
+        sources_history = $('#sources_history'),
+        src_back_btn = $('#ETVSourceBack');
     if (!etv_window.length) return false;
+
+    function init_source_code() {
+        let source_references_div = source_window.find('#source_references_links');
+
+        $('.ETVRefToLink').click(function () {
+            $('.ETVSelectedLine').removeClass('ETVSelectedLine');
+            $('.ETV_LN_Note_Selected').removeClass('ETV_LN_Note_Selected');
+            $('.ETV_LN_Warning_Selected').removeClass('ETV_LN_Warning_Selected');
+
+            let assume_window = $('#ETV_assumes');
+            if (assume_window.length) assume_window.empty();
+
+            let line_num = parseInt($(this).data('line')),
+                file_name = $(this).data('file');
+            if (file_name === null) {
+                file_name = $('#ETVSourceTitleFull').text()
+            }
+            else {
+                file_name = source_window.find('#source_file_' + file_name).text();
+            }
+            get_source_code(line_num, file_name);
+        });
+        $('.ETVRefFromLink').popup({
+            popup: '#source_references_links',
+            onShow: function (activator) {
+                let data_html = source_window.find('#' + $(activator).data('id')).html();
+                source_references_div.html(data_html);
+                source_references_div.find('.ETVRefLink').click(function () {
+                    get_source_code($(this).data('line'), $(this).data('file'));
+                })
+            },
+            onHide: function () {
+                source_references_div.empty();
+            },
+            position: 'bottom left',
+            hoverable: true,
+            inline: true,
+            delay: {
+                show: 100,
+                hide: 300
+            }
+        });
+    }
 
     function select_source_line(line) {
         let selected_src_line = $('#ETVSrcL_' + line);
@@ -28,7 +74,11 @@ $(document).ready(function () {
         else err_notify($('#error___line_not_found').text());
     }
 
-    function get_source_code(line, filename) {
+    function get_source_code(line, filename, save_history=true) {
+        if (save_history) {
+            sources_history.append($('<span>').data('file', filename).data('line', line));
+            if (sources_history.children().length > 1 && src_back_btn.hasClass('disabled')) src_back_btn.removeClass('disabled');
+        }
         if (filename === $('#ETVSourceTitleFull').text()) {
             source_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
             select_source_line(line);
@@ -41,11 +91,11 @@ $(document).ready(function () {
                 success: function (resp) {
                     source_window.html(resp);
                     let title_place = $('#ETVSourceTitle');
-                        title_place.text(filename);
-                        $('#ETVSourceTitleFull').text(filename);
-                        title_place.popup();
-                        src_filename_trunc();
-                        select_source_line(line);
+                    title_place.text(filename);
+                    title_place.popup({content: filename});
+                    $('#ETVSourceTitleFull').text(filename);
+                    select_source_line(line);
+                    init_source_code();
                 }
             });
         }
@@ -157,12 +207,12 @@ $(document).ready(function () {
         }
     });
     $('.ETV_ExitLink').click(function (event) {
-        var node = $('span[data-scope="' + $(this).data('scope') + '"]').first();
+        let node = $('span[data-scope="' + $(this).data('scope') + '"]').first();
         hide_scope(node, event.shiftKey, true);
     });
 
     $('.ETV_OpenEye').click(function () {
-        var node = $(this).parent().parent();
+        let node = $(this).parent().parent();
         if ($(this).hasClass('hide')) hide_display(node);
         else show_display(node);
     });
@@ -179,38 +229,38 @@ $(document).ready(function () {
         node.addClass('ETVSelectedLine');
 
         // Get source code if node has file and line number
-        var line_num = parseInt($(this).text(), 10),
+        let line_num = parseInt($(this).text(), 10),
             filename = $(this).data('file');
         if (filename && line_num) get_source_code(line_num, filename);
 
         // Show assumptions
-        var assume_window = $('#ETV_assumes');
+        let assume_window = $('#ETV_assumes');
         if (assume_window.length) {
+            assume_window.empty();
+
             // Show old assumptions
-            var old_assumes = node.find('.ETV_OldAssumptions');
+            let old_assumes = node.find('.ETV_OldAssumptions');
             if (old_assumes.length) {
                 $.each(old_assumes.text().split('_'), function (i, v) {
-                    var curr_assume = $('#assumption_' + v);
-                    if (curr_assume.length) {
-                        assume_window.append($('<p>', {text: curr_assume.text()}));
-                    }
+                    let curr_assume = $('#assumption_' + v);
+                    if (curr_assume.length) assume_window.append($('<p>', {text: curr_assume.text()}));
                 });
             }
             // Show new assumptions
-            var new_assumes = node.find('.ETV_NewAssumptions');
+            let new_assumes = node.find('.ETV_NewAssumptions');
             if (new_assumes.length) {
                 $.each(new_assumes.text().split('_'), function (i, v) {
-                    var curr_assume = $('#assumption_' + v);
-                    if (curr_assume.length) {
-                        assume_window.append($('<span>', {text: curr_assume.text(), 'class': 'ETV_NewAssumption'}));
-                    }
+                    let curr_assume = $('#assumption_' + v);
+                    if (curr_assume.length) assume_window.append($('<span>', {
+                        text: curr_assume.text(), 'class': 'ETV_NewAssumption'
+                    }));
                 });
             }
         }
     });
 
     $('.ETV_Action').click(function () {
-        var node = $(this).parent().parent(), enter_link = node.find('.ETV_EnterLink');
+        let node = $(this).parent().parent(), enter_link = node.find('.ETV_EnterLink');
         // If action can be collapsed/expanded, do it
         if (enter_link.length) enter_link.click();
         // Get source for the action
@@ -230,16 +280,16 @@ $(document).ready(function () {
         if ($(this).next('span.ETV_File').length) {
             get_source_code(parseInt($(this).text()), $(this).next('span.ETV_File').text());
         }
-        var whole_line = $(this).parent().parent();
+        let whole_line = $(this).parent().parent();
         whole_line.addClass('ETVSelectedLine');
 
-        var assume_window = $('#ETV_assumes');
+        let assume_window = $('#ETV_assumes');
         if (assume_window.length) {
             assume_window.empty();
             whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
-                var assume_ids = $(this).text().split(';');
+                let assume_ids = $(this).text().split(';');
                 $.each(assume_ids, function (i, v) {
-                    var curr_assume = $('#' + v);
+                    let curr_assume = $('#' + v);
                     if (curr_assume.length) {
                         assume_window.append($('<span>', {
                             text: curr_assume.text(),
@@ -249,9 +299,9 @@ $(document).ready(function () {
                 });
             });
             whole_line.find('span[class="ETV_Assumptions"]').each(function () {
-                var assume_ids = $(this).text().split(';');
+                let assume_ids = $(this).text().split(';');
                 $.each(assume_ids, function (i, v) {
-                    var curr_assume = $('#' + v);
+                    let curr_assume = $('#' + v);
                     if (curr_assume.length) {
                         assume_window.append($('<span>', {
                             text: curr_assume.text()
@@ -262,7 +312,7 @@ $(document).ready(function () {
         }
     });
     $('.ETV_ShowCommentCode').click(function () {
-        var node = $(this).parent().parent().next('span');
+        let node = $(this).parent().parent().next('span');
         if (node.is(':hidden')) {
             node.show();
             // If next node is function call with allowed collapsing then that node will have enter link, click it
@@ -294,7 +344,7 @@ $(document).ready(function () {
 
     etv_window.children().each(function () {
         if ($(this).is(':visible')) {
-            var line_link = $(this).find('.ETV_LINE');
+            let line_link = $(this).find('.ETV_LINE');
             if (line_link.length) {
                 etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
                 line_link.click();
@@ -302,5 +352,13 @@ $(document).ready(function () {
             }
         }
     });
-    $('#ETVSourceTitle').click(function () { src_filename_trunc() });
+
+    src_back_btn.click(function () {
+        if (sources_history.children().length > 1) {
+            let last_child = sources_history.children().last(), prev_child = last_child.prev();
+            get_source_code(prev_child.data('line'), prev_child.data('file'), false);
+            last_child.remove();
+        }
+        if (sources_history.children().length < 2) src_back_btn.addClass('disabled');
+    });
 });

@@ -44,11 +44,8 @@
                 <a href="{% url 'users:show-profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
             {% endif %}
         </div>
-        <div class="six wide column">
+        <div class="seven wide column">
             {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}
-        </div>
-        <div class="one wide column right aligned">
-            <a class="ui icon basic mini button" href="{% url 'reports:unsafe_fullscreen' report.trace_id %}"><i class="maximize icon"></i></a>
         </div>
     </div>
 

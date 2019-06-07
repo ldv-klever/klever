@@ -103,14 +103,15 @@ def common_initialization(tool, conf=None):
         with open(args.config, encoding="utf8") as fp:
             conf = json.load(fp)
 
-    if "scheduler" not in conf:
-        raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
-
     if "Klever Bridge" not in conf:
         raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
 
-    if "Klever jobs and tasks queue" not in conf:
-        raise KeyError("Provide configuration property 'Klever jobs and tasks queue' as an JSON-object")
+    if tool != "Client controller":
+        if "scheduler" not in conf:
+            raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
+
+        if "Klever jobs and tasks queue" not in conf:
+            raise KeyError("Provide configuration property 'Klever jobs and tasks queue' as an JSON-object")
 
     # Check common configuration
     if "common" not in conf:

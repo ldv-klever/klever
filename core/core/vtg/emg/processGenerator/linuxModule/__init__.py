@@ -85,7 +85,7 @@ def generate_processes(emg, source, processes, conf, specifications):
     core.utils.report(emg.logger,
                       'data',
                       {
-                          'id': emg.id,
+                          'identifier': emg.id,
                           'data': instance_maps
                       },
                       emg.mqs['report files'],

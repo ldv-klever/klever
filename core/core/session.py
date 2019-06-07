@@ -35,37 +35,30 @@ class Session:
 
         self.logger = logger
         self.name = bridge['name']
+        self.job_id = job_id
+
         self.error = None
+
         self.__parameters = {
             'username': bridge['user'],
-            'password': bridge['password'],
-            # TODO: is not used in session, keep it for each request
-            'job identifier': job_id
+            'password': bridge['password']
         }
+
         # Sign in.
         self.__signin()
 
     def __signin(self):
         self.session = requests.Session()
-        # TODO: try to autentificate like with httplib2.Http().add_credentials().
-        # Get initial value of CSRF token via useless GET request.
-        self.__request('users/service_signin/')
-
-        # Sign in.
-        resp = self.__request('service/signin/', data=self.__parameters)
+        resp = self.__request('service/get_token/', 'POST', data=self.__parameters)
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
         self.logger.debug('Session was created')
 
-    def __request(self, path_url, **kwargs):
+    def __request(self, path_url, method, **kwargs):
         url = 'http://' + self.name + '/' + path_url
 
-        # Presence of data implies POST request.
-        method = kwargs.pop('method', 'GET')
+        kwargs.setdefault('allow_redirects', True)
 
         self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
-
-        # if data:
-        #     data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
 
         while True:
             try:
@@ -90,17 +83,9 @@ class Session:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(0.2)
 
-    def start_job_decision(self, job_format, archive, start_report_file):
-        with open(start_report_file, encoding='utf8') as fp:
-            start_report = fp.read()
-
-        # TODO: report is likely should be compressed.
-        self.__download_archive('job', 'jobs/decide_job/',
-                                {
-                                    'attempt': 0,
-                                    'job format': job_format,
-                                    'report': start_report
-                                },
+    def start_job_decision(self, job_format, archive):
+        self.__download_archive('job', 'jobs/api/download-files/' + self.job_id,
+                                {'job format': job_format},
                                 archive)
 
     def schedule_task(self, task_file, archive):
@@ -132,7 +117,6 @@ class Session:
 
     def sign_out(self):
         self.logger.info('Finish session')
-        self.__request('users/service_signout/')
 
     def upload_reports_and_report_file_archives(self, reports_and_report_file_archives):
         batch_reports = []
@@ -146,7 +130,9 @@ class Session:
                 batch_report_file_archives.extend(report_file_archives)
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'reports': json.dumps(batch_reports)}, batch_report_file_archives)
+        self.__upload_archive('reports/api/upload/{0}/'.format(self.job_id),
+                              {'reports': json.dumps(batch_reports)},
+                              batch_report_file_archives)
 
         # We can safely remove task and its files after uploading report referencing task files.
         for report in batch_reports:
@@ -155,14 +141,13 @@ class Session:
 
     def submit_progress(self, progress):
         self.logger.info('Submit solution progress')
-        # TODO: PATCH request
-        self.__request('service/update_progress/', data=progress)
+        self.__request('service/progress/{0}/'.format(self.job_id), 'PATCH', data=progress)
 
     def __download_archive(self, kind, path_url, data, archive):
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data=data, stream=True)
+                resp = self.__request(path_url, 'GET', data=data, stream=True)
 
                 self.logger.debug('Write {0} archive to "{1}"'.format(kind, archive))
                 with open(archive, 'wb') as fp:
@@ -174,9 +159,6 @@ class Session:
                 else:
                     break
             finally:
-                if 'attempt' in data:
-                    data['attempt'] += 1
-
                 if resp:
                     resp.close()
 
@@ -184,8 +166,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data=data, files=[('file', open(archive, 'rb', buffering=0))
-                                                                  for archive in archives], stream=True)
+                resp = self.__request(path_url, 'POST', data=data, files=[('file', open(archive, 'rb', buffering=0))
+                                                                          for archive in archives], stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':

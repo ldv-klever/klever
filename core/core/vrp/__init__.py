@@ -74,7 +74,7 @@ class VRP(core.components.Component):
         core.utils.report(self.logger,
                           'attrs',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': self.__get_common_prj_attrs()
                           },
                           self.mqs['report files'],
@@ -272,7 +272,7 @@ class RP(core.components.Component):
         core.utils.report(self.logger,
                           'attrs',
                           {
-                              'id': self.id,
+                              'identifier': self.id,
                               'attrs': [
                                   {
                                       "name": "Program fragment",
@@ -334,8 +334,8 @@ class RP(core.components.Component):
         core.utils.report(self.logger,
                           'unsafe',
                           {
-                              'id': "{}/verification/unsafe".format(self.id),
-                              'parent id': "{}/verification".format(self.id),
+                              'identifier': "{}/verification/unsafe".format(self.id),
+                              'parent': "{}/verification".format(self.id),
                               'attrs': attrs,
                               'sources': core.utils.ReportFiles(list(sources.keys()), arcnames=sources),
                               'error traces': [core.utils.ReportFiles([error_trace_file],
@@ -377,8 +377,8 @@ class RP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': "{}/verification/safe".format(self.id),
-                                  'parent id': "{}/verification".format(self.id),
+                                  'identifier': "{}/verification/safe".format(self.id),
+                                  'parent': "{}/verification".format(self.id),
                                   'attrs': []
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   # 'proof': None
@@ -459,12 +459,13 @@ class RP(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'id': "{}/verification/unknown".format(self.id),
-                                      'parent id': "{}/verification".format(self.id),
+                                      'identifier': "{}/verification/unknown".format(self.id),
+                                      'parent': "{}/verification".format(self.id),
                                       'attrs': [],
-                                      'problem desc': core.utils.ReportFiles(
+                                      'problem_description': core.utils.ReportFiles(
                                           [verification_problem_desc],
-                                          {verification_problem_desc: 'problem desc.txt'})
+                                          {verification_problem_desc: 'problem desc.txt'}
+                                      )
                                   },
                                   self.mqs['report files'],
                                   self.vals['report id'],
@@ -501,8 +502,8 @@ class RP(core.components.Component):
 
         # Send an initial report
         report = {
-            'id': "{}/verification".format(self.id),
-            'parent id': self.id,
+            'identifier': "{}/verification".format(self.id),
+            'parent': self.id,
             # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
             'attrs': [],
             'name': verifier,
@@ -564,7 +565,7 @@ class RP(core.components.Component):
             # Submit a closing report
             core.utils.report(self.logger,
                               'verification finish',
-                              {'id': report['id']},
+                              {'identifier': report['id']},
                               self.mqs['report files'],
                               self.vals['report id'],
                               self.conf['main working directory'])

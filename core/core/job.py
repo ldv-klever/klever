@@ -301,7 +301,7 @@ class RA(core.components.Component):
             core.utils.report(self.logger,
                               'data',
                               {
-                                  'id': self.parent_id,
+                                  'identifier': self.parent_id,
                                   'data': {task_id: verification_result}
                               },
                               self.mqs['report files'],

@@ -17,6 +17,7 @@
 
 import argparse
 import json
+import hashlib
 import multiprocessing
 import os
 import setuptools_scm
@@ -55,38 +56,43 @@ class Core(core.components.CallbacksCaller):
         try:
             # Remember approximate time of start to count wall time.
             self.start_time = time.time()
+
             self.get_conf()
+
             self.prepare_work_dir()
             self.change_work_dir()
+
             self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
             self.logger.info('Solve job "{0}"'.format(self.conf['identifier']))
-            version = self.get_version()
-            self.get_comp_desc()
-            start_report_file = core.utils.report(self.logger,
-                                                  'start',
-                                                  {
-                                                      'id': self.ID,
-                                                      'attrs': [{
-                                                          'name': 'Klever Core version',
-                                                          'value': version
-                                                      }],
-                                                      'comp': self.comp
-                                                  },
-                                                  None,
-                                                  self.report_id,
-                                                  self.conf['main working directory'])
-            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
-            self.session.start_job_decision(core.job.JOB_FORMAT, core.job.JOB_ARCHIVE, start_report_file)
 
-            # Remove first report file manually
-            if not self.conf['keep intermediate files']:
-                os.remove(start_report_file)
+            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+            self.session.start_job_decision(core.job.JOB_FORMAT, core.job.JOB_ARCHIVE)
 
             self.mqs['report files'] = multiprocessing.Manager().Queue()
+
             os.makedirs('child resources'.encode('utf8'))
+
             self.uploading_reports_process = Reporter(self.conf, self.logger, self.ID, self.callbacks, self.mqs,
                                                       {'report id': self.report_id}, session=self.session)
             self.uploading_reports_process.start()
+
+            self.get_comp_desc()
+            core.utils.report(self.logger,
+                              'start',
+                              {
+                                  'identifier': self.ID,
+                                  'parent': None,
+                                  'component': type(self).__name__,
+                                  'attrs': [{
+                                      'name': 'Klever Core version',
+                                      'value': self.get_version()
+                                  }],
+                                  'computer': self.comp
+                              },
+                              self.mqs['report files'],
+                              self.report_id,
+                              self.conf['main working directory'])
+
             core.job.start_jobs(self, {
                 'report id': self.report_id,
                 'coverage_finished': multiprocessing.Manager().dict()
@@ -104,9 +110,9 @@ class Core(core.components.CallbacksCaller):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': self.ID + '/unknown',
-                                          'parent id': self.ID,
-                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
+                                          'identifier': self.ID + '/unknown',
+                                          'parent': self.ID,
+                                          'problem_description': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.report_id,
@@ -126,11 +132,9 @@ class Core(core.components.CallbacksCaller):
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
                     child_resources = core.components.all_child_resources()
-                    report = {
-                        'id': self.ID,
-                        'resources': core.components.count_consumed_resources(self.logger, self.start_time,
-                                                                              child_resources=child_resources)
-                    }
+                    report = {'identifier': self.ID}
+                    report.update(core.components.count_consumed_resources(self.logger, self.start_time,
+                                                                           child_resources=child_resources))
 
                     if os.path.isfile('log.txt'):
                         report['log'] = core.utils.ReportFiles(['log.txt'])
@@ -251,7 +255,7 @@ class Core(core.components.CallbacksCaller):
     def get_comp_desc(self):
         self.logger.info('Get computer description')
 
-        self.comp = tuple([
+        entities = tuple([
             {entity_name_cmd[0]: core.utils.get_entity_val(self.logger, entity_name_cmd[0], entity_name_cmd[1])}
             for entity_name_cmd in (
                 ('node name', 'uname -n'),
@@ -264,8 +268,17 @@ class Core(core.components.CallbacksCaller):
             ])
 
         # Add computer description to configuration since it can be used by (sub)components.
-        for entity in self.comp:
+        for entity in entities:
             self.conf.update(entity)
+
+        # Represent memory size for users more pretty.
+        entities[3]['memory size'] = '{0} GB'.format(int(entities[3]['memory size'] / 10 ** 9))
+
+        self.comp = {
+            'identifier': hashlib.sha224(json.dumps(entities).encode('utf8')).hexdigest(),
+            'display': entities[0]['node name'],
+            'data': entities[1:]
+        }
 
     def process_exception(self):
         self.exit_code = 1

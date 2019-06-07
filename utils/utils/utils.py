@@ -54,7 +54,7 @@ class Session:
         self.session = requests.Session()
 
         # Sign in
-        resp = self.__request('service/signin/', 'POST', data={
+        resp = self.__request('service/get_token/', 'POST', data={
             'username': self._username, 'password': self._password
         })
         self.session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})

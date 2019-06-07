@@ -15,28 +15,28 @@
 # limitations under the License.
 #
 
-import re
 import json
 from collections import OrderedDict
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.functional import cached_property
 
 from bridge.utils import ArchiveFileContent, BridgeException
 
-from reports.models import ReportUnsafe, ReportComponent, ReportComponentLeaf
+from reports.models import ReportUnsafe, ReportComponentLeaf
 
+ETV_FORMAT = 1
 
 HIGHLIGHT_CLASSES = {
     'number': 'ETVNumber',
     'comment': 'ETVComment',
     'text': 'ETVText',
     'key1': 'ETVKey1',
-    'key2': 'ETVKey2'
+    'key2': 'ETVKey2',
+    'function': 'ETVKey3'
 }
 
 
@@ -50,11 +50,13 @@ SOURCE_CLASSES = {
     'key2': "ETVKey2"
 }
 
+# TODO: remove
 KEY1_WORDS = [
     '#ifndef', '#elif', '#undef', '#ifdef', '#include', '#else', '#define',
     '#if', '#pragma', '#error', '#endif', '#line'
 ]
 
+# TODO: remove
 KEY2_WORDS = [
     'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'break', 'inline', 'for', 'default', 'else', 'const',
     'switch', 'continue', 'do', 'union', 'extern', 'int', 'void', 'case', 'enum', 'short', 'float', 'struct', 'auto',
@@ -66,526 +68,116 @@ THREAD_COLORS = [
 ]
 
 
-def fix_for_html(source):
-    return source.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+class SourceLine:
+    ref_to_class = 'ETVRefToLink'
+    ref_from_class = 'ETVRefFromLink'
 
+    def __init__(self, source, highlights=None, references_to=None, references_from=None):
+        self._source = source
+        self._source_len = len(source)
+        self._highlights = self.__get_highlights(highlights)
+        self.references_data = {}
+        self._references = self.__get_references(references_to, references_from)
+        self.html_code = self.__to_html()
 
-def highlight_source(source, highlights):
-    if not highlights:
-        return fix_for_html(source)
+    def __get_highlights(self, highlights):
+        if not highlights:
+            highlights = []
 
-    h_dict = OrderedDict()
+        h_dict = OrderedDict()
+        prev_end = 0
+        for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
+            assert isinstance(start, int) and isinstance(end, int)
+            assert prev_end <= start < end
+            assert h_name in HIGHLIGHT_CLASSES
+            if prev_end < start:
+                h_dict[(prev_end, start)] = None
+            h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
+            prev_end = end
+        if prev_end < self._source_len:
+            h_dict[(prev_end, self._source_len)] = None
+        elif prev_end > self._source_len:
+            raise ValueError('Sources length is not enough to highlight code')
+        return h_dict
 
-    # Validate highlights
-    source_len = len(source)
-    prev_end = 0
-    for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
-        assert isinstance(start, int) and isinstance(end, int)
-        assert prev_end <= start < end
-        assert h_name in HIGHLIGHT_CLASSES
-        if prev_end < start:
-            h_dict[(prev_end, start)] = None
-        h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
-        prev_end = end
-    if prev_end < source_len:
-        h_dict[(prev_end, source_len)] = None
-    elif prev_end > source_len:
-        raise ValueError
+    def __get_references(self, references_to, references_from):
+        if not references_to:
+            references_to = []
+        if not references_from:
+            references_from = []
+        references = []
+        for (line_num, ref_start, ref_end), (file_ind, file_line) in references_to:
+            references.append([ref_start, ref_end, {
+                'span_class': self.ref_to_class,
+                'span_data': {'file': file_ind, 'line': file_line}
+            }])
 
-    result = ''
-    for start, end in reversed(h_dict):
-        code = fix_for_html(source[start:end])
-        code_class = h_dict[(start, end)]
-        if code_class is not None:
-            code = '<span class="%s">%s</span>' % (code_class, code)
-        result = code + result
-    return result
+        for ref_data in references_from:
+            line_num, ref_start, ref_end = ref_data[0]
+            ref_from_id = 'reflink_{}_{}_{}'.format(*ref_data[0])
+            references.append([ref_start, ref_end, {
+                'span_class': self.ref_from_class,
+                'span_data': {'id': ref_from_id}
+            }])
 
+            self.references_data[ref_from_id] = []
+            for file_ind, file_lines in ref_data[1:]:
+                for file_line in file_lines:
+                    self.references_data[ref_from_id].append((file_ind, file_line))
+        references.sort(key=lambda x: (x[0], x[1]), reverse=True)
 
-def get_error_trace_nodes(data):
-    err_path = []
-    must_have_thread = False
-    curr_node = data['violation nodes'][0]
-    if not isinstance(data['nodes'][curr_node][0], int):
-        raise ValueError('Error traces with one path are supported')
-    while curr_node != data['entry node']:
-        if not isinstance(data['nodes'][curr_node][0], int):
-            raise ValueError('Error traces with one path are supported')
-        curr_in_edge = data['edges'][data['nodes'][curr_node][0]]
-        if 'thread' in curr_in_edge:
-            must_have_thread = True
-        elif must_have_thread:
-            raise ValueError("All error trace edges must have thread identifier ('0' or '1')")
-        err_path.insert(0, data['nodes'][curr_node][0])
-        curr_node = curr_in_edge['source node']
-    return err_path
+        prev_end = 0
+        for ref_start, ref_end, span_kwargs in references:
+            assert prev_end <= ref_start < ref_end
+            prev_end = ref_end
+        assert prev_end <= self._source_len
+        return references
 
+    def __get_code(self, start, end):
+        code = self._source[start:end]
+        code_list = []
+        for ref_start, ref_end, span_kwargs in self._references:
+            if start <= ref_end < end:
+                ref_end_rel = ref_end - start
+                code_list.append(self.__fix_for_html(code[ref_end_rel:]))
+                code_list.append(self._span_close)
+                code = code[:ref_end_rel]
+            if start <= ref_start < end:
+                ref_start_rel = ref_start - start
+                code_list.append(self.__fix_for_html(code[ref_start_rel:]))
+                code_list.append(self.__span_open(**span_kwargs))
+                code = code[:ref_start_rel]
+        code_list.append(self.__fix_for_html(code))
+        return ''.join(reversed(code_list))
 
-class ScopeInfo:
-    def __init__(self, cnt, thread_id):
-        self.initialised = False
-        self._cnt = cnt
-        # (index, is_action, thread, counter)
-        self._stack = []
-        # Klever main
-        self._main_scope = (0, 0, thread_id, 0)
-        self._shown = {self._main_scope}
-        self._hidden = set()
+    def __to_html(self):
+        result = ''
+        for start, end in reversed(self._highlights):
+            code = self.__get_code(start, end)
+            code_class = self._highlights[(start, end)]
+            if code_class is not None:
+                code = '{}{}{}'.format(self.__span_open(span_class=code_class), code, self._span_close)
+            result = code + result
+        return result
 
-    def current(self):
-        if len(self._stack) == 0:
-            if self.initialised:
-                return '_'.join(str(x) for x in self._main_scope)
-            else:
-                return 'global'
-        return '_'.join(str(x) for x in self._stack[-1])
+    def __fix_for_html(self, code):
+        return code.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-    def add(self, index, thread_id, is_action=False):
-        self._cnt += 1
-        scope_id = (index, int(is_action), thread_id, self._cnt)
-        self._stack.append(scope_id)
-        if len(self._stack) == 1:
-            self._shown.add(scope_id)
-
-    def remove(self):
-        curr_scope = self.current()
-        self._stack.pop()
-        return curr_scope
-
-    def show_current_scope(self, comment_type):
-        if not self.initialised:
-            return
-        if comment_type == 'note':
-            if all(ss not in self._hidden for ss in self._stack):
-                for ss in self._stack:
-                    if ss not in self._shown:
-                        self._shown.add(ss)
-        elif comment_type in {'warning', 'callback action', 'entry_point'}:
-            for ss in self._stack:
-                if ss not in self._shown:
-                    self._shown.add(ss)
-
-    def hide_current_scope(self):
-        self._hidden.add(self._stack[-1])
-
-    def offset(self):
-        if len(self._stack) == 0:
-            return ' '
-        return (len(self._stack) * TAB_LENGTH + 1) * ' '
-
-    def is_shown(self, scope_str):
-        try:
-            return tuple(int(x) for x in scope_str.split('_')) in self._shown
-        except ValueError:
-            return scope_str == 'global' and scope_str in self._shown
-
-    def current_action(self):
-        if len(self._stack) > 0 and self._stack[-1][1]:
-            return self._stack[-1][0]
-        return None
-
-    def is_return_correct(self, func_id):
-        if len(self._stack) == 0:
-            return False
-        if self._stack[-1][1]:
-            return False
-        if func_id is None or self._stack[-1][0] == func_id:
-            return True
-        return False
-
-    def is_double_return_correct(self, func_id):
-        if len(self._stack) < 2:
-            return False
-        if self._stack[-2][1]:
-            if len(self._stack) < 3:
-                return False
-            if self._stack[-3][0] == func_id:
-                return True
-        elif self._stack[-2][0] == func_id:
-            return True
-        return False
-
-    def can_return(self):
-        if len(self._stack) > 0:
-            return True
-        return False
-
-    def is_main(self, scope_str):
-        if scope_str == '_'.join(str(x) for x in self._main_scope):
-            return True
-        return False
-
-
-class ParseErrorTrace:
-    def __init__(self, data, include_assumptions, thread_id, triangles, cnt=0):
-        self.files = list(data['files']) if 'files' in data else []
-        self.actions = list(data['actions']) if 'actions' in data else []
-        self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
-        self.functions = list(data['funcs']) if 'funcs' in data else []
-        self.include_assumptions = include_assumptions
-        self.triangles = triangles
-        self.thread_id = thread_id
-        self.scope = ScopeInfo(cnt, thread_id)
-        self.global_lines = []
-        self.lines = []
-        self.curr_file = None
-        self.max_line_length = 5
-        self.assume_scopes = {}
-        self.double_return = set()
-        self._amp_replaced = False
-
-    def add_line(self, edge):
-        line = str(edge['start line']) if 'start line' in edge else None
-        code = edge['source'] if 'source' in edge and len(edge['source']) > 0 else None
-        if 'file' in edge:
-            self.curr_file = self.files[edge['file']]
-        if self.curr_file is None:
-            line = None
-        if line is not None and len(line) > self.max_line_length:
-            self.max_line_length = len(line)
-        line_data = {
-            'line': line,
-            'file': self.curr_file,
-            'code': code,
-            'offset': self.scope.offset(),
-            'type': 'normal'
-        }
-
-        line_data.update(self.__add_assumptions(edge.get('assumption')))
-        line_data['scope'] = self.scope.current()
-        if not self.scope.initialised:
-            if 'enter' in edge:
-                raise ValueError("Global initialization edge can't contain enter")
-            if line_data['code'] is not None:
-                line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
-                self.global_lines.append(line_data)
-            return
-
-        if 'condition' in edge:
-            line_data['code'] = self.__get_condition_code(line_data['code'])
-
-        curr_action = self.scope.current_action()
-        new_action = edge.get('action')
-        if curr_action != new_action:
-            if curr_action is not None:
-                # Return from action
-                self.lines.append(self.__triangle_line(self.scope.remove()))
-                line_data['offset'] = self.scope.offset()
-                line_data['scope'] = self.scope.current()
-            action_line = line_data['line']
-            action_file = None
-            if 'original start line' in edge and 'original file' in edge:
-                action_line = str(edge['original start line'])
-                if len(action_line) > self.max_line_length:
-                    self.max_line_length = len(action_line)
-                action_file = self.files[edge['original file']]
-            line_data.update(self.__enter_action(new_action, action_line, action_file))
-
-        line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
-
-        if 'enter' in edge:
-            line_data.update(self.__enter_function(
-                edge['enter'], code=line_data['code'], comment=edge.get('entry_point')
-            ))
-            if any(x in edge for x in ['note', 'warn']):
-                self.scope.hide_current_scope()
-            if 'return' in edge:
-                if edge['enter'] == edge['return']:
-                    self.__return()
-                    return
-                else:
-                    if not self.scope.is_double_return_correct(edge['return']):
-                        raise ValueError('Double return from "%s" is not allowed while entering "%s"' % (
-                            self.functions[edge['return']], self.functions[edge['enter']]
-                        ))
-                    self.double_return.add(self.scope.current())
-        elif 'return' in edge:
-            self.lines.append(line_data)
-            self.__return(edge['return'])
-            return
-        if line_data['code'] is not None:
-            self.lines.append(line_data)
-
-    def __update_line_data(self):
-        return {'offset': self.scope.offset(), 'scope': self.scope.current()}
-
-    def __enter_action(self, action_id, line, file):
-        if action_id is None:
-            return {}
-        if file is None:
-            file = self.curr_file
-        if action_id in self.callback_actions:
-            self.scope.show_current_scope('callback action')
-        enter_action_data = {
-            'line': line, 'file': file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
-            'code': '<span class="%s">%s</span>' % (
-                'ETV_CallbackAction' if action_id in self.callback_actions else 'ETV_Action',
-                self.actions[action_id]
-            )
-        }
-        enter_action_data.update(self.__enter_function(action_id))
-        if action_id in self.callback_actions:
-            enter_action_data['type'] = 'callback'
-        self.lines.append(enter_action_data)
-        return {'offset': self.scope.offset(), 'scope': self.scope.current()}
-
-    def __enter_function(self, func_id, code=None, comment=None):
-        self.scope.add(func_id, self.thread_id, (code is None))
-        enter_data = {'type': 'enter', 'hide_id': self.scope.current()}
-        if code is not None:
-            if comment is None:
-                enter_data['comment'] = self.functions[func_id]
-                enter_data['comment_class'] = 'ETV_Fname'
-            else:
-                self.scope.show_current_scope('entry_point')
-                enter_data['comment'] = comment
-                enter_data['comment_class'] = 'ETV_Fcomment'
-            enter_data['code'] = re.sub(
-                '(^|\W)' + self.functions[func_id] + '(\W|$)',
-                '\g<1><span class="ETV_Fname">' + self.functions[func_id] + '</span>\g<2>',
-                code
-            )
-        return enter_data
-
-    def __triangle_line(self, return_scope):
-        data = {'offset': self.scope.offset(), 'line': None, 'scope': return_scope, 'type': 'return'}
-        if self.scope.is_shown(return_scope):
-            data['code'] = '<span><i class="ui mini icon blue caret up"></i></span>'
-            if not self.triangles:
-                data['type'] = 'hidden-return'
-        else:
-            data['code'] = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
-        return data
-
-    def __return(self, func_id=None, if_possible=False):
-        if self.scope.current_action() is not None:
-            # Return from action first
-            self.lines.append(self.__triangle_line(self.scope.remove()))
-        if not self.scope.is_return_correct(func_id):
-            if if_possible:
-                return
-            func_name = 'NONE'
-            if func_id is not None:
-                func_name = self.functions[func_id]
-            raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                func_name, self.scope.current()
-            ))
-        return_scope = self.scope.remove()
-        self.lines.append(self.__triangle_line(return_scope))
-        if return_scope in self.double_return:
-            self.double_return.remove(return_scope)
-            self.__return()
-
-    def __return_all(self):
-        while self.scope.can_return():
-            self.__return(if_possible=True)
-
-    def __get_comment(self, note, warn):
-        new_data = {}
-        if warn is not None:
-            self.scope.show_current_scope('warning')
-            new_data['warning'] = warn
-        elif note is not None:
-            self.scope.show_current_scope('note')
-            new_data['note'] = note
-        return new_data
-
-    def __add_assumptions(self, assumption):
-        if self.include_assumptions and assumption is None:
-            return self.__fill_assumptions([])
-
-        if not self.include_assumptions:
-            return {}
-
-        ass_scope = self.scope.current()
-        if ass_scope not in self.assume_scopes:
-            self.assume_scopes[ass_scope] = []
-
-        curr_assumes = []
-        for assume in assumption.split(';'):
-            if len(assume) == 0:
-                continue
-            self.assume_scopes[ass_scope].append(assume)
-            curr_assumes.append('%s_%s' % (ass_scope, str(len(self.assume_scopes[ass_scope]) - 1)))
-        return self.__fill_assumptions(curr_assumes)
-
-    def __fill_assumptions(self, current_assumptions):
-        assumptions = []
-        curr_scope = self.scope.current()
-        if curr_scope in self.assume_scopes:
-            for j in range(len(self.assume_scopes[curr_scope])):
-                assume_id = '%s_%s' % (curr_scope, j)
-                if assume_id in current_assumptions:
-                    continue
-                assumptions.append(assume_id)
-        return {'assumptions': ';'.join(reversed(assumptions)), 'current_assumptions': ';'.join(current_assumptions)}
-
-    def __get_condition_code(self, code):
-        self.__is_not_used()
-        m = re.match('^\s*\[(.*)\]\s*$', code)
-        if m is not None:
-            code = m.group(1)
-        return '<span class="ETV_CondAss">assume(</span>' + str(code) + '<span class="ETV_CondAss">);</span>'
-
-    def finish_error_lines(self, thread, thread_id):
-        self.__return_all()
-        if len(self.global_lines) > 0:
-            self.lines = [{
-                'code': '', 'line': None, 'file': None, 'offset': ' ',
-                'hide_id': 'global', 'scope': 'global', 'type': 'normal'
-            }] + self.global_lines + self.lines
-        for i in range(0, len(self.lines)):
-            if 'thread_id' in self.lines[i]:
-                continue
-            self.lines[i]['thread_id'] = thread_id
-            self.lines[i]['thread'] = thread
-            if self.lines[i]['code'] is None:
-                continue
-            if self.lines[i]['line'] is None:
-                self.lines[i]['line_offset'] = ' ' * self.max_line_length
-            else:
-                self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
-            self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
-            self._amp_replaced = False
-
-            if not self.scope.is_main(self.lines[i]['scope']):
-                if self.lines[i]['type'] == 'normal' and self.scope.is_shown(self.lines[i]['scope']):
-                    self.lines[i]['type'] = 'eye-control'
-                elif self.lines[i]['type'] == 'enter' and not self.scope.is_shown(self.lines[i]['hide_id']):
-                    self.lines[i]['type'] = 'eye-control'
-                    if 'comment' in self.lines[i]:
-                        del self.lines[i]['comment']
-                    if 'comment_class' in self.lines[i]:
-                        del self.lines[i]['comment_class']
-            a = 'warning' in self.lines[i]
-            b = 'note' in self.lines[i]
-            c = not self.scope.is_shown(self.lines[i]['scope'])
-            d = 'hide_id' not in self.lines[i]
-            e = 'hide_id' in self.lines[i] and not self.scope.is_shown(self.lines[i]['hide_id'])
-            f = self.lines[i]['type'] == 'eye-control' and self.lines[i]['scope'] != 'global'
-            if a or b and (c or d or e) or not a and not b and c and (d or e) or f:
-                self.lines[i]['hidden'] = True
-            if e:
-                self.lines[i]['collapsed'] = True
-            if a or b:
-                self.lines[i]['commented'] = True
-            if b and c and self.lines[i]['scope'] != 'global':
-                self.lines[i]['note_hidden'] = True
-
-    def __wrap_code(self, code, code_type):
-        self.__is_not_used()
-        if code_type in SOURCE_CLASSES:
-            return '<span class="%s">%s</span>' % (SOURCE_CLASSES[code_type], code)
-        return code
-
-    def __parse_code(self, code):
-        if len(code) > 512:
-            return '<span style="color: red;">The line is too long to visualize</span>'
-        m = re.match('^(.*?)(<span.*?</span>)(.*)$', code)
-        if m is not None:
-            return "%s%s%s" % (
-                self.__parse_code(m.group(1)),
-                m.group(2),
-                self.__parse_code(m.group(3))
-            )
-        if not self._amp_replaced:
-            code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            self._amp_replaced = True
-        m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
-        if m is not None:
-            return "%s%s%s" % (
-                self.__parse_code(m.group(1)),
-                self.__wrap_code(m.group(2), 'comment'),
-                self.__parse_code(m.group(3))
-            )
-        m = re.match('^(.*?)([\'\"])(.*)$', code)
-        if m is not None:
-            m2 = re.match(r'^(.*?)(?<!\\)(?:\\\\)*%s(.*)$' % m.group(2), m.group(3))
-            if m2 is not None:
-                return "%s%s%s" % (
-                    self.__parse_code(m.group(1)),
-                    self.__wrap_code(m.group(2) + m2.group(1) + m.group(2), 'text'),
-                    self.__parse_code(m2.group(2))
+    def __span_open(self, span_class=None, span_data=None):
+        span_str = '<span'
+        if span_class:
+            span_str += ' class="{}"'.format(span_class)
+        if span_data:
+            for data_key, data_value in span_data.items():
+                span_str += ' data-{}="{}"'.format(
+                    data_key, data_value if data_value is not None else 'null'
                 )
-        m = re.match('^(.*?\W)(\d+)(\W.*)$', code)
-        if m is not None:
-            return "%s%s%s" % (
-                self.__parse_code(m.group(1)),
-                self.__wrap_code(m.group(2), 'number'),
-                self.__parse_code(m.group(3))
-            )
-        words = re.split('([^a-zA-Z0-9-_#])', code)
-        new_words = []
-        for word in words:
-            if word in KEY1_WORDS:
-                new_words.append(self.__wrap_code(word, 'key1'))
-            elif word in KEY2_WORDS:
-                new_words.append(self.__wrap_code(word, 'key2'))
-            else:
-                new_words.append(word)
-        return ''.join(new_words)
+        span_str += '>'
+        return span_str
 
-    def __is_not_used(self):
-        pass
-
-
-class GetETVOld:
-    def __init__(self, error_trace, user=None):
-        self.include_assumptions = user.assumptions if user else settings.DEF_USER['assumptions']
-        self.triangles = user.triangles if user else settings.DEF_USER['triangles']
-        self.data = json.loads(error_trace)
-        self.err_trace_nodes = get_error_trace_nodes(self.data)
-        self.threads = []
-        self._has_global = True
-        self.html_trace, self.assumes = self.__html_trace()
-        self.attributes = []
-
-    def __get_attributes(self):
-        # TODO: return list of error trace attributes like [<attr name>, <attr value>]. Ignore 'programfile'.
-        pass
-
-    def __html_trace(self):
-        for n in self.err_trace_nodes:
-            if 'thread' not in self.data['edges'][n]:
-                raise ValueError('All error trace edges should have thread')
-            if self.data['edges'][n]['thread'] not in self.threads:
-                self.threads.append(self.data['edges'][n]['thread'])
-            if self.threads[0] == self.data['edges'][n]['thread'] and 'enter' in self.data['edges'][n]:
-                self._has_global = False
-
-        return self.__add_thread_lines(0, 0)[0:2]
-
-    def __add_thread_lines(self, i, start_index):
-        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
-        if i > 0 or not self._has_global:
-            parsed_trace.scope.initialised = True
-        trace_assumes = []
-        j = start_index
-        while j < len(self.err_trace_nodes):
-            edge_data = self.data['edges'][self.err_trace_nodes[j]]
-            curr_t = self.threads.index(edge_data['thread'])
-            if curr_t > i:
-                (new_lines, new_assumes, j) = self.__add_thread_lines(curr_t, j)
-                parsed_trace.lines.extend(new_lines)
-                trace_assumes.extend(new_assumes)
-            elif curr_t < i:
-                break
-            else:
-                parsed_trace.add_line(edge_data)
-                j += 1
-        parsed_trace.finish_error_lines(self.__get_thread(i), i)
-
-        for sc in parsed_trace.assume_scopes:
-            as_cnt = 0
-            for a in parsed_trace.assume_scopes[sc]:
-                trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
-                as_cnt += 1
-        return parsed_trace.lines, trace_assumes, j
-
-    def __get_thread(self, thread):
-        return '%s<span style="background-color:%s;"> </span>%s' % (
-            ' ' * thread, THREAD_COLORS[thread % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread - 1)
-        )
+    @property
+    def _span_close(self):
+        return '</span>'
 
 
 class GetETV:
@@ -799,35 +391,8 @@ class GetETV:
         }
 
     def __parse_source(self, node):
-        source = node['source']
-        highlights = node.get('highlight', [])
-        h_dict = OrderedDict()
-
-        # Validate highlights
-        source_len = len(source)
-        prev_end = 0
-        for h_name, start, end in sorted(highlights, key=lambda x: (x[1], x[2])):
-            assert isinstance(start, int) and isinstance(end, int)
-            assert prev_end <= start < end
-            assert h_name in HIGHLIGHT_CLASSES
-            if prev_end < start:
-                h_dict[(prev_end, start)] = None
-            h_dict[(start, end)] = HIGHLIGHT_CLASSES[h_name]
-            prev_end = end
-        if prev_end < source_len:
-            h_dict[(prev_end, source_len)] = None
-        elif prev_end > source_len:
-            raise ValueError
-
-        result = ''
-        for start, end in reversed(h_dict):
-            result = self.__wrap_code(source[start:end], h_dict[(start, end)]) + result
-        return result
-
-    def __wrap_code(self, code, code_class=None):
-        if code_class is None:
-            return code
-        return '<span class="%s">%s</span>' % (code_class, code)
+        src_line = SourceLine(node['source'], highlights=node.get('highlight', []))
+        return src_line.html_code
 
     def __get_line(self, line=None):
         line_str = '' if line is None else str(line)
@@ -903,9 +468,11 @@ class GetSource:
             try:
                 index_res = ArchiveFileContent(obj, 'archive', index_name, not_exists_ok=True)
             except Exception as e:
-                raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
+                raise BridgeException(_("Error while extracting source indexing: %(error)s") % {'error': str(e)})
             if index_res.content is not None:
-                index_data = json.loads(res.content.decode('utf8'))
+                index_data = json.loads(index_res.content.decode('utf8'))
+                if index_data.get('format') != ETV_FORMAT:
+                    raise BridgeException(_('Sources indexing format is not supported'))
         return source_content, index_data
 
     def __get_source(self):
@@ -931,17 +498,54 @@ class GetSource:
         highlights = {}
         if index_data and 'highlight' in index_data:
             for h_name, line_num, start, end in index_data['highlight']:
-                highlights[line_num] = [h_name, start, end]
+                highlights.setdefault(line_num, [])
+                highlights[line_num].append((h_name, start, end))
+
+        references_to = {}
+        if index_data and 'referencesto' in index_data:
+            for ref_data in index_data['referencesto']:
+                line_num = ref_data[0][0]
+                references_to.setdefault(line_num, [])
+                references_to[line_num].append(ref_data)
+
+        references_from = {}
+        if index_data and 'referencesfrom' in index_data:
+            for ref_data in index_data['referencesfrom']:
+                line_num = ref_data[0][0]
+                references_from.setdefault(line_num, [])
+                references_from[line_num].append(ref_data)
+
+        references_data = {}
 
         data = ''
         cnt = 1
         lines = file_content.split('\n')
         total_lines_len = len(str(len(lines)))
         for code in lines:
+            src_line = SourceLine(
+                code, highlights=highlights.get(cnt),
+                references_to=references_to.get(cnt),
+                references_from=references_from.get(cnt)
+            )
+            references_data.update(src_line.references_data)
             data += '<span><span id="{line_id}" class="{line_class}">{prefix}{number}</span> {code}</span><br>'.format(
                 line_id='ETVSrcL_{}'.format(cnt), line_class=SOURCE_CLASSES['line'],
                 prefix=' ' * (total_lines_len - len(str(cnt))), number=cnt,
-                code=highlight_source(code, highlights.get(cnt))
+                code=src_line.html_code
             )
             cnt += 1
+
+        for ref_id, ref_links in references_data.items():
+            data += '<span id="{}" hidden>'.format(ref_id)
+            for ref_file_ind, ref_file_line in ref_links:
+                data += '<span class="ETVRefLink" data-file={file} data-line={line}>{file}: {line}</span><br>'.format(
+                    file=index_data['source files'][ref_file_ind], line=ref_file_line
+                )
+            data += '</span>'
+        if references_data:
+            data += '<div id="source_references_links" class="ui small popup"></div>'
+
+        if index_data and 'source files' in index_data:
+            for file_ind, file_name in enumerate(index_data['source files']):
+                data += '<span id="source_file_{}" hidden>{}</span>'.format(file_ind, file_name)
         return data

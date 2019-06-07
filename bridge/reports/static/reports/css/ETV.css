@@ -19,24 +19,23 @@
     width: 100%;
     position: absolute;
     left: 0;
-    top: 35px;
+    top: 0;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
-    border-top: 1px solid #ca8f1d;
 }
 #ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
+    top: 0;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
     font-family: monospace;
     overflow: auto;
     white-space: nowrap;
-    border-top: 1px solid #ca8f1d;
-    top: 35px;
+    margin: 0 0 0 2px;
 }
 
 #ETV_assumes {
@@ -51,13 +50,17 @@
     overflow-y: auto;
 }
 .ETVTitleBlock {
-    height: 50px;
+    /*height: 50px;*/
     white-space: nowrap;
-    overflow-x: hidden;
+    overflow: hidden;
+}
+#ETVSourceTitle {
+    float: right;
+    margin-right: 15px;
 }
 
 #etv {
-    height: 70vh;
+    height: 60vh;
     position: relative;
 }
 
@@ -147,6 +150,10 @@
 .ETVKey2 {
     color: #291fbf;
     font-weight: bold;
+}
+
+.ETVKey3 {
+    color: #67238f;
 }
 
 .ETVSelectedLine {
@@ -269,4 +276,23 @@
 
 .ETV_NewAssumption {
     color: red;
+}
+
+.ETVRefToLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.ETVRefFromLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.ETVRefLink {
+    cursor: pointer;
+    color: #16219e;
+}
+
+.ETVRefLink:hover {
+    color: #465bff;
 }

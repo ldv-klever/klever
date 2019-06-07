@@ -22,6 +22,7 @@ import uuid
 from multiprocessing import Process, Value, Manager, Pipe
 import random
 import requests
+import re
 import time
 from io import BytesIO
 
@@ -1005,7 +1006,7 @@ class DecideJobs:
 
     def __login(self):
         session = requests.Session()
-        resp = session.post(self._base_url + '/service/signin/', data={
+        resp = session.post(self._base_url + '/service/get_token/', data={
             'username': self._username, 'password': self._password
         })
         if resp.status_code != 200:
@@ -1063,7 +1064,10 @@ class DecideJobs:
     def __process_message(self, conn):
         while True:
             msg = conn.recv()
-            job_uuid, job_status = msg.split(',')
+            m = re.match(r'^(\w+)\s(.*):\s(.*)$', msg)
+            if not m or m.group(1) != 'job':
+                continue
+            job_uuid, job_status = m.group(2), m.group(3)
             if job_status == '1':
                 self.__decide(job_uuid)
             elif job_status == '5':
@@ -1080,7 +1084,7 @@ class DecideJob:
 
         self._progress_url = '/service/progress/{}/'.format(self._job_uuid)
         self._upload_url = '/reports/api/upload/{}/'.format(self._job_uuid)
-        self._original = 'test-original-sources-id'
+        self._original = 'test-original-sources-id-3'
 
         self.reports_data = reports_data
         self.full_coverage = with_full_coverage
@@ -1098,7 +1102,7 @@ class DecideJob:
 
     def __login(self, username, password):
         session = requests.Session()
-        resp = session.post(self.base_url + '/service/signin/', data={'username': username, 'password': password})
+        resp = session.post(self.base_url + '/service/get_token/', data={'username': username, 'password': password})
         if resp.status_code != 200:
             raise ResponseError(resp.json())
         session.headers.update({'Authorization': 'Token {}'.format(resp.json()['token'])})
@@ -1365,6 +1369,7 @@ class DecideJob:
         if any('chunks' in chunk for chunk in self.reports_data):
             for subjob in self.reports_data:
                 core_coverage.update(self.__upload_subjob(subjob, core_id))
+                self._progress_data['subjobs']['solved'] += 1
                 self.__upload_progress()
         else:
             self.__upload_chunks(core_id)
@@ -1404,6 +1409,8 @@ class DecideJob:
             ], failed=(chunk.get('fail') == 'RP'))
             self.__upload_verdicts(rp, chunk)
             self.__upload_finish_report(rp)
+            self._progress_data['tasks']['solved'] += 1
+            self.__upload_progress()
         self.__upload_finish_report(vrp)
 
         if self.full_coverage:

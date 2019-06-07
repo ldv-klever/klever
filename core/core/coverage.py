@@ -220,7 +220,7 @@ class JCR(core.components.Component):
                                       {
                                           # This isn't great to build component identifier in such the artificial way.
                                           # But otherwise we need to pass it everywhere like "sub-job identifier".
-                                          'id': os.path.join(os.path.sep, sub_job_id),
+                                          'identifier': os.path.join(os.path.sep, sub_job_id),
                                           'coverage': total_coverages
                                       },
                                       self.mqs['report files'],

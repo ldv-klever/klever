@@ -50,7 +50,7 @@ class JobsPopulation:
 
             data = self.__get_settings_data(job_settings_file)
 
-            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data.get('production'):
+            if settings.POPULATE_JUST_PRODUCTION_PRESETS and not data['production']:
                 # Do not populate non-production jobs
                 continue
 
@@ -109,6 +109,8 @@ class JobsPopulation:
                 logger.exception(e)
                 raise BridgeException('Job identifier has wrong format, uuid expected')
 
+        # Is the job for production only?
+        data['production'] = job_settings.get('production', False)
         return data
 
     def __get_file(self, path, fname):
