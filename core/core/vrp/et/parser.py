@@ -140,11 +140,8 @@ class ErrorTraceParser:
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'originfile':
-                    try:
-                        identifier = self.error_trace.add_file(data.text)
-                        _edge['file'] = identifier
-                    except FileNotFoundError:
-                        _edge['file'] = None
+                    identifier = self.error_trace.add_file(data.text)
+                    _edge['file'] = identifier
                 elif data_key == 'startline':
                     _edge['start line'] = int(data.text)
                 elif data_key == 'endline':
