@@ -346,7 +346,7 @@ class ErrorTrace:
                                 if kind in ('AUX_FUNC', 'AUX_FUNC_CALLBACK'):
                                     func_name = comment
                                 else:
-                                    match = re.search(r'(ldv_\w+)', func_decl)
+                                    match = re.search(r'(ldv_\w+|LDV\w+)', func_decl)
                                     if match:
                                         func_name = match.group(1)
                                     else:
