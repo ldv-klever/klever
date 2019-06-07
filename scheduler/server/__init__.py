@@ -15,11 +15,16 @@
 # limitations under the License.
 #
 
-import abc
+import json
+
+import utils.bridge as bridge
 
 
-class AbstractServer(metaclass=abc.ABCMeta):
-    """Start exchange with verification gate."""
+class Server:
+    """Exchange with gateway via net."""
+
+    session = None
+    scheduler_type = None
 
     def __init__(self, logger, conf, work_dir):
         """
@@ -33,35 +38,54 @@ class AbstractServer(metaclass=abc.ABCMeta):
         self.work_dir = work_dir,
         self.logger = logger
 
-
-    @abc.abstractmethod
-    def register(self, scheduler_type):
+    def register(self, scheduler_type=None):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
-        :param scheduler_type: Scheduler type.
+        :param scheduler_type: Scheduler scheduler_type.
+        :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
-        return
+        # Create session
+        self.scheduler_type = scheduler_type
+        self.session = bridge.Session(self.logger, self.conf["name"], self.conf["user"], self.conf["password"])
 
-    @abc.abstractmethod
-    def exchange(self, tasks):
-        """
-        Send to the verification gateway JSON set of solving/solved tasks and get new set back.
+    def pull_job_conf(self, job_identifier):
+        ret = self.session.json_exchange("service/configuration/{}".format(job_identifier), method='GET')
+        return ret
 
-        :param tasks: String with JSON task set inside.
-        :return: String with JSON task set received from the verification Gateway.
-        """
-        return tasks
+    def cancel_job(self, job_identifier):
+        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                   data={"status": "7"})
 
-    @abc.abstractmethod
+    def submit_job_error(self, job_identifier, error):
+        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                   data={"status": "4", "error": error})
+
+    def submit_job_finished(self, job_identifier):
+        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                   data={"status": "3"})
+
+    def submit_processing_task(self, task_identifier):
+        raise NotImplementedError
+
+    def submit_finished_task(self, task_identifier):
+        raise NotImplementedError
+
+    def delete_task(self, task_identifier):
+        raise NotImplementedError
+
+    def submit_task_error(self, task_identifier, error):
+        self.session.json_exchange("service/task-status/{}/".format(task_identifier), method='PATCH',
+                                   data={"status": "7", "error": error})
+
     def pull_task(self, identifier, archive):
         """
         Download verification task data from the verification gateway.
+
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
-        return
+        return self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
 
-    @abc.abstractmethod
     def submit_solution(self, identifier, description, archive):
         """
         Send archive and description of an obtained from VerifierCloud solution to the verification gateway.
@@ -70,31 +94,39 @@ class AbstractServer(metaclass=abc.ABCMeta):
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        return
+        return self.session.push_archive("service/upload_solution/",
+                                         {
+                                             "task id": identifier,
+                                             "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
+                                                                       indent=4)
+                                         },
+                                         archive)
 
-    @abc.abstractmethod
-    def submit_nodes(self, nodes, looping):
+    def submit_nodes(self, nodes, looping=True):
         """
         Send string with JSON description of nodes available for verification in VerifierCloud.
-        :param nodes: String with JSON nodes description.
+
+        :param nodes: List of node descriptions.
         :param looping: Flag that indicates that this request should be attempted until it is successful.
         """
-        return
+        self.session.json_exchange("service/update-nodes/", nodes, looping=looping)
 
-    @abc.abstractmethod
     def submit_tools(self, tools):
         """
         Send string with JSON description of verification tools available for verification in VerifierCloud.
-        :param tools: String with JSON verification tools description.
-        """
-        return
 
-    @abc.abstractmethod
+        :param tools: Dictionary from scheduler configuration {'tool': {'version': path}}.
+        """
+        tools_list = list()
+        for tool in tools.keys():
+            for version in tools[tool]:
+                tools_list.append({'name': tool, 'version': version})
+
+        data = {'scheduler': self.scheduler_type, 'tools': tools_list}
+        self.session.json_exchange("service/update-tools/", data)
+
     def stop(self):
         """
         Log out if necessary.
         """
-        return
-
-
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+        self.session.sign_out()
