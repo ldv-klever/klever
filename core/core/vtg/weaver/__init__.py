@@ -171,6 +171,14 @@ class Weaver(core.vtg.plugins.Plugin):
                                     # All relative file paths are relative to CC working directory.
                                     file = os.path.abspath(os.path.join(os.path.realpath(clade.storage_dir) + cc['cwd'],
                                                                         file))
+                                elif not os.path.isfile(file):
+                                    # Sometimes, e.g. for source files on Windows, their paths are absolute but just on
+                                    # Windows. To make them absolute on Linux we need to prepend them with Clade storage
+                                    # directory.
+                                    file = clade.storage_dir + file
+                                    if not os.path.isfile(file):
+                                        raise FileNotFoundError('Can not find file "{0}" eventually'.format(file))
+
                                 fp_out.write(match.group(1) + file + match.group(3))
                             else:
                                 fp_out.write(line)
