@@ -410,16 +410,10 @@ class LCOV:
                     count_covered_functions = 0
                 elif line.startswith(self.FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
-                    if self.clade.get_meta()['conf'].get('Compiler.preprocess_cmds') and \
-                            not os.path.isfile(line[len(self.FILENAME_PREFIX):]):
-                        file_name = line[len(self.FILENAME_PREFIX):]
-                        # todo: maybe it is better to import clade there and do this properly
-                        real_file_name = os.path.normpath(self.clade.get_storage_path(file_name))
-                    else:
-                        real_file_name = line[len(self.FILENAME_PREFIX):]
-                        real_file_name = os.path.normpath(real_file_name)
-                        file_name = os.path.join(os.path.sep,
-                                                 core.utils.make_relative_path([self.clade.storage_dir], real_file_name))
+                    real_file_name = line[len(self.FILENAME_PREFIX):]
+                    real_file_name = os.path.normpath(real_file_name)
+                    file_name = os.path.join(os.path.sep,
+                                             core.utils.make_relative_path([self.clade.storage_dir], real_file_name))
                     if os.path.isfile(real_file_name) and \
                             all(os.path.commonpath((p, file_name)) != p for p in excluded_dirs):
                         for dest, srcs in dir_map:
