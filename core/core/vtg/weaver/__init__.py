@@ -175,7 +175,7 @@ class Weaver(core.vtg.plugins.Plugin):
                                     # Sometimes, e.g. for source files on Windows, their paths are absolute but just on
                                     # Windows. To make them absolute on Linux we need to prepend them with Clade storage
                                     # directory.
-                                    file = clade.storage_dir + file
+                                    file = clade.get_storage_path(file)
                                     if not os.path.isfile(file):
                                         raise FileNotFoundError('Can not find file "{0}" eventually'.format(file))
 
