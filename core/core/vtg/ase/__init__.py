@@ -87,13 +87,16 @@ class ASE(core.vtg.plugins.Plugin):
                 self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
                 for extra_cc in grp['Extra CCs']:
-                    self.logger.info('Request argument signatures for C file "{0}"'.format(extra_cc['in file']))
+                    infile = extra_cc['in file']
+                    self.logger.info('Request argument signatures for C file "{0}"'.format(infile))
 
                     cc = clade.get_cmd(extra_cc['CC'], with_opts=True)
 
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.realpath(
                         os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0])
+                    self.logger.debug('Argument signature file is "{0}"'
+                                      .format(os.path.relpath(env['LDV_ARG_SIGNS_FILE'])))
 
                     # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
                     # additional argument signatures should be extracted. Like in Weaver.
@@ -102,7 +105,7 @@ class ASE(core.vtg.plugins.Plugin):
 
                         # Resulting request aspect.
                         aspect = '{0}.aspect'.format(core.utils.unique_file_name(os.path.splitext(os.path.basename(
-                            cc['out'][0]))[0], '.aspect'))
+                            infile))[0], '.aspect'))
 
                         # Get all aspects. Place original request aspect at beginning since it can instrument entities
                         # added by aspects of other plugins while corresponding function declarations still need be at
@@ -119,16 +122,19 @@ class ASE(core.vtg.plugins.Plugin):
                                 fout.write(line)
                     else:
                         aspect = request_aspect
-                    storage_path = clade.get_storage_path(cc['in'][0])
-                    if meta['conf'].get('Compiler.preprocess_cmds', False) and 'klever-core-work-dir' not in storage_path:
-                        storage_path = storage_path.split('.c')[0]+'.i'
+
+                    storage_path = clade.get_storage_path(infile)
+                    if meta['conf'].get('Compiler.preprocess_cmds', False) and \
+                            'klever-core-work-dir' not in storage_path:
+                        storage_path = storage_path.split('.c')[0] + '.i'
+
                     core.utils.execute(self.logger,
                                        tuple(['cif',
                                               '--in', storage_path,
                                               '--aspect', os.path.realpath(aspect),
                                               '--stage', 'instrumentation',
                                               '--out', os.path.realpath('{0}.c'.format(core.utils.unique_file_name(
-                                               os.path.splitext(os.path.basename(cc['out'][0]))[0], '.c.aux'))),
+                                               os.path.splitext(os.path.basename(infile))[0], '.c.aux'))),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +
