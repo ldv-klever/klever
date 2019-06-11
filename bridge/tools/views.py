@@ -17,200 +17,172 @@
 
 import os
 
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
-from django.utils.translation import ugettext as _, activate
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.utils.translation import ugettext as _
+from django.views.generic import TemplateView
+
+from rest_framework import exceptions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.renderers import TemplateHTMLRenderer
 
 from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
 from bridge.utils import BridgeException, logger
+from bridge.access import ManagerPermission
 
 from jobs.models import Job, JobFile
-from reports.models import Computer
-# from marks.models import ConvertedTraces
+from reports.models import Computer, OriginalSources
+from marks.models import ConvertedTrace
 from service.models import Task
 from tools.models import LockTable
 
-from tools.utils import objects_without_relations, ClearFiles, Recalculation
-from tools.profiling import unparallel_group, ProfileData, clear_old_logs, ExecLocker
+from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
+from tools.profiling import ProfileData, clear_old_logs, ExecLocker, LoggedCallMixin
 
 
-@login_required
-def manager_tools(request):
-    activate(request.user.language)
-    return render(request, "tools/ManagerPanel.html", {
-        'components': Component.objects.all(),
-        'problems': UnknownProblem.objects.all(),
-        'jobs': Job.objects.exclude(reportroot=None).exclude(
-            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]]
+class ManagerPageView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/ManagerPanel.html'
+
+    def get_context_data(self, **kwargs):
+        if self.request.user.role != USER_ROLES[2][0]:
+            raise PermissionDenied("You don't have an acces to this page")
+        context = super().get_context_data(**kwargs)
+        context['jobs'] = Job.objects.exclude(reportroot=None).exclude(
+            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
         )
-    })
+        return context
 
 
-@login_required
-@unparallel_group([])
-def rename_component(request):
-    activate(request.user.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': _("No access")})
-    try:
-        component = Component.objects.get(pk=int(request.POST.get('component_id', 0)))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _("The component was not found")})
-    new_name = request.POST.get('name', '')
-    if len(new_name) == 0 or len(new_name) > 15:
-        return JsonResponse({'error': _("The component name should be greater than 0 and less than 16 symbols")})
-    if Component.objects.filter(name=new_name).exclude(pk=component.pk).count() > 0:
-        return JsonResponse({'error': _("The specified component name is used already")})
-    component.name = new_name
-    component.save()
-    return JsonResponse({'message': _("The component was successfully renamed")})
+class ClearSystemAPIView(LoggedCallMixin, APIView):
+    unparallel = [JobFile, OriginalSources, ConvertedTrace, Computer]
+    permission_classes = (ManagerPermission,)
+
+    def post(self, request):
+        assert request.user.role == USER_ROLES[2][0]
+        ClearFiles()
+        objects_without_relations(Computer).delete()
+        return Response({'message': _("All unused files and DB rows were deleted")})
 
 
-@login_required
-@unparallel_group([])
-def clear_components(request):
-    activate(request.user.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': _("No access")})
-    objects_without_relations(Component).delete()
-    return JsonResponse({'message': _("All unused components were deleted, please reload the page")})
+class RecalculationAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+    unparallel = [Job]
+
+    def post(self, request):
+        try:
+            Recalculation(request.data['type'], request.data['jobs'])
+        except BridgeException as e:
+            raise exceptions.ValidationError({'error': str(e)})
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException({'error': str(UNKNOWN_ERROR)})
+        return Response({})
 
 
-@login_required
-@unparallel_group([])
-def clear_problems(request):
-    activate(request.user.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': _("No access")})
-    objects_without_relations(UnknownProblem).delete()
-    return JsonResponse({'message': _("All unused problems were deleted, please reload the page")})
+class MarksRecalculationAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+    unparallel = ['MarkSafe', 'MarkUnsafe', 'MarkUnknown']
+
+    def post(self, request):
+        try:
+            RecalculateMarksCache(request.data['type'])
+        except BridgeException as e:
+            raise exceptions.ValidationError({'error': str(e)})
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException({'error': str(UNKNOWN_ERROR)})
+        return Response({})
 
 
-@login_required
-@unparallel_group([JobFile, Computer])
-def clear_system(request):
-    activate(request.user.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': _("No access")})
-    ClearFiles()
-    objects_without_relations(Computer).delete()
-    objects_without_relations(Component).delete()
-    objects_without_relations(UnknownProblem).delete()
-    return JsonResponse({'message': _("All unused files and DB rows were deleted")})
+class CallLogsView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/CallLogs.html'
 
 
-@login_required
-@unparallel_group([Job])
-def recalculation(request):
-    activate(request.user.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': _("No access")})
-    if 'type' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    try:
-        Recalculation(request.POST['type'], request.POST.get('jobs', None))
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'message': _("Caches were successfully recalculated")})
+class CallLogAPIView(APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (ManagerPermission,)
 
+    def post(self, request):
+        action = request.data.get('action')
 
-@login_required
-def view_call_logs(request):
-    activate(request.user.language)
-    return render(request, "tools/CallLogs.html", {})
-
-
-def call_list(request):
-    activate(request.user.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
-        return HttpResponse('<h1>Unknown error</h1>')
-    action = request.POST.get('action')
-    if action == 'between':
-        date1 = None
-        if 'date1' in request.POST:
-            date1 = float(request.POST['date1'])
-        date2 = None
-        if 'date2' in request.POST:
-            date2 = float(request.POST['date2'])
-        data = ProfileData().get_log(date1, date2, request.POST.get('name'))
-    elif action == 'around' and 'date' in request.POST:
-        if 'interval' in request.POST:
-            data = ProfileData().get_log_around(float(request.POST['date']), int(request.POST['interval']))
+        if action == 'between':
+            data = ProfileData().get_log(
+                float(request.data['date1']) if request.data.get('date1') else None,
+                float(request.data['date2']) if request.data.get('date2') else None,
+                request.data.get('name')
+            )
+        elif action == 'around' and 'date' in request.POST:
+            data = ProfileData().get_log_around(
+                float(request.data['date']),
+                int(request.data['interval']) if request.data.get('interval') else None
+            )
         else:
-            data = ProfileData().get_log_around(float(request.POST['date']))
-    else:
-        return HttpResponse('<h1>Unknown error</h1>')
-    return render(request, "tools/LogList.html", {'data': data})
+            raise exceptions.APIException(str(UNKNOWN_ERROR))
+        return Response({'data': data}, template_name='tools/LogList.html')
 
 
-def call_statistic(request):
-    activate(request.user.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
-        return HttpResponse('<h1>Unknown error</h1>')
-    action = request.POST.get('action')
-    data = None
-    if action == 'between':
-        date1 = None
-        if 'date1' in request.POST:
-            date1 = float(request.POST['date1'])
-        date2 = None
-        if 'date2' in request.POST:
-            date2 = float(request.POST['date2'])
-        data = ProfileData().get_statistic(date1, date2, request.POST.get('name'))
-    elif action == 'around' and 'date' in request.POST:
-        if 'interval' in request.POST:
-            data = ProfileData().get_statistic_around(float(request.POST['date']), int(request.POST['interval']))
+class CallStatisticAPIView(APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (ManagerPermission,)
+
+    def post(self, request):
+        action = request.data.get('action')
+
+        if action == 'between':
+            data = ProfileData().get_statistic(
+                float(request.data['date1']) if request.data.get('date1') else None,
+                float(request.data['date2']) if request.data.get('date2') else None,
+                request.data.get('name')
+            )
+        elif action == 'around' and 'date' in request.POST:
+            data = ProfileData().get_statistic_around(
+                float(request.data['date']),
+                int(request.data['interval']) if request.data.get('interval') else None
+            )
         else:
-            data = ProfileData().get_statistic_around(float(request.POST['date']))
-    return render(request, "tools/CallStatistic.html", {'data': data})
+            raise exceptions.APIException(str(UNKNOWN_ERROR))
+        return Response({'data': data}, template_name='tools/CallStatistic.html')
 
 
-def processing_list(request):
-    activate(request.user.language)
-    if not request.user.is_authenticated or request.user.role != USER_ROLES[2][0]:
-        return HttpResponse('<h1>Unknown error</h1>')
-    return render(request, "tools/ProcessingRequests.html", {
-        'data': ProfileData().processing(), 'locked': LockTable.objects.filter(locked=True)
-    })
+class ProcessingListView(LoginRequiredMixin, TemplateView):
+    template_name = 'tools/ProcessingRequests.html'
+
+    def get_context_data(self, **kwargs):
+        if self.request.user.role != USER_ROLES[2][0]:
+            raise PermissionDenied("You don't have an acces to this page")
+        context = super(ProcessingListView, self).get_context_data(**kwargs)
+        context['data'] = ProfileData().processing()
+        context['locked'] = LockTable.objects.filter(locked=True)
+        return context
 
 
-def clear_call_logs(request):
-    activate(request.user.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': 'Unknown error'})
-    clear_old_logs()
-    return JsonResponse({'message': _('Logs were successfully cleared')})
+class ClearLogsAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+
+    def delete(self, request):
+        assert request.user.role == USER_ROLES[2][0]
+        clear_old_logs()
+        return Response({'message': _('Logs were successfully cleared')})
 
 
-def clear_tasks(request):
-    activate(request.user.language)
-    if not request.user.is_authenticated or request.method != 'POST' or request.user.role != USER_ROLES[2][0]:
-        return JsonResponse({'error': 'Unknown error'})
-    Task.objects.exclude(progress__job__status=JOB_STATUS[2][0]).delete()
-    return JsonResponse({'message': _('Tasks were successfully deleted')})
+class ClearTasksAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+
+    def delete(self, request):
+        assert request.user.role == USER_ROLES[2][0]
+        Task.objects.exclude(decision__job__status=JOB_STATUS[2][0]).delete()
+        return Response({'message': _('Tasks were successfully deleted')})
 
 
-def manual_unlock(request):
-    if not request.user.is_staff:
-        raise PermissionDenied()
-    LockTable.objects.all().delete()
-    try:
-        os.remove(ExecLocker.lockfile)
-    except FileNotFoundError:
-        pass
-    return HttpResponse('<h1>Success!</h1>')
+class ManualUnlockAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+
+    def delete(self, request):
+        assert request.user.role == USER_ROLES[2][0]
+        LockTable.objects.all().delete()
+        try:
+            os.remove(ExecLocker.lockfile)
+        except FileNotFoundError:
+            pass
+        return Response({'message': 'Success!'})

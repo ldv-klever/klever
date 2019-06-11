@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 import os
 import pika
@@ -6,6 +23,7 @@ from io import BytesIO
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models.query import QuerySet
 from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -13,15 +31,15 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers, exceptions, fields
 
-from bridge.vars import USER_ROLES, JOB_ROLES, MPTT_FIELDS, FORMAT, JOB_STATUS
+from bridge.vars import USER_ROLES, MPTT_FIELDS, JOB_STATUS
 from bridge.utils import file_get_or_create, logger, file_checksum, RMQConnect
-from bridge.serializers import TimeStampField
 
 from users.models import User
 from jobs.models import Job, JobHistory, JobFile, FileSystem, UserRole, RunHistory
 from jobs.utils import JobAccess
 
 FILE_SEP = '/'
+ARCHIVE_FORMAT = 13
 
 
 def create_job_version(job, files, roles, **kwargs):
@@ -127,6 +145,8 @@ class JobFilesField(fields.Field):
         queryset = FileSystem.objects.all()
         if isinstance(value, JobHistory):
             queryset = queryset.filter(job_version=value)
+        elif isinstance(value, QuerySet):
+            queryset = value
         else:
             # Internal value
             queryset = queryset.filter(id__in=list(x['file_id'] for x in value))
@@ -199,14 +219,14 @@ class JobFileSerializer(serializers.ModelSerializer):
 
 
 class UserRoleSerializer(serializers.ModelSerializer):
-    def to_representation(self, instance):
-        value = super().to_representation(instance)
-        value['title'] = dict(JOB_ROLES)[value['role']]
-        return value
+    title = serializers.SerializerMethodField()
+
+    def get_title(self, instance):
+        return instance.get_role_display()
 
     class Meta:
         model = UserRole
-        fields = ('user', 'role')
+        fields = ('user', 'role', 'title')
 
 
 class JobVersionSerializer(serializers.ModelSerializer):
@@ -269,28 +289,6 @@ class CreateJobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         exclude = ('status', 'author', *MPTT_FIELDS)
-
-
-class UploadJobSerializer(serializers.ModelSerializer):
-    def validate_format(self, value):
-        if value != FORMAT:
-            raise exceptions.ValidationError(_("The job format is not supported"))
-        return value
-
-    class Meta:
-        model = Job
-        exclude = ('author', *MPTT_FIELDS)
-        extra_kwargs = {'parent': {'write_only': True}}
-
-
-class UploadJobVersionSerializer(serializers.ModelSerializer):
-    change_date = TimeStampField()
-    files = JobFilesField()
-    user_roles = UserRoleSerializer(many=True, default=[])
-
-    class Meta:
-        model = JobHistory
-        exclude = ('job', 'change_author')
 
 
 class JVrolesSerializerRO(serializers.ModelSerializer):
@@ -372,7 +370,7 @@ class JobStatusSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
         try:
-            run_data = instance.runhistory_set.latest('date')
+            run_data = instance.run_history.latest('date')
             run_data.status = instance.status
             run_data.save()
         except ObjectDoesNotExist:
@@ -458,14 +456,6 @@ class DuplicateJobSerializer(serializers.ModelSerializer):
     class Meta:
         model = Job
         fields = ('parent', 'name')
-
-
-class RunHistorySerializer(serializers.ModelSerializer):
-    date = TimeStampField()
-
-    class Meta:
-        model = RunHistory
-        exclude = ('job', 'configuration')
 
 
 def change_job_status(job, status):

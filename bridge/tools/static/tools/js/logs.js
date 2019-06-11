@@ -15,92 +15,64 @@
  * limitations under the License.
  */
 
-function activate_result() {
-    $('.func_name').click(function (event) {
-        event.preventDefault();
-        $.post(
-            '/tools/ajax/call_stat/',
-            {
-                action: 'between',
-                name: $(this).text()
-            },
-            function (data) {
-                $('#statistic_result').html(data);
+$(document).ready(function () {
+    $('.ui.calendar').calendar();
+    $('#statistic_modal').modal({transition: 'fade in', autofocus: false});
+    $('#data_type').dropdown();
+    $('#call_log_action').dropdown({onChange: function () {
+        if ($(this).val() === 'between') {
+            $('.call-around-field').hide();
+            $('.call-between-field').show();
+        }
+        else {
+            $('.call-between-field').hide();
+            $('.call-around-field').show();
+        }
+    }});
+
+    function get_timestamp(calendar_id) {
+        let date_value = $(`#${calendar_id}`).calendar('get date');
+        return date_value ? date_value.getTime() / 1000 : null;
+    }
+
+    $('#get_data_btn').click(function () {
+        let data = {'action': $('#call_log_action').val()},
+            data_type = $('#data_type').val(),
+            url = data_type === 'log' ? $('#log_api_url').val() : $('#statistic_api_url').val();
+
+        if (data['action'] === 'between') {
+            data['date1'] = get_timestamp('date1');
+            data['date2'] = get_timestamp('date2');
+            data['name'] = $('#func_name').val();
+        }
+        else {
+            data['date'] = get_timestamp('date1');
+            if (!data['date']) return err_notify('The date is required');
+
+            let interval = $('#time_interval').val();
+            if (interval) data['interval'] = parseInt(interval, 10);
+        }
+
+        $.post(url, data, function (resp) {
+            if (data_type === 'log') {
+                let result_container = $('#result_container');
+                result_container.html(resp);
+                result_container.find('.func_name').click(function (event) {
+                    event.preventDefault();
+                    $.post($('#statistic_api_url').val(), {
+                        action: 'between',
+                        name: $(this).data('name')
+                    },
+                    function (resp) {
+                        $('#statistic_result').html(resp);
+                        $('#statistic_modal').modal('show');
+                    });
+                });
+            }
+            else {
+                $('#statistic_result').html(resp);
                 $('#statistic_modal').modal('show');
             }
-        );
-    });
-}
-
-$(document).ready(function () {
-    var borders_type_input = $('#borders_type');
-    $('#date1').calendar();
-    $('#date2').calendar();
-    $('#statistic_modal').modal({transition: 'fade in', autofocus: false});
-    $('#list_type').dropdown();
-    borders_type_input.dropdown();
-    borders_type_input.change(function () {
-        if ($(this).val() == '0') {
-            $('#interval_field').hide();
-            $('#date2_field').show();
-            $('#fname_field').show();
-        }
-        else {
-            $('#date2_field').hide();
-            $('#fname_field').hide();
-            $('#interval_field').show();
-        }
-    });
-    $('#get_table').click(function () {
-        var list_type = $('#list_type').val(),
-            borders_type = $('#borders_type').val(),
-            date1 = $('#date1').calendar('get date'),
-            args = {}, url, func_name = $('#func_name').val();
-
-        if (list_type == '0') {
-            url = '/tools/ajax/call_list/';
-        }
-        else {
-            url = '/tools/ajax/call_stat/';
-        }
-        if (borders_type == '0') {
-            args['action'] = 'between';
-            if (date1) {
-                args['date1'] = date1.getTime() / 1000;
-            }
-            var date2 = $('#date2').calendar('get date');
-            if (date2) {
-                args['date2'] = date2.getTime() / 1000;
-            }
-            if (func_name.length) {
-                args['name'] = func_name;
-            }
-        }
-        else {
-            args['action'] = 'around';
-            if (!date1) {
-                err_notify('The date is required');
-                return false;
-            }
-            args['date'] = date1.getTime() / 1000;
-            var interval = $('#time_interval').val();
-            if (interval) {
-                args['interval'] = parseInt(interval, 10);
-            }
-        }
-        $.post(
-            url, args,
-            function (data) {
-                if (list_type == '0') {
-                    $('#result').html(data);
-                    activate_result();
-                }
-                else {
-                    $('#statistic_result').html(data);
-                    $('#statistic_modal').modal('show');
-                }
-
-            }
-        );
+        });
     });
 });

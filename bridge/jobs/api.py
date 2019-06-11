@@ -354,13 +354,15 @@ class UploadReportsView(LoggedCallMixin, APIView):
         if not JobAccess(request.user, instance).can_decide():
             raise exceptions.ValidationError(_("You don't have an access to upload reports for this job"))
 
-        try:
-            reports_dir = extract_archive(request.FILES['archive'])
-        except Exception as e:
-            logger.exception(e)
-            raise BridgeException(_('Extraction of the archive has failed'))
-
-        UploadReportsWithoutDecision(instance, request.user, reports_dir.name)
+        # try:
+        #     reports_dir = extract_archive(request.FILES['archive'])
+        # except Exception as e:
+        #     logger.exception(e)
+        #     raise BridgeException(_('Extraction of the archive has failed'))
+        #
+        # UploadReportsWithoutDecision(instance, request.user, reports_dir.name)
+        # TODO: implement
+        logger.error('Manual reports uploading is not implemented yet')
         return Response({})
 
 

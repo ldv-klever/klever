@@ -244,7 +244,7 @@ class ReportVerificationSerializer(UploadBaseSerializer):
         # If task is set then get verifier input archive from it
         if value.get('task'):
             with value['task'].archive.file as fp:
-                value['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier input'])
+                value['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier_input'])
         value['verification'] = True
         return super().validate(value)
 
@@ -517,9 +517,9 @@ class UploadReport:
         report = self.__get_report(data.get('identifier'))
         if not self._is_fullweight:
             # Upload for Core for lightweight jobs
-            report = report.get_ancestors().first()
+            report = report.get_ancestors().first().id
         for cov_id in data['coverage']:
-            carch = CoverageArchive(report=report, identifier=cov_id)
+            carch = CoverageArchive(report_id=report.id, identifier=cov_id)
             carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=True)
 
     def __upload_additional_sources(self, data):

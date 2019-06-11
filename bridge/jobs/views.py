@@ -45,7 +45,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
 from jobs.Download import (
     UploadJob, UploadTree, JobFileGenerator, JobConfGenerator,
-    # JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen, JobsTreesGen
+    JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
 )
 
 
@@ -172,9 +172,7 @@ class DownloadJobView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bv
         instance = self.get_object()
         if not JobAccess(self.request.user, instance).can_download():
             raise BridgeException(code=400)
-        # TODO: implement
-        # return JobArchiveGenerator(instance)
-        raise BridgeException('Not implemented yet')
+        return JobArchiveGenerator(instance)
 
 
 class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
@@ -182,18 +180,14 @@ class DownloadJobsListView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingR
         jobs_qs = Job.objects.filter(pk__in=json.loads(unquote(self.request.GET['jobs'])))
         if not JobAccess(self.request.user).can_download_jobs(jobs_qs):
             raise BridgeException(_("You don't have an access to one of the selected jobs"), back=reverse('jobs:tree'))
-        # TODO: implement
-        # return JobsArchivesGen(jobs_qs)
-        raise BridgeException('Not implemented yet')
+        return JobsArchivesGen(jobs_qs)
 
 
 class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingResponseView):
     def get_generator(self):
         if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
-        # TODO: implement
-        # return JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
-        raise BridgeException('Not implemented yet')
+        return JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
 
 
 class UploadJobsView(LoggedCallMixin, Bview.JsonView):
