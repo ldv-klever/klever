@@ -21,7 +21,6 @@ import traceback
 import threading
 import queue
 import pika
-import re
 
 import server
 from utils import sort_priority, time_units_converter, memory_units_converter
@@ -144,7 +143,7 @@ class Scheduler:
 
                 while True:
                     msg = self.__server_queue.get_nowait()
-                    kind, identifier, status = re.fullmatch("(\w+) ((?:\w|-)+): (\d+)", msg.decode('utf-8')).groups()
+                    kind, identifier, status = msg.decode('utf-8').split(' ')
                     if kind == 'job':
                         self.logger.debug("Job {!r} has status {!r}".format(identifier, status))
 
@@ -414,6 +413,7 @@ class Scheduler:
                               if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
                               and self.__tasks[tid]["description"]["job id"] == job_id]
             self.runner.cancel_job(job_id, item, relevant_tasks)
+            self.server.submit_job_error(job_id, 'Scheduler has been terminated')
 
         # Note here that some schedulers can solve tasks of jobs which run elsewhere
         for task_id, item in [(task_id, self.__tasks[task_id]) for task_id in self.__tasks
