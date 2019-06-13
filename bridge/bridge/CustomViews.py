@@ -32,32 +32,13 @@ from bridge.utils import logger, BridgeException
 from users.utils import ViewData
 
 
-# TODO: check if it used anywhere
-class AuthenticatedMixin:
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(super(), 'dispatch'):
-            # This mixin should be used together with main View based class
-            raise BridgeException()
-
-        if not request.user.is_authenticated:
-            raise BridgeException(_('You are not signing in'))
-        try:
-            return getattr(super(), 'dispatch')(request, *args, **kwargs)
-        except Exception as e:
-            if isinstance(e, BridgeException):
-                message = str(e.message)
-            else:
-                logger.exception(e)
-                message = str(UNKNOWN_ERROR)
-            raise BridgeException(message=message)
-
-
 class JSONResponseMixin:
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(super(), 'dispatch'):
             # This mixin should be used together with main View based class
             raise BridgeException(response_type='json')
 
+        # TODO
         # if not request.user.is_authenticated:
         #     raise BridgeException(_('You are not signing in'), response_type='json')
         try:

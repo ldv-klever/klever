@@ -22,7 +22,6 @@ import pika
 from io import BytesIO
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.query import QuerySet
 from django.template.defaultfilters import filesizeformat
 from django.urls import reverse
@@ -373,7 +372,7 @@ class JobStatusSerializer(serializers.ModelSerializer):
             run_data = instance.run_history.latest('date')
             run_data.status = instance.status
             run_data.save()
-        except ObjectDoesNotExist:
+        except RunHistory.DoesNotExist:
             pass
 
         if instance.status in {JOB_STATUS[1][0], JOB_STATUS[5][0], JOB_STATUS[6][0]}:

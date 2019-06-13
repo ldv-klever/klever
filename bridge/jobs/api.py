@@ -35,7 +35,9 @@ from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
-from bridge.access import WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission
+from bridge.access import (
+    WriteJobPermission, ViewJobPermission, DestroyJobPermission, ServicePermission, ManagerPermission
+)
 from bridge.vars import JOB_STATUS
 from bridge.utils import logger, BridgeException, extract_archive
 from tools.profiling import LoggedCallMixin
@@ -46,7 +48,7 @@ from jobs.serializers import (
     DuplicateJobSerializer, change_job_status
 )
 from jobs.configuration import get_configuration_value, GetConfiguration
-from jobs.Download import KleverCoreArchiveGen, UploadReportsWithoutDecision
+from jobs.Download import KleverCoreArchiveGen, UploadReportsWithoutDecision, UploadJob, UploadTree
 from jobs.utils import JobAccess
 from reports.serializers import DecisionResultsSerializerRO
 from reports.UploadReport import collapse_reports
@@ -198,10 +200,53 @@ class RemoveJobView(LoggedCallMixin, DestroyAPIView):
     queryset = Job.objects.all()
 
 
-# TODO
 class UploadJobsAPIView(LoggedCallMixin, APIView):
-    unparallel = [Job, 'AttrName']
+    unparallel = [Job]
     permission_classes = (WriteJobPermission,)
+
+    def post(self, request):
+        for f in request.FILES.getlist('file'):
+            try:
+                job_dir = extract_archive(f)
+            except Exception as e:
+                logger.exception(e)
+                raise exceptions.APIException(
+                    _('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name}
+                )
+            try:
+                UploadJob(request.data['parent'], request.user, job_dir.name)
+            except BridgeException as e:
+                raise exceptions.APIException(
+                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                        'arcname': f.name, 'message': str(e)
+                    }
+                )
+            except Exception as e:
+                logger.exception(e)
+                raise exceptions.APIException(
+                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                        'arcname': f.name, 'message': _('The job archive is corrupted')
+                    }
+                )
+        return Response({})
+
+
+class UploadJobsTreeAPIView(LoggedCallMixin, APIView):
+    unparallel = [Job]
+    permission_classes = (ManagerPermission,)
+
+    def post(self, request):
+        if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
+            raise BridgeException(_("There are jobs in progress right now, uploading may corrupt it results. "
+                                    "Please wait until it will be finished."))
+
+        jobs_dir = extract_archive(request.FILES['file'])
+        try:
+            UploadTree(request.data['parent'], request.user, jobs_dir.name)
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException(_('Creating the jobs tree failed: %(message)s') % {'message': str(e)})
+        return Response({})
 
 
 class CoreJobArchiveView(LoggedCallMixin, RetrieveAPIView):
@@ -354,15 +399,13 @@ class UploadReportsView(LoggedCallMixin, APIView):
         if not JobAccess(request.user, instance).can_decide():
             raise exceptions.ValidationError(_("You don't have an access to upload reports for this job"))
 
-        # try:
-        #     reports_dir = extract_archive(request.FILES['archive'])
-        # except Exception as e:
-        #     logger.exception(e)
-        #     raise BridgeException(_('Extraction of the archive has failed'))
-        #
-        # UploadReportsWithoutDecision(instance, request.user, reports_dir.name)
-        # TODO: implement
-        logger.error('Manual reports uploading is not implemented yet')
+        try:
+            reports_dir = extract_archive(request.FILES['archive'])
+        except Exception as e:
+            logger.exception(e)
+            raise exceptions.APIException(_('Extraction of the archive has failed'))
+
+        UploadReportsWithoutDecision(request.user, instance, reports_dir.name)
         return Response({})
 
 

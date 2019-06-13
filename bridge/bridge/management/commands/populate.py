@@ -17,6 +17,7 @@
 
 from django.core.management.base import BaseCommand, CommandError
 
+from bridge.utils import logger
 from jobs.population import JobsPopulation
 from marks.population import (
     PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks, PopulateSafeTags, PopulateUnsafeTags
@@ -48,7 +49,7 @@ class Command(BaseCommand):
                 res = JobsPopulation().populate()
             except Exception as e:
                 raise CommandError('Jobs population failed: %s' % e)
-            self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % len(res))
+            self.stdout.write("Jobs were populated successfully. Number of new jobs: %s" % res)
 
         # Safe tags
         if options['all'] or options['tags'] or options['tags_s']:
@@ -56,9 +57,8 @@ class Command(BaseCommand):
             try:
                 res = PopulateSafeTags()
             except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Safe tags population failed: %s' % e)
+                logger.exception(e)
+                raise CommandError('Safe tags population failed: %s' % e)
             self.stdout.write("{} of {} safe tags were populated".format(res.created, res.total))
 
         # Unsafe tags
@@ -67,9 +67,8 @@ class Command(BaseCommand):
             try:
                 res = PopulateUnsafeTags()
             except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Unsafe tags population failed: %s' % e)
+                logger.exception(e)
+                raise CommandError('Unsafe tags population failed: %s' % e)
             self.stdout.write("{} of {} unsafe tags were populated".format(res.created, res.total))
 
         # Safe marks
@@ -78,9 +77,8 @@ class Command(BaseCommand):
             try:
                 res = PopulateSafeMarks()
             except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Safe marks population failed: %s' % e)
+                logger.exception(e)
+                raise CommandError('Safe marks population failed: %s' % e)
             self.stdout.write("{} of {} safe marks were populated".format(res.created, res.total))
 
         # Unsafe marks
@@ -89,9 +87,8 @@ class Command(BaseCommand):
             try:
                 res = PopulateUnsafeMarks()
             except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Unsafe marks population failed: %s' % e)
+                logger.exception(e)
+                raise CommandError('Unsafe marks population failed: %s' % e)
             self.stdout.write("{} of {} unsafe marks were populated".format(res.created, res.total))
 
         # Unknown marks
@@ -100,9 +97,8 @@ class Command(BaseCommand):
             try:
                 res = PopulateUnknownMarks()
             except Exception as e:
-                # TODO
-                raise
-                # raise CommandError('Unknown marks population failed: %s' % e)
+                logger.exception(e)
+                raise CommandError('Unknown marks population failed: %s' % e)
             self.stdout.write("{} of {} unknown marks were populated".format(res.created, res.total))
 
         # Schedulers

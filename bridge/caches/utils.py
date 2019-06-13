@@ -1,26 +1,38 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import copy
 from collections import Counter
 import uuid
 
 from django.db import transaction
-from django.db.models import Q, F, Count, Case, When
+from django.db.models import F
 from django.utils.functional import cached_property
 
 from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS, ASSOCIATION_TYPE
 
-from reports.models import ReportRoot, ReportAttr, ReportSafe, ReportUnsafe, ReportUnknown
+from reports.models import ReportSafe, ReportUnsafe
 from marks.models import (
-    MarkSafe, MarkSafeHistory, MarkSafeAttr,
-    MarkUnsafe, MarkUnsafeHistory, MarkUnsafeAttr,
-    MarkUnknown, MarkUnknownHistory, MarkUnknownAttr,
-    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkSafeTag, MarkUnsafeTag,
-    SafeTag, UnsafeTag
+    MarkSafe, MarkSafeHistory, MarkUnsafe, MarkUnsafeHistory, MarkUnknown,
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport,
+    MarkSafeTag, MarkUnsafeTag, SafeTag, UnsafeTag
 )
 from caches.models import (
-    ASSOCIATION_CHANGE_KIND,
-    ReportSafeCache,
-    ReportUnsafeCache,
-    ReportUnknownCache,
+    ASSOCIATION_CHANGE_KIND, ReportSafeCache, ReportUnsafeCache, ReportUnknownCache,
     SafeMarkAssociationChanges, UnsafeMarkAssociationChanges, UnknownMarkAssociationChanges
 )
 

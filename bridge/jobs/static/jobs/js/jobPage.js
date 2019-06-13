@@ -82,7 +82,7 @@ function update_progress(interval) {
 }
 
 function check_status(interval) {
-    $.get('/jobs/api/job-status/{0}/'.format($('#job_id').val()), {}, function (data) {
+    $.get(`/jobs/api/job-status/${$('#job_id').val()}/`, {}, function (data) {
         if (data.status !== $('#job_status_value').val()) window.location.replace('');
     }, 'json').fail(function (resp) {
         var errors = flatten_api_errors(resp['responseJSON']);
@@ -124,32 +124,6 @@ function activate_download_for_compet() {
         onChecked: function () { dfc_problems.show() },
         onUnchecked: function () { dfc_problems.hide() }
     });
-    $('#dfc__confirm').click(function () {
-        let svcomp_filters = {};
-        if ($('#dfc__u').parent().checkbox('is checked')) {
-            svcomp_filters.push('u');
-        }
-        if ($('#dfc__s').parent().checkbox('is checked')) {
-            svcomp_filters.push('s');
-        }
-        if ($('#dfc__f').parent().checkbox('is checked')) {
-            var unknowns_filters = [];
-            $('input[id^="dfc__p__"]').each(function () {
-                if ($(this).parent().checkbox('is checked')) {
-                    unknowns_filters.push($(this).val());
-                }
-            });
-            svcomp_filters.push(unknowns_filters);
-        }
-        if (svcomp_filters.length === 0) {
-            err_notify($('#error___dfc_notype').text());
-        }
-        else {
-            $('#dfc_modal').modal('hide');
-            $.redirectPost('/jobs/downloadcompetfile/' + $('#job_id').val() + '/', {'filters': JSON.stringify(svcomp_filters)});
-        }
-    });
-
 }
 
 function activate_run_history() {
@@ -254,33 +228,35 @@ $(document).ready(function () {
         return true;
     });
 
-    $('#upload_reports_popup').modal({transition: 'vertical flip'});
+    // Upload reports without decision
+    let upload_reports_modal = $('#upload_reports_modal'),
+        upload_reports_file_input = upload_reports_modal.find('#upload_reports_file_input'),
+        upload_reports_filename = upload_reports_modal.find('#upload_reports_filename');
+    upload_reports_modal.modal({transition: 'vertical flip'});
     $('#upload_reports_btn').click(function () {
         if ($(this).hasClass('disabled')) return false;
         $('.browse').popup('hide');
-        $('#upload_reports_popup').modal('show');
+        upload_reports_modal.modal('show');
     });
-    $('#upload_reports_file_input').on('fileselect', function () {
-        $('#upload_reports_filename').html($('<span>', {text: $(this)[0].files[0].name}));
+    upload_reports_file_input.on('fileselect', function () {
+        upload_reports_filename.html($('<span>', {text: $(this)[0].files[0].name}));
     });
-    $('#upload_reports_cancel').click(function () {
-        var file_input = $('#upload_reports_file_input');
-        file_input.replaceWith(file_input.clone( true ));
-        $('#upload_reports_filename').empty();
-        $('#upload_reports_popup').modal('hide');
+    upload_reports_modal.find('.modal-cancel').click(function () {
+        upload_reports_file_input.replaceWith(upload_reports_file_input.clone( true ));
+        upload_reports_file_input = upload_reports_modal.find('#upload_reports_file_input');
+        upload_reports_filename.empty();
+        upload_reports_modal.modal('hide');
     });
-    $('#upload_reports_start').click(function () {
-        var files = $('#upload_reports_file_input')[0].files,
+    upload_reports_modal.find('.modal-confirm').click(function () {
+        let files = upload_reports_file_input[0].files,
             data = new FormData();
-        if (files.length <= 0) {
-            err_notify($('#error__no_file_chosen').text());
-            return false;
-        }
+        if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
+
         data.append('archive', files[0]);
-        $('#upload_reports_popup').modal('hide');
+        upload_reports_modal.modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.ajax({
-            url: '/jobs/upload_reports/' + $('#job_id').val() + '/',
+            url: $(this).data('url'),
             type: 'POST',
             data: data,
             dataType: 'json',
@@ -288,13 +264,13 @@ $(document).ready(function () {
             processData: false,
             mimeType: 'multipart/form-data',
             xhr: function() { return $.ajaxSettings.xhr() },
-            success: function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                data.error ? err_notify(data.error) : window.location.replace('');
+            success: function () {
+                window.location.replace('');
             }
         });
         return false;
     });
+
 
     var num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');
 
