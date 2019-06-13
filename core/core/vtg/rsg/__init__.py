@@ -147,7 +147,7 @@ class RSG(core.vtg.plugins.Plugin):
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                 # Collect all bug kinds specified in model to check that valid bug kinds are specified in requirement
                 # model description.
-                bug_kinds = set()
+                model_bug_kinds = set()
                 lines = []
                 with open(model_c_file, encoding='utf8') as fp:
                     for line in fp:
@@ -156,17 +156,29 @@ class RSG(core.vtg.plugins.Plugin):
                         match = re.search(r'ldv_assert\("([^"]+)"', line)
                         if match:
                             bug_kind, = match.groups()
-                            bug_kinds.add(bug_kind)
+                            model_bug_kinds.add(bug_kind)
                             # Include bug kinds in names of ldv_assert().
                             lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
                                                 r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
                         else:
                             lines.append(line)
-                for bug_kind in model['bug kinds']:
-                    if bug_kind not in bug_kinds:
+
+                # Check that all bug kinds specified in requirement model description present in model. It is not
+                # necessary to check all bug kinds specified in model.
+                model['bug kinds to check'] = set()
+                for model_desc_bug_kind in model['bug kinds']:
+                    is_any = False
+                    for model_bug_kind in model_bug_kinds:
+                        m = re.match(model_desc_bug_kind, model_bug_kind)
+                        if m:
+                            is_any = True
+                            model['bug kinds to check'].add(model_bug_kind)
+
+                    if not is_any:
                         raise KeyError(
                             'Invalid bug kind "{0}" is specified in requirement model description'.format(
-                                bug_kind))
+                                model_desc_bug_kind))
+
                 preprocessed_model_c_file = '{0}.bk.c'.format(
                     core.utils.unique_file_name(os.path.join('models',
                                                              os.path.splitext(os.path.basename(model_c_file))[0]),
@@ -174,7 +186,7 @@ class RSG(core.vtg.plugins.Plugin):
                 with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
                     # be defined later somehow by VTG.
-                    for bug_kind in sorted(bug_kinds):
+                    for bug_kind in sorted(model_bug_kinds):
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
@@ -239,8 +251,8 @@ class RSG(core.vtg.plugins.Plugin):
 
                 extra_cc['CC'] = os.path.relpath(full_desc_file, self.conf['main working directory'])
 
-            if 'bug kinds' in model:
-                extra_cc['bug kinds'] = model['bug kinds']
+            if 'bug kinds to check' in model:
+                extra_cc['bug kinds'] = list(model['bug kinds to check'])
 
             if extra_cc:
                 model_grp['Extra CCs'].append(extra_cc)
