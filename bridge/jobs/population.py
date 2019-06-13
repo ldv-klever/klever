@@ -48,7 +48,7 @@ class JobsPopulation:
         ]
 
     def populate(self):
-        created_jobs = []
+        created_jobs = 0
         for dirpath, dirnames, filenames in os.walk(self.jobs_dir):
             # Do not traverse within specific directories. Directory "specifications" should be placed within the root
             # preset jobs directory, directory "staging" can be placed anywhere.
@@ -82,9 +82,9 @@ class JobsPopulation:
             if not serializer.is_valid(raise_exception=True):
                 logger.error(serializer.errors)
                 raise BridgeException('Job data validation failed')
-            job = serializer.save()
+            serializer.save()
 
-            created_jobs.append([job.name, str(job.identifier)])
+            created_jobs += 1
         return created_jobs
 
     def __get_settings_data(self, filepath):

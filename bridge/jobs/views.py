@@ -31,7 +31,7 @@ from django.views.generic.detail import SingleObjectMixin, DetailView
 import bridge.CustomViews as Bview
 from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, JOB_STATUS, PRIORITY, JOB_WEIGHT, USER_ROLES, JOB_ROLES, ERRORS
-from bridge.utils import logger, extract_archive, BridgeException
+from bridge.utils import BridgeException
 
 from users.models import User
 from reports.utils import FilesForCompetitionArchive
@@ -43,10 +43,7 @@ from jobs.utils import months_choices, years_choices, JobAccess, CompareFileSet,
 from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
-from jobs.Download import (
-    UploadJob, UploadTree, JobFileGenerator, JobConfGenerator,
-    JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
-)
+from jobs.Download import JobFileGenerator, JobConfGenerator, JobArchiveGenerator, JobsArchivesGen, JobsTreesGen
 
 
 class JobsTree(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, TemplateView):
@@ -188,49 +185,6 @@ class DownloadJobsTreeView(LoginRequiredMixin, LoggedCallMixin, Bview.StreamingR
         if self.request.user.role != USER_ROLES[2][0]:
             raise BridgeException(_("Only managers can download jobs trees"), back=reverse('jobs:tree'))
         return JobsTreesGen(json.loads(unquote(self.request.GET['jobs'])))
-
-
-class UploadJobsView(LoggedCallMixin, Bview.JsonView):
-    unparallel = [Job, 'AttrName']
-
-    def get_context_data(self, **kwargs):
-        # TODO: move to API
-        if not JobAccess(self.request.user).can_create():
-            raise BridgeException(_("You don't have an access to upload jobs"))
-        for f in self.request.FILES.getlist('file'):
-            try:
-                job_dir = extract_archive(f)
-            except Exception as e:
-                logger.exception(e)
-                raise BridgeException(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
-            try:
-                UploadJob(self.kwargs['parent_id'], self.request.user, job_dir.name)
-            except BridgeException as e:
-                raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                    'arcname': f.name, 'message': str(e)
-                })
-            except Exception as e:
-                logger.exception(e)
-                raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                    'arcname': f.name, 'message': _('The job archive is corrupted')
-                })
-        return {}
-
-
-class UploadJobsTreeView(LoggedCallMixin, Bview.JsonView):
-    unparallel = [Job, 'AttrName']
-
-    def get_context_data(self, **kwargs):
-        # TODO: move to API
-        if self.request.user.role != USER_ROLES[2][0]:
-            raise BridgeException(_("You don't have an access to upload jobs tree"))
-        if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
-            raise BridgeException(_("There are jobs in progress right now, uploading may corrupt it results. "
-                                    "Please wait until it will be finished."))
-
-        jobs_dir = extract_archive(self.request.FILES['file'])
-        UploadTree(self.request.POST['parent_id'], self.request.user, jobs_dir.name)
-        return {}
 
 
 class CompareJobVersionsView(LoggedCallMixin, Bview.DetailPostView):

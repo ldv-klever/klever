@@ -17,7 +17,7 @@
 
 
 function JobForm(job_id, action) {
-    this.save_url = '/jobs/api/save-job/{0}/'.format(job_id);
+    this.save_url = `/jobs/api/save-job/${job_id}/`;
     this.method = (action === 'copy') ? 'POST' : 'PUT';
 
     this.labels = {};

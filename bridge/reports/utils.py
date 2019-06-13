@@ -21,7 +21,7 @@ from urllib.parse import unquote
 from wsgiref.util import FileWrapper
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Count, Max, Case, When, F, CharField, Value
+from django.db.models import Max, Case, When, F, CharField, Value
 from django.db.models.expressions import RawSQL
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _

@@ -64,17 +64,17 @@
                         <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
 
                         {# Show only if user has an access to upload jobs (USER_ROLES[1..3][0]) #}
-                        <a class="item{% if user.role == '0' or user.role == '4' %} disabled{% endif %}" id="show_upload_job_popup">{% trans 'Upload jobs' %}</a>
+                        <a class="item{% if user.role == '0' or user.role == '4' %} disabled{% endif %}" id="upload_jobs_modal_show">{% trans 'Upload jobs' %}</a>
 
                         {# Only managers can upload trees (USER_ROLES[2][0]) #}
-                        <a class="item{% if user.role != '2' %} disabled{% endif %}" id="show_upload_jobtree_popup">{% trans 'Upload jobs tree' %}</a>
+                        <a class="item{% if user.role != '2' %} disabled{% endif %}" id="upload_jobtree_modal_show">{% trans 'Upload jobs tree' %}</a>
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
                         <a class="item" href="{% url 'marks:unsafe-list' %}">{% trans 'Unsafes' %}</a>
                         <a class="item" href="{% url 'marks:unknown-list' %}">{% trans 'Unknowns' %}</a>
                         <a class="item" href="{% url 'marks:safe-list' %}">{% trans 'Safes' %}</a>
-                        <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
+                        <a class="item" id="upload_marks_modal_show">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Tags' %}</h3>
@@ -103,59 +103,43 @@
         </div>
         <br>
         {% block body_block %}{% endblock %}
-        <div id="upload_marks_popup" class="ui modal">
-            <div class="header">{% trans 'Upload marks' %}</div>
-            <div class="content">
-                <div class="ui grid">
-                    <div class="four wide column right aligned">
-                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
-                    </div>
-                    <div class="twelve wide column">
-                        <span id="upload_marks_filename"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="actions">
-                <button id="upload_marks_start" type="button" class="ui positive left button" data-url="{% url 'marks:upload' %}">{% trans 'Upload' %}</button>
-                <button id="upload_marks_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
-            </div>
-        </div>
-        <div id="upload_job_popup" class="ui modal">
+
+        <div id="upload_jobs_modal" class="ui modal" data-activator="#upload_jobs_modal_show">
             <div class="header">{% trans 'Upload jobs' %}</div>
             <div class="content">
                 <p>{% trans "Set parent identifier. All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
                 <div class="ui grid">
                     <div class="five wide column">
                         <div class="ui fluid input">
-                            <input id="upload_job_parent_id" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
+                            <input id="upload_jobs_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
                         </div>
                     </div>
                     <div class="three wide column right aligned">
-                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobs_file" type="file" multiple></span>
                     </div>
                     <div class="eight wide column">
-                        <span id="upload_job_filename"></span>
+                        <span id="upload_jobs_filename"></span>
                     </div>
                 </div>
             </div>
             <div class="actions">
-                <button id="upload_jobs_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
-                <button id="upload_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-jobs' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
             </div>
         </div>
 
-        <div id="upload_jobtree_popup" class="ui modal">
+        <div id="upload_jobtree_modal" class="ui modal" data-activator="#upload_jobtree_modal_show">
             <div class="header">{% trans 'Upload jobs tree' %}</div>
             <div class="content">
                 <p>{% trans "Set parent identifier or leave it empty for root jobs from tree to be without a parent." %}</p>
                 <div class="ui grid">
                     <div class="five wide column">
                         <div class="ui fluid input">
-                            <input id="upload_jobtree_parent_id" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
+                            <input id="upload_jobtree_parent" type="text" placeholder="{% trans 'Identifier' %}" maxlength="32">
                         </div>
                     </div>
                     <div class="three wide column right aligned">
-                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobtree_file_input" type="file"></span>
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_jobtree_file" type="file"></span>
                     </div>
                     <div class="eight wide column">
                         <span id="upload_jobtree_filename"></span>
@@ -163,10 +147,29 @@
                 </div>
             </div>
             <div class="actions">
-                <button id="upload_jobstree_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
-                <button id="upload_jobstree_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-tree' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
             </div>
         </div>
+
+        <div id="upload_marks_modal" class="ui modal" data-activator="#upload_marks_modal_show">
+            <div class="header">{% trans 'Upload marks' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="four wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_marks_file" type="file" multiple></span>
+                    </div>
+                    <div class="twelve wide column">
+                        <span id="upload_marks_filename"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ui positive left button modal-confirm" data-url="{% url 'marks:upload' %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+
         <div id="file_content_modal" class="ui dinamic large modal">
             <div class="content">
                 <div class="ui grid">

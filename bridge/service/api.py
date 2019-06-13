@@ -155,9 +155,7 @@ class ChangeJobStatusView(LoggedCallMixin, APIView):
                 raise exceptions.ValidationError({'job': res.error})
             return Response({})
         elif request.data['status'] == JOB_STATUS[4][0]:
-            res = FinishJobDecision(job, JOB_STATUS[4][0], request.data.get('error'))
-            if res.error:
-                raise exceptions.ValidationError({'job': res.error})
+            FinishJobDecision(job, JOB_STATUS[4][0], request.data.get('error'))
             return Response({})
         else:
             raise exceptions.APIException('Unsupported job status: {}'.format(request.data['status']))

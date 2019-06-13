@@ -24,8 +24,8 @@ from django.template import loader
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.utils.text import format_lazy
-from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import (
     MARK_SAFE, MARK_UNSAFE, MARK_STATUS, ASSOCIATION_TYPE,
@@ -419,8 +419,12 @@ class MarksTableBase:
         assert self.versions_model is not None, 'Please define the mark versions model'
         assert self.mark_table is not None, 'Please define marks table name'
 
+        view_columns = set(self.view['columns'])
         qs_filters = {'version': F('mark__version')}
         annotations = {}
+
+        if 'num_of_links' in view_columns:
+            annotations['num_of_links'] = Count('mark__markreport_set')
 
         # Filters
         if 'identifier' in self.view:
@@ -432,7 +436,7 @@ class MarksTableBase:
         if 'source' in self.view:
             qs_filters['mark__source__in'] = self.view['source']
         if 'author' in self.view:
-            qs_filters['author_id'] = self.view['author']
+            qs_filters['author_id'] = self.view['author'][0]
         if 'attr' in self.view:
             annotations['attr_value'] = RawSQL(
                 "\"{}\".\"cache_attrs\"->>%s".format(self.mark_table),
@@ -450,8 +454,6 @@ class MarksTableBase:
         if 'order' in self.view:
             if self.view['order'][1] == 'change_date':
                 ordering = 'change_date'
-            elif self.view['order'][1] == 'num_of_links':
-                ordering = 'mark__cache_links'
             elif self.view['order'][1] == 'component':
                 ordering = 'mark__component'
             elif self.view['order'][1] == 'attr':
@@ -460,10 +462,11 @@ class MarksTableBase:
                     (self.view['order'][2],)
                 )
                 ordering = 'ordering_attr'
+            elif self.view['order'][1] == 'num_of_links' and 'num_of_links' in annotations:
+                ordering = 'num_of_links'
             if self.view['order'][0] == 'up':
                 ordering = '-' + ordering
 
-        view_columns = set(self.view['columns'])
         select_only = ['mark__id']
         select_related = ['mark']
         if 'identifier' in view_columns:
@@ -483,8 +486,6 @@ class MarksTableBase:
             select_only.append('mark__cache_tags')
         if 'verdict' in view_columns:
             select_only.append('verdict')
-        if 'num_of_links' in view_columns:
-            select_only.append('mark__cache_links')
         if 'component' in view_columns:
             select_only.append('mark__component')
         if 'problem_pattern' in view_columns:
@@ -573,7 +574,7 @@ class MarksTableBase:
                     val = cnt
                     href = reverse('marks:{}'.format(self.mark_type), args=[mark_id])
                 elif col == 'num_of_links':
-                    val = mark_version.mark.cache_links
+                    val = mark_version.num_of_links
                 elif col == 'tags':
                     if mark_version.mark.cache_tags:
                         val = ','.join(mark_version.mark.cache_tags)
@@ -991,8 +992,7 @@ class AssChangesBase:
             if self.model == UnknownMarkAssociationChanges:
                 qs_filters &= ~Q(problems_new=F('problems_old'))
             else:
-                qs_filters &= ~Q(verdict_new=F('verdict_old'))
-                qs_filters &= ~Q(tags_new=F('tags_old'))
+                qs_filters &= ~Q(verdict_new=F('verdict_old'), tags_new=F('tags_old'))
 
         selected_columns = set(self.view['columns'])
         if 'change_kind' in selected_columns:

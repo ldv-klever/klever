@@ -32,4 +32,5 @@ urlpatterns = [
     path('api/clear-call-logs/', views.ClearLogsAPIView.as_view(), name='api-clear-logs'),
     path('api/clear-tasks/', views.ClearTasksAPIView.as_view(), name='api-clear-tasks'),
     path('api/manual-unlock/', views.ManualUnlockAPIView.as_view(), name='api-manual-unlock'),
+    path('api/population/', views.PopulationAPIView.as_view(), name='api-populate'),
 ]

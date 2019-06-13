@@ -235,7 +235,7 @@
 
     {# Upload reports modal #}
     {% if job_access.can_upload_reports %}
-        <div id="upload_reports_popup" class="ui modal">
+        <div id="upload_reports_modal" class="ui modal">
             <div class="header">{% trans 'Upload reports' %}</div>
             <div class="content">
                 <p>{% trans "Choose reprots archive. Format of this archive is described in documentation. Old reports will be replaced." %}</p>
@@ -250,8 +250,8 @@
                 </div>
             </div>
             <div class="actions">
-                <button id="upload_reports_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
-                <button id="upload_reports_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                <button class="ui positive button modal-confirm" data-url="{% url 'jobs:api-upload-reports' job.id %}">{% trans 'Upload' %}</button>
+                <button class="ui blue button modal-cancel">{% trans 'Cancel' %}</button>
             </div>
         </div>
     {% endif %}

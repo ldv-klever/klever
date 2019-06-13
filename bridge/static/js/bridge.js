@@ -16,11 +16,11 @@
  */
 
 function getCookie(name) {
-    var cookieValue = null;
+    let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = $.trim(cookies[i]);
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = $.trim(cookies[i]);
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -35,7 +35,7 @@ function csrfSafeMethod(method) {
 }
 
 $(document).on('change', '.btn-file :file', function () {
-    var input = $(this),
+    let input = $(this),
         numFiles = input.get(0).files ? input.get(0).files.length : 1,
         label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
     input.trigger('fileselect', [numFiles, label]);
@@ -44,20 +44,21 @@ $(document).on('change', '.btn-file :file', function () {
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
         if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            var csrftoken = getCookie('csrftoken');
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
         }
     }
 });
 $(document).ajaxError(function (xhr, err) {
     $('#dimmer_of_page').removeClass('active');
-    if (err.responseJSON) {
-        if (err.responseJSON.error) err_notify(err.responseJSON.error);
-        else if (err.responseJSON.detail) err_notify(err.responseJSON.detail);
+    if (err['responseJSON']) {
+        if (err['responseJSON'].error) err_notify(err['responseJSON'].error);
+        else if (err['responseJSON'].detail) err_notify(err['responseJSON'].detail);
         else {
-            let errors = flatten_api_errors(err.responseJSON);
+            let errors = flatten_api_errors(err['responseJSON']);
             if (errors.length) {
-                $.each(errors, function (i, value) { err_notify(value) });
+                $.each(errors, function (i, value) {
+                    err_notify(value)
+                });
             }
             else err_notify($('#error__ajax_error').text());
         }
@@ -94,22 +95,11 @@ window.flatten_api_errors = function(data, labels) {
     return errors_arr;
 };
 
-$.extend({
-    redirectPost: function (location, args) {
-        var form = '<input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '">';
-        $.each(args, function (key, value) {
-            form += '<input type="hidden" name="' + key + '" value=\'' + value + '\'>';
-        });
-        $('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();
-    }
-});
-
 jQuery.expr[':'].regex = function(elem, index, match) {
-    var matchParams = match[3].split(','),
+    let matchParams = match[3].split(','),
         validLabels = /^(data|css):/,
         attr = {
-            method: matchParams[0].match(validLabels) ?
-                        matchParams[0].split(':')[0] : 'attr',
+            method: matchParams[0].match(validLabels) ? matchParams[0].split(':')[0] : 'attr',
             property: matchParams.shift().replace(validLabels,'')
         },
         regexFlags = 'ig',
@@ -124,16 +114,17 @@ window.err_notify = function (message, duration) {
         notify_opts['autoHideDelay'] = duration;
     }
     $.notify(message, notify_opts);
-    return true;
+    return false;
 };
 
-window.success_notify = function (message) {
-    $.notify(message, {
-        autoHide: true,
-        autoHideDelay: 2500,
-        style: 'bootstrap',
-        className: 'success'
-    });
+window.success_notify = function (message, duration) {
+    let notify_opts = {autoHide: false, style: 'bootstrap', className: 'success'};
+    if (!isNaN(duration)) {
+        notify_opts['autoHide'] = true;
+        notify_opts['autoHideDelay'] = duration;
+    }
+    $.notify(message, notify_opts);
+    return true;
 };
 
 window.isASCII = function (str) {
@@ -405,12 +396,12 @@ window.update_colors = function (table) {
 };
 
 window.getFileExtension = function(name) {
-    var found = name.lastIndexOf('.') + 1;
-    return found > 0 ? name.substr(found) : "";
+    let found = name.lastIndexOf('.') + 1;
+    return found > 0 ? name.substr(found) : '';
 };
 
 window.isFileReadable = function(name) {
-    var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
+    let readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl', 'python'],
         extension = getFileExtension(name);
     return ($.inArray(extension, readable_extensions) !== -1 || name === 'README');
 };
@@ -420,17 +411,15 @@ window.get_url_with_get_parameter = function (url, key, value) {
         let url_regex = new RegExp('(' + key + "=).*?(&|$)");
         return url.replace(url_regex, '$1' + value + '$2');
     }
-    else if (url.indexOf('?') > -1) {
-        return url + '&' + key + '=' + value;
-    }
-    else {
-        return url + '?' + key + '=' + value;
-    }
+    else if (url.indexOf('?') > -1) return url + '&' + key + '=' + value;
+    else return url + '?' + key + '=' + value;
 };
 
 String.prototype.format = String.prototype.f = function(){
-	var args = arguments;
-	return this.replace(/{(\d+)}/g, function(m, n){ return args[n] ? args[n] : m; });
+	let args = arguments;
+	return this.replace(/{(\d+)}/g, function(m, n){
+	    return args[n] ? args[n] : m
+	});
 
 };
 
@@ -447,7 +436,7 @@ $(document).ready(function () {
     $('.ui.checkbox').checkbox();
     $('.ui.accordion').accordion();
     $('.note-popup').each(function () {
-        var position = $(this).data('position');
+        let position = $(this).data('position');
         position ? $(this).popup({position: position}) : $(this).popup();
     });
     $('.ui.range').each(function () {
@@ -476,179 +465,149 @@ $(document).ready(function () {
         return true;
     });
 
-    if ($('#show_upload_marks_popup').length) {
-        $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
-    }
+    //=============
+    // Upload jobs
+    let upload_jobs_modal = $('#upload_jobs_modal'),
+        upload_jobs_modal_show = $(upload_jobs_modal.data('activator'));
+    if (upload_jobs_modal_show.length && !upload_jobs_modal_show.hasClass('disabled')) {
+        let upload_jobs_file_input = $('#upload_jobs_file');
+        upload_jobs_modal.modal({transition: 'vertical flip', onShow: function () {
+            let parent_identifier = $('#job_identifier');
+            if (parent_identifier.length) $('#upload_jobs_parent').val(parent_identifier.val());
+        }}).modal('attach events', upload_jobs_modal.data('activator'), 'show');
 
-    var upload_btn = $('#show_upload_job_popup');
-    if (upload_btn.length && !upload_btn.hasClass('disabled')) {
-        $('#upload_job_popup').modal({transition: 'vertical flip', onShow: function () {
-            var parent_identifier = $('#job_identifier');
-            if (parent_identifier.length) {
-                $('#upload_job_parent_id').val(parent_identifier.val());
-            }
-        }}).modal('attach events', '#show_upload_job_popup', 'show');
-    }
-
-    var upload_tree_btn = $('#show_upload_jobtree_popup');
-    if (upload_tree_btn.length && !upload_tree_btn.hasClass('disabled')) {
-        $('#upload_jobtree_popup').modal({transition: 'vertical flip', onShow: function () {
-            var parent_identifier = $('#job_identifier');
-            if (parent_identifier.length) {
-                $('#upload_jobtree_parent_id').val(parent_identifier.val());
-            }
-        }}).modal('attach events', '#show_upload_jobtree_popup', 'show');
-    }
-
-    $('#upload_marks_start').click(function () {
-        let files = $('#upload_marks_file_input')[0].files,
-            data = new FormData();
-        if (files.length <= 0) {
-            err_notify($('#error__no_file_chosen').text());
-            return false;
-        }
-        for (let i = 0; i < files.length; i++) {
-            data.append('file', files[i]);
-        }
-        $('#upload_marks_popup').modal('hide');
-        $('#dimmer_of_page').addClass('active');
-        $.ajax({
-            url: $(this).data('url'),
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() { return $.ajaxSettings.xhr() },
-            success: function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                if ('url' in data) window.location.href = data['url'];
-                else success_notify(data['message']);
-            }
+        upload_jobs_modal.find('.modal-cancel').click(function () {
+            upload_jobs_modal.modal('hide')
         });
-    });
 
-    $('#upload_marks_cancel').click(function () {
-        var file_input = $('#upload_marks_file_input');
-        file_input.replaceWith(file_input.clone(true));
-        $('#upload_marks_filename').empty();
-        $('#upload_marks_popup').modal('hide');
-    });
+        upload_jobs_file_input.on('fileselect', function () {
+            let files = $(this)[0].files,
+                filename_list = $('<ul>');
+            for (let i = 0; i < files.length; i++) filename_list.append($('<li>', {text: files[i].name}));
+            $('#upload_jobs_filename').html(filename_list);
+        });
 
-    $('#upload_marks_file_input').on('fileselect', function () {
-        var files = $(this)[0].files,
-            filename_list = $('<ul>');
-        for (var i = 0; i < files.length; i++) {
-            filename_list.append($('<li>', {text: files[i].name}));
-        }
-        $('#upload_marks_filename').html(filename_list);
-    });
+        upload_jobs_modal.find('.modal-confirm').click(function () {
+            let files = upload_jobs_file_input[0].files,
+                data = new FormData();
+            if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
+            for (let i = 0; i < files.length; i++) data.append('file', files[i]);
+            data.append('parent', $('#upload_jobs_parent').val());
 
-    $('#upload_job_file_input').on('fileselect', function () {
-        var files = $(this)[0].files,
-            filename_list = $('<ul>');
-        for (var i = 0; i < files.length; i++) {
-            filename_list.append($('<li>', {text: files[i].name}));
-        }
-        $('#upload_job_filename').html(filename_list);
-    });
-
-    $('#upload_job_cancel').click(function () {
-        var file_input = $('#upload_job_file_input');
-        file_input.replaceWith(file_input.clone( true ));
-        $('#upload_job_parent_id').val('');
-        $('#upload_job_filename').empty();
-        $('#upload_job_popup').modal('hide');
-    });
-
-    $('#upload_jobs_start').click(function () {
-        var parent_id = $('#upload_job_parent_id').val(),
-            files = $('#upload_job_file_input')[0].files,
-            data = new FormData();
-        if (parent_id.length === 0) parent_id = 'null';
-        if (files.length <= 0) {
-            err_notify($('#error__no_file_chosen').text());
-            return false;
-        }
-        for (var i = 0; i < files.length; i++) {
-            data.append('file', files[i]);
-        }
-        $('#upload_job_popup').modal('hide');
-        $('#dimmer_of_page').addClass('active');
-        $.ajax({
-            url: '/jobs/upload_jobs/' + encodeURIComponent(parent_id) + '/',
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() {
-                return $.ajaxSettings.xhr();
-            },
-            success: function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                if ('error' in data) {
-                    err_notify(data['error']);
-                }
-                else {
+            upload_jobs_modal.modal('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.ajax({
+                url: $(this).data('url'),
+                type: 'POST',
+                data: data,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                mimeType: 'multipart/form-data',
+                xhr: function() {
+                    return $.ajaxSettings.xhr();
+                },
+                success: function () {
+                    $('#dimmer_of_page').removeClass('active');
                     window.location.replace('');
                 }
-            }
+            });
+            return false;
         });
-        return false;
-    });
+    }
 
-    $('#upload_jobtree_file_input').on('fileselect', function () {
-        var files = $(this)[0].files,
-            filename_list = $('<ul>');
-        for (var i = 0; i < files.length; i++) {
-            filename_list.append($('<li>', {text: files[i].name}));
-        }
-        $('#upload_jobtree_filename').html(filename_list);
-    });
+    //==================
+    // Upload jobs tree
+    let upload_jobtree_modal = $('#upload_jobtree_modal'),
+        upload_jobtree_modal_show = $(upload_jobtree_modal.data('activator'));
+    if (upload_jobtree_modal_show.length && !upload_jobtree_modal_show.hasClass('disabled')) {
+        let upload_jobtree_file_input = $('#upload_jobtree_file');
+        upload_jobtree_modal.modal({transition: 'vertical flip', onShow: function () {
+            let parent_identifier = $('#job_identifier');
+            if (parent_identifier.length) $('#upload_jobtree_parent').val(parent_identifier.val());
+        }}).modal('attach events', upload_jobtree_modal.data('activator'), 'show');
 
-    $('#upload_jobstree_cancel').click(function () {
-        var file_input = $('#upload_jobtree_file_input');
-        file_input.replaceWith(file_input.clone( true ));
-        $('#upload_jobtree_parent_id').val('');
-        $('#upload_jobtree_filename').empty();
-        $('#upload_jobtree_popup').modal('hide');
-    });
+        upload_jobtree_modal.find('.modal-cancel').click(function () {
+            upload_jobtree_modal.modal('hide')
+        });
 
-    $('#upload_jobstree_start').click(function () {
-        let parent_id = $('#upload_jobtree_parent_id').val();
-        if (!parent_id.length) parent_id = 'null';
-        let files = $('#upload_jobtree_file_input')[0].files, data = new FormData();
-        if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
-        data.append('file', files[0]);
-        data.append('parent_id', parent_id);
-        $('#upload_jobtree_popup').modal('hide');
-        $('#dimmer_of_page').addClass('active');
-        $.ajax({
-            url: '/jobs/upload_jobs_tree/',
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() {
-                return $.ajaxSettings.xhr();
-            },
-            success: function (data) {
-                $('#dimmer_of_page').removeClass('active');
-                if ('error' in data) {
-                    err_notify(data['error']);
-                }
-                else {
+        upload_jobtree_file_input.on('fileselect', function () {
+            $('#upload_jobtree_filename').text($(this)[0].files[0].name);
+        });
+
+        upload_jobtree_modal.find('.modal-confirm').click(function () {
+            let files = upload_jobtree_file_input[0].files,
+                data = new FormData();
+            if (!files.length) return err_notify($('#error__no_file_chosen').text());
+            data.append('file', files[0]);
+            data.append('parent', $('#upload_jobtree_parent').val());
+
+            upload_jobtree_modal.modal('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.ajax({
+                url: $(this).data('url'),
+                type: 'POST',
+                data: data,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                mimeType: 'multipart/form-data',
+                xhr: function() {
+                    return $.ajaxSettings.xhr();
+                },
+                success: function () {
+                    $('#dimmer_of_page').removeClass('active');
                     window.location.replace('');
                 }
-            }
+            });
+            return false;
         });
-        return false;
-    });
+    }
+
+    //==============
+    // Upload marks
+    let upload_marks_modal = $('#upload_marks_modal'),
+        upload_marks_modal_show = $(upload_marks_modal.data('activator'));
+    if (upload_marks_modal_show.length && !upload_marks_modal_show.hasClass('disabled')) {
+        upload_marks_modal.modal('setting', 'transition', 'vertical flip')
+            .modal('attach events', upload_marks_modal.data('activator'), 'show');
+
+        $('#upload_marks_file').on('fileselect', function () {
+            let files = $(this)[0].files,
+                filename_list = $('<ul>');
+            for (let i = 0; i < files.length; i++) filename_list.append($('<li>', {text: files[i].name}));
+            $('#upload_marks_filename').html(filename_list);
+        });
+
+        upload_marks_modal.find('.modal-cancel').click(function () {
+            upload_marks_modal.modal('hide')
+        });
+
+        upload_marks_modal.find('.modal-confirm').click(function () {
+            let files = $('#upload_marks_file')[0].files,
+                data = new FormData();
+            if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
+            for (let i = 0; i < files.length; i++) data.append('file', files[i]);
+
+            upload_marks_modal.modal('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.ajax({
+                url: $(this).data('url'),
+                type: 'POST',
+                data: data,
+                dataType: 'json',
+                contentType: false,
+                processData: false,
+                mimeType: 'multipart/form-data',
+                xhr: function() { return $.ajaxSettings.xhr() },
+                success: function (resp) {
+                    $('#dimmer_of_page').removeClass('active');
+                    if ('url' in resp) window.location.href = resp['url'];
+                    else success_notify(resp['message']);
+                }
+            });
+        });
+    }
 
     $('.tag-description-popup').each(function () {
         $(this).popup({
@@ -657,7 +616,7 @@ $(document).ready(function () {
         });
     });
     $('.alternate-color').each(function () {
-        update_colors($(this));
+        update_colors($(this))
     });
 
     // Activate file content modal with ability to download it

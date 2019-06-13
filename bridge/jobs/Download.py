@@ -25,26 +25,27 @@ from wsgiref.util import FileWrapper
 from django.conf import settings
 from django.core.files import File
 from django.db import transaction
+from django.utils.functional import cached_property
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from rest_framework import exceptions, serializers, fields
 
 from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, MPTT_FIELDS
-from bridge.utils import logger, BridgeException, OpenFiles
+from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from bridge.serializers import TimeStampField
 
 from jobs.models import JOBFILE_DIR, Job, RunHistory, JobFile, JobHistory, FileSystem
-from reports.models import ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+from reports.models import (
+    ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,
     Computer, ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
+)
 from service.models import Scheduler, Decision
-from jobs.serializers import change_job_status, create_job_version, JobFileSerializer, JobFilesField
-from service.utils import StartJobDecision
-from tools.utils import Recalculation
-
-from jobs.configuration import GetConfiguration
-from reports.UploadReport import UploadReport
 from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
+
+from jobs.serializers import change_job_status, create_job_version, JobFileSerializer, JobFilesField
+from tools.utils import Recalculation
 from caches.utils import update_cache_atomic
 
 ARCHIVE_FORMAT = 13
@@ -70,7 +71,7 @@ class UploadDecisionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Decision
-        exclude = ('job', 'configuration', 'fake')
+        exclude = ('id', 'job', 'configuration', 'fake')
 
 
 class UploadJobSerializer(serializers.ModelSerializer):
@@ -104,6 +105,8 @@ class UploadJobSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         value = super().to_representation(instance)
         value['archive_format'] = ARCHIVE_FORMAT
+        if value['parent']:
+            value['parent'] = str(value['parent'])
         return value
 
     class Meta:
@@ -123,7 +126,7 @@ class UploadJobVersionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JobHistory
-        exclude = ('job', 'change_author')
+        exclude = ('id', 'job', 'change_author')
 
 
 class UploadComputerSerializer(serializers.ModelSerializer):
@@ -145,32 +148,35 @@ class UploadReportComponentSerializer(serializers.ModelSerializer):
     computer = UploadComputerSerializer(read_only=True)
     original = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
     additional = serializers.FileField(source='additional.archive', allow_null=True, read_only=True)
+    parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
 
     class Meta:
         model = ReportComponent
-        exclude = ('root', *MPTT_FIELDS)
-        extra_kwargs = {'parent': {'read_only': True}}
+        exclude = ('id', 'root', *MPTT_FIELDS)
 
 
 class UploadReportSafeSerializer(serializers.ModelSerializer):
+    parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
+
     class Meta:
         model = ReportSafe
-        exclude = ('root', *MPTT_FIELDS)
-        extra_kwargs = {'parent': {'read_only': True}}
+        exclude = ('id', 'root', *MPTT_FIELDS)
 
 
 class UploadReportUnsafeSerializer(serializers.ModelSerializer):
+    parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
+
     class Meta:
         model = ReportUnsafe
-        exclude = ('root', 'trace_id', *MPTT_FIELDS)
-        extra_kwargs = {'parent': {'read_only': True}}
+        exclude = ('id', 'root', 'trace_id', *MPTT_FIELDS)
 
 
 class UploadReportUnknownSerializer(serializers.ModelSerializer):
+    parent = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
+
     class Meta:
         model = ReportUnknown
-        exclude = ('root', *MPTT_FIELDS)
-        extra_kwargs = {'parent': {'read_only': True}}
+        exclude = ('id', 'root', *MPTT_FIELDS)
 
 
 class UploadReportAttrSerializer(serializers.ModelSerializer):
@@ -184,7 +190,7 @@ class UploadReportAttrSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReportAttr
-        exclude = ('report', 'data')
+        exclude = ('id', 'report', 'data')
 
 
 class KleverCoreArchiveGen:
@@ -297,7 +303,7 @@ class JobArchiveGenerator:
     def __get_reports_data(self, root):
         reports = []
         for report in ReportComponent.objects.filter(root=root)\
-                .select_related('computer', 'original', 'additional').order_by('level'):
+                .select_related('parent', 'computer', 'original', 'additional').order_by('level'):
             report_data = UploadReportComponentSerializer(instance=report).data
 
             # Add report files
@@ -311,7 +317,7 @@ class JobArchiveGenerator:
 
     def __get_safes_data(self, root):
         reports = []
-        for report in ReportSafe.objects.filter(root=root).order_by('id'):
+        for report in ReportSafe.objects.filter(root=root).select_related('parent').order_by('id'):
             report_data = UploadReportSafeSerializer(instance=report).data
             if report_data['proof']:
                 self._arch_files.add((report.proof.path, report_data['proof']))
@@ -320,7 +326,7 @@ class JobArchiveGenerator:
 
     def __get_unsafes_data(self, root):
         reports = []
-        for report in ReportUnsafe.objects.filter(root=root).order_by('id'):
+        for report in ReportUnsafe.objects.filter(root=root).select_related('parent').order_by('id'):
             report_data = UploadReportUnsafeSerializer(instance=report).data
             if report_data['error_trace']:
                 self._arch_files.add((report.error_trace.path, report_data['error_trace']))
@@ -329,7 +335,7 @@ class JobArchiveGenerator:
 
     def __get_unknowns_data(self, root):
         reports = []
-        for report in ReportUnknown.objects.filter(root=root).order_by('id'):
+        for report in ReportUnknown.objects.filter(root=root).select_related('parent').order_by('id'):
             report_data = UploadReportUnknownSerializer(instance=report).data
             if report_data['problem_description']:
                 self._arch_files.add((report.problem_description.path, report_data['problem_description']))
@@ -338,19 +344,21 @@ class JobArchiveGenerator:
 
     def __get_attrs_data(self, root):
         attrs_data = {}
-        for ra in ReportAttr.objects.filter(report__root=root).select_related('data').order_by('id'):
+        for ra in ReportAttr.objects.filter(report__root=root).select_related('data', 'report').order_by('id'):
             data = UploadReportAttrSerializer(instance=ra).data
             if data['data_file']:
                 self._arch_files.add((ra.data.file.path, data['data_file']))
-            attrs_data.setdefault(ra.report_id, [])
-            attrs_data[ra.report_id].append(data)
+            attrs_data.setdefault(ra.report.identifier, [])
+            attrs_data[ra.report.identifier].append(data)
         return self.__get_json(attrs_data)
 
     def __get_coverage_data(self, root):
         coverage_data = []
-        for carch in CoverageArchive.objects.filter(report__root=root).order_by('id'):
+        for carch in CoverageArchive.objects.filter(report__root=root).select_related('report').order_by('id'):
             coverage_data.append({
-                'report': carch.report_id, 'identifier': carch.identifier, 'archive': carch.archive.name
+                'report': carch.report.identifier,
+                'identifier': carch.identifier,
+                'archive': carch.archive.name
             })
             self._arch_files.add((carch.archive.path, carch.archive.name))
         return self.__get_json(coverage_data)
@@ -431,13 +439,13 @@ class JobsTreesGen:
 
 
 class UploadJob:
-    def __init__(self, parent_id, user, job_dir):
+    def __init__(self, parent, user, job_dir):
         self.job = None
         self._user = user
         self._jobdir = job_dir
 
         self._jobdata = self.__read_json_file('job.json')
-        self._jobdata['parent'] = None if parent_id == 'null' else parent_id
+        self._jobdata['parent'] = parent or None
         self.__upload_job_files()
         try:
             self.__upload_job()
@@ -519,11 +527,12 @@ class UploadJob:
 
 
 class UploadReports:
-    def __init__(self, user, job, job_dir, force=False):
+    def __init__(self, user, job, job_dir, fake=False):
         self.opened_files = []
         self._user = user
         self._jobdir = job_dir
-        self.root = self.__create_root(job, force)
+        self._fake = fake
+        self.root = self.__create_root(job)
         if self.root is None:
             return
         self._original = self.__upload_original()
@@ -537,11 +546,11 @@ class UploadReports:
         self.__upload_reports()
         Recalculation('all', [self.root.job_id])
 
-    def __create_root(self, job, force):
+    def __create_root(self, job):
         # Create report root
         root_data = self.__read_json_file('{}.json'.format(ReportRoot.__name__))
         if not root_data:
-            if not force:
+            if not self._fake:
                 # The job is without reports (for job uploading)
                 return None
             # Manual reports uploading
@@ -551,50 +560,70 @@ class UploadReports:
 
     def __upload_original(self):
         original = {}
-        orig_data = self.__read_json_file('{}.json'.format(OriginalSources.__name__), required=True)
-        for src_id, src_path in orig_data.items():
-            try:
-                src_obj = OriginalSources.objects.get(identifier=src_id)
-            except OriginalSources.DoesNotExist:
-                src_obj = OriginalSources(identifier=src_id)
-                with open(self.__full_path(src_path), mode='rb') as fp:
-                    src_obj.add_archive(fp, save=True)
-            original[src_id] = src_obj.id
+        orig_data = self.__read_json_file(
+            '{}.json'.format(OriginalSources.__name__), required=not self._fake
+        )
+        if orig_data:
+            for src_id, src_path in orig_data.items():
+                try:
+                    src_obj = OriginalSources.objects.get(identifier=src_id)
+                except OriginalSources.DoesNotExist:
+                    src_obj = OriginalSources(identifier=src_id)
+                    with open(self.__full_path(src_path), mode='rb') as fp:
+                        src_obj.add_archive(fp, save=True)
+                original[src_id] = src_obj.id
         return original
+
+    def __get_computer(self, comp_data):
+        if not isinstance(comp_data, dict) or 'identifier' not in comp_data:
+            if not self._fake:
+                raise exceptions.ValidationError({'computer': 'The report computer is required'})
+            comp_data = {'identifier': 'fake', 'display': '-', 'data': []}
+        comp_id = comp_data['identifier']
+        if comp_id not in self._computers:
+            comp_serializer = UploadComputerSerializer(data=comp_data)
+            comp_serializer.is_valid(raise_exception=True)
+            comp_obj = comp_serializer.save()
+            self._computers[comp_obj.identifier] = comp_obj
+        return self._computers[comp_id]
+
+    @cached_property
+    def _current_date(self):
+        return now().timestamp()
 
     @transaction.atomic
     def __upload_reports_chunk(self):
         if not self._chunk:
             return
         for report_data in self._chunk:
-            comp_id = report_data['computer']['identifier']
-            if comp_id not in self._computers:
-                comp_serializer = UploadComputerSerializer(data=report_data['computer'])
-                comp_serializer.is_valid(raise_exception=True)
-                comp_obj = comp_serializer.save()
-                self._computers[comp_obj.identifier] = comp_obj
-
             save_kwargs = {
-                'root': self.root, 'computer': self._computers[comp_id],
+                'root': self.root,
+                'computer': self.__get_computer(report_data.get('computer')),
                 'parent_id': self.saved_reports.get(report_data['parent'])
             }
-            if report_data['additional']:
+            if report_data.get('additional'):
                 save_kwargs['additional'] = self.__get_additional(report_data['additional'])
-            if report_data['original']:
+            if report_data.get('original'):
                 save_kwargs['original_id'] = self._original[report_data['original']]
-            if report_data['log']:
+            if report_data.get('log'):
                 fp = open(self.__full_path(report_data['log']), mode='rb')
                 report_data['log'] = File(fp, name=REPORT_ARCHIVE['log'])
                 self.opened_files.append(fp)
-            if report_data['verifier_input']:
+            if report_data.get('verifier_input'):
                 fp = open(self.__full_path(report_data['verifier_input']), mode='rb')
                 report_data['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier_input'])
                 self.opened_files.append(fp)
+            if self._fake:
+                report_data['start_date'] = report_data.get('start_date', self._current_date)
+                report_data['finish_date'] = report_data.get('finish_date', self._current_date)
+                report_data['cpu_time'] = report_data.get('cpu_time', 0)
+                report_data['wall_time'] = report_data.get('wall_time', 0)
+                report_data['memory'] = report_data.get('memory', 0)
 
             serializer = UploadReportComponentSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report_data['id']] = report.id
+            self.saved_reports[report.identifier] = report.id
 
             while len(self.opened_files):
                 fp = self.opened_files.pop()
@@ -636,13 +665,13 @@ class UploadReports:
         for report_data in safes_data:
             proof_fp = None
             save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
-            if report_data['proof']:
+            if report_data.get('proof'):
                 proof_fp = open(self.__full_path(report_data['proof']), mode='rb')
                 report_data['proof'] = File(proof_fp, name=REPORT_ARCHIVE['proof'])
             serializer = UploadReportSafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report_data['id']] = report.id
+            self.saved_reports[report.identifier] = report.id
             self._leaves_ids.add(report.id)
             if proof_fp:
                 proof_fp.close()
@@ -658,13 +687,13 @@ class UploadReports:
         for report_data in unsafes_data:
             et_fp = None
             save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
-            if report_data['error_trace']:
+            if report_data.get('error_trace'):
                 et_fp = open(self.__full_path(report_data['error_trace']), mode='rb')
                 report_data['error_trace'] = File(et_fp, name=REPORT_ARCHIVE['error_trace'])
             serializer = UploadReportUnsafeSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report_data['id']] = report.id
+            self.saved_reports[report.identifier] = report.id
             self._leaves_ids.add(report.id)
             if et_fp:
                 et_fp.close()
@@ -680,13 +709,13 @@ class UploadReports:
         for report_data in unknowns_data:
             save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
             problem_fp = None
-            if report_data['problem_description']:
+            if report_data.get('problem_description'):
                 problem_fp = open(self.__full_path(report_data['problem_description']), mode='rb')
                 report_data['problem_description'] = File(problem_fp, name=REPORT_ARCHIVE['problem_description'])
             serializer = UploadReportUnknownSerializer(data=report_data)
             serializer.is_valid(raise_exception=True)
             report = serializer.save(**save_kwargs)
-            self.saved_reports[report_data['id']] = report.id
+            self.saved_reports[report.identifier] = report.id
             self._leaves_ids.add(report.id)
             if problem_fp:
                 problem_fp.close()
@@ -699,12 +728,12 @@ class UploadReports:
         new_attrs = []
         for r_id in attrs_data:
             for adata in attrs_data[r_id]:
-                file_id = self.__get_attr_file_id(adata.pop('data_file'))
+                file_id = self.__get_attr_file_id(adata.pop('data_file', None))
                 serializer = UploadReportAttrSerializer(data=adata)
                 serializer.is_valid(raise_exception=True)
                 validated_data = serializer.validated_data
 
-                report_id = self.saved_reports[int(r_id)]
+                report_id = self.saved_reports[r_id]
                 new_attrs.append(ReportAttr(data_id=file_id, report_id=report_id, **validated_data))
                 if report_id in self._leaves_ids:
                     attrs_cache.setdefault(report_id, {'attrs': {}})
@@ -756,8 +785,8 @@ class UploadReports:
 
 
 class UploadTree:
-    def __init__(self, parent_id, user, jobs_dir):
-        self._parent_id = parent_id
+    def __init__(self, parent, user, jobs_dir):
+        self._parent_id = parent or None
         self._user = user
         self._jobsdir = jobs_dir
 
@@ -841,104 +870,24 @@ class UploadTree:
         pass
 
 
-# TODO
 class UploadReportsWithoutDecision:
-    reports_file = 'reports.json'
-    fields = {
-        'start': ['id', 'parent id', 'name', 'attrs', 'attr data', 'comp'],
-        'finish': ['id', 'data', 'resources', 'log', 'coverage'],
-        'verification': [
-            'id', 'parent id', 'name', 'attrs', 'attr data', 'comp', 'resources',
-            'log', 'coverage', 'input files of static verifiers'
-        ],
-        'verification finish': ['id'],
-        'safe': ['id', 'parent id', 'attrs', 'attr data', 'proof'],
-        'unsafe': ['id', 'parent id', 'attrs', 'attr data', 'sources', 'error traces'],
-        'unknown': ['id', 'parent id', 'attrs', 'attr data', 'problem desc']
-    }
-    files_fields = [
-        'attr data', 'log', 'coverage', 'input files of static verifiers',
-        'proof', 'sources', 'error traces', 'problem desc'
-    ]
-
-    def __init__(self, job, user, reports_dir):
-        self._job = job
+    def __init__(self, user, job, reports_dir):
         self._user = user
+        self._job = job
         self._reports_dir = reports_dir
-        self._data = self.__read_reports_data()
-        self.__prepare_job()
+        self.__upload()
+
+    def __upload(self):
+        ReportRoot.objects.filter(job=self._job).delete()
+
+        # It is safe to use change_job_status as job statuses '3' and '4' don't send RMQ messages
         try:
-            self.__upload_children(None)
+            UploadReports(self._user, self._job, self._reports_dir, fake=True)
         except Exception:
-            ReportRoot.objects.get(job=self._job).delete()
-            self._job.status = JOB_STATUS[4][0]
-            self._job.save()
+            ReportRoot.objects.filter(job=self._job).delete()
+            change_job_status(self._job, JOB_STATUS[4][0])
             raise
         change_job_status(self._job, JOB_STATUS[3][0])
-
-    def __read_reports_data(self):
-        reports_file = os.path.join(self._reports_dir, self.reports_file)
-        if not os.path.isfile(reports_file):
-            raise BridgeException(_("The archive doesn't contain main reports file"))
-        with open(reports_file, encoding='utf8') as fp:
-            data = json.load(fp)
-        if not isinstance(data, list) or len(data) == 0:
-            raise BridgeException(_('Wrong format of main reports file'))
-        return data
-
-    def __prepare_job(self):
-        StartJobDecision(self._user, self._job.id, GetConfiguration().configuration, fake=True)
-        change_job_status(self._job, JOB_STATUS[2][0])
-        self._job = Job.objects.get(id=self._job.id)
-
-    def __upload_children(self, parent_id):
-        actions = {
-            'component': self.__upload_component, 'verification': self.__upload_verification,
-            'safe': self.__upload_leaf, 'unsafe': self.__upload_leaf, 'unknown': self.__upload_leaf,
-        }
-        for report in self._data:
-            if report['parent id'] == parent_id:
-                actions[report['type']](report)
-
-    def __upload_component(self, data):
-        self.__upload(data, 'start')
-        self.__upload_children(data['id'])
-        self.__upload(data, 'finish')
-
-    def __upload_verification(self, data):
-        self.__upload(data, 'verification')
-        self.__upload_children(data['id'])
-        self.__upload(data, 'verification finish')
-
-    def __upload_leaf(self, data):
-        self.__upload(data, data['type'])
-
-    def __upload(self, data, report_type):
-        # Collecting report data
-        report = data.copy()
-        for field in set(report):
-            if field not in self.fields[report_type]:
-                del report[field]
-        if 'resources' in self.fields[report_type] and 'resources' not in report:
-            report['resources'] = {'CPU time': 0, 'wall time': 0, 'memory size': 0}
-        if report_type == 'start' and report['id'] == '/':
-            del report['parent id']
-        report['type'] = report_type
-
-        # Collecting report files
-        files = []
-        for f in self.files_fields:
-            if f in report:
-                if isinstance(report[f], str):
-                    files.append(os.path.join(self._reports_dir, report[f]))
-                elif isinstance(report[f], list):
-                    files.extend(list(os.path.join(self._reports_dir, p) for p in report[f]))
-
-        # Uploading report
-        with OpenFiles(*files, rel_path=self._reports_dir) as archives:
-            res = UploadReport(self._job, report, archives=archives)
-        if res.error is not None:
-            raise ValueError(res.error)
 
 
 class JobFileGenerator(FileWrapper):

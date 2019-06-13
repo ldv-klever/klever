@@ -16,6 +16,7 @@
 #
 
 import os
+import json
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -39,6 +40,12 @@ from tools.models import LockTable
 
 from tools.utils import objects_without_relations, ClearFiles, Recalculation, RecalculateMarksCache
 from tools.profiling import ProfileData, clear_old_logs, ExecLocker, LoggedCallMixin
+
+from jobs.population import JobsPopulation
+from marks.population import (
+    PopulateSafeTags, PopulateUnsafeTags, PopulateSafeMarks, PopulateUnsafeMarks, PopulateUnknownMarks
+)
+from service.population import populuate_schedulers
 
 
 class ManagerPageView(LoginRequiredMixin, TemplateView):
@@ -186,3 +193,34 @@ class ManualUnlockAPIView(LoggedCallMixin, APIView):
         except FileNotFoundError:
             pass
         return Response({'message': 'Success!'})
+
+
+class PopulationAPIView(LoggedCallMixin, APIView):
+    permission_classes = (ManagerPermission,)
+    unparallel = [Job, 'MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'SafeTag', 'UnsafeTag', 'Scheduler']
+
+    def post(self, request):
+        data = json.loads(request.data['data'])
+        messages = []
+        if 'schedulers' in data:
+            populuate_schedulers()
+            messages.append('Schedulers were populated!')
+        if 'jobs' in data:
+            res = JobsPopulation().populate()
+            messages.append('Number of new jobs: {}'.format(res))
+        if 'safe-tags' in data:
+            res = PopulateSafeTags()
+            messages.append("{} of {} safe tags were populated".format(res.created, res.total))
+        if 'unsafe-tags' in data:
+            res = PopulateUnsafeTags()
+            messages.append("{} of {} unsafe tags were populated".format(res.created, res.total))
+        if 'safe-marks' in data:
+            res = PopulateSafeMarks()
+            messages.append("{} of {} safe marks were populated".format(res.created, res.total))
+        if 'unsafe-marks' in data:
+            res = PopulateUnsafeMarks()
+            messages.append("{} of {} unsafe marks were populated".format(res.created, res.total))
+        if 'unknown-marks' in data:
+            res = PopulateUnknownMarks()
+            messages.append("{} of {} unknown marks were populated".format(res.created, res.total))
+        return Response({'messages': messages})

@@ -391,7 +391,10 @@ class SchedulerSerializer(serializers.ModelSerializer):
     task_error = 'Task was finished with error due to scheduler is disconnected'
 
     def finish_tasks(self, scheduler: Scheduler):
-        for decision in scheduler.decision_set.filter(job__status=JOB_STATUS[2][0], finish_date=None):
+        decisions_qs = scheduler.decision_set.filter(
+            job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]], finish_date=None
+        )
+        for decision in decisions_qs:
             decision.tasks_pending = decision.tasks_processing = 0
             # Pending or processing tasks
             tasks = Task.objects.filter(

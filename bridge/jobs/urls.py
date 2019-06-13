@@ -53,8 +53,8 @@ urlpatterns = [
     path('downloadjob/<int:pk>/', views.DownloadJobView.as_view(), name='download'),
     path('downloadjobs/', views.DownloadJobsListView.as_view()),
     path('downloadtrees/', views.DownloadJobsTreeView.as_view()),
-    path('upload_jobs/<slug:parent_id>/', views.UploadJobsView.as_view()),
-    path('upload_jobs_tree/', views.UploadJobsTreeView.as_view()),
+    path('api/upload_jobs/', api.UploadJobsAPIView.as_view(), name='api-upload-jobs'),
+    path('api/upload_jobs_tree/', api.UploadJobsTreeAPIView.as_view(), name='api-upload-tree'),
 
     # Actions with job versions
     path('api/remove-versions/<int:job_id>/', api.RemoveJobVersions.as_view(), name='api-remove-versions'),

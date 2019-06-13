@@ -16,6 +16,7 @@
 #
 
 import uuid
+
 from django.db import models
 from django.db.models.signals import post_delete
 from django.contrib.postgres.fields import ArrayField, JSONField
@@ -23,10 +24,9 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
 
-from bridge.vars import (
-    FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
-)
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_SOURCE, ASSOCIATION_TYPE
 from bridge.utils import WithFilesMixin, remove_instance_files
+
 from reports.models import MAX_COMPONENT_LEN, ReportUnsafe, ReportSafe, ReportComponent, ReportUnknown, AttrBase
 from jobs.models import Job
 from users.models import User
@@ -62,7 +62,6 @@ class Mark(models.Model):
 
     # Only with compare=True
     cache_attrs = JSONField(default=dict)
-    cache_links = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return str(self.identifier)

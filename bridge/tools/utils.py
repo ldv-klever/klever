@@ -23,7 +23,7 @@ from django.db import transaction
 from django.db.models import F, FileField
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_WEIGHT, ASSOCIATION_TYPE
+from bridge.vars import JOB_WEIGHT
 from bridge.utils import BridgeException, logger
 
 from jobs.models import JOBFILE_DIR, JobFile
@@ -165,98 +165,38 @@ class RecalculateCoverageCache:
 class RecalculateSafeLinks:
     def __init__(self, roots):
         self._roots = roots
-        self.__disconnect_marks()
         self.__connect_marks()
-        RecalculateSafeCache(roots=set(r.id for r in self._roots))
-
-    def __disconnect_marks(self):
-        mr_qs = MarkSafeReport.objects.filter(report__root__in=self._roots)\
-            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
-        changes = {}
-        for mr in mr_qs:
-            if mr.type == ASSOCIATION_TYPE[2][0]:
-                # Unconfirmed mark doesn't affect cache_links
-                continue
-            changes.setdefault(mr.mark_id, mr.mark.cache_links)
-            if changes[mr.mark_id]:
-                changes[mr.mark_id] -= 1
-        mr_qs.delete()
-        self.__update_marks_cache(changes)
 
     def __connect_marks(self):
+        MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
         # It could be long
         for report in ReportSafe.objects.filter(root__in=self._roots):
             ConnectSafeReport(report)
-
-    @transaction.atomic
-    def __update_marks_cache(self, changes):
-        for mark in MarkSafe.objects.filter(id__in=changes).only('id', 'cache_links'):
-            mark.cache_links = changes[mark.id]
-            mark.save()
+        RecalculateSafeCache(roots=set(r.id for r in self._roots))
 
 
 class RecalculateUnsafeLinks:
     def __init__(self, roots):
         self._roots = roots
-        self.__disconnect_marks()
         self.__connect_marks()
-        RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
-
-    def __disconnect_marks(self):
-        mr_qs = MarkUnsafeReport.objects.filter(report__root__in=self._roots)\
-            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
-        changes = {}
-        for mr in mr_qs:
-            if mr.type == ASSOCIATION_TYPE[2][0]:
-                # Unconfirmed mark doesn't affect cache_links
-                continue
-            changes.setdefault(mr.mark_id, mr.mark.cache_links)
-            if changes[mr.mark_id]:
-                changes[mr.mark_id] -= 1
-        mr_qs.delete()
-        self.__update_marks_cache(changes)
 
     def __connect_marks(self):
+        MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
         for report in ReportUnsafe.objects.filter(root__in=self._roots):
             ConnectUnsafeReport(report)
-
-    @transaction.atomic
-    def __update_marks_cache(self, changes):
-        for mark in MarkUnsafe.objects.filter(id__in=changes).only('id', 'cache_links'):
-            mark.cache_links = changes[mark.id]
-            mark.save()
+        RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
 
 
 class RecalculateUnknownLinks:
     def __init__(self, roots):
         self._roots = roots
-        self.__disconnect_marks()
         self.__connect_marks()
-        RecalculateUnknownCache(roots=set(r.id for r in self._roots))
-
-    def __disconnect_marks(self):
-        mr_qs = MarkUnknownReport.objects.filter(report__root__in=self._roots)\
-            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
-        changes = {}
-        for mr in mr_qs:
-            if mr.type == ASSOCIATION_TYPE[2][0]:
-                # Unconfirmed mark doesn't affect cache_links
-                continue
-            changes.setdefault(mr.mark_id, mr.mark.cache_links)
-            if changes[mr.mark_id]:
-                changes[mr.mark_id] -= 1
-        mr_qs.delete()
-        self.__update_marks_cache(changes)
 
     def __connect_marks(self):
+        MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
         for report in ReportUnknown.objects.filter(root__in=self._roots):
             ConnectUnknownReport(report)
-
-    @transaction.atomic
-    def __update_marks_cache(self, changes):
-        for mark in MarkUnknown.objects.filter(id__in=changes).only('id', 'cache_links'):
-            mark.cache_links = changes[mark.id]
-            mark.save()
+        RecalculateUnknownCache(roots=set(r.id for r in self._roots))
 
 
 class Recalculation:
@@ -337,12 +277,6 @@ class RecalculateMarksCache:
             cache_data[mt.mark_version.mark_id].setdefault('cache_tags', [])
             cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
 
-        # Collect number of links cache
-        for mr in MarkSafeReport.objects.exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
-            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
-            cache_data[mr.mark_id].setdefault('cache_links', 0)
-            cache_data[mr.mark_id]['cache_links'] += 1
-
         with transaction.atomic():
             for mark in MarkSafe.objects.all():
                 if mark.id not in cache_data:
@@ -372,12 +306,6 @@ class RecalculateMarksCache:
             cache_data[mt.mark_version.mark_id].setdefault('cache_tags', [])
             cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
 
-        # Collect number of links cache
-        for mr in MarkUnsafeReport.objects.filter(result__gt=0).exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
-            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
-            cache_data[mr.mark_id].setdefault('cache_links', 0)
-            cache_data[mr.mark_id]['cache_links'] += 1
-
         with transaction.atomic():
             for mark in MarkUnsafe.objects.all():
                 if mark.id not in cache_data:
@@ -396,12 +324,6 @@ class RecalculateMarksCache:
         for ma in attrs_qs:
             cache_data.setdefault(ma.mark_version.mark_id, {'cache_attrs': {}})
             cache_data[ma.mark_version.mark_id]['cache_attrs'][ma.name] = ma.value
-
-        # Collect number of links cache
-        for mr in MarkUnknownReport.objects.exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
-            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
-            cache_data[mr.mark_id].setdefault('cache_links', 0)
-            cache_data[mr.mark_id]['cache_links'] += 1
 
         with transaction.atomic():
             for mark in MarkUnknown.objects.all():

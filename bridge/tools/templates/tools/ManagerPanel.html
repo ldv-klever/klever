@@ -88,6 +88,84 @@
         </div>
     </div>
 
+    <div class="ui grid">
+        <div class="five wide column">
+            <div id="" class="ui blue segment form">
+                <h3>{% trans 'Population' %}</h3>
+
+                <div id="population_checkboxes" class="ui celled relaxed list">
+                    <div class="item">
+                        <div class="ui master checkbox">
+                            <input type="checkbox">
+                            <label>{% trans 'All' %}</label>
+                        </div>
+                        <div class="list">
+                            <div class="item">
+                                <div class="ui child checkbox">
+                                    <input type="checkbox" value="schedulers">
+                                    <label>{% trans 'Schedulers' %}</label>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui child checkbox">
+                                    <input type="checkbox" value="jobs">
+                                    <label>{% trans 'Jobs' %}</label>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui child master checkbox">
+                                    <input type="checkbox">
+                                    <label>{% trans 'Marks' %}</label>
+                                </div>
+                                <div class="list">
+                                    <div class="item">
+                                        <div class="ui child checkbox">
+                                            <input type="checkbox" value="safe-marks">
+                                            <label>{% trans 'Safe marks' %}</label>
+                                        </div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="ui child checkbox">
+                                            <input type="checkbox" value="unsafe-marks">
+                                            <label>{% trans 'Unsafe marks' %}</label>
+                                        </div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="ui child checkbox">
+                                            <input type="checkbox" value="unknown-marks">
+                                            <label>{% trans 'Unknown marks' %}</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="item">
+                                <div class="ui child master checkbox">
+                                    <input type="checkbox">
+                                    <label>{% trans 'Tags' %}</label>
+                                </div>
+                                <div class="list">
+                                    <div class="item">
+                                        <div class="ui child checkbox">
+                                            <input type="checkbox" value="safe-tags">
+                                            <label>{% trans 'Safe tags' %}</label>
+                                        </div>
+                                    </div>
+                                    <div class="item">
+                                        <div class="ui child checkbox">
+                                            <input type="checkbox" value="unsafe-tags">
+                                            <label>{% trans 'Unsafe tags' %}</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="start_population" class="ui blue button" data-url="{% url 'tools:api-populate' %}">{% trans 'Populate' %}</div>
+            </div>
+        </div>
+    </div>
+
     <div id="upload_all_marks_modal" class="ui modal">
         <div class="header">{% trans 'Upload marks' %}</div>
         <div class="content">
@@ -161,6 +239,34 @@
                     }
                 });
             });
+
+            $('.list .master.checkbox').checkbox({
+                onChecked: function() {
+                    let $childCheckbox  = $(this).closest('.checkbox').siblings('.list').find('.checkbox');
+                    $childCheckbox.checkbox('check');
+                },
+                onUnchecked: function() {
+                    let $childCheckbox  = $(this).closest('.checkbox').siblings('.list').find('.checkbox');
+                    $childCheckbox.checkbox('uncheck');
+                }
+            });
+
+            $('#start_population').click(function () {
+                let values = [];
+                $('#population_checkboxes').find('input:checked').each(function () {
+                    let value = $(this).val();
+                    if (value !== 'on') values.push(value);
+                });
+                $('#dimmer_of_page').addClass('active');
+                $.post($(this).data('url'), {
+                    'data': JSON.stringify(values)
+                }, function (resp) {
+                    $('#dimmer_of_page').removeClass('active');
+                    if (resp['messages'].length) {
+                        $.each(resp['messages'], function (i, value) { success_notify(value) });
+                    }
+                });
+            })
         })
     </script>
 {% endblock %}
