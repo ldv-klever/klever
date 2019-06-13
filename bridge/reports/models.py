@@ -29,11 +29,12 @@ from django.utils.timezone import now
 from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.utils import CheckArchiveError, WithFilesMixin, remove_instance_files
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT, REPORT_ARCHIVE
+from bridge.vars import COMPARE_VERDICT, REPORT_ARCHIVE
 from users.models import User
 from jobs.models import Job
 
 MAX_COMPONENT_LEN = 20
+ORIGINAL_SOURCES_DIR = 'OriginalSources'
 
 
 def get_component_path(instance, filename):
@@ -116,10 +117,10 @@ class Computer(models.Model):
 
 class OriginalSources(WithFilesMixin, models.Model):
     identifier = models.CharField(max_length=128, unique=True, db_index=True)
-    archive = models.FileField(upload_to='Sources/%Y/%m')
+    archive = models.FileField(upload_to=ORIGINAL_SOURCES_DIR)
 
     def add_archive(self, fp, save=False):
-        self.archive.save(REPORT_ARCHIVE['sources'], File(fp), save)
+        self.archive.save(REPORT_ARCHIVE['original'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('OriginalSources.archive was not saved')
 
@@ -132,7 +133,7 @@ class AdditionalSources(WithFilesMixin, models.Model):
     archive = models.FileField(upload_to='Sources/%Y/%m')
 
     def add_archive(self, fp, save=False):
-        self.archive.save(REPORT_ARCHIVE['sources'], File(fp), save)
+        self.archive.save(REPORT_ARCHIVE['additional'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.archive.name)):
             raise CheckArchiveError('AdditionalSources.archive was not saved')
 
@@ -162,7 +163,7 @@ class ReportComponent(WithFilesMixin, Report):
             raise CheckArchiveError('ReportComponent.log was not saved')
 
     def add_verifier_input(self, fp, save=False):
-        self.verifier_input.save(REPORT_ARCHIVE['verifier input'], File(fp), save)
+        self.verifier_input.save(REPORT_ARCHIVE['verifier_input'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.verifier_input.name)):
             raise CheckArchiveError('ReportComponent.verifier_input was not saved')
 
@@ -198,7 +199,7 @@ class ReportUnsafe(WithFilesMixin, Report):
     leaves = GenericRelation(ReportComponentLeaf, related_query_name='unsafes')
 
     def add_trace(self, fp, save=False):
-        self.error_trace.save(REPORT_ARCHIVE['error trace'], File(fp), save)
+        self.error_trace.save(REPORT_ARCHIVE['error_trace'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.error_trace.name)):
             raise CheckArchiveError('ReportUnsafe.error_trace was not saved')
 
@@ -225,7 +226,7 @@ class ReportUnknown(WithFilesMixin, Report):
     leaves = GenericRelation(ReportComponentLeaf, related_query_name='unknowns')
 
     def add_problem_desc(self, fp, save=False):
-        self.problem_description.save(REPORT_ARCHIVE['problem desc'], File(fp), save)
+        self.problem_description.save(REPORT_ARCHIVE['problem_description'], File(fp), save)
         if not os.path.exists(os.path.join(settings.MEDIA_ROOT, self.problem_description.name)):
             raise CheckArchiveError('ReportUnknown.problem_description was not saved')
 
@@ -262,19 +263,6 @@ class ComparisonLink(models.Model):
 
     class Meta:
         db_table = 'cache_report_comparison_link'
-
-
-# class CompareJobsCache(models.Model):
-#     info = models.ForeignKey(CompareJobsInfo, models.CASCADE)
-#     attr_values = models.CharField(max_length=64, db_index=True)
-#     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
-#     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
-#     reports1 = models.TextField()
-#     reports2 = models.TextField()
-#
-#     class Meta:
-#         db_table = 'cache_report_jobs_compare'
-#         index_together = ["info", "verdict1", "verdict2"]
 
 
 class CoverageFile(WithFilesMixin, models.Model):

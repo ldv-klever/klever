@@ -16,26 +16,34 @@
 #
 
 import os
-import json
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.db.models import F, FileField
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import JOB_WEIGHT
+from bridge.vars import JOB_WEIGHT, ASSOCIATION_TYPE
 from bridge.utils import BridgeException, logger
-
-import marks.SafeUtils as SafeUtils
-import marks.UnsafeUtils as UnsafeUtils
-import marks.UnknownUtils as UnknownUtils
 
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import SERVICE_DIR, Solution, Task
-from marks.models import CONVERTED_DIR
-from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    CoverageFile, CoverageDataStatistics
+from marks.models import (
+    CONVERTED_DIR, ConvertedTrace, MarkSafe, MarkSafeReport, MarkSafeAttr, MarkSafeTag,
+    MarkUnsafe, MarkUnsafeReport, MarkUnsafeAttr, MarkUnsafeTag,
+    MarkUnknown, MarkUnknownReport, MarkUnknownAttr
+)
+from reports.models import (
+    ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
+    CoverageFile, CoverageDataStatistics, OriginalSources, ORIGINAL_SOURCES_DIR
+)
+from marks.SafeUtils import ConnectSafeReport
+from marks.UnsafeUtils import ConnectUnsafeReport
+from marks.UnknownUtils import ConnectUnknownReport
 
 from reports.coverage import FillCoverageCache
+
+from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 
 
 def objects_without_relations(table):
@@ -52,43 +60,51 @@ def objects_without_relations(table):
 class ClearFiles:
     def __init__(self):
         self.__clear_files_with_ref(JobFile, JOBFILE_DIR)
-        self.__clear_files_with_ref(ConvertedTraces, CONVERTED_DIR)
+        self.__clear_files_with_ref(OriginalSources, ORIGINAL_SOURCES_DIR)
+        self.__clear_files_with_ref(ConvertedTrace, CONVERTED_DIR)
         self.__clear_service_files()
 
-    def __clear_files_with_ref(self, table, files_dir):
-        self.__is_not_used()
-        objects_without_relations(table).delete()
+    def __clear_files_with_ref(self, model, files_dir):
+        objects_without_relations(model).delete()
 
         files_in_the_system = set()
-        files_to_delete = set()
-        for f in table.objects.all():
-            file_path = os.path.abspath(os.path.join(settings.MEDIA_ROOT, f.file.name))
-            files_in_the_system.add(file_path)
-            if not (os.path.exists(file_path) and os.path.isfile(file_path)):
-                logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
-                files_to_delete.add(f.pk)
-        table.objects.filter(id__in=files_to_delete).delete()
+        to_delete = set()
+        for instance in model.objects.all():
+            # file_path = os.path.abspath(os.path.join(settings.MEDIA_ROOT, f.file.name))
+            for file_path in self.__files_paths(instance):
+                files_in_the_system.add(file_path)
+                if not (os.path.exists(file_path) and os.path.isfile(file_path)):
+                    logger.error('Deleted from DB (file not exists): {}'.format(
+                        os.path.relpath(file_path, settings.MEDIA_ROOT)
+                    ), stack_info=True)
+                    to_delete.add(instance.pk)
+        model.objects.filter(id__in=to_delete).delete()
+
         files_directory = os.path.join(settings.MEDIA_ROOT, files_dir)
         if os.path.exists(files_directory):
-            files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
+            files_on_disk = set(os.path.abspath(os.path.join(files_directory, x))
+                                for x in os.listdir(files_directory))
             for f in files_on_disk - files_in_the_system:
                 os.remove(f)
 
+    def __files_paths(self, instance):
+        paths_list = []
+        for field in getattr(instance, '_meta').fields:
+            if isinstance(field, FileField):
+                paths_list.append(getattr(instance, field.name).path)
+        return paths_list
+
     def __clear_service_files(self):
-        self.__is_not_used()
         files_in_the_system = set()
-        for s in Solution.objects.values_list('archive'):
-            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
-        for s in Task.objects.values_list('archive'):
-            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
+        for s in Solution.objects.values_list('archive', flat=True):
+            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
+        for s in Task.objects.values_list('archive', flat=True):
+            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
         files_directory = os.path.join(settings.MEDIA_ROOT, SERVICE_DIR)
         if os.path.exists(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
             for f in files_on_disk - files_in_the_system:
                 os.remove(f)
-
-    def __is_not_used(self):
-        pass
 
 
 class RecalculateLeaves:
@@ -99,14 +115,14 @@ class RecalculateLeaves:
 
     def __recalc(self):
         ReportComponentLeaf.objects.filter(report__root__in=self._roots).delete()
-        for rc in ReportComponent.objects.filter(root__in=self._roots).order_by('id').only('id', 'parent_id'):
-            self._leaves.add(rc)
-        for u in ReportUnsafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
-            self._leaves.add(u)
-        for s in ReportSafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
-            self._leaves.add(s)
-        for f in ReportUnknown.objects.filter(root__in=self._roots).only('id', 'parent_id'):
-            self._leaves.add(f)
+        for report in ReportComponent.objects.filter(root__in=self._roots).order_by('id').only('id', 'parent_id'):
+            self._leaves.add_component(report)
+        for report in ReportUnsafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
+            self._leaves.add_leaf(report)
+        for report in ReportSafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
+            self._leaves.add_leaf(report)
+        for report in ReportUnknown.objects.filter(root__in=self._roots).only('id', 'parent_id'):
+            self._leaves.add_leaf(report)
         self._leaves.upload()
 
 
@@ -142,38 +158,136 @@ class RecalculateCoverageCache:
     def __recalc(self):
         CoverageFile.objects.filter(archive__report__root__in=self.roots).delete()
         CoverageDataStatistics.objects.filter(archive__report__root__in=self.roots).delete()
-        # TODO: ensure that each report is unique in queryset
-        for report in ReportComponent.objects.filter(root__in=self.roots).exclude(coverages=None):
+        for report in ReportComponent.objects.filter(root__in=self.roots, coverages__isnull=False):
             FillCoverageCache(report)
 
 
+class RecalculateSafeLinks:
+    def __init__(self, roots):
+        self._roots = roots
+        self.__disconnect_marks()
+        self.__connect_marks()
+        RecalculateSafeCache(roots=set(r.id for r in self._roots))
+
+    def __disconnect_marks(self):
+        mr_qs = MarkSafeReport.objects.filter(report__root__in=self._roots)\
+            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
+        changes = {}
+        for mr in mr_qs:
+            if mr.type == ASSOCIATION_TYPE[2][0]:
+                # Unconfirmed mark doesn't affect cache_links
+                continue
+            changes.setdefault(mr.mark_id, mr.mark.cache_links)
+            if changes[mr.mark_id]:
+                changes[mr.mark_id] -= 1
+        mr_qs.delete()
+        self.__update_marks_cache(changes)
+
+    def __connect_marks(self):
+        # It could be long
+        for report in ReportSafe.objects.filter(root__in=self._roots):
+            ConnectSafeReport(report)
+
+    @transaction.atomic
+    def __update_marks_cache(self, changes):
+        for mark in MarkSafe.objects.filter(id__in=changes).only('id', 'cache_links'):
+            mark.cache_links = changes[mark.id]
+            mark.save()
+
+
+class RecalculateUnsafeLinks:
+    def __init__(self, roots):
+        self._roots = roots
+        self.__disconnect_marks()
+        self.__connect_marks()
+        RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
+
+    def __disconnect_marks(self):
+        mr_qs = MarkUnsafeReport.objects.filter(report__root__in=self._roots)\
+            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
+        changes = {}
+        for mr in mr_qs:
+            if mr.type == ASSOCIATION_TYPE[2][0]:
+                # Unconfirmed mark doesn't affect cache_links
+                continue
+            changes.setdefault(mr.mark_id, mr.mark.cache_links)
+            if changes[mr.mark_id]:
+                changes[mr.mark_id] -= 1
+        mr_qs.delete()
+        self.__update_marks_cache(changes)
+
+    def __connect_marks(self):
+        for report in ReportUnsafe.objects.filter(root__in=self._roots):
+            ConnectUnsafeReport(report)
+
+    @transaction.atomic
+    def __update_marks_cache(self, changes):
+        for mark in MarkUnsafe.objects.filter(id__in=changes).only('id', 'cache_links'):
+            mark.cache_links = changes[mark.id]
+            mark.save()
+
+
+class RecalculateUnknownLinks:
+    def __init__(self, roots):
+        self._roots = roots
+        self.__disconnect_marks()
+        self.__connect_marks()
+        RecalculateUnknownCache(roots=set(r.id for r in self._roots))
+
+    def __disconnect_marks(self):
+        mr_qs = MarkUnknownReport.objects.filter(report__root__in=self._roots)\
+            .select_related('mark').only('id', 'type', 'mark_id', 'mark__cache_links')
+        changes = {}
+        for mr in mr_qs:
+            if mr.type == ASSOCIATION_TYPE[2][0]:
+                # Unconfirmed mark doesn't affect cache_links
+                continue
+            changes.setdefault(mr.mark_id, mr.mark.cache_links)
+            if changes[mr.mark_id]:
+                changes[mr.mark_id] -= 1
+        mr_qs.delete()
+        self.__update_marks_cache(changes)
+
+    def __connect_marks(self):
+        for report in ReportUnknown.objects.filter(root__in=self._roots):
+            ConnectUnknownReport(report)
+
+    @transaction.atomic
+    def __update_marks_cache(self, changes):
+        for mark in MarkUnknown.objects.filter(id__in=changes).only('id', 'cache_links'):
+            mark.cache_links = changes[mark.id]
+            mark.save()
+
+
 class Recalculation:
-    def __init__(self, rec_type, jobs=None):
+    def __init__(self, rec_type, jobs):
         self.type = rec_type
         self._roots = self.__get_roots(jobs)
         self.__recalc()
 
     def __get_roots(self, job_ids):
-        self.__is_not_used()
-        if job_ids is None:
-            return ReportRoot.objects.all().select_related('job')
-        job_ids = json.loads(job_ids)
         roots = ReportRoot.objects.filter(job_id__in=job_ids).select_related('job')
-        if roots.count() < len(job_ids):
+        if len(roots) < len(job_ids):
             raise BridgeException(_('One of the selected jobs was not found'))
-        if roots.count() == 0:
+        if len(roots) == 0:
             raise BridgeException(_('Please select jobs to recalculate caches for them'))
         return roots
 
     def __recalc(self):
         if self.type == 'leaves':
             RecalculateLeaves(self._roots)
-        elif self.type == 'unsafe':
-            UnsafeUtils.RecalculateConnections(self._roots)
-        elif self.type == 'safe':
-            SafeUtils.RecalculateConnections(self._roots)
-        elif self.type == 'unknown':
-            UnknownUtils.RecalculateConnections(self._roots)
+        elif self.type == 'safe_links':
+            RecalculateSafeLinks(self._roots)
+        elif self.type == 'unsafe_links':
+            RecalculateUnsafeLinks(self._roots)
+        elif self.type == 'unknown_links':
+            RecalculateUnknownLinks(self._roots)
+        elif self.type == 'safe_reports':
+            RecalculateSafeCache(roots=set(r.id for r in self._roots))
+        elif self.type == 'unsafe_reports':
+            RecalculateUnsafeCache(roots=set(r.id for r in self._roots))
+        elif self.type == 'unknown_reports':
+            RecalculateUnknownCache(roots=set(r.id for r in self._roots))
         elif self.type == 'resources':
             RecalculateResources(self._roots)
         elif self.type == 'compinst':
@@ -182,25 +296,120 @@ class Recalculation:
             RecalculateCoverageCache(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
-            UnsafeUtils.RecalculateConnections(self._roots)
-            SafeUtils.RecalculateConnections(self._roots)
-            UnknownUtils.RecalculateConnections(self._roots)
+            RecalculateSafeLinks(self._roots)
+            RecalculateUnsafeLinks(self._roots)
+            RecalculateUnknownLinks(self._roots)
             RecalculateResources(self._roots)
-            RecalculateComponentInstances(self._roots)
-            RecalculateCoverageCache(self._roots)
-        elif self.type == 'for_uploaded':
-            RecalculateLeaves(self._roots)
-            UnsafeUtils.RecalculateConnections(self._roots)
-            SafeUtils.RecalculateConnections(self._roots)
-            UnknownUtils.RecalculateConnections(self._roots)
             RecalculateComponentInstances(self._roots)
             RecalculateCoverageCache(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()
 
-    def __is_not_used(self):
-        pass
+
+class RecalculateMarksCache:
+    def __init__(self, marks_type):
+        if marks_type == 'safe':
+            self.__recalculate_safes()
+        elif marks_type == 'unsafe':
+            self.__recalculate_unsafes()
+        elif marks_type == 'unknown':
+            self.__recalculate_unknowns()
+
+    def __recalculate_safes(self):
+        cache_data = {}
+
+        # Collect attrs cache
+        attrs_qs = MarkSafeAttr.objects\
+            .filter(is_compare=True, mark_version__mark__version=F('mark_version__version'))\
+            .select_related('mark_version').only('name', 'value', 'mark_version__mark_id')
+        for ma in attrs_qs:
+            cache_data.setdefault(ma.mark_version.mark_id, {'cache_attrs': {}})
+            cache_data[ma.mark_version.mark_id]['cache_attrs'][ma.name] = ma.value
+
+        # Collect tags cache
+        tags_qs = MarkSafeTag.objects \
+            .filter(mark_version__mark__version=F('mark_version__version')) \
+            .select_related('mark_version', 'tag').order_by('tag__name')\
+            .only('tag__name', 'mark_version__mark_id')
+        for mt in tags_qs:
+            cache_data.setdefault(mt.mark_version.mark_id, {'cache_tags': []})
+            cache_data[mt.mark_version.mark_id].setdefault('cache_tags', [])
+            cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
+
+        # Collect number of links cache
+        for mr in MarkSafeReport.objects.exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
+            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
+            cache_data[mr.mark_id].setdefault('cache_links', 0)
+            cache_data[mr.mark_id]['cache_links'] += 1
+
+        with transaction.atomic():
+            for mark in MarkSafe.objects.all():
+                if mark.id not in cache_data:
+                    continue
+                for field_name, field_value in cache_data[mark.id].items():
+                    setattr(mark, field_name, field_value)
+                mark.save()
+
+    def __recalculate_unsafes(self):
+        cache_data = {}
+
+        # Collect attrs cache
+        attrs_qs = MarkUnsafeAttr.objects \
+            .filter(is_compare=True, mark_version__mark__version=F('mark_version__version')) \
+            .select_related('mark_version').only('name', 'value', 'mark_version__mark_id')
+        for ma in attrs_qs:
+            cache_data.setdefault(ma.mark_version.mark_id, {'cache_attrs': {}})
+            cache_data[ma.mark_version.mark_id]['cache_attrs'][ma.name] = ma.value
+
+        # Collect tags cache
+        tags_qs = MarkUnsafeTag.objects \
+            .filter(mark_version__mark__version=F('mark_version__version')) \
+            .select_related('mark_version', 'tag').order_by('tag__name') \
+            .only('tag__name', 'mark_version__mark_id')
+        for mt in tags_qs:
+            cache_data.setdefault(mt.mark_version.mark_id, {'cache_tags': []})
+            cache_data[mt.mark_version.mark_id].setdefault('cache_tags', [])
+            cache_data[mt.mark_version.mark_id]['cache_tags'].append(mt.tag.name)
+
+        # Collect number of links cache
+        for mr in MarkUnsafeReport.objects.filter(result__gt=0).exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
+            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
+            cache_data[mr.mark_id].setdefault('cache_links', 0)
+            cache_data[mr.mark_id]['cache_links'] += 1
+
+        with transaction.atomic():
+            for mark in MarkUnsafe.objects.all():
+                if mark.id not in cache_data:
+                    continue
+                for field_name, field_value in cache_data[mark.id].items():
+                    setattr(mark, field_name, field_value)
+                mark.save()
+
+    def __recalculate_unknowns(self):
+        cache_data = {}
+
+        # Collect attrs cache
+        attrs_qs = MarkUnknownAttr.objects \
+            .filter(is_compare=True, mark_version__mark__version=F('mark_version__version')) \
+            .select_related('mark_version').only('name', 'value', 'mark_version__mark_id')
+        for ma in attrs_qs:
+            cache_data.setdefault(ma.mark_version.mark_id, {'cache_attrs': {}})
+            cache_data[ma.mark_version.mark_id]['cache_attrs'][ma.name] = ma.value
+
+        # Collect number of links cache
+        for mr in MarkUnknownReport.objects.exclude(type=ASSOCIATION_TYPE[2][0]).only('mark_id'):
+            cache_data.setdefault(mr.mark_id, {'cache_links': 0})
+            cache_data[mr.mark_id].setdefault('cache_links', 0)
+            cache_data[mr.mark_id]['cache_links'] += 1
+
+        with transaction.atomic():
+            for mark in MarkUnknown.objects.all():
+                if mark.id not in cache_data:
+                    continue
+                for field_name, field_value in cache_data[mark.id].items():
+                    setattr(mark, field_name, field_value)
+                mark.save()
 
 
 class RecalculateResources:
@@ -222,38 +431,30 @@ class RecalculateResources:
                 root.save()
 
 
-class LeavesData(object):
+class LeavesData:
     def __init__(self):
-        self._data = {}
+        self._ctypes = {}
+        self._tree = {}
+        self._leaves_cache = []
 
-    def add(self, report):
-        if isinstance(report, ReportComponent):
-            self._data[report.id] = {
-                'parent': report.parent_id,
-                'unsafes': [],
-                'safes': [],
-                'unknowns': []
-            }
-        else:
-            parent_id = report.parent_id
-            while parent_id is not None:
-                if parent_id in self._data:
-                    if isinstance(report, ReportSafe):
-                        self._data[parent_id]['safes'].append(report.id)
-                    elif isinstance(report, ReportUnsafe):
-                        self._data[parent_id]['unsafes'].append(report.id)
-                    elif isinstance(report, ReportUnknown):
-                        self._data[parent_id]['unknowns'].append(report.id)
-                parent_id = self._data[parent_id]['parent']
+    def __content_type(self, report):
+        model_name = report.__class__.__name__
+        if model_name not in self._ctypes:
+            self._ctypes[model_name] = ContentType.objects.get_for_model(report.__class__)
+        return self._ctypes[model_name]
+
+    def add_component(self, report):
+        self._tree[report.id] = report.parent_id
+
+    def add_leaf(self, report):
+        parent_id = report.parent_id
+        while parent_id is not None:
+            self._leaves_cache.append(ReportComponentLeaf(
+                report_id=parent_id, object_id=report.id,
+                content_type=self.__content_type(report)
+            ))
+            parent_id = self._tree[parent_id]
 
     def upload(self):
-        new_leaves = []
-        for rep_id in self._data:
-            for unsafe in self._data[rep_id]['unsafes']:
-                new_leaves.append(ReportComponentLeaf(report_id=rep_id, unsafe_id=unsafe))
-            for safe in self._data[rep_id]['safes']:
-                new_leaves.append(ReportComponentLeaf(report_id=rep_id, safe_id=safe))
-            for unknown in self._data[rep_id]['unknowns']:
-                new_leaves.append(ReportComponentLeaf(report_id=rep_id, unknown_id=unknown))
-        ReportComponentLeaf.objects.bulk_create(new_leaves)
+        ReportComponentLeaf.objects.bulk_create(self._leaves_cache)
         self.__init__()

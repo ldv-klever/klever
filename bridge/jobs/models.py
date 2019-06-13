@@ -70,7 +70,7 @@ class Job(MPTTModel):
 
 
 class RunHistory(models.Model):
-    job = models.ForeignKey(Job, models.CASCADE)
+    job = models.ForeignKey(Job, models.CASCADE, related_name='run_history')
     operator = models.ForeignKey(User, models.SET_NULL, null=True, related_name='+')
     date = models.DateTimeField(db_index=True)
     status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])

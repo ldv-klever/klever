@@ -20,39 +20,171 @@ import re
 import json
 import zipfile
 import tempfile
-from datetime import datetime
-from io import BytesIO
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _
-from django.utils.timezone import pytz
 
-from rest_framework import exceptions
+from rest_framework import exceptions, serializers, fields
 
-from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, JOB_WEIGHT
-from bridge.utils import logger, file_get_or_create, unique_id, BridgeException, OpenFiles
+from bridge.vars import FORMAT, JOB_STATUS, REPORT_ARCHIVE, MPTT_FIELDS
+from bridge.utils import logger, BridgeException, OpenFiles
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
+from bridge.serializers import TimeStampField
 
-from jobs.models import Job, RunHistory, JobFile, JobHistory
-from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Computer, ReportAttr, CoverageArchive, AttrFile
+from jobs.models import JOBFILE_DIR, Job, RunHistory, JobFile, JobHistory, FileSystem
+from reports.models import ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+    Computer, ReportAttr, CoverageArchive, AttrFile, OriginalSources, AdditionalSources
 from service.models import Scheduler, Decision
-from jobs.serializers import change_job_status
-# from reports.utils import AttrData
+from jobs.serializers import change_job_status, create_job_version, JobFileSerializer, JobFilesField
 from service.utils import StartJobDecision
 from tools.utils import Recalculation
 
 from jobs.configuration import GetConfiguration
-from jobs.jobForm import LoadFilesTree, JobForm
 from reports.UploadReport import UploadReport
+from caches.models import ReportSafeCache, ReportUnsafeCache, ReportUnknownCache
+from caches.utils import update_cache_atomic
 
-from jobs.serializers import JobFileSerializer, UploadJobSerializer, RunHistorySerializer, UploadJobVersionSerializer
+ARCHIVE_FORMAT = 13
 
-ARCHIVE_FORMAT = 12
+
+class RunHistorySerializer(serializers.ModelSerializer):
+    date = TimeStampField()
+    configuration = serializers.SlugRelatedField(slug_field='hash_sum', queryset=JobFile.objects)
+
+    class Meta:
+        model = RunHistory
+        exclude = ('id', 'job', 'operator')
+
+
+class UploadDecisionSerializer(serializers.ModelSerializer):
+    scheduler = serializers.SlugRelatedField(slug_field='type', queryset=Scheduler.objects)
+    start_date = TimeStampField(allow_null=True)
+    finish_date = TimeStampField(allow_null=True)
+    start_sj = TimeStampField(allow_null=True)
+    finish_sj = TimeStampField(allow_null=True)
+    start_ts = TimeStampField(allow_null=True)
+    finish_ts = TimeStampField(allow_null=True)
+
+    class Meta:
+        model = Decision
+        exclude = ('job', 'configuration', 'fake')
+
+
+class UploadJobSerializer(serializers.ModelSerializer):
+    archive_format = fields.IntegerField(write_only=True)
+    run_history = RunHistorySerializer(many=True)
+    decision = UploadDecisionSerializer(allow_null=True)
+    parent = serializers.SlugRelatedField(slug_field='identifier', allow_null=True, queryset=Job.objects)
+
+    def validate_archive_format(self, value):
+        if value != ARCHIVE_FORMAT:
+            raise exceptions.ValidationError(_("The job archive format is not supported"))
+        return value
+
+    def validate_format(self, value):
+        if value != FORMAT:
+            raise exceptions.ValidationError(_("The job format is not supported"))
+        return value
+
+    def validate(self, attrs):
+        attrs.pop('archive_format')
+        return attrs
+
+    def create(self, validated_data):
+        # Run history and decision must be created outside with configuration file and job instance
+        validated_data.pop('run_history')
+        validated_data.pop('decision')
+
+        instance = super().create(validated_data)
+        return instance
+
+    def to_representation(self, instance):
+        value = super().to_representation(instance)
+        value['archive_format'] = ARCHIVE_FORMAT
+        return value
+
+    class Meta:
+        model = Job
+        exclude = ('id', 'author', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'write_only': True}}
+
+
+class UploadJobVersionSerializer(serializers.ModelSerializer):
+    change_date = TimeStampField()
+    files = JobFilesField(source='files.all')
+
+    def create(self, validated_data):
+        job = validated_data.pop('job')
+        job_files = validated_data.pop('files')['all']
+        return create_job_version(job, job_files, [], **validated_data)
+
+    class Meta:
+        model = JobHistory
+        exclude = ('job', 'change_author')
+
+
+class UploadComputerSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        try:
+            # Do not create the computer with the same identifier again
+            return Computer.objects.get(identifier=validated_data['identifier'])
+        except Computer.DoesNotExist:
+            return super().create(validated_data)
+
+    class Meta:
+        model = Computer
+        exclude = ('id',)
+
+
+class UploadReportComponentSerializer(serializers.ModelSerializer):
+    start_date = TimeStampField()
+    finish_date = TimeStampField(allow_null=True)
+    computer = UploadComputerSerializer(read_only=True)
+    original = serializers.SlugRelatedField(slug_field='identifier', read_only=True)
+    additional = serializers.FileField(source='additional.archive', allow_null=True, read_only=True)
+
+    class Meta:
+        model = ReportComponent
+        exclude = ('root', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'read_only': True}}
+
+
+class UploadReportSafeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportSafe
+        exclude = ('root', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'read_only': True}}
+
+
+class UploadReportUnsafeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportUnsafe
+        exclude = ('root', 'trace_id', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'read_only': True}}
+
+
+class UploadReportUnknownSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReportUnknown
+        exclude = ('root', *MPTT_FIELDS)
+        extra_kwargs = {'parent': {'read_only': True}}
+
+
+class UploadReportAttrSerializer(serializers.ModelSerializer):
+    data_file = fields.FileField(source='data.file', allow_null=True, read_only=True)
+
+    def get_attr_data(self, instance):
+        if not instance.data:
+            return None
+        arch_name = '{}_{}'.format(instance.pk, os.path.basename(instance.data.file.name))
+        return os.path.join(ReportAttr.__name__, arch_name)
+
+    class Meta:
+        model = ReportAttr
+        exclude = ('report', 'data')
 
 
 class KleverCoreArchiveGen:
@@ -98,143 +230,144 @@ class JobArchiveGenerator:
     def __init__(self, job):
         self.job = job
         self.name = 'Job-{}.zip'.format(self.job.identifier)
-        self.files_to_add = []
+        self._arch_files = set()
         self.stream = ZipStream()
 
     def __iter__(self):
         for job_v in self.job.versions.all():
-            for data in self.stream.compress_string('version-%s.json' % job_v.version, self.__version_data(job_v)):
-                yield data
-        for data in self.stream.compress_string('job.json', self.__job_data()):
-            yield data
+            version_data = self.__get_json(UploadJobVersionSerializer(instance=job_v).data)
+            yield from self.stream.compress_string('version-%s.json' % job_v.version, version_data)
+        self.__add_versions_files()
 
-        reportsdata = ReportsData(self.job)
-        for data in self.stream.compress_string('reports.json', json.dumps(
-                reportsdata.reports, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
-            yield data
-        for data in self.stream.compress_string('computers.json', json.dumps(
-                reportsdata.computers, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
-            yield data
-        for data in self.stream.compress_string('coverage_archives.json', json.dumps(
-                reportsdata.coverage, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
-            yield data
-        for data in self.stream.compress_string('Resources.json', json.dumps(
-                reportsdata.resources, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')):
-            yield data
+        # Job data
+        job_data = self.__get_json(UploadJobSerializer(instance=self.job).data)
+        yield from self.stream.compress_string('job.json', job_data)
+        self.__add_run_history_files()
 
-        self.__add_reports_files()
-        self.__add_coverage_files(reportsdata.coverage_arch_names)
-        for file_path, arcname in self.files_to_add:
-            for data in self.stream.compress_file(file_path, arcname):
-                yield data
-        if AttrFile.objects.filter(root__job=self.job).count() > 0:
-            for data in self.stream.compress_stream('AttrData.zip', AttrDataArchive(self.job)):
-                yield data
+        # Reports data
+        try:
+            root = ReportRoot.objects.get(job=self.job)
+        except ReportRoot.DoesNotExist:
+            pass
+        else:
+            yield from self.stream.compress_string(
+                '{}.json'.format(OriginalSources.__name__), self.__get_original_sources(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportRoot.__name__), self.__get_root_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportComponent.__name__), self.__get_reports_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportSafe.__name__), self.__get_safes_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportUnsafe.__name__), self.__get_unsafes_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportUnknown.__name__), self.__get_unknowns_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(ReportAttr.__name__), self.__get_attrs_data(root)
+            )
+            yield from self.stream.compress_string(
+                '{}.json'.format(CoverageArchive.__name__), self.__get_coverage_data(root)
+            )
+            self.__add_additional_sources(root)
+
+        for file_path, arcname in self._arch_files:
+            yield from self.stream.compress_file(file_path, arcname)
         yield self.stream.close_stream()
 
-    def __version_data(self, job_v):
-        hash_sums = set(h for h, in job_v.filesystem_set.exclude(file=None).values_list('file__hash_sum'))
-        for f in JobFile.objects.filter(hash_sum__in=hash_sums):
-            self.files_to_add.append((f.file.path, os.path.join('JobFiles', f.file.name)))
-
-        return json.dumps({
-            'files': json.dumps([LoadFilesTree(self.job.id, job_v.version).as_json()], ensure_ascii=False),
-            'comment': job_v.comment, 'global_role': job_v.global_role, 'description': job_v.description
-        }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
-
-    def __job_data(self):
-        return json.dumps({
-            'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
-            'status': self.job.status, 'name': self.job.name, 'weight': self.job.weight,
-            'run_history': self.__add_run_history_files(), 'progress': self.__get_progress_data()
-        }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
-
-    def __get_progress_data(self):
-        data = {}
-        try:
-            sp = Decision.objects.get(job=self.job)
-        except ObjectDoesNotExist:
-            pass
-        else:
-            data.update({
-                'priority': sp.priority, 'scheduler': sp.scheduler.type,
-                'start_date': sp.start_date.timestamp() if sp.start_date is not None else None,
-                'finish_date': sp.finish_date.timestamp() if sp.finish_date is not None else None,
-                'tasks_total': sp.tasks_total, 'tasks_pending': sp.tasks_pending,
-                'tasks_processing': sp.tasks_processing, 'tasks_finished': sp.tasks_finished,
-                'tasks_error': sp.tasks_error, 'tasks_cancelled': sp.tasks_cancelled,
-                'solutions': sp.solutions, 'error': sp.error
-            })
-        try:
-            jp = Decision.objects.get(job=self.job)
-        except ObjectDoesNotExist:
-            pass
-        else:
-            data.update({
-                'total_sj': jp.total_sj, 'failed_sj': jp.failed_sj, 'solved_sj': jp.solved_sj,
-                'start_sj': jp.start_sj.timestamp() if jp.start_sj is not None else None,
-                'finish_sj': jp.finish_sj.timestamp() if jp.finish_sj is not None else None,
-                'total_ts': jp.total_ts, 'failed_ts': jp.failed_ts, 'solved_ts': jp.solved_ts,
-                'start_ts': jp.start_ts.timestamp() if jp.start_ts is not None else None,
-                'finish_ts': jp.finish_ts.timestamp() if jp.finish_ts is not None else None,
-                'expected_time_sj': jp.expected_time_sj, 'expected_time_ts': jp.expected_time_ts,
-                'gag_text_sj': jp.gag_text_sj, 'gag_text_ts': jp.gag_text_ts
-            })
-        return data
+    def __add_versions_files(self):
+        job_files = {}
+        for fs in FileSystem.objects.filter(job_version__job=self.job).select_related('file'):
+            job_files[fs.file.hash_sum] = (fs.file.file.path, fs.file.file.name)
+        for f_path, arcname in job_files.values():
+            self._arch_files.add((f_path, arcname))
 
     def __add_run_history_files(self):
-        data = []
-        for rh in self.job.runhistory_set.order_by('date'):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
-                os.path.join('Configurations', "%s.json" % rh.pk)
-            ))
-            data.append({'id': rh.pk, 'status': rh.status, 'date': rh.date.timestamp()})
-        return data
+        for rh in self.job.run_history.order_by('date'):
+            self._arch_files.add((rh.configuration.file.path, rh.configuration.file.name))
 
-    def __add_reports_files(self):
-        try:
-            root_id = ReportRoot.objects.get(job=self.job).id
-        except ObjectDoesNotExist:
-            return
-        for report in ReportSafe.objects.filter(root_id=root_id):
-            if report.proof:
-                self.files_to_add.append((
-                    os.path.join(settings.MEDIA_ROOT, report.proof.name),
-                    os.path.join('ReportSafe', 'proof_%s.zip' % report.pk)
-                ))
-        for report in ReportUnsafe.objects.filter(root_id=root_id):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, report.error_trace.name),
-                os.path.join('ReportUnsafe', 'trace_%s.zip' % report.pk)
-            ))
-        for report in ReportUnknown.objects.filter(root_id=root_id):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, report.problem_description.name),
-                os.path.join('ReportUnknown', 'problem_%s.zip' % report.pk)
-            ))
-        for report in ReportComponent.objects.filter(root_id=root_id):
-            if report.log:
-                self.files_to_add.append((
-                    os.path.join(settings.MEDIA_ROOT, report.log.name),
-                    os.path.join('ReportComponent', 'log_%s.zip' % report.pk)
-                ))
-            if report.verifier_input:
-                self.files_to_add.append((
-                    os.path.join(settings.MEDIA_ROOT, report.verifier_input.name),
-                    os.path.join('ReportComponent', 'verifier_input_%s.zip' % report.pk)
-                ))
-        for source in ErrorTraceSource.objects.filter(root_id=root_id):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, source.archive.name),
-                os.path.join('ErrorTraceSource', 'source_%s.zip' % source.id)
-            ))
+    def __get_root_data(self, root):
+        return self.__get_json({'resources': root.resources, 'instances': root.instances})
 
-    def __add_coverage_files(self, archives):
-        for i in range(len(archives)):
-            self.files_to_add.append((
-                os.path.join(settings.MEDIA_ROOT, archives[i]), os.path.join('Coverages', '%s.zip' % i)
-            ))
+    def __get_reports_data(self, root):
+        reports = []
+        for report in ReportComponent.objects.filter(root=root)\
+                .select_related('computer', 'original', 'additional').order_by('level'):
+            report_data = UploadReportComponentSerializer(instance=report).data
+
+            # Add report files
+            if report_data['log']:
+                self._arch_files.add((report.log.path, report_data['log']))
+            if report_data['verifier_input']:
+                self._arch_files.add((report.verifier_input.path, report_data['verifier_input']))
+            reports.append(report_data)
+
+        return self.__get_json(reports)
+
+    def __get_safes_data(self, root):
+        reports = []
+        for report in ReportSafe.objects.filter(root=root).order_by('id'):
+            report_data = UploadReportSafeSerializer(instance=report).data
+            if report_data['proof']:
+                self._arch_files.add((report.proof.path, report_data['proof']))
+            reports.append(report_data)
+        return self.__get_json(reports)
+
+    def __get_unsafes_data(self, root):
+        reports = []
+        for report in ReportUnsafe.objects.filter(root=root).order_by('id'):
+            report_data = UploadReportUnsafeSerializer(instance=report).data
+            if report_data['error_trace']:
+                self._arch_files.add((report.error_trace.path, report_data['error_trace']))
+            reports.append(report_data)
+        return self.__get_json(reports)
+
+    def __get_unknowns_data(self, root):
+        reports = []
+        for report in ReportUnknown.objects.filter(root=root).order_by('id'):
+            report_data = UploadReportUnknownSerializer(instance=report).data
+            if report_data['problem_description']:
+                self._arch_files.add((report.problem_description.path, report_data['problem_description']))
+            reports.append(report_data)
+        return self.__get_json(reports)
+
+    def __get_attrs_data(self, root):
+        attrs_data = {}
+        for ra in ReportAttr.objects.filter(report__root=root).select_related('data').order_by('id'):
+            data = UploadReportAttrSerializer(instance=ra).data
+            if data['data_file']:
+                self._arch_files.add((ra.data.file.path, data['data_file']))
+            attrs_data.setdefault(ra.report_id, [])
+            attrs_data[ra.report_id].append(data)
+        return self.__get_json(attrs_data)
+
+    def __get_coverage_data(self, root):
+        coverage_data = []
+        for carch in CoverageArchive.objects.filter(report__root=root).order_by('id'):
+            coverage_data.append({
+                'report': carch.report_id, 'identifier': carch.identifier, 'archive': carch.archive.name
+            })
+            self._arch_files.add((carch.archive.path, carch.archive.name))
+        return self.__get_json(coverage_data)
+
+    def __add_additional_sources(self, root):
+        for src_arch in AdditionalSources.objects.filter(root=root):
+            self._arch_files.add((src_arch.archive.path, src_arch.archive.name))
+
+    def __get_original_sources(self, root):
+        sources = {}
+        for src_arch in OriginalSources.objects.filter(reportcomponent__root=root):
+            sources[src_arch.identifier] = src_arch.archive.name
+            self._arch_files.add((src_arch.archive.path, src_arch.archive.name))
+        return self.__get_json(sources)
+
+    def __get_json(self, data):
+        return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=2)
 
 
 class JobsArchivesGen:
@@ -247,7 +380,7 @@ class JobsArchivesGen:
         for job in self.jobs:
             jobgen = JobArchiveGenerator(job)
             buf = b''
-            for data in self.stream.compress_stream(jobgen.arcname, jobgen):
+            for data in self.stream.compress_stream(jobgen.name, jobgen):
                 buf += data
                 if len(buf) > CHUNK_SIZE:
                     yield buf
@@ -268,13 +401,14 @@ class JobsTreesGen:
         for job in self.jobs:
             jobgen = JobArchiveGenerator(job)
             buf = b''
-            for data in self.stream.compress_stream(jobgen.arcname, jobgen):
+            for data in self.stream.compress_stream(jobgen.name, jobgen):
                 buf += data
                 if len(buf) > CHUNK_SIZE:
                     yield buf
                     buf = b''
             if len(buf) > 0:
                 yield buf
+            self._tree[str(job.identifier)]['path'] = jobgen.name
         for data in self.stream.compress_string('tree.json', json.dumps(self._tree, sort_keys=True, indent=2)):
             yield data
         yield self.stream.close_stream()
@@ -283,127 +417,342 @@ class JobsTreesGen:
         jobs = []
         for j in Job.objects.filter(id__in=jobs_ids):
             jobs.append(j)
-            self._tree[j.identifier] = None
+            self._tree[str(j.identifier)] = {'parent': None}
         parent_ids = jobs_ids
         while len(parent_ids) > 0:
             new_parents = []
             for j in Job.objects.filter(parent_id__in=parent_ids).select_related('parent'):
-                if j.identifier not in self._tree:
+                if str(j.identifier) not in self._tree:
                     jobs.append(j)
                     new_parents.append(j.id)
-                self._tree[j.identifier] = j.parent.identifier
+                self._tree[str(j.identifier)] = {'parent': str(j.parent.identifier)}
             parent_ids = new_parents
         return jobs
 
 
-class ReportsData:
-    def __init__(self, job):
-        self.computers = {}
-        self.coverage = []
-        self.coverage_arch_names = []
-        self._parents = {None: None}
+class UploadJob:
+    def __init__(self, parent_id, user, job_dir):
+        self.job = None
+        self._user = user
+        self._jobdir = job_dir
+
+        self._jobdata = self.__read_json_file('job.json')
+        self._jobdata['parent'] = None if parent_id == 'null' else parent_id
+        self.__upload_job_files()
         try:
-            self.root = ReportRoot.objects.get(job=job)
-        except ObjectDoesNotExist:
-            self.reports = []
-            self.resources = []
-        else:
-            self.reports = self.__reports_data()
-            self.__get_coverage_data()
-            self.resources = self.__get_resources_data()
+            self.__upload_job()
+            UploadReports(self._user, self.job, job_dir)
+        except Exception:
+            if self.job:
+                self.job.delete()
+            raise
 
-    def __report_component_data(self, report):
-        data = None
-        if report.data:
-            with report.data as fp:
-                data = fp.read().decode('utf8')
-        if report.computer_id not in self.computers:
-            self.computers[str(report.computer_id)] = report.computer.description
-        self._parents[report.id] = report.identifier
-        return {
-            'pk': report.pk,
-            'parent': self._parents[report.parent_id],
-            'identifier': report.identifier,
-            'computer': str(report.computer_id),
-            'component': report.component.name,
-            'verification': report.verification,
-            'resource': {
-                'cpu_time': report.cpu_time,
-                'wall_time': report.wall_time,
-                'memory': report.memory,
-            } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
-            'start_date': report.start_date.timestamp(),
-            'finish_date': report.finish_date.timestamp() if report.finish_date is not None else None,
-            'data': data,
-            'attrs': []
-        }
+    def __upload_job_files(self):
+        # If 'JobFiles' doesn't exist then the job doiesn't have files or archive is corrupted.
+        # It'll be checked while files tree is uploading.
+        for dir_path, dir_names, file_names in os.walk(os.path.join(self._jobdir, JOBFILE_DIR)):
+            for file_name in file_names:
+                with open(os.path.join(dir_path, file_name), mode='rb') as fp:
+                    serializer = JobFileSerializer(data={'file': File(fp, name=file_name)})
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
 
-    def __report_leaf_data(self, report):
-        data = {
-            'pk': report.pk,
-            'parent': self._parents[report.parent_id],
-            'identifier': report.identifier,
-            'cpu_time': report.cpu_time,
-            'wall_time': report.wall_time,
-            'memory': report.memory,
-            'attrs': []
-        }
-        if isinstance(report, ReportUnknown):
-            data['component'] = report.component.name
-        elif isinstance(report, ReportUnsafe):
-            data['trace_id'] = report.trace_id
-            data['source'] = report.source_id
-        return data
+    def __upload_job_versions(self):
+        versions_data = []
+        for fname in os.listdir(self._jobdir):
+            full_path = os.path.join(self._jobdir, fname)
+            if not os.path.isfile(full_path) or not re.match(r'version-\d+\.json', fname):
+                continue
+            with open(full_path, encoding='utf8') as fp:
+                versions_data.append(json.load(fp))
+        if not versions_data:
+            raise ValueError("There are no job's versions in the archive")
+        versions_data.sort(key=lambda x: x['version'])
 
-    def __reports_data(self):
-        reports = []
-        report_index = {}
-        i = 0
-        for rc in ReportComponent.objects.filter(root=self.root).select_related('component').order_by('id'):
-            report_index[rc.pk] = i
-            reports.append(self.__report_component_data(rc))
-            i += 1
-        reports.append(ReportSafe.__name__)
-        i += 1
-        for safe in ReportSafe.objects.filter(root=self.root):
-            report_index[safe.pk] = i
-            reports.append(self.__report_leaf_data(safe))
-            i += 1
-        reports.append(ReportUnsafe.__name__)
-        i += 1
-        for unsafe in ReportUnsafe.objects.filter(root=self.root):
-            report_index[unsafe.pk] = i
-            reports.append(self.__report_leaf_data(unsafe))
-            i += 1
-        reports.append(ReportUnknown.__name__)
-        i += 1
-        for unknown in ReportUnknown.objects.filter(root=self.root).select_related('component'):
-            report_index[unknown.pk] = i
-            reports.append(self.__report_leaf_data(unknown))
-            i += 1
-        for ra in ReportAttr.objects.filter(report__root=self.root).select_related('attr', 'attr__name', 'data')\
-                .order_by('id'):
-            ra_data = None
-            if ra.data is not None:
-                ra_data = os.path.join('{0}{1}'.format(ra.data_id, os.path.splitext(ra.data.file.name)[-1]))
-            reports[report_index[ra.report_id]]['attrs'].append([
-                ra.attr.name.name, ra.attr.value, ra.compare, ra.associate, ra_data
-            ])
-        return reports
+        serializer = UploadJobVersionSerializer(data=versions_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(job=self.job, change_author=self._user)
+        try:
+            # Check that last version has correct "version" value
+            JobHistory.objects.get(job=self.job, version=self.job.version)
+        except JobHistory.DoesNotExist:
+            raise exceptions.ValidationError({'versions': _('Uploading job versions has failed')})
 
-    def __get_coverage_data(self):
-        for carch in CoverageArchive.objects.filter(report__root=self.root):
-            self.coverage.append([carch.report_id, carch.identifier])
-            self.coverage_arch_names.append(carch.archive.name)
+    def __upload_job(self):
+        serializer = UploadJobSerializer(data=self._jobdata)
+        serializer.is_valid(raise_exception=True)
+        self.job = serializer.save(author=self._user)
 
-    def __get_resources_data(self):
-        res_data = []
-        for r in ComponentResource.objects.filter(report__root=self.root):
-            res_data.append({
-                'id': r.report_id, 'component': r.component.name if r.component is not None else None,
-                'wall_time': r.wall_time, 'cpu_time': r.cpu_time, 'memory': r.memory
-            })
-        return res_data
+        # Upload job's versions
+        self.__upload_job_versions()
+
+        # Upload job's run history (rh_data is already validated in job serializer)
+        RunHistory.objects.bulk_create(list(
+            RunHistory(job_id=self.job.id, **rh_data)
+            for rh_data in serializer.validated_data['run_history']
+        ))
+
+        # Create job decision object if it is not None
+        decision_data = serializer.validated_data['decision']
+        if decision_data and len(serializer.validated_data['run_history']):
+            last_conf = serializer.validated_data['run_history'][-1]['configuration']
+            Decision.objects.create(job=self.job, configuration=last_conf, **decision_data)
+
+    def __get_coverage_files(self):
+        coverage_files = {}
+        coverage_path = os.path.join(self._jobdir, 'Coverages')
+        if os.path.isdir(coverage_path):
+            for arcname in os.listdir(coverage_path):
+                m = re.match(r'(\d+)\.zip', arcname)
+                if m is not None:
+                    coverage_files[int(m.group(1))] = os.path.join(coverage_path, arcname)
+        return coverage_files
+
+    def __read_json_file(self, rel_path):
+        full_path = os.path.join(self._jobdir, rel_path)
+        if not os.path.exists(full_path):
+            raise BridgeException(
+                _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
+            )
+        with open(full_path, encoding='utf8') as fp:
+            return json.load(fp)
+
+
+class UploadReports:
+    def __init__(self, user, job, job_dir, force=False):
+        self.opened_files = []
+        self._user = user
+        self._jobdir = job_dir
+        self.root = self.__create_root(job, force)
+        if self.root is None:
+            return
+        self._original = self.__upload_original()
+
+        self._additional = {}
+        self.saved_reports = {}
+        self._leaves_ids = set()
+        self._computers = {}
+        self._chunk = []
+        self._attr_files = {}
+        self.__upload_reports()
+        Recalculation('all', [self.root.job_id])
+
+    def __create_root(self, job, force):
+        # Create report root
+        root_data = self.__read_json_file('{}.json'.format(ReportRoot.__name__))
+        if not root_data:
+            if not force:
+                # The job is without reports (for job uploading)
+                return None
+            # Manual reports uploading
+            root_data = {'resources': {}, 'instances': {}}
+        # TODO: validate root_data
+        return ReportRoot.objects.create(user=self._user, job=job, **root_data)
+
+    def __upload_original(self):
+        original = {}
+        orig_data = self.__read_json_file('{}.json'.format(OriginalSources.__name__), required=True)
+        for src_id, src_path in orig_data.items():
+            try:
+                src_obj = OriginalSources.objects.get(identifier=src_id)
+            except OriginalSources.DoesNotExist:
+                src_obj = OriginalSources(identifier=src_id)
+                with open(self.__full_path(src_path), mode='rb') as fp:
+                    src_obj.add_archive(fp, save=True)
+            original[src_id] = src_obj.id
+        return original
+
+    @transaction.atomic
+    def __upload_reports_chunk(self):
+        if not self._chunk:
+            return
+        for report_data in self._chunk:
+            comp_id = report_data['computer']['identifier']
+            if comp_id not in self._computers:
+                comp_serializer = UploadComputerSerializer(data=report_data['computer'])
+                comp_serializer.is_valid(raise_exception=True)
+                comp_obj = comp_serializer.save()
+                self._computers[comp_obj.identifier] = comp_obj
+
+            save_kwargs = {
+                'root': self.root, 'computer': self._computers[comp_id],
+                'parent_id': self.saved_reports.get(report_data['parent'])
+            }
+            if report_data['additional']:
+                save_kwargs['additional'] = self.__get_additional(report_data['additional'])
+            if report_data['original']:
+                save_kwargs['original_id'] = self._original[report_data['original']]
+            if report_data['log']:
+                fp = open(self.__full_path(report_data['log']), mode='rb')
+                report_data['log'] = File(fp, name=REPORT_ARCHIVE['log'])
+                self.opened_files.append(fp)
+            if report_data['verifier_input']:
+                fp = open(self.__full_path(report_data['verifier_input']), mode='rb')
+                report_data['verifier_input'] = File(fp, name=REPORT_ARCHIVE['verifier_input'])
+                self.opened_files.append(fp)
+
+            serializer = UploadReportComponentSerializer(data=report_data)
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(**save_kwargs)
+            self.saved_reports[report_data['id']] = report.id
+
+            while len(self.opened_files):
+                fp = self.opened_files.pop()
+                fp.close()
+
+        self._chunk = []
+
+    def __get_additional(self, rel_path):
+        if rel_path not in self._additional:
+            add_inst = AdditionalSources(root=self.root)
+            with open(self.__full_path(rel_path), mode='rb') as fp:
+                add_inst.add_archive(fp, save=True)
+            self._additional[rel_path] = add_inst
+        return self._additional[rel_path]
+
+    def __upload_reports(self):
+        # Upload components tree
+        for report_data in self.__read_json_file('{}.json'.format(ReportComponent.__name__), required=True):
+            if report_data['parent'] and report_data['parent'] not in self.saved_reports:
+                self.__upload_reports_chunk()
+                if report_data['parent'] not in self.saved_reports:
+                    raise BridgeException(_('Reports data was corrupted'))
+            self._chunk.append(report_data)
+        self.__upload_reports_chunk()
+
+        # Upload leaves
+        self.__upload_safes()
+        self.__upload_unsafes()
+        self.__upload_unknowns()
+        self.__upload_attrs()
+        self.__upload_coverage()
+
+    @transaction.atomic
+    def __upload_safes(self):
+        safes_data = self.__read_json_file('{}.json'.format(ReportSafe.__name__))
+        if not safes_data:
+            return
+        safes_cache = []
+        for report_data in safes_data:
+            proof_fp = None
+            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            if report_data['proof']:
+                proof_fp = open(self.__full_path(report_data['proof']), mode='rb')
+                report_data['proof'] = File(proof_fp, name=REPORT_ARCHIVE['proof'])
+            serializer = UploadReportSafeSerializer(data=report_data)
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(**save_kwargs)
+            self.saved_reports[report_data['id']] = report.id
+            self._leaves_ids.add(report.id)
+            if proof_fp:
+                proof_fp.close()
+            safes_cache.append(ReportSafeCache(job_id=self.root.job_id, report_id=report.id))
+        ReportSafeCache.objects.bulk_create(safes_cache)
+
+    @transaction.atomic
+    def __upload_unsafes(self):
+        unsafes_data = self.__read_json_file('{}.json'.format(ReportUnsafe.__name__))
+        if not unsafes_data:
+            return
+        unsafes_cache = []
+        for report_data in unsafes_data:
+            et_fp = None
+            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            if report_data['error_trace']:
+                et_fp = open(self.__full_path(report_data['error_trace']), mode='rb')
+                report_data['error_trace'] = File(et_fp, name=REPORT_ARCHIVE['error_trace'])
+            serializer = UploadReportUnsafeSerializer(data=report_data)
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(**save_kwargs)
+            self.saved_reports[report_data['id']] = report.id
+            self._leaves_ids.add(report.id)
+            if et_fp:
+                et_fp.close()
+            unsafes_cache.append(ReportUnsafeCache(job_id=self.root.job_id, report_id=report.id))
+        ReportUnsafeCache.objects.bulk_create(unsafes_cache)
+
+    @transaction.atomic
+    def __upload_unknowns(self):
+        unknowns_data = self.__read_json_file('{}.json'.format(ReportUnknown.__name__))
+        if not unknowns_data:
+            return
+        unknowns_cache = []
+        for report_data in unknowns_data:
+            save_kwargs = {'root': self.root, 'parent_id': self.saved_reports[report_data.pop('parent')]}
+            problem_fp = None
+            if report_data['problem_description']:
+                problem_fp = open(self.__full_path(report_data['problem_description']), mode='rb')
+                report_data['problem_description'] = File(problem_fp, name=REPORT_ARCHIVE['problem_description'])
+            serializer = UploadReportUnknownSerializer(data=report_data)
+            serializer.is_valid(raise_exception=True)
+            report = serializer.save(**save_kwargs)
+            self.saved_reports[report_data['id']] = report.id
+            self._leaves_ids.add(report.id)
+            if problem_fp:
+                problem_fp.close()
+            unknowns_cache.append(ReportUnknownCache(job_id=self.root.job_id, report_id=report.id))
+        ReportUnknownCache.objects.bulk_create(unknowns_cache)
+
+    def __upload_attrs(self):
+        attrs_data = self.__read_json_file('{}.json'.format(ReportAttr.__name__), required=True)
+        attrs_cache = {}
+        new_attrs = []
+        for r_id in attrs_data:
+            for adata in attrs_data[r_id]:
+                file_id = self.__get_attr_file_id(adata.pop('data_file'))
+                serializer = UploadReportAttrSerializer(data=adata)
+                serializer.is_valid(raise_exception=True)
+                validated_data = serializer.validated_data
+
+                report_id = self.saved_reports[int(r_id)]
+                new_attrs.append(ReportAttr(data_id=file_id, report_id=report_id, **validated_data))
+                if report_id in self._leaves_ids:
+                    attrs_cache.setdefault(report_id, {'attrs': {}})
+                    attrs_cache[report_id]['attrs'][validated_data['name']] = validated_data['value']
+        ReportAttr.objects.bulk_create(new_attrs)
+        update_cache_atomic(ReportSafeCache.objects.filter(report__root=self.root), attrs_cache)
+        update_cache_atomic(ReportUnsafeCache.objects.filter(report__root=self.root), attrs_cache)
+        update_cache_atomic(ReportUnknownCache.objects.filter(report__root=self.root), attrs_cache)
+
+    def __get_attr_file_id(self, rel_path):
+        if rel_path is None:
+            return None
+        if rel_path not in self._attr_files:
+            instance = AttrFile(root=self.root)
+            with open(self.__full_path(rel_path), mode='rb') as fp:
+                instance.file.save(os.path.basename(rel_path), File(fp), save=True)
+            self._attr_files[rel_path] = instance.id
+        return self._attr_files[rel_path]
+
+    def __upload_coverage(self):
+        coverage_data = self.__read_json_file('{}.json'.format(CoverageArchive.__name__))
+        if not coverage_data:
+            return
+        for coverage in coverage_data:
+            instance = CoverageArchive(
+                report_id=self.saved_reports[coverage['report']], identifier=coverage['identifier']
+            )
+            with open(self.__full_path(coverage['archive']), mode='rb') as fp:
+                instance.add_coverage(fp, save=True)
+
+    def __full_path(self, rel_path):
+        full_path = os.path.join(self._jobdir, rel_path)
+        if not os.path.exists(full_path):
+            raise BridgeException(
+                _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
+            )
+        return full_path
+
+    def __read_json_file(self, rel_path, required=False):
+        full_path = os.path.join(self._jobdir, rel_path)
+        if os.path.exists(full_path):
+            with open(full_path, encoding='utf8') as fp:
+                return json.load(fp)
+        if required:
+            raise BridgeException(
+                _('Required file was not found in job archive: %(filename)s') % {'filename': rel_path}
+            )
+        return None
 
 
 class UploadTree:
@@ -431,12 +780,12 @@ class UploadTree:
     def __get_jobs_order(self):
         jobs = []
         for j_id in self._tree:
-            if self._tree[j_id] is None:
+            if self._tree[j_id]['parent'] is None:
                 jobs.append(j_id)
         while True:
             has_child = False
             for j_id in self._tree:
-                if self._tree[j_id] in jobs and j_id not in jobs:
+                if self._tree[j_id]['parent'] in jobs and j_id not in jobs:
                     jobs.append(j_id)
                     has_child = True
             if not has_child:
@@ -445,13 +794,13 @@ class UploadTree:
 
     def __upload_tree(self):
         for j_id in self.__get_jobs_order():
-            jobzip_name = os.path.join(self._jobsdir, 'Job-%s.zip' % j_id[:10])
+            jobzip_name = os.path.join(self._jobsdir, self._tree[j_id]['path'])
             if not os.path.exists(jobzip_name):
                 raise BridgeException(_('One of the job archives was not found'))
-            if self._tree[j_id] is None:
+            if self._tree[j_id]['parent'] is None:
                 parent_id = self._parent_id
-            elif self._tree[j_id] in self._uploaded:
-                parent_id = self._tree[j_id]
+            elif self._tree[j_id]['parent'] in self._uploaded:
+                parent_id = self._tree[j_id]['parent']
             else:
                 logger.error('The parent was not uploaded before the child')
                 raise BridgeException()
@@ -476,7 +825,7 @@ class UploadTree:
             raise BridgeException(_('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': os.path.basename(jobarch), 'message': _('The job archive is corrupted')
                 })
-        self._uploaded.add(res.job.identifier)
+        self._uploaded.add(str(res.job.identifier))
 
     def __extract_archive(self, jobarch):
         self.__is_not_used()
@@ -492,411 +841,7 @@ class UploadTree:
         pass
 
 
-class UploadJob:
-    def __init__(self, parent_id, user, job_dir):
-        self._parent_id = '' if parent_id == 'null' else parent_id
-        self.job = None
-        self._user = user
-        self._jobdir = job_dir
-
-        self._jobdata = self.__read_json_file('job.json')
-        self._jobdata['parent'] = None if parent_id == 'null' else parent_id
-
-        self.__check_job_data()
-        self.__upload_job_files()
-        try:
-            self.__upload_job()
-            self.__upload_reports()
-        except Exception:
-            if self.job:
-                self.job.delete()
-            raise
-
-    def __read_json_file(self, rel_path):
-        full_path = os.path.join(self._jobdir, rel_path)
-        if os.path.exists(full_path):
-            with open(full_path, encoding='utf8') as fp:
-                return json.load(fp)
-        return None
-
-    def __upload_job_files(self):
-        # If 'JobFiles' doesn't exist then the job doiesn't have files or archive is corrupted.
-        # It'll be checked while files tree is uploading.
-        for dir_path, dir_names, file_names in os.walk(os.path.join(self._jobdir, 'JobFiles')):
-            for file_name in file_names:
-                with open(os.path.join(dir_path, file_name), mode='rb') as fp:
-                    serializer = JobFileSerializer(data={'file': File(fp)})
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
-
-    def __check_job_data(self):
-        if not isinstance(self._jobdata, dict):
-            raise ValueError('job.json file was not found or contains wrong data')
-        if self._jobdata.get('archive_format') != ARCHIVE_FORMAT:
-            raise BridgeException(_("The job archive format is not supported"))
-        if any(x not in self._jobdata for x in ['run_history', 'progress']):
-            logger.error("The job data is not full")
-            raise BridgeException(_("The job archive was corrupted"))
-
-    def __upload_job_versions(self):
-        versions_data = []
-        for fname in os.listdir(self._jobdir):
-            full_path = os.path.join(self._jobdir, fname)
-            if not os.path.isfile(full_path) or not re.match(r'version-\d+\.json', fname):
-                continue
-            with open(full_path, encoding='utf8') as fp:
-                versions_data.append(json.load(fp))
-        if not versions_data:
-            raise ValueError("There are no job's versions in the archive")
-        versions_data.sort(key=lambda x: x['version'])
-
-        serializer = UploadJobVersionSerializer(data=versions_data, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        try:
-            JobHistory.objects.get(job=self.job, version=self.job.version)
-        except JobHistory.DoesNotExist:
-            raise exceptions.ValidationError({'versions': _('Uploading job versions has failed')})
-
-    def __upload_runhistory(self):
-        last_conf = None
-        for rh in self._jobdata['run_history']:
-            # Upload configuration file first
-            run_conf = os.path.join(self._jobdir, 'Configurations', '{0}.json'.format(rh['id']))
-            if not os.path.exists(run_conf):
-                logger.error('Job decision configuration was not found')
-                raise BridgeException(_("The job archive was corrupted"))
-            with open(run_conf, mode='rb') as fp:
-                serializer = JobFileSerializer(data={'file': File(fp, name='config.json')})
-            serializer.is_valid(raise_exception=True)
-            last_conf = serializer.save()
-
-            # Create run history instance
-            serializer = RunHistorySerializer(data={'status': rh['status'], 'date': rh['date']})
-            serializer.is_valid(raise_exception=True)
-            serializer.save(job=self.job, configuration=last_conf)
-        return last_conf
-
-    def __upload_job(self):
-        serializer = UploadJobSerializer(data=self._jobdata)
-        serializer.is_valid(raise_exception=True)
-        self.job = serializer.save(author=self._user)
-
-        # Upload job's run history
-        last_conf = self.__upload_runhistory()
-
-        # Upload job's versions
-        self.__upload_job_versions()
-
-        # Upload job progress
-        self.__create_progress(self.job, self._jobdata['progress'], last_conf)
-
-    def __get_reports_files(self):
-        report_files = {}
-        for name in ['ReportSafe', 'ReportUnsafe', 'ReportUnknown', 'ReportComponent', 'ErrorTraceSource']:
-            dir_path = os.path.join(self._jobdir, name)
-            if not os.path.isdir(dir_path):
-                continue
-            for arcname in os.listdir(dir_path):
-                m = re.match('(.*)_(\d+)\.zip', arcname)
-                if m is not None:
-                    report_files[(name, m.group(1), int(m.group(2)))] = os.path.join(dir_path, arcname)
-        return report_files
-
-    def __get_coverage_files(self):
-        coverage_files = {}
-        coverage_path = os.path.join(self._jobdir, 'Coverages')
-        if os.path.isdir(coverage_path):
-            for arcname in os.listdir(coverage_path):
-                m = re.match('(\d+)\.zip', arcname)
-                if m is not None:
-                    coverage_files[int(m.group(1))] = os.path.join(coverage_path, arcname)
-        return coverage_files
-
-    def __attr_data(self):
-        attr_data = None
-        attr_data_file = os.path.join(self._jobdir, 'AttrData.zip')
-        if os.path.isfile(attr_data_file):
-            attr_data = File(open(attr_data_file, mode='rb'))
-        return attr_data
-
-    def __upload_reports(self):
-        ReportRoot.objects.create(user=self._user, job=self.job)
-        try:
-            UploadReports(
-                self.job, self.__read_json_file('reports.json'), self.__get_reports_files(),
-                self.__read_json_file('computers.json'), self.__read_json_file('Resources.json'),
-                self.__read_json_file('coverage_archives.json'), self.__get_coverage_files(), self.__attr_data()
-            )
-        except BridgeException:
-            self.job.delete()
-            raise
-        except Exception as e:
-            logger.exception("Uploading reports failed: %s" % e, stack_info=True)
-            self.job.delete()
-            raise BridgeException(_("Unknown error while uploading reports"))
-
-    def __create_progress(self, job, data, conf_file):
-        if 'scheduler' in data:
-            if conf_file is None:
-                raise ValueError("The job archive doesn't have run history files")
-            try:
-                scheduler = Scheduler.objects.get(type=data['scheduler'])
-            except ObjectDoesNotExist:
-                raise BridgeException(_('Scheduler for the job was not found'))
-            Decision.objects.create(
-                job=job, scheduler=scheduler, fake=True, priority=data['priority'],
-                start_date=datetime.fromtimestamp(data['start_date'], pytz.timezone('UTC'))
-                if data['start_date'] is not None else None,
-                finish_date=datetime.fromtimestamp(data['finish_date'], pytz.timezone('UTC'))
-                if data['finish_date'] is not None else None,
-                tasks_total=data['tasks_total'], tasks_pending=data['tasks_pending'],
-                tasks_processing=data['tasks_processing'], tasks_finished=data['tasks_finished'],
-                tasks_error=data['tasks_error'], tasks_cancelled=data['tasks_cancelled'],
-                solutions=data['solutions'], error=data['error'], configuration=conf_file
-            )
-        if 'total_sj' in data:
-            Decision.objects.create(
-                job=job,
-                total_sj=data['total_sj'], failed_sj=data['failed_sj'], solved_sj=data['solved_sj'],
-                start_sj=datetime.fromtimestamp(data['start_sj'], pytz.timezone('UTC'))
-                if data['start_sj'] is not None else None,
-                finish_sj=datetime.fromtimestamp(data['finish_sj'], pytz.timezone('UTC'))
-                if data['finish_sj'] is not None else None,
-                total_ts=data['total_ts'], failed_ts=data['failed_ts'], solved_ts=data['solved_ts'],
-                start_ts=datetime.fromtimestamp(data['start_ts'], pytz.timezone('UTC'))
-                if data['start_ts'] is not None else None,
-                finish_ts=datetime.fromtimestamp(data['finish_ts'], pytz.timezone('UTC'))
-                if data['finish_ts'] is not None else None,
-                expected_time_sj=data['expected_time_sj'], expected_time_ts=data['expected_time_ts'],
-                gag_text_sj=data['gag_text_sj'], gag_text_ts=data['gag_text_ts']
-            )
-
-
-class UploadReports:
-    def __init__(self, job, data, files, computers, resources, coverage, cov_archives, attr_data):
-        self.data = data
-        self._job = job
-        self._files = files
-        self._computers = self.__upload_computers(computers)
-        self._parents = {None: None}
-        self._indexes = {}
-        self._tree = []
-        self._safes = []
-        self._unsafes = []
-        self._unknowns = []
-        self._components = {}
-        self._rc_id_map = {}
-
-        if isinstance(self.data, list):
-            self.__upload_reports()
-            self.__upload_attrs(attr_data)
-            self.__upload_coverage(coverage, cov_archives)
-            self.__upload_resources_cache(resources)
-            Recalculation('for_uploaded', json.dumps([self._job.pk], ensure_ascii=False))
-
-    def __fix_identifer(self, i):
-        m = re.match('.*?(/.*)', self.data[i]['identifier'])
-        if m is None:
-            self.data[i]['identifier'] = self._job.identifier
-        else:
-            self.data[i]['identifier'] = self._job.identifier + m.group(1)
-        if self.data[i]['parent'] is not None:
-            m = re.match('.*?(/.*)', self.data[i]['parent'])
-            if m is None:
-                self.data[i]['parent'] = self._job.identifier
-            else:
-                self.data[i]['parent'] = self._job.identifier + m.group(1)
-
-    def __upload_computers(self, computers):
-        db_computers = {}
-        if isinstance(computers, dict):
-            for c_id in computers:
-                computer = Computer.objects.get_or_create(description=computers[c_id])[0]
-                db_computers[c_id] = computer.id
-        return db_computers
-
-    def __upload_attrs(self, attr_data):
-        attrs = AttrData(self._job.reportroot.id, attr_data)
-        for report in Report.objects.filter(root=self._job.reportroot).only('id', 'identifier'):
-            i = self._indexes[report.identifier]
-            for attr in self.data[i]['attrs']:
-                attrs.add(report.id, *attr)
-        attrs.upload()
-
-    def __upload_reports(self):
-        curr_func = self.__add_report_component
-        for i in range(len(self.data)):
-            if isinstance(self.data[i], dict):
-                self.__fix_identifer(i)
-                curr_func(i)
-            elif isinstance(self.data[i], str) and self.data[i] == ReportSafe.__name__:
-                def curr_func(x):
-                    self._safes.append(x)
-                    self._indexes[self.data[x]['identifier']] = x
-            elif isinstance(self.data[i], str) and self.data[i] == ReportUnsafe.__name__:
-                def curr_func(x):
-                    self._unsafes.append(x)
-                    self._indexes[self.data[x]['identifier']] = x
-            elif isinstance(self.data[i], str) and self.data[i] == ReportUnknown.__name__:
-                def curr_func(x):
-                    self._unknowns.append(x)
-                    self._indexes[self.data[x]['identifier']] = x
-        for lvl in range(len(self._tree)):
-            self.__upload_report_components(lvl)
-            for report in ReportComponent.objects.filter(root=self._job.reportroot):
-                self._parents[report.identifier] = report.id
-        self.__upload_safe_reports()
-        self.__upload_unsafe_reports()
-        self.__upload_unknown_reports()
-
-    @transaction.atomic
-    def __upload_report_components(self, lvl):
-        for identifier in self._tree[lvl]:
-            i = self._indexes[identifier]
-            report = ReportComponent(
-                identifier=identifier, root=self._job.reportroot,
-                parent_id=self._parents[self.data[i].get('parent')],
-                computer_id=self._computers[self.data[i]['computer']],
-                component_id=self.__get_component(self.data[i]['component']),
-                verification=self.data[i]['verification'],
-                start_date=datetime.fromtimestamp(self.data[i]['start_date'], pytz.timezone('UTC')),
-                finish_date=datetime.fromtimestamp(self.data[i]['finish_date'], pytz.timezone('UTC'))
-                if self.data[i]['finish_date'] is not None else None
-            )
-            if self.data[i]['resource'] is not None:
-                report.cpu_time = self.data[i]['resource']['cpu_time']
-                report.wall_time = self.data[i]['resource']['wall_time']
-                report.memory = self.data[i]['resource']['memory']
-
-            log_id = (ReportComponent.__name__, 'log', self.data[i]['pk'])
-            if log_id in self._files:
-                with open(self._files[log_id], mode='rb') as fp:
-                    report.add_log(REPORT_ARCHIVE['log'], fp)
-
-            verifier_input_id = (ReportComponent.__name__, 'verifier_input', self.data[i]['pk'])
-            if verifier_input_id in self._files:
-                with open(self._files[verifier_input_id], mode='rb') as fp:
-                    report.add_verifier_input(REPORT_ARCHIVE['verifier input'], fp)
-
-            if self.data[i]['data'] is not None:
-                report.new_data('report-data.json', BytesIO(self.data[i]['data'].encode('utf8')))
-
-            report.save()
-            self._rc_id_map[self.data[i]['pk']] = report.id
-
-    @transaction.atomic
-    def __upload_safe_reports(self):
-        for i in self._safes:
-            report = ReportSafe(
-                root=self._job.reportroot, identifier=self.data[i]['identifier'],
-                parent_id=self._parents[self.data[i]['parent']],
-                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
-            )
-            proof_id = (ReportSafe.__name__, 'proof', self.data[i]['pk'])
-            if proof_id in self._files:
-                with open(self._files[proof_id], mode='rb') as fp:
-                    report.add_proof(REPORT_ARCHIVE['proof'], fp)
-            report.save()
-
-    @transaction.atomic
-    def __upload_unsafe_reports(self):
-        sources = {}
-        for i in self._unsafes:
-            # Upload error trace sources if it was not uploaded for already created error traces
-            if self.data[i]['source'] not in sources:
-                source_arch_id = (ErrorTraceSource.__name__, 'source', self.data[i]['source'])
-                new_source = ErrorTraceSource(root=self._job.reportroot)
-                with open(self._files[source_arch_id], mode='rb') as fp:
-                    new_source.add_sources(REPORT_ARCHIVE['sources'], fp, True)
-                sources[self.data[i]['source']] = new_source.id
-
-            # Check if error trace identifier exists and is unique
-            if 'trace_id' not in self.data[i] or \
-                    ReportUnsafe.objects.filter(trace_id=self.data[i]['trace_id']).count() > 0:
-                self.data[i]['trace_id'] = unique_id()
-
-            report = ReportUnsafe(
-                root=self._job.reportroot, identifier=self.data[i]['identifier'], trace_id=self.data[i]['trace_id'],
-                source_id=sources[self.data[i]['source']], parent_id=self._parents[self.data[i]['parent']],
-                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
-            )
-            trace_id = (ReportUnsafe.__name__, 'trace', self.data[i]['pk'])
-            with open(self._files[trace_id], mode='rb') as fp:
-                report.add_trace(REPORT_ARCHIVE['error trace'], fp, True)
-
-    @transaction.atomic
-    def __upload_unknown_reports(self):
-        for i in self._unknowns:
-            report = ReportUnknown(
-                root=self._job.reportroot, identifier=self.data[i]['identifier'],
-                parent_id=self._parents[self.data[i]['parent']],
-                component_id=self.__get_component(self.data[i]['component']),
-                cpu_time=self.data[i]['cpu_time'], wall_time=self.data[i]['wall_time'], memory=self.data[i]['memory']
-            )
-            problem_id = (ReportUnknown.__name__, 'problem', self.data[i]['pk'])
-            with open(self._files[problem_id], mode='rb') as fp:
-                report.add_problem_desc(fp)
-            report.save()
-
-    def __get_component(self, name):
-        if name not in self._components:
-            component = Component.objects.get_or_create(name=name)[0]
-            self._components[name] = component.id
-        return self._components[name]
-
-    def __add_report_component(self, i):
-        p_id = self.data[i].get('parent')
-        if p_id is None:
-            self.__add_to_tree(0, i)
-        else:
-            for j in range(len(self._tree)):
-                if p_id in self._tree[j]:
-                    self.__add_to_tree(j + 1, i)
-                    break
-            else:
-                raise ValueError('The report parent was not found in data')
-
-    def __add_to_tree(self, lvl, i):
-        while len(self._tree) <= lvl:
-            self._tree.append(set())
-        self._tree[lvl].add(self.data[i]['identifier'])
-        self._indexes[self.data[i]['identifier']] = i
-
-    @transaction.atomic
-    def __upload_coverage(self, coverage, archives):
-        if not isinstance(coverage, list):
-            return
-        for i in range(len(coverage)):
-            if i not in archives:
-                raise FileNotFoundError('Coverage archive was not found')
-            if coverage[i][0] not in self._rc_id_map:
-                raise ValueError('Component report was not uploaded')
-            carch = CoverageArchive(report_id=self._rc_id_map[coverage[i][0]], identifier=coverage[i][1])
-            with open(archives[i], mode='rb') as fp:
-                carch.add_coverage(fp)
-
-    def __upload_resources_cache(self, resources):
-        if not isinstance(resources, list):
-            raise ValueError('Resources must be a list')
-        components = {}
-        res_cache = []
-        for res_data in resources:
-            old_id = res_data['id']
-            if old_id not in self._rc_id_map:
-                continue
-            component = res_data['component']
-            if component is not None:
-                if component not in components:
-                    components[component] = Component.objects.get_or_create(name=component)[0].id
-                component = components[component]
-            res_cache.append(ComponentResource(
-                report_id=self._rc_id_map[old_id], component_id=component,
-                cpu_time=res_data['cpu_time'], wall_time=res_data['wall_time'], memory=res_data['memory']
-            ))
-        ComponentResource.objects.bulk_create(res_cache)
-
-
+# TODO
 class UploadReportsWithoutDecision:
     reports_file = 'reports.json'
     fields = {

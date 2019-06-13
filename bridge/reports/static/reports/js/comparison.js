@@ -16,10 +16,12 @@
  */
 
 function draw_connections() {
-    var cnt = 1;
+    let cnt = 1;
     function draw_line(b1, b2, column) {
-        var s_x = b1.position().left + parseInt(b1.width() / 2), s_y = b1.position().top + b1.height(),
-            e_x = b2.position().left + parseInt(b2.width() / 2), e_y = b2.position().top,
+        let s_x = b1.position().left + parseInt(b1.width() / 2),
+            s_y = b1.position().top + b1.height(),
+            e_x = b2.position().left + parseInt(b2.width() / 2),
+            e_y = b2.position().top,
             line_w = parseInt(e_x - s_x), line_h = parseInt(e_y - s_y) - 1,
             canvas_id = 'canvas__' + cnt;
         cnt++;

@@ -20,17 +20,16 @@ from tools import views
 
 
 urlpatterns = [
-    path('manager/', views.manager_tools, name='manager'),
-    path('view_call_logs/', views.view_call_logs, name='view_call_logs'),
-    path('processing_list/', views.processing_list, name='processing_list'),
-    path('ajax/rename_component/', views.rename_component),
-    path('ajax/clear_components/', views.clear_components),
-    path('ajax/clear_problems/', views.clear_problems),
-    path('ajax/clear_system/', views.clear_system),
-    path('ajax/recalculation/', views.recalculation),
-    path('ajax/call_list/', views.call_list),
-    path('ajax/call_stat/', views.call_statistic),
-    path('ajax/clear_call_logs/', views.clear_call_logs),
-    path('ajax/clear_tasks/', views.clear_tasks),
-    path('manual_unlock/', views.manual_unlock)
+    path('manager/', views.ManagerPageView.as_view(), name='manager'),
+    path('call-logs/', views.CallLogsView.as_view(), name='call-logs'),
+    path('processing-list/', views.ProcessingListView.as_view(), name='processing-list'),
+
+    path('api/clear-system/', views.ClearSystemAPIView.as_view(), name='api-clear-system'),
+    path('api/recalculation/', views.RecalculationAPIView.as_view(), name='api-recalc'),
+    path('api/recalculation-marks/', views.MarksRecalculationAPIView.as_view(), name='api-recalc-marks'),
+    path('api/call-log/', views.CallLogAPIView.as_view(), name='api-call-log'),
+    path('api/call-statistic/', views.CallStatisticAPIView.as_view(), name='api-call-statistic'),
+    path('api/clear-call-logs/', views.ClearLogsAPIView.as_view(), name='api-clear-logs'),
+    path('api/clear-tasks/', views.ClearTasksAPIView.as_view(), name='api-clear-tasks'),
+    path('api/manual-unlock/', views.ManualUnlockAPIView.as_view(), name='api-manual-unlock'),
 ]

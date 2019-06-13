@@ -172,7 +172,8 @@ REST_FRAMEWORK = {
     ),
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     # 'PAGE_SIZE': 50,
-    'NON_FIELD_ERRORS_KEY': 'general'
+    'NON_FIELD_ERRORS_KEY': 'general',
+    'UPLOADED_FILES_USE_URL': False
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB

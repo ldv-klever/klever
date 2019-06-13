@@ -66,9 +66,9 @@ class MarkGeneratorBase:
             'status': version.status,
             'comment': version.comment,
             'description': version.description,
-            'attrs': self.attrs[version.id],
+            'attrs': self.attrs.get(version.id, []),
         }
-        if self.tags:
+        if self.tags is not None:
             data['tags'] = self.tags.get(version.id, [])
         return data
 

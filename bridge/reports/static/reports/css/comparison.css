@@ -49,8 +49,7 @@
     border: 1px solid;
     border-radius: 10px;
     margin: 15px;
-    padding-top: 5px;
-    padding-right: 15px;
+    padding: 5px 10px 0 10px;
     min-width: 200px;
 }
 .comparison-block-component {
@@ -88,6 +87,10 @@
     font-weight: bold;
     margin-top: 5px;
     margin-bottom: 5px;
+}
+
+.comparison-block > .block-list {
+    margin-bottom: 10px!important;
 }
 
 .block-hover-single {

@@ -618,15 +618,10 @@ $(document).ready(function () {
     });
 
     $('#upload_jobstree_start').click(function () {
-        var parent_id = $('#upload_jobtree_parent_id').val();
-        if (!parent_id.length) {
-            parent_id = '';
-        }
-        var files = $('#upload_jobtree_file_input')[0].files, data = new FormData();
-        if (files.length <= 0) {
-            err_notify($('#error__no_file_chosen').text());
-            return false;
-        }
+        let parent_id = $('#upload_jobtree_parent_id').val();
+        if (!parent_id.length) parent_id = 'null';
+        let files = $('#upload_jobtree_file_input')[0].files, data = new FormData();
+        if (files.length <= 0) return err_notify($('#error__no_file_chosen').text());
         data.append('file', files[0]);
         data.append('parent_id', parent_id);
         $('#upload_jobtree_popup').modal('hide');

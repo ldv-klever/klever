@@ -295,13 +295,14 @@ TASK_STATUS = (
 )
 
 REPORT_ARCHIVE = {
-    'log': 'log.zip',
-    'coverage': 'coverage.zip',
-    'verifier input': 'VerifierInput.zip',
-    'error trace': 'ErrorTrace.zip',
-    'sources': 'Sources.zip',
+    'log': 'Log.zip',
+    'coverage': 'Coverage.zip',
+    'verifier_input': 'VerifierInput.zip',
+    'error_trace': 'ErrorTrace.zip',
+    'original': 'OriginalSources.zip',
+    'additional': 'AdditionalSources.zip',
     'proof': 'proof.zip',
-    'problem desc': 'ProblemDesc.zip'
+    'problem_description': 'ProblemDescription.zip'
 }
 
 LOG_FILE = 'log.txt'
