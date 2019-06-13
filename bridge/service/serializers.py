@@ -400,7 +400,7 @@ class SchedulerSerializer(serializers.ModelSerializer):
             tasks = Task.objects.filter(
                 status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]], decision=decision
             ).update(error=self.task_error)
-            decision.tasks_error += len(str(tasks))
+            decision.tasks_error += tasks
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 decision.finish_date = now()
                 decision.error = self.decision_error
