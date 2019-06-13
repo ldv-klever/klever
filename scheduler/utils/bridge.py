@@ -100,7 +100,7 @@ class Session:
                     self.logger.warning('Aborting request to Bridge')
                     return None
 
-    def get_archive(self, endpoint, data, archive):
+    def get_archive(self, endpoint, archive=None):
         """
         Download ZIP archive from server.
 
@@ -113,7 +113,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data=data, stream=True)
+                resp = self.__request(endpoint, 'GET', stream=True)
 
                 self.logger.debug('Write archive to {}'.format(archive))
                 with open(archive, 'wb') as fp:
@@ -151,7 +151,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data=data, files={'file': open(archive, 'rb', buffering=0)},
+                resp = self.__request(endpoint, 'POST', data=data, files={'archive': open(archive, 'rb', buffering=0)},
                                       stream=True)
                 break
             except BridgeError:

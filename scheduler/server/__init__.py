@@ -52,30 +52,42 @@ class Server:
         ret = self.session.json_exchange("service/configuration/{}".format(job_identifier), method='GET')
         return ret
 
+    def pull_task_conf(self, task_identifier):
+        ret = self.session.json_exchange("service/tasks/{}/?fields=description".format(task_identifier), method='GET')
+        return ret
+
     def cancel_job(self, job_identifier):
         self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
                                    data={"status": "7"})
 
     def submit_job_error(self, job_identifier, error):
-        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
-                                   data={"status": "4", "error": error})
+        try:
+            self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                                       data={"status": "4", "error": error})
+        except Exception as err:
+            self.logger.warning("")
 
     def submit_job_finished(self, job_identifier):
         self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
                                    data={"status": "3"})
 
     def submit_processing_task(self, task_identifier):
-        raise NotImplementedError
+        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                   data={"status": "PROCESSING"})
 
     def submit_finished_task(self, task_identifier):
-        raise NotImplementedError
+        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                   data={"status": "FINISHED"})
 
     def delete_task(self, task_identifier):
-        raise NotImplementedError
+        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
 
     def submit_task_error(self, task_identifier, error):
-        self.session.json_exchange("service/task-status/{}/".format(task_identifier), method='PATCH',
-                                   data={"status": "7", "error": error})
+        try:
+            self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                       data={"status": "ERROR", "error": error})
+        except bridge.UnexpectedStatusCode:
+            self.logger.warning("Unexpected status code of task {!r}".format(task_identifier))
 
     def pull_task(self, identifier, archive):
         """
@@ -84,7 +96,7 @@ class Server:
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
-        return self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
+        return self.session.get_archive("service/tasks/{}/download/".format(identifier), archive=archive)
 
     def submit_solution(self, identifier, description, archive):
         """
@@ -94,9 +106,9 @@ class Server:
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        return self.session.push_archive("service/upload_solution/",
+        return self.session.push_archive("service/solution/",
                                          {
-                                             "task id": identifier,
+                                             "task": identifier,
                                              "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
                                                                        indent=4)
                                          },

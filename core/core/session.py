@@ -92,28 +92,27 @@ class Session:
         with open(task_file, 'r', encoding='utf8') as fp:
             data = fp.read()
 
-        resp = self.__upload_archive(
-            'service/schedule_task/',
-            {'description': data},
+        resp = self.__upload_archive1(
+            'service/tasks/',
+            {'job': str(self.job_id), 'description': data},
             [archive]
         )
         return resp.json()['task id']
 
     def get_tasks_statuses(self, task_ids):
-        resp = self.__request('service/get_tasks_statuses/', data={'tasks': json.dumps(task_ids)})
+        resp = self.__request('/service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
         statuses = resp.json()['tasks statuses']
         return json.loads(statuses)
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/download_solution/', data={'task id': task_id})
+        resp = self.__request('service/solution/{}'.format(task_id), method='GET')
         return resp.json()['task error']
 
     def download_decision(self, task_id):
-        self.__download_archive('decision', 'service/download_solution/', {'task id': task_id},
-                                'decision result files.zip')
+        self.__download_archive('decision', 'service/solution/{}/download'.format(task_id), 'decision result files.zip')
 
     def remove_task(self, task_id):
-        self.__request('service/remove_task/', data={'task id': task_id})
+        self.__request('service/task/{}'.format(task_id), method='DELETE')
 
     def sign_out(self):
         self.logger.info('Finish session')
@@ -143,7 +142,7 @@ class Session:
         self.logger.info('Submit solution progress')
         self.__request('service/progress/{0}/'.format(self.job_id), 'PATCH', data=progress)
 
-    def __download_archive(self, kind, path_url, data, archive):
+    def __download_archive(self, kind, path_url, data=None, archive=None):
         while True:
             resp = None
             try:
@@ -158,6 +157,24 @@ class Session:
                     self.logger.warning('Could not download ZIP archive')
                 else:
                     break
+            finally:
+                if resp:
+                    resp.close()
+
+    def __upload_archive1(self, path_url, data, archives):
+        while True:
+            resp = None
+            try:
+                resp = self.__request(path_url, 'POST', data=data, files=[('archive', open(archive, 'rb', buffering=0))
+                                                                          for archive in archives], stream=True)
+                return resp
+            except BridgeError:
+                if self.error == 'ZIP error':
+                    self.logger.exception('Could not upload ZIP archive')
+                    self.error = None
+                    time.sleep(0.2)
+                else:
+                    raise
             finally:
                 if resp:
                     resp.close()

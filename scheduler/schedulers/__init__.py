@@ -204,70 +204,62 @@ class Scheduler:
                             self.server.cancel_job(identifier)
                             del self.__jobs[identifier]
                         else:
-                            raise NotImplementedError
+                            raise NotImplementedError('Unknown job status {!r}'.format(status))
                     else:
-                        if status == '1':
-                            # todo: Do we need download something
-                            # TODO Add new PENDING tasks
-                            # for task_id in [task_id for task_id in ser_ste["tasks"]["pending"] if task_id not in self.__tasks]:
-                            #     self.logger.debug("Add new PENDING task {}".format(task_id))
-                            #     try:
-                            #         self.__tasks[task_id] = {
-                            #             "id": task_id,
-                            #             "status": "PENDING",
-                            #             "description": ser_ste["task descriptions"][task_id]["description"],
-                            #             "priority": ser_ste["task descriptions"][task_id]["description"]["priority"]
-                            #         }
-                            #
-                            #         # TODO: VerifierCloud user name and password are specified in task description and
-                            #         # shouldn't be extracted from it here.
-                            #         if self.runner.scheduler_type() == "VerifierCloud":
-                            #             self.__tasks[task_id]["user"] = ser_ste["task descriptions"][task_id]["VerifierCloud user name"]
-                            #             self.__tasks[task_id]["password"] = \
-                            #                 ser_ste["task descriptions"][task_id]["VerifierCloud user password"]
-                            #         else:
-                            #             self.__tasks[task_id]["user"] = None
-                            #             self.__tasks[task_id]["password"] = None
-                            #     except KeyError as missed_tag:
-                            #         self.__report_error_server_state(
-                            #             ser_ste, "Missed tag '{}' in the description of pendng task {}".format(missed_tag,
-                            #                                                                                    task_id))
+                        if status == 'PENDING':
+                            task_conf = self.server.pull_task_conf(identifier)
+                            self.logger.info("Add new PENDING task {}".format(identifier))
+                            self.__tasks[identifier] = {
+                                "id": identifier,
+                                "status": "PENDING",
+                                "description": task_conf['description'],
+                                "priority": task_conf['description']["priority"]
+                            }
 
-                            # # TODO Try to prepare task
-                            # self.logger.debug("Prepare new task {} before launching".format(task_id))
-                            # # Add missing restrictions
-                            # try:
-                            #     self.__add_missing_restrictions(self.__tasks[task_id]["description"]["resource limits"])
-                            # except SchedulerException as err:
-                            #     self.__jobs[task_id] = {
-                            #         "id": task_id,
-                            #         "status": "ERROR",
-                            #         "error": str(err)
-                            #     }
-                            # else:
-                            #     self.runner.prepare_task(task_id, self.__tasks[task_id])
-                            raise NotImplementedError
-                        elif status == '2':
+                            # TODO: VerifierCloud user name and password are specified in task description and
+                            # shouldn't be extracted from it here.
+                            if self.runner.scheduler_type() == "VerifierCloud":
+                                self.__tasks[identifier]["user"] = task_conf['description']["VerifierCloud user name"]
+                                self.__tasks[identifier]["password"] = \
+                                    task_conf['description']["VerifierCloud user password"]
+                            else:
+                                self.__tasks[identifier]["user"] = None
+                                self.__tasks[identifier]["password"] = None
+
+                            self.logger.debug("Prepare new task {!r} before launching".format(identifier))
+                            # Add missing restrictions
+                            try:
+                                self.__add_missing_restrictions(
+                                    self.__tasks[identifier]["description"]["resource limits"])
+                            except SchedulerException as err:
+                                self.__jobs[identifier] = {
+                                    "id": identifier,
+                                    "status": "ERROR",
+                                    "error": str(err)
+                                }
+                            else:
+                                self.runner.prepare_task(identifier, self.__tasks[identifier])
+                        elif status == 'PROCESSING':
                             # PROCESSING
                             if identifier not in self.__tasks:
-                                raise RuntimeError("THere is no task {!r}".format(identifier))
-                        elif status == '3':
+                                raise RuntimeError("There is no task {!r}".format(identifier))
+                        elif status == 'FINISHED':
                             # FINISHED
                             if identifier in self.__tasks:
                                 self.runner.cancel_task(identifier, self.__tasks[identifier])
                                 del self.__tasks[identifier]
-                        elif status == '4':
+                        elif status == 'ERROR':
                             # ERROR
                             if identifier in self.__tasks:
                                 self.runner.cancel_task(identifier, self.__tasks[identifier])
                                 del self.__tasks[identifier]
-                        elif status == '5':
+                        elif status == 'CANCELLED':
                             # CANCELLED
                             if identifier in self.__tasks:
                                 self.runner.cancel_task(identifier, self.__tasks[identifier])
                                 del self.__tasks[identifier]
                         else:
-                            raise NotImplementedError
+                            raise NotImplementedError('Unknown task status {!r}'.format(status))
             except queue.Empty:
                 pass
 
@@ -277,7 +269,7 @@ class Scheduler:
                 #     for job_id, progress in [(i, d) for i, d in ser_ste['jobs progress'].items() if i in self.__jobs]:
                 #         self.runner.add_job_progress(job_id, self.__jobs[job_id], progress)
 
-                for job_id, desc in self.__jobs.items():
+                for job_id, desc in list(self.__jobs.items()):
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
                         desc["status"] = "PROCESSING"
                     elif desc['status'] == 'PROCESSING' and \
@@ -291,14 +283,12 @@ class Scheduler:
                             self.server.submit_job_error(job_id, desc['error'])
                         else:
                             raise NotImplementedError("Cannot determine status of the job {!r}".format(job_id))
-                        del self.__jobs[job_id]
+                        if job_id in self.__jobs:
+                            del self.__jobs[job_id]
 
-                for task_id, desc in self.__tasks.items():
-                    if task_id in self.__tasks and \
-                            (not (desc.get("rescheduled") and desc["status"] == 'PENDING')
-                             and (not self.runner.is_solving(desc) or desc["status"] != "PROCESSING")):
-                        raise ValueError("Scheduler has lost information about task {} with PROCESSING status.".
-                                         format(task_id))
+                for task_id, desc in list(self.__tasks.items()):
+                    if self.runner.is_solving(desc) and desc["status"] == "PENDING":
+                        desc["status"] = "PROCESSING"
                     elif desc["status"] == "PROCESSING" and \
                             self.runner.process_task_result(task_id, self.__tasks[task_id]):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
@@ -307,7 +297,8 @@ class Scheduler:
                             self.server.submit_task_error(task_id, desc['error'])
                         else:
                             raise NotImplementedError("Cannot determine status of the task {!r}".format(task_id))
-                        del self.__jobs[task_id]
+                        if task_id in self.__tasks:
+                            del self.__tasks[task_id]
 
                 # Submit tools
                 try:
