@@ -359,7 +359,6 @@ class Runner:
             item["status"] = "ERROR"
             item["error"] = err
         finally:
-            self.server.cancel_task(identifier)
             if "future" in item:
                 del item["future"]
 

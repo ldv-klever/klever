@@ -56,38 +56,44 @@ class Server:
         ret = self.session.json_exchange("service/tasks/{}/?fields=description".format(task_identifier), method='GET')
         return ret
 
+    def get_job_tasks(self, identifier):
+        ret = self.session.json_exchange("service/tasks/?job={}&fields=status&fields=id".format(identifier),
+                                         method='GET')
+        return ((item['id'], item['status']) for item in ret)
+
+    def get_all_tasks(self):
+        ret = self.session.json_exchange("service/tasks/?fields=status&fields=id", method='GET')
+        return ((item['id'], item['status']) for item in ret)
+
     def cancel_job(self, job_identifier):
-        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
-                                   data={"status": "7"})
+        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH', data={"status": "7"})
 
     def submit_job_error(self, job_identifier, error):
-        try:
-            self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
-                                       data={"status": "4", "error": error})
-        except Exception as err:
-            self.logger.warning("")
+        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+                              data={"status": "4", "error": error})
 
     def submit_job_finished(self, job_identifier):
-        self.session.json_exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
+        self.session.exchange("service/job-status/{}/".format(job_identifier), method='PATCH',
                                    data={"status": "3"})
 
     def submit_processing_task(self, task_identifier):
-        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
                                    data={"status": "PROCESSING"})
 
-    def submit_finished_task(self, task_identifier):
-        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+    def submit_task_finished(self, task_identifier):
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
                                    data={"status": "FINISHED"})
 
+    def submit_task_cancelled(self, task_identifier):
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                   data={"status": "CANCELLED"})
+
     def delete_task(self, task_identifier):
-        self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='DELETE')
 
     def submit_task_error(self, task_identifier, error):
-        try:
-            self.session.json_exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
-                                       data={"status": "ERROR", "error": error})
-        except bridge.UnexpectedStatusCode:
-            self.logger.warning("Unexpected status code of task {!r}".format(task_identifier))
+        self.session.exchange("service/tasks/{}/".format(task_identifier), method='PATCH',
+                                   data={"status": "ERROR", "error": error})
 
     def pull_task(self, identifier, archive):
         """

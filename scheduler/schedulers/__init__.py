@@ -21,8 +21,10 @@ import traceback
 import threading
 import queue
 import pika
+import logging
 
 import server
+from utils.bridge import BridgeError
 from utils import sort_priority, time_units_converter, memory_units_converter
 
 
@@ -91,6 +93,7 @@ class Scheduler:
         self.__loop_thread = None
         self.production = self.conf["scheduler"].setdefault("production", False)
 
+        logging.getLogger("pika").setLevel(logging.WARNING)
         self.init_scheduler()
 
     def init_scheduler(self):
@@ -202,6 +205,9 @@ class Scheduler:
                                                     if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
                                                     and self.__tasks[tid]["description"]["job id"] == identifier])
                             self.server.cancel_job(identifier)
+                            for task_id, status in self.server.get_job_tasks(identifier):
+                                if status in ('PENDING', 'PROCESSING'):
+                                    self.server.submit_task_cancelled(task_id)
                             del self.__jobs[identifier]
                         else:
                             raise NotImplementedError('Unknown job status {!r}'.format(status))
@@ -243,21 +249,11 @@ class Scheduler:
                             # PROCESSING
                             if identifier not in self.__tasks:
                                 raise RuntimeError("There is no task {!r}".format(identifier))
-                        elif status == 'FINISHED':
-                            # FINISHED
-                            if identifier in self.__tasks:
-                                self.runner.cancel_task(identifier, self.__tasks[identifier])
-                                del self.__tasks[identifier]
-                        elif status == 'ERROR':
-                            # ERROR
-                            if identifier in self.__tasks:
-                                self.runner.cancel_task(identifier, self.__tasks[identifier])
-                                del self.__tasks[identifier]
-                        elif status == 'CANCELLED':
+                        elif status in ('FINISHED', 'ERROR', 'CANCELLED'):
                             # CANCELLED
                             if identifier in self.__tasks:
-                                self.runner.cancel_task(identifier, self.__tasks[identifier])
                                 del self.__tasks[identifier]
+                            self.server.delete_task(identifier)
                         else:
                             raise NotImplementedError('Unknown task status {!r}'.format(status))
             except queue.Empty:
@@ -273,10 +269,9 @@ class Scheduler:
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
                         desc["status"] = "PROCESSING"
                     elif desc['status'] == 'PROCESSING' and \
-                        self.runner.process_job_result(job_id, desc,
-                                                       [tid for tid in self.__tasks
-                                                        if self.__tasks[tid]["status"] in ["PENDING", "PROCESSING"]
-                                                        and self.__tasks[tid]["description"]["job id"] == job_id]):
+                        self.runner.process_job_result(
+                            job_id, desc, [tid for tid in self.__tasks if desc["status"] in ["PENDING", "PROCESSING"]
+                                           and self.__tasks[tid]["description"]["job id"] == job_id]):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
                             self.server.submit_job_finished(job_id)
                         elif desc.get('error'):
@@ -289,8 +284,7 @@ class Scheduler:
                 for task_id, desc in list(self.__tasks.items()):
                     if self.runner.is_solving(desc) and desc["status"] == "PENDING":
                         desc["status"] = "PROCESSING"
-                    elif desc["status"] == "PROCESSING" and \
-                            self.runner.process_task_result(task_id, self.__tasks[task_id]):
+                    elif desc["status"] == "PROCESSING" and self.runner.process_task_result(task_id, desc):
                         if desc['status'] == 'FINISHED' and not desc.get('error'):
                             self.server.submit_task_finished(task_id)
                         elif desc.get('error'):
@@ -332,6 +326,7 @@ class Scheduler:
                             self.runner.solve_job(job_id, self.__jobs[job_id])
 
                         for task_id in tasks_to_start:
+                            self.server.submit_processing_task(task_id)
                             self.runner.solve_task(task_id, self.__tasks[task_id])
 
                     # Flushing tasks
@@ -394,8 +389,6 @@ class Scheduler:
             raise SchedulerException('Cannot interprete {} resource limitations: {!r}'.format(tag, collection[tag]))
 
     def terminate(self):
-        # TODO: Need refactoring! Send requests to Bridge
-        # TODO: Kill listening queue
         """Abort solution of all running tasks and any other actions before termination."""
         # stop jobs
         for job_id, item in [(job_id, self.__jobs[job_id]) for job_id in self.__jobs
@@ -413,3 +406,19 @@ class Scheduler:
 
         # Do final unitializations
         self.runner.terminate()
+
+        # Check all tasks and cancel them
+        tasks = self.server.get_all_tasks()
+        for identifier, status in tasks:
+            # TODO: Remove this when Bridge will not raise an error 'Job is not solving'
+            if status in ('PENDING', 'PROCESSING'):
+                try:
+                    self.server.submit_task_error(identifier, 'Scheduler terminated')
+                except BridgeError as err:
+                    self.logger.warning('Brdige reports an error on attempt to cancel task {}: {!r}'.
+                                        format(identifier, err))
+            try:
+                self.server.delete_task(identifier)
+            except BridgeError as err:
+                self.logger.warning('Brdige reports an error on attempt to delete task {}: {!r}'.
+                                    format(identifier, err))
