@@ -64,7 +64,7 @@ class Session:
             try:
                 resp = self.session.request(method, url, **kwargs)
 
-                if resp.status_code != 200:
+                if resp.status_code not in (200, 201):
                     if resp.headers['content-type'] == 'application/json':
                         # TODO: analize resp.json()
                         self.error = resp.json()
@@ -92,15 +92,11 @@ class Session:
         with open(task_file, 'r', encoding='utf8') as fp:
             data = fp.read()
 
-        resp = self.__upload_archive1(
-            'service/tasks/',
-            {'job': str(self.job_id), 'description': data},
-            [archive]
-        )
-        return resp.json()['task id']
+        resp = self.__upload_archive('service/tasks/', {'job': str(self.job_id), 'description': data}, [archive])
+        return resp.json()['id']
 
     def get_tasks_statuses(self, task_ids):
-        resp = self.__request('/service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
+        resp = self.__request('service/tasks/?job={}&fields=status&fields=id'.format(self.job_id), method='GET')
         statuses = resp.json()['tasks statuses']
         return json.loads(statuses)
 
@@ -157,24 +153,6 @@ class Session:
                     self.logger.warning('Could not download ZIP archive')
                 else:
                     break
-            finally:
-                if resp:
-                    resp.close()
-
-    def __upload_archive1(self, path_url, data, archives):
-        while True:
-            resp = None
-            try:
-                resp = self.__request(path_url, 'POST', data=data, files=[('archive', open(archive, 'rb', buffering=0))
-                                                                          for archive in archives], stream=True)
-                return resp
-            except BridgeError:
-                if self.error == 'ZIP error':
-                    self.logger.exception('Could not upload ZIP archive')
-                    self.error = None
-                    time.sleep(0.2)
-                else:
-                    raise
             finally:
                 if resp:
                     resp.close()
