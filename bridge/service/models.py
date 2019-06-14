@@ -16,12 +16,12 @@
 #
 
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
+from django.db.models.signals import post_delete
 from django.contrib.postgres.fields import JSONField
 
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
-from bridge.utils import RemoveFilesBeforeDelete
+from bridge.utils import WithFilesMixin, remove_instance_files
+
 from jobs.models import Job, JobFile
 from users.models import User
 from reports.models import ReportRoot
@@ -119,39 +119,28 @@ class Decision(models.Model):
         db_table = 'decision'
 
 
-class Task(models.Model):
+class Task(WithFilesMixin, models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='tasks')
     status = models.CharField(max_length=10, choices=TASK_STATUS, default=TASK_STATUS[0][0])
     error = models.CharField(max_length=1024, null=True)
-    archname = models.CharField(max_length=256)
-    archive = models.FileField(upload_to=SERVICE_DIR)
+    filename = models.CharField(max_length=256)
+    file = models.FileField(upload_to=SERVICE_DIR)
     description = JSONField()
 
     class Meta:
         db_table = 'task'
 
 
-class Solution(models.Model):
+class Solution(WithFilesMixin, models.Model):
     decision = models.ForeignKey(Decision, models.CASCADE, related_name='solutions_set')
     task = models.OneToOneField(Task, models.CASCADE, related_name='solution')
-    archname = models.CharField(max_length=256)
-    archive = models.FileField(upload_to=SERVICE_DIR)
+    filename = models.CharField(max_length=256)
+    file = models.FileField(upload_to=SERVICE_DIR)
     description = JSONField()
 
     class Meta:
         db_table = 'solution'
 
 
-# @receiver(pre_delete, sender=Decision)
-# def progress_delete_signal(**kwargs):
-#     RemoveFilesBeforeDelete(kwargs['instance'])
-
-
-@receiver(pre_delete, sender=Task)
-def task_delete_signal(**kwargs):
-    RemoveFilesBeforeDelete(kwargs['instance'])
-
-
-@receiver(pre_delete, sender=Solution)
-def solution_delete_signal(**kwargs):
-    RemoveFilesBeforeDelete(kwargs['instance'])
+post_delete.connect(remove_instance_files, sender=Task)
+post_delete.connect(remove_instance_files, sender=Solution)

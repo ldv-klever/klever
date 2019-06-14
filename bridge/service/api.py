@@ -56,7 +56,7 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
         if self.request.method == 'GET':
             fields = self.request.query_params.getlist('fields')
         elif self.request.method == 'POST':
-            fields = {'job', 'archive', 'description'}
+            fields = {'job', 'file', 'description'}
         elif self.request.method in {'PUT', 'PATCH'}:
             fields = {'status', 'error'}
         return super().get_serializer(*args, fields=fields, **kwargs)
@@ -67,10 +67,6 @@ class TaskAPIViewset(LoggedCallMixin, ModelViewSet):
         return super().filter_queryset(queryset)
 
     def perform_destroy(self, instance):
-        assert isinstance(instance, Task)
-        job = Job.objects.only('status').get(decision=instance.decision)
-        if job.status != JOB_STATUS[2][0]:
-            raise exceptions.ValidationError({'job': 'The job is not processing'})
         if instance.status not in {TASK_STATUS[2][0], TASK_STATUS[3][0], TASK_STATUS[4][0]}:
             raise exceptions.ValidationError({'status': 'The task is not finished'})
         if instance.status == TASK_STATUS[2][0]:

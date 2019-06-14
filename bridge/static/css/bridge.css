@@ -34,6 +34,11 @@ body {
     padding: 10px;
 }
 
+.linecontent {
+    white-space: pre;
+    font-family: monospace;
+}
+
 .filecontent {
     white-space: pre;
     font-family: monospace;

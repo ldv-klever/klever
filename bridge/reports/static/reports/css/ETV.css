@@ -23,6 +23,7 @@
     bottom: 0;
     line-height: normal;
     font-size: 12px;
+    overflow: auto;
 }
 #ETV_error_trace {
     width: 100%;
@@ -116,6 +117,8 @@
     background-color: #d7f0f0;
     padding-left: 5px;
     padding-right: 5px;
+    font-family: monospace;
+    white-space: pre;
 }
 
 /* Error trace: Line number object */

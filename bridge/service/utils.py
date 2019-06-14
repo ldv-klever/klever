@@ -283,17 +283,17 @@ class StartJobDecision:
 class TaskArchiveGenerator(FileWrapper):
     def __init__(self, task: Task):
         self._task = task
-        self.size = len(self._task.archive)
-        self.name = self._task.archname
-        super().__init__(self._task.archive, 8192)
+        self.size = len(self._task.file)
+        self.name = self._task.filename
+        super().__init__(self._task.file, 8192)
 
 
 class SolutionArchiveGenerator(FileWrapper):
     def __init__(self, solution: Solution):
         self._solution = solution
-        self.size = len(self._solution.archive)
-        self.name = self._solution.archname
-        super().__init__(self._solution.archive, 8192)
+        self.size = len(self._solution.file)
+        self.name = self._solution.filename
+        super().__init__(self._solution.file, 8192)
 
 
 class ReadJobConfiguration:

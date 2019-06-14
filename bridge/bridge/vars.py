@@ -19,6 +19,7 @@ from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 from django.utils.functional import cached_property
 
 FORMAT = 1
+ETV_FORMAT = 1
 
 DATAFORMAT = (
     ('raw', _('Raw')),
