@@ -17,18 +17,18 @@
 
 import uuid
 from django.db import models
-from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
+from django.db.models.signals import post_delete
 from mptt.models import MPTTModel, TreeForeignKey
 
 from bridge.vars import FORMAT, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
+from bridge.utils import WithFilesMixin, remove_instance_files
 
 from users.models import User
 
 JOBFILE_DIR = 'Job'
 
 
-class JobFile(models.Model):
+class JobFile(WithFilesMixin, models.Model):
     hash_sum = models.CharField(max_length=255, db_index=True)
     file = models.FileField(upload_to=JOBFILE_DIR, null=False)
 
@@ -37,16 +37,6 @@ class JobFile(models.Model):
 
     def __str__(self):
         return self.hash_sum
-
-
-@receiver(pre_delete, sender=JobFile)
-def jobfile_delete_signal(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.file.storage, file.file.path
-    try:
-        storage.delete(path)
-    except PermissionError:
-        pass
 
 
 class Job(MPTTModel):
@@ -116,3 +106,6 @@ class UserRole(models.Model):
 
     class Meta:
         db_table = 'user_job_role'
+
+
+post_delete.connect(remove_instance_files, sender=JobFile)

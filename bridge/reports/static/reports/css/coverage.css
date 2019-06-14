@@ -57,8 +57,8 @@
 }
 .COVLine {
     background-color: #d7f0f0;
-    padding-left: 5px;
-    padding-right: 5px;
+    /*padding-left: 5px;*/
+    /*padding-right: 5px;*/
 }
 .COVLineSelected {
     background-color: #fff0eb!important;

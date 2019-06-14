@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+ * Ivannikov Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.SourceCodeContent {
+    left: 0;
+    bottom: 0;
+    border-top: 1px solid #ca8f1d;
+    line-height: normal;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: nowrap;
+    height: 60vh;
+    overflow-x: auto;
+    width: 100%;
+}
+
+.SourceCodeContent > span {
+    display: table-row;
+}
+.SourceCodeContent > span > span {
+    /*white-space: pre;*/
+    display: table-cell;
+}
+
+.SrcStatic {
+    position: relative;
+}
+
+.SrcLine {
+    position: relative;
+    background-color: #d9deff;
+}
+
+.SrcLineSelected {
+    background-color: #f0f0ff !important;
+}
+
+.SrcCode {
+    width: 100%;
+    display: inline-block;
+    white-space: pre;
+}
+
+.SrcNumberPopup {
+    color: #defff1;
+    background-color: #520d83;
+    padding: 0 4px 0 4px;
+    position: absolute;
+    z-index: 999;
+}
+.SrcNumberPopup:before {
+    content: "←";
+}
+
+.SrcFuncCov {
+    white-space: pre;
+    display: table-cell;
+    padding: 0 2px 0 2px;
+    border-right: 1px solid #866973;
+}
+.SrcLineCov {
+    white-space: pre;
+    display: table-cell;
+    padding: 0 3px 0 3px;
+}

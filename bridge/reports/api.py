@@ -6,11 +6,13 @@ from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView
+
 from rest_framework.exceptions import PermissionDenied, APIException
+from rest_framework.generics import RetrieveAPIView, get_object_or_404, CreateAPIView, DestroyAPIView
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN
+from rest_framework.views import APIView
 
 from bridge.vars import JOB_STATUS
 from bridge.utils import BridgeException
@@ -23,7 +25,7 @@ from reports.models import Report, ReportRoot, CompareJobsInfo, OriginalSources,
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
-from reports.etv import GetSource
+from reports.source import GetSource
 from reports.utils import remove_verification_files
 
 
@@ -107,12 +109,16 @@ class UploadReportView(LoggedCallMixin, APIView):
 
 
 class GetSourceCodeView(LoggedCallMixin, APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+
     def get(self, request, unsafe_id):
         unsafe = get_object_or_404(ReportUnsafe.objects.only('id'), id=unsafe_id)
         if 'file_name' not in request.GET:
             raise APIException('File name was not provided')
         try:
-            return HttpResponse(GetSource(unsafe, request.GET['file_name']).data)
+            return Response({
+                'data': GetSource(unsafe, request.GET['file_name'])
+            }, template_name='reports/error_trace/SourceCode.html')
         except BridgeException as e:
             raise APIException(str(e))
 

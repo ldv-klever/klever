@@ -66,10 +66,10 @@ $(document).ready(function () {
     }
 
     function select_source_line(line) {
-        let selected_src_line = $('#ETVSrcL_' + line);
+        let selected_src_line = $(`#SrcL_${line}`);
         if (selected_src_line.length) {
             source_window.scrollTop(source_window.scrollTop() + selected_src_line.position().top - source_window.height() * 3/10);
-            selected_src_line.parent().addClass('ETVSelectedLine');
+            selected_src_line.find('.SrcLineCov').addClass('SrcLineSelected');
         }
         else err_notify($('#error___line_not_found').text());
     }
@@ -80,7 +80,7 @@ $(document).ready(function () {
             if (sources_history.children().length > 1 && src_back_btn.hasClass('disabled')) src_back_btn.removeClass('disabled');
         }
         if (filename === $('#ETVSourceTitleFull').text()) {
-            source_window.find('.ETVSelectedLine').removeClass('ETVSelectedLine');
+            source_window.find('.SrcLineSelected').removeClass('SrcLineSelected');
             select_source_line(line);
         }
         else {
@@ -360,5 +360,25 @@ $(document).ready(function () {
             last_child.remove();
         }
         if (sources_history.children().length < 2) src_back_btn.addClass('disabled');
+    });
+
+    source_window.on('mouseenter', '.SrcLineCov[data-value]', function () {
+        $(this).append($('<span>', {'class': 'SrcNumberPopup', text: $(this).data('value')}));
+    });
+    source_window.on('mouseleave', '.SrcLineCov[data-value]', function () {
+        $(this).find('.SrcNumberPopup').remove();
+    });
+    source_window.on('mouseenter', '.SrcFuncCov[data-value]', function () {
+        $(this).append($('<span>', {'class': 'SrcNumberPopup', text: $(this).data('value')}));
+    });
+    source_window.on('mouseleave', '.SrcFuncCov[data-value]', function () {
+        $(this).find('.SrcNumberPopup').remove();
+    });
+    source_window.on('mouseenter', '.SrcCode[data-value]', function () {
+        $(this).siblings('.SrcLine').find('.SrcLineCov')
+            .append($('<span>', {'class': 'SrcNumberPopup', text: $(this).data('value')}));
+    });
+    source_window.on('mouseleave', '.SrcCode[data-value]', function () {
+        $(this).siblings('.SrcLine').find('.SrcNumberPopup').remove();
     });
 });

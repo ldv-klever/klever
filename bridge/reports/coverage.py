@@ -32,7 +32,6 @@ from bridge.vars import COVERAGE_FILE, JOB_WEIGHT
 from reports.models import CoverageFile, CoverageData, CoverageDataValue, CoverageDataStatistics, CoverageArchive
 
 from reports.utils import get_parents
-from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
 
 
 SOURCE_CLASSES = {

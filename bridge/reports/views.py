@@ -46,6 +46,12 @@ from reports.comparison import ComparisonTableData
 from reports.coverage import GetCoverage, GetCoverageSrcHTML
 
 
+@register.filter
+def get_list_val(l, ind):
+    ind = int(ind)
+    return l[ind] if ind < len(l) else None
+
+
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
 @register.filter
 def get_dict_val(d, key):
