@@ -223,14 +223,6 @@ class CModel:
                     lines.extend(['#include <{}>\n'.format(h) for h in
                                   self._collapse_headers_sets(self._headers[self.entry_file])])
                 lines.append("\n")
-
-                for tp in self.types.get(file, list()):
-                    lines.append(tp.to_string('') + " {\n")
-                    for field in list(tp.fields.keys()):
-                        lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
-                                                      scope={self.entry_file}))
-                    lines.append("};\n")
-                    lines.append("\n")
             else:
                 # Generate function declarations
                 self._logger.info('Add aspects to a file {!r}'.format(file))
@@ -252,7 +244,7 @@ class CModel:
                 lines.append(tp.to_string('') + " {\n")
                 for field in list(tp.fields.keys()):
                     lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params'),
-                                                  scope={self.entry_file}))
+                                                  scope={file}))
                 lines.append("};\n")
                 lines.append("\n")
 

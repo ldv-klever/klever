@@ -128,7 +128,8 @@ class FSATranslator:
         for pair in self._structures.values():
             file, decl = pair
             self._cmodel.types.setdefault(file, list())
-            self._cmodel.types[file].append(decl)
+            if decl not in self._cmodel.types[file]:
+                self._cmodel.types[file].append(decl)
 
         return
 
