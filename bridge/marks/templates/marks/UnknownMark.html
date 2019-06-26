@@ -70,7 +70,6 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            {# TODO #}
                             {% if user.data_format == 'hum' %}{{ mark_version.change_date|naturaltime }}{% else %}{{ mark_version.change_date }}{% endif %}
                             {% if mark_version.author %}
                                 (<a class="violet-link" href="{% url 'users:show-profile' mark_version.author_id %}">{{ mark_version.author.get_full_name }}</a>)

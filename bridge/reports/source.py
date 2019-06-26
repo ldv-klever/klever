@@ -171,19 +171,17 @@ class GetSource:
     coverage_postfix = '.cov.json'
 
     def __init__(self, user, report, file_name, coverage_id, with_legend):
+        # If coverage_id is set then it can be source for Sub-job or Core only,
+        # Otherwise - for verification report or its leaf.
+
         self._user = user
         self._report = report
         self._file_name = self.__parse_file_name(file_name)
 
-        # TODO
-        # If coverage_id is set then it can be source for Sub-job or Core only,
-        # Otherwise - for verification report or its leaf.
-        self.coverage_id = coverage_id
-
         self.with_legend = (with_legend == 'true')
 
         self._indexes = self.__get_indexes_data()
-        self._coverage, self.coverage_id = self.__get_coverage_data()
+        self._coverage, self.coverage_id = self.__get_coverage_data(coverage_id)
         self.source_lines, self.references = self.__parse_source()
 
     def __parse_file_name(self, file_name):
@@ -233,10 +231,10 @@ class GetSource:
                     return index_data
         return None
 
-    def __get_coverage_data(self):
+    def __get_coverage_data(self, cov_id):
         cov_name = self._file_name + self.coverage_postfix
         qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
-        if self.coverage_id:
+        if cov_id:
             # For full coverage (Subjob reports) where there can be several coverages
             qs_filters['id'] = self.coverage_id
         else:

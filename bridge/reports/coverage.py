@@ -33,7 +33,7 @@ ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
 
 
 def coverage_url(user, report, many=False):
-    url_name = 'reports:coverage' if user.coverage_data else 'reports:coverage-light'
+    url_name = 'reports:coverage'
     if isinstance(report, (ReportSafe, ReportUnsafe)):
         if CoverageArchive.objects.filter(report_id=report.parent_id).exists():
             return construct_url(url_name, report.parent_id)

@@ -17,7 +17,6 @@
 
 import json
 
-from django.conf import settings
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
@@ -67,10 +66,6 @@ class GetETV:
         return threads
 
     def __get_global_vars(self):
-        # TODO: remove support of "global"
-        if 'global' in self.trace:
-            self.trace['global variable declarations'] = self.trace['global']
-
         if 'global variable declarations' not in self.trace:
             return None
         global_data = {

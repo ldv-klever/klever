@@ -17,12 +17,9 @@
 
 import os
 import json
-import pika
-import uuid
-from multiprocessing import Process, Value, Manager, Pipe
+from multiprocessing import Process, Pipe
 import random
 import requests
-import re
 import time
 from io import BytesIO
 
@@ -34,7 +31,6 @@ from django.urls import reverse
 
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, FORMAT
 from bridge.utils import KleverTestCase, logger, RMQConnect
-# from bridge.populate import populate_users
 
 from users.models import User
 from jobs.models import Job
@@ -137,8 +133,8 @@ SJC_1 = [
             {
                 'module': 'drivers/usb/core/usb7.ko',
                 'tool': 'CPAchecker', 'verifier_input': False, 'log': True,
-                'additional': 'sources7.zip',
-                'unsafes': ['unsafe7.zip']
+                'additional': 'sources10.zip',
+                'unsafes': ['unsafe10.zip']
             }
         ]
     }

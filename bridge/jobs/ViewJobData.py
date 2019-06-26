@@ -23,7 +23,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import ASSOCIATION_TYPE, SafeVerdicts, UnsafeVerdicts, JOB_WEIGHT
-from bridge.utils import logger, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportRoot, ReportComponent, Report
 from marks.models import MarkUnknownReport, SafeTag, UnsafeTag

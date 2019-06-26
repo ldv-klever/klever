@@ -465,31 +465,6 @@ def create_version(job, kwargs):
     return new_version
 
 
-class JobVersionsData:
-    def __init__(self, job, user):
-        self._job = job
-        self._user = user
-        self.first_version = None
-        self.last_version = None
-        self.versions = self.__get_versions()
-
-    def __get_versions(self):
-        versions = []
-        for j in self._job.versions.order_by('-version'):
-            if self.first_version is None:
-                self.first_version = j
-            if j.version == self._job.version:
-                self.last_version = j
-
-            title = j.change_date.astimezone(pytz.timezone(self._user.timezone)).strftime("%d.%m.%Y %H:%M:%S")
-            if j.change_author:
-                title += ' ({0})'.format(j.change_author.get_full_name())
-            if j.comment:
-                title += ': %s' % j.comment
-            versions.append({'version': j.version, 'title': title})
-        return versions
-
-
 def delete_versions(job, versions):
     versions = list(int(v) for v in versions)
     if any(v in {1, job.version} for v in versions):

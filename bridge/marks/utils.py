@@ -164,7 +164,6 @@ class MarkAccess:
         if not self._user_valid or not self._mark_valid:
             return False
         # Nobody can remove last version
-        # TODO: check if removing first version does not affect anything
         if mark_version.version == self.mark.version:
             return False
         # Manager can remove all other versions

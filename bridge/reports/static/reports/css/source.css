@@ -32,7 +32,7 @@
     display: table-cell;
 }
 .SrcLineSelected {
-    background-color: #f2f2ff !important;
+    background-color: #fdffc7 !important;
 }
 /* Source code objects (function coverage column, line number, the source code */
 .SrcFuncCov {
@@ -117,8 +117,9 @@
 
 /* Coverage data */
 .SrcCovDataLink {
-    color: #2f6ba7;
+    color: #e022de;
     cursor: pointer;
+    font-weight: bold;
 }
 .CoverageDataName {
     color: #6d10ae;
