@@ -35,13 +35,11 @@ from marks.models import (
 )
 from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,
-    CoverageFile, CoverageDataStatistics, OriginalSources, ORIGINAL_SOURCES_DIR
+    OriginalSources, ORIGINAL_SOURCES_DIR
 )
 from marks.SafeUtils import ConnectSafeReport
 from marks.UnsafeUtils import ConnectUnsafeReport
 from marks.UnknownUtils import ConnectUnknownReport
-
-from reports.coverage import FillCoverageCache
 
 from caches.utils import RecalculateSafeCache, RecalculateUnsafeCache, RecalculateUnknownCache
 
@@ -96,9 +94,9 @@ class ClearFiles:
 
     def __clear_service_files(self):
         files_in_the_system = set()
-        for s in Solution.objects.values_list('archive', flat=True):
+        for s in Solution.objects.values_list('file', flat=True):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
-        for s in Task.objects.values_list('archive', flat=True):
+        for s in Task.objects.values_list('file', flat=True):
             files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s)))
         files_directory = os.path.join(settings.MEDIA_ROOT, SERVICE_DIR)
         if os.path.exists(files_directory):
@@ -148,18 +146,6 @@ class RecalculateComponentInstances:
             for root in self._roots:
                 root.instances = inst_cache.get(root.id, {})
                 root.save()
-
-
-class RecalculateCoverageCache:
-    def __init__(self, roots):
-        self.roots = roots
-        self.__recalc()
-
-    def __recalc(self):
-        CoverageFile.objects.filter(archive__report__root__in=self.roots).delete()
-        CoverageDataStatistics.objects.filter(archive__report__root__in=self.roots).delete()
-        for report in ReportComponent.objects.filter(root__in=self.roots, coverages__isnull=False):
-            FillCoverageCache(report)
 
 
 class RecalculateSafeLinks:
@@ -232,8 +218,6 @@ class Recalculation:
             RecalculateResources(self._roots)
         elif self.type == 'compinst':
             RecalculateComponentInstances(self._roots)
-        elif self.type == 'coverage':
-            RecalculateCoverageCache(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
             RecalculateSafeLinks(self._roots)
@@ -241,7 +225,6 @@ class Recalculation:
             RecalculateUnknownLinks(self._roots)
             RecalculateResources(self._roots)
             RecalculateComponentInstances(self._roots)
-            RecalculateCoverageCache(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()

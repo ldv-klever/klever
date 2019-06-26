@@ -15,26 +15,26 @@
 # limitations under the License.
 #
 
-from wsgiref.util import FileWrapper
-
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect, HttpResponse
-from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
 from django.template.defaulttags import register
 from django.views.generic.base import TemplateView
 from django.views.generic.detail import SingleObjectMixin, DetailView
 
-import bridge.CustomViews as Bview
-from tools.profiling import LoggedCallMixin
 from bridge.vars import VIEW_TYPES, LOG_FILE, ERROR_TRACE_FILE, PROOF_FILE, PROBLEM_DESC_FILE, JOB_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from jobs.ViewJobData import ViewReportData
+from bridge.CustomViews import DataViewMixin, StreamingResponseView, JSONResponseMixin
+
+from tools.profiling import LoggedCallMixin
+
+from jobs.models import Job
+from reports.models import (
+    ReportRoot, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe, ReportAttr, CoverageArchive
+)
+
 from jobs.utils import JobAccess
-from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
-from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnknown, ReportUnsafe,\
-    ReportAttr, CoverageArchive
+from jobs.ViewJobData import ViewReportData
 
 from reports.utils import (
     report_resources, get_parents, report_attributes_with_parents,
@@ -43,7 +43,9 @@ from reports.utils import (
 )
 from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
-from reports.coverage import GetCoverage, GetCoverageSrcHTML
+from reports.coverage import coverage_url, CoverageStatistics, CoverageGenerator
+
+from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
 
 
 @register.filter
@@ -146,7 +148,7 @@ def calculate_validation_stats(validation_results):
     return validation_stats
 
 
-class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = ReportComponent
     template_name = 'reports/ReportMain.html'
 
@@ -156,7 +158,9 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMix
             raise BridgeException(code=400)
         if job.weight == JOB_WEIGHT[1][0]:
             raise BridgeException(_('Reports pages for lightweight jobs are closed'))
-        return {
+
+        context = super().get_context_data(**kwargs)
+        context.update({
             'report': self.object,
             'status': ReportStatus(self.object),
             'data': ReportData(self.object),
@@ -168,10 +172,16 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMix
                 self.request.user, self.object, self.get_view(VIEW_TYPES[3]),
                 page=self.request.GET.get('page', 1)
             )
-        }
+        })
+        if self.object.verification:
+            context['coverage_url'] = coverage_url(self.request.user, self.object)
+            print(context['coverage_url'])
+        else:
+            context['coverages'] = coverage_url(self.request.user, self.object, many=True)
+        return context
 
 
-class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
 
@@ -182,7 +192,7 @@ class ComponentLogView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, B
         return ComponentLogGenerator(instance)
 
 
-class ComponentLogContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
+class ComponentLogContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
 
@@ -201,7 +211,7 @@ class ComponentLogContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailVi
         return HttpResponse(content)
 
 
-class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = ReportAttr
 
     def get_generator(self):
@@ -211,7 +221,7 @@ class AttrDataFileView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, B
         return AttrDataGenerator(instance)
 
 
-class AttrDataContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
+class AttrDataContentView(LoggedCallMixin, JSONResponseMixin, DetailView):
     model = ReportAttr
 
     def get(self, *args, **kwargs):
@@ -229,7 +239,7 @@ class AttrDataContentView(LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
         return HttpResponse(content)
 
 
-class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = ReportComponent
 
     def get_generator(self):
@@ -239,7 +249,7 @@ class DownloadVerifierFiles(LoginRequiredMixin, LoggedCallMixin, SingleObjectMix
         return VerifierFilesGenerator(instance)
 
 
-class SafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class SafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -269,7 +279,7 @@ class SafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, De
         return self.render_to_response(context)
 
 
-class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -299,7 +309,7 @@ class UnsafesListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, 
         return self.render_to_response(context)
 
 
-class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     model = ReportComponent
     pk_url_kwarg = 'report_id'
     template_name = 'reports/report_list.html'
@@ -329,7 +339,7 @@ class UnknownsListView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin,
         return self.render_to_response(context)
 
 
-class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class ReportSafeView(LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportSafe.html'
     model = ReportSafe
 
@@ -344,8 +354,8 @@ class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         if self.object.root.job.weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
         context.update({
-            'report': self.object, 'report_type': 'safe',
-            'resources': report_resources(self.request.user, self.object),
+            'report': self.object, 'resources': report_resources(self.request.user, self.object),
+            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': proof_content,
             'MarkTable': SafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
@@ -353,7 +363,7 @@ class ReportSafeView(LoggedCallMixin, Bview.DataViewMixin, DetailView):
         return context
 
 
-class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportUnsafe.html'
     model = ReportUnsafe
     slug_url_kwarg = 'trace_id'
@@ -372,16 +382,16 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin,
         if self.object.root.job.weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
         context.update({
-            'report': self.object, 'report_type': 'unsafe',
+            'include_jquery_ui': True, 'report': self.object, 'etv': etv,
+            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'MarkTable': UnsafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
-            'etv': etv, 'include_assumptions': self.request.user.assumptions, 'include_jquery_ui': True,
             'resources': report_resources(self.request.user, self.object)
         })
         return context
 
 
-class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailView):
+class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, DetailView):
     template_name = 'reports/ReportUnknown.html'
     model = ReportUnknown
 
@@ -390,8 +400,8 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin
             raise BridgeException(code=400)
         context = super().get_context_data(**kwargs)
         context.update({
-            'report': self.object, 'report_type': 'unknown',
-            'resources': report_resources(self.request.user, self.object),
+            'report': self.object, 'resources': report_resources(self.request.user, self.object),
+            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
@@ -411,16 +421,13 @@ class FullscreenReportUnsafe(LoginRequiredMixin, LoggedCallMixin, DetailView):
     def get_context_data(self, **kwargs):
         if not JobAccess(self.request.user, self.object.root.job).can_view():
             raise BridgeException(code=400)
-        return {
-            'report': self.object, 'include_assumptions': self.request.user.assumptions,
-            'include_jquery_ui': True, 'etv': GetETV(
-                ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
-                self.request.user
-            )
-        }
+        return {'report': self.object, 'include_jquery_ui': True, 'etv': GetETV(
+            ArchiveFileContent(self.object, 'error_trace', ERROR_TRACE_FILE).content.decode('utf8'),
+            self.request.user
+        )}
 
 
-class DownloadErrorTraceView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadErrorTraceView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = ReportUnsafe
     pk_url_kwarg = 'unsafe_id'
 
@@ -446,50 +453,24 @@ class ReportsComparisonView(LoginRequiredMixin, LoggedCallMixin, TemplateView):
         }
 
 
-# ========
-# TODO
-@method_decorator(login_required, name='dispatch')
-class CoverageView(LoggedCallMixin, DetailView):
+class CoverageView(LoginRequiredMixin, LoggedCallMixin, DetailView):
     template_name = 'reports/coverage/coverage.html'
     model = ReportComponent
     pk_url_kwarg = 'report_id'
 
     def get_context_data(self, **kwargs):
-        return {
-            'coverage': GetCoverage(self.object, self.request.GET.get('archive'), False),
-            'SelfAttrsData': report_attributes_with_parents(self.object)
-        }
+        context = super().get_context_data(**kwargs)
+        context['coverage_id'] = self.request.GET.get('coverage_id')
+        context['SelfAttrsData'] = report_attributes_with_parents(self.object)
+        context['job'] = Job.objects.only('id', 'name', 'weight').get(reportroot__id=self.object.root_id)
+        if context['job'].weight == JOB_WEIGHT[0][0]:
+            context['parents'] = get_parents(self.object, include_self=True)
+        context['statistics'] = CoverageStatistics(self.object, context['coverage_id'])
+        return context
 
 
-@method_decorator(login_required, name='dispatch')
-class CoverageLightView(LoggedCallMixin, DetailView):
-    template_name = 'reports/coverage/coverage_light.html'
-    model = ReportComponent
-    pk_url_kwarg = 'report_id'
-
-    def get_context_data(self, **kwargs):
-        return {
-            'coverage': GetCoverage(self.object, self.request.GET.get('archive'), True),
-            'SelfAttrsData': report_attributes_with_parents(self.object)
-        }
-
-
-class CoverageSrcView(LoggedCallMixin, Bview.JsonDetailPostView):
-    model = CoverageArchive
-    pk_url_kwarg = 'archive_id'
-
-    def get_context_data(self, **kwargs):
-        res = GetCoverageSrcHTML(self.object, self.request.POST['filename'], bool(int(self.request.POST['with_data'])))
-        return {'content': res.src_html, 'data': res.data_html, 'legend': res.legend}
-
-
-@method_decorator(login_required, name='dispatch')
-class DownloadCoverageView(LoggedCallMixin, SingleObjectMixin, Bview.StreamingResponseView):
+class DownloadCoverageView(LoginRequiredMixin, LoggedCallMixin, SingleObjectMixin, StreamingResponseView):
     model = CoverageArchive
 
     def get_generator(self):
-        self.object = self.get_object()
-        return FileWrapper(self.object.archive.file, 8192)
-
-    def get_filename(self):
-        return '%s coverage.zip' % self.object.report.component.name
+        return CoverageGenerator(self.get_object())

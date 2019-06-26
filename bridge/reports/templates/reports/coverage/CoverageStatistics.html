@@ -1,0 +1,49 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% if statistics.data %}
+    <table class="ui celled compact selectable teal table alternate-color">
+        <thead>
+            <tr>
+                <th>{% trans 'Files' %}</th>
+                <th>{% trans 'Line coverage' %}</th>
+                <th>{% trans 'Function coverage' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row_data in statistics.data %}
+                <tr class="{% if row_data.display and row_data.is_dir %}tg-expanded{% endif %}" data-tg-id="{{ row_data.id }}"{% if row_data.parent_id %} data-tg-parent="{{ row_data.parent_id }}"{% endif %} data-tg-leaf="{% if row_data.is_dir %}0{% else %}1{% endif %}"{% if row_data.parent_id %} style="display: none;"{% endif %}>
+                    <td>
+                        <span class="pre-space">{{ row_data.indent }}</span>
+                        {% if not row_data.is_dir %}
+                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#"><i class="file text outline icon"></i>{{ row_data.title }}</a>
+                        {% else %}
+                            <i class="{% if row_data.display %}open {% endif %}folder violet icon tg-expander"></i>
+                            <span>{{ row_data.title }}</span>
+                        {% endif %}
+                    </td>
+                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.lines.color }};"{% endif %}><b>{{ row_data.lines.percent }}</b> ({{ row_data.lines.covered }}/{{ row_data.lines.total }})</td>
+                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.funcs.color }};"{% endif %}><b>{{ row_data.funcs.percent }}</b> ({{ row_data.funcs.covered }}/{{ row_data.funcs.total }})</td>
+                </tr>
+            {%  endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <h3 class="ui violet header">{% trans 'List of files is empty' %}</h3>
+{% endif %}

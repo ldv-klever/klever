@@ -15,16 +15,6 @@
  * limitations under the License.
  */
 
-#ETV_source_code {
-    width: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    line-height: normal;
-    font-size: 12px;
-    overflow: auto;
-}
 #ETV_error_trace {
     width: 100%;
     position: absolute;
@@ -39,7 +29,7 @@
     margin: 0 0 0 2px;
 }
 
-#ETV_assumes {
+#ETV_data {
     position: absolute;
     padding: 5px;
     height: 100%;
@@ -51,7 +41,6 @@
     overflow-y: auto;
 }
 .ETVTitleBlock {
-    /*height: 50px;*/
     white-space: nowrap;
     overflow: hidden;
 }
@@ -76,6 +65,7 @@
     width: 54.7%;
     height: 100%;
     background-color: #f5ffff;
+    overflow: auto;
 }
 #etv-divider {
     position: absolute;
@@ -95,30 +85,13 @@
     background-color: #f2711c;
     cursor: move;
 }
-#etv-assumes {
+#etv-data-container {
     position: absolute;
     right: 0;
     bottom: 0;
     width: 54.7%;
     height: 29.5%;
     background-color: #faf3ff;
-}
-
-.ETVComment {
-    color: #b1b4b7;
-}
-
-.ETVNumber {
-    color: #3bbbbc;
-}
-
-.ETVSrcL {
-    position: relative;
-    background-color: #d7f0f0;
-    padding-left: 5px;
-    padding-right: 5px;
-    font-family: monospace;
-    white-space: pre;
 }
 
 /* Error trace: Line number object */
@@ -136,27 +109,6 @@
 
 .ETV_LC {
     white-space: pre;
-}
-.ETV_HideLink {
-    cursor: pointer;
-}
-
-.ETVText {
-    color: #20d467;
-}
-
-.ETVKey1 {
-    color: #1f984c;
-    font-weight: bold;
-}
-
-.ETVKey2 {
-    color: #291fbf;
-    font-weight: bold;
-}
-
-.ETVKey3 {
-    color: #67238f;
 }
 
 .ETVSelectedLine {
@@ -279,23 +231,4 @@
 
 .ETV_NewAssumption {
     color: red;
-}
-
-.ETVRefToLink:hover {
-    opacity: 0.5;
-    cursor: pointer;
-}
-
-.ETVRefFromLink:hover {
-    opacity: 0.5;
-    cursor: pointer;
-}
-
-.ETVRefLink {
-    cursor: pointer;
-    color: #16219e;
-}
-
-.ETVRefLink:hover {
-    color: #465bff;
 }

@@ -126,6 +126,7 @@ class OriginalSources(WithFilesMixin, models.Model):
 
     class Meta:
         db_table = 'report_original_sources'
+        ordering = ('identifier',)
 
 
 class AdditionalSources(WithFilesMixin, models.Model):
@@ -265,46 +266,6 @@ class ComparisonLink(models.Model):
         db_table = 'cache_report_comparison_link'
 
 
-class CoverageFile(WithFilesMixin, models.Model):
-    archive = models.ForeignKey(CoverageArchive, models.CASCADE)
-    name = models.CharField(max_length=1024)
-    file = models.FileField(upload_to=get_coverage_dir, null=True)
-    covered_lines = models.PositiveIntegerField(default=0)
-    covered_funcs = models.PositiveIntegerField(default=0)
-    total_lines = models.PositiveIntegerField(default=0)
-    total_funcs = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_coverage_file'
-
-
-class CoverageDataValue(models.Model):
-    hashsum = models.CharField(max_length=255)
-    name = models.CharField(max_length=128)
-    value = models.TextField()
-
-    class Meta:
-        db_table = 'cache_report_coverage_data_values'
-
-
-class CoverageData(models.Model):
-    covfile = models.ForeignKey(CoverageFile, models.CASCADE)
-    line = models.PositiveIntegerField()
-    data = models.ForeignKey(CoverageDataValue, models.CASCADE)
-
-    class Meta:
-        db_table = 'cache_report_coverage_data'
-
-
-class CoverageDataStatistics(WithFilesMixin, models.Model):
-    archive = models.ForeignKey(CoverageArchive, models.CASCADE)
-    name = models.CharField(max_length=128)
-    data = models.FileField(upload_to='CoverageData')
-
-    class Meta:
-        db_table = 'cache_report_coverage_data_stat'
-
-
 post_delete.connect(remove_instance_files, sender=AttrFile)
 post_delete.connect(remove_instance_files, sender=OriginalSources)
 post_delete.connect(remove_instance_files, sender=AdditionalSources)
@@ -313,5 +274,3 @@ post_delete.connect(remove_instance_files, sender=ReportSafe)
 post_delete.connect(remove_instance_files, sender=ReportUnsafe)
 post_delete.connect(remove_instance_files, sender=ReportUnknown)
 post_delete.connect(remove_instance_files, sender=CoverageArchive)
-post_delete.connect(remove_instance_files, sender=CoverageDataStatistics)
-post_delete.connect(remove_instance_files, sender=CoverageFile)

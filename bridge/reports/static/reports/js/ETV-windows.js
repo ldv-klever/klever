@@ -18,8 +18,8 @@
 $(document).ready(function () {
     let D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
         S = $('#etv-source'), T = $('#etv-trace'),
-        A = $('#etv-assumes'), etv = $('#etv'),
-        include_assumptions = (A.length > 0),
+        A = $('#etv-data-container'), etv = $('#etv'),
+        include_data = (A.length > 0),
         Tw = parseInt(T.width(), 10),
         Sw = parseInt(S.width(), 10),
         D1w = parseInt(D1.width(), 10),
@@ -41,14 +41,14 @@ $(document).ready(function () {
             }
             T.css({width: aw});
             S.css({width: bw});
-            if (include_assumptions) {
+            if (include_data) {
                 A.css({width: bw});
                 D2.css({left: aw + D1w, width: bw});
             }
         },
         distance: 10
     });
-    if (include_assumptions) {
+    if (include_data) {
         let Sh = parseInt(S.height(), 10),
             Ah = parseInt(A.height(), 10),
             D2h = parseInt(D2.width(), 10),

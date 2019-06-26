@@ -1071,7 +1071,7 @@ class FilesForCompetitionArchive:
 
 
 def report_attributes_with_parents(report):
-    reports_ids = list(report.pk for report in report.get_ancestors(include_self=True))
+    reports_ids = list(report.get_ancestors(include_self=True).values_list('id', flat=True))
     attrs_qs = ReportAttr.objects.filter(report_id__in=reports_ids).order_by('report_id', 'id')
     return list(attrs_qs.values_list('name', 'value'))
 

@@ -63,6 +63,9 @@ $(document).ajaxError(function (xhr, err) {
             else err_notify($('#error__ajax_error').text());
         }
     }
+    else {
+        err_notify($('#error__ajax_error').text());
+    }
 });
 
 window.flatten_api_errors = function(data, labels) {

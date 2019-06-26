@@ -30,17 +30,17 @@ from reports.models import ReportComponent, CoverageArchive
 TAB_LENGTH = 4
 
 HIGHLIGHT_CLASSES = {
-    'number': 'ETVNumber',
-    'comment': 'ETVComment',
-    'text': 'ETVText',
-    'key1': 'ETVKey1',
-    'key2': 'ETVKey2',
-    'function': 'ETVKey3'
+    'number': 'SrcHlNumber',
+    'comment': 'SrcHlComment',
+    'text': 'SrcHlText',
+    'key1': 'SrcHlKey1',
+    'key2': 'SrcHlKey2',
+    'function': 'SrcHlKey3'
 }
 
 COVERAGE_CLASSES = {
-    'Verifier assumption': "ETVSrcVA",
-    'Environment modelling hint': "ETVSrcEMH"
+    'Verifier assumption': "SrcCovVA",
+    'Environment modelling hint': "SrcCovEMH"
 }
 
 
@@ -53,8 +53,8 @@ def coverage_color(curr_cov, max_cov, delta=0):
 
 
 class SourceLine:
-    ref_to_class = 'ETVRefToLink'
-    ref_from_class = 'ETVRefFromLink'
+    ref_to_class = 'SrcRefToLink'
+    ref_from_class = 'SrcRefFromLink'
 
     def __init__(self, source, highlights=None, references_to=None, references_from=None):
         self._source = source
@@ -170,12 +170,20 @@ class GetSource:
     index_postfix = '.idx.json'
     coverage_postfix = '.cov.json'
 
-    def __init__(self, leaf, file_name):
-        self._leaf = leaf
+    def __init__(self, user, report, file_name, coverage_id, with_legend):
+        self._user = user
+        self._report = report
         self._file_name = self.__parse_file_name(file_name)
 
+        # TODO
+        # If coverage_id is set then it can be source for Sub-job or Core only,
+        # Otherwise - for verification report or its leaf.
+        self.coverage_id = coverage_id
+
+        self.with_legend = (with_legend == 'true')
+
         self._indexes = self.__get_indexes_data()
-        self._coverage = self.__get_coverage_data()
+        self._coverage, self.coverage_id = self.__get_coverage_data()
         self.source_lines, self.references = self.__parse_source()
 
     def __parse_file_name(self, file_name):
@@ -197,7 +205,7 @@ class GetSource:
 
     @cached_property
     def _ancestors(self):
-        parents_ids = set(self._leaf.get_ancestors().exclude(
+        parents_ids = set(self._report.get_ancestors(include_self=True).exclude(
             reportcomponent__additional=None, reportcomponent__original=None
         ).values_list('id', flat=True))
         return ReportComponent.objects.filter(id__in=parents_ids)\
@@ -227,29 +235,27 @@ class GetSource:
 
     def __get_coverage_data(self):
         cov_name = self._file_name + self.coverage_postfix
-        for report in self._ancestors:
-            if report.verification:
-                coverage_obj = CoverageArchive.objects.filter(report=report).first()
-                content = self.__extract_file(coverage_obj, cov_name)
-                if not content:
-                    return None
-                coverage_data = json.loads(content)
-                if coverage_data.get('format') != ETV_FORMAT:
-                    raise BridgeException(_('Sources coverage format is not supported'))
-                return coverage_data
-        return None
+        qs_filters = {'report_id__in': list(r.id for r in self._ancestors)}
+        if self.coverage_id:
+            # For full coverage (Subjob reports) where there can be several coverages
+            qs_filters['id'] = self.coverage_id
+        else:
+            # Do not use full coverage for sub-jobs
+            qs_filters['identifier'] = ''
+
+        for cov_obj in CoverageArchive.objects.filter(**qs_filters).order_by('-report_id'):
+            content = self.__extract_file(cov_obj, cov_name)
+            if not content:
+                continue
+            coverage_data = json.loads(content)
+            if coverage_data.get('format') != ETV_FORMAT:
+                raise BridgeException(_('Sources coverage format is not supported'))
+            return coverage_data, cov_obj.id
+        return None, None
 
     @cached_property
     def _line_coverage(self):
-        if not self._coverage or 'line coverage' not in self._coverage:
-            # TODO: return empty
-            # return {
-            #     "1": {'value': 1, 'color': coverage_color(1, 10)},
-            #     "2": {'value': 5, 'color': coverage_color(5, 10)},
-            #     "3": {'value': 10, 'color': coverage_color(10, 10)},
-            #     "71": {'value': 6, 'color': coverage_color(6, 10)},
-            #     "217": {'value': 3, 'color': coverage_color(3, 10)},
-            # }
+        if not self._coverage or not self._coverage.get('line coverage'):
             return {}
         coverage_data = {}
         max_cov = max(self._coverage['line coverage'].values())
@@ -260,14 +266,8 @@ class GetSource:
 
     @cached_property
     def _func_coverage(self):
-        if not self._coverage or 'function coverage' not in self._coverage:
+        if not self._coverage or not self._coverage.get('function coverage'):
             return {}
-            # return {
-            #     "56": {'value': 1, 'color': coverage_color(1, 5, 40), 'icon': 'blue checkmark'},
-            #     "63": {'value': 0, 'color': coverage_color(0, 10, 40), 'icon': 'red remove'},
-            #     "71": {'value': 3, 'color': coverage_color(3, 5, 40), 'icon': 'blue checkmark'},
-            #     "119": {'value': 5, 'color': coverage_color(5, 5, 40), 'icon': 'blue checkmark'},
-            # }
         coverage_data = {}
         max_cov = max(self._coverage['function coverage'].values())
         for line_num in self._coverage['function coverage']:
@@ -285,6 +285,13 @@ class GetSource:
                 COVERAGE_CLASSES.get(self._coverage['notes']['kind']),
                 self._coverage['notes']['text']
             )
+        return None
+
+    @cached_property
+    def _coverage_data(self):
+        if not self._coverage or not self._user.coverage_data or not self._coverage.get('data'):
+            return set()
+        return set(self._coverage['data'])
 
     def __parse_source(self):
         file_content = self.__get_source_code()
@@ -327,7 +334,8 @@ class GetSource:
                 'number_prefix': ' ' * (total_lines_len - len(linenum_str)),
                 'line_cov': self._line_coverage.get(linenum_str),
                 'func_cov': self._func_coverage.get(linenum_str),
-                'note': self.__get_coverage_note(linenum_str)
+                'note': self.__get_coverage_note(linenum_str),
+                'has_data': (linenum_str in self._coverage_data)
             })
             references_data.extend(src_line.references_data)
             cnt += 1
@@ -338,3 +346,46 @@ class GetSource:
         if self._indexes and 'source files' in self._indexes:
             return list(enumerate(self._indexes['source files']))
         return []
+
+    @cached_property
+    def legend(self):
+        if not self._coverage:
+            return None
+        legend_data = {}
+        if self._coverage.get('line coverage'):
+            legend_data['lines'] = self.__get_legend(
+                max(self._coverage['line coverage'].values()), 'lines', 5, False
+            )
+        if self._coverage.get('function coverage'):
+            legend_data['funcs'] = self.__get_legend(
+                max(self._coverage['function coverage'].values()), 'funcs', 5, True
+            )
+        return legend_data
+
+    def __get_legend(self, max_cov, leg_type, number=5, with_zero=False):
+        if max_cov == 0:
+            return []
+        elif max_cov > 100:
+            rounded_max = 100 * int(max_cov / 100)
+        else:
+            rounded_max = max_cov
+
+        delta = 0
+        if leg_type == 'funcs':
+            delta = 40
+
+        colors = []
+        divisions = number - 1
+        for i in reversed(range(divisions)):
+            curr_cov = int(i * rounded_max / divisions)
+            if curr_cov == 0:
+                curr_cov = 1
+            colors.append((curr_cov, coverage_color(curr_cov, max_cov, delta)))
+        colors.insert(0, (rounded_max, coverage_color(rounded_max, max_cov, delta)))
+        if with_zero:
+            colors.append((0, coverage_color(0, max_cov, delta)))
+        new_colors = []
+        for i in reversed(range(len(colors))):
+            if colors[i] not in new_colors:
+                new_colors.insert(0, colors[i])
+        return new_colors

@@ -20,6 +20,7 @@ import json
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count
 from django.utils.translation import ugettext as _
 from django.views.generic import TemplateView
 
@@ -58,6 +59,9 @@ class ManagerPageView(LoginRequiredMixin, TemplateView):
         context['jobs'] = Job.objects.exclude(reportroot=None).exclude(
             status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
         )
+        context['original'] = OriginalSources.objects.annotate(
+            links_num=Count('reportcomponent__root', distinct=True)
+        ).all()
         return context
 
 

@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+# Ivannikov Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 
 from django.http import HttpResponse
@@ -15,18 +32,19 @@ from rest_framework.status import HTTP_403_FORBIDDEN
 from rest_framework.views import APIView
 
 from bridge.vars import JOB_STATUS
-from bridge.utils import BridgeException
+from bridge.utils import BridgeException, logger
 from bridge.access import ServicePermission
 from tools.profiling import LoggedCallMixin
 
 from jobs.models import Job
 from jobs.utils import JobAccess
-from reports.models import Report, ReportRoot, CompareJobsInfo, OriginalSources, ReportUnsafe
+from reports.models import Report, ReportRoot, CompareJobsInfo, OriginalSources, CoverageArchive
 from reports.comparison import FillComparisonCache, ComparisonData
 from reports.UploadReport import UploadReport, CheckArchiveError
 from reports.serializers import OriginalSourcesSerializer
 from reports.source import GetSource
 from reports.utils import remove_verification_files
+from reports.coverage import GetCoverageData
 
 
 class FillComparisonView(LoggedCallMixin, APIView):
@@ -110,16 +128,21 @@ class UploadReportView(LoggedCallMixin, APIView):
 
 class GetSourceCodeView(LoggedCallMixin, APIView):
     renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (IsAuthenticated,)
 
-    def get(self, request, unsafe_id):
-        unsafe = get_object_or_404(ReportUnsafe.objects.only('id'), id=unsafe_id)
+    def get(self, request, report_id):
+        report = get_object_or_404(Report.objects.only('id'), id=report_id)
         if 'file_name' not in request.GET:
             raise APIException('File name was not provided')
         try:
             return Response({
-                'data': GetSource(unsafe, request.GET['file_name'])
-            }, template_name='reports/error_trace/SourceCode.html')
+                'data': GetSource(
+                    request.user, report, request.GET['file_name'],
+                    request.GET.get('coverage_id'), request.GET.get('with_legend')
+                )
+            }, template_name='reports/SourceCode.html')
         except BridgeException as e:
+            logger.error(e)
             raise APIException(str(e))
 
 
@@ -136,3 +159,24 @@ class ClearVerificationFilesView(LoggedCallMixin, DestroyAPIView):
 
     def perform_destroy(self, instance):
         remove_verification_files(instance)
+
+
+class GetCoverageDataAPIView(LoggedCallMixin, APIView):
+    renderer_classes = (TemplateHTMLRenderer,)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, cov_id):
+        coverage = get_object_or_404(CoverageArchive.objects.only('id'), id=cov_id)
+        if 'line' not in request.GET:
+            raise APIException('File line was not provided')
+        if 'file_name' not in request.GET:
+            raise APIException('File name was not provided')
+        try:
+            res = GetCoverageData(coverage, request.GET['line'], request.GET['file_name'])
+        except Exception as e:
+            logger.eception(e)
+            raise APIException(str(e))
+        if not res.data:
+            logger.error('Coverage data was not found')
+            raise APIException('Coverage data was not found')
+        return Response({'data': res.data}, template_name='reports/coverage/CoverageData.html')

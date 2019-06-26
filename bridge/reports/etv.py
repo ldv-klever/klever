@@ -32,9 +32,8 @@ class GetETV:
         '#0b67bf', '#fa92ff', '#57bfa8', '#bf425a', '#7d909e'
     ]
 
-    def __init__(self, error_trace, user=None):
-        self.include_assumptions = user.assumptions if user else settings.DEF_USER['assumptions']
-        self.triangles = user.triangles if user else settings.DEF_USER['triangles']
+    def __init__(self, error_trace, user):
+        self.user = user
         self.trace = json.loads(error_trace)
         self._max_line_len = 0
         self._curr_scope = 0
@@ -148,7 +147,7 @@ class GetETV:
                 # Open function by default if its scope is shown
                 enter_data['opened'] = True
 
-            if not self.triangles:
+            if not self.user.triangles:
                 return [enter_data] + children_trace
 
             # Closing triangle
@@ -180,7 +179,7 @@ class GetETV:
                 self.shown_scopes.add(scope)
                 enter_data['opened'] = True
 
-            if not self.triangles:
+            if not self.user.triangles:
                 return [enter_data] + children_trace
 
             # Closing triangle
@@ -207,7 +206,7 @@ class GetETV:
                 statement_data['note'] = node['note']
 
         # Add assumptions
-        if self.include_assumptions:
+        if self.user.assumptions:
             statement_data['old_assumptions'], statement_data['new_assumptions'] = self.__get_assumptions(node, scope)
 
         return statement_data
@@ -263,7 +262,7 @@ class GetETV:
         return threads_html
 
     def __get_assumptions(self, node, scope):
-        if not self.include_assumptions:
+        if not self.user.assumptions:
             return None, None
 
         old_assumptions = None

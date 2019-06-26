@@ -1,0 +1,62 @@
+{% comment "License" %}
+% Copyright (c) 2018 ISP RAS (http://www.ispras.ru)
+% Ivannikov Institute for System Programming of the Russian Academy of Sciences
+%
+% Licensed under the Apache License, Version 2.0 (the "License");
+% you may not use this file except in compliance with the License.
+% You may obtain a copy of the License at
+%
+%    http://www.apache.org/licenses/LICENSE-2.0
+%
+% Unless required by applicable law or agreed to in writing, software
+% distributed under the License is distributed on an "AS IS" BASIS,
+% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+% See the License for the specific language governing permissions and
+% limitations under the License.
+{% endcomment %}
+
+{% load i18n %}
+
+{% for line in data.source_lines %}
+    {% if line.note %}
+        <span>
+            <span class="SrcLine"></span>
+            <span class="SrcCode {{ line.note.0 }}"> {{ line.note.1 }}</span>
+        </span>
+    {% endif %}
+    <span>
+        <span id="SrcL_{{ line.number }}" class="SrcLine">
+            <span class="SrcFuncCov"{% if line.func_cov %} data-value="{{ line.func_cov.value }}" style="background-color: {{ line.func_cov.color }};"{% endif %}><i class="ui mini {{ line.func_cov.icon }} icon"></i></span>
+            <span class="SrcLineCov"{% if line.line_cov %} data-value="{{ line.line_cov.value }}"{% endif %}>{{ line.number_prefix }}<span{% if line.has_data %} class="SrcCovDataLink"{% endif %}>{{ line.number }}</span></span>
+        </span>
+        <span class="SrcCode"{% if line.line_cov %} data-value="{{ line.line_cov.value }}" style="background-color:{{ line.line_cov.color }};"{% endif %}> {{ line.code|safe }}</span>
+    </span>
+{% endfor %}
+
+{% if data.references|length %}
+    {% for ref_data in data.references %}
+        <div id="{{ ref_data.id }}" hidden>
+            {% for file_ind, file_line in ref_data.sources %}
+                {% with data.source_files|get_list_val:file_ind as file_path %}
+                    {% if file_path %}
+                        <span class="SrcRefLink" data-file="{{ file_path.1 }}" data-line="{{ file_line }}">{{ file_path.1 }}: {{ file_line }}</span><br>
+                    {% endif %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    <div id="source_references_links" class="ui small popup"></div>
+{% endif %}
+
+{% for file_ind, file_name in data.source_files %}
+    <div class="SrcFileData" data-index="{{ file_ind }}" hidden>{{ file_name }}</div>
+{% endfor %}
+{% if data.coverage_id %}
+    <input id="coverage_data_url" type="hidden" value="{% url 'reports:api-coverage-data' data.coverage_id %}">
+{% endif %}
+
+{% if data.with_legend and data.legend %}
+    <div id="source_legend" hidden>
+        {% include 'reports/coverage/cov_legend.html' with legend=data.legend %}
+    </div>
+{% endif %}
