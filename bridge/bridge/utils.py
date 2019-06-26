@@ -39,7 +39,6 @@ from django.urls import reverse
 from django.utils.timezone import now, activate as activate_timezone
 from django.utils.translation import ugettext_lazy as _, activate
 
-from rest_framework.exceptions import APIException
 from rest_framework.pagination import PageNumberPagination
 
 from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
