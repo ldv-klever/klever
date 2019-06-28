@@ -393,18 +393,20 @@ class SchedulerSerializer(serializers.ModelSerializer):
 
     def finish_tasks(self, scheduler: Scheduler):
         decisions_qs = scheduler.decision_set.filter(
-            job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]], finish_date=None
+            job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
         )
         for decision in decisions_qs:
             decision.tasks_pending = decision.tasks_processing = 0
             # Pending or processing tasks
-            tasks = Task.objects.filter(
+            tasks_updated = Task.objects.filter(
                 status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]], decision=decision
             ).update(error=self.task_error)
-            decision.tasks_error += tasks
+            decision.tasks_error += tasks_updated
             if scheduler.type == SCHEDULER_TYPE[0][0]:
-                decision.finish_date = now()
-                decision.error = self.decision_error
+                if not decision.finish_date:
+                    decision.finish_date = now()
+                if not decision.error:
+                    decision.error = self.decision_error
                 change_job_status(decision.job, JOB_STATUS[8][0])
             decision.save()
 

@@ -212,7 +212,7 @@
     {# Popups #}
     {% if object.decision.error %}
         <div id="job_status_popup" class="ui inverted popup wide hidden">
-            <div class="ui red header">{{ object.decision.error }}</div>
+            <div class="ui red header">{{ object.decision.error|safe }}</div>
         </div>
     {% endif %}
 
