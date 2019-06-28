@@ -392,14 +392,20 @@ class UploadReport:
         raise exceptions.ValidationError(detail=err_detail)
 
     def __collapse_detail(self, value):
-        # TODO: collapse error structure to string
         if isinstance(value, dict):
             error_list = []
+            error_html = '<ul>'
             for name, val in value.items():
+                error_html += '<li>{}: {}</li>'.format(name, self.__collapse_detail(val))
                 error_list.append('{}: {}'.format(name, self.__collapse_detail(val)))
-            return '<br>'.join(error_list)
+            error_html += '</ul>'
+            return error_html
         elif isinstance(value, list):
-            return '<br>'.join(value)
+            error_html = '<ul>'
+            for val in value:
+                error_html += '<li>{}</li>'.format(self.__collapse_detail(val))
+            error_html += '</ul>'
+            return error_html
         return str(value)
 
     def __upload(self, data):
@@ -475,7 +481,7 @@ class UploadReport:
         ancestors_qs = report.get_ancestors()
         if not self._is_fullweight:
             # Update cache just for Core and verification reports as other reports will be deleted
-            ancestors_qs = ancestors_qs.filter(Q(parent=None) | Q(verification=True))
+            ancestors_qs = ancestors_qs.filter(Q(parent=None) | Q(reportcomponent__verification=True))
         return list(parent.pk for parent in ancestors_qs)
 
     def __create_report_component(self, data):

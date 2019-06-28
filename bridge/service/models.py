@@ -84,7 +84,7 @@ class Decision(models.Model):
     scheduler = models.ForeignKey(Scheduler, models.CASCADE)
     priority = models.CharField(max_length=6, choices=PRIORITY)
 
-    error = models.CharField(max_length=1024, null=True)
+    error = models.TextField(null=True)
     configuration = models.ForeignKey(JobFile, models.CASCADE)
     fake = models.BooleanField(default=False)
 
