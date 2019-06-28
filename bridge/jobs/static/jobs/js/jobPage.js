@@ -21,42 +21,9 @@ function reload_page() {
 
 
 function update_decision_results(interval) {
-
-    function hide_resource_note() {
-        var res_note = $('#resources-note'),
-            is_hidden = res_note.popup('is hidden');
-        if (!is_hidden) res_note.popup('hide');
-        return is_hidden;
-    }
-    function activate_resource_note(is_hidden) {
-        var res_note = $('#resources-note');
-        res_note.popup();
-        if (!is_hidden) res_note.popup('show');
-    }
-    function hide_tag_popup() {
-        var shown_tag_description_id = null;
-        $('.tag-description-popup').each(function () {
-            $(this).popup('hide');
-            if (!$(this).popup('is hidden')) shown_tag_description_id = $(this).attr('id');
-        });
-        return shown_tag_description_id;
-    }
-    function activate_tags(tag_id) {
-        $('.tag-description-popup').each(function () {
-            $(this).popup({html: $(this).attr('data-content'), hoverable: true});
-        });
-        if (tag_id) {
-            var tag_descr = $('#' + tag_id);
-            if (tag_descr.length) tag_descr.popup('show');
-        }
-    }
     let decision_results_url = `/jobs/decision-results/${$('#job_id').val()}/?` + encodeQueryData(collect_view_data('2'));
     $.get(decision_results_url, {}, function (resp) {
-        let note_hidden = hide_resource_note(),
-            shown_tag_id = hide_tag_popup();
         $('#job_data_div').html(resp);
-        activate_resource_note(note_hidden);
-        activate_tags(shown_tag_id);
     }).fail(function () {
         clearInterval(interval);
     });
@@ -66,15 +33,8 @@ function update_progress(interval) {
     $.get(
         '/jobs/progress/' + $('#job_id').val() + '/',
         {},
-        function (data) {
-            if (data.error) {
-                err_notify(data.error);
-                clearInterval(interval);
-                return false;
-            }
-            var tr_before_progress = $('#tr_before_progress');
-            tr_before_progress.nextUntil($('#job_status_popup_activator')).remove();
-            tr_before_progress.after(data);
+        function (resp) {
+            $('#job_progress_container').html(resp);
         }
     ).fail(function () {
         clearInterval(interval);
@@ -85,7 +45,7 @@ function check_status(interval) {
     $.get(`/jobs/api/job-status/${$('#job_id').val()}/`, {}, function (data) {
         if (data.status !== $('#job_status_value').val()) window.location.replace('');
     }, 'json').fail(function (resp) {
-        var errors = flatten_api_errors(resp['responseJSON']);
+        let errors = flatten_api_errors(resp['responseJSON']);
         $.each(errors, function (i, err_text) { err_notify(err_text) });
         clearInterval(interval)
     });
@@ -140,7 +100,7 @@ function show_warn_modal(btn, warn_text_id, action_func, disabled) {
     if (disabled) return false;
     $('.browse').popup('hide');
 
-    var warn_confirm_btn = $('#warn_confirm_btn');
+    let warn_confirm_btn = $('#warn_confirm_btn');
     $('#warn_text').text($('#' + warn_text_id).text());
     warn_confirm_btn.unbind();
     warn_confirm_btn.click(function () {
@@ -219,9 +179,6 @@ $(document).ready(function () {
     $('#collapse_reports_btn').click(function () { show_warn_modal($(this), 'warn__collapse', collapse_reports) });
     $('#clear_verifications_modal_show').click(function () { show_warn_modal($(this), 'warn__clear_files', clear_verification_files) });
 
-    var job_status_popup = $('#job_status_popup');
-    if (job_status_popup.length) $('#job_status_popup_activator').popup({popup: job_status_popup, position: 'bottom center'});
-
     $('#download_job_btn').click(function () {
         if ($(this).hasClass('disabled')) return false;
         $('.browse').popup('hide');
@@ -272,7 +229,7 @@ $(document).ready(function () {
     });
 
 
-    var num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');
+    let num_of_updates = 0, is_filters_open = false, autoupdate_btn = $('#job_autoupdate_btn');
 
     function stop_autoupdate() {
         if (autoupdate_btn.data('status') === 'off') {
@@ -296,7 +253,7 @@ $(document).ready(function () {
     autoupdate_btn.click(function () { $(this).data('status') === 'on' ? stop_autoupdate() : start_autoupdate() });
 
     $('#job_filters_accordion').accordion({'onOpen': function() { is_filters_open = true }, 'onClose': function() { is_filters_open = false }});
-    var interval = setInterval(function () {
+    let interval = setInterval(function () {
         if ($.active > 0) return false;
         if (is_filters_open) return false;
         if (autoupdate_btn.data('status') === 'on') {

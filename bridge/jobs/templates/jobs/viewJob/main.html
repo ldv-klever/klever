@@ -122,7 +122,7 @@
                             </td>
                         </tr>
                     {% endif %}
-                    <tr id="tr_before_progress">
+                    <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
                             {% if user.data_format == 'hum' %}{{ last_version.change_date|naturaltime }}{% else %}{{ last_version.change_date }}{% endif %}
@@ -134,19 +134,6 @@
                             {% endif %}
                         </td>
                     </tr>
-                    {% include 'jobs/viewJob/progress.html' with user=user progress=progress %}
-
-                    <tr id="job_status_popup_activator">
-                        <th class="right aligned">{% trans 'Decision status' %}</th>
-                        <td>
-                            {% if reportdata.core_link %}
-                                <a class="status-link status{{ object.status }}-link" href="{{ reportdata.core_link }}">{{ object.get_status_display }}</a>
-                            {% else %}
-                                <span>{{ object.get_status_display }}</span>
-                            {% endif %}
-                            <input id="job_status_value" type="hidden" value="{{ object.status }}">
-                        </td>
-                    </tr>
                     {% if last_version.description|length %}
                         <tr><th class="right aligned">{% trans 'Description' %}</th><td>{{ last_version.description|safe }}</td></tr>
                     {% endif %}
@@ -155,6 +142,13 @@
 
             {# Files tree #}
             {% include 'jobs/viewJob/files.html' with data=files div_id='filestree_container' %}
+
+            <br>
+            {# Decision #}
+            <div id="job_progress_container">
+                {% include 'jobs/viewJob/decision.html' with data=decision %}
+            </div>
+            <input id="job_status_value" type="hidden" value="{{ object.status }}">
 
             {# Run history #}
             {% include 'jobs/viewJob/runHistory.html' with run_history=run_history %}
@@ -212,7 +206,7 @@
     {# Popups #}
     {% if object.decision.error %}
         <div id="job_status_popup" class="ui inverted popup wide hidden">
-            <div class="ui red header">{{ object.decision.error }}</div>
+            <div class="ui red header">{{ object.decision.error|safe }}</div>
         </div>
     {% endif %}
 

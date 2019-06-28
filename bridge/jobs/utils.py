@@ -35,6 +35,7 @@ from users.models import User
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr
 from marks.models import MarkSafeReport, MarkSafeTag, MarkUnsafeReport, MarkUnsafeTag, MarkUnknownReport
+from service.models import Decision
 
 # List of available types of 'safe' column class.
 SAFES = [
@@ -481,6 +482,57 @@ def check_new_parent(job, parent):
             return False
         parent = parent.parent
     return True
+
+
+class JobDecisionData:
+    def __init__(self, request, job):
+        self._request = request
+        self.job = job
+        self._decision = self.__get_decision()
+
+    @cached_property
+    def status_color(self):
+        if self.job.status == JOB_STATUS[0][0]:
+            return 'grey'
+        if self.job.status == JOB_STATUS[1][0]:
+            return 'pink'
+        if self.job.status == JOB_STATUS[2][0]:
+            return 'purple'
+        if self.job.status == JOB_STATUS[3][0]:
+            return 'green'
+        if self.job.status in {JOB_STATUS[4][0], JOB_STATUS[5][0], JOB_STATUS[8][0]}:
+            return 'red'
+        if self.job.status == JOB_STATUS[6][0]:
+            return 'yellow'
+        if self.job.status == JOB_STATUS[7][0]:
+            return 'orange'
+        return 'violet'
+
+    @cached_property
+    def progress(self):
+        from service.serializers import ProgressSerializerRO
+
+        if not self._decision:
+            return None
+        return ProgressSerializerRO(instance=self._decision, context={'request': self._request}).data
+
+    @cached_property
+    def core_link(self):
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            return None
+        core = ReportComponent.objects.filter(parent=None, root__job=self.job).only('id').first()
+        if not core:
+            return None
+        return reverse('reports:component', args=[core.id])
+
+    @cached_property
+    def error(self):
+        if not self._decision:
+            return None
+        return self._decision.error
+
+    def __get_decision(self):
+        return Decision.objects.filter(job=self.job).first()
 
 
 class CompareFileSet:

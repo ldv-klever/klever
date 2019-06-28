@@ -119,7 +119,7 @@
             <div class="ui nine wide column">
                 {% if reportdata.data.resources|length %}
                     <h4 class="header ui violet">{% trans 'Consumed resources' %}
-                        <i id="resources-note" class="ui blue help icon" data-content="{% trans "Component (Finished instances/Total instances): Wall time, CPU time and maximum memory size" %}"></i>
+                        <span data-tooltip="{% trans "Component (Finished instances/Total instances): Wall time, CPU time and maximum memory size" %}"><i class="blue help icon"></i></span>
                     </h4>
                     <div class="ui list">
                         {% for res_data in reportdata.data.resources %}

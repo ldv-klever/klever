@@ -20,13 +20,13 @@ import json
 import uuid
 import zipfile
 
-from django.conf import settings
 from django.core.files import File
 from django.db.models import Q
-from django.utils.timezone import now
 from django.utils.functional import cached_property
+from django.utils.timezone import now
 
 from rest_framework import exceptions, fields, serializers
+from rest_framework.settings import api_settings
 
 from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME
 from bridge.utils import logger, extract_archive, CheckArchiveError
@@ -58,7 +58,7 @@ class ReportParentField(serializers.SlugRelatedField):
 
 class ReportAttrsField(fields.ListField):
     default_error_messages = {
-        'wrong_format': 'Attributes has wrong format',
+        'wrong_format': 'Attributes have wrong format',
         'data_not_found': 'Attribute file was not found: {name}'
     }
     child = ReportAttrSerializer()
@@ -106,7 +106,8 @@ class ReportAttrsField(fields.ListField):
 class UploadBaseSerializer(serializers.ModelSerializer):
     default_error_messages = {
         'data_not_dict': 'Dictionary expected.',
-        'light_subjob': "Subjobs aren't allowed for lightweight jobs"
+        'light_subjob': "Subjobs aren't allowed for lightweight jobs",
+        'redefine': 'Trying to redefine attributes',
     }
     parent = ReportParentField()
     attrs = ReportAttrsField(required=False)
@@ -147,7 +148,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         elif isinstance(parent, ReportComponent):
             # Inherit parent computer
             return parent.computer
-        raise exceptions.ValidationError(detail={'computer': "Required"})
+        raise exceptions.ValidationError('The computer is required')
 
     def parent_attributes(self, parent, select_fields=None):
         if not select_fields:
@@ -163,25 +164,25 @@ class UploadBaseSerializer(serializers.ModelSerializer):
         new_attrs = list(attrdata['name'] for attrdata in attrs)
         new_attrs_set = set(new_attrs)
         if len(new_attrs_set) != len(new_attrs):
-            raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine attributes'})
+            self.fail('redefine')
 
         if self.instance:
             parent = self.instance.parent
             old_attrs_set = set(ReportAttr.objects.filter(report=self.instance).values_list('name', flat=True))
             if old_attrs_set & new_attrs_set:
-                raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine attributes'})
+                self.fail('redefine')
 
         if parent:
             ancestors_attrs = self.parent_attributes(parent, select_fields=['name'])
             ancestors_attrs_set = set(p_attr['name'] for p_attr in ancestors_attrs)
             if ancestors_attrs_set & new_attrs_set:
-                raise exceptions.ValidationError(detail={'attrs': 'Trying to redefine parent attributes'})
+                self.fail('redefine')
         return attrs
 
     def validate(self, value):
         # Do not allow to change finished ReportComponent instances
         if isinstance(self.instance, ReportComponent) and self.instance.finish_date is not None:
-            raise exceptions.ValidationError(detail={'finish_date': "The report is finished already"})
+            raise exceptions.ValidationError("Finished reports can't be updated!")
 
         # Validate attributes
         value['attrs'] = self.__validate_attrs(value.get('attrs'), parent=value.get('parent'))
@@ -386,9 +387,12 @@ class UploadReport:
             err_detail = exc.detail
         else:
             logger.exception(exc)
-            err_detail = {settings.REST_FRAMEWORK['NON_FIELD_ERRORS_KEY']: 'Unknown error: {}'.format(exc)}
-        # TODO: process exceptions in FinishJobDecision
-        FinishJobDecision(self.job, JOB_STATUS[5][0], self.__collapse_detail(err_detail))
+            err_detail = 'Unknown error: {}'.format(exc)
+        try:
+            FinishJobDecision(self.job, JOB_STATUS[5][0], self.__collapse_detail(err_detail))
+        except Exception as e:
+            logger.exception(e)
+            err_detail = 'Error while finishing job decision with error'
         raise exceptions.ValidationError(detail=err_detail)
 
     def __collapse_detail(self, value):
@@ -396,11 +400,16 @@ class UploadReport:
             error_list = []
             error_html = '<ul>'
             for name, val in value.items():
-                error_html += '<li>{}: {}</li>'.format(name, self.__collapse_detail(val))
+                if name == api_settings.NON_FIELD_ERRORS_KEY:
+                    error_html += '<li>{}</li>'.format(self.__collapse_detail(val))
+                else:
+                    error_html += '<li>{}: {}</li>'.format(name, self.__collapse_detail(val))
                 error_list.append('{}: {}'.format(name, self.__collapse_detail(val)))
             error_html += '</ul>'
             return error_html
         elif isinstance(value, list):
+            if len(value) == 1:
+                return self.__collapse_detail(value[0])
             error_html = '<ul>'
             for val in value:
                 error_html += '<li>{}</li>'.format(self.__collapse_detail(val))
@@ -426,7 +435,9 @@ class UploadReport:
             'coverage': self.__upload_coverage,
         }
         if data['type'] not in supported_actions:
-            raise exceptions.ValidationError(detail={'type': 'Is not supported'})
+            raise exceptions.ValidationError(detail={
+                'type': 'Report type "{}" is not supported'.format(data['type'])
+            })
 
         # Upload report
         supported_actions[data['type']](data)
