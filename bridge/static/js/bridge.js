@@ -431,6 +431,7 @@ $(document).ready(function () {
         inline: true,
         hoverable: true,
         position: 'bottom left',
+        lastResort: 'bottom left',
         delay: {
             show: 300,
             hide: 600
@@ -611,13 +612,6 @@ $(document).ready(function () {
             });
         });
     }
-
-    $('.tag-description-popup').each(function () {
-        $(this).popup({
-            html: $(this).attr('data-content'),
-            hoverable: true
-        });
-    });
     $('.alternate-color').each(function () {
         update_colors($(this))
     });

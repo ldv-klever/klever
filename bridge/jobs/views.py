@@ -35,11 +35,10 @@ from bridge.utils import BridgeException
 
 from users.models import User
 from reports.utils import FilesForCompetitionArchive
-from service.serializers import ProgressSerializerRO
 
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.serializers import JobFormSerializerRO, get_view_job_data
-from jobs.utils import months_choices, years_choices, JobAccess, CompareFileSet, CompareJobVersions
+from jobs.utils import months_choices, years_choices, JobDecisionData, JobAccess, CompareFileSet, CompareJobVersions
 from jobs.configuration import StartDecisionData
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import TableTree
@@ -79,13 +78,10 @@ class JobPage(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, DetailVi
 
         # Job verification results
         context['reportdata'] = ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)
-        try:
-            # Job progress data
-            context['progress'] = ProgressSerializerRO(
-                instance=self.object.decision, context={'request': self.request}
-            ).data
-        except ObjectDoesNotExist:
-            pass
+
+        # Job decision progress and other data
+        context['decision'] = JobDecisionData(self.request, self.object)
+
         return context
 
 
@@ -97,18 +93,12 @@ class DecisionResults(LoginRequiredMixin, LoggedCallMixin, Bview.DataViewMixin, 
         return {'reportdata': ViewJobData(self.request.user, self.get_view(VIEW_TYPES[2]), self.object)}
 
 
-class JobProgress(LoginRequiredMixin, LoggedCallMixin, Bview.JSONResponseMixin, DetailView):
+class JobProgress(LoginRequiredMixin, LoggedCallMixin, DetailView):
     model = Job
-    template_name = 'jobs/viewJob/progress.html'
-    raise_exception = True
+    template_name = 'jobs/viewJob/decision.html'
 
     def get_context_data(self, **kwargs):
-        try:
-            return {'progress': ProgressSerializerRO(
-                instance=self.object.decision, context={'request': self.request}
-            ).data}
-        except ObjectDoesNotExist:
-            return {}
+        return super().get_context_data(data=JobDecisionData(self.request, self.object), **kwargs)
 
 
 class JobsFilesComparison(LoginRequiredMixin, LoggedCallMixin, TemplateView):

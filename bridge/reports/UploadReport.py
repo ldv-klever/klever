@@ -435,7 +435,9 @@ class UploadReport:
             'coverage': self.__upload_coverage,
         }
         if data['type'] not in supported_actions:
-            raise exceptions.ValidationError(detail={'type': 'Is not supported'})
+            raise exceptions.ValidationError(detail={
+                'type': 'Report type "{}" is not supported'.format(data['type'])
+            })
 
         # Upload report
         supported_actions[data['type']](data)
