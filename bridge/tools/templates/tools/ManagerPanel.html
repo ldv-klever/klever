@@ -68,7 +68,6 @@
                 <button class="ui orange button recalc-button" data-value="unknown_reports">{% trans 'Unknown reports' %}</button>
                 <button class="ui orange button recalc-button" data-value="resources">{% trans 'Resources' %}</button>
                 <button class="ui orange button recalc-button" data-value="compinst">{% trans 'Components instances' %}</button>
-                <button class="ui orange button recalc-button" data-value="coverage">{% trans 'Coverage' %}</button>
                 <button class="ui red button recalc-button" data-value="all">{% trans 'All caches' %}</button>
             </div>
         </div>
@@ -163,6 +162,29 @@
                 </div>
                 <div id="start_population" class="ui blue button" data-url="{% url 'tools:api-populate' %}">{% trans 'Populate' %}</div>
             </div>
+        </div>
+        <div class="five wide column">
+            <h3>{% trans 'Original sources' %}</h3>
+            {% if original|length %}
+                <table class="ui compact selectable teal table">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Identifier' %}</th>
+                            <th>{% trans 'Number of linked jobs' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for src in original %}
+                            <tr>
+                                <td>{{ src.identifier }}</td>
+                                <td>{{ src.links_num }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <h5>{% trans 'There are no original sources archives' %}</h5>
+            {% endif %}
         </div>
     </div>
 

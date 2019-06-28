@@ -17,7 +17,7 @@
 
 {% load i18n %}
 
-{% if DataStatistics|length %}
+{% if DataStatistics %}
     <div class="ui top attached tabular menu">
     {% for data in DataStatistics %}
         <a class="item{% if data.active %} active{% endif %}" data-tab="{{ data.tab }}">{{ data.tab }}</a>

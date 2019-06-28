@@ -39,7 +39,6 @@ from django.urls import reverse
 from django.utils.timezone import now, activate as activate_timezone
 from django.utils.translation import ugettext_lazy as _, activate
 
-from rest_framework.exceptions import APIException
 from rest_framework.pagination import PageNumberPagination
 
 from bridge.vars import UNKNOWN_ERROR, ERRORS, USER_ROLES
@@ -196,17 +195,18 @@ def has_references(obj):
 
 
 class ArchiveFileContent:
-    def __init__(self, report, field_name, file_name, not_exists_ok=False):
-        self._report = report
+    def __init__(self, instance, field_name, file_name, not_exists_ok=False):
+        self._instance = instance
         self._field = field_name
         self._name = file_name
         self._not_exists_ok = not_exists_ok
         self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
-        with getattr(self._report, '_meta').model.objects.get(id=self._report.id).__getattribute__(self._field) as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
+        file_path = getattr(self._instance, self._field).path
+        if os.path.splitext(file_path)[-1] != '.zip':
+            raise ValueError('Archive type is not supported')
+        with open(file_path, mode='rb') as fp:
             with zipfile.ZipFile(fp, 'r') as zfp:
                 if self._not_exists_ok:
                     if self._name not in zfp.namelist():

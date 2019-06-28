@@ -15,123 +15,28 @@
  * limitations under the License.
  */
 
-.CoverageTitle {
-    height: 30px;
-    overflow-x: auto;
+#CoverageStatisticsTable {
+    max-height: 75vh;
+    overflow: auto;
 }
-
-#CoverageSRCContent, #CoverageDataContent {
-    left: 0;
-    bottom: 0;
-    border-top: 1px solid #ca8f1d;
-    line-height: normal;
-    font-size: 12px;
-    font-family: monospace;
+#CoverageSourceTitle {
+    float: right;
+    margin-right: 15px;
+}
+.CoverageSourceTitleBlock {
     white-space: nowrap;
-    height: 60vh;
-    overflow-x: auto;
-    width: 100%;
+    overflow: hidden;
 }
-.COVJsonLine {
-    white-space: pre;
+#CoverageDataContent {
+    height: 20vh;
+    overflow: auto;
 }
-
-#CoverageSRCContent > span {
-    white-space: pre;
-    display: table-row;
+#CoverageSourceSegment {
+    height: 50vh;
+    background-color: #f5ffff;
+    overflow: auto;
+    padding: 0;
 }
-#CoverageSRCContent > span > span {
-    display: table-cell;
-}
-
-.COVComment {
-    color: #b1b4b7;
-}
-
-.COVNumber {
-    color: #3b7dbc;
-}
-
-.COVStatic {
-    position: relative;
-}
-.COVLine {
-    background-color: #d7f0f0;
-    /*padding-left: 5px;*/
-    /*padding-right: 5px;*/
-}
-.COVLineSelected {
-    background-color: #fff0eb!important;
-}
-.COVLineLink {
-    cursor: pointer;
-}
-.COVIsFC {
-    background-color: #ffffff;
-    cursor: pointer;
-}
-.COVHasD {
-    font-weight: bold;
-    padding-left: 5px;
-    padding-right: 5px;
-}
-.COVWithData {
-    background-color: #e9b4e8;
-}
-.COVCode {
-    width: 100%;
-    display: inline-block;
-}
-
-.COVText {
-    color: #18793d;
-}
-
-.COVKey1 {
-    color: #1f984c;
-    font-weight: bold;
-}
-
-.COVKey2 {
-    color: #291fbf;
-    font-weight: bold;
-}
-
-#test_span {
-    line-height: normal;
-    font-size: 12px;
-    font-family: monospace;
-    white-space: pre;
-    background: #b0b4f2;
-}
-#test_span2 {
-    line-height: normal;
-    font-size: 12px;
-    font-family: monospace;
-    white-space: pre;
-    background: #b0b4f2;
-}
-.CovNumberPopup {
-    border: 1px solid #866973;
-    border-radius: 4px 4px 4px 0;
-    background-color: #ffb7f8;
-    padding: 4px;
-    position: absolute;
-    bottom: 7px;
-    z-index: 999;
-}
-
-.COVJsonText {
-    color: #d97422;
-}
-.COVJsonNum {
-    color: #15d958;
-}
-
-#CoverageAttrTable {
-    width: 50vw;
-}
-
 .CovLegCell {
     min-width: 35px;
     height: 20px;
@@ -139,14 +44,14 @@
     font-size: x-small;
     display: inline-block;
 }
-.small-violet-text {
-    font-size: smaller;
+.cov-legend-header {
+    font-size: small;
+    font-style: italic;
     color: #680cce;
 }
-#div_for_legend {
-    margin-top: 20px;
+.cov-legend-container {
+    font-size: 0;
 }
-
 .tg-expander {
     cursor: pointer;
 }

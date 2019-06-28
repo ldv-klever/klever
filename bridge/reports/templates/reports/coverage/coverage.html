@@ -23,97 +23,98 @@
 {% block title %}{% trans 'Coverage' %}{% endblock %}
 
 {% block head_block %}
-    <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+
+    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+
 {% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
-        <div class="five wide column">
+        <div class="four wide column">
             <span class="purple-title">{% trans 'Job' %}: </span>
-            <a href="{% url 'jobs:job' coverage.job.id %}">{{ coverage.job.name }}</a>
-        </div>
-        <div class="three wide column">
-            <a href="{% url 'reports:component' coverage.report.id %}">{{ coverage.report.component.name }}</a>
+            <a href="{% url 'jobs:job' job.id %}">{{ job.name }}</a>
         </div>
         <div class="six wide column">
-            {% if coverage.parents %}{% include 'reports/parents_breadcrumb.html' with parents=coverage.parents %}{% endif %}
+            {% if parents %}{% include 'reports/parents_breadcrumb.html' with parents=parents %}{% endif %}
         </div>
-        <div class="two wide column right aligned">
-            <div class="ui buttons">
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_coverage' coverage.cov_arch.id %}"><i class="download icon"></i></a>
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Show coverage without data' %}" href="{% url 'reports:coverage_light' coverage.report.id %}?archive={{ coverage.cov_arch.id }}"><i class="ui maximize icon"></i></a>
+        <div class="six wide column right aligned">
+            {% if statistics.coverage %}
+                <a class="ui icon mini basic button" href="{% url 'reports:coverage-download' statistics.coverage.id %}" style="float:left;">{% trans 'Download coverage' %}</a>
+            {% endif %}
+            <div id="CoverageSourceButtons" class="ui mini icon buttons">
+                <button class="ui violet disabled icon button src-back-btn note-popup" data-content="{% trans 'Previous source' %}"><i class="ui arrow left icon"></i></button>
+                <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
+                <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
+                <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
+                <button id="next_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Next uncovered function' %}"><i class="step forward icon"></i></button>
+                <button id="prev_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Previous covered function sorted by number of calls' %}"><i class="fast backward icon"></i></button>
+                <button id="next_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Next covered function sorted by number of calls' %}"><i class="fast forward icon"></i></button>
             </div>
         </div>
     </div>
     <div class="ui grid">
-        <div class="ten wide column">
-            <div class="ui yellow segment">
-                <div class="CoverageTitle"><h5 id="selected_file_name">{{ coverage.first_file.filename }}</h5></div>
-                <div id="CoverageSRCContent">{{ coverage.first_file.src_html|safe }}</div>
-                <div id="div_for_legend">{{ coverage.first_file.legend|safe }}</div>
+        <div class="eight wide column">
+            <div id="CoverageStatisticsTable">
+                {% include 'reports/coverage/CoverageStatistics.html' with statistics=statistics %}
+            </div>
+            <br>
+            <div class="ui tiny buttons">
+                <button id="show_cov_attributes" class="ui violet button">{% trans 'Report attributes' %}</button>
+                <button id="get_data_statistic" class="ui tiny purple button">{% trans 'Data statistics' %}</button>
+            </div>
+            <div id="CoverageAttrTable" style="display: none;">
                 <br>
-                <div class="ui mini icon buttons">
-                    <button id="prev_cov_btn" class="ui green button note-popup" data-content="{% trans 'Previous covered function' %}"><i class="step backward icon"></i></button>
-                    <button id="next_cov_btn" class="ui green button note-popup" data-content="{% trans 'Next covered function' %}"><i class="step forward icon"></i></button>
-                    <button id="prev_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Previous uncovered function' %}"><i class="step backward icon"></i></button>
-                    <button id="next_uncov_btn" class="ui red button note-popup" data-content="{% trans 'Next uncovered function' %}"><i class="step forward icon"></i></button>
-                    <button id="prev_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Previous covered function sorted by number of calls' %}"><i class="fast backward icon"></i></button>
-                    <button id="next_srt_btn" class="ui teal button note-popup" data-content="{% trans 'Next covered function sorted by number of calls' %}"><i class="fast forward icon"></i></button>
-                </div>
+                <table class="ui celled compact purple table">
+                    <tbody>
+                        {% for v in SelfAttrsData %}
+                            <tr>
+                                <th class="collapsing">{{ v.0 }}</th>
+                                <td class="collapsing">{{ v.1 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <br>
             </div>
         </div>
-        <div class="six wide column">
-            <div class="ui violet segment">
-                <div class="CoverageTitle"><h5>{% trans 'Data' %}</h5></div>
-                <div id="CoverageDataContent" style="padding: 5px;">{{ coverage.first_file.data_html|safe }}</div>
+        <div class="eight wide column">
+            <div class="CoverageSourceTitleBlock">
+                <h5 id="CoverageSourceTitle" class="header" data-variation="very wide" data-position="top right">&nbsp;</h5>
             </div>
+            <div id="CoverageSourceSegment" class="ui orange segment">
+                <div id="CoverageSourceCode" class="SourceCodeContent"></div>
+            </div>
+            <div class="ui violet segment">
+                <div class="ui grid">
+                    <div class="eight wide column">
+                        <h5>{% trans 'Data' %}</h5>
+                        <div id="CoverageDataContent"></div>
+                    </div>
+                    <div class="eight wide column">
+                        <h5>{% trans 'Legend' %}</h5>
+                        <div id="CoverageLegend"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="sources_history" hidden></div>
         </div>
     </div>
     <br>
 
-    <div class="ui grid">
-        <div class="eight wide column">
-            <div class="ui tiny buttons">
-                <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
-                <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
-                <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
-            </div>
-        </div>
-        <div class="eight wide column right aligned">
-            {% if coverage.coverage_archives|length > 1 or coverage.cov_arch.identifier != '' %}
-                <label for="identifier_selector"></label>
-                <select id="identifier_selector" class="ui dropdown">
-                    {% for arch_id, identifier in coverage.coverage_archives %}
-                        <option value="{{ arch_id }}"{% if arch_id == coverage.cov_arch.id %} selected{% endif %}>{{ identifier }}</option>
-                    {% endfor %}
-                </select>
-            {% endif %}
+    <div id="data_statistics_modal" class="ui modal">
+        <div class="header">{% trans 'Data statistics' %}</div>
+        <div class="content">
+            {% include 'reports/coverage/coverageDataStatistics.html' with DataStatistics=statistics.data_statistic %}
         </div>
     </div>
 
-    <br><br>
-    <div id="CoverageAttrTable" style="display: none;">
-        <table class="ui celled compact purple table">
-            <tbody>
-                {% for v in SelfAttrsData %}
-                    <tr>
-                        <th class="collapsing">{{ v.0 }}</th>
-                        <td class="collapsing">{{ v.1 }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div id="CoverageTable" style="display: none;">
-        {% include 'reports/coverage/coverageStatisticsTable.html' with TableData=coverage.statistic_table %}
-    </div>
-    <div id="DataStatisticTable" style="display: none;">
-        {{ coverage.data_statistic|safe }}
-    </div>
-    <br><br>
-
-    <input id="report_id" value="{{ coverage.report.id }}" type="hidden">
-    <input id="cov_arch_id" value="{{ coverage.cov_arch.id }}" type="hidden">
-    <input id="with_data" value="1" type="hidden">
+    <input id="report_id" value="{{ object.id }}" type="hidden">
+    {% if coverage_id %}
+        <input id="coverage_id" value="{{ coverage_id }}" type="hidden">
+    {% endif %}
+    <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' object.id %}{% if coverage_id %}?coverage_id={{ coverage_id }}{% endif %}">
+    <span id="error__line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
 {% endblock %}

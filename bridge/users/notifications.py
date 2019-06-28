@@ -93,7 +93,7 @@ class Notify(object):
         s.quit()
 
 
-class UserMessage(object):
+class UserMessage:
 
     def __init__(self, user, job, ntf_type, add_args):
         self.user = user
@@ -113,11 +113,11 @@ class UserMessage(object):
 
     def __get_job_prop(self, job):
         try:
-            first_version = job.versions.get(version=1)
             last_version = job.versions.get(version=job.version)
         except ObjectDoesNotExist:
             return None
-        self.is_producer = (self.user == first_version.change_author)
+
+        self.is_producer = (self.user == job.author)
         self.change_user = last_version.change_author
 
         try:

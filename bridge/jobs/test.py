@@ -27,7 +27,6 @@ from bridge.utils import KleverTestCase
 
 from users.models import User, PreferableView
 from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
-from jobs.jobForm import LoadFilesTree
 
 
 class TestJobs(KleverTestCase):

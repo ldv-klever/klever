@@ -15,46 +15,43 @@
  * limitations under the License.
  */
 
+/* Source code container */
 .SourceCodeContent {
-    left: 0;
-    bottom: 0;
-    border-top: 1px solid #ca8f1d;
     line-height: normal;
     font-size: 12px;
     font-family: monospace;
-    white-space: nowrap;
-    height: 60vh;
-    overflow-x: auto;
-    width: 100%;
 }
-
 .SourceCodeContent > span {
     display: table-row;
 }
-.SourceCodeContent > span > span {
-    /*white-space: pre;*/
-    display: table-cell;
-}
 
-.SrcStatic {
-    position: relative;
-}
-
+/* The whole line object */
 .SrcLine {
     position: relative;
     background-color: #d9deff;
+    display: table-cell;
 }
-
 .SrcLineSelected {
-    background-color: #f0f0ff !important;
+    background-color: #fdffc7 !important;
 }
-
+/* Source code objects (function coverage column, line number, the source code */
+.SrcFuncCov {
+    display: table-cell;
+    padding: 0 2px 0 2px;
+    border-right: 1px solid #866973;
+}
+.SrcLineCov {
+    display: table-cell;
+    padding: 0 3px 0 3px;
+    white-space: pre;
+}
 .SrcCode {
     width: 100%;
     display: inline-block;
     white-space: pre;
 }
 
+/* Coverage popups */
 .SrcNumberPopup {
     color: #defff1;
     background-color: #520d83;
@@ -66,14 +63,93 @@
     content: "←";
 }
 
-.SrcFuncCov {
-    white-space: pre;
-    display: table-cell;
-    padding: 0 2px 0 2px;
-    border-right: 1px solid #866973;
+/* Highlights */
+.SrcHlNumber {
+    color: #3bbbbc;
 }
-.SrcLineCov {
+.SrcHlComment {
+    color: #b1b4b7;
+}
+.SrcHlText {
+    color: #20d467;
+}
+.SrcHlKey1 {
+    color: #1f984c;
+    font-weight: bold;
+}
+.SrcHlKey2 {
+    color: #291fbf;
+    font-weight: bold;
+}
+.SrcHlKey3 {
+    color: #67238f;
+}
+
+/* Coverage notes */
+.SrcCovVA {
+    color: #ab13a1;
+    font-weight: bold;
+}
+.SrcCovEMH {
+    color: #ab2841;
+    font-weight: bold;
+}
+
+.SrcRefToLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.SrcRefFromLink:hover {
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.SrcRefLink {
+    cursor: pointer;
+    color: #16219e;
+}
+
+.SrcRefLink:hover {
+    color: #465bff;
+}
+
+
+/* Coverage data */
+.SrcCovDataLink {
+    color: #e022de;
+    cursor: pointer;
+    font-weight: bold;
+}
+.CoverageDataName {
+    color: #6d10ae;
+    font-weight: bold;
+    margin-left: 15px;
+}
+.CoverageDataName:hover {
+    cursor: pointer;
+    opacity: 0.5;
+}
+.CoverageDataNameSelected {
+    opacity: 0.5;
+}
+.CoverageDataValue {
+    display: none;
+}
+
+/* Coverage data json content */
+.COVJsonLine {
     white-space: pre;
-    display: table-cell;
-    padding: 0 3px 0 3px;
+}
+.COVJsonKey {
+    color: #1896ad;
+}
+.COVJsonWord {
+    color: #2a1acb;
+}
+.COVJsonText {
+    color: #d97422;
+}
+.COVJsonNum {
+    color: #15d958;
 }

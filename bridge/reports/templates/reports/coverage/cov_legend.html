@@ -17,27 +17,25 @@
 
 {% load i18n %}
 
-<div class="ui grid">
-    {% if legend.lines|length %}
-        <div class="eight wide column" style="font-size: 0;">
-            <span class="italic small-violet-text" style="font-size: small;">{% trans "Line coverage legend" %}</span>
-            <br>
-            {% for d in legend.lines %}
-                <span class="CovLegCell" style="background-color: {{ d.1 }};">
-                    <span>{{ d.0 }}</span>
-                </span>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% if legend.funcs|length %}
-        <div class="eight wide column" style="font-size: 0;">
-            <span class="italic small-violet-text" style="font-size: small;">{% trans "Function coverage legend" %}</span>
-            <br>
-            {% for d in legend.funcs %}
-                <span class="CovLegCell" style="background-color: {{ d.1 }};">
-                    <span>{{ d.0 }}</span>
-                </span>
-            {% endfor %}
-        </div>
-    {% endif %}
-</div>
+{% if legend.lines %}
+    <div class="cov-legend-container">
+        <span class="cov-legend-header">{% trans "Line coverage legend" %}</span>
+        <br>
+        {% for d in legend.lines %}
+            <span class="CovLegCell" style="background-color: {{ d.1 }};">
+                <span>{{ d.0 }}</span>
+            </span>
+        {% endfor %}
+    </div>
+{% endif %}
+{% if legend.funcs %}
+    <div class="cov-legend-container">
+        <span class="cov-legend-header">{% trans "Function coverage legend" %}</span>
+        <br>
+        {% for d in legend.funcs %}
+            <span class="CovLegCell" style="background-color: {{ d.1 }};">
+                <span>{{ d.0 }}</span>
+            </span>
+        {% endfor %}
+    </div>
+{% endif %}

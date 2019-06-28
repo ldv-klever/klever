@@ -209,6 +209,7 @@ class UploadBaseSerializer(serializers.ModelSerializer):
 class ReportComponentSerializer(UploadBaseSerializer):
     computer = ComputerSerializer(required=False)
     parent = ReportParentField(allow_null=True)  # Allow null parent for Core
+    original = serializers.SlugRelatedField(slug_field='identifier', queryset=OriginalSources.objects, required=False)
 
     def create(self, validated_data):
         # Validate report parent
@@ -224,7 +225,7 @@ class ReportComponentSerializer(UploadBaseSerializer):
         model = ReportComponent
         fields = (
             'identifier', 'parent', 'component', 'computer', 'attrs', 'data',
-            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log'
+            'finish_date', 'cpu_time', 'wall_time', 'memory', 'log', 'original'
         )
         extra_kwargs = {
             'cpu_time': {'allow_null': False, 'required': True},
@@ -409,16 +410,14 @@ class UploadReport:
             raise exceptions.ValidationError(detail={'type': 'Required'})
         supported_actions = {
             'start': self.__create_report_component,
+            'patch': self.__patch_report_component,
             'finish': self.__finish_report_component,
-            'attrs': self.__update_attrs,
             'verification': self.__create_verification_report,
             'verification finish': self.__finish_verification_report,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
-            'data': self.__upload_report_data,
             'coverage': self.__upload_coverage,
-            'sources': self.__upload_additional_sources
         }
         if data['type'] not in supported_actions:
             raise exceptions.ValidationError(detail={'type': 'Is not supported'})
@@ -515,37 +514,43 @@ class UploadReport:
     def __upload_coverage(self, data):
         # Uploads global coverage
         report = self.__get_report(data.get('identifier'))
+        if report.verification:
+            raise exceptions.ValidationError(detail={
+                'coverage': "The full coverage can be uploaded only for non-verification reports"
+            })
+
         if not self._is_fullweight:
             # Upload for Core for lightweight jobs
-            report = report.get_ancestors().first().id
+            report = ReportComponent.objects.get(parent=None, root_id=report.root_id)
+
+        if not report.original:
+            raise exceptions.ValidationError(detail={
+                'coverage': "The coverage can be uploaded only for reports with original sources"
+            })
+
         for cov_id in data['coverage']:
             carch = CoverageArchive(report_id=report.id, identifier=cov_id)
             carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=True)
 
-    def __upload_additional_sources(self, data):
+    def __patch_report_component(self, data):
         report = self.__get_report(data.get('identifier'))
-        instance = AdditionalSources(root=self.root)
-        instance.add_archive(self.__get_archive(data['sources']), save=True)
-        report.additional = instance
-        report.save()
+        save_kwargs = {}
 
-    def __update_attrs(self, data):
-        report = self.__get_report(data.get('identifier'))
-        data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+        if 'attrs' in data:
+            data['attr_data'] = self.__upload_attrs_files(self.__get_archive(data.get('attr_data')))
+
+        if 'additional' in data:
+            add_src = AdditionalSources(root=self.root)
+            add_src.add_archive(self.__get_archive(data['additional']), save=True)
+            save_kwargs['additional_id'] = add_src.id
+
         serializer = ReportComponentSerializer(
-            instance=report, data=data, reportroot=report.root,
-            fullweight=self._is_fullweight, fields={'attrs'}
+            instance=report, data=data, partial=True,
+            reportroot=report.root, fullweight=self._is_fullweight,
+            fields={'data', 'attrs', 'original'}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-    def __upload_report_data(self, data):
-        if not self._is_fullweight:
-            return
-        report = self.__get_report(data.get('identifier'))
-        serializer = ReportComponentSerializer(instance=report, data=data, reportroot=report.root, fields={'data'})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(**save_kwargs)
 
     def __finish_report_component(self, data):
         report = self.__get_report(data.get('identifier'))

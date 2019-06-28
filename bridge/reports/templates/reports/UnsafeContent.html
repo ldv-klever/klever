@@ -28,8 +28,8 @@
         </div>
     </div>
     <div class="one wide column">
-        <div class="ui mini buttons">
-            <button id="ETVSourceBack" class="ui violet disabled icon button"><i class="ui arrow left icon"></i></button>
+        <div id="ETVSourceButtons" class="ui mini buttons">
+            <button class="ui violet disabled icon button src-back-btn"><i class="ui arrow left icon"></i></button>
         </div>
     </div>
     <div class="eight wide column ETVTitleBlock">
@@ -39,21 +39,18 @@
 <div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
     <div id="etv-trace">
         {% if etv %}
-            {% include 'reports/error_trace/ErrorTrace.html' with etv=etv %}
+            {% include 'reports/ErrorTrace.html' with etv=etv %}
         {% else %}
             <div class="ui divider"></div>
             <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
         {% endif %}
     </div>
-    <div id="etv-source"{% if etv.include_assumptions %} style="height:70%;"{% endif %}>
+    <div id="etv-source"{% if etv.user.assumptions or etv.user.coverage_data %} style="height:70%;"{% endif %}>
         <div id="ETV_source_code" class="SourceCodeContent"></div>
     </div>
     <div id="etv-divider"></div>
-    {% if etv.include_assumptions %}
-        <div id="etv-assumes">
-            <div id="ETV_assumes">
-            </div>
-        </div>
+    {% if etv.user.assumptions or etv.user.coverage_data %}
+        <div id="etv-data-container"><div id="ETV_data"></div></div>
         <div id="etv-divider-2"></div>
     {% endif %}
 </div>

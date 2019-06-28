@@ -24,10 +24,13 @@
 {% block head_block %}
     <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/inlineMarkForm.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/source.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <script type="text/javascript" src="{% static 'reports/js/reportLeaf.js' %}"></script>
+
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/reportLeaf.css' %}" rel="stylesheet">
     <link href="{% static 'reports/css/source.css' %}" rel="stylesheet">
@@ -68,12 +71,8 @@
             {% endif %}
 
             <div class="ui tiny buttons" style="float: right;">
-                {% with parents|last as parent %}
-                    {% if parent.has_coverage %}
-                        <a href="{% if user.coverage_data %}{% url 'reports:coverage' report.parent_id %}{% else %}{% url 'reports:coverage_light' report.parent_id %}{% endif %}" class="ui pink button">{% trans 'Coverage' %}</a>
-                    {% endif %}
-                {% endwith %}
                 <button id="show_leaf_attributes" class="ui violet button">{% trans 'Attributes' %}</button>
+                {% if coverage_url %}<a class="ui violet button" href="{{ coverage_url }}">{% trans 'Coverage statistics' %}</a>{% endif %}
             </div>
 
             <br><br>
@@ -127,4 +126,8 @@
     <input id="source_url" type="hidden" value="{% url 'reports:api-get-source' report.id %}">
     {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
+    <div id="coverage_modal" class="ui modal">
+        <div class="header">{% trans 'Coverage statistics' %}</div>
+        <div class="content"></div>
+    </div>
 {% endblock %}

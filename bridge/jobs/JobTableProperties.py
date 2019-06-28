@@ -383,7 +383,7 @@ class TableTree(ComplexHeaderMixin):
                 .select_related('job', 'change_author'):
             job_url = reverse('jobs:job', args=[job_version.job_id])
             status_url = None
-            if job_version.job.weight == JOB_WEIGHT[1][0]:
+            if job_version.job.weight == JOB_WEIGHT[1][0] and job_version.job_id in self._core:
                 status_url = reverse('reports:component', args=[self._core[job_version.job_id]])
 
             author_val = author_url = None

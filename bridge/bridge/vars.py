@@ -222,7 +222,7 @@ class UnsafeVerdicts:
 
     def color(self, verdict):
         column = self.column(verdict)
-        for col, __, color in self.columns_data:
+        for col, n, color in self.columns_data:
             if col == column:
                 return color or None
         return None
@@ -307,7 +307,6 @@ REPORT_ARCHIVE = {
 }
 
 LOG_FILE = 'log.txt'
-COVERAGE_FILE = 'coverage.json'
 ERROR_TRACE_FILE = 'error trace.json'
 PROBLEM_DESC_FILE = 'problem desc.txt'
 PROOF_FILE = 'proof.txt'

@@ -39,7 +39,8 @@ urlpatterns = [
     path('unsafe/<slug:trace_id>/', views.ReportUnsafeView.as_view(), name='unsafe'),
     path('unsafe/<slug:trace_id>/fullscreen/', views.FullscreenReportUnsafe.as_view(), name='unsafe_fullscreen'),
     path('unsafe/<int:unsafe_id>/download/', views.DownloadErrorTraceView.as_view(), name='unsafe-download'),
-    path('unsafe/<int:unsafe_id>/source/', api.GetSourceCodeView.as_view(), name='api-get-source'),
+
+    path('report/<int:report_id>/source/', api.GetSourceCodeView.as_view(), name='api-get-source'),
 
     # Reports comparison
     path('api/fill-comparison/<int:job1_id>/<int:job2_id>/',
@@ -48,10 +49,9 @@ urlpatterns = [
     path('api/comparison-data/<int:info_id>/', api.ReportsComparisonDataView.as_view(), name='api-comparison-data'),
 
     # Coverage
-    path('coverage/<int:report_id>/', views.CoverageView.as_view(), name='coverage'),
-    path('coverage-light/<int:report_id>/', views.CoverageLightView.as_view(), name='coverage_light'),
-    path('get-coverage-src/<int:archive_id>/', views.CoverageSrcView.as_view()),
-    path('download_coverage/<int:pk>/', views.DownloadCoverageView.as_view(), name='download_coverage'),
+    path('<int:report_id>/coverage/', views.CoverageView.as_view(), name='coverage'),
+    path('coverage/<int:pk>/download/', views.DownloadCoverageView.as_view(), name='coverage-download'),
+    path('api/coverage/data/<int:cov_id>/', api.GetCoverageDataAPIView.as_view(), name='api-coverage-data'),
 
     # Utils
     path('api/has-sources/', api.HasOriginalSources.as_view()),
