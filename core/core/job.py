@@ -299,7 +299,7 @@ class RA(core.components.Component):
             os.makedirs(results_dir)
 
             core.utils.report(self.logger,
-                              'data',
+                              'patch',
                               {
                                   'identifier': self.parent_id,
                                   'data': {task_id: verification_result}

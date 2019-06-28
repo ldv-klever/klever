@@ -83,7 +83,7 @@ def generate_processes(emg, source, processes, conf, specifications):
     # Send data to the server
     emg.logger.info("Send data about generated instances to the server")
     core.utils.report(emg.logger,
-                      'data',
+                      'patch',
                       {
                           'identifier': emg.id,
                           'data': instance_maps

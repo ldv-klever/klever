@@ -78,7 +78,7 @@ class PFG(core.components.Component):
         :param dfiles: Fiels to attach as data attribute values.
         """
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
                               'identifier': self.id,
                               'attrs': attrs

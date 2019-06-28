@@ -308,7 +308,7 @@ class VTG(core.components.Component):
     def generate_verification_tasks(self):
         self.requirement_descs = _requirement_descs
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
                               'identifier': self.id,
                               'attrs': self.__get_common_prj_attrs()
@@ -599,7 +599,7 @@ class VTGW(core.components.Component):
         with open(files_list_file, 'w', encoding='utf8') as fp:
             fp.writelines('\n'.join(sorted(f for grp in self.program_fragment['grps'] for f in grp['files'])))
         core.utils.report(self.logger,
-                          'attrs',
+                          'patch',
                           {
                               'identifier': self.id,
                               'attrs': [
