@@ -293,7 +293,7 @@ class RemoveJobVersions(LoggedCallMixin, APIView):
 
     def delete(self, request, job_id):
         job = get_object_or_404(Job, pk=job_id)
-        if not JobAccess(request.user, job).can_edit():
+        if not JobAccess(request.user, job).can_edit:
             raise exceptions.PermissionDenied(_("You don't have an access to remove job versions"))
         versions = list(int(v) for v in json.loads(request.data.get('versions', '[]')))
         if job.version in versions:
@@ -318,7 +318,7 @@ class StartDecisionView(LoggedCallMixin, APIView):
     def post(self, request, job_id):
         getconf_kwargs = {}
         job = get_object_or_404(Job, id=job_id)
-        if not JobAccess(request.user, job).can_decide():
+        if not JobAccess(request.user, job).can_decide:
             raise exceptions.PermissionDenied(_("You don't have an access to start decision of this job"))
 
         # If self.request.POST['mode'] == 'fast' or any other then default configuration is used
@@ -347,7 +347,7 @@ class StopDecisionView(LoggedCallMixin, APIView):
 
     def post(self, request, job_id):
         job = get_object_or_404(Job, pk=job_id)
-        if not JobAccess(request.user, job).can_stop():
+        if not JobAccess(request.user, job).can_stop:
             raise exceptions.PermissionDenied(_("You don't have an access to stop decision of this job"))
         try:
             CancelDecision(job)
@@ -396,7 +396,7 @@ class UploadReportsView(LoggedCallMixin, APIView):
 
     def post(self, request, pk):
         instance = get_object_or_404(Job, pk=pk)
-        if not JobAccess(request.user, instance).can_decide():
+        if not JobAccess(request.user, instance).can_decide:
             raise exceptions.ValidationError(_("You don't have an access to upload reports for this job"))
 
         try:
@@ -415,7 +415,7 @@ class CollapseReportsView(LoggedCallMixin, APIView):
 
     def post(self, request, pk):
         job = get_object_or_404(Job, pk=pk)
-        if not JobAccess(self.request.user, job).can_collapse():
+        if not JobAccess(self.request.user, job).can_collapse:
             raise exceptions.PermissionDenied(_("You don't have an access to collapse reports"))
         collapse_reports(job)
         return Response({})

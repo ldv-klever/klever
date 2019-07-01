@@ -153,34 +153,9 @@ class ViewJobData:
     def __resource_info(self):
         if not self.root:
             return []
-        qs_filters = {}
-        if 'resource_component' in self.view:
-            qs_filters['component__{}'.format(self.view['resource_component'][0])] = self.view['resource_component'][1]
-        report_qs = ReportComponent.objects.filter(root=self.root)\
-            .filter(**qs_filters).only('component', 'cpu_time', 'wall_time', 'memory', 'finish_date')
 
-        instances = {}
-        res_data = {}
-        res_total = {'cpu_time': 0, 'wall_time': 0, 'memory': 0}
-        for report in report_qs:
-            component = report.component
-
-            instances.setdefault(component, {'finished': 0, 'total': 0})
-            instances[component]['total'] += 1
-            if report.finish_date:
-                instances[component]['finished'] += 1
-
-            if report.cpu_time or report.wall_time or report.memory:
-                res_data.setdefault(component, {'cpu_time': 0, 'wall_time': 0, 'memory': 0})
-            if report.cpu_time:
-                res_data[component]['cpu_time'] += report.cpu_time
-                res_total['cpu_time'] += report.cpu_time
-            if report.wall_time:
-                res_data[component]['wall_time'] += report.wall_time
-                res_total['wall_time'] += report.wall_time
-            if report.memory:
-                res_data[component]['memory'] = max(report.memory, res_data[component]['memory'])
-                res_total['memory'] = max(report.memory, res_total['memory'])
+        instances = self.root.instances
+        res_data = self.root.resources
 
         resource_data = []
         for component in sorted(instances):
@@ -194,7 +169,8 @@ class ViewJobData:
             instances_value = ' ({}/{})'.format(instances[component]['finished'], instances[component]['total'])
             resource_data.append({'component': component, 'val': resources_value, 'instances': instances_value})
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
-            if res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0:
+            res_total = self.root.resources.get('total')
+            if res_total and res_total['wall_time'] > 0 or res_total['cpu_time'] > 0 or res_total['memory'] > 0:
                 resource_data.append({'component': _('Total'), 'instances': '', 'val': "{} {} {}".format(
                     HumanizedValue(res_total['wall_time'], user=self.user).timedelta,
                     HumanizedValue(res_total['cpu_time'], user=self.user).timedelta,

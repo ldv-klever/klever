@@ -64,7 +64,7 @@
     right: 0;
     width: 54.7%;
     height: 100%;
-    background-color: #f5ffff;
+    background-color: #fffcff;
     overflow: auto;
 }
 #etv-divider {
@@ -99,7 +99,7 @@
     z-index: 100;
     position: relative;
     white-space: pre;
-    background-color: #ffe6d7;
+    background-color: #ffe6dc;
     padding-right: 5px;
     cursor: pointer;
 }
@@ -204,7 +204,7 @@
     top: 0;
     bottom: 0;
     width: 45%;
-    background-color: #fffaf0;
+    background-color: #fffcf5;
 }
 
 .ETV_CallbackAction {

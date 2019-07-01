@@ -310,9 +310,8 @@ class ReadJobConfiguration:
         with decision.configuration.file as fp:
             self.data['configuration'] = json.loads(fp.read().decode('utf8'))
         if decision.scheduler.type == SCHEDULER_TYPE[1][0]:
-            self.data['user'] = SchedulerUserSerializer(
-                instance=SchedulerUser.objects.filter(user__roots__job=self.job).first()
-            ).data
+            sch_user = SchedulerUser.objects.filter(user__roots__job=self.job).first()
+            self.data['user'] = SchedulerUserSerializer(instance=sch_user).data if sch_user else None
 
     def __read_tasks(self):
         fs_obj = FileSystem.objects.filter(

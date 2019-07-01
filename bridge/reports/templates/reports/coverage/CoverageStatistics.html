@@ -32,7 +32,7 @@
                     <td>
                         <span class="pre-space">{{ row_data.indent }}</span>
                         {% if not row_data.is_dir %}
-                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#"><i class="file text outline icon"></i>{{ row_data.title }}</a>
+                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#"><i class="file alternate outline icon"></i>{{ row_data.title }}</a>
                         {% else %}
                             <i class="{% if row_data.display %}open {% endif %}folder violet icon tg-expander"></i>
                             <span>{{ row_data.title }}</span>

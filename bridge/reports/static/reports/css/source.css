@@ -28,7 +28,7 @@
 /* The whole line object */
 .SrcLine {
     position: relative;
-    background-color: #d9deff;
+    background-color: #fff0ff;
     display: table-cell;
 }
 .SrcLineSelected {

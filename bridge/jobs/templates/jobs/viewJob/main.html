@@ -41,24 +41,44 @@
             <div class="ui violet inverted menu top attached">
                 <a class="browse item">{% trans 'Job' %}<i class="dropdown icon"></i></a>
                 <div class="ui inverted popup bottom left transition hidden">
-                    <a id="download_job_btn" href="{% url 'jobs:download' object.id %}" class="item{% if not job_access.can_download %} disabled{% endif %}">{% trans 'Download' %}</a>
-                    <a href="{% url 'jobs:form' object.id 'edit' %}" class="menu-link item{% if not job_access.can_edit %} disabled{% endif %}">{% trans 'Edit' %}</a>
-                    <a id="remove_job_btn" class="item{% if not job_access.can_delete %} disabled{% endif %}">{% trans 'Delete' %}</a>
-                    <a href="{% url 'jobs:form' object.id 'copy' %}" class="menu-link item{% if not job_access.can_create %} disabled{% endif %}">{% trans 'Copy' %}</a>
+                    {% if job_access.can_download %}
+                        <a id="download_job_btn" href="{% url 'jobs:download' object.id %}" class="item">{% trans 'Download' %}</a>
+                    {% endif %}
+                    {% if job_access.can_edit %}
+                        <a href="{% url 'jobs:form' object.id 'edit' %}" class="item">{% trans 'Edit' %}</a>
+                    {% endif %}
+                    {% if job_access.can_delete %}
+                        <a id="remove_job_btn" class="item">{% trans 'Delete' %}</a>
+                    {% endif %}
+                    {% if job_access.can_create %}
+                        <a href="{% url 'jobs:form' object.id 'copy' %}" class="item">{% trans 'Copy' %}</a>
+                    {% endif %}
                 </div>
                 <a class="browse item">{% trans 'Decision' %}<i class="dropdown icon"></i></a>
                 <div class="ui inverted popup bottom left transition hidden">
-                    <a id="decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start' %}</a>
-                    <a id="fast_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with default values' %}</a>
-                    <a id="last_decide_job_btn" class="item{% if not job_access.can_decide %} disabled{% endif %}">{% trans 'Start with last configuration' %}</a>
-                    <a id="stop_job_btn" class="item{% if not job_access.can_stop %} disabled{% endif %}">{% trans 'Stop' %}</a>
+                    {% if job_access.can_decide %}
+                        <a id="decide_job_btn" class="item">{% trans 'Start' %}</a>
+                        <a id="fast_decide_job_btn" class="item">{% trans 'Start with default values' %}</a>
+                        <a id="last_decide_job_btn" class="item">{% trans 'Start with last configuration' %}</a>
+                    {% endif %}
+                    {% if job_access.can_stop %}
+                        <a id="stop_job_btn" class="item">{% trans 'Stop' %}</a>
+                    {% endif %}
                 </div>
                 <a class="browse item">{% trans 'Reports' %}<i class="dropdown icon"></i></a>
                 <div class="ui inverted popup bottom left transition hidden">
-                    <a id="upload_reports_btn" class="item{% if not job_access.can_upload_reports %} disabled{% endif %}">{% trans 'Upload' %}</a>
-                    <a id="collapse_reports_btn" class="item{% if not job_access.can_collapse %} disabled{% endif %}">{% trans 'Collapse' %}</a>
-                    <a id="dfc_modal_show" class="item{% if not job_access.can_dfc %} disabled{% endif %}">{% trans 'Download files for competition' %}</a>
-                    <a id="clear_verifications_modal_show" class="item{% if not job_access.can_clear_verifications %} disabled{% endif %}" data-url="{% url 'reports:clear-verification-files' object.id %}">{% trans 'Clear verification files' %}</a>
+                    {% if job_access.can_upload_reports %}
+                        <a id="upload_reports_btn" class="item">{% trans 'Upload' %}</a>
+                    {% endif %}
+                    {% if job_access.can_collapse %}
+                        <a id="collapse_reports_btn" class="item">{% trans 'Collapse' %}</a>
+                    {% endif %}
+                    {% if job_access.can_download_verifier_input %}
+                        <a id="dfc_modal_show" class="item">{% trans 'Download files for competition' %}</a>
+                    {% endif %}
+                    {% if job_access.can_clear_verifications %}
+                        <a id="clear_verifications_modal_show" class="item" data-url="{% url 'reports:clear-verification-files' object.id %}">{% trans 'Clear verification files' %}</a>
+                    {% endif %}
                 </div>
                 <div class="right menu">
                     <a id="job_autoupdate_btn" class="item" data-status="on">{% trans 'Stop page autorefresh' %}</a>
@@ -251,7 +271,7 @@
     {% endif %}
 
     {# Download files for competition modal #}
-    {% if job_access.can_dfc %}
+    {% if job_access.can_download_verifier_input %}
         <div id="dfc_modal" class="ui small dinamic modal">
             <div class="ui header">{% trans 'Choose filters' %}</div>
             <div class="content">

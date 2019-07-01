@@ -18,7 +18,7 @@
 // (function($) { $.fn.getCodeMirror = function() { return (this).find('.CodeMirror')[0].CodeMirror } }(jQuery));
 
 function FilesTree(tree_id, editor_id) {
-    var tree_root = $('#' + tree_id);
+    let tree_root = $('#' + tree_id);
     this.tree_div = tree_root.find('.file-tree').first();
     this.tree_upload_modal = tree_root.find('#filetree_upload_model').first();
     this.tree_replace_modal = tree_root.find('#filetree_replace_modal').first();
@@ -41,7 +41,8 @@ function FilesTree(tree_id, editor_id) {
         filename_required: 'File name is required',
         file_commited: 'The file was commited',
         file_not_commited: 'The file was not commited',
-        file_required: 'Please select the file'
+        file_required: 'Please select the file',
+        commit_required: 'Please commit the changed file'
     };
     this.labels = {
         'new': 'New',
@@ -69,8 +70,8 @@ function FilesTree(tree_id, editor_id) {
     return this;
 }
 
-FilesTree.prototype.ready_for_save = function() {
-    return this.editor_status.is(':hidden');
+FilesTree.prototype.not_commited = function() {
+    return !this.editor_status.is(':hidden');
 };
 
 FilesTree.prototype.serialize = function() {
@@ -78,9 +79,9 @@ FilesTree.prototype.serialize = function() {
 };
 
 FilesTree.prototype.get_menu = function(node) {
-    var instance = this;
+    let instance = this;
 
-    var tmp = $.jstree.defaults.contextmenu.items(),
+    let tmp = $.jstree.defaults.contextmenu.items(),
         node_type = instance.tree_obj.get_type(node);
     delete tmp.ccp;
 
@@ -138,12 +139,12 @@ FilesTree.prototype.get_menu = function(node) {
 };
 
 FilesTree.prototype.set_messages = function(messages) {
-    var instance = this;
+    let instance = this;
     $.each(messages, function (key, value) { instance.messages[key] = value });
 };
 
 FilesTree.prototype.set_labels = function(labels) {
-    var instance = this;
+    let instance = this;
     $.each(labels, function (key, value) { instance.labels[key] = value });
 };
 
@@ -160,12 +161,12 @@ FilesTree.prototype.open_first_file = function() {
     // Clear and disable editor in case if file wouldn't be found
     this.clear_editor();
 
-    var tree = this.tree_div.jstree(true),
+    let tree = this.tree_div.jstree(true),
         tree_data = tree._model.data,
         root_id = tree_data['#']['children'][0],
         first_file;
-    for (var i = 0; i < tree_data[root_id]['children'].length; i++) {
-        var child_id = tree_data[root_id]['children'][i];
+    for (let i = 0; i < tree_data[root_id]['children'].length; i++) {
+        let child_id = tree_data[root_id]['children'][i];
         if (tree_data[child_id]['type'] === 'file') {
             if (tree_data[child_id]['text'] === this.def_file_to_open) {
                 first_file = tree_data[root_id]['children'][i];
@@ -180,14 +181,14 @@ FilesTree.prototype.open_first_file = function() {
 };
 
 FilesTree.prototype.upload_file = function(data, on_success, on_error) {
-    var instance = this;
+    let instance = this;
     $.ajax({
         url: instance.upload_file_url, type: 'POST',
         data: data, dataType: "json", processData: false,  contentType: false,
         success: function (resp) {
             resp.error ? err_notify(resp.error) : on_success(resp.hashsum);
         }, error: function (resp) {
-            var errors = flatten_api_errors(resp['responseJSON']);
+            let errors = flatten_api_errors(resp['responseJSON']);
             $.each(errors, function (i, err) { err_notify(err) });
             if (on_error) on_error();
         }
@@ -195,22 +196,22 @@ FilesTree.prototype.upload_file = function(data, on_success, on_error) {
 };
 
 FilesTree.prototype.commit_file = function() {
-    var instance = this;
+    let instance = this;
 
     // The file wasn't changed
     if (instance.editor_status.is(':hidden')) return;
 
-    var node = instance.tree_obj.get_selected(true)[0];
+    let node = instance.tree_obj.get_selected(true)[0];
 
     // No selected node
     if (!node) return;
 
-    var data = new FormData(), content = instance.mirror.getValue();
+    let data = new FormData(), content = instance.mirror.getValue();
     data.append('file', new File([new Blob([content])], node.text));
 
     instance.upload_file(data, function (hash_sum) {
         node.data = {hashsum: hash_sum};
-        var cached = instance.editor_cache.find('span[data-hashsum="' + hash_sum + '"]');
+        let cached = instance.editor_cache.find('span[data-hashsum="' + hash_sum + '"]');
 
         // Caching file content
         if (!cached.length) instance.editor_cache.append(
@@ -223,7 +224,7 @@ FilesTree.prototype.commit_file = function() {
 
 FilesTree.prototype.set_editor_value = function(filename, content) {
     // Get highlighting mode
-    var h_mode = 'text/plain';
+    let h_mode = 'text/plain';
     switch (getFileExtension(filename)) {
         case 'json':
             h_mode = {name: 'javascript', json: true};
@@ -255,10 +256,10 @@ FilesTree.prototype.load_file_content = function(node) {
     // Do nothing if file is not readable
     if (!isFileReadable(node.text)) return;
 
-    var instance = this;
+    let instance = this;
 
     if (node.data && node.data.hashsum) {
-        var cached = instance.editor_cache.find('span[data-hashsum="' + node.data.hashsum + '"]');
+        let cached = instance.editor_cache.find('span[data-hashsum="' + node.data.hashsum + '"]');
         if (cached.length) {
             instance.set_editor_value(node.text, cached.text());
         }
@@ -277,7 +278,7 @@ FilesTree.prototype.load_file_content = function(node) {
 };
 
 FilesTree.prototype.add_file_node = function(filename, hashsum) {
-    var tree_inst = this.tree_obj, parent = tree_inst.get_selected(true)[0];
+    let tree_inst = this.tree_obj, parent = tree_inst.get_selected(true)[0];
 
     tree_inst.create_node(parent, {'type': 'file'}, "last", function(new_node) {
         setTimeout(function() {
@@ -305,7 +306,7 @@ FilesTree.prototype.check_filename = function(str) {
 };
 
 FilesTree.prototype.initialize_modals = function() {
-    var instance = this;
+    let instance = this;
 
     // Initialize replace file modal
     instance.tree_replace_modal.modal({transition: 'fly left'});
@@ -315,7 +316,7 @@ FilesTree.prototype.initialize_modals = function() {
 
     // Upload new file and replace old one on confirm button click
     instance.tree_replace_modal.find('.modal-confirm').click(function () {
-        var confirm_btn = $(this),
+        let confirm_btn = $(this),
             form_data = new FormData(instance.tree_replace_modal.find('.modal-form')[0]);
 
         if (form_data.get('file').name.length === 0) {
@@ -330,7 +331,7 @@ FilesTree.prototype.initialize_modals = function() {
             confirm_btn.removeClass('loading disabled');
 
             // Update file node data (hashsum and name)
-            var node = instance.tree_obj.get_selected(true)[0];
+            let node = instance.tree_obj.get_selected(true)[0];
             instance.tree_obj.rename_node(node, form_data.get('name'));
             node.data = {hashsum: hash_sum};
 
@@ -344,7 +345,7 @@ FilesTree.prototype.initialize_modals = function() {
             instance.tree_replace_modal.modal('hide');
 
             // Clear form
-            var name_input = instance.tree_replace_modal.find('input[name="name"]'),
+            let name_input = instance.tree_replace_modal.find('input[name="name"]'),
                 file_input = instance.tree_replace_modal.find('input[name="file"]');
             name_input.val('');
             file_input.replaceWith(file_input.clone(true));
@@ -364,7 +365,7 @@ FilesTree.prototype.initialize_modals = function() {
 
     // Upload new file on confirm
     instance.tree_upload_modal.find('.modal-confirm').click(function () {
-        var confirm_btn = $(this),
+        let confirm_btn = $(this),
             form_data = new FormData(instance.tree_upload_modal.find('.modal-form')[0]);
 
         if (form_data.get('file').name.length === 0) {
@@ -382,7 +383,7 @@ FilesTree.prototype.initialize_modals = function() {
             instance.tree_upload_modal.modal('hide');
 
             // Clear form
-            var name_input = instance.tree_upload_modal.find('input[name="name"]'),
+            let name_input = instance.tree_upload_modal.find('input[name="name"]'),
                 file_input = instance.tree_upload_modal.find('input[name="file"]');
             name_input.val('');
             file_input.replaceWith(file_input.clone(true));
@@ -399,14 +400,14 @@ FilesTree.prototype.initialize_modals = function() {
 };
 
 FilesTree.prototype.download_file = function() {
-    var node = this.tree_obj.get_selected(true)[0];
+    let node = this.tree_obj.get_selected(true)[0];
     if (node.data && node.data['hashsum']) window.location.replace(
         this.download_file_url.format(node.data['hashsum'], encodeURIComponent(node.text))
     );
 };
 
 FilesTree.prototype.initialize = function (data) {
-    var instance = this;
+    let instance = this;
 
     // Already initialized, just refresh it
     if (instance.tree_obj) {
