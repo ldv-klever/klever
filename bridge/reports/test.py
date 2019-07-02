@@ -874,7 +874,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
     def __upload_subjob(self, subjob):
-        sj = self.__upload_start_report('Sub-job', '/',
+        sj = self.__upload_start_report('Subjob', '/',
                                         [{'name': 'Name',
                                           'value': 'test/dir/and/some/other/text:%s' % subjob['requirement']}])
         lkbce = self.__upload_start_report('LKBCE', sj)
@@ -1380,7 +1380,7 @@ class DecideJob:
         self.__request(url='/service/job-status/{}/'.format(self._job_uuid), method='PATCH', data={'status': '3'})
 
     def __upload_subjob(self, subjob, core_id):
-        sj = self.__upload_start_report('Sub-job', core_id, [{
+        sj = self.__upload_start_report('Subjob', core_id, [{
             'name': 'Name', 'value': 'test/dir/and/some/other/text:{0}'.format(subjob['requirement'])
         }])
         lkbce = self.__upload_start_report('LKBCE', sj)

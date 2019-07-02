@@ -22,7 +22,7 @@ from wsgiref.util import FileWrapper
 
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import ETV_FORMAT
+from bridge.vars import ETV_FORMAT, COVERAGE_FILE
 from bridge.utils import ArchiveFileContent, BridgeException, construct_url
 
 from reports.models import CoverageArchive, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown
@@ -32,25 +32,28 @@ TABLE_STAT_COLOR = ['#f18fa6', '#f1c0b2', '#f9e19b', '#e4f495', '#acf1a8']
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
 
 
-def coverage_url(user, report, many=False):
+def coverage_url_and_total(report, many=False):
     url_name = 'reports:coverage'
     if isinstance(report, (ReportSafe, ReportUnsafe)):
-        if CoverageArchive.objects.filter(report_id=report.parent_id).exists():
-            return construct_url(url_name, report.parent_id)
+        cov_qs = CoverageArchive.objects.filter(report_id=report.parent_id).only('total')
+        if len(cov_qs):
+            return construct_url(url_name, report.parent_id), cov_qs[0].total
     elif isinstance(report, ReportUnknown):
-        if CoverageArchive.objects.filter(report_id=report.parent_id, report__verification=True).exists():
-            return construct_url(url_name, report.parent_id)
+        cov_qs = CoverageArchive.objects.filter(report_id=report.parent_id, report__verification=True).only('total')
+        if len(cov_qs):
+            return construct_url(url_name, report.parent_id), cov_qs[0].total
     elif isinstance(report, ReportComponent):
         if report.verification:
-            if CoverageArchive.objects.filter(report_id=report.id).exists():
-                return construct_url(url_name, report.id)
+            cov_qs = CoverageArchive.objects.filter(report_id=report.id).only('total')
+            if len(cov_qs):
+                return construct_url(url_name, report.id), cov_qs[0].total
         elif many:
             cov_qs = CoverageArchive.objects\
                 .filter(report_id=report.id).exclude(identifier='').only('id', 'identifier')
             return list({
-                'name': cov.identifier, 'url': construct_url(url_name, report.id, coverage_id=cov.id)
+                'name': cov.identifier,'url': construct_url(url_name, report.id, coverage_id=cov.id), 'total': cov.total
             } for cov in cov_qs)
-    return None
+    return None, None
 
 
 def json_to_html(data):
@@ -111,7 +114,6 @@ def json_to_html(data):
 
 
 class CoverageStatistics:
-    common_filename = 'coverage.json'
     file_sep = '/'
 
     def __init__(self, report, coverage_id=None):
@@ -127,7 +129,7 @@ class CoverageStatistics:
 
     def __get_statistics(self):
         try:
-            res = ArchiveFileContent(self.coverage, 'archive', self.common_filename)
+            res = ArchiveFileContent(self.coverage, 'archive', COVERAGE_FILE)
         except Exception as e:
             raise BridgeException(_("Error while extracting source: %(error)s") % {'error': str(e)})
         data = json.loads(res.content.decode('utf8'))

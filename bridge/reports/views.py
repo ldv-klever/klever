@@ -43,7 +43,7 @@ from reports.utils import (
 )
 from reports.etv import GetETV
 from reports.comparison import ComparisonTableData
-from reports.coverage import coverage_url, CoverageStatistics, CoverageGenerator
+from reports.coverage import coverage_url_and_total, CoverageStatistics, CoverageGenerator
 
 from marks.tables import SafeReportMarksTable, UnsafeReportMarksTable, UnknownReportMarksTable
 
@@ -174,10 +174,9 @@ class ReportComponentView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, De
             )
         })
         if self.object.verification:
-            context['coverage_url'] = coverage_url(self.request.user, self.object)
-            print(context['coverage_url'])
+            context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
         else:
-            context['coverages'] = coverage_url(self.request.user, self.object, many=True)
+            context['coverages'] = coverage_url_and_total(self.object, many=True)
         return context
 
 
@@ -355,11 +354,11 @@ class ReportSafeView(LoggedCallMixin, DataViewMixin, DetailView):
             context['parents'] = get_parents(self.object)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
-            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': proof_content,
             'MarkTable': SafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[11]))
         })
+        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
         return context
 
 
@@ -383,11 +382,11 @@ class ReportUnsafeView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Detai
             context['parents'] = get_parents(self.object)
         context.update({
             'include_jquery_ui': True, 'report': self.object, 'etv': etv,
-            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'MarkTable': UnsafeReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[10])),
             'resources': report_resources(self.request.user, self.object)
         })
+        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
         return context
 
 
@@ -401,12 +400,12 @@ class ReportUnknownView(LoginRequiredMixin, LoggedCallMixin, DataViewMixin, Deta
         context = super().get_context_data(**kwargs)
         context.update({
             'report': self.object, 'resources': report_resources(self.request.user, self.object),
-            'coverage_url': coverage_url(self.request.user, self.object),
             'SelfAttrsData': self.object.attrs.order_by('id').values_list('id', 'name', 'value', 'data'),
             'main_content': ArchiveFileContent(
                 self.object, 'problem_description', PROBLEM_DESC_FILE).content.decode('utf8'),
             'MarkTable': UnknownReportMarksTable(self.request.user, self.object, self.get_view(VIEW_TYPES[12]))
         })
+        context['coverage_url'], context['coverage_total'] = coverage_url_and_total(self.object)
         if self.object.root.job.weight == JOB_WEIGHT[0][0]:
             context['parents'] = get_parents(self.object)
         return context

@@ -186,6 +186,7 @@ class CoverageArchive(WithFilesMixin, models.Model):
     report = models.ForeignKey(ReportComponent, models.CASCADE, related_name='coverages')
     identifier = models.CharField(max_length=128, default='')
     archive = models.FileField(upload_to=get_coverage_arch_dir)
+    total = JSONField(null=True)
 
     def add_coverage(self, fp, save=False):
         self.archive.save(REPORT_ARCHIVE['coverage'], File(fp), save=save)

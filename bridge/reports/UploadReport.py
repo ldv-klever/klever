@@ -28,8 +28,8 @@ from django.utils.timezone import now
 from rest_framework import exceptions, fields, serializers
 from rest_framework.settings import api_settings
 
-from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME
-from bridge.utils import logger, extract_archive, CheckArchiveError
+from bridge.vars import JOB_WEIGHT, JOB_STATUS, ERROR_TRACE_FILE, REPORT_ARCHIVE, SUBJOB_NAME, COVERAGE_FILE, ETV_FORMAT
+from bridge.utils import logger, extract_archive, CheckArchiveError, ArchiveFileContent
 
 from reports.models import (
     ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportAttr,
@@ -521,7 +521,9 @@ class UploadReport:
         # Upload coverage for the report
         if 'coverage' in data:
             carch = CoverageArchive(report=report)
-            carch.add_coverage(self.__get_archive(data['coverage']), save=True)
+            carch.add_coverage(self.__get_archive(data['coverage']), save=False)
+            carch.total = self.__calculate_total_coverage(carch)
+            carch.save()
 
         self.__update_root_cache(
             report.component, started=True,
@@ -547,7 +549,9 @@ class UploadReport:
 
         for cov_id in data['coverage']:
             carch = CoverageArchive(report_id=report.id, identifier=cov_id)
-            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=True)
+            carch.add_coverage(self.__get_archive(data['coverage'][cov_id]), save=False)
+            carch.total = self.__calculate_total_coverage(carch)
+            carch.save()
 
     def __patch_report_component(self, data):
         report = self.__get_report(data.get('identifier'))
@@ -708,6 +712,27 @@ class UploadReport:
                     newfile.file.save(os.path.basename(rel_path), File(fp), save=True)
                 db_files[rel_path] = newfile.pk
         return db_files
+
+    def __calculate_total_coverage(self, cov_arch_instance):
+        res = ArchiveFileContent(cov_arch_instance, 'archive', COVERAGE_FILE)
+        data = json.loads(res.content.decode('utf8'))
+        if data.get('format') != ETV_FORMAT:
+            raise exceptions.ValidationError('Coverage format is not supported')
+        if not data.get('coverage statistics'):
+            raise exceptions.ValidationError('Common coverage file does not contain statistics')
+        total_statistics = [0, 0, 0, 0]
+        for cov_data in data['coverage statistics'].values():
+            total_statistics[0] += cov_data[0]
+            total_statistics[1] += cov_data[1]
+            total_statistics[2] += cov_data[2]
+            total_statistics[3] += cov_data[3]
+        lines_stat = 0
+        if total_statistics[1] > 0:
+            lines_stat = round(total_statistics[0] / total_statistics[1] * 100)
+        funcs_stat = 0
+        if total_statistics[3] > 0:
+            funcs_stat = round(total_statistics[2] / total_statistics[3] * 100)
+        return {'lines': '{}%'.format(lines_stat), 'funcs': '{}%'.format(funcs_stat)}
 
 
 def collapse_reports(job):
